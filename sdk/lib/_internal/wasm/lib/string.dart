@@ -130,23 +130,26 @@ extension OneByteStringUnsafeExtensions on String {
 const int _maxLatin1 = 0xff;
 const int _maxUtf16 = 0xffff;
 
-String _toUpperCase(String string) => jsStringToDartString(
-  JSStringImpl(
-    JS<WasmExternRef>(
-      "s => s.toUpperCase()",
-      jsStringFromDartString(string).toExternRef,
-    ),
-  ),
-);
+String _toUpperCase(String string) => string;
 
-String _toLowerCase(String string) => jsStringToDartString(
-  JSStringImpl(
-    JS<WasmExternRef>(
-      "s => s.toLowerCase()",
-      jsStringFromDartString(string).toExternRef,
-    ),
-  ),
-);
+// jsStringToDartString(
+//       JSStringImpl(
+//         JS<WasmExternRef>(
+//           "s => s.toUpperCase()",
+//           jsStringFromDartString(string).toExternRef,
+//         ),
+//       ),
+//     );
+
+String _toLowerCase(String string) => string;
+// jsStringToDartString(
+//       JSStringImpl(
+//         JS<WasmExternRef>(
+//           "s => s.toLowerCase()",
+//           jsStringFromDartString(string).toExternRef,
+//         ),
+//       ),
+//     );
 
 /**
  * [StringBase] contains common methods used by concrete String
@@ -702,10 +705,9 @@ abstract final class StringBase extends WasmStringBase
       length,
       "startIndex",
     );
-    Iterator iterator =
-        startIndex == 0
-            ? pattern.allMatches(this).iterator
-            : pattern.allMatches(this, startIndex).iterator;
+    Iterator iterator = startIndex == 0
+        ? pattern.allMatches(this).iterator
+        : pattern.allMatches(this, startIndex).iterator;
     if (!iterator.moveNext()) return this;
     Match match = iterator.current;
     return replaceRange(match.start, match.end, replacement);
@@ -849,8 +851,7 @@ abstract final class StringBase extends WasmStringBase
     bool replacementStringsAreOneByte,
   ) {
     if (length < 0) throw ArgumentError.value(length);
-    bool isOneByte =
-        replacementStringsAreOneByte &&
+    bool isOneByte = replacementStringsAreOneByte &&
         _slicesAreOneByte(base, matches, length);
     if (isOneByte) {
       return _joinReplaceAllOneByteResult(base, matches, length);
@@ -1040,9 +1041,9 @@ abstract final class StringBase extends WasmStringBase
     for (int i = 0; i < numValues; ++i) {
       final value = values[i];
       var stringValue = value is String ? value : value.toString();
-      if (stringValue is JSStringImpl) {
-        stringValue = jsStringToDartString(stringValue);
-      }
+      // if (stringValue is JSStringImpl) {
+      //   stringValue = jsStringToDartString(stringValue);
+      // }
       values[i] = stringValue;
       isOneByteString = isOneByteString && stringValue is OneByteString;
       totalLength += stringValue.length;
@@ -1218,10 +1219,10 @@ abstract final class StringBase extends WasmStringBase
     bool isOneByteString = true;
     for (int i = start; i < end; i++) {
       String stringValue = strings[i];
-      if (stringValue is JSStringImpl) {
-        stringValue = jsStringToDartString(stringValue);
-        strings[i] = stringValue;
-      }
+      // if (stringValue is JSStringImpl) {
+      //   stringValue = jsStringToDartString(stringValue);
+      //   strings[i] = stringValue;
+      // }
       isOneByteString = isOneByteString && stringValue is OneByteString;
       totalLength += stringValue.length;
     }

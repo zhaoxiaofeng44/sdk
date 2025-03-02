@@ -170,7 +170,7 @@ vars = {
   "firefox_tag": "134.0.2",
 
   # Emscripten is used in dart2wasm tests.
-  "download_emscripten": False,
+  "download_emscripten": True,
   "emsdk_rev": "e41b8c68a248da5f18ebd03bd0420953945d52ff",
   "emsdk_ver": "3.1.3",
 }

@@ -4,9 +4,16 @@
 
 @pragma('vm:entry-point', 'call')
 void main(List<String> args) {
-  greet(args[0]);
+  var ttt = ["1", "2", "3", "4792hsdfssafkka"];
+  ttt.add("xmyyhssdgsgsg");
+  double ee = 7.4323;
+  int g = ee.ceil() % 4;
+
+  greet("aaaaa" + ttt[g]);
 }
 
 void greet(String person) {
-  print("hi, $person!");
+  double ee = 7.4323;
+  double ttt = ee + 6.2;
+  print("hi, ${ttt.ceil()}!");
 }

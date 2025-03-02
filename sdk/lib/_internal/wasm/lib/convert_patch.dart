@@ -6,9 +6,9 @@ import "dart:_compact_hash" show createMapFromKeyValueListUnsafe;
 import "dart:_error_utils";
 import "dart:_internal"
     show patch, POWERS_OF_TEN, unsafeCast, pushWasmArray, popWasmArray;
-import "dart:_js_string_convert";
-import "dart:_js_types";
-import "dart:_js_helper" show jsStringToDartString;
+// import "dart:_js_string_convert";
+// import "dart:_js_types";
+// import "dart:_js_helper" show jsStringToDartString;
 import "dart:_list"
     show GrowableList, WasmListBaseUnsafeExtensions, WasmListBase;
 import "dart:_string";
@@ -40,12 +40,13 @@ dynamic _parseJson(
     parser.parse(0);
     parser.close();
     return listener.result;
-  } else {
-    return _parseJson(
-      jsStringToDartString(unsafeCast<JSStringImpl>(source)),
-      reviver,
-    );
   }
+  //  else {
+  //   return _parseJson(
+  //     jsStringToDartString(unsafeCast<JSStringImpl>(source)),
+  //     reviver,
+  //   );
+  // }
 }
 
 @patch
@@ -1740,10 +1741,11 @@ class _JsonStringDecoderSink extends StringConversionSinkBase {
       parser.chunkEnd = end;
       parser.parse(start);
       if (isLast) parser.close();
-    } else {
-      final dartString = jsStringToDartString(unsafeCast<JSStringImpl>(chunk));
-      return addSlice(dartString, start, end, isLast);
     }
+    // else {
+    //   final dartString = jsStringToDartString(unsafeCast<JSStringImpl>(chunk));
+    //   return addSlice(dartString, start, end, isLast);
+    // }
   }
 
   void add(String chunk) {
@@ -1791,8 +1793,8 @@ class _JsonUtf8Parser extends _ChunkedJsonParserState
   int chunkEnd = 0;
 
   _JsonUtf8Parser(_JsonListener listener, bool allowMalformed)
-    : decoder = _Utf8Decoder(allowMalformed),
-      super(listener) {
+      : decoder = _Utf8Decoder(allowMalformed),
+        super(listener) {
     // Starts out checking for an optional BOM (KWD_BOM, count = 0).
     partialState =
         _ChunkedJsonParser.PARTIAL_KEYWORD | _ChunkedJsonParser.KWD_BOM;
@@ -2013,15 +2015,15 @@ class _Utf8Decoder {
     );
     if (start == end) return "";
 
-    if (codeUnits is JSUint8ArrayImpl) {
-      JSStringImpl? decoded = decodeUtf8JS(
-        codeUnits,
-        start,
-        end,
-        allowMalformed,
-      );
-      if (decoded != null) return decoded;
-    }
+    // if (codeUnits is JSUint8ArrayImpl) {
+    //   JSStringImpl? decoded = decodeUtf8JS(
+    //     codeUnits,
+    //     start,
+    //     end,
+    //     allowMalformed,
+    //   );
+    //   if (decoded != null) return decoded;
+    // }
 
     final WasmArray<WasmI8> bytes;
     int offsetInBytes = 0;

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:_internal' show patch, unsafeCast, unsafeCastOpaque;
-import 'dart:_js_helper' show JS;
+import 'dart:_js_helper' show JS, MyJS;
 import 'dart:_js_types' show JSArrayBase, JSDataViewImpl;
 import 'dart:js_interop';
 import 'dart:_string';
@@ -74,7 +74,7 @@ void _copyFromWasmI8Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const getValue = dartInstance.exports.\$wasmI8ArrayGet;
           for (let i = 0; i < length; i++) {
@@ -97,7 +97,7 @@ void copyToWasmI8Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const setValue = dartInstance.exports.\$wasmI8ArraySet;
           for (let i = 0; i < length; i++) {
@@ -120,7 +120,7 @@ void _copyFromWasmI16Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const getValue = dartInstance.exports.\$wasmI16ArrayGet;
           for (let i = 0; i < length; i++) {
@@ -143,7 +143,7 @@ void copyToWasmI16Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const setValue = dartInstance.exports.\$wasmI16ArraySet;
           for (let i = 0; i < length; i++) {
@@ -166,7 +166,7 @@ void _copyFromWasmI32Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const getValue = dartInstance.exports.\$wasmI32ArrayGet;
           for (let i = 0; i < length; i++) {
@@ -189,7 +189,7 @@ void copyToWasmI32Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const setValue = dartInstance.exports.\$wasmI32ArraySet;
           for (let i = 0; i < length; i++) {
@@ -212,7 +212,7 @@ void _copyFromWasmF32Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const getValue = dartInstance.exports.\$wasmF32ArrayGet;
           for (let i = 0; i < length; i++) {
@@ -235,7 +235,7 @@ void copyToWasmF32Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const setValue = dartInstance.exports.\$wasmF32ArraySet;
           for (let i = 0; i < length; i++) {
@@ -258,7 +258,7 @@ void _copyFromWasmF64Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const getValue = dartInstance.exports.\$wasmF64ArrayGet;
           for (let i = 0; i < length; i++) {
@@ -281,7 +281,7 @@ void copyToWasmF64Array(
   int wasmOffset,
   int length,
 ) {
-  JS<WasmExternRef?>(
+  MyJS<WasmExternRef?>(
     """(jsArray, jsArrayOffset, wasmArray, wasmArrayOffset, length) => {
           const setValue = dartInstance.exports.\$wasmF64ArraySet;
           for (let i = 0; i < length; i++) {
@@ -308,7 +308,7 @@ WasmExternRef jsInt8ArrayFromDartInt8List(Int8List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Int8Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Int8Array, l)', l);
 }
 
 @patch
@@ -323,7 +323,7 @@ WasmExternRef? jsUint8ArrayFromDartUint8List(Uint8List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Uint8Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Uint8Array, l)', l);
 }
 
 @patch
@@ -339,7 +339,7 @@ WasmExternRef? jsUint8ClampedArrayFromDartUint8ClampedList(Uint8ClampedList l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Uint8ClampedArray, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Uint8ClampedArray, l)', l);
 }
 
 @patch
@@ -354,7 +354,7 @@ WasmExternRef jsInt16ArrayFromDartInt16List(Int16List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Int16Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Int16Array, l)', l);
 }
 
 @patch
@@ -369,7 +369,7 @@ WasmExternRef jsUint16ArrayFromDartUint16List(Uint16List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Uint16Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Uint16Array, l)', l);
 }
 
 @patch
@@ -384,7 +384,7 @@ WasmExternRef jsInt32ArrayFromDartInt32List(Int32List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Int32Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Int32Array, l)', l);
 }
 
 @patch
@@ -399,7 +399,7 @@ WasmExternRef jsUint32ArrayFromDartUint32List(Uint32List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Uint32Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Uint32Array, l)', l);
 }
 
 @patch
@@ -414,7 +414,7 @@ WasmExternRef jsFloat32ArrayFromDartFloat32List(Float32List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Float32Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Float32Array, l)', l);
 }
 
 @patch
@@ -429,7 +429,7 @@ WasmExternRef jsFloat64ArrayFromDartFloat64List(Float64List l) {
     return jsArray;
   }
 
-  return JS<WasmExternRef>('l => arrayFromDartList(Float64Array, l)', l);
+  return MyJS<WasmExternRef>('l => arrayFromDartList(Float64Array, l)', l);
 }
 
 @patch
@@ -450,7 +450,7 @@ WasmExternRef jsDataViewFromDartByteData(ByteData l, int length) {
     return (JSDataView(jsArrayBuffer, 0, length) as JSValue).toExternRef!;
   }
 
-  return JS<WasmExternRef>(
+  return MyJS<WasmExternRef>(
     """(data, length) => {
           const getValue = dartInstance.exports.\$byteDataGetUint8;
           const view = new DataView(new ArrayBuffer(length));

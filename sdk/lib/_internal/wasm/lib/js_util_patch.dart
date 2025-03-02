@@ -199,7 +199,7 @@ Object? get objectPrototype => throw 'unimplemented';
 
 @patch
 List<Object?> objectKeys(Object? o) =>
-    toDartList(JS<WasmExternRef?>('o => Object.keys(o)', jsifyRaw(o)));
+    toDartList(MyJS<WasmExternRef?>('o => Object.keys(o)', jsifyRaw(o)));
 
 @patch
 Object? dartify(Object? object) {

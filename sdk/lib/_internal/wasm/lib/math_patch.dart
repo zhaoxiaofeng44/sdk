@@ -4,8 +4,8 @@
 
 import "dart:_error_utils";
 import "dart:_internal" show mix64, patch;
-import "dart:_js_types" show JSUint8ArrayImpl;
-import "dart:js_interop";
+// import "dart:_js_types" show JSUint8ArrayImpl;
+// import "dart:js_interop";
 import "dart:_wasm";
 
 /// There are no parts of this patch library.
@@ -143,7 +143,8 @@ external double _log(double x);
 // TODO(iposva): Handle patch methods within a patch class correctly.
 @patch
 class Random {
-  static final Random _secureRandom = _SecureRandom();
+  //static final Random _secureRandom = _SecureRandom();
+  static final Random _secureRandom = _Random._withState(3235);
 
   @patch
   factory Random([int? seed]) {
@@ -230,8 +231,11 @@ class _Random implements Random {
   static int _setupSeed(int seed) => mix64(seed);
 
   static int _initialSeed() {
-    final low = (_jsMath.random() * 4294967295.0).toInt();
-    final high = (_jsMath.random() * 4294967295.0).toInt();
+    // final low = (_jsMath.random() * 4294967295.0).toInt();
+    // final high = (_jsMath.random() * 4294967295.0).toInt();
+
+    final low = (377727 * 4294967295.0).toInt();
+    final high = (377727 * 4294967295.0).toInt();
     return ((high << 32) | low);
   }
 
@@ -242,88 +246,88 @@ class _Random implements Random {
   }
 }
 
-@JS('crypto')
-external _JSCrypto get _jsCryptoGetter;
+// @JS('crypto')
+// external _JSCrypto get _jsCryptoGetter;
 
-final _JSCrypto _jsCrypto = _jsCryptoGetter;
+// final _JSCrypto _jsCrypto = _jsCryptoGetter;
 
-extension type _JSCrypto._(JSObject _jsCrypto) implements JSObject {}
+// extension type _JSCrypto._(JSObject _jsCrypto) implements JSObject {}
 
-extension _JSCryptoGetRandomValues on _JSCrypto {
-  @JS('getRandomValues')
-  external void getRandomValues(JSUint8Array array);
-}
+// extension _JSCryptoGetRandomValues on _JSCrypto {
+//   @JS('getRandomValues')
+//   external void getRandomValues(JSUint8Array array);
+// }
 
-@JS('Math')
-external _JSMath get _jsMathGetter;
+// @JS('Math')
+// external _JSMath get _jsMathGetter;
 
-final _JSMath _jsMath = _jsMathGetter;
+// final _JSMath _jsMath = _jsMathGetter;
 
-extension type _JSMath._(JSObject _jsMath) implements JSObject {}
+// extension type _JSMath._(JSObject _jsMath) implements JSObject {}
 
-extension _JSMathRandom on _JSMath {
-  @JS('random')
-  external double random();
-}
+// extension _JSMathRandom on _JSMath {
+//   @JS('random')
+//   external double random();
+// }
 
-class _SecureRandom implements Random {
-  final JSUint8ArrayImpl _buffer = JSUint8ArrayImpl(8);
+// class _SecureRandom implements Random {
+//   final JSUint8ArrayImpl _buffer = JSUint8ArrayImpl(8);
 
-  _SecureRandom() {
-    // Throw early in constructor if entropy source is not hooked up.
-    _getBytes(1);
-  }
+//   _SecureRandom() {
+//     // Throw early in constructor if entropy source is not hooked up.
+//     _getBytes(1);
+//   }
 
-  // Return count bytes of entropy as an integer; count <= 8.
-  int _getBytes(int count) {
-    final JSUint8ArrayImpl bufferView = JSUint8ArrayImpl.view(
-      _buffer.buffer,
-      0,
-      count,
-    );
+//   // Return count bytes of entropy as an integer; count <= 8.
+//   int _getBytes(int count) {
+//     final JSUint8ArrayImpl bufferView = JSUint8ArrayImpl.view(
+//       _buffer.buffer,
+//       0,
+//       count,
+//     );
 
-    final JSUint8Array bufferViewJS = bufferView.toJS;
-    _jsCrypto.getRandomValues(bufferViewJS);
+//     final JSUint8Array bufferViewJS = bufferView.toJS;
+//     _jsCrypto.getRandomValues(bufferViewJS);
 
-    int value = 0;
-    for (int i = 0; i < count; i += 1) {
-      value = (value << 8) | bufferView[i];
-    }
+//     int value = 0;
+//     for (int i = 0; i < count; i += 1) {
+//       value = (value << 8) | bufferView[i];
+//     }
 
-    return value;
-  }
+//     return value;
+//   }
 
-  int nextInt(int max) {
-    RangeErrorUtils.checkValueInInterval(
-      max,
-      1,
-      _POW2_32,
-      "max",
-      "Must be positive and <= 2^32",
-    );
-    final byteCount =
-        ((max - 1).bitLength + 7) >> 3; // Divide number of bits by 8, round up.
-    if (byteCount == 0) {
-      return 0; // Not random if max == 1.
-    }
-    var rnd;
-    var result;
-    do {
-      rnd = _getBytes(byteCount);
-      result = rnd % max;
-    } while ((rnd - result + max) > (1 << (byteCount << 3)));
-    return result;
-  }
+//   int nextInt(int max) {
+//     RangeErrorUtils.checkValueInInterval(
+//       max,
+//       1,
+//       _POW2_32,
+//       "max",
+//       "Must be positive and <= 2^32",
+//     );
+//     final byteCount =
+//         ((max - 1).bitLength + 7) >> 3; // Divide number of bits by 8, round up.
+//     if (byteCount == 0) {
+//       return 0; // Not random if max == 1.
+//     }
+//     var rnd;
+//     var result;
+//     do {
+//       rnd = _getBytes(byteCount);
+//       result = rnd % max;
+//     } while ((rnd - result + max) > (1 << (byteCount << 3)));
+//     return result;
+//   }
 
-  double nextDouble() {
-    return (_getBytes(7) >> 3) / _POW2_53_D;
-  }
+//   double nextDouble() {
+//     return (_getBytes(7) >> 3) / _POW2_53_D;
+//   }
 
-  bool nextBool() {
-    return _getBytes(1).isEven;
-  }
+//   bool nextBool() {
+//     return _getBytes(1).isEven;
+//   }
 
-  // Constants used by the algorithm.
-  static const _POW2_32 = 1 << 32;
-  static const _POW2_53_D = 1.0 * (1 << 53);
-}
+//   // Constants used by the algorithm.
+//   static const _POW2_32 = 1 << 32;
+//   static const _POW2_53_D = 1.0 * (1 << 53);
+// }

@@ -5,9 +5,10 @@
 import "dart:_error_utils";
 import 'dart:_boxed_int' show intHashCode;
 import 'dart:_internal' show doubleToIntBits, intBitsToDouble;
-import 'dart:_js_helper' show JS, jsStringToDartString;
+//import 'dart:_js_helper' show JS, jsStringToDartString;
 import 'dart:_string';
 import 'dart:_wasm';
+import 'dart:typed_data';
 
 @pragma("wasm:entry-point")
 final class BoxedDouble implements double {
@@ -189,13 +190,10 @@ final class BoxedDouble implements double {
   @pragma("wasm:prefer-inline")
   bool operator ==(Object other) {
     return other is double
-        ? this ==
-            other // Intrinsic ==
+        ? this == other // Intrinsic ==
         : other is int
-        ? this ==
-            other
-                .toDouble() // Intrinsic ==
-        : false;
+            ? this == other.toDouble() // Intrinsic ==
+            : false;
   }
 
   @pragma("wasm:prefer-inline")
@@ -341,14 +339,16 @@ final class BoxedDouble implements double {
         return "0.0";
       }
     }
-    String result = jsStringToDartString(
-      JSStringImpl(
-        JS<WasmExternRef?>(
-          'Function.prototype.call.bind(Number.prototype.toString)',
-          WasmF64.fromDouble(value),
-        ),
-      ),
-    );
+    // String result = jsStringToDartString(
+    //   JSStringImpl(
+    //     JS<WasmExternRef?>(
+    //       'Function.prototype.call.bind(Number.prototype.toString)',
+    //       WasmF64.fromDouble(value),
+    //     ),
+    //   ),
+    // );
+
+    String result = doubleToString(value);
     if (this % 1.0 == 0.0 && result.indexOf('e') == -1) {
       result = '$result.0';
     }
@@ -385,20 +385,21 @@ final class BoxedDouble implements double {
       return x.toString();
     }
 
-    String result = _toStringAsFixed(fractionDigits);
+    //String result = _toStringAsFixed(fractionDigits);
+    String result = doubleToString(value);
     if (this == 0 && isNegative) return '-$result';
     return result;
   }
 
-  String _toStringAsFixed(int fractionDigits) => jsStringToDartString(
-    JSStringImpl(
-      JS<WasmExternRef>(
-        "(d, digits) => d.toFixed(digits)",
-        value,
-        fractionDigits.toDouble(),
-      ),
-    ),
-  );
+  // String _toStringAsFixed(int fractionDigits) => jsStringToDartString(
+  //       JSStringImpl(
+  //         JS<WasmExternRef>(
+  //           "(d, digits) => d.toFixed(digits)",
+  //           value,
+  //           fractionDigits.toDouble(),
+  //         ),
+  //       ),
+  //     );
 
   String toStringAsExponential([int? fractionDigits]) {
     // See ECMAScript-262, 15.7.4.6 for details.
@@ -421,23 +422,24 @@ final class BoxedDouble implements double {
     if (this == double.infinity) return "Infinity";
     if (this == -double.infinity) return "-Infinity";
 
-    String result = _toStringAsExponential(fractionDigits);
+    //String result = _toStringAsExponential(fractionDigits);
+    String result = doubleToString(value);
     if (this == 0 && isNegative) return '-$result';
     return result;
   }
 
-  String _toStringAsExponential(int? fractionDigits) {
-    final jsString = JSStringImpl(
-      fractionDigits == null
-          ? JS<WasmExternRef>("d => d.toExponential()", value)
-          : JS<WasmExternRef>(
-            "(d, f) => d.toExponential(f)",
-            value,
-            fractionDigits.toDouble(),
-          ),
-    );
-    return jsStringToDartString(jsString);
-  }
+  // String _toStringAsExponential(int? fractionDigits) {
+  //   final jsString = JSStringImpl(
+  //     fractionDigits == null
+  //         ? JS<WasmExternRef>("d => d.toExponential()", value)
+  //         : JS<WasmExternRef>(
+  //             "(d, f) => d.toExponential(f)",
+  //             value,
+  //             fractionDigits.toDouble(),
+  //           ),
+  //   );
+  //   return jsStringToDartString(jsString);
+  // }
 
   String toStringAsPrecision(int precision) {
     // See ECMAScript-262, 15.7.4.7 for details.
@@ -453,20 +455,21 @@ final class BoxedDouble implements double {
     if (this == double.infinity) return "Infinity";
     if (this == -double.infinity) return "-Infinity";
 
-    String result = _toStringAsPrecision(precision);
+    //String result = _toStringAsPrecision(precision);
+    String result = doubleToString(value);
     if (this == 0 && isNegative) return '-$result';
     return result;
   }
 
-  String _toStringAsPrecision(int fractionDigits) => jsStringToDartString(
-    JSStringImpl(
-      JS<WasmExternRef>(
-        "(d, precision) => d.toPrecision(precision)",
-        value,
-        fractionDigits.toDouble(),
-      ),
-    ),
-  );
+  // String _toStringAsPrecision(int fractionDigits) => jsStringToDartString(
+  //       JSStringImpl(
+  //         JS<WasmExternRef>(
+  //           "(d, precision) => d.toPrecision(precision)",
+  //           value,
+  //           fractionDigits.toDouble(),
+  //         ),
+  //       ),
+  //     );
 
   // Order is: NaN > Infinity > ... > 0.0 > -0.0 > ... > -Infinity.
   int compareTo(num other) {
@@ -516,5 +519,112 @@ final class BoxedDouble implements double {
       // Other is NaN.
       return LESS;
     }
+  }
+}
+
+String doubleToString(double d) {
+  if (d == 0.0) return '0.0';
+
+  final isNeg = d < 0;
+  var val = d.abs();
+  var exp = 0;
+  final buf = Uint8List(32); // 总缓冲区：符号+数字+指数
+
+  // 标准化数值到[1.0, 10.0)区间
+  while (val >= 10) {
+    val /= 10;
+    exp++;
+  }
+  while (val < 1 && val != 0) {
+    val *= 10;
+    exp--;
+  }
+
+  // 填充数字部分到缓冲区
+  var pos = _fillDigits(buf, 2, val); // 留出符号位和首数字位置
+  final start = 2;
+  final end = pos;
+
+  // 去除尾部零
+  while (pos > start + 1 && buf[pos - 1] == 0x30) pos--;
+
+  // 确定输出模式
+  final useScience = exp > 20 || exp < -5;
+  final result = Uint8List(useScience ? 24 : 32);
+  var outPos = 0;
+
+  // 构建符号位
+  if (isNeg) result[outPos++] = 0x2D;
+
+  if (useScience) {
+    // 科学计数法模式
+    result[outPos++] = buf[start];
+    if (pos > start + 1) {
+      result[outPos++] = 0x2E;
+      result.setRange(outPos, outPos + pos - start - 1, buf, start + 1);
+      outPos += pos - start - 1;
+    }
+    _writeExp(result, exp, outPos);
+  } else {
+    // 常规模式
+    final pointShift = exp + 1;
+    final intPartLen = pointShift.clamp(0, pos - start);
+
+    // 整数部分
+    if (intPartLen > 0) {
+      result.setRange(outPos, outPos + intPartLen, buf, start);
+      outPos += intPartLen;
+    } else {
+      result[outPos++] = 0x30;
+    }
+
+    // 小数部分
+    final decStart = start + intPartLen;
+    final decLen = pos - decStart;
+    if (decLen > 0 || pointShift < 0) {
+      result[outPos++] = 0x2E;
+      if (pointShift < 0) {
+        result.fillRange(outPos, outPos - pointShift, 0x30);
+        outPos -= pointShift;
+      }
+      if (decLen > 0) {
+        result.setRange(outPos, outPos + decLen, buf, decStart);
+        outPos += decLen;
+      }
+    }
+
+    // 清理尾部
+    while (result[outPos - 1] == 0x2E || result[outPos - 1] == 0x30) outPos--;
+    if (result[outPos - 1] == 0x2E) outPos--;
+  }
+  return String.fromCharCodes(result.sublist(0, outPos));
+}
+
+int _fillDigits(Uint8List buf, int offset, double val) {
+  var pos = offset;
+  var intPart = val.floor();
+  buf[pos++] = intPart + 0x30;
+  var dec = val - intPart;
+
+  for (var i = 0; i < 17 && dec > 1e-17; i++) {
+    dec *= 10;
+    final digit = dec.floor();
+    buf[pos++] = digit + 0x30;
+    dec -= digit;
+  }
+  return pos;
+}
+
+void _writeExp(Uint8List buf, int exp, int pos) {
+  buf[pos++] = 0x65; // 'e'
+  buf[pos++] = exp >= 0 ? 0x2B : 0x2D; // '+'/'-'
+  exp = exp.abs();
+
+  var digits = 0;
+  for (var n = exp; n > 0; n ~/= 10) digits++;
+  digits = digits == 0 ? 1 : digits;
+
+  for (var i = pos + digits - 1; i >= pos; i--, exp ~/= 10) {
+    buf[i] = (exp % 10) + 0x30;
   }
 }

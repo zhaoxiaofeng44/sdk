@@ -40,11 +40,9 @@ class Lists {
 
     // TODO(askesc): Intrinsify for efficient copying
     if (srcStart < dstStart) {
-      for (
-        int i = srcStart + count - 1, j = dstStart + count - 1;
-        i >= srcStart;
-        i--, j--
-      ) {
+      for (int i = srcStart + count - 1, j = dstStart + count - 1;
+          i >= srcStart;
+          i--, j--) {
         dst[j] = src[i];
       }
     } else {
@@ -150,8 +148,10 @@ external Function get mainTearOff;
 @pragma("wasm:export", "\$invokeMain")
 void _invokeMain(WasmExternRef jsArrayRef) {
   try {
-    final jsArray = (JSValue(jsArrayRef) as JSArray<JSString>).toDart;
-    final args = <String>[for (final jsValue in jsArray) jsValue.toDart];
+    // final jsArray = (JSValue(jsArrayRef) as JSArray<JSString>).toDart;
+    // final args = <String>[for (final jsValue in jsArray) jsValue.toDart];
+
+    final args = <String>[];
     final main = mainTearOff;
     if (main is void Function(List<String>, Null)) {
       main(List.unmodifiable(args), null);
@@ -172,14 +172,16 @@ void _invokeMain(WasmExternRef jsArrayRef) {
 @pragma("wasm:export", "\$listAdd")
 void _listAdd(List<dynamic> list, dynamic item) => list.add(item);
 
-String jsonEncode(String object) => jsStringToDartString(
-  JSStringImpl(
-    JS<WasmExternRef>(
-      "s => JSON.stringify(s)",
-      jsStringFromDartString(object).toExternRef,
-    ),
-  ),
-);
+// String jsonEncode(String object) => jsStringToDartString(
+//       JSStringImpl(
+//         JS<WasmExternRef>(
+//           "s => JSON.stringify(s)",
+//           jsStringFromDartString(object).toExternRef,
+//         ),
+//       ),
+//     );
+
+String jsonEncode(String object) => object;
 
 /// Whether to check bounds in [IndexErrorUtils.checkIndex],
 /// which are  used in list and typed data implementations.

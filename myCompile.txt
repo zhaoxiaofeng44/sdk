@@ -1,0 +1,10 @@
+/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/ReleaseX64/dart-sdk/bin/dart run /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dartdev/bin/dartdev.dart compile wasm /Users/alsc/MyProject/myTest/flutter_project/flutter_builder/groot_code_analyzer/lib/test/aaaa.dart
+
+
+
+
+./tools/build.py --mode debug --arch x64 create_sdk
+/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/ReleaseX64/dart-sdk/bin/dart compile wasm /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.dart
+
+
+d8 pkg/dart2wasm/bin/run_wasm.js -- /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.mjs /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.wasm

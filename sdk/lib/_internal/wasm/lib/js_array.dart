@@ -24,13 +24,13 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
 
   @override
   void add(T value) =>
-      js.JS<void>('(a, i) => a.push(i)', toExternRef, value.toExternRef);
+      js.MyJS<void>('(a, i) => a.push(i)', toExternRef, value.toExternRef);
 
   @override
   T removeAt(int index) {
     IndexErrorUtils.checkIndex(index, length);
     return js.JSValue.boxT<T>(
-      js.JS<WasmExternRef?>(
+      js.MyJS<WasmExternRef?>(
         '(a, i) => a.splice(i, 1)[0]',
         toExternRef,
         WasmI32.fromInt(index),
@@ -41,7 +41,7 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   @override
   void insert(int index, T value) {
     RangeErrorUtils.checkValueBetweenZeroAndPositiveMax(index, length);
-    js.JS<void>(
+    js.MyJS<void>(
       '(a, i, v) => a.splice(i, 0, v)',
       toExternRef,
       WasmI32.fromInt(index),
@@ -49,11 +49,11 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
     );
   }
 
-  void _setLengthUnsafe(int newLength) => js.JS<void>(
-    '(a, l) => a.length = l',
-    toExternRef,
-    WasmI32.fromInt(newLength),
-  );
+  void _setLengthUnsafe(int newLength) => js.MyJS<void>(
+        '(a, l) => a.length = l',
+        toExternRef,
+        WasmI32.fromInt(newLength),
+      );
 
   @override
   void insertAll(int index, Iterable<T> iterable) {
@@ -76,13 +76,13 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
 
   @override
   T removeLast() =>
-      js.JSValue.boxT<T>(js.JS<WasmExternRef?>('a => a.pop()', toExternRef));
+      js.JSValue.boxT<T>(js.MyJS<WasmExternRef?>('a => a.pop()', toExternRef));
 
   @override
   bool remove(Object? element) {
     for (var i = 0; i < length; i++) {
       if (this[i] == element) {
-        js.JS<void>(
+        js.MyJS<void>(
           '(a, i) => a.splice(i, 1)',
           toExternRef,
           WasmI32.fromInt(i),
@@ -155,13 +155,13 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   String join([String separator = ""]) {
     WasmExternRef? result;
     if (separator is JSStringImpl) {
-      result = js.JS<WasmExternRef?>(
+      result = js.MyJS<WasmExternRef?>(
         '(a, s) => a.join(s)',
         toExternRef,
         separator.toExternRef,
       );
     } else {
-      result = js.JS<WasmExternRef?>(
+      result = js.MyJS<WasmExternRef?>(
         '(a, s) => a.join(s)',
         toExternRef,
         separator.toJS.toExternRef,
@@ -260,7 +260,7 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   List<T> sublist(int start, [int? end]) {
     end = RangeErrorUtils.checkValidRange(start, end, length);
     return JSArrayImpl<T>(
-      js.JS<WasmExternRef?>(
+      js.MyJS<WasmExternRef?>(
         '(a, s, e) => a.slice(s, e)',
         toExternRef,
         WasmI32.fromInt(start),
@@ -298,7 +298,7 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   void removeRange(int start, int end) {
     RangeErrorUtils.checkValidRange(start, end, length);
     int deleteCount = end - start;
-    js.JS<void>(
+    js.MyJS<void>(
       '(a, s, e) => a.splice(s, e)',
       toExternRef,
       WasmI32.fromInt(start),
@@ -349,10 +349,9 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   @override
   void replaceRange(int start, int end, Iterable<T> replacement) {
     RangeErrorUtils.checkValidRange(start, end, length);
-    final replacementList =
-        replacement is EfficientLengthIterable
-            ? replacement
-            : replacement.toList();
+    final replacementList = replacement is EfficientLengthIterable
+        ? replacement
+        : replacement.toList();
     final removeLength = end - start;
     final insertLength = replacementList.length;
     if (removeLength >= insertLength) {
@@ -399,14 +398,11 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   @override
   Iterable<T> get reversed => ReversedListIterable<T>(this);
 
-  static int _compareAny<T extends JSAny?>(T a, T b) =>
-      js
-          .JS<double>(
-            '(a, b) => a == b ? 0 : (a > b ? 1 : -1)',
-            a.toExternRef,
-            b.toExternRef,
-          )
-          .toInt();
+  static int _compareAny<T extends JSAny?>(T a, T b) => js.MyJS<double>(
+        '(a, b) => a == b ? 0 : (a > b ? 1 : -1)',
+        a.toExternRef,
+        b.toExternRef,
+      ).toInt();
 
   @override
   void sort([int Function(T, T)? compare]) =>
@@ -487,11 +483,11 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   Iterator<T> get iterator => JSArrayImplIterator<T>(this);
 
   @override
-  int get length => js.JS<double>('a => a.length', toExternRef).toInt();
+  int get length => js.MyJS<double>('a => a.length', toExternRef).toInt();
 
   void set length(int newLength) {
     RangeErrorUtils.checkNotNegative(newLength, "length");
-    js.JS<void>(
+    js.MyJS<void>(
       '(a, l) => a.length = l',
       toExternRef,
       WasmI32.fromInt(newLength),
@@ -500,12 +496,12 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
 
   @pragma("wasm:prefer-inline")
   T _getUnchecked(int index) => js.JSValue.boxT<T>(
-    js.JS<WasmExternRef?>(
-      '(a, i) => a[i]',
-      toExternRef,
-      WasmI32.fromInt(index),
-    ),
-  );
+        js.MyJS<WasmExternRef?>(
+          '(a, i) => a[i]',
+          toExternRef,
+          WasmI32.fromInt(index),
+        ),
+      );
 
   @override
   @pragma("wasm:prefer-inline")
@@ -515,12 +511,12 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   }
 
   @pragma("wasm:prefer-inline")
-  void _setUnchecked(int index, T value) => js.JS<void>(
-    '(a, i, v) => a[i] = v',
-    toExternRef,
-    WasmI32.fromInt(index),
-    value.toExternRef,
-  );
+  void _setUnchecked(int index, T value) => js.MyJS<void>(
+        '(a, i, v) => a[i] = v',
+        toExternRef,
+        WasmI32.fromInt(index),
+        value.toExternRef,
+      );
 
   @override
   @pragma("wasm:prefer-inline")
@@ -543,7 +539,7 @@ class JSArrayImpl<T extends JSAny?> implements List<T> {
   List<T> operator +(List<T> other) {
     if (other is JSArrayImpl) {
       return JSArrayImpl<T>(
-        js.JS<WasmExternRef?>(
+        js.MyJS<WasmExternRef?>(
           '(a, t) => a.concat(t)',
           toExternRef,
           other.toExternRef,

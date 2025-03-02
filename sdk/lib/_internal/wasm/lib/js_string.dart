@@ -63,7 +63,7 @@ final class JSStringImpl implements String, StringUncheckedOperationsBase {
       array[i] = jsString;
     }
     return JSStringImpl(
-      js.JS<WasmExternRef?>("a => a.join('')", array.toExternRef),
+      js.MyJS<WasmExternRef?>("a => a.join('')", array.toExternRef),
     );
   }
 

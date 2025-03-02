@@ -121,7 +121,7 @@ source_set("binaryen_sources") {
   deps = [ ":generate_needed_files" ]
 
   # Ensure generated WasmIntrinsics.cpp file is included in build.
-  sources += [ "$target_gen_dir/WasmIntrinsics.cpp" ]
+  #sources += [ "$target_gen_dir/WasmIntrinsics.cpp" ]
 
   # Ensure generated config.h file is include path.
   include_dirs += [ "$target_gen_dir" ]

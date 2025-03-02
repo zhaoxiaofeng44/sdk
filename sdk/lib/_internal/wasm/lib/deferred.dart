@@ -63,20 +63,21 @@ Future<void> loadLibrary(String enclosingLibrary, String importPrefix) {
       continue;
     }
 
-    // Start module load
-    final promise =
-        (_loadModule(moduleName.toJS.toExternRef!).toJS as JSPromise);
-    final future = promise.toDart.then(
-      (_) {
-        // Module loaded
-        _loadedModules.add(moduleName);
-      },
-      onError: (e) {
-        throw DeferredLoadException('Error loading module: $moduleName\n$e');
-      },
-    );
-    loadFutures.add(future);
-    _loadingModules[moduleName] = future;
+    // _loadModule(moduleName);
+    // // Start module load
+    // final promise =
+    //     (_loadModule(moduleName.toJS.toExternRef!).toJS as JSPromise);
+    // final future = promise.toDart.then(
+    //   (_) {
+    //     // Module loaded
+    //     _loadedModules.add(moduleName);
+    //   },
+    //   onError: (e) {
+    //     throw DeferredLoadException('Error loading module: $moduleName\n$e');
+    //   },
+    // );
+    // loadFutures.add(future);
+    // _loadingModules[moduleName] = future;
   }
   return Future.wait(loadFutures).then((_) {
     (_loadedLibraries[enclosingLibrary] ??= {}).add(importPrefix);
