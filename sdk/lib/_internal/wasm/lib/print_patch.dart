@@ -5,7 +5,11 @@
 part of "internal_patch.dart";
 
 @patch
-void printToConsole(String line) => JS<void>(
-  's => printToConsole(s)',
-  jsStringFromDartString(line).toExternRef,
-);
+void printToConsole(String s) {
+  var aa = getStringExternRef(s);
+  JS<void>('s => printToConsole(s)', aa);
+}
+//  => JS<void>(
+//   's => printToConsole(s)',
+//   jsStringFromDartString(line).toExternRef,
+// );

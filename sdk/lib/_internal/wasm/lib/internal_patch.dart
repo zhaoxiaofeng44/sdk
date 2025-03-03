@@ -4,7 +4,7 @@
 
 import 'dart:async';
 import "dart:_js_helper"
-    show JS, JSAnyToExternRef, jsStringFromDartString, jsStringToDartString;
+    show JS, JSAnyToExternRef, jsStringFromDartString, jsStringToDartString, getStringExternRef;
 import "dart:_js_types" show JSStringImpl;
 import 'dart:_string';
 import 'dart:js_interop'

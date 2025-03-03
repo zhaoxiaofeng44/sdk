@@ -13,6 +13,29 @@ import 'dart:typed_data';
 
 @patch
 @pragma('wasm:prefer-inline')
+WasmExternRef? getStringExternRef(String s) {
+  WasmExternRef? ref;
+  if (s is OneByteString) {
+    final fromArray = s.array;
+    final toArray = WasmArray<WasmI16>(fromArray.length);
+    for (int i = 0; i < fromArray.length; ++i) {
+      toArray.write(i, fromArray.readUnsigned(i));
+    }
+    ref = _jsStringFromCharCodeArray(
+      toArray,
+      0.toWasmI32(),
+      toArray.length.toWasmI32(),
+    );
+  }
+  if (s is TwoByteString) {
+    ref = _jsStringFromCharCodeArray(
+        s.array, 0.toWasmI32(), s.length.toWasmI32());
+  }
+  return ref;
+}
+
+@patch
+@pragma('wasm:prefer-inline')
 JSStringImpl jsStringFromDartString(String s) {
   if (s is OneByteString) {
     final fromArray = s.array;

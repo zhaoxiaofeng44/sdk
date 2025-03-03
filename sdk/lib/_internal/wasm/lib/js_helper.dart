@@ -292,6 +292,7 @@ external WasmExternRef jsDataViewFromDartByteData(ByteData data, int length);
 WasmExternRef? jsArrayFromDartList(List<Object?> l) =>
     MyJS<WasmExternRef?>('l => arrayFromDartList(Array, l)', l);
 
+external WasmExternRef? getStringExternRef(String s);
 external JSStringImpl jsStringFromDartString(String s);
 external String jsStringToDartString(JSStringImpl s);
 
@@ -344,8 +345,8 @@ WasmExternRef? callMethodVarArgsRaw(
 String typeof(WasmExternRef? object) =>
     JSStringImpl(JS<WasmExternRef?>("o => typeof o", object));
 
-String stringify(WasmExternRef? object) =>
-    JSStringImpl(JS<WasmExternRef?>("o => String(o)", object));
+String stringify(WasmExternRef? object) => throw "ERROR";
+    //JSStringImpl(JS<WasmExternRef?>("o => String(o)", object));
 
 void promiseThen(
   WasmExternRef? promise,
