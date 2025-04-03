@@ -138,6 +138,7 @@ Map<String, String> processEnvironment(List<String> defines) =>
     }));
 
 WasmCompilerOptions parseArguments(List<String> arguments) {
+  print(arguments);
   args.ArgParser parser = args.ArgParser();
   for (Option arg in options) {
     arg.applyToParser(parser);
@@ -169,6 +170,7 @@ WasmCompilerOptions parseArguments(List<String> arguments) {
         arg.applyToOptions(compilerOptions, results[arg.name]);
       }
     }
+
     if ((compilerOptions.librariesSpecPath == null) ==
         (compilerOptions.platformPath == null)) {
       print('Either --libraries-spec or --platform has to be supplied.');
@@ -183,6 +185,19 @@ WasmCompilerOptions parseArguments(List<String> arguments) {
 }
 
 Future<int> main(List<String> args) async {
+  print(args);
+  // args = [
+  //   "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.dart",
+  //   "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.dart.wasm"
+  // ];
+
+  args = [
+    "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/dart2wasm_platform.dill",
+    "--inlining",
+    "--no-minify",
+    "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.dart",
+    "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.wasm"
+  ];
   WasmCompilerOptions options = parseArguments(args);
   return generateWasm(options, errorPrinter: stderr.writeln);
 }
