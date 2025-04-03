@@ -9,7 +9,44 @@ async function convertWasmToWat(wasmFilePath, watFilePath) {
   const wasmBuffer = fs.readFileSync(wasmFilePath);
   
   // 解析 WASM 文件
-  const module = wabtModule.readWasm(wasmBuffer, { readDebugNames: true });
+  const module = wabtModule.readWasm(wasmBuffer, { 
+    
+    readDebugNames: true,
+    exceptions: true,
+    /** Import/export mutable globals. */
+    mutable_globals:true,
+    /** Saturating float-to-int operators. */
+    sat_float_to_int:true,
+    /** Sign-extension operators. */
+    sign_extension:true,
+    /** SIMD support. */
+    simd: true,
+    /** Threading support. */
+    threads:true,
+    /** Typed function references. */
+    function_references: true,
+    /** Multi-value. */
+    multi_value:true,
+    /** Tail-call support. */
+    tail_call: true,
+    /** Bulk-memory operations. */
+    bulk_memory:true,
+    /** Reference types (externref). */
+    reference_types: true,
+    /** Custom annotation syntax. */
+    annotations: true,
+    /** Code metadata. */
+    code_metadata:true,
+    /** Garbage collection. */
+    gc: true,
+    /** 64-bit memory */
+    memory64: true,
+    /** Extended constant expressions. */
+    extended_const: true,
+    /** Relaxed SIMD. */
+    relaxed_simd: true,
+  
+  });
   
   // 生成 WAT 格式
   const wat = module.toText({ foldExprs: true });

@@ -8,3 +8,5 @@
 
 
 d8 pkg/dart2wasm/bin/run_wasm.js -- /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.mjs /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.wasm
+
+wasm-opt -all      S /Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.wasm  -o ./query_encode_binary2.wat

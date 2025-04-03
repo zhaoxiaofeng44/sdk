@@ -34,7 +34,7 @@ disallowed.
 
 Dart 3.7 adds [wildcard variables] to the language. To use them, set your
 package's [SDK constraint][language version] lower bound to 3.7 or greater
-(`sdk: '^3.7.0'`).
+(`sdk: '^3.6.0'`).
 
 #### Wildcard Variables
 
