@@ -321,6 +321,13 @@ class _Collect extends RecursiveVisitor {
       addUseDependency(named.value, param);
     }
     info.callCount++;
+
+    if (member.annotations.isNotEmpty) {
+      if (member.annotations.any(
+          (annotation) => annotation.toString().contains('wasm:entry-point'))) {
+        info.eligible = false;
+      }
+    }
   }
 
   @override
