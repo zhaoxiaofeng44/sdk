@@ -6,13 +6,10 @@ import 'package:kernel/ast.dart';
 import 'class_info.dart';
 import 'translator.dart';
 
-
-
-
-
 void printTranslator(Translator translator) {
   for (final classInfo in translator.classInfo.values) {
-    if ('MyTest' != classInfo.cls?.name && 'ComplexTest' !=classInfo.cls?.name ) {
+    if ('MyTest' != classInfo.cls?.name &&
+        'ComplexTest' != classInfo.cls?.name) {
       continue;
     }
     // print('Class: ${classInfo.cls?.name}');
@@ -28,7 +25,7 @@ void printTranslator(Translator translator) {
   //printSort(translator);
 }
 
-void printClass(ClassInfo classInfo){
+void printClass(ClassInfo classInfo) {
   if (classInfo.cls == null) {
     return;
   }
@@ -253,55 +250,59 @@ public:
 
 void printClassDeclaration(ClassInfo classInfo) {
   var printer = MyAstPrinter();
-  
+
   // Print class header with template parameters if any
-  var typeParameters = classInfo.cls?.typeParameters.map((e) => "typename ${e.name}");
+  var typeParameters =
+      classInfo.cls?.typeParameters.map((e) => "typename ${e.name}");
   if (typeParameters?.isNotEmpty ?? false) {
     print("template<${typeParameters!.join(",")}>");
   }
 
   // Print class declaration with inheritance
   var className = classInfo.cls!.name.replaceAll("&", r"$");
-  var superClassName = classInfo.superInfo == null ? "Object" : 
-                    classInfo.superInfo!.cls?.name.replaceAll("&", r"$") ?? "Object";
+  var superClassName = classInfo.superInfo == null
+      ? "Object"
+      : classInfo.superInfo!.cls?.name.replaceAll("&", r"$") ?? "Object";
   print("class $className : public $superClassName {");
   print("public:");
 
   // Print fields
   for (var field in classInfo.cls!.fields) {
-    var fieldType = printer.displayType(field.type);
+    var fieldType = getVarType(field.type);
     var fieldName = field.name.text.replaceAll("#", r"$");
     print("  $fieldType $fieldName;");
   }
 
   // Print constructors
-    for (var constructor in classInfo.cls!.constructors) {
-      var parameters = [
-        ...constructor.function.positionalParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}"),
-        ...constructor.function.namedParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}")
+  for (var constructor in classInfo.cls!.constructors) {
+    var parameters = [
+      ...constructor.function.positionalParameters.map(
+          (parameter) => "${getVarType(parameter.type)} ${parameter.name}"),
+      ...constructor.function.namedParameters
+          .map((parameter) => "${getVarType(parameter.type)} ${parameter.name}")
     ];
-    
-    print("  static $className* ${printer.getFunctionName(constructor.name.text)}(${parameters.join(", ")});");
+
+    print(
+        "  static $className* ${printer.getFunctionName(constructor.name.text)}(${parameters.join(", ")});");
   }
 
   // Print methods
   for (var procedure in classInfo.cls!.procedures) {
     var methodName = printer.getMethodName(procedure);
-    var returnType = printer.displayType(procedure.function.returnType);
+    var returnType = getVarType(procedure.function.returnType);
     var parameters = [
       ...procedure.function.positionalParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}"),
-      ...procedure.function.namedParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}")
+          (parameter) => "${getVarType(parameter.type)} ${parameter.name}"),
+      ...procedure.function.namedParameters
+          .map((parameter) => "${getVarType(parameter.type)} ${parameter.name}")
     ];
 
     var staticPrefix = procedure.isStatic ? "static " : "";
     var virtualPrefix = !procedure.isStatic ? "virtual " : "";
-    
-    print("  $staticPrefix$virtualPrefix$returnType $methodName(${parameters.join(", ")});");
-    }
+
+    print(
+        "  $staticPrefix$virtualPrefix$returnType $methodName(${parameters.join(", ")});");
+  }
 
   print("};");
 }
@@ -309,25 +310,26 @@ void printClassDeclaration(ClassInfo classInfo) {
 void printClassImplementation(ClassInfo classInfo) {
   var printer = MyAstPrinter();
   var className = classInfo.cls!.name.replaceAll("&", r"$");
-  
+
   // Print constructor implementations
   for (var constructor in classInfo.cls!.constructors) {
-  var parameters = [
+    var parameters = [
       ...constructor.function.positionalParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}"),
-      ...constructor.function.namedParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}")
+          (parameter) => "${getVarType(parameter.type)} ${parameter.name}"),
+      ...constructor.function.namedParameters
+          .map((parameter) => "${getVarType(parameter.type)} ${parameter.name}")
     ];
-    
-    print("$className* $className::${printer.getFunctionName(constructor.name.text)}(${parameters.join(", ")}) {");
+
+    print(
+        "$className* $className::${printer.getFunctionName(constructor.name.text)}(${parameters.join(", ")}) {");
     print("  $className* obj = new $className();");
-    
+
     // Initialize fields if constructor has a body
     if (constructor.function.body != null) {
       printer.writeStatement(constructor.function.body!);
       print("  ${printer.getText()}");
     }
-    
+
     print("  return obj;");
     print("}");
     print("");
@@ -336,22 +338,22 @@ void printClassImplementation(ClassInfo classInfo) {
   // Print method implementations
   for (var procedure in classInfo.cls!.procedures) {
     var methodName = printer.getMethodName(procedure);
-    var returnType = printer.displayType(procedure.function.returnType);
+    var returnType = getVarType(procedure.function.returnType);
     var parameters = [
       ...procedure.function.positionalParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}"),
-      ...procedure.function.namedParameters.map(
-          (parameter) => "${printer.displayType(parameter.type)} ${parameter.name}")
+          (parameter) => "${getVarType(parameter.type)} ${parameter.name}"),
+      ...procedure.function.namedParameters
+          .map((parameter) => "${getVarType(parameter.type)} ${parameter.name}")
     ];
 
     var staticPrefix = procedure.isStatic ? "static " : "";
-    
+
     print("$returnType ${className}::$methodName(${parameters.join(", ")}) {");
-    
+
     // Add method body if it exists
     if (procedure.function.body != null) {
       printer.writeStatement(procedure.function.body!);
-      print("  ${printer.getText()}");
+      // print("  ${printer.getText()}");
     } else {
       // Add default return statement if needed
       if (returnType != "void") {
@@ -364,16 +366,50 @@ void printClassImplementation(ClassInfo classInfo) {
         }
       }
     }
-    
+
     print("}");
     print("");
-    }
+  }
+}
+
+String getVarType(DartType type, {String? name}) {
+  if (type is InterfaceType) {
+    var typeParameters = type.typeArguments.map((e) => getVarType(e));
+    return type.classNode.name +
+        (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
+  } else if (type is FunctionType) {
+    var parameters = [
+      ...type.positionalParameters.map((parameter) => getVarType(parameter)),
+      ...type.namedParameters.map((parameter) => getVarType(parameter.type))
+    ];
+    return "${getVarType(type.returnType)} (*$name)(${parameters.join(", ")})";
+  } else if (type is TypeParameterType) {
+    return type.parameter.name ?? "";
+  } else if (type is DynamicType) {
+    return "void*";
+  } else if (type is FutureOrType) {
+    return getVarType(type.typeArgument);
+  } else if (type is NeverType) {
+    return "void";
+  } else if (type is InvalidType) {
+    return "void*";
+  } else if (type is DynamicType) {
+    return "void*";
+  } else if (type is VoidType) {
+    return "void";
+  } else if (type is TypeParameterType) {
+    return "Object*";
+  } else if (type is NullType) {
+    return "Object*";
+  } else {
+    return "void*";
+  }
 }
 
 class MyAstPrinter {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
-  
+
   String getText() {
     return _buffer.toString();
   }
@@ -412,26 +448,8 @@ class MyAstPrinter {
     return member.name.text;
   }
 
-  String displayType(DartType type) {
-    if (type is InterfaceType) {
-      return type.classNode.name;
-    } else if (type is FunctionType) {
-      return "Function";
-    } else if (type is DynamicType) {
-      return "dynamic";
-    } else if (type is VoidType) {
-      return "void";
-    } else if (type is TypeParameterType) {
-      return "Never";
-    } else if (type is NullType) {
-      return "Null";
-    } else {
-      return "dynamic";
-    }
-  }
-
   void writeVariableDeclaration(VariableDeclaration variable) {
-    write('var ');
+    write("${getVarType(variable.type)} ");
     write(variable.name ?? '');
     if (variable.initializer != null) {
       write(' = ');
@@ -504,13 +522,51 @@ class MyAstPrinter {
       write('continue');
       write(';');
     } else if (statement is VariableDeclaration) {
-      write('var ');
+      write('${getVarType(statement.type)} ');
       write(statement.name ?? '');
       if (statement.initializer != null) {
         write(' = ');
         writeExpression(statement.initializer!);
       }
       write(';');
+    } else if (statement is WhileStatement) {
+      write('while (');
+      writeExpression(statement.condition);
+      write(') ');
+      writeStatement(statement.body);
+    } else if (statement is ForStatement) {
+      write('for (');
+      if (statement.variables.isNotEmpty) {
+        for (var variable in statement.variables) {
+          writeVariableDeclaration(variable);
+          if (variable != statement.variables.last) {
+            write(',');
+          }
+        }
+      }
+      write('; ');
+      if (statement.condition != null) {
+        writeExpression(statement.condition!);
+      }
+      write('; ');
+      if (statement.updates.isNotEmpty) {
+        for (var update in statement.updates) {
+          writeExpression(update);
+          if (update != statement.updates.last) {
+            write(',');
+          }
+        }
+      }
+      write(') ');
+      writeStatement(statement.body);
+    } else if (statement is DoStatement) {
+      write('do ');
+      writeStatement(statement.body);
+      write(' while (');
+      writeExpression(statement.condition);
+      write(');');
+    } else {
+      print('Unhandled statement type: ${statement.runtimeType}');
     }
   }
 
@@ -544,6 +600,38 @@ class MyAstPrinter {
         writeExpression(item);
       }
       write('}');
+    } else if (expression is LocalFunctionInvocation) {
+      writeStatement(expression.variable);
+      write("(");
+      bool first = true;
+      for (var argument in expression.arguments.positional) {
+        if (!first) write(", ");
+        first = false;
+        writeExpression(argument);
+      }
+      for (var argument in expression.arguments.named) {
+        if (!first) write(", ");
+        first = false;
+        writeExpression(argument.value);
+      }
+      write(")");
+    } else if (expression is FunctionInvocation) {
+      write(expression.name.text);
+      write("(");
+      bool first = true;
+      for (var argument in expression.arguments.positional) {
+        if (!first) write(", ");
+        first = false;
+        writeExpression(argument);
+      }
+      for (var argument in expression.arguments.named) {
+        if (!first) write(", ");
+        first = false;
+        writeExpression(argument.value);
+      }
+      write(")");
+    } else if (expression is ConstantExpression) {
+      write(' ');
     } else if (expression is LogicalExpression) {
       writeExpression(expression.left);
       write(' ');
@@ -560,6 +648,10 @@ class MyAstPrinter {
       write(expression.value.toString());
     } else if (expression is NullLiteral) {
       write("nullptr");
+    } else if (expression is VariableSet) {
+      write(expression.variable.name ?? "");
+      write(" = ");
+      writeExpression(expression.value);
     } else if (expression is VariableGet) {
       write(expression.variable.name ?? "");
     } else if (expression is ThisExpression) {
@@ -596,6 +688,51 @@ class MyAstPrinter {
         writeExpression(argument);
       }
       write(")");
+    } else if (expression is StaticGet) {
+      write(expression.target.name.text);
+    } else if (expression is StaticSet) {
+      write(expression.target.name.text);
+      write(" = ");
+      writeExpression(expression.value);
+    } else if (expression is AsExpression) {
+      writeExpression(expression.operand);
+      write(" as ");
+      write(getVarType(expression.type));
+    } else if (expression is IsExpression) {
+      writeExpression(expression.operand);
+      write(" is ");
+      write(getVarType(expression.type));
+    } else if (expression is ConditionalExpression) {
+      write('(');
+      writeExpression(expression.condition);
+      write(') ? ');
+      writeExpression(expression.then);
+      write(' : ');
+      writeExpression(expression.otherwise);
+    } else if (expression is Let) {
+      // Handle Let expression
+    } else if (expression is FunctionExpression) {
+      write('[');
+      write('](');
+      bool first = true;
+      for (var parameter in expression.function.positionalParameters) {
+        if (!first) write(", ");
+        first = false;
+        write(getVarType(parameter.type));
+        write(" ");
+        write(parameter.name ?? "");
+      }
+      write(')');
+    } else if (expression is StringConcatenation) {
+      bool first = true;
+      for (var exp in expression.expressions) {
+        if (!first) write(" + ");
+        first = false;
+        writeExpression(exp);
+      }
+    } else {
+      // Handle other expression types
+      print('Unhandled expression type: ${expression.runtimeType}');
     }
   }
 
@@ -603,4 +740,3 @@ class MyAstPrinter {
     return '';
   }
 }
-
