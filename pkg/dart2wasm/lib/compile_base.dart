@@ -1,4 +1,6 @@
+import 'dart:ffi';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:kernel/kernel.dart';
 import 'package:kernel/src/printer.dart';
@@ -8,15 +10,41 @@ import 'package:kernel/ast.dart';
 import 'class_info.dart';
 import 'translator.dart';
 
+int memoryNew(int newLen) {
+  return 0;
+}
+
+int memoryGrow(int position, int oldLen, int newLen) {
+  return position;
+}
+
+abstract class WasmArray {
+  int _length;
+  List<Object> _data;
+  WasmArray(int length)
+      : _length = length,
+        _data = List<Object>.filled(length, 0);
+
+  int get length => _length;
+
+  void grow(int newLen) {
+    _data.length = newLen;
+  }
+
+  Object operator [](int index) {
+    return _data[index];
+  }
+
+  void operator []=(int index, Object value) {
+    _data[index] = value;
+  }
+}
+
 void printTranslator(Translator translator) {
   for (final classInfo in translator.classInfo.values) {
-    if ('CppWasmArray' == classInfo.cls?.name ||
-        'CppWasmList' == classInfo.cls?.name ||
-        'CppWasmSet' == classInfo.cls?.name ||
-        'CppWasmMap' == classInfo.cls?.name ||
-        'MyTest' == classInfo.cls?.name ||
-        'ComplexTest' == classInfo.cls?.name) {
-      printClass(classInfo);
+    if ('MyTest' != classInfo.cls?.name &&
+        'ComplexTest' != classInfo.cls?.name) {
+      continue;
     }
     // print('Class: ${classInfo.cls?.name}');
     // print('  - superInfo: ${classInfo.superInfo?.cls?.name}');
@@ -25,6 +53,7 @@ void printTranslator(Translator translator) {
     // classInfo.cls?.toTextInternal(printer);
     // print(printer.getText());
     // classInfo.cls.toStringInternal();
+    printClass(classInfo);
   }
 
   //printSort(translator);
@@ -253,6 +282,8 @@ public:
 }
 
 void printClassDeclaration(ClassInfo classInfo) {
+  var printer = CppCodePrinter();
+
   // Print class header with template parameters if any
   var typeParameters =
       classInfo.cls?.typeParameters.map((e) => "typename ${e.name}");
@@ -276,13 +307,46 @@ void printClassDeclaration(ClassInfo classInfo) {
 
   // Print constructors
   for (var constructor in classInfo.cls!.constructors) {
-    print(toString(constructor));
+    var parameters = [
+      ...constructor.function.positionalParameters
+          .map((parameter) => getVariableDeclaration(parameter)),
+      ...constructor.function.namedParameters
+          .map((parameter) => getVariableDeclaration(parameter))
+    ];
+
+    print(
+        "  static $className* ${printer.getFunctionName(constructor.name.text)}(${parameters.join(", ")});");
   }
 
   // Print methods
   for (var procedure in classInfo.cls!.procedures) {
-    print(toString(procedure));
+    var methodName = printer.getMethodName(procedure);
+
+    var parameters = [
+      ...procedure.function.positionalParameters
+          .map((parameter) => getVariableDeclaration(parameter)),
+      ...procedure.function.namedParameters
+          .map((parameter) => getVariableDeclaration(parameter))
+    ];
+
+    var staticPrefix = procedure.isStatic ? "static " : "";
+    var virtualPrefix = !procedure.isStatic ? "virtual " : "";
+
+    if (procedure.function.returnType is FunctionType) {
+      var functionString = getVariableType(procedure.function.returnType,
+          name: "$methodName(${parameters.join(", ")})");
+      print("  $staticPrefix$virtualPrefix$functionString;");
+    } else {
+      var returnType = getVariableType(procedure.function.returnType);
+      print(
+          "  $staticPrefix$virtualPrefix$returnType $methodName(${parameters.join(", ")});");
+    }
+    if (procedure.function.body != null) {
+      print(toString(procedure.function.body!));
+    }
   }
+
+  print("};");
 }
 
 String getFieldDeclaration(Field field) {
@@ -339,17 +403,7 @@ String getVariableType(DartType type, {String? name}) {
 }
 
 String toString(TreeNode statement) {
-  if (statement is Constructor) {
-    return (CppCodePrinter()
-          ..writeConstructorDeclaration(statement)
-          ..writeNewline())
-        .getText();
-  } else if (statement is Procedure) {
-    return (CppCodePrinter()
-          ..writeMemberFunctionDeclaration(statement)
-          ..writeNewline())
-        .getText();
-  } else if (statement is Statement) {
+  if (statement is Statement) {
     return (CppCodePrinter()
           ..writeStatement(statement)
           ..writeNewline())
@@ -405,88 +459,6 @@ class CppCodePrinter {
     return member.name.text;
   }
 
-  String getMemberName(Member member) {
-    if (member is Constructor) {
-      return "cpp_ctor_${member.name.text}";
-    }
-    return member.name.text;
-  }
-
-  void writeMemberFunctionDeclaration(Procedure procedure) {
-    writeFunctionDeclaration(procedure.function, getMemberName(procedure),
-        isStatic: procedure.isStatic, isMember: true);
-  }
-
-  void writeFunctionDeclaration(FunctionNode function, String name,
-      {bool isStatic = false, bool isMember = false}) {
-    var parameters = [
-      ...function.positionalParameters
-          .map((parameter) => getVariableDeclaration(parameter)),
-      ...function.namedParameters
-          .map((parameter) => getVariableDeclaration(parameter))
-    ];
-
-    var staticPrefix = isStatic ? "static " : "";
-    var virtualPrefix = (isMember && !isStatic) ? "virtual " : "";
-
-    if (function.returnType is FunctionType) {
-      var functionString = getVariableType(function.returnType,
-          name: "$name(${parameters.join(", ")})");
-      write("  $staticPrefix$virtualPrefix$functionString");
-    } else {
-      var returnType = getVariableType(function.returnType);
-      write(
-          "  $staticPrefix$virtualPrefix$returnType $name(${parameters.join(", ")})");
-    }
-    if (function.body is Block) {
-      writeStatement(function.body!);
-    } else {
-      write("{");
-      if (function.body != null) {
-        writeStatement(function.body!);
-      }
-      write("}");
-    }
-  }
-
-  void writeConstructorDeclaration(Constructor constructor) {
-    FunctionNode function = constructor.function;
-    var parameters = [
-      ...function.positionalParameters
-          .map((parameter) => getVariableDeclaration(parameter)),
-      ...function.namedParameters
-          .map((parameter) => getVariableDeclaration(parameter))
-    ];
-
-    write(
-        "  ${constructor.enclosingClass.name}* ${getMemberName(constructor)}(${parameters.join(", ")})");
-    write('{');
-    indent();
-
-    if (constructor.initializers.isNotEmpty) {
-      for (var initializer in constructor.initializers) {
-        if (initializer is FieldInitializer) {
-          write('this->${initializer.field.name.text} = ');
-          writeExpression(initializer.value);
-          write(';');
-        }
-      }
-    }
-    if (function.body != null) {
-      if (function.body is Block) {
-        var statement = function.body as Block;
-        for (var stmt in statement.statements) {
-          writeStatement(stmt);
-        }
-      } else {
-        writeStatement(function.body!);
-      }
-    }
-    write(" return this;");
-    unindent();
-    write('}');
-  }
-
   void writeVariableDeclaration(VariableDeclaration variable) {
     write("${getVariableType(variable.type)} ");
     write(variable.name ?? '');
@@ -497,9 +469,7 @@ class CppCodePrinter {
   }
 
   void writeStatement(Statement statement) {
-    if (statement is EmptyStatement) {
-      write(' ');
-    } else if (statement is Block) {
+    if (statement is Block) {
       write('{');
       indent();
       for (var stmt in statement.statements) {
@@ -613,46 +583,37 @@ class CppCodePrinter {
 
   void writeExpression(Expression expression) {
     if (expression is ListLiteral) {
-      var typeArgument = getVariableType(expression.typeArgument);
-      var cppListType = "CppWasmList<$typeArgument>";
-      write(
-          '(($cppListType*)malloc(sizeof($cppListType)))->fromCppWasmArray(cppWasmArray<$typeArgument>({');
+      write('new List<${getVariableType(expression.typeArgument)}>({');
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
         first = false;
         writeExpression(item);
       }
-      write('}))');
+      write('})');
     } else if (expression is MapLiteral) {
-      var keyTypeArgument = getVariableType(expression.keyType);
-      var valueTypeArgument = getVariableType(expression.keyType);
-      var cppMapType = "CppWasmMap<$keyTypeArgument,$valueTypeArgument>";
       write(
-          '(($cppMapType*)malloc(sizeof($cppMapType)))->fromCppWasmArray(cppWasmArray<MapEntry<<$keyTypeArgument,$valueTypeArgument>>({');
+          'Map<${getVariableType(expression.keyType)},${getVariableType(expression.valueType)}>.from({');
       bool first = true;
       for (var entry in expression.entries) {
         if (!first) write(', ');
         first = false;
-        write('new MapEntry<<$keyTypeArgument,$valueTypeArgument>(');
+        write('{');
         writeExpression(entry.key);
-        write(', ');
+        write(': ');
         writeExpression(entry.value);
-        write(')');
+        write('}');
       }
-      write('}))');
+      write('})');
     } else if (expression is SetLiteral) {
-      var typeArgument = getVariableType(expression.typeArgument);
-      var cppSetType = "CppWasmList<$typeArgument>";
-      write(
-          '(($cppSetType*)malloc(sizeof($cppSetType)))->fromCppWasmArray(cppWasmArray<$typeArgument>({');
+      write('Set<${getVariableType(expression.typeArgument)}>.from([');
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
         first = false;
         writeExpression(item);
       }
-      write('}))');
+      write('])');
     } else if (expression is LocalFunctionInvocation) {
       writeStatement(expression.variable);
       writeArgumentsList(
@@ -660,15 +621,10 @@ class CppCodePrinter {
     } else if (expression is StaticGet) {
     } else if (expression is FunctionInvocation) {
       write(expression.name.text);
-      //todo
+      throw "eeeee FunctionInvocation " + expression.toString();
       // writeArgumentsList(
-      //     expression.functionType.function, expression.arguments);
-    } else if (expression is ConstructorInvocation) {
-      //((MyNewChild *)malloc(1 * sizeof(MyNewChild)))
-      write(
-          "((${expression.target.enclosingClass.name}*)malloc(sizeof(${expression.target.enclosingClass.name})))");
-      write("->${getMemberName(expression.target)}");
-      writeArgumentsList(expression.target.function, expression.arguments);
+      //     expression., expression.arguments);
+      //writeArgumentsList(expression.target.function, expression.arguments);
     } else if (expression is ConstantExpression) {
       write(' ');
     } else if (expression is LogicalExpression) {
@@ -711,21 +667,9 @@ class CppCodePrinter {
     } else if (expression is InstanceInvocation) {
       writeExpression(expression.receiver);
       if (expression.interfaceTarget.kind == ProcedureKind.Operator) {
-        if (expression.name.text == "[]=") {
-          write("[");
-          writeExpression(expression.arguments.positional[0]);
-          write("]");
-          write(" = ");
-          writeExpression(expression.arguments.positional[1]);
-        } else if (expression.name.text == "[]") {
-          write("[");
-          writeExpression(expression.arguments.positional[0]);
-          write("]");
-        } else {
-          write(expression.name.text);
-          writeArgumentsList(
-              expression.interfaceTarget.function, expression.arguments);
-        }
+        write(expression.name.text);
+        writeArgumentsList(
+            expression.interfaceTarget.function, expression.arguments);
       } else {
         write(".");
         write(expression.name.text);
@@ -738,10 +682,6 @@ class CppCodePrinter {
       write(expression.target.name.text);
       write(" = ");
       writeExpression(expression.value);
-    } else if (expression is EqualsCall) {
-      writeExpression(expression.left);
-      write(" == ");
-      writeExpression(expression.right);
     } else if (expression is AsExpression) {
       writeExpression(expression.operand);
       write(" as ");
@@ -758,26 +698,6 @@ class CppCodePrinter {
       write(' : ');
       writeExpression(expression.otherwise);
     } else if (expression is Let) {
-      var varType = getVariableType(expression.variable.type);
-      write('(');
-      write('cpp\$1');
-      write(" = ");
-      if (expression.variable.initializer != null) {
-        write("(void*)");
-        writeExpression(expression.variable.initializer!);
-      } else {
-        write("nullptr");
-      }
-      if (expression.body is BlockExpression) {
-        write(',');
-        writeExpression(expression.body);
-        write(',');
-        write('($varType)cpp\$1');
-      } else {
-        throw Exception("Let expression body is not a BlockExpression");
-      }
-      write(')');
-
       // Handle Let expression
     } else if (expression is FunctionExpression) {
       write('[](');

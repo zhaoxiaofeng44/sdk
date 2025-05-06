@@ -195,8 +195,8 @@ Future<int> main(List<String> args) async {
     "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/dart2wasm_platform.dill",
     "--inlining",
     "--no-minify",
-    "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.dart",
-    "/Users/alsc/MyProject/sdk/mydart/sdk/samples/embedder/hello.wasm"
+    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2wasm/test/hello.dart",
+    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2wasm/test/hello.wasm"
   ];
   WasmCompilerOptions options = parseArguments(args);
   return generateWasm(options, errorPrinter: stderr.writeln);
