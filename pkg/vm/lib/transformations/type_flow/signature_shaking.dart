@@ -310,6 +310,14 @@ class _Collect extends RecursiveVisitor {
     final _ProcedureInfo? info = shaker._infoForMember(member);
     if (info == null) return;
 
+    if (member.annotations.isNotEmpty) {
+      if (member.annotations.any(
+          (annotation) => annotation.toString().contains('wasm:entry-point'))) {
+        info.eligible = false;
+        
+      }
+    }
+
     for (int i = 0; i < args.positional.length; i++) {
       _ParameterInfo param = info.ensurePositional(i);
       param.passCount++;
@@ -321,13 +329,6 @@ class _Collect extends RecursiveVisitor {
       addUseDependency(named.value, param);
     }
     info.callCount++;
-
-    if (member.annotations.isNotEmpty) {
-      if (member.annotations.any(
-          (annotation) => annotation.toString().contains('wasm:entry-point'))) {
-        info.eligible = false;
-      }
-    }
   }
 
   @override
