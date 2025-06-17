@@ -30,128 +30,8 @@ bool isHideClass(Class cls) {
 }
 
 void printTranslator(Component component) {
-  printCppHeader();
-
-  var classList = <Class>[];
-  for (final library in component.libraries) {
-    classList.addAll(library.classes);
-  }
-  for (final cls in classList) {
-    if (isHideClass(cls)) {
-      continue;
-    }
-    print("${getClassDeclareTypeName(cls)};");
-  }
-
-  var classMap = getClassList(classList);
-  for (final cls in classList) {
-    if (isHideClass(cls)) {
-      continue;
-    }
-    print("//  " + cls.enclosingLibrary.toStringInternal());
-    printClassDeclarationHeader(classMap, cls);
-  }
-
-  for (final cls in classList) {
-    if (isHideClass(cls)) {
-      continue;
-    }
-    print("//  " + cls.enclosingLibrary.toStringInternal());
-    printClassDeclaration(classMap, cls);
-  }
-}
-
-void printCppHeader() {
-  print('''
-#include <cstdio>
-#include <cstdlib>
-#include <sstream>
-#include "src/core/func.h"
-#include "src/core/num.h"
-#include "src/core/string.h"
-''');
-}
-
-String getClassDeclareTypeParameters(Class cls) {
-  var typeParameters = cls.typeParameters.map((e) => "typename ${e.name}");
-  var typeString = "";
-  if (typeParameters.isNotEmpty) {
-    typeString = "template<${typeParameters.join(",")}>";
-  }
-  return typeString;
-}
-
-String getClassDeclareTypeName(Class cls) {
-  var typeString = getClassDeclareTypeParameters(cls);
-  var className = getClassName(cls);
-  return "$typeString class $className";
-}
-
-void printClassDeclarationHeader(Map<Class, List<ClassMember>> map, Class cls) {
-  // Print class declaration with inheritance
-  var typeClassName = getClassDeclareTypeName(cls);
-  var superClassName = "";
-  if (cls.supertype == null) {
-    superClassName = typeClassName == "Object" ? "" : ": public Object";
-  } else {
-    var list = cls.supers.where((e) => !isHideClass(e.classNode));
-    if (list.isEmpty) {
-      superClassName = ": public Object";
-    } else {
-      superClassName =
-          ": ${list.map((e) => "virtual public ${getVariableType(e.asInterfaceType)}").join(",")}";
-    }
-  }
-  print("$typeClassName $superClassName {");
-  print("public:");
-
-  // // Print fields
-  for (var field in cls!.fields) {
-    var fieldString = getFieldDeclaration(field);
-    print("${field.isStatic ? "static " : ""}$fieldString;");
-  }
-
-  var list = map[cls]!;
-  for (var procedure in list) {
-    if (procedure.member.enclosingClass == cls) {
-      print(toString(procedure.member, true));
-    }
-  }
-
-  var cppNewStr = '''
-  static ${getClassDeclareType(cls)} cppNew();
-''';
-  print(cppNewStr);
-
-  print("};");
-}
-
-void printClassDeclaration(Map<Class, List<ClassMember>> map, Class cls) {
-  // Print class declaration with inheritance
-  var list = map[cls];
-  if (list?.isNotEmpty ?? false) {
-    for (var procedure in list!) {
-      if (procedure.member.enclosingClass == cls) {
-        print(toString(procedure.member, false));
-      }
-    }
-  }
-
-  var typeString = getClassDeclareTypeParameters(cls);
-  var className = getClassTypeName(cls);
-  var classTypeName = getClassDeclareType(cls);
-
-  var cppNewStr = '''
-  $typeString static $classTypeName cppNew() {
-        static void *functionPtrs[] = {
-            ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
-        };
-        auto ptr = ($classTypeName)malloc(sizeof($className));
-        ptr->vtab = functionPtrs;
-        return ptr;
-    }
-''';
-  print(cppNewStr);
+  var printer = CppCodePrinter();
+  printer.translateComponent(component);
 }
 
 class ClassMember {
@@ -159,55 +39,6 @@ class ClassMember {
   int index;
   Member member;
   ClassMember(this.member, this.index) : name = getMemberName(member);
-}
-
-Map<Class, List<ClassMember>> getClassList(Iterable<Class> list) {
-  var classMap = <Class, List<ClassMember>>{};
-  for (var cls in list) {
-    getClassMembersList(classMap, cls);
-  }
-  return classMap;
-}
-
-List<ClassMember> getClassMembersList(
-    Map<Class, List<ClassMember>> map, Class cls) {
-  if (map.containsKey(cls)) {
-    return map[cls]!;
-  }
-
-  List<ClassMember> superList = [];
-  if (cls.name == "Object") {
-    for (var procedure in cls.procedures) {
-      if (procedure.name.text == "toString") {
-        replaceOrAddMembersList(superList, procedure);
-      }
-    }
-  } else {
-    if (cls.superclass != null) {
-      superList = [...getClassMembersList(map, cls.superclass!)];
-    }
-    for (var constructor in cls.constructors) {
-      replaceOrAddMembersList(superList, constructor);
-    }
-    for (var procedure in cls.procedures) {
-      if (procedure.name.text != "_typeArguments") {
-        replaceOrAddMembersList(superList, procedure);
-      }
-    }
-  }
-  map[cls] = superList;
-  return superList;
-}
-
-void replaceOrAddMembersList(List<ClassMember> list, Member member) {
-  var name = getMemberName(member);
-  for (var i = 0; i < list.length; i++) {
-    if (list[i].name == name) {
-      list[i] = ClassMember(member, i);
-      return;
-    }
-  }
-  list.add(ClassMember(member, list.length));
 }
 
 final Map<String, String> typeNames = {
@@ -307,108 +138,7 @@ String getMemberName(Member member) {
 String getMemberInvokeName(Member member) {
   var className = getClassName(member.enclosingClass!);
   var memberName = getMemberName(member);
-  // if (className == "Num" ||
-  //     className == "Double" ||
-  //     className == "Int" ||
-  //     className == "Bool" ||
-  //     className == "String") {
-  //   return "Class_$className::$memberName";
-  // }
   return "$className::$memberName";
-}
-
-//获取参数类型
-String getVariableType(DartType type) {
-  if (type is InterfaceType) {
-    var typeParameters =
-        type.typeArguments.map((e) => getVariableDeclareType(e));
-    var name = getClassName(type.classNode);
-    return name +
-        (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
-  } else if (type is FunctionType) {
-    var parameters = [
-      getVariableType(type.returnType),
-      ...type.positionalParameters
-          .map((parameter) => getVariableDeclareType(parameter)),
-      ...type.namedParameters
-          .map((parameter) => getVariableDeclareType(parameter.type))
-    ];
-    return "Function";
-    //return "Function<${parameters.join(", ")}>";
-  } else if (type is DynamicType) {
-    return "void*";
-  } else if (type is FutureOrType) {
-    return getVariableType(type.typeArgument);
-  } else if (type is NeverType) {
-    return "void";
-  } else if (type is InvalidType) {
-    return "void*";
-  } else if (type is DynamicType) {
-    return "void*";
-  } else if (type is VoidType) {
-    return "void";
-  } else if (type is TypeParameterType) {
-    return "Object*";
-  } else if (type is NullType) {
-    return "Object*";
-  } else {
-    return "void*";
-  }
-}
-
-String getClassDeclareType(Class cls) {
-  var className = getClassTypeName(cls);
-  return "$className *";
-}
-
-String getVariableDeclareType(DartType type) {
-  if (type is TypeParameterType) {
-    var name = type.parameter.name ?? "void*";
-    return name;
-  }
-  var typeStr = getVariableType(type);
-  if (typeStr == "void") {
-    return typeStr;
-  }
-  return (type.nullability == Nullability.nullable)
-      ? "$typeStr *"
-      : "$typeStr *";
-}
-
-String getFieldDeclaration(Field field) {
-  return "${getVariableDeclareType(field.type)} ${field.name.text}";
-}
-
-String getVariableDeclaration(VariableDeclaration variableDeclaration) {
-  return "${getVariableDeclareType(variableDeclaration.type)} ${variableDeclaration.name}";
-}
-
-String toString(TreeNode statement, bool isHeader) {
-  if (statement is Constructor) {
-    return (CppCodePrinter()
-          ..isHeader = isHeader
-          ..writeConstructorDeclaration(statement)
-          ..writeNewline())
-        .getText();
-  } else if (statement is Procedure) {
-    return (CppCodePrinter()
-          ..isHeader = isHeader
-          ..writeMemberFunctionDeclaration(statement)
-          ..writeNewline())
-        .getText();
-  } else if (statement is Statement) {
-    return (CppCodePrinter()
-          ..isHeader = isHeader
-          ..writeStatement(statement)
-          ..writeNewline())
-        .getText();
-  } else if (statement is Expression) {
-    return (CppCodePrinter()
-          ..isHeader = isHeader
-          ..writeExpression(statement))
-        .getText();
-  }
-  return "void";
 }
 
 class CppCodePrinter {
@@ -419,6 +149,288 @@ class CppCodePrinter {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
   bool isHeader = false;
+
+  // 主要翻译入口方法
+  void translateComponent(Component component) {
+    _printCppHeader();
+
+    var classList = <Class>[];
+    for (final library in component.libraries) {
+      classList.addAll(library.classes);
+    }
+
+    // 打印前置声明
+    for (final cls in classList) {
+      if (isHideClass(cls)) {
+        continue;
+      }
+      print("${_getClassDeclareTypeName(cls)};");
+    }
+
+    var classMap = _getClassList(classList);
+
+    // 打印类声明头部
+    for (final cls in classList) {
+      if (isHideClass(cls)) {
+        continue;
+      }
+      print("//  " + cls.enclosingLibrary.toStringInternal());
+      _printClassDeclarationHeader(classMap, cls);
+    }
+
+    // 打印类实现
+    for (final cls in classList) {
+      if (isHideClass(cls)) {
+        continue;
+      }
+      print("//  " + cls.enclosingLibrary.toStringInternal());
+      _printClassDeclaration(classMap, cls);
+    }
+  }
+
+  // 打印C++头文件
+  void _printCppHeader() {
+    print('''
+#include <cstdio>
+#include <cstdlib>
+#include <sstream>
+#include "src/core/func.h"
+#include "src/core/num.h"
+#include "src/core/string.h"
+''');
+  }
+
+  // 获取类声明类型参数
+  String _getClassDeclareTypeParameters(Class cls) {
+    var typeParameters = cls.typeParameters.map((e) => "typename ${e.name}");
+    var typeString = "";
+    if (typeParameters.isNotEmpty) {
+      typeString = "template<${typeParameters.join(",")}>";
+    }
+    return typeString;
+  }
+
+  // 获取类声明类型名称
+  String _getClassDeclareTypeName(Class cls) {
+    var typeString = _getClassDeclareTypeParameters(cls);
+    var className = getClassName(cls);
+    return "$typeString class $className";
+  }
+
+  // 获取类声明类型
+  String _getClassDeclareType(Class cls) {
+    var className = getClassTypeName(cls);
+    return "$className *";
+  }
+
+  // 打印类声明头部
+  void _printClassDeclarationHeader(
+      Map<Class, List<ClassMember>> map, Class cls) {
+    // Print class declaration with inheritance
+    var typeClassName = _getClassDeclareTypeName(cls);
+    var superClassName = "";
+    if (cls.supertype == null) {
+      superClassName = typeClassName == "Object" ? "" : ": public Object";
+    } else {
+      var list = cls.supers.where((e) => !isHideClass(e.classNode));
+      if (list.isEmpty) {
+        superClassName = ": public Object";
+      } else {
+        superClassName =
+            ": ${list.map((e) => "virtual public ${_getVariableType(e.asInterfaceType)}").join(",")}";
+      }
+    }
+    print("$typeClassName $superClassName {");
+    print("public:");
+
+    // Print fields
+    for (var field in cls!.fields) {
+      var fieldString = _getFieldDeclaration(field);
+      print("${field.isStatic ? "static " : ""}$fieldString;");
+    }
+
+    var list = map[cls]!;
+    for (var procedure in list) {
+      if (procedure.member.enclosingClass == cls) {
+        print(_toString(procedure.member, true));
+      }
+    }
+
+    var cppNewStr = '''
+  static ${_getClassDeclareType(cls)} cppNew();
+''';
+    print(cppNewStr);
+
+    print("};");
+  }
+
+  // 打印类声明实现
+  void _printClassDeclaration(Map<Class, List<ClassMember>> map, Class cls) {
+    // Print class declaration with inheritance
+    var list = map[cls];
+    if (list?.isNotEmpty ?? false) {
+      for (var procedure in list!) {
+        if (procedure.member.enclosingClass == cls) {
+          print(_toString(procedure.member, false));
+        }
+      }
+    }
+
+    var typeString = _getClassDeclareTypeParameters(cls);
+    var className = getClassTypeName(cls);
+    var classTypeName = _getClassDeclareType(cls);
+
+    var cppNewStr = '''
+  $typeString static $classTypeName $className::cppNew() {
+        static void *functionPtrs[] = {
+            ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
+        };
+        auto ptr = ($classTypeName)malloc(sizeof($className));
+        ptr->vtab = functionPtrs;
+        return ptr;
+    }
+''';
+    print(cppNewStr);
+  }
+
+  // 获取类成员列表
+  Map<Class, List<ClassMember>> _getClassList(Iterable<Class> list) {
+    var classMap = <Class, List<ClassMember>>{};
+    for (var cls in list) {
+      _getClassMembersList(classMap, cls);
+    }
+    return classMap;
+  }
+
+  List<ClassMember> _getClassMembersList(
+      Map<Class, List<ClassMember>> map, Class cls) {
+    if (map.containsKey(cls)) {
+      return map[cls]!;
+    }
+
+    List<ClassMember> superList = [];
+    if (cls.name == "Object") {
+      for (var procedure in cls.procedures) {
+        if (procedure.name.text == "toString") {
+          _replaceOrAddMembersList(superList, procedure);
+        }
+      }
+    } else {
+      if (cls.superclass != null) {
+        superList = [..._getClassMembersList(map, cls.superclass!)];
+      }
+      for (var constructor in cls.constructors) {
+        _replaceOrAddMembersList(superList, constructor);
+      }
+      for (var procedure in cls.procedures) {
+        if (procedure.name.text != "_typeArguments") {
+          _replaceOrAddMembersList(superList, procedure);
+        }
+      }
+    }
+    map[cls] = superList;
+    return superList;
+  }
+
+  void _replaceOrAddMembersList(List<ClassMember> list, Member member) {
+    var name = getMemberName(member);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name == name) {
+        list[i] = ClassMember(member, i);
+        return;
+      }
+    }
+    list.add(ClassMember(member, list.length));
+  }
+
+  //获取参数类型
+  String _getVariableType(DartType type) {
+    if (type is InterfaceType) {
+      var typeParameters =
+          type.typeArguments.map((e) => _getVariableDeclareType(e));
+      var name = getClassName(type.classNode);
+      return name +
+          (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
+    } else if (type is FunctionType) {
+      var parameters = [
+        _getVariableType(type.returnType),
+        ...type.positionalParameters
+            .map((parameter) => _getVariableDeclareType(parameter)),
+        ...type.namedParameters
+            .map((parameter) => _getVariableDeclareType(parameter.type))
+      ];
+      return "Function";
+      //return "Function<${parameters.join(", ")}>";
+    } else if (type is DynamicType) {
+      return "void*";
+    } else if (type is FutureOrType) {
+      return _getVariableType(type.typeArgument);
+    } else if (type is NeverType) {
+      return "void";
+    } else if (type is InvalidType) {
+      return "void*";
+    } else if (type is DynamicType) {
+      return "void*";
+    } else if (type is VoidType) {
+      return "void";
+    } else if (type is TypeParameterType) {
+      return "Object*";
+    } else if (type is NullType) {
+      return "Object*";
+    } else {
+      return "void*";
+    }
+  }
+
+  String _getVariableDeclareType(DartType type) {
+    if (type is TypeParameterType) {
+      var name = type.parameter.name ?? "void*";
+      return name;
+    }
+    var typeStr = _getVariableType(type);
+    if (typeStr == "void") {
+      return typeStr;
+    }
+    return (type.nullability == Nullability.nullable)
+        ? "$typeStr *"
+        : "$typeStr *";
+  }
+
+  String _getFieldDeclaration(Field field) {
+    return "${_getVariableDeclareType(field.type)} ${field.name.text}";
+  }
+
+  String _getVariableDeclaration(VariableDeclaration variableDeclaration) {
+    return "${_getVariableDeclareType(variableDeclaration.type)} ${variableDeclaration.name}";
+  }
+
+  String _toString(TreeNode statement, bool isHeader) {
+    if (statement is Constructor) {
+      return (CppCodePrinter()
+            ..isHeader = isHeader
+            ..writeConstructorDeclaration(statement)
+            ..writeNewline())
+          .getText();
+    } else if (statement is Procedure) {
+      return (CppCodePrinter()
+            ..isHeader = isHeader
+            ..writeMemberFunctionDeclaration(statement)
+            ..writeNewline())
+          .getText();
+    } else if (statement is Statement) {
+      return (CppCodePrinter()
+            ..isHeader = isHeader
+            ..writeStatement(statement)
+            ..writeNewline())
+          .getText();
+    } else if (statement is Expression) {
+      return (CppCodePrinter()
+            ..isHeader = isHeader
+            ..writeExpression(statement))
+          .getText();
+    }
+    return "void";
+  }
 
   String getText() {
     return _buffer.toString();
@@ -457,9 +469,6 @@ class CppCodePrinter {
     }
     var name = "cppLet_${_letNames.length}";
     _variableNames[variable] = name;
-    // _variableNames[variable] =
-    //     "std::any_cast<${getVariableDeclareType(variable.type)}>($name)";
-    // return isLet ? name : _variableNames[variable]!;
     return name;
   }
 
@@ -481,13 +490,13 @@ class CppCodePrinter {
   void writeMemberFunctionDeclaration(Procedure procedure) {
     FunctionNode function = procedure.function;
     String name = getMemberName(procedure);
-    String ownerClassType = getClassDeclareType(procedure.enclosingClass!);
+    String ownerClassType = _getClassDeclareType(procedure.enclosingClass!);
 
     var typeStr = getTypeParametersDiff(
         procedure.enclosingClass!, function.typeParameters);
     if (isHeader) {
       write(
-          "$typeStr static ${getVariableDeclareType(function.returnType)} $name");
+          "$typeStr static ${_getVariableDeclareType(function.returnType)} $name");
       writeParametersList(function,
           ownerClassType: procedure.isStatic ? "" : ownerClassType);
       write(";");
@@ -495,10 +504,10 @@ class CppCodePrinter {
       return;
     }
 
-    var typeString = getClassDeclareTypeParameters(procedure.enclosingClass!);
+    var typeString = _getClassDeclareTypeParameters(procedure.enclosingClass!);
     var className = getClassTypeName(procedure.enclosingClass!);
     write(
-        "$typeStr $typeString ${getVariableDeclareType(function.returnType)} $className::$name");
+        "$typeStr $typeString ${_getVariableDeclareType(function.returnType)} $className::$name");
     writeParametersList(function,
         ownerClassType: procedure.isStatic ? "" : ownerClassType);
     if (function.body is Block) {
@@ -515,7 +524,7 @@ class CppCodePrinter {
   void writeFunctionDeclaration(FunctionNode function) {
     write("[&]");
     writeParametersList(function);
-    write(" -> ${getVariableDeclareType(function.returnType)}");
+    write(" -> ${_getVariableDeclareType(function.returnType)}");
     if (function.body is Block) {
       writeStatement(function.body!);
     } else {
@@ -534,16 +543,17 @@ class CppCodePrinter {
         constructor.enclosingClass, function.typeParameters);
 
     if (isHeader) {
-      var classType = getClassDeclareType(constructor.enclosingClass);
+      var classType = _getClassDeclareType(constructor.enclosingClass);
       write("$typeStr static $classType ${getMemberName(constructor)}");
       writeParametersList(constructor.function, ownerClassType: classType);
       write(";");
       return;
     }
 
-    var typeString = getClassDeclareTypeParameters(constructor.enclosingClass!);
+    var typeString =
+        _getClassDeclareTypeParameters(constructor.enclosingClass!);
     var className = getClassTypeName(constructor.enclosingClass!);
-    var classType = getClassDeclareType(constructor.enclosingClass);
+    var classType = _getClassDeclareType(constructor.enclosingClass);
     write(
         "$typeStr $typeString $classType $className::${getMemberName(constructor)}");
     writeParametersList(constructor.function, ownerClassType: classType);
@@ -576,7 +586,7 @@ class CppCodePrinter {
   }
 
   void writeVariableDeclaration(VariableDeclaration variable) {
-    write("${getVariableDeclareType(variable.type)} ");
+    write("${_getVariableDeclareType(variable.type)} ");
     write(getVariableName(variable));
     if (variable.initializer != null) {
       write(' = ');
@@ -653,7 +663,7 @@ class CppCodePrinter {
       write('continue');
       write(';');
     } else if (statement is VariableDeclaration) {
-      write('${getVariableDeclareType(statement.type)} ');
+      write('${_getVariableDeclareType(statement.type)} ');
       write(getVariableName(statement));
       if (statement.initializer != null) {
         write(' = ');
@@ -705,7 +715,7 @@ class CppCodePrinter {
     } else if (statement is AssertStatement) {
       write('print("assert");');
     } else if (statement is FunctionDeclaration) {
-      write('${getVariableDeclareType(statement.variable.type)} ');
+      write('${_getVariableDeclareType(statement.variable.type)} ');
       write(getVariableName(statement.variable));
       write(' = ');
       writeFunctionDeclaration(statement.function);
@@ -717,12 +727,12 @@ class CppCodePrinter {
 
   void writeExpression(Expression expression) {
     if (expression is ListLiteral) {
-      var typeArgument = getVariableDeclareType(expression.typeArgument);
+      var typeArgument = _getVariableDeclareType(expression.typeArgument);
       var cppListType = "CppWasmList<$typeArgument>";
-      write('$cppListType::cppCtr_fromCppWasmArray(');
+      write('$cppListType::cppCtr_fromCppArray(');
       write('$cppListType::cppNew()');
       write(',');
-      write('CppWasmArray<$typeArgument>::cppInitializer({');
+      write('CppArray<$typeArgument>::cppInitializer({');
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
@@ -732,14 +742,14 @@ class CppCodePrinter {
       write('})');
       write(')');
     } else if (expression is MapLiteral) {
-      var keyTypeArgument = getVariableDeclareType(expression.keyType);
-      var valueTypeArgument = getVariableDeclareType(expression.keyType);
+      var keyTypeArgument = _getVariableDeclareType(expression.keyType);
+      var valueTypeArgument = _getVariableDeclareType(expression.valueType);
       var cppMapType = "CppWasmMap<$keyTypeArgument,$valueTypeArgument>";
-      write('$cppMapType::cppCtr_fromCppWasmArray(');
+      write('$cppMapType::cppCtr_fromCppArray(');
       write('$cppMapType::cppNew()');
       write(',');
       write(
-          'CppWasmArray<MapEntry<$keyTypeArgument,$valueTypeArgument>>::cppInitializer({');
+          'CppArray<MapEntry<$keyTypeArgument,$valueTypeArgument>>::cppInitializer({');
       bool first = true;
       for (var entry in expression.entries) {
         if (!first) write(', ');
@@ -752,12 +762,12 @@ class CppCodePrinter {
       }
       write('}))');
     } else if (expression is SetLiteral) {
-      var typeArgument = getVariableDeclareType(expression.typeArgument);
+      var typeArgument = _getVariableDeclareType(expression.typeArgument);
       var cppSetType = "CppWasmSet<$typeArgument>";
-      write('$cppSetType::cppCtr_fromCppWasmArray(');
+      write('$cppSetType::cppCtr_fromCppArray(');
       write('$cppSetType::cppNew()');
       write(',');
-      write('CppWasmArray<$typeArgument>::cppInitializer({');
+      write('CppArray<$typeArgument>::cppInitializer({');
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
@@ -776,7 +786,7 @@ class CppCodePrinter {
       // writeArgumentsList(
       //     expression.functionType.function, expression.arguments);
     } else if (expression is ConstructorInvocation) {
-      var classType = getVariableType(expression.constructedType);
+      var classType = _getVariableType(expression.constructedType);
       write("$classType::${getMemberName(expression.target)}");
       writeArgumentsList(expression.target.function, expression.arguments,
           prefixStr: "$classType::cppNew()");
@@ -855,11 +865,11 @@ class CppCodePrinter {
     } else if (expression is AsExpression) {
       writeExpression(expression.operand);
       write(" as ");
-      write(getVariableDeclareType(expression.type));
+      write(_getVariableDeclareType(expression.type));
     } else if (expression is IsExpression) {
       writeExpression(expression.operand);
       write(" is ");
-      write(getVariableDeclareType(expression.type));
+      write(_getVariableDeclareType(expression.type));
     } else if (expression is ConditionalExpression) {
       write('(');
       writeExpression(expression.condition);
@@ -878,7 +888,7 @@ class CppCodePrinter {
       // write('}()');
     } else if (expression is Let) {
       write(
-          '([](${getVariableDeclareType(expression.variable.type)} ${getVariableName(expression.variable)}){');
+          '([](${_getVariableDeclareType(expression.variable.type)} ${getVariableName(expression.variable)}){');
       var statement = expression.body;
       if (statement is BlockExpression) {
         for (var stmt in statement.body.statements) {
@@ -909,11 +919,9 @@ class CppCodePrinter {
       bool first = true;
       for (var exp in expression.expressions) {
         if (!first) write(" , ");
-        first = false;
         writeExpression(exp);
-      }
-      for (int i = 0; i < expression.expressions.length - 1; i++) {
-        write(")");
+        if (!first) write(")");
+        first = false;
       }
     } else if (expression is Not) {
       write("Class_Bool");
@@ -982,7 +990,7 @@ class CppCodePrinter {
       }
       first = false;
       var parameter = positionalParameters[i];
-      write(getVariableDeclareType(parameter.type));
+      write(_getVariableDeclareType(parameter.type));
       write(" ");
       write(parameter.name!);
     }
@@ -994,7 +1002,7 @@ class CppCodePrinter {
       }
       first = false;
       var namedParameter = namedArguments[i];
-      write(getVariableDeclareType(namedParameter.type));
+      write(_getVariableDeclareType(namedParameter.type));
       write(" ");
       write(namedParameter.name!);
     }
