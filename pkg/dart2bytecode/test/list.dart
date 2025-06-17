@@ -2,9 +2,9 @@ import 'dart:collection';
 import 'dart:math';
 
 @pragma("wasm:entry-point")
-class CppWasmArray<T> {
+class CppArray<T> {
   final List<T?> _data;
-  CppWasmArray(int capacity)
+  CppArray(int capacity)
       : _data = List.empty(growable: true)..length = capacity;
   int getLength() => _data.length;
 
@@ -15,10 +15,10 @@ class CppWasmArray<T> {
   void setItem(int index, T value) => _data[index] = value;
 }
 
-class CppWasmUnit8Array {
+class CppUnit8Array {
   final int length;
-  final CppWasmArray<int> _array;
-  CppWasmUnit8Array(this.length) : _array = CppWasmArray((length / 4).ceil()) {
+  final CppArray<int> _array;
+  CppUnit8Array(this.length) : _array = CppArray((length / 4).ceil()) {
     for (var i = 0; i < _array.getLength(); i++) {
       _array.setItem(i, 0);
     }
@@ -46,70 +46,70 @@ int _getSuggestCapacity(int newLen) {
 }
 
 @pragma("wasm:entry-point")
-class CppWasmList<E> extends ListBase<E> {
+class CppList<E> extends ListBase<E> {
   int _length;
-  final CppWasmArray<E> _array;
+  final CppArray<E> _array;
 
   @pragma('wasm:entry-point')
-  CppWasmList.fromCppWasmArray(CppWasmArray<E> array)
+  CppList.fromCppArray(CppArray<E> array)
       : _length = array.getLength(),
         _array = array;
 
-  CppWasmList(int length, int capacity)
+  CppList(int length, int capacity)
       : _length = length,
-        _array = CppWasmArray<E>(capacity);
+        _array = CppArray<E>(capacity);
 
-  factory CppWasmList.empty({bool growable = false}) {
-    return growable ? CppWasmList<E>(0, 0) : CppWasmList<E>(0, 0);
+  factory CppList.empty({bool growable = false}) {
+    return growable ? CppList<E>(0, 0) : CppList<E>(0, 0);
   }
 
-  factory CppWasmList.filled(int length, E fill, {bool growable = false}) {
+  factory CppList.filled(int length, E fill, {bool growable = false}) {
     var array = growable
-        ? CppWasmArray<E>(length)
-        : CppWasmArray<E>(_getSuggestCapacity(length));
+        ? CppArray<E>(length)
+        : CppArray<E>(_getSuggestCapacity(length));
     for (int i = 0; i < length; i++) {
       array.setItem(i, fill);
     }
-    return CppWasmList.fromCppWasmArray(array);
+    return CppList.fromCppArray(array);
   }
 
-  factory CppWasmList.from(Iterable elements, {bool growable = true}) {
+  factory CppList.from(Iterable elements, {bool growable = true}) {
     var length = elements.length;
     var array = growable
-        ? CppWasmArray<E>(length)
-        : CppWasmArray<E>(_getSuggestCapacity(length));
+        ? CppArray<E>(length)
+        : CppArray<E>(_getSuggestCapacity(length));
     int i = 0;
     for (var element in elements) {
       array.setItem(i++, element);
     }
-    return CppWasmList.fromCppWasmArray(array);
+    return CppList.fromCppArray(array);
   }
 
-  factory CppWasmList.of(Iterable<E> elements, {bool growable = true}) =>
-      CppWasmList.from(elements, growable: growable);
+  factory CppList.of(Iterable<E> elements, {bool growable = true}) =>
+      CppList.from(elements, growable: growable);
 
-  factory CppWasmList.generate(
+  factory CppList.generate(
     int length,
     E Function(int index) generator, {
     bool growable = true,
   }) {
     var array = growable
-        ? CppWasmArray<E>(length)
-        : CppWasmArray<E>(_getSuggestCapacity(length));
+        ? CppArray<E>(length)
+        : CppArray<E>(_getSuggestCapacity(length));
     for (int i = 0; i < length; i++) {
       array.setItem(i, generator(i));
     }
-    return CppWasmList.fromCppWasmArray(array);
+    return CppList.fromCppArray(array);
   }
 
-  factory CppWasmList.unmodifiable(Iterable elements) {
+  factory CppList.unmodifiable(Iterable elements) {
     var length = elements.length;
-    var array = CppWasmArray<E>(_getSuggestCapacity(length));
+    var array = CppArray<E>(_getSuggestCapacity(length));
     int i = 0;
     for (var element in elements) {
       array.setItem(i++, element as E);
     }
-    return CppWasmList.fromCppWasmArray(array);
+    return CppList.fromCppArray(array);
   }
 
   @override
@@ -130,37 +130,36 @@ class CppWasmList<E> extends ListBase<E> {
   void operator []=(int index, E value) => _array.setItem(index, value);
 }
 
-class CppWasmSet<E> extends SetBase<E> {
-  final CppWasmList<E> _list;
+class CppSet<E> extends SetBase<E> {
+  final CppList<E> _list;
 
   @pragma('wasm:entry-point')
-  CppWasmSet.fromCppWasmArray(CppWasmArray<E> array)
-      : _list = CppWasmList.fromCppWasmArray(array);
+  CppSet.fromCppArray(CppArray<E> array) : _list = CppList.fromCppArray(array);
 
-  CppWasmSet([int capacity = 4]) : _list = CppWasmList(0, capacity);
+  CppSet([int capacity = 4]) : _list = CppList(0, capacity);
 
-  factory CppWasmSet.identity() => CppWasmSet<E>(4);
+  factory CppSet.identity() => CppSet<E>(4);
 
-  factory CppWasmSet.from(Iterable elements) {
+  factory CppSet.from(Iterable elements) {
     var length = elements.length;
-    var array = CppWasmArray<E>(_getSuggestCapacity(length));
+    var array = CppArray<E>(_getSuggestCapacity(length));
     int i = 0;
     for (var element in elements) {
       array.setItem(i++, element as E);
     }
-    return CppWasmSet.fromCppWasmArray(array);
+    return CppSet.fromCppArray(array);
   }
 
-  factory CppWasmSet.of(Iterable<E> elements) => CppWasmSet.from(elements);
+  factory CppSet.of(Iterable<E> elements) => CppSet.from(elements);
 
-  factory CppWasmSet.unmodifiable(Iterable<E> elements) {
+  factory CppSet.unmodifiable(Iterable<E> elements) {
     var length = elements.length;
-    var array = CppWasmArray<E>(_getSuggestCapacity(length));
+    var array = CppArray<E>(_getSuggestCapacity(length));
     int i = 0;
     for (var element in elements) {
       array.setItem(i++, element);
     }
-    return CppWasmSet.fromCppWasmArray(array);
+    return CppSet.fromCppArray(array);
   }
 
   @override
@@ -209,35 +208,34 @@ class CppWasmSet<E> extends SetBase<E> {
   }
 }
 
-class CppWasmMap<K, V> extends MapBase<K, V> {
-  final CppWasmList<MapEntry<K, V>> _list;
+class CppMap<K, V> extends MapBase<K, V> {
+  final CppList<MapEntry<K, V>> _list;
 
   @pragma('wasm:entry-point')
-  CppWasmMap.fromCppWasmArray(CppWasmArray<MapEntry<K, V>> array)
-      : _list = CppWasmList.fromCppWasmArray(array);
+  CppMap.fromCppArray(CppArray<MapEntry<K, V>> array)
+      : _list = CppList.fromCppArray(array);
 
-  CppWasmMap([int capacity = 4]) : _list = CppWasmList(0, capacity);
+  CppMap([int capacity = 4]) : _list = CppList(0, capacity);
 
-  factory CppWasmMap.from(Map other) => CppWasmMap.unmodifiable(other);
+  factory CppMap.from(Map other) => CppMap.unmodifiable(other);
 
-  factory CppWasmMap.of(Map<K, V> other) =>
-      CppWasmMap.fromEntries(other.entries);
+  factory CppMap.of(Map<K, V> other) => CppMap.fromEntries(other.entries);
 
-  factory CppWasmMap.unmodifiable(Map<dynamic, dynamic> other) {
+  factory CppMap.unmodifiable(Map<dynamic, dynamic> other) {
     var length = other.length;
-    var array = CppWasmArray<MapEntry<K, V>>(_getSuggestCapacity(length));
+    var array = CppArray<MapEntry<K, V>>(_getSuggestCapacity(length));
     int i = 0;
     for (var entry in other.entries) {
       array.setItem(i++, MapEntry(entry.key as K, entry.value as V));
     }
-    return CppWasmMap.fromCppWasmArray(array);
+    return CppMap.fromCppArray(array);
   }
 
-  factory CppWasmMap.identity() => CppWasmMap<K, V>();
+  factory CppMap.identity() => CppMap<K, V>();
 
-  factory CppWasmMap.fromIterable(Iterable iterable,
+  factory CppMap.fromIterable(Iterable iterable,
       {K Function(dynamic element)? key, V Function(dynamic element)? value}) {
-    var map = CppWasmMap<K, V>();
+    var map = CppMap<K, V>();
     for (var element in iterable) {
       var k = key?.call(element) ?? element;
       var v = value?.call(element) ?? element;
@@ -246,8 +244,8 @@ class CppWasmMap<K, V> extends MapBase<K, V> {
     return map;
   }
 
-  factory CppWasmMap.fromIterables(Iterable<K> keys, Iterable<V> values) {
-    var map = CppWasmMap<K, V>();
+  factory CppMap.fromIterables(Iterable<K> keys, Iterable<V> values) {
+    var map = CppMap<K, V>();
     var i = 0;
     for (var key in keys) {
       if (i < values.length) {
@@ -258,8 +256,8 @@ class CppWasmMap<K, V> extends MapBase<K, V> {
     return map;
   }
 
-  factory CppWasmMap.fromEntries(Iterable<MapEntry<K, V>> entries) {
-    var map = CppWasmMap<K, V>();
+  factory CppMap.fromEntries(Iterable<MapEntry<K, V>> entries) {
+    var map = CppMap<K, V>();
     for (var entry in entries) {
       map[entry.key] = entry.value;
     }
@@ -315,7 +313,7 @@ class CppWasmMap<K, V> extends MapBase<K, V> {
 
 void main() {
   // 测试
-  CppWasmList<int> list = CppWasmList<int>(0, 8);
+  CppList<int> list = CppList<int>(0, 8);
 
   // 添加元素
   list.add(1);
@@ -333,7 +331,7 @@ void main() {
   var evens = list.where((e) => e % 2 == 0);
   print(evens); // [2]
 
-  CppWasmSet<int> set = CppWasmSet(2);
+  CppSet<int> set = CppSet(2);
   set.add(1);
   set.add(2);
   set.add(3);
@@ -343,14 +341,14 @@ void main() {
   var doubled2 = set.map((e) => e * 2);
   print(doubled2); // [2, 4, 6]
 
-  CppWasmUnit8Array aa = CppWasmUnit8Array(3);
+  CppUnit8Array aa = CppUnit8Array(3);
   aa[0] = 1;
   aa[1] = 2;
   aa[2] = 3;
   print(aa._array.getItem(0));
   print(aa[2]);
 
-  CppWasmMap<int, String> kk = CppWasmMap<int, String>(8);
+  CppMap<int, String> kk = CppMap<int, String>(8);
   kk[1] = "xxxx1";
   kk[2] = "xxxx2";
   kk[3] = "xxxx3";

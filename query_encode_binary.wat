@@ -8219,36 +8219,18 @@
   (local $3 (ref $type_14))
   (local $4 (ref $type_14))
   (local $5 (ref $type_24))
-  (local $scratch (tuple (ref $type_14) (ref $type_23)))
   (local $scratch_7 (ref $type_14))
   (local $scratch_8 (ref $type_23))
   (local $scratch_9 (ref $type_23))
-  (local $10 (tuple (ref $type_14) (ref $type_23)))
   (block $block
    (try
-    (do
-     (call $164)
-     (br $block)
-    )
+
     (catch $tag$0
-     (local.set $10
-      (pop (tuple (ref $type_14) (ref $type_23)))
-     )
+    
      (block
       (local.set $3
        (block (result (ref $type_14))
-        (local.set $scratch_7
-         (tuple.extract 2 0
-          (local.tee $scratch
-           (local.get $10)
-          )
-         )
-        )
-        (local.set $2
-         (tuple.extract 2 1
-          (local.get $scratch)
-         )
-        )
+     
         (local.get $scratch_7)
        )
       )
@@ -8300,68 +8282,18 @@
   (local $1 (ref $type_23))
   (local $2 (ref $type_23))
   (local $3 (ref $type_14))
-  (local $scratch (tuple (ref $type_14) (ref $type_23)))
   (local $scratch_5 (ref $type_14))
   (local $scratch_6 (ref $type_23))
   (local $scratch_7 (ref $type_23))
-  (local $8 (tuple (ref $type_14) (ref $type_23)))
   (block $block
    (try $label
-    (do
-     (drop
-      (call $135
-       (global.get $global$18)
-      )
-     )
-     (drop
-      (call $108
-       (global.get $global$121)
-       (global.get $global$44)
-      )
-     )
-     (drop
-      (call $108
-       (global.get $global$122)
-       (global.get $global$44)
-      )
-     )
-     (if
-      (call $108
-       (global.get $global$43)
-       (global.get $global$44)
-      )
-      (then
-       (call $164)
-      )
-      (else
-       (call $25
-        (global.get $global$123)
-       )
-       (unreachable)
-      )
-     )
-     (br $block)
-    )
+    
     (catch $tag$0
-     (local.set $8
-      (pop (tuple (ref $type_14) (ref $type_23)))
-     )
+   
      (block
       (local.set $3
        (block (result (ref $type_14))
-        (local.set $scratch_5
-         (tuple.extract 2 0
-          (local.tee $scratch
-           (local.get $8)
-          )
-         )
-        )
-        (local.set $2
-         (tuple.extract 2 1
-          (local.get $scratch)
-         )
-        )
-        (local.get $scratch_5)
+  
        )
       )
       (call $165
@@ -8375,7 +8307,7 @@
         (local.get $scratch_6)
        )
       )
-      (rethrow $label)
+
      )
     )
     (catch_all
@@ -8390,7 +8322,7 @@
        (local.get $scratch_7)
       )
      )
-     (rethrow $label)
+
     )
    )
    (unreachable)
@@ -12108,9 +12040,7 @@
   (local $4 i64)
   (local $5 i64)
   (local $6 i32)
-  (local $scratch (tuple (ref $type_14) (ref $type_23)))
   (local $scratch_8 (ref $type_14))
-  (local $9 (tuple (ref $type_14) (ref $type_23)))
   (if
    (block $block4 (result i32)
     (loop $label
@@ -12245,130 +12175,13 @@
    (local.get $0)
   )
   (try $label3
-   (do
-    (if
-     (call_indirect $0 (type $type_68)
-      (local.tee $0
-       (call_indirect $0 (type $type_85)
-        (local.get $0)
-        (i32.add
-         (struct.get $type_14 0
-          (local.get $0)
-         )
-         (i32.const 620)
-        )
-       )
-      )
-      (i32.add
-       (struct.get $type_14 0
-        (local.get $0)
-       )
-       (i32.const 599)
-      )
-     )
-     (then
-      (if
-       (i64.eqz
-        (call $34
-         (global.get $global$14)
-        )
-       )
-       (then
-        (loop $label1
-         (call $55
-          (local.get $1)
-          (call_indirect $0 (type $type_48)
-           (local.get $0)
-           (i32.add
-            (struct.get $type_14 0
-             (local.get $0)
-            )
-            (i32.const 630)
-           )
-          )
-         )
-         (br_if $label1
-          (call_indirect $0 (type $type_68)
-           (local.get $0)
-           (i32.add
-            (struct.get $type_14 0
-             (local.get $0)
-            )
-            (i32.const 599)
-           )
-          )
-         )
-        )
-       )
-       (else
-        (call $55
-         (local.get $1)
-         (call_indirect $0 (type $type_48)
-          (local.get $0)
-          (i32.add
-           (struct.get $type_14 0
-            (local.get $0)
-           )
-           (i32.const 630)
-          )
-         )
-        )
-        (loop $label2
-         (if
-          (call_indirect $0 (type $type_68)
-           (local.get $0)
-           (i32.add
-            (struct.get $type_14 0
-             (local.get $0)
-            )
-            (i32.const 599)
-           )
-          )
-          (then
-           (call $55
-            (local.get $1)
-            (global.get $global$14)
-           )
-           (call $55
-            (local.get $1)
-            (call_indirect $0 (type $type_48)
-             (local.get $0)
-             (i32.add
-              (struct.get $type_14 0
-               (local.get $0)
-              )
-              (i32.const 630)
-             )
-            )
-           )
-           (br $label2)
-          )
-         )
-        )
-       )
-      )
-     )
-    )
-   )
+
    (catch $tag$0
-    (local.set $9
-     (pop (tuple (ref $type_14) (ref $type_23)))
-    )
+   
     (block
      (drop
       (block (result (ref $type_14))
-       (local.set $scratch_8
-        (tuple.extract 2 0
-         (local.tee $scratch
-          (local.get $9)
-         )
-        )
-       )
-       (drop
-        (tuple.extract 2 1
-         (local.get $scratch)
-        )
-       )
+   
        (local.get $scratch_8)
       )
      )
@@ -12380,7 +12193,7 @@
        (call $83)
       )
      )
-     (rethrow $label3)
+  
     )
    )
    (catch_all
@@ -12392,7 +12205,7 @@
       (call $83)
      )
     )
-    (rethrow $label3)
+
    )
   )
   (call $84

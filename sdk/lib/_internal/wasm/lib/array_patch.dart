@@ -5,35 +5,29 @@
 import 'dart:_internal' show patch, EfficientLengthIterable;
 import 'dart:_list';
 import 'dart:_wasm';
+import 'cpp_collection.dart';
 
 @patch
 class List<E> {
   @patch
   @pragma("wasm:prefer-inline")
-  factory List.empty({bool growable = false}) {
-    return growable ? <E>[] : ModifiableFixedLengthList<E>(0);
-  }
+  factory List.empty({bool growable = false}) =>
+      CppList<E>.empty(growable: growable);
 
   @patch
   @pragma("wasm:prefer-inline")
   factory List.filled(int length, E fill, {bool growable = false}) =>
-      growable
-          ? GrowableList<E>.filled(length, fill)
-          : ModifiableFixedLengthList<E>.filled(length, fill);
+      CppList<E>.filled(length, fill, growable: growable);
 
   @patch
   @pragma("wasm:prefer-inline")
   factory List.from(Iterable elements, {bool growable = true}) =>
-      growable
-          ? GrowableList<E>.ofUntypedIterable(elements)
-          : ModifiableFixedLengthList<E>.ofUntypedIterable(elements);
+      CppList<E>.from(elements, growable: growable);
 
   @patch
   @pragma("wasm:prefer-inline")
   factory List.of(Iterable<E> elements, {bool growable = true}) =>
-      growable
-          ? GrowableList<E>.of(elements)
-          : ModifiableFixedLengthList<E>.of(elements);
+      CppList<E>.of(elements, growable: growable);
 
   @patch
   @pragma("wasm:prefer-inline")
@@ -42,13 +36,9 @@ class List<E> {
     E generator(int index), {
     bool growable = true,
   }) =>
-      growable
-          ? GrowableList<E>.generate(length, generator)
-          : ModifiableFixedLengthList<E>.generate(length, generator);
-
+      CppList<E>.generate(length, generator, growable: growable);
   @patch
   @pragma("wasm:prefer-inline")
-  factory List.unmodifiable(Iterable elements) {
-    return ImmutableList<E>.ofUntypedIterable(elements);
-  }
+  factory List.unmodifiable(Iterable elements) =>
+      CppList<E>.unmodifiable(elements);
 }

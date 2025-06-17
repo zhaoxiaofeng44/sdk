@@ -34,7 +34,7 @@ class BytecodeOptions {
     this.emitInstanceFieldInitializers = false,
     this.omitAssertSourcePositions = false,
     this.keepUnreachableCode = false,
-    this.showBytecodeSizeStatistics = false,
+    this.showBytecodeSizeStatistics = true,
   }) {}
 
   void parseCommandLineFlags(List<String>? flags) {

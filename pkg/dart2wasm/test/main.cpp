@@ -702,5 +702,25 @@ int main() {
     std::cout << mynew4->a << ": " <<  mynew4->b << std::endl;
 
     
+    // 测试 CppWasmList
+    CustomList<int> *list = new CustomList<int>({1, 2, 3, 4, 5});
+    testWasm(list);
+
+    // 测试 CppWasmSet
+    std::set<int> cppWasmSet = {1, 2, 3, 4, 5};
+    for (int elem : cppWasmSet) {
+        std::cout << "Set element: " << elem << std::endl;
+    }
+
+    // 测试 CppWasmMap
+    CustomMap<std::string, int> cppWasmMap = {
+        {"one", 1},
+        {"two", 2},
+        {"three", 3}
+    };
+    cppWasmMap.forEach([](const std::string &key, int value) {
+        std::cout << "Map entry: " << key << " -> " << value << std::endl;
+    });
+
     return 0;
 }

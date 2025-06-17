@@ -1,8 +1,5 @@
 import 'package:kernel/kernel.dart';
 
-import 'class_info.dart';
-import 'translator.dart';
-
 bool isHideClass(Class cls) {
   const cppClassNames = [
     "List",
@@ -13,13 +10,15 @@ bool isHideClass(Class cls) {
     "SetBase",
     "Iterable",
     "Iterator",
-    "StringBuffer",
     "StackTrace",
-    "UnmodifiableMapView"
+    "UnmodifiableMapView",
+    "Random",
+    "MapEntry"
   ];
 
   var libraryName = cls.enclosingLibrary.toStringInternal();
-  if (libraryName.startsWith("dart") ||
+  if (libraryName.startsWith("vm") ||
+      libraryName.startsWith("dart") ||
       libraryName.startsWith("library dart") ||
       libraryName.contains("cpp_collection") ||
       libraryName.contains("cpp_string")) {
@@ -30,41 +29,45 @@ bool isHideClass(Class cls) {
   return false;
 }
 
-void printTranslator(Translator translator) {
+void printTranslator(Component component) {
   printCppHeader();
 
-  for (final classInfo in translator.classInfo.values) {
-    if (isHideClass(classInfo.cls!)) {
+  var classList = <Class>[];
+  for (final library in component.libraries) {
+    classList.addAll(library.classes);
+  }
+  for (final cls in classList) {
+    if (isHideClass(cls)) {
       continue;
     }
-    print("${getClassDeclareTypeName(classInfo)};");
+    print("${getClassDeclareTypeName(cls)};");
   }
 
-  var classMap = getClassList(translator.classInfo.values);
-  for (final classInfo in translator.classInfo.values) {
-    if (isHideClass(classInfo.cls!)) {
+  var classMap = getClassList(classList);
+  for (final cls in classList) {
+    if (isHideClass(cls)) {
       continue;
     }
-    print("//  " + classInfo.cls!.enclosingLibrary.toStringInternal());
-    printClassDeclarationHeader(classMap, classInfo);
+    print("//  " + cls.enclosingLibrary.toStringInternal());
+    printClassDeclarationHeader(classMap, cls);
   }
 
-  for (final classInfo in translator.classInfo.values) {
-    if (isHideClass(classInfo.cls!)) {
+  for (final cls in classList) {
+    if (isHideClass(cls)) {
       continue;
     }
-    print("//  " + classInfo.cls!.enclosingLibrary.toStringInternal());
-    printClassDeclaration(classMap, classInfo);
+    print("//  " + cls.enclosingLibrary.toStringInternal());
+    printClassDeclaration(classMap, cls);
   }
 }
 
 void printCppHeader() {
   print('''
+#include <cstdio>
+#include <cstdlib>
+#include <sstream>
 #include "src/core/func.h"
-#include "src/core/list.h"
-#include "src/core/map.h"
 #include "src/core/num.h"
-#include "src/core/set.h"
 #include "src/core/string.h"
 ''');
 }
@@ -78,21 +81,20 @@ String getClassDeclareTypeParameters(Class cls) {
   return typeString;
 }
 
-String getClassDeclareTypeName(ClassInfo classInfo) {
-  var typeString = getClassDeclareTypeParameters(classInfo.cls!);
-  var className = getClassName(classInfo.cls!);
+String getClassDeclareTypeName(Class cls) {
+  var typeString = getClassDeclareTypeParameters(cls);
+  var className = getClassName(cls);
   return "$typeString class $className";
 }
 
-void printClassDeclarationHeader(
-    Map<Class, List<ClassMember>> map, ClassInfo classInfo) {
+void printClassDeclarationHeader(Map<Class, List<ClassMember>> map, Class cls) {
   // Print class declaration with inheritance
-  var typeClassName = getClassDeclareTypeName(classInfo);
+  var typeClassName = getClassDeclareTypeName(cls);
   var superClassName = "";
-  if (classInfo.cls!.supertype == null) {
+  if (cls.supertype == null) {
     superClassName = typeClassName == "Object" ? "" : ": public Object";
   } else {
-    var list = classInfo.cls!.supers.where((e) => !isHideClass(e.classNode));
+    var list = cls.supers.where((e) => !isHideClass(e.classNode));
     if (list.isEmpty) {
       superClassName = ": public Object";
     } else {
@@ -104,68 +106,52 @@ void printClassDeclarationHeader(
   print("public:");
 
   // // Print fields
-  for (var field in classInfo.cls!.fields) {
+  for (var field in cls!.fields) {
     var fieldString = getFieldDeclaration(field);
     print("${field.isStatic ? "static " : ""}$fieldString;");
   }
 
-  var list = map[classInfo.cls]!;
+  var list = map[cls]!;
   for (var procedure in list) {
-    if (procedure.member.enclosingClass == classInfo.cls) {
+    if (procedure.member.enclosingClass == cls) {
       print(toString(procedure.member, true));
     }
   }
 
-  var className = getClassName(classInfo.cls!);
   var cppNewStr = '''
-  static $className * cppNew();
+  static ${getClassDeclareType(cls)} cppNew();
 ''';
   print(cppNewStr);
 
   print("};");
 }
 
-void printClassDeclaration(
-    Map<Class, List<ClassMember>> map, ClassInfo classInfo) {
+void printClassDeclaration(Map<Class, List<ClassMember>> map, Class cls) {
   // Print class declaration with inheritance
-  var typeClassName = getClassDeclareTypeName(classInfo);
-  var superClassName = "";
-  if (classInfo.cls!.supertype == null) {
-    superClassName = typeClassName == "Object" ? "" : ": public Object";
-  } else {
-    superClassName =
-        ": ${classInfo.cls!.supers.map((e) => "virtual public ${getVariableType(e.asInterfaceType)}").join(",")}";
-  }
-  print("$typeClassName $superClassName {");
-  print("public:");
-
-  // // Print fields
-  for (var field in classInfo.cls!.fields) {
-    var fieldString = getFieldDeclaration(field);
-    print("${field.isStatic ? "static " : ""}$fieldString;");
-  }
-
-  var list = map[classInfo.cls]!;
-  for (var procedure in list) {
-    if (procedure.member.enclosingClass == classInfo.cls) {
-      print(toString(procedure.member, false));
+  var list = map[cls];
+  if (list?.isNotEmpty ?? false) {
+    for (var procedure in list!) {
+      if (procedure.member.enclosingClass == cls) {
+        print(toString(procedure.member, false));
+      }
     }
   }
-  var typeString = getClassDeclareTypeParameters(classInfo.cls!);
-  var className = getClassTypeName(classInfo.cls!);
+
+  var typeString = getClassDeclareTypeParameters(cls);
+  var className = getClassTypeName(cls);
+  var classTypeName = getClassDeclareType(cls);
+
   var cppNewStr = '''
-  $typeString static $className * cppNew() {
+  $typeString static $classTypeName cppNew() {
         static void *functionPtrs[] = {
-            ${list.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",")}
+            ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
         };
-        auto ptr = ($className *)malloc(sizeof($className));
+        auto ptr = ($classTypeName)malloc(sizeof($className));
         ptr->vtab = functionPtrs;
         return ptr;
     }
 ''';
   print(cppNewStr);
-
-  print("};");
 }
 
 class ClassMember {
@@ -175,10 +161,10 @@ class ClassMember {
   ClassMember(this.member, this.index) : name = getMemberName(member);
 }
 
-Map<Class, List<ClassMember>> getClassList(Iterable<ClassInfo> list) {
+Map<Class, List<ClassMember>> getClassList(Iterable<Class> list) {
   var classMap = <Class, List<ClassMember>>{};
-  for (var classInfo in list) {
-    getClassMembersList(classMap, classInfo.cls!);
+  for (var cls in list) {
+    getClassMembersList(classMap, cls);
   }
   return classMap;
 }
@@ -236,39 +222,42 @@ final Map<String, String> typeNames = {
   "UnmodifiableMapView": "CppWasmMap"
 };
 
-final Map<String, String> operatorNames = {
+final Map<String, String> specialNames = {
   // 算术运算符
-  '+': 'add', // 加法
-  '-': 'subtract', // 减法
-  '*': 'multiply', // 乘法
-  '/': 'divide', // 除法
-  '~/': 'truncDiv', // 整除
-  '%': 'modulo', // 取模
-  'unary-': 'negation', // 一元减号(负号)
-  '!': 'not', // !x
+  '+': 'cpp_add', // 加法
+  '-': 'cpp_subtract', // 减法
+  '*': 'cpp_multiply', // 乘法
+  '/': 'cpp_divide', // 除法
+  '~/': 'cpp_truncDiv', // 整除
+  '%': 'cpp_modulo', // 取模
+  'unary-': 'cpp_negation', // 一元减号(负号)
+  '!': 'cpp_not', // !x
 
   // 增量运算符
-  '++': 'increment', // 递增
-  '--': 'decrement', // 递减
+  '++': 'cpp_increment', // 递增
+  '--': 'cpp_decrement', // 递减
 
   // 位运算符
-  '|': 'bitwiseOr', // 按位或
-  '&': 'bitwiseAnd', // 按位与
-  '^': 'bitwiseXor', // 按位异或
-  '~': 'bitwiseNot', // 按位取反(一元)
-  '<<': 'leftShift', // 左移
-  '>>': 'rightShift', // 右移
+  '|': 'cpp_bitwiseOr', // 按位或
+  '&': 'cpp_bitwiseAnd', // 按位与
+  '^': 'cpp_bitwiseXor', // 按位异或
+  '~': 'cpp_bitwiseNot', // 按位取反(一元)
+  '<<': 'cpp_leftShift', // 左移
+  '>>': 'cpp_rightShift', // 右移
 
   // 关系运算符
-  '==': 'equals', // 相等
-  '>': 'greaterThan', // 大于
-  '<': 'lessThan', // 小于
-  '>=': 'greaterThanOrEqual', // 大于等于
-  '<=': 'lessThanOrEqual', // 小于等于
+  '==': 'cpp_equals', // 相等
+  '>': 'cpp_greaterThan', // 大于
+  '<': 'cpp_lessThan', // 小于
+  '>=': 'cpp_greaterThanOrEqual', // 大于等于
+  '<=': 'cpp_lessThanOrEqual', // 小于等于
 
   // 索引运算符
-  '[]': 'subscript', // 获取索引元素
-  '[]=': 'subscriptAssign', // 设置索引元素
+  '[]': 'cpp_subscript', // 获取索引元素
+  '[]=': 'cpp_subscriptAssign', // 设置索引元素
+
+  //特殊函数名
+  'union': "cpp_union"
 };
 
 bool isFinalClassType(String name) {
@@ -304,13 +293,15 @@ String getMemberName(Member member) {
       return "cppGet_${member.name.text}";
     } else if (member.isSetter) {
       return "cppSet_${member.name.text}";
-    } else if (member.kind == ProcedureKind.Operator) {
-      if (operatorNames.containsKey(memberName)) {
-        return "cppOpr_${operatorNames[memberName]}";
-      }
     }
   }
-  return memberName;
+  if (memberName.isEmpty) {
+    return "cppEpt_";
+  }
+
+  return specialNames.containsKey(memberName)
+      ? specialNames[memberName]!
+      : memberName;
 }
 
 String getMemberInvokeName(Member member) {
@@ -451,7 +442,9 @@ class CppCodePrinter {
   }
 
   String logicalExpressionOperatorToString(LogicalExpressionOperator operator) {
-    return operatorNames[operator.name] ?? operator.name;
+    return specialNames.containsKey(operator.name)
+        ? specialNames[operator.name]!
+        : operator.name;
   }
 
   String getVariableName(VariableDeclaration variable, {bool isLet = false}) {
@@ -470,13 +463,31 @@ class CppCodePrinter {
     return name;
   }
 
+  getTypeParametersDiff(Class cls, List<TypeParameter> typeParameters) {
+    var nameSet = <String>{};
+    for (var t in cls.typeParameters) {
+      nameSet.add(t.name!);
+    }
+
+    var types = <String>[];
+    for (var t in typeParameters) {
+      if (!nameSet.contains(t.name!)) {
+        types.add("typename ${t.name}");
+      }
+    }
+    return types.isEmpty ? "" : "template<${types.join(",")}>";
+  }
+
   void writeMemberFunctionDeclaration(Procedure procedure) {
     FunctionNode function = procedure.function;
     String name = getMemberName(procedure);
     String ownerClassType = getClassDeclareType(procedure.enclosingClass!);
 
+    var typeStr = getTypeParametersDiff(
+        procedure.enclosingClass!, function.typeParameters);
     if (isHeader) {
-      write("static ${getVariableDeclareType(function.returnType)} $name");
+      write(
+          "$typeStr static ${getVariableDeclareType(function.returnType)} $name");
       writeParametersList(function,
           ownerClassType: procedure.isStatic ? "" : ownerClassType);
       write(";");
@@ -487,7 +498,7 @@ class CppCodePrinter {
     var typeString = getClassDeclareTypeParameters(procedure.enclosingClass!);
     var className = getClassTypeName(procedure.enclosingClass!);
     write(
-        "$typeString ${getVariableDeclareType(function.returnType)} $className::$name");
+        "$typeStr $typeString ${getVariableDeclareType(function.returnType)} $className::$name");
     writeParametersList(function,
         ownerClassType: procedure.isStatic ? "" : ownerClassType);
     if (function.body is Block) {
@@ -519,9 +530,12 @@ class CppCodePrinter {
   void writeConstructorDeclaration(Constructor constructor) {
     FunctionNode function = constructor.function;
 
+    var typeStr = getTypeParametersDiff(
+        constructor.enclosingClass, function.typeParameters);
+
     if (isHeader) {
       var classType = getClassDeclareType(constructor.enclosingClass);
-      write("static $classType ${getMemberName(constructor)}");
+      write("$typeStr static $classType ${getMemberName(constructor)}");
       writeParametersList(constructor.function, ownerClassType: classType);
       write(";");
       return;
@@ -530,7 +544,8 @@ class CppCodePrinter {
     var typeString = getClassDeclareTypeParameters(constructor.enclosingClass!);
     var className = getClassTypeName(constructor.enclosingClass!);
     var classType = getClassDeclareType(constructor.enclosingClass);
-    write("$typeString $classType $className::${getMemberName(constructor)}");
+    write(
+        "$typeStr $typeString $classType $className::${getMemberName(constructor)}");
     writeParametersList(constructor.function, ownerClassType: classType);
     write('{');
     indent();
@@ -687,6 +702,14 @@ class CppCodePrinter {
       write('}finally {');
       writeStatement(statement.finalizer);
       write('};');
+    } else if (statement is AssertStatement) {
+      write('print("assert");');
+    } else if (statement is FunctionDeclaration) {
+      write('${getVariableDeclareType(statement.variable.type)} ');
+      write(getVariableName(statement.variable));
+      write(' = ');
+      writeFunctionDeclaration(statement.function);
+      write(';');
     } else {
       print('Unhandled statement type: ${statement.runtimeType}');
     }
@@ -875,39 +898,27 @@ class CppCodePrinter {
       }
       write('))');
     } else if (expression is FunctionExpression) {
-      write('[](');
-      bool first = true;
-      for (var parameter in expression.function.positionalParameters) {
-        if (!first) write(", ");
-        first = false;
-        write(getVariableDeclaration(parameter));
-      }
-      for (var parameter in expression.function.namedParameters) {
-        if (!first) write(", ");
-        first = false;
-        write(getVariableDeclaration(parameter));
-      }
-      write(')');
-      if (expression.function.body is Block) {
-        writeStatement(expression.function.body!);
-      } else {
-        write('{');
-        indent();
-        writeStatement(expression.function.body!);
-        unindent();
-        write('}');
-      }
+      writeFunctionDeclaration(expression.function);
     } else if (expression is StringConcatenation) {
+      for (int i = 0; i < expression.expressions.length - 1; i++) {
+        write("String");
+        write("::");
+        write(specialNames["+"]!);
+        write("(");
+      }
       bool first = true;
       for (var exp in expression.expressions) {
-        if (!first) write(" + ");
+        if (!first) write(" , ");
         first = false;
         writeExpression(exp);
+      }
+      for (int i = 0; i < expression.expressions.length - 1; i++) {
+        write(")");
       }
     } else if (expression is Not) {
       write("Class_Bool");
       write("::");
-      write("cppOpr_${operatorNames["!"]}");
+      write(specialNames["!"]!);
       write("(");
       writeExpression(expression.operand);
       write(")");

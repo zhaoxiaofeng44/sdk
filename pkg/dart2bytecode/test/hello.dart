@@ -61,9 +61,6 @@
 //   int t = person + aa.bb;
 //   return t + person;
 // }
-
-import 'dart:collection';
-import 'dart:math';
 import "list.dart";
 
 class CyBase {
@@ -302,7 +299,7 @@ class CyComplexTest {
   @pragma('wasm:entry-point')
   void testFunctionAssignment22() {
     // 测试
-    CppWasmList<int> list = CppWasmList<int>(0, 8);
+    CppList<int> list = CppList<int>(0, 8);
 
     // 添加元素
     list.add(1);
@@ -320,7 +317,7 @@ class CyComplexTest {
     var evens = list.where((e) => e % 2 == 0);
     print(evens); // [2]
 
-    CppWasmSet<int> set = CppWasmSet(2);
+    CppSet<int> set = CppSet(2);
     set.add(1);
     set.add(2);
     set.add(3);
@@ -330,14 +327,14 @@ class CyComplexTest {
     var doubled2 = set.map((e) => e * 2);
     print(doubled2); // [2, 4, 6]
 
-    CppWasmUnit8Array aa = CppWasmUnit8Array(3);
+    CppUnit8Array aa = CppUnit8Array(3);
     aa[0] = 1;
     aa[1] = 2;
     aa[2] = 3;
     print(aa[0]);
     print(aa[2]);
 
-    CppWasmMap<int, String> kk = CppWasmMap<int, String>(8);
+    CppMap<int, String> kk = CppMap<int, String>(8);
     kk[1] = "xxxx1";
     kk[2] = "xxxx2";
     kk[3] = "xxxx3";
@@ -367,7 +364,7 @@ class CyComplexTest {
   @pragma('wasm:entry-point')
   void testmain() {
     // 测试
-    // CppWasmList<int> list = CppWasmList<int>(0, 8);
+    // CppList<int> list = CppList<int>(0, 8);
 
     // // 添加元素
     // list.add(1);
@@ -385,7 +382,7 @@ class CyComplexTest {
     // var evens = list.where((e) => e % 2 == 0);
     // print(evens); // [2]
 
-    // CppWasmSet<int> set = CppWasmSet(2);
+    // CppSet<int> set = CppSet(2);
     // set.add(1);
     // set.add(2);
     // set.add(3);
@@ -395,14 +392,14 @@ class CyComplexTest {
     // var doubled2 = set.map((e) => e * 2);
     // print(doubled2); // [2, 4, 6]
 
-    // CppWasmUnit8Array aa = CppWasmUnit8Array(3);
+    // CppUnit8Array aa = CppUnit8Array(3);
     // aa[0] = 1;
     // aa[1] = 2;
     // aa[2] = 3;
     // print(aa._array.getItem(0));
     // print(aa[2]);
 
-    // CppWasmMap<int, String> kk = CppWasmMap<int, String>(8);
+    // CppMap<int, String> kk = CppMap<int, String>(8);
     // kk[1] = "xxxx1";
     // kk[2] = "xxxx2";
     // kk[3] = "xxxx3";
