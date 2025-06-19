@@ -26,6 +26,10 @@ bool isHideClass(Class cls) {
       return true;
     }
   }
+
+  if (cls.name == "CppArray") {
+    return true;
+  }
   return false;
 }
 
@@ -136,9 +140,12 @@ String getMemberName(Member member) {
 }
 
 String getMemberInvokeName(Member member) {
-  var className = getClassName(member.enclosingClass!);
-  var memberName = getMemberName(member);
-  return "$className::$memberName";
+  if (member.enclosingClass != null) {
+    var className = getClassName(member.enclosingClass!);
+    var memberName = getMemberName(member);
+    return "$className::$memberName";
+  }
+  return getMemberName(member);
 }
 
 class CppCodePrinter {
@@ -281,7 +288,7 @@ class CppCodePrinter {
     var classTypeName = _getClassDeclareType(cls);
 
     var cppNewStr = '''
-  $typeString static $classTypeName $className::cppNew() {
+  $typeString $classTypeName $className::cppNew() {
         static void *functionPtrs[] = {
             ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
         };
@@ -461,7 +468,10 @@ class CppCodePrinter {
 
   String getVariableName(VariableDeclaration variable, {bool isLet = false}) {
     if (variable.name != null) {
-      return variable.name == "this" ? "cppThis" : variable.name!;
+      if (variable.name == "this") {
+        return "cppThis";
+      }
+      return variable.name!.replaceAll(":", "\$").replaceAll("-", "_");
     }
 
     if (_variableNames[variable] != null) {
@@ -485,6 +495,21 @@ class CppCodePrinter {
       }
     }
     return types.isEmpty ? "" : "template<${types.join(",")}>";
+  }
+
+  getDeclareClassTypeParametersDiff(Class cls, List<DartType> typeParameters) {
+    var name = getClassName(cls);
+    var type = "";
+    if (cls.typeParameters.isNotEmpty) {
+      if (typeParameters.length < cls.typeParameters.length) {
+        //throw "error";
+        type = "<${cls.typeParameters.map((e) => e.name)}>";
+      } else {
+        type =
+            "<${typeParameters.sublist(0, cls.typeParameters.length).map((e) => _getVariableDeclareType(e))}>";
+      }
+    }
+    return "$name$type";
   }
 
   void writeMemberFunctionDeclaration(Procedure procedure) {
@@ -728,53 +753,39 @@ class CppCodePrinter {
   void writeExpression(Expression expression) {
     if (expression is ListLiteral) {
       var typeArgument = _getVariableDeclareType(expression.typeArgument);
-      var cppListType = "CppWasmList<$typeArgument>";
-      write('$cppListType::cppCtr_fromCppArray(');
-      write('$cppListType::cppNew()');
-      write(',');
-      write('CppArray<$typeArgument>::cppInitializer({');
+      write("CppNewList($typeArgument,");
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
         first = false;
         writeExpression(item);
       }
-      write('})');
+      write(')');
+    } else if (expression is SetLiteral) {
+      var typeArgument = _getVariableDeclareType(expression.typeArgument);
+      write("CppNewSet($typeArgument,");
+      bool first = true;
+      for (var item in expression.expressions) {
+        if (!first) write(', ');
+        first = false;
+        writeExpression(item);
+      }
       write(')');
     } else if (expression is MapLiteral) {
       var keyTypeArgument = _getVariableDeclareType(expression.keyType);
       var valueTypeArgument = _getVariableDeclareType(expression.valueType);
-      var cppMapType = "CppWasmMap<$keyTypeArgument,$valueTypeArgument>";
-      write('$cppMapType::cppCtr_fromCppArray(');
-      write('$cppMapType::cppNew()');
-      write(',');
-      write(
-          'CppArray<MapEntry<$keyTypeArgument,$valueTypeArgument>>::cppInitializer({');
+      write("CppNewMap($keyTypeArgument,$valueTypeArgument,");
       bool first = true;
       for (var entry in expression.entries) {
         if (!first) write(', ');
         first = false;
-        write('MapEntry<<$keyTypeArgument,$valueTypeArgument>::cppNew(');
+        write('CppNew(MapEntry<$keyTypeArgument,$valueTypeArgument>,cpp_Ctr_,');
         writeExpression(entry.key);
         write(', ');
         writeExpression(entry.value);
         write(')');
       }
-      write('}))');
-    } else if (expression is SetLiteral) {
-      var typeArgument = _getVariableDeclareType(expression.typeArgument);
-      var cppSetType = "CppWasmSet<$typeArgument>";
-      write('$cppSetType::cppCtr_fromCppArray(');
-      write('$cppSetType::cppNew()');
-      write(',');
-      write('CppArray<$typeArgument>::cppInitializer({');
-      bool first = true;
-      for (var item in expression.expressions) {
-        if (!first) write(', ');
-        first = false;
-        writeExpression(item);
-      }
-      write('}))');
+      write(')');
     } else if (expression is LocalFunctionInvocation) {
       writeStatement(expression.variable);
       writeArgumentsList(
@@ -788,8 +799,12 @@ class CppCodePrinter {
     } else if (expression is ConstructorInvocation) {
       var classType = _getVariableType(expression.constructedType);
       write("$classType::${getMemberName(expression.target)}");
+      if (classType == "List") {
+        print("List");
+      }
+
       writeArgumentsList(expression.target.function, expression.arguments,
-          prefixStr: "$classType::cppNew()");
+          prefixStr: "$classType::cppNew()", skipType: true);
     } else if (expression is ConstantExpression) {
       write(getConstant(expression.constant));
     } else if (expression is LogicalExpression) {
@@ -845,10 +860,54 @@ class CppCodePrinter {
       write(" = ");
       writeExpression(expression.value);
     } else if (expression is StaticInvocation) {
-      write(expression.target.name.text);
-      writeArgumentsList(expression.target.function, expression.arguments);
+      if (expression.target.enclosingClass?.name == "_GrowableList") {
+        var listType = _getVariableDeclareType(expression.arguments.types[0]);
+        write("CppNewList($listType");
+        for (var item in expression.arguments.positional) {
+          write(",");
+          writeExpression(item);
+        }
+        write(")");
+      } else {
+        if (expression.target.enclosingClass != null) {
+          // var className = getClassName(expression.target.enclosingClass!);
+          // var memberName = getMemberName(expression.target);
+          // if (expression.arguments.types.isNotEmpty) {
+          //   className +=
+          //       "<${expression.arguments.types.map((e) => _getVariableDeclareType(e)).join(",")}>";
+          // }
+          // write("$className::$memberName");
+          var classType = getDeclareClassTypeParametersDiff(
+              expression.target.enclosingClass!, expression.arguments.types);
+          var memberName = getMemberName(expression.target);
+          write("$classType::$memberName");
+          // if (className == "List") {
+          //   print("List");
+          // }
+          writeArgumentsList(expression.target.function, expression.arguments,
+              skipType: true);
+          write(")");
+        } else {
+          write(getMemberInvokeName(expression.target));
+          if (expression.target.enclosingClass?.name == "List") {
+            print("List");
+          }
+          writeArgumentsList(expression.target.function, expression.arguments);
+        }
+      }
     } else if (expression is InstanceInvocation) {
-      write(getMemberInvokeName(expression.interfaceTarget));
+      if (expression.receiver is InstanceGet) {
+        var receiver = expression.receiver as InstanceGet;
+        var classNameType =
+            _getVariableType((receiver.interfaceTarget.getterType));
+        var memberName = getMemberName(expression.interfaceTarget);
+        write("$classNameType::$memberName");
+      } else {
+        write(getMemberInvokeName(expression.interfaceTarget));
+      }
+      if (expression.interfaceTarget.enclosingClass?.name == "List") {
+        print("List");
+      }
       writeArgumentsList(
           expression.interfaceTarget.function, expression.arguments,
           prefix: expression.receiver);
@@ -919,7 +978,9 @@ class CppCodePrinter {
       bool first = true;
       for (var exp in expression.expressions) {
         if (!first) write(" , ");
+        write("cppToString(");
         writeExpression(exp);
+        write(")");
         if (!first) write(")");
         first = false;
       }
@@ -935,9 +996,11 @@ class CppCodePrinter {
       write(" ");
       writeExpression(expression.expression);
     } else if (expression is EqualsNull) {
+      write("(");
       writeExpression(expression.expression);
-      write(".");
-      write("isNull()");
+      write(" == ");
+      write("nullptr");
+      write(")");
     } else if (expression is NullCheck) {
       writeExpression(expression.operand);
     } else if (expression is SuperPropertyGet) {
@@ -1010,7 +1073,11 @@ class CppCodePrinter {
   }
 
   void writeArgumentsList(FunctionNode function, Arguments arguments,
-      {Expression? prefix, String? prefixStr}) {
+      {Expression? prefix, String? prefixStr, bool skipType = false}) {
+    if (!skipType && arguments.types.isNotEmpty) {
+      write(
+          "<${arguments.types.map((e) => _getVariableDeclareType(e)).join(",")}>");
+    }
     bool first = true;
     write('(');
     if (prefixStr != null) {

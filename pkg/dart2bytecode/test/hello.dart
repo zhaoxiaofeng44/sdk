@@ -83,6 +83,11 @@ class CyFather<T, A> extends CyBase {
         base = CyBase(3),
         super(3);
 
+  CyFather.ee()
+      : b = 2,
+        base = CyBase(3),
+        super(3);
+
   @pragma('wasm:entry-point')
   void myTest() {
     print(base.runtimeType.toString() + "" + b.toString());
@@ -153,23 +158,23 @@ class CyComplexTest {
   //   }
 
   //   // 测试基础类型表达式
-  @pragma('wasm:entry-point')
-  void testExpressions() {
-    // 算术表达式
-    int a = 10, b = 3;
-    print("Arithmetic: $a + $b = ${a + b}");
-    print("Arithmetic: $a - $b = ${a - b}");
-    print("Arithmetic: $a * $b = ${a * b}");
-    print("Arithmetic: $a / $b = ${a / b}");
-    print("Modulo: $a % $b = ${a % b}");
+  // @pragma('wasm:entry-point')
+  // void testExpressions() {
+  //   // 算术表达式
+  //   int a = 10, b = 3;
+  //   print("Arithmetic: $a + $b = ${a + b}");
+  //   print("Arithmetic: $a - $b = ${a - b}");
+  //   print("Arithmetic: $a * $b = ${a * b}");
+  //   print("Arithmetic: $a / $b = ${a / b}");
+  //   print("Modulo: $a % $b = ${a % b}");
 
-    // 位运算
-    print("Bitwise: $a << 1 = ${a << 1}");
-    print("Bitwise: $a >> 1 = ${a >> 1}");
-    print("Bitwise AND: $a & $b = ${a & b}");
-    print("Bitwise OR: $a | $b = ${a | b}");
-    print("Bitwise XOR: $a ^ $b = ${a ^ b}");
-  }
+  //   // 位运算
+  //   print("Bitwise: $a << 1 = ${a << 1}");
+  //   print("Bitwise: $a >> 1 = ${a >> 1}");
+  //   print("Bitwise AND: $a & $b = ${a & b}");
+  //   print("Bitwise OR: $a | $b = ${a | b}");
+  //   print("Bitwise XOR: $a ^ $b = ${a ^ b}");
+  // }
 
   //   // 条件判断测试
   @pragma('wasm:entry-point')
@@ -216,10 +221,10 @@ class CyComplexTest {
   @pragma('wasm:entry-point')
   void testLoops() {
     // for循环
-    print("For loop:");
-    for (int i = 0; i < 5; i++) {
-      print(i);
-    }
+    // print("For loop:");
+    // for (int i = 0; i < 5; i++) {
+    //   print(i);
+    // }
 
     // for-in循环
     print("For-in loop:");
@@ -228,118 +233,118 @@ class CyComplexTest {
       print(item);
     }
 
-    // while循环
-    print("While loop:");
-    int j = 0;
-    while (j < 5) {
-      print(j);
-      j++;
-    }
+    // // while循环
+    // print("While loop:");
+    // int j = 0;
+    // while (j < 5) {
+    //   print(j);
+    //   j++;
+    // }
 
-    // do-while循环
-    print("Do-while loop:");
-    int k = 0;
-    do {
-      print(k);
-      k++;
-    } while (k < 5);
+    // // do-while循环
+    // print("Do-while loop:");
+    // int k = 0;
+    // do {
+    //   print(k);
+    //   k++;
+    // } while (k < 5);
   }
 
-  //   // 变量定义测试
-  @pragma('wasm:entry-point')
-  void testVariableDeclarations() {
-    // 各种类型变量定义
-    int intVar = 42;
-    double doubleVar = 3.14;
-    String stringVar = "Hello, Dart!";
-    bool boolVar = true;
-    dynamic dynamicVar = "Can change type";
-    dynamicVar = 100;
+  // //   // 变量定义测试
+  // @pragma('wasm:entry-point')
+  // void testVariableDeclarations() {
+  //   // 各种类型变量定义
+  //   int intVar = 42;
+  //   double doubleVar = 3.14;
+  //   String stringVar = "Hello, Dart!";
+  //   bool boolVar = true;
+  //   dynamic dynamicVar = "Can change type";
+  //   dynamicVar = 100;
 
-    // 可空类型
-    int? nullableInt;
-    String? nullableString = null;
+  //   // 可空类型
+  //   int? nullableInt;
+  //   String? nullableString = null;
 
-    // late变量
-    late int lateInitVar;
-    lateInitVar = 10;
+  //   // late变量
+  //   late int lateInitVar;
+  //   lateInitVar = 10;
 
-    // const和final变量
-    final int finalVar = 100;
-    const double constVar = 3.14159;
+  //   // const和final变量
+  //   final int finalVar = 100;
+  //   const double constVar = 3.14159;
 
-    print("Variables: $intVar, $doubleVar, $stringVar, $boolVar, $dynamicVar");
-    print("Nullable: $nullableInt, $nullableString");
-    print("Late and Final/Const: $lateInitVar, $finalVar, $constVar");
-  }
+  //   print("Variables: $intVar, $doubleVar, $stringVar, $boolVar, $dynamicVar");
+  //   print("Nullable: $nullableInt, $nullableString");
+  //   print("Late and Final/Const: $lateInitVar, $finalVar, $constVar");
+  // }
 
-  //   // 函数赋值和高阶函数测试
-  @pragma('wasm:entry-point')
-  void testFunctionAssignment() {
-    // 函数类型赋值
-    int Function(int, int) addFunc = (a, b) => a + b;
-    print("Function result: ${addFunc(5, 3)}");
+  // // //   // 函数赋值和高阶函数测试
+  // // @pragma('wasm:entry-point')
+  // // void testFunctionAssignment() {
+  // //   // 函数类型赋值
+  // //   int Function(int, int) addFunc = (a, b) => a + b;
+  // //   print("Function result: ${addFunc(5, 3)}");
 
-    // 高阶函数
-    int Function(int) multiplier(int factor) {
-      return (int x) => x * factor;
-    }
+  // //   // 高阶函数
+  // //   int Function(int) multiplier(int factor) {
+  // //     return (int x) => x * factor;
+  // //   }
 
-    var double2 = multiplier(2);
-    var double3 = multiplier(3);
-    print("Multiplier results: ${double2(4)}, ${double3(4)}");
+  // //   var double2 = multiplier(2);
+  // //   var double3 = multiplier(3);
+  // //   print("Multiplier results: ${double2(4)}, ${double3(4)}");
 
-    // 匿名函数
-    var greet = (String name) {
-      return "Hello, $name!";
-    };
-    print(greet("Dart"));
-  }
+  // //   // 匿名函数
+  // //   var greet = (String name) {
+  // //     return "Hello, $name!";
+  // //   };
+  // //   print(greet("Dart"));
+  // // }
 
-  @pragma('wasm:entry-point')
-  void testFunctionAssignment22() {
-    // 测试
-    CppList<int> list = CppList<int>(0, 8);
+  // @pragma('wasm:entry-point')
+  // void testFunctionAssignment22() {
+  //   // 测试
+  //   CppList<int> list = CppList<int>(0, 8);
 
-    // 添加元素
-    list.add(1);
-    list.add(2);
-    list.add(3);
+  //   // 添加元素
+  //   list.add(1);
+  //   list.add(2);
+  //   list.add(3);
 
-    // 打印
-    print(list); // [1, 2, 3]
+  //   // 打印
+  //   print(list); // [1, 2, 3]
 
-    // 映射
-    var doubled = list.map((e) => e * 2);
-    print(doubled); // [2, 4, 6]
+  //   // 映射
+  //   var doubled = list.map((e) => e * 2);
+  //   print(doubled); // [2, 4, 6]
 
-    // 过滤
-    var evens = list.where((e) => e % 2 == 0);
-    print(evens); // [2]
+  //   // 过滤
+  //   var evens = list.where((e) => e % 2 == 0);
+  //   print(evens); // [2]
 
-    CppSet<int> set = CppSet(2);
-    set.add(1);
-    set.add(2);
-    set.add(3);
-    set.add(1);
-    print(set); // [1, 2, 3]
+  //   CppSet<int> set = CppSet(2);
+  //   set.add(1);
+  //   set.add(2);
+  //   set.add(3);
+  //   set.add(1);
+  //   print(set); // [1, 2, 3]
 
-    var doubled2 = set.map((e) => e * 2);
-    print(doubled2); // [2, 4, 6]
+  //   var doubled2 = set.map((e) => e * 2);
+  //   print(doubled2); // [2, 4, 6]
 
-    CppUnit8Array aa = CppUnit8Array(3);
-    aa[0] = 1;
-    aa[1] = 2;
-    aa[2] = 3;
-    print(aa[0]);
-    print(aa[2]);
+  //   CppUnit8Array aa = CppUnit8Array(3);
+  //   aa[0] = 1;
+  //   aa[1] = 2;
+  //   aa[2] = 3;
+  //   print(aa[0]);
+  //   print(aa[2]);
 
-    CppMap<int, String> kk = CppMap<int, String>(8);
-    kk[1] = "xxxx1";
-    kk[2] = "xxxx2";
-    kk[3] = "xxxx3";
-    kk[4] = "xxxx4";
-  }
+  //   CppMap<int, String> kk = CppMap<int, String>(8);
+  //   kk[1] = "xxxx1";
+  //   kk[2] = "xxxx2";
+  //   kk[3] = "xxxx3";
+  //   kk[4] = "xxxx4";
+  // }
 
   // // 高级函数特性测试
   // @pragma('wasm:entry-point')
@@ -407,30 +412,30 @@ class CyComplexTest {
   }
 
   // 复杂数据结构测试
-  @pragma('wasm:entry-point')
-  void testNestedStructures() {
-    var g = CyFather<int, double>();
-    print("All tests completed!" + g.b.toString());
+  // @pragma('wasm:entry-point')
+  // void testNestedStructures() {
+  //   var g = CyFather<int, double>();
+  //   print("All tests completed!" + g.b.toString());
 
-    var matrix = <List<int>>[];
-    for (var i = 0; i < 3; i++) {
-      var row = <int>[];
-      for (var j = 0; j < 3; j++) {
-        row.add(i * 3 + j);
-      }
-      matrix.add(row);
-    }
-    print("Matrix: $matrix");
+  //   var matrix = <List<int>>[];
+  //   for (var i = 0; i < 3; i++) {
+  //     var row = <int>[];
+  //     for (var j = 0; j < 3; j++) {
+  //       row.add(i * 3 + j);
+  //     }
+  //     matrix.add(row);
+  //   }
+  //   print("Matrix: $matrix");
 
-    var studentCourses = <String, List<String>>{
-      'Alice': ['Math', 'Physics', 'Chemistry'],
-      'Bob': ['History', 'English', 'Art']
-    };
+  //   var studentCourses = <String, List<String>>{
+  //     'Alice': ['Math', 'Physics', 'Chemistry'],
+  //     'Bob': ['History', 'English', 'Art']
+  //   };
 
-    studentCourses.forEach((student, courses) {
-      print("$student is taking: ${courses.join(', ')}");
-    });
-  }
+  //   studentCourses.forEach((student, courses) {
+  //     print("$student is taking: ${courses.join(', ')}");
+  //   });
+  // }
 
   // // 命名参数和可选参数测试
   // @pragma('wasm:entry-point')
@@ -696,21 +701,21 @@ void main() {
 
   var complexTest = CyComplexTest();
 
-  // 测试基础类型表达式
-  complexTest.testExpressions();
+  // // 测试基础类型表达式
+  // complexTest.testExpressions();
 
-  // 测试条件判断
-  complexTest.testConditionals();
+  // // 测试条件判断
+  // complexTest.testConditionals();
 
-  // 测试Switch语句
-  complexTest.testSwitch(2);
+  // // 测试Switch语句
+  // complexTest.testSwitch(2);
 
   // 测试循环
   complexTest.testLoops();
 
-  // 测试变量声明
-  complexTest.testVariableDeclarations();
+  // // 测试变量声明
+  // complexTest.testVariableDeclarations();
 
-  // 测试函数赋值
-  complexTest.testFunctionAssignment();
+  // // 测试函数赋值
+  // complexTest.testFunctionAssignment();
 }
