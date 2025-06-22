@@ -843,6 +843,7 @@ class CppCodePrinter {
       write("cppThis");
     } else if (expression is InstanceGet) {
       if (expression.interfaceTarget is Procedure) {
+        // todo get instance
         var procedure = expression.interfaceTarget as Procedure;
         write(getMemberInvokeName(procedure));
         write("(");
@@ -902,7 +903,30 @@ class CppCodePrinter {
             _getVariableType((receiver.interfaceTarget.getterType));
         var memberName = getMemberName(expression.interfaceTarget);
         write("$classNameType::$memberName");
+      } else if (expression.receiver is VariableGet) {
+        var receiver = expression.receiver as VariableGet;
+        var classNameType = _getVariableType(receiver.variable.type);
+        var memberName = getMemberName(expression.interfaceTarget);
+        write("$classNameType::$memberName");
+      } else if (expression.receiver is StaticGet) {
+        var receiver = expression.receiver as StaticGet;
+        var classNameType = _getVariableType(receiver.target.getterType);
+        var memberName = getMemberName(expression.interfaceTarget);
+        write("$classNameType::$memberName");
+      } else if (expression.receiver is ConstructorInvocation) {
+        var receiver = expression.receiver as ConstructorInvocation;
+        var classNameType = _getVariableType(receiver.constructedType);
+        var memberName = getMemberName(expression.interfaceTarget);
+        write("$classNameType::$memberName");
+      } else if (expression.receiver is ThisExpression) {
+        var classNameType =
+            _getVariableType(expression.interfaceTarget.getterType);
+        var memberName = getMemberName(expression.interfaceTarget);
+        write("$classNameType::$memberName");
       } else {
+        // 对于其他类型的 receiver，我们尝试从 interfaceTarget 获取类型信息
+        var classNameType =
+            _getVariableType(expression.interfaceTarget.getterType);
         write(getMemberInvokeName(expression.interfaceTarget));
       }
       if (expression.interfaceTarget.enclosingClass?.name == "List") {
