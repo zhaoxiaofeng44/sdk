@@ -359,15 +359,15 @@ class CppCodePrinter {
       return name +
           (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
     } else if (type is FunctionType) {
-      var parameters = [
-        _getVariableType(type.returnType),
-        ...type.positionalParameters
-            .map((parameter) => _getVariableDeclareType(parameter)),
-        ...type.namedParameters
-            .map((parameter) => _getVariableDeclareType(parameter.type))
-      ];
-      return "Function";
+      // var parameters = [
+      //   _getVariableType(type.returnType),
+      //   ...type.positionalParameters
+      //       .map((parameter) => _getVariableDeclareType(parameter)),
+      //   ...type.namedParameters
+      //       .map((parameter) => _getVariableDeclareType(parameter.type))
+      // ];
       //return "Function<${parameters.join(", ")}>";
+      return "Function";
     } else if (type is DynamicType) {
       return "void*";
     } else if (type is FutureOrType) {
@@ -843,9 +843,11 @@ class CppCodePrinter {
       write("cppThis");
     } else if (expression is InstanceGet) {
       if (expression.interfaceTarget is Procedure) {
-        // todo get instance
         var procedure = expression.interfaceTarget as Procedure;
-        write(getMemberInvokeName(procedure));
+        var classNameType =
+            _getReceiverType(expression.receiver, expression.interfaceTarget);
+        var memberName = getMemberName(procedure);
+        write("$classNameType::$memberName");
         write("(");
         writeExpression(expression.receiver);
         write(")");
@@ -855,11 +857,24 @@ class CppCodePrinter {
         write(expression.name.text);
       }
     } else if (expression is InstanceSet) {
-      writeExpression(expression.receiver);
-      write("->");
-      write(expression.name.text);
-      write(" = ");
-      writeExpression(expression.value);
+      if (expression.interfaceTarget is Procedure) {
+        var procedure = expression.interfaceTarget as Procedure;
+        var classNameType =
+            _getReceiverType(expression.receiver, expression.interfaceTarget);
+        var memberName = getMemberName(procedure);
+        write("$classNameType::$memberName");
+        write("(");
+        writeExpression(expression.receiver);
+        write(", ");
+        writeExpression(expression.value);
+        write(")");
+      } else {
+        writeExpression(expression.receiver);
+        write("->");
+        write(expression.name.text);
+        write(" = ");
+        writeExpression(expression.value);
+      }
     } else if (expression is StaticInvocation) {
       if (expression.target.enclosingClass?.name == "_GrowableList") {
         var listType = _getVariableDeclareType(expression.arguments.types[0]);
@@ -897,41 +912,10 @@ class CppCodePrinter {
         }
       }
     } else if (expression is InstanceInvocation) {
-      if (expression.receiver is InstanceGet) {
-        var receiver = expression.receiver as InstanceGet;
-        var classNameType =
-            _getVariableType((receiver.interfaceTarget.getterType));
-        var memberName = getMemberName(expression.interfaceTarget);
-        write("$classNameType::$memberName");
-      } else if (expression.receiver is VariableGet) {
-        var receiver = expression.receiver as VariableGet;
-        var classNameType = _getVariableType(receiver.variable.type);
-        var memberName = getMemberName(expression.interfaceTarget);
-        write("$classNameType::$memberName");
-      } else if (expression.receiver is StaticGet) {
-        var receiver = expression.receiver as StaticGet;
-        var classNameType = _getVariableType(receiver.target.getterType);
-        var memberName = getMemberName(expression.interfaceTarget);
-        write("$classNameType::$memberName");
-      } else if (expression.receiver is ConstructorInvocation) {
-        var receiver = expression.receiver as ConstructorInvocation;
-        var classNameType = _getVariableType(receiver.constructedType);
-        var memberName = getMemberName(expression.interfaceTarget);
-        write("$classNameType::$memberName");
-      } else if (expression.receiver is ThisExpression) {
-        var classNameType =
-            _getVariableType(expression.interfaceTarget.getterType);
-        var memberName = getMemberName(expression.interfaceTarget);
-        write("$classNameType::$memberName");
-      } else {
-        // 对于其他类型的 receiver，我们尝试从 interfaceTarget 获取类型信息
-        var classNameType =
-            _getVariableType(expression.interfaceTarget.getterType);
-        write(getMemberInvokeName(expression.interfaceTarget));
-      }
-      if (expression.interfaceTarget.enclosingClass?.name == "List") {
-        print("List");
-      }
+      var classNameType =
+          _getReceiverType(expression.receiver, expression.interfaceTarget);
+      var memberName = getMemberName(expression.interfaceTarget);
+      write("$classNameType::$memberName");
       writeArgumentsList(
           expression.interfaceTarget.function, expression.arguments,
           prefix: expression.receiver);
@@ -971,7 +955,7 @@ class CppCodePrinter {
       // write('}()');
     } else if (expression is Let) {
       write(
-          '([](${_getVariableDeclareType(expression.variable.type)} ${getVariableName(expression.variable)}){');
+          '([](${_getVariableDeclareType(expression.variable.type)}& ${getVariableName(expression.variable)}){');
       var statement = expression.body;
       if (statement is BlockExpression) {
         for (var stmt in statement.body.statements) {
@@ -1164,5 +1148,40 @@ class CppCodePrinter {
       return 'String::cppNew("${c.value}",sizeof("${c.value}"))';
     }
     return "AA<" + c.toStringInternal() + ">AA";
+  }
+
+  // 获取 receiver 的类型名称
+  String _getReceiverType(Expression receiver, Member? interfaceTarget) {
+    if (interfaceTarget?.enclosingClass?.typeParameters.isEmpty ?? false) {
+      return getClassTypeName(interfaceTarget!.enclosingClass!);
+    }
+    if (receiver is InstanceGet) {
+      return _getVariableType(receiver.interfaceTarget.getterType);
+    } else if (receiver is VariableGet) {
+      return _getVariableType(receiver.variable.type);
+    } else if (receiver is StaticGet) {
+      return _getVariableType(receiver.target.getterType);
+    } else if (receiver is ConstructorInvocation) {
+      return _getVariableType(receiver.constructedType);
+    } else if (receiver is StaticInvocation) {
+      return _getVariableType(receiver.target.function.returnType);
+    } else if (receiver is InstanceInvocation) {
+      return _getVariableType(receiver.functionType.returnType);
+    }
+    // else if (receiver is ThisExpression) {
+    //   if (interfaceTarget?.enclosingClass != null) {
+    //     return getClassTypeName(interfaceTarget!.enclosingClass!);
+    //   }
+    //   return "Object";
+    // }
+    else {
+      if (interfaceTarget?.enclosingClass != null) {
+        return getClassTypeName(interfaceTarget!.enclosingClass!);
+      }
+      if (interfaceTarget != null) {
+        return _getVariableType(interfaceTarget.getterType);
+      }
+      return "Object";
+    }
   }
 }
