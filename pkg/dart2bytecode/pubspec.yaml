@@ -11,14 +11,11 @@ dependencies:
   front_end: any
   kernel: any
   vm: any
+  test: ^1.24.0
 
 # Use 'any' constraints here; we get our versions from the DEPS file.
 dev_dependencies:
-  expect: any
-  test: any
-
-
-
+  lints: ^3.0.0
 
 dependency_overrides:
   _fe_analyzer_shared: 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:kernel/kernel.dart';
 
 /// 闭包变量信息
@@ -15,14 +17,16 @@ class ClosureVariable {
   }
 }
 
+StringBuffer buffer = StringBuffer();
+void print2String(String text) {
+  buffer.write(text + "\n");
+}
+
 bool isHideClass(Class cls) {
   const cppClassNames = [
     "List",
-    "ListBase",
     "Map",
-    "MapBase",
     "Set",
-    "SetBase",
     "Iterable",
     "Iterator",
     "StackTrace",
@@ -42,10 +46,13 @@ bool isHideClass(Class cls) {
     "checkNotNullable",
     "Sort",
     "Comparable",
-    "ListMapView",
     "EfficientLengthIterable",
+    "TakeIterable",
     "RangeError",
-    "ReversedListIterable"
+    "ReversedListIterable",
+    "EfficientLengthMappedIterable",
+    "EfficientLengthFollowedByIterable",
+    "HideEfficientLengthIterable"
   ];
 
   var libraryName = cls.enclosingLibrary.toStringInternal();
@@ -128,11 +135,6 @@ final Map<String, String> specialNames = {
   'union': "cpp_union"
 };
 
-bool isFinalClassType(String name) {
-  const Set<String> classNames = {'Int', 'Double', 'Num', 'Bool', 'String'};
-  return classNames.contains(name);
-}
-
 String getClassName(Class classInfo) {
   var name = classInfo.name.replaceAll("&", r"$");
   if (typeNames.containsKey(name)) {
@@ -143,10 +145,10 @@ String getClassName(Class classInfo) {
 
 String getClassTypeName(Class classInfo) {
   var typeParametersStr = "";
-  if (classInfo.typeParameters.isNotEmpty) {
-    typeParametersStr =
-        "<${classInfo.typeParameters.map((e) => "${e.name}").join(",")}>";
-  }
+  // if (classInfo.typeParameters.isNotEmpty) {
+  //   typeParametersStr =
+  //       "<${classInfo.typeParameters.map((e) => "${e.name}").join(",")}>";
+  // }
   return "${getClassName(classInfo)}$typeParametersStr";
 }
 
@@ -176,9 +178,9 @@ String getMemberInvokeName(Member member) {
   if (member.enclosingClass != null) {
     var className = getClassName(member.enclosingClass!);
     var memberName = getMemberName(member);
-    if (memberName.contains("<")) {
-      memberName = "template $memberName";
-    }
+    // if (memberName.contains("<")) {
+    //   memberName = "template $memberName";
+    // }
     return "$className::$memberName";
   }
   return getMemberName(member);
@@ -207,19 +209,33 @@ class CppCodePrinter {
       if (isHideClass(cls)) {
         continue;
       }
-      print("${_getClassDeclareTypeName(cls)};");
+      print2String("${_getClassDeclareTypeName(cls)};");
     }
 
     var classMap = _getClassList(classList);
 
+    var classSet = <Class>{};
     // 打印类声明头部
     for (final cls in classList) {
       if (isHideClass(cls)) {
         continue;
       }
-      print("//  " + cls.enclosingLibrary.toStringInternal());
-      _printClassDeclarationHeader(classMap, cls);
+      print2String("//  " + cls.enclosingLibrary.toStringInternal());
+      _deepPrintClassDeclarationHeader(classSet, classMap, cls);
     }
+
+    try {
+      // 写入头文件
+      final headerFile = File('./cpp/output.h');
+      headerFile.writeAsStringSync(buffer.toString());
+      print2String('成功生成头文件: ${headerFile.absolute.path}');
+    } catch (e) {
+      print2String('写入文件时发生错误: $e');
+    }
+
+    buffer.clear();
+
+    print2String('#include "./output.h"');
 
     // 打印类实现
     for (final cls in classList) {
@@ -227,30 +243,84 @@ class CppCodePrinter {
         continue;
       }
 
-      print("//  " + cls.enclosingLibrary.toStringInternal());
+      print2String("//  " + cls.enclosingLibrary.toStringInternal());
       _printClassDeclaration(classMap, cls);
     }
+
+    try {
+      // 写入头文件
+      final headerFile = File('./cpp/output.cpp');
+      headerFile.writeAsStringSync(buffer.toString());
+      print2String('成功生成头文件: ${headerFile.absolute.path}');
+    } catch (e) {
+      print2String('写入文件时发生错误: $e');
+    }
+
+    buffer.clear();
   }
 
   // 打印C++头文件
   void _printCppHeader() {
-    print('''
+    print2String(r'''
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
-#include "src/core/func.h"
-#include "src/core/num.h"
-#include "src/core/string.h"
+#include "./core/array.h"
+#include "./core/func.h"
+#include "./core/num.h"
+#include "./core/string.h"
+
+void print(Object* obj) {
+  if (obj) {
+    String* str = obj->toString();
+    printf("%s", str->c_str());
+    delete str;
+  } else {
+    printf("null");
+  }
+}
+
+void print(String* str) {
+  if (str) {
+    printf("%s", str->c_str());
+  } else {
+    printf("null");
+  }
+}
+
+void print(char* str) {
+  if (str) {
+    printf("%s", str);
+  }
+}
+
+class Uint16List;
+
+Int* _getSuggestCapacity(int length) {
+  return Int::cppNew(length);
+}
+
+Int* _getSuggestCapacity(Int* length) {
+  return length;
+}
+
+template <typename T>
+Bool* checkNotNullable(T count, String* name) {
+  if (count == nullptr) {
+    throw "error";
+  }
+  return Bool::cppNew(true);
+}
 ''');
   }
 
   // 获取类声明类型参数
   String _getClassDeclareTypeParameters(Class cls) {
-    var typeParameters = cls.typeParameters.map((e) => "typename ${e.name}");
+    //var typeParameters = cls.typeParameters.map((e) => "typename ${e.name}");
     var typeString = "";
-    if (typeParameters.isNotEmpty) {
-      typeString = "template<${typeParameters.join(",")}>";
-    }
+    // if (typeParameters.isNotEmpty) {
+    //   typeString = "template<${typeParameters.join(",")}>";
+    // }
     return typeString;
   }
 
@@ -284,28 +354,50 @@ class CppCodePrinter {
             ": ${list.map((e) => "virtual public ${_getVariableType(e.asInterfaceType)}").join(",")}";
       }
     }
-    print("$typeClassName $superClassName {");
-    print("public:");
+    print2String("$typeClassName $superClassName {");
+    print2String("public:");
 
     // Print fields
     for (var field in cls!.fields) {
       var fieldString = _getFieldDeclaration(field);
-      print("${field.isStatic ? "static " : ""}$fieldString;");
+      print2String("${field.isStatic ? "static " : ""}$fieldString;");
     }
 
     var list = map[cls]!;
     for (var procedure in list) {
       if (procedure.member.enclosingClass == cls) {
-        print(_toString(procedure.member, true));
+        print2String(_toString(procedure.member, true));
       }
     }
 
     var cppNewStr = '''
   static ${_getClassDeclareType(cls)} cppNew();
 ''';
-    print(cppNewStr);
+    print2String(cppNewStr);
 
-    print("};");
+    print2String("};");
+  }
+
+  void _deepPrintClassDeclarationHeader(
+      Set<Class> visited, Map<Class, List<ClassMember>> map, Class cls) {
+    if (cls.name == "Object") {
+      return;
+    }
+    if (visited.contains(cls)) {
+      return;
+    }
+    visited.add(cls);
+    // Print class declaration with inheritance
+    if (cls.superclass != null) {
+      _deepPrintClassDeclarationHeader(visited, map, cls.superclass!);
+    }
+
+    if (cls.implementedTypes.isNotEmpty) {
+      for (var interface in cls.implementedTypes) {
+        _deepPrintClassDeclarationHeader(visited, map, interface.classNode);
+      }
+    }
+    _printClassDeclarationHeader(map, cls);
   }
 
   // 打印类声明实现
@@ -315,7 +407,7 @@ class CppCodePrinter {
     if (list?.isNotEmpty ?? false) {
       for (var procedure in list!) {
         if (procedure.member.enclosingClass == cls) {
-          print(_toString(procedure.member, false));
+          print2String(_toString(procedure.member, false));
         }
       }
     }
@@ -324,17 +416,24 @@ class CppCodePrinter {
     var className = getClassTypeName(cls);
     var classTypeName = _getClassDeclareType(cls);
 
+//     var cppNewStr = '''
+//   $typeString $classTypeName $className::cppNew() {
+//         static void *functionPtrs[] = {
+//             ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
+//         };
+//         auto ptr = ($classTypeName)malloc(sizeof($className));
+//         ptr->vtab = functionPtrs;
+//         return ptr;
+//     }
+// ''';
+
     var cppNewStr = '''
   $typeString $classTypeName $className::cppNew() {
-        static void *functionPtrs[] = {
-            ${list?.map((e) => "reinterpret_cast<void *>(&$className::${e.name})").join(",") ?? ""}
-        };
         auto ptr = ($classTypeName)malloc(sizeof($className));
-        ptr->vtab = functionPtrs;
         return ptr;
     }
 ''';
-    print(cppNewStr);
+    print2String(cppNewStr);
   }
 
   // 获取类成员列表
@@ -371,9 +470,37 @@ class CppCodePrinter {
           _replaceOrAddMembersList(superList, procedure);
         }
       }
+
+      for (var i = 0; i < cls.implementedTypes.length; i++) {
+        var interface = cls.implementedTypes[i];
+        for (var member in interface.classNode.procedures) {
+          _replaceOrAddMembersList(superList, member);
+        }
+      }
     }
     map[cls] = superList;
     return superList;
+  }
+
+  bool isOverrideMember(Class cls, Member member) {
+    if (member.enclosingClass == cls) {
+      if (isOverrideMember(cls.superclass!, member)) {
+        return true;
+      }
+      for (var i = 0; i < cls.implementedTypes.length; i++) {
+        var interface = cls.implementedTypes[i];
+        if (isOverrideMember(interface.classNode, member)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    for (var procedure in cls.procedures) {
+      if (procedure.name.text == member.name.text) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _replaceOrAddMembersList(List<ClassMember> list, Member member) {
@@ -390,46 +517,83 @@ class CppCodePrinter {
   //获取参数类型
   String _getVariableType(DartType type) {
     if (type is InterfaceType) {
-      var typeParameters =
-          type.typeArguments.map((e) => _getVariableDeclareType(e));
+      // var typeParameters =
+      //     type.typeArguments.map((e) => _getVariableDeclareType(e));
       var name = getClassName(type.classNode);
-      return name +
-          (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
+      return name;
+      // (typeParameters.isNotEmpty ? "<${typeParameters.join(",")}>" : "");
     } else if (type is FunctionType) {
-      var parameters = [
-        _getVariableType(type.returnType),
-        ...type.positionalParameters
-            .map((parameter) => _getVariableDeclareType(parameter)),
-        ...type.namedParameters
-            .map((parameter) => _getVariableDeclareType(parameter.type))
-      ];
-      return "FunctionApply<${_getVariableDeclareType(type.returnType)},${parameters.join(", ")}>";
-      //return "Function";
+      // var parameters = [
+      //   _getVariableType(type.returnType),
+      //   ...type.positionalParameters
+      //       .map((parameter) => _getVariableDeclareType(parameter)),
+      //   ...type.namedParameters
+      //       .map((parameter) => _getVariableDeclareType(parameter.type))
+      // ];
+      //return "FunctionApply<${_getVariableDeclareType(type.returnType)},${parameters.join(", ")}>";
+      return "Function";
     } else if (type is DynamicType) {
       return "void*";
     } else if (type is FutureOrType) {
       return _getVariableType(type.typeArgument);
     } else if (type is NeverType) {
       return "void";
-    } else if (type is InvalidType) {
-      return "void*";
-    } else if (type is DynamicType) {
-      return "void*";
     } else if (type is VoidType) {
       return "void";
-    } else if (type is TypeParameterType) {
-      return "Object*";
-    } else if (type is NullType) {
-      return "Object*";
-    } else {
-      return "void*";
     }
+    // else if (type is InvalidType) {
+    //   return "Object";
+    // } else if (type is DynamicType) {
+    //   return "Object";
+    // } else if (type is TypeParameterType) {
+    //   return "Object";
+    // } else if (type is NullType) {
+    //   return "Object";
+    // }
+
+    else {
+      return "Object";
+    }
+  }
+
+  void writeInstanceTypeBefore(DartType returnType, DartType type) {
+    if (type is TypeParameterType) {
+      return;
+    }
+    if (returnType is! TypeParameterType) {
+      return;
+    }
+
+    var typeStr = _getVariableDeclareType(type);
+    if (typeStr == "void" || typeStr == "Object*" || typeStr == "Object *") {
+      return;
+    }
+
+    write('reinterpret_cast<${_getVariableDeclareType(type)}>(');
+  }
+
+  void writeInstanceTypeEnd(DartType returnType, DartType type) {
+    if (type is TypeParameterType) {
+      return;
+    }
+    if (returnType is! TypeParameterType) {
+      return;
+    }
+
+    var typeStr = _getVariableDeclareType(type);
+    if (typeStr == "void" || typeStr == "Object*" || typeStr == "Object *") {
+      return;
+    }
+
+    write(')');
   }
 
   String _getVariableDeclareType(DartType type) {
     if (type is TypeParameterType) {
-      var name = type.parameter.name ?? "void*";
-      return name;
+      // //todo
+      // var name = type.parameter.name ?? "void*";
+      // return name;
+      return "Object *";
     }
     var typeStr = _getVariableType(type);
     if (typeStr == "void") {
@@ -502,10 +666,21 @@ class CppCodePrinter {
     return specialNames.containsKey(opStr) ? specialNames[opStr]! : opStr;
   }
 
+  bool isFinalClass(Class cls) {
+    if (cls.name == "num" ||
+        cls.name == "int" ||
+        cls.name == "double" ||
+        cls.name == "String" ||
+        cls.name == "bool") {
+      return true;
+    }
+    return false;
+  }
+
   String getVariableName(VariableDeclaration variable, {bool isLet = false}) {
     if (variable.name != null) {
       if (variable.name == "this") {
-        return "cppThis";
+        return "this";
       }
       return variable.name!.replaceAll(":", "\$").replaceAll("-", "_");
     }
@@ -520,31 +695,31 @@ class CppCodePrinter {
 
   getTypeParametersDiff(Class cls, List<TypeParameter> typeParameters) {
     var nameSet = <String>{};
-    for (var t in cls.typeParameters) {
-      nameSet.add(t.name!);
-    }
+    // for (var t in cls.typeParameters) {
+    //   nameSet.add(t.name!);
+    // }
 
     var types = <String>[];
-    for (var t in typeParameters) {
-      if (!nameSet.contains(t.name!)) {
-        types.add("typename ${t.name}");
-      }
-    }
+    // for (var t in typeParameters) {
+    //   if (!nameSet.contains(t.name!)) {
+    //     types.add("typename ${t.name}");
+    //   }
+    // }
     return types.isEmpty ? "" : "template<${types.join(",")}>";
   }
 
   getDeclareClassTypeParametersDiff(Class cls, List<DartType> typeParameters) {
     var name = getClassName(cls);
     var type = "";
-    if (cls.typeParameters.isNotEmpty) {
-      if (typeParameters.length <= cls.typeParameters.length) {
-        //throw "error";
-        type = "<${cls.typeParameters.map((e) => e.name).join(",")}>";
-      } else {
-        type =
-            "<${typeParameters.sublist(0, cls.typeParameters.length).map((e) => _getVariableDeclareType(e)).join(",")}>";
-      }
-    }
+    // if (cls.typeParameters.isNotEmpty) {
+    //   if (typeParameters.length <= cls.typeParameters.length) {
+    //     //throw "error";
+    //     type = "<${cls.typeParameters.map((e) => e.name).join(",")}>";
+    //   } else {
+    //     type =
+    //         "<${typeParameters.sublist(0, cls.typeParameters.length).map((e) => _getVariableDeclareType(e)).join(",")}>";
+    //   }
+    // }
     return "$name$type";
   }
 
@@ -556,12 +731,21 @@ class CppCodePrinter {
     var typeStr = getTypeParametersDiff(
         procedure.enclosingClass!, function.typeParameters);
     if (isHeader) {
+      bool isOverride = isOverrideMember(procedure.enclosingClass!, procedure);
       write(
-          "$typeStr static ${_getVariableDeclareType(function.returnType)} $name");
-      writeParametersList(function,
-          ownerClassType: procedure.isStatic ? "" : ownerClassType);
-      write(";");
+          "${procedure.isStatic ? "static" : "virtual"} ${_getVariableDeclareType(function.returnType)} $name");
+      writeParametersList(function);
 
+      if (procedure.isAbstract) {
+        write(" = 0");
+      } else {
+        write("${(procedure.isStatic || !isOverride) ? "" : ""}");
+      }
+      write(";");
+      return;
+    }
+
+    if (procedure.isAbstract) {
       return;
     }
 
@@ -569,8 +753,7 @@ class CppCodePrinter {
     var className = getClassTypeName(procedure.enclosingClass!);
     write(
         "$typeString $typeStr ${_getVariableDeclareType(function.returnType)} $className::$name");
-    writeParametersList(function,
-        ownerClassType: procedure.isStatic ? "" : ownerClassType);
+    writeParametersList(function);
     if (function.body is Block) {
       writeStatement(function.body!);
     } else {
@@ -605,8 +788,8 @@ class CppCodePrinter {
 
     if (isHeader) {
       var classType = _getClassDeclareType(constructor.enclosingClass);
-      write("$typeStr static $classType ${getMemberName(constructor)}");
-      writeParametersList(constructor.function, ownerClassType: classType);
+      write("$typeStr $classType ${getMemberName(constructor)}");
+      writeParametersList(constructor.function);
       write(";");
       return;
     }
@@ -617,14 +800,14 @@ class CppCodePrinter {
     var classType = _getClassDeclareType(constructor.enclosingClass);
     write(
         "$typeStr $typeString $classType $className::${getMemberName(constructor)}");
-    writeParametersList(constructor.function, ownerClassType: classType);
+    writeParametersList(constructor.function);
     write('{');
     indent();
 
     if (constructor.initializers.isNotEmpty) {
       for (var initializer in constructor.initializers) {
         if (initializer is FieldInitializer) {
-          write('cppThis->${initializer.field.name.text} = ');
+          write('this->${initializer.field.name.text} = ');
           writeExpression(initializer.value);
           write(';');
         }
@@ -641,7 +824,7 @@ class CppCodePrinter {
       }
     }
     writeNewline();
-    write("return cppThis;");
+    write("return this;");
     unindent();
     write('}');
   }
@@ -656,6 +839,7 @@ class CppCodePrinter {
   }
 
   void writeStatement(Statement statement) {
+    // statement.sor
     //write('// ${statement.runtimeType}\n');
     writeNewline();
     if (statement is EmptyStatement) {
@@ -711,7 +895,9 @@ class CppCodePrinter {
       write(';');
     } else if (statement is IfStatement) {
       write('if (');
+      write('(');
       writeExpression(statement.condition);
+      write(')->getValue()');
       write(') ');
       writeStatement(statement.then);
       if (statement.otherwise != null) {
@@ -734,7 +920,9 @@ class CppCodePrinter {
       write(';');
     } else if (statement is WhileStatement) {
       write('while (');
+      write('(');
       writeExpression(statement.condition);
+      write(')->getValue()');
       write(') ');
       writeStatement(statement.body);
     } else if (statement is ForStatement) {
@@ -748,7 +936,9 @@ class CppCodePrinter {
       }
       write('while (');
       if (statement.condition != null) {
+        write('(');
         writeExpression(statement.condition!);
+        write(')->getValue()');
       } else {
         write('true');
       }
@@ -770,7 +960,9 @@ class CppCodePrinter {
       write('do ');
       writeStatement(statement.body);
       write(' while (');
+      write('(');
       writeExpression(statement.condition);
+      write(')->getValue()');
       write(');');
     } else if (statement is TryFinally) {
       write('try{ ');
@@ -784,10 +976,18 @@ class CppCodePrinter {
       write('${_getVariableDeclareType(statement.variable.type)} ');
       write(getVariableName(statement.variable));
       write(' = ');
+      var typeList = [
+        statement.function.returnType,
+        ...statement.function.positionalParameters.map((e) => e.type)
+      ];
+      write(
+          'new LambdaWrapper<${typeList.map((e) => _getVariableDeclareType(e)).join(",")}>(');
       writeFunctionDeclaration(statement.function);
+      write(')');
+      // writeFunctionDeclaration(statement.function);
       write(';');
     } else {
-      print('Unhandled statement type: ${statement.runtimeType}');
+      print2String('Unhandled statement type: ${statement.runtimeType}');
     }
   }
 
@@ -795,7 +995,7 @@ class CppCodePrinter {
     //write('// ${expression.runtimeType}\n');
     if (expression is ListLiteral) {
       var typeArgument = _getVariableDeclareType(expression.typeArgument);
-      write("CppNewList($typeArgument,");
+      write("CppNewList(");
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
@@ -805,7 +1005,7 @@ class CppCodePrinter {
       write(')');
     } else if (expression is SetLiteral) {
       var typeArgument = _getVariableDeclareType(expression.typeArgument);
-      write("CppNewSet($typeArgument,");
+      write("CppNewSet(");
       bool first = true;
       for (var item in expression.expressions) {
         if (!first) write(', ');
@@ -816,12 +1016,12 @@ class CppCodePrinter {
     } else if (expression is MapLiteral) {
       var keyTypeArgument = _getVariableDeclareType(expression.keyType);
       var valueTypeArgument = _getVariableDeclareType(expression.valueType);
-      write("CppNewMap($keyTypeArgument,$valueTypeArgument,");
+      write("CppNewMap(");
       bool first = true;
       for (var entry in expression.entries) {
         if (!first) write(', ');
         first = false;
-        write('CppNew(MapEntry<$keyTypeArgument,$valueTypeArgument>,cpp_Ctr_,');
+        write('MapEntry::cppNew()->cpp_Ctr_(');
         writeExpression(entry.key);
         write(', ');
         writeExpression(entry.value);
@@ -834,22 +1034,31 @@ class CppCodePrinter {
           expression.localFunction.function, expression.arguments);
     } else if (expression is StaticGet) {
     } else if (expression is FunctionInvocation) {
-      writeExpression(expression.receiver);
       if (expression.functionType != null) {
+        // write(
+        //     'reinterpret_cast<${_getVariableDeclareType(expression.functionType!.returnType)}>(');
+        // writeExpression(expression.receiver);
+        // writeArgumentsListByFunctionType(
+        //     expression.functionType!, expression.arguments);
+        // write(')');
+        write('cppApply');
+        var typeList = [
+          expression.functionType!.returnType,
+          ...expression.arguments.types
+        ];
+        write("<${typeList.map((e) => _getVariableDeclareType(e)).join(",")}>");
         writeArgumentsListByFunctionType(
-            expression.functionType!, expression.arguments);
+            expression.functionType!, expression.arguments,
+            skipType: true, prefix: expression.receiver);
       } else {
         //todo
       }
     } else if (expression is ConstructorInvocation) {
       var classType = _getVariableType(expression.constructedType);
       var memberName = getMemberName(expression.target);
-      if (memberName.contains("<")) {
-        memberName = "template $memberName";
-      }
-      write("$classType::$memberName");
+      write("$classType::cppNew()->$memberName");
       writeArgumentsList(expression.target.function, expression.arguments,
-          prefixStr: "$classType::cppNew()", skipType: true);
+          skipType: true);
     } else if (expression is ConstantExpression) {
       write(getConstant(expression.constant));
     } else if (expression is LogicalExpression) {
@@ -881,24 +1090,29 @@ class CppCodePrinter {
     } else if (expression is VariableSet) {
       write(getVariableName(expression.variable));
       write(" = ");
+      write(
+          "reinterpret_cast<${_getVariableDeclareType(expression.variable.type)}>(");
       writeExpression(expression.value);
+      write(")");
     } else if (expression is VariableGet) {
       write(getVariableName(expression.variable));
     } else if (expression is ThisExpression) {
-      write("cppThis");
+      write("this");
     } else if (expression is InstanceGet) {
       if (expression.interfaceTarget is Procedure) {
         var procedure = expression.interfaceTarget as Procedure;
-        var classNameType =
-            _getReceiverType(expression.receiver, expression.interfaceTarget);
         var memberName = getMemberName(procedure);
-        if (memberName.contains("<")) {
-          memberName = "template $memberName";
-        }
-        write("$classNameType::$memberName");
-        write("(");
+        writeInstanceTypeBefore(
+            (expression.interfaceTarget as Procedure).function.returnType,
+            expression.resultType);
         writeExpression(expression.receiver);
+        write("->");
+        write("$memberName");
+        write("(");
         write(")");
+        writeInstanceTypeEnd(
+            (expression.interfaceTarget as Procedure).function.returnType,
+            expression.resultType);
       } else {
         writeExpression(expression.receiver);
         write("->");
@@ -907,18 +1121,23 @@ class CppCodePrinter {
     } else if (expression is InstanceSet) {
       if (expression.interfaceTarget is Procedure) {
         var procedure = expression.interfaceTarget as Procedure;
-        var classNameType =
-            _getReceiverType(expression.receiver, expression.interfaceTarget);
         var memberName = getMemberName(procedure);
-        if (memberName.contains("<")) {
-          memberName = "template $memberName";
+        // if (isFinalClassType(expression.interfaceTarget.enclosingClass!)) {
+        //   write(expression.interfaceTarget.enclosingClass!.name);
+        //   write("::");
+        //   write("$memberName");
+        //   write("(");
+        //   writeExpression(expression.value);
+        //   write(")");
+        // } else
+        {
+          writeExpression(expression.receiver);
+          write("->");
+          write("$memberName");
+          write("(");
+          writeExpression(expression.value);
+          write(")");
         }
-        write("$classNameType::$memberName");
-        write("(");
-        writeExpression(expression.receiver);
-        write(", ");
-        writeExpression(expression.value);
-        write(")");
       } else {
         writeExpression(expression.receiver);
         write("->");
@@ -929,9 +1148,11 @@ class CppCodePrinter {
     } else if (expression is StaticInvocation) {
       if (expression.target.enclosingClass?.name == "_GrowableList") {
         var listType = _getVariableDeclareType(expression.arguments.types[0]);
-        write("CppNewList($listType");
+        write("CppNewList(");
+        bool first = true;
         for (var item in expression.arguments.positional) {
-          write(",");
+          if (!first) write(",");
+          first = false;
           writeExpression(item);
         }
         write(")");
@@ -952,7 +1173,7 @@ class CppCodePrinter {
           }
           write("$classType::$memberName");
           // if (className == "List") {
-          //   print("List");
+          //   print2String("List");
           // }
           writeArgumentsList(expression.target.function, expression.arguments,
               skipType: true);
@@ -965,13 +1186,24 @@ class CppCodePrinter {
       var classNameType =
           _getReceiverType(expression.receiver, expression.interfaceTarget);
       var memberName = getMemberName(expression.interfaceTarget);
-      if (memberName.contains("<")) {
-        memberName = "template $memberName";
+      writeInstanceTypeBefore(expression.interfaceTarget.function.returnType,
+          expression.functionType.returnType);
+      if (isFinalClass(expression.interfaceTarget.enclosingClass!)) {
+        write(classNameType);
+        write("::");
+        write("$memberName");
+        writeArgumentsList(
+            expression.interfaceTarget.function, expression.arguments,
+            prefix: expression.receiver);
+      } else {
+        writeExpression(expression.receiver);
+        write("->");
+        write("$memberName");
+        writeArgumentsList(
+            expression.interfaceTarget.function, expression.arguments);
       }
-      write("$classNameType::$memberName");
-      writeArgumentsList(
-          expression.interfaceTarget.function, expression.arguments,
-          prefix: expression.receiver);
+      writeInstanceTypeEnd(expression.interfaceTarget.function.returnType,
+          expression.functionType.returnType);
     } else if (expression is StaticGet) {
       write(expression.target.name.text);
     } else if (expression is StaticSet) {
@@ -979,7 +1211,7 @@ class CppCodePrinter {
       write(" = ");
       writeExpression(expression.value);
     } else if (expression is EqualsCall) {
-      write("Object::cppOpr_equals(");
+      write("Object::equals(");
       writeExpression(expression.left);
       write(",");
       writeExpression(expression.right);
@@ -989,13 +1221,15 @@ class CppCodePrinter {
       writeExpression(expression.operand);
       write(")");
     } else if (expression is IsExpression) {
-      write("reinterpret_cast<${_getVariableDeclareType(expression.type)}>(");
+      write(
+          "Bool::cppNew(reinterpret_cast<${_getVariableDeclareType(expression.type)}>(");
       writeExpression(expression.operand);
-      write(") == nullptr");
+      write(") == nullptr)");
     } else if (expression is ConditionalExpression) {
       write('(');
       writeExpression(expression.condition);
-      write(') ? ');
+      write(')->getValue()');
+      write('? ');
       writeExpression(expression.then);
       write(' : ');
       writeExpression(expression.otherwise);
@@ -1031,28 +1265,44 @@ class CppCodePrinter {
       }
       write('))');
     } else if (expression is FunctionExpression) {
-      var functionTypeStr = _getVariableType(
-          expression.function.computeFunctionType(Nullability.undetermined));
-      var typeStr =
-          functionTypeStr.replaceAll("FunctionApply", "ClosureWrapper");
-      write('new $typeStr(');
+      // var functionTypeStr = _getVariableType(
+      //     expression.function.computeFunctionType(Nullability.undetermined));
+      // var typeStr =
+      //     functionTypeStr.replaceAll("FunctionApply", "ClosureWrapper");
+
+      var typeList = [
+        expression.function.returnType,
+        ...expression.function.positionalParameters.map((e) => e.type)
+      ];
+      write(
+          'new LambdaWrapper<${typeList.map((e) => _getVariableDeclareType(e)).join(",")}>(');
       writeFunctionDeclaration(expression.function);
       write(')');
     } else if (expression is StringConcatenation) {
-      for (int i = 0; i < expression.expressions.length - 1; i++) {
-        write("String");
-        write("::");
-        write(specialNames["+"]!);
-        write("(");
+      {
+        bool first = true;
+        for (var exp in expression.expressions) {
+          if (!first) {
+            write('String::');
+            write(specialNames["+"]!);
+            write("(");
+          }
+          first = false;
+        }
       }
-      bool first = true;
-      for (var exp in expression.expressions) {
-        if (!first) write(" , ");
-        write("cppToString(");
-        writeExpression(exp);
-        write(")");
-        if (!first) write(")");
-        first = false;
+
+      {
+        bool first = true;
+        for (var exp in expression.expressions) {
+          if (!first) {
+            write(",");
+          }
+          write("cppToString(");
+          writeExpression(exp);
+          write(")");
+          if (!first) write(")");
+          first = false;
+        }
       }
     } else if (expression is Not) {
       write("Bool");
@@ -1069,7 +1319,7 @@ class CppCodePrinter {
       write(
           "throw \"${expression.expression.toString().replaceAll("\"", "")}\"");
     } else if (expression is EqualsNull) {
-      write("(");
+      write("Bool::cppNew(");
       writeExpression(expression.expression);
       write(" == ");
       write("nullptr");
@@ -1082,7 +1332,7 @@ class CppCodePrinter {
         write(getMemberInvokeName(procedure));
         write("()");
       } else {
-        write("cppThis");
+        write("this");
         write("->");
         write(expression.name.text);
       }
@@ -1094,7 +1344,7 @@ class CppCodePrinter {
         writeExpression(expression.value);
         write(")");
       } else {
-        write("cppThis");
+        write("this");
         write("->");
         write(expression.name.text);
         write(" = ");
@@ -1103,11 +1353,10 @@ class CppCodePrinter {
     } else if (expression is SuperMethodInvocation) {
       write(getMemberInvokeName(expression.interfaceTarget));
       writeArgumentsList(
-          expression.interfaceTarget.function, expression.arguments,
-          prefixStr: "cppThis");
+          expression.interfaceTarget.function, expression.arguments);
     } else {
       // Handle other expression types
-      print('Unhandled expression type: ${expression.runtimeType}');
+      print2String('Unhandled expression type: ${expression.runtimeType}');
     }
   }
 
@@ -1117,7 +1366,7 @@ class CppCodePrinter {
     bool first = true;
     if (ownerClassType.isNotEmpty) {
       first = false;
-      write("$ownerClassType cppThis");
+      write("$ownerClassType this");
     }
     var positionalParameters = function.positionalParameters;
     for (var i = 0; i < positionalParameters.length; i++) {
@@ -1147,10 +1396,10 @@ class CppCodePrinter {
 
   void writeArgumentsList(FunctionNode function, Arguments arguments,
       {Expression? prefix, String? prefixStr, bool skipType = false}) {
-    if (!skipType && arguments.types.isNotEmpty) {
-      write(
-          "<${arguments.types.map((e) => _getVariableDeclareType(e)).join(",")}>");
-    }
+    // if (!skipType && arguments.types.isNotEmpty) {
+    //   write(
+    //       "<${arguments.types.map((e) => _getVariableDeclareType(e)).join(",")}>");
+    // }
     bool first = true;
     write('(');
     if (prefixStr != null) {
@@ -1300,458 +1549,5 @@ class CppCodePrinter {
       }
       return "Object";
     }
-  }
-
-  /// 分析 FunctionExpression 中引用的外部变量
-  /// 返回在函数外部定义但在函数内部使用的变量列表
-  List<ClosureVariable> findExternalVariables(
-      FunctionExpression functionExpression) {
-    var externalVars = <ClosureVariable>[];
-    var localVars = <VariableDeclaration>{};
-
-    // 收集函数参数（这些是局部变量）
-    _collectFunctionParameters(functionExpression.function, localVars);
-
-    // 遍历函数体，查找变量引用
-    if (functionExpression.function.body != null) {
-      _findVariableReferences(
-          functionExpression.function.body!, localVars, externalVars);
-    }
-
-    return externalVars;
-  }
-
-  /// 收集函数的所有参数
-  void _collectFunctionParameters(
-      FunctionNode function, Set<VariableDeclaration> localVars) {
-    // 位置参数
-    for (var param in function.positionalParameters) {
-      localVars.add(param);
-    }
-
-    // 命名参数
-    for (var param in function.namedParameters) {
-      localVars.add(param);
-    }
-  }
-
-  /// 在语句中查找变量引用
-  void _findVariableReferences(Statement statement,
-      Set<VariableDeclaration> localVars, List<ClosureVariable> externalVars) {
-    if (statement is Block) {
-      for (var stmt in statement.statements) {
-        _findVariableReferences(stmt, localVars, externalVars);
-      }
-    } else if (statement is VariableDeclaration) {
-      // 这是一个局部变量定义，添加到局部变量集合
-      localVars.add(statement);
-      if (statement.initializer != null) {
-        _findVariableReferencesInExpression(
-            statement.initializer!, localVars, externalVars);
-      }
-    } else if (statement is ExpressionStatement) {
-      _findVariableReferencesInExpression(
-          statement.expression, localVars, externalVars);
-    } else if (statement is ReturnStatement) {
-      if (statement.expression != null) {
-        _findVariableReferencesInExpression(
-            statement.expression!, localVars, externalVars);
-      }
-    } else if (statement is IfStatement) {
-      _findVariableReferencesInExpression(
-          statement.condition, localVars, externalVars);
-      _findVariableReferences(statement.then, localVars, externalVars);
-      if (statement.otherwise != null) {
-        _findVariableReferences(statement.otherwise!, localVars, externalVars);
-      }
-    } else if (statement is WhileStatement) {
-      _findVariableReferencesInExpression(
-          statement.condition, localVars, externalVars);
-      _findVariableReferences(statement.body, localVars, externalVars);
-    } else if (statement is ForStatement) {
-      // 创建新的局部变量集合，包含 for 循环变量
-      var forLocalVars = Set<VariableDeclaration>.from(localVars);
-      for (var variable in statement.variables) {
-        forLocalVars.add(variable);
-        if (variable.initializer != null) {
-          _findVariableReferencesInExpression(
-              variable.initializer!, localVars, externalVars);
-        }
-      }
-
-      if (statement.condition != null) {
-        _findVariableReferencesInExpression(
-            statement.condition!, forLocalVars, externalVars);
-      }
-
-      for (var update in statement.updates) {
-        _findVariableReferencesInExpression(update, forLocalVars, externalVars);
-      }
-
-      _findVariableReferences(statement.body, forLocalVars, externalVars);
-    } else if (statement is DoStatement) {
-      _findVariableReferences(statement.body, localVars, externalVars);
-      _findVariableReferencesInExpression(
-          statement.condition, localVars, externalVars);
-    } else if (statement is SwitchStatement) {
-      _findVariableReferencesInExpression(
-          statement.expression, localVars, externalVars);
-      for (var switchCase in statement.cases) {
-        for (var expr in switchCase.expressions) {
-          _findVariableReferencesInExpression(expr, localVars, externalVars);
-        }
-        _findVariableReferences(switchCase.body, localVars, externalVars);
-      }
-    } else if (statement is TryFinally) {
-      _findVariableReferences(statement.body, localVars, externalVars);
-      _findVariableReferences(statement.finalizer, localVars, externalVars);
-    } else if (statement is FunctionDeclaration) {
-      // 函数声明创建一个新的局部变量
-      localVars.add(statement.variable);
-      // 分析函数体中的变量引用（递归处理嵌套函数）
-      var nestedExternalVars = <ClosureVariable>[];
-      var nestedLocalVars = Set<VariableDeclaration>.from(localVars);
-      _collectFunctionParameters(statement.function, nestedLocalVars);
-      if (statement.function.body != null) {
-        _findVariableReferences(
-            statement.function.body!, nestedLocalVars, nestedExternalVars);
-      }
-      // 将嵌套函数的外部变量添加到当前列表
-      externalVars.addAll(nestedExternalVars);
-    }
-  }
-
-  /// 在表达式中查找变量引用
-  void _findVariableReferencesInExpression(Expression expression,
-      Set<VariableDeclaration> localVars, List<ClosureVariable> externalVars) {
-    if (expression is VariableGet) {
-      // 检查这个变量是否是外部变量
-      if (!localVars.contains(expression.variable)) {
-        // 检查是否已经添加过这个变量
-        var alreadyExists =
-            externalVars.any((cv) => cv.variable == expression.variable);
-        if (!alreadyExists) {
-          var closureVar = ClosureVariable(
-              expression.variable,
-              expression.variable.name ?? 'unnamed',
-              expression.variable.type,
-              false // 不是参数，是外部定义的变量
-              );
-          externalVars.add(closureVar);
-        }
-      }
-    } else if (expression is VariableSet) {
-      // 变量赋值也是一种引用
-      if (!localVars.contains(expression.variable)) {
-        var alreadyExists =
-            externalVars.any((cv) => cv.variable == expression.variable);
-        if (!alreadyExists) {
-          var closureVar = ClosureVariable(
-              expression.variable,
-              expression.variable.name ?? 'unnamed',
-              expression.variable.type,
-              false);
-          externalVars.add(closureVar);
-        }
-      }
-      // 分析赋值表达式
-      _findVariableReferencesInExpression(
-          expression.value, localVars, externalVars);
-    } else if (expression is FunctionExpression) {
-      // 递归处理嵌套的函数表达式
-      var nestedExternalVars = findExternalVariables(expression);
-      // 过滤掉在当前作用域中定义的变量
-      for (var nestedVar in nestedExternalVars) {
-        if (!localVars.contains(nestedVar.variable)) {
-          var alreadyExists =
-              externalVars.any((cv) => cv.variable == nestedVar.variable);
-          if (!alreadyExists) {
-            externalVars.add(nestedVar);
-          }
-        }
-      }
-    } else if (expression is ConditionalExpression) {
-      _findVariableReferencesInExpression(
-          expression.condition, localVars, externalVars);
-      _findVariableReferencesInExpression(
-          expression.then, localVars, externalVars);
-      _findVariableReferencesInExpression(
-          expression.otherwise, localVars, externalVars);
-    } else if (expression is LogicalExpression) {
-      _findVariableReferencesInExpression(
-          expression.left, localVars, externalVars);
-      _findVariableReferencesInExpression(
-          expression.right, localVars, externalVars);
-    } else if (expression is InstanceInvocation) {
-      _findVariableReferencesInExpression(
-          expression.receiver, localVars, externalVars);
-      _findVariableReferencesInArguments(
-          expression.arguments, localVars, externalVars);
-    } else if (expression is StaticInvocation) {
-      _findVariableReferencesInArguments(
-          expression.arguments, localVars, externalVars);
-    } else if (expression is ConstructorInvocation) {
-      _findVariableReferencesInArguments(
-          expression.arguments, localVars, externalVars);
-    } else if (expression is InstanceGet) {
-      _findVariableReferencesInExpression(
-          expression.receiver, localVars, externalVars);
-    } else if (expression is InstanceSet) {
-      _findVariableReferencesInExpression(
-          expression.receiver, localVars, externalVars);
-      _findVariableReferencesInExpression(
-          expression.value, localVars, externalVars);
-    } else if (expression is ListLiteral) {
-      for (var item in expression.expressions) {
-        _findVariableReferencesInExpression(item, localVars, externalVars);
-      }
-    } else if (expression is SetLiteral) {
-      for (var item in expression.expressions) {
-        _findVariableReferencesInExpression(item, localVars, externalVars);
-      }
-    } else if (expression is MapLiteral) {
-      for (var entry in expression.entries) {
-        _findVariableReferencesInExpression(entry.key, localVars, externalVars);
-        _findVariableReferencesInExpression(
-            entry.value, localVars, externalVars);
-      }
-    } else if (expression is StringConcatenation) {
-      for (var expr in expression.expressions) {
-        _findVariableReferencesInExpression(expr, localVars, externalVars);
-      }
-    } else if (expression is AsExpression) {
-      _findVariableReferencesInExpression(
-          expression.operand, localVars, externalVars);
-    } else if (expression is IsExpression) {
-      _findVariableReferencesInExpression(
-          expression.operand, localVars, externalVars);
-    } else if (expression is Not) {
-      _findVariableReferencesInExpression(
-          expression.operand, localVars, externalVars);
-    } else if (expression is NullCheck) {
-      _findVariableReferencesInExpression(
-          expression.operand, localVars, externalVars);
-    } else if (expression is Throw) {
-      _findVariableReferencesInExpression(
-          expression.expression, localVars, externalVars);
-    } else if (expression is Let) {
-      // Let 表达式引入一个新的局部变量
-      var letLocalVars = Set<VariableDeclaration>.from(localVars);
-      letLocalVars.add(expression.variable);
-      if (expression.variable.initializer != null) {
-        _findVariableReferencesInExpression(
-            expression.variable.initializer!, localVars, externalVars);
-      }
-      _findVariableReferencesInExpression(
-          expression.body, letLocalVars, externalVars);
-    } else if (expression is BlockExpression) {
-      for (var stmt in expression.body.statements) {
-        _findVariableReferences(stmt, localVars, externalVars);
-      }
-      _findVariableReferencesInExpression(
-          expression.value, localVars, externalVars);
-    }
-    // 对于其他类型的表达式（如字面量），不包含变量引用，跳过
-  }
-
-  /// 在参数列表中查找变量引用
-  void _findVariableReferencesInArguments(Arguments arguments,
-      Set<VariableDeclaration> localVars, List<ClosureVariable> externalVars) {
-    for (var arg in arguments.positional) {
-      _findVariableReferencesInExpression(arg, localVars, externalVars);
-    }
-    for (var namedArg in arguments.named) {
-      _findVariableReferencesInExpression(
-          namedArg.value, localVars, externalVars);
-    }
-  }
-
-  /// 根据指定的 TreeNode 查找其中的变量引用
-  /// [node] - 要分析的树节点
-  /// [localScope] - 当前作用域中的局部变量集合，如果为 null 则创建空集合
-  /// 返回在该节点中引用的所有变量列表
-  List<ClosureVariable> findVariableReferencesInNode(TreeNode node,
-      [Set<VariableDeclaration>? localScope]) {
-    var externalVars = <ClosureVariable>[];
-    var localVars = localScope ?? <VariableDeclaration>{};
-
-    if (node is Statement) {
-      _findVariableReferences(node, localVars, externalVars);
-    } else if (node is Expression) {
-      _findVariableReferencesInExpression(node, localVars, externalVars);
-    } else if (node is FunctionNode) {
-      // 如果是函数节点，收集其参数作为局部变量
-      _collectFunctionParameters(node, localVars);
-      if (node.body != null) {
-        _findVariableReferences(node.body!, localVars, externalVars);
-      }
-    } else if (node is Member) {
-      // 处理成员节点（方法、字段等）
-      if (node is Procedure && node.function.body != null) {
-        var memberLocalVars = Set<VariableDeclaration>.from(localVars);
-        _collectFunctionParameters(node.function, memberLocalVars);
-        _findVariableReferences(
-            node.function.body!, memberLocalVars, externalVars);
-      } else if (node is Field && node.initializer != null) {
-        _findVariableReferencesInExpression(
-            node.initializer!, localVars, externalVars);
-      }
-    } else if (node is Class) {
-      // 处理类节点，分析其所有成员
-      for (var field in node.fields) {
-        if (field.initializer != null) {
-          _findVariableReferencesInExpression(
-              field.initializer!, localVars, externalVars);
-        }
-      }
-      for (var constructor in node.constructors) {
-        var constructorLocalVars = Set<VariableDeclaration>.from(localVars);
-        _collectFunctionParameters(constructor.function, constructorLocalVars);
-        if (constructor.function.body != null) {
-          _findVariableReferences(
-              constructor.function.body!, constructorLocalVars, externalVars);
-        }
-      }
-      for (var procedure in node.procedures) {
-        if (procedure.function.body != null) {
-          var procedureLocalVars = Set<VariableDeclaration>.from(localVars);
-          _collectFunctionParameters(procedure.function, procedureLocalVars);
-          _findVariableReferences(
-              procedure.function.body!, procedureLocalVars, externalVars);
-        }
-      }
-    } else if (node is Library) {
-      // 处理库节点，分析所有顶级声明
-      for (var field in node.fields) {
-        if (field.initializer != null) {
-          _findVariableReferencesInExpression(
-              field.initializer!, localVars, externalVars);
-        }
-      }
-      for (var procedure in node.procedures) {
-        if (procedure.function.body != null) {
-          var procedureLocalVars = Set<VariableDeclaration>.from(localVars);
-          _collectFunctionParameters(procedure.function, procedureLocalVars);
-          _findVariableReferences(
-              procedure.function.body!, procedureLocalVars, externalVars);
-        }
-      }
-      for (var cls in node.classes) {
-        var classVars = findVariableReferencesInNode(cls, localVars);
-        externalVars.addAll(classVars);
-      }
-    }
-
-    return externalVars;
-  }
-
-  /// 查找特定变量在树节点中的所有引用位置
-  /// [node] - 要搜索的树节点
-  /// [targetVariable] - 目标变量
-  /// 返回引用该变量的表达式列表
-  List<Expression> findVariableUsages(
-      TreeNode node, VariableDeclaration targetVariable) {
-    var usages = <Expression>[];
-    _findSpecificVariableUsages(node, targetVariable, usages);
-    return usages;
-  }
-
-  /// 递归查找特定变量的使用位置
-  void _findSpecificVariableUsages(TreeNode node,
-      VariableDeclaration targetVariable, List<Expression> usages) {
-    if (node is VariableGet && node.variable == targetVariable) {
-      usages.add(node);
-    } else if (node is VariableSet && node.variable == targetVariable) {
-      usages.add(node);
-      _findSpecificVariableUsages(node.value, targetVariable, usages);
-    } else if (node is Statement) {
-      _findVariableUsagesInStatement(node, targetVariable, usages);
-    } else if (node is Expression) {
-      _findVariableUsagesInExpression(node, targetVariable, usages);
-    } else if (node is FunctionNode) {
-      if (node.body != null) {
-        _findSpecificVariableUsages(node.body!, targetVariable, usages);
-      }
-    } else if (node is Member) {
-      if (node is Procedure && node.function.body != null) {
-        _findSpecificVariableUsages(
-            node.function.body!, targetVariable, usages);
-      } else if (node is Field && node.initializer != null) {
-        _findSpecificVariableUsages(node.initializer!, targetVariable, usages);
-      }
-    }
-  }
-
-  /// 在语句中查找特定变量的使用
-  void _findVariableUsagesInStatement(Statement statement,
-      VariableDeclaration targetVariable, List<Expression> usages) {
-    if (statement is Block) {
-      for (var stmt in statement.statements) {
-        _findSpecificVariableUsages(stmt, targetVariable, usages);
-      }
-    } else if (statement is ExpressionStatement) {
-      _findSpecificVariableUsages(statement.expression, targetVariable, usages);
-    } else if (statement is ReturnStatement && statement.expression != null) {
-      _findSpecificVariableUsages(
-          statement.expression!, targetVariable, usages);
-    } else if (statement is IfStatement) {
-      _findSpecificVariableUsages(statement.condition, targetVariable, usages);
-      _findSpecificVariableUsages(statement.then, targetVariable, usages);
-      if (statement.otherwise != null) {
-        _findSpecificVariableUsages(
-            statement.otherwise!, targetVariable, usages);
-      }
-    } else if (statement is WhileStatement) {
-      _findSpecificVariableUsages(statement.condition, targetVariable, usages);
-      _findSpecificVariableUsages(statement.body, targetVariable, usages);
-    } else if (statement is ForStatement) {
-      for (var variable in statement.variables) {
-        if (variable.initializer != null) {
-          _findSpecificVariableUsages(
-              variable.initializer!, targetVariable, usages);
-        }
-      }
-      if (statement.condition != null) {
-        _findSpecificVariableUsages(
-            statement.condition!, targetVariable, usages);
-      }
-      for (var update in statement.updates) {
-        _findSpecificVariableUsages(update, targetVariable, usages);
-      }
-      _findSpecificVariableUsages(statement.body, targetVariable, usages);
-    }
-    // 可以继续添加其他语句类型的处理
-  }
-
-  /// 在表达式中查找特定变量的使用
-  void _findVariableUsagesInExpression(Expression expression,
-      VariableDeclaration targetVariable, List<Expression> usages) {
-    if (expression is ConditionalExpression) {
-      _findSpecificVariableUsages(expression.condition, targetVariable, usages);
-      _findSpecificVariableUsages(expression.then, targetVariable, usages);
-      _findSpecificVariableUsages(expression.otherwise, targetVariable, usages);
-    } else if (expression is LogicalExpression) {
-      _findSpecificVariableUsages(expression.left, targetVariable, usages);
-      _findSpecificVariableUsages(expression.right, targetVariable, usages);
-    } else if (expression is InstanceInvocation) {
-      _findSpecificVariableUsages(expression.receiver, targetVariable, usages);
-      for (var arg in expression.arguments.positional) {
-        _findSpecificVariableUsages(arg, targetVariable, usages);
-      }
-      for (var namedArg in expression.arguments.named) {
-        _findSpecificVariableUsages(namedArg.value, targetVariable, usages);
-      }
-    } else if (expression is ListLiteral) {
-      for (var item in expression.expressions) {
-        _findSpecificVariableUsages(item, targetVariable, usages);
-      }
-    } else if (expression is Let) {
-      if (expression.variable.initializer != null) {
-        _findSpecificVariableUsages(
-            expression.variable.initializer!, targetVariable, usages);
-      }
-      _findSpecificVariableUsages(expression.body, targetVariable, usages);
-    }
-    // 可以继续添加其他表达式类型的处理
   }
 }
