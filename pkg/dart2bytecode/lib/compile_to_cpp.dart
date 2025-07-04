@@ -84,6 +84,29 @@ class ClassMember {
   ClassMember(this.member, this.index) : name = getMemberName(member);
 }
 
+class ClassInfo {
+  Class cls;
+  bool isImplement;
+  ClassInfo(this.cls, this.isImplement);
+
+  bool isInterface() {
+    for (var member in cls.procedures) {
+      if (!member.isStatic && !member.isAbstract) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  String get interfaceClassName {
+    return "${getClassName(cls)}";
+  }
+
+  String get extendClassName {
+    return "${interfaceClassName}_cppImpl";
+  }
+}
+
 final Map<String, String> typeNames = {
   "num": "Num",
   "int": "Int",
@@ -187,13 +210,15 @@ String getMemberInvokeName(Member member) {
 }
 
 class CppCodePrinter {
-  final Map<LabeledStatement, String> _labelNames = {};
-  final Map<VariableDeclaration, String> _variableNames = {};
-  final List<VariableDeclaration> _letNames = [];
+  static Map<LabeledStatement, String> _labelNames = {};
+  static Map<VariableDeclaration, String> _variableNames = {};
+  static List<VariableDeclaration> _letNames = [];
+  static Map<Class, ClassInfo> _classInfoMap = {};
 
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
   bool isHeader = false;
+  bool isImplement = false;
 
   // 主要翻译入口方法
   void translateComponent(Component component) {
@@ -212,8 +237,8 @@ class CppCodePrinter {
       print2String("${_getClassDeclareTypeName(cls)};");
     }
 
+    _getClassInfoList(_classInfoMap, classList);
     var classMap = _getClassList(classList);
-
     var classSet = <Class>{};
     // 打印类声明头部
     for (final cls in classList) {
@@ -244,7 +269,15 @@ class CppCodePrinter {
       }
 
       print2String("//  " + cls.enclosingLibrary.toStringInternal());
-      _printClassDeclaration(classMap, cls);
+
+      var classInfo = _classInfoMap[cls]!;
+      if (classInfo.isImplement) {
+        _printClassDeclaration(classMap, cls, true);
+        if (classInfo.isInterface()) {
+          continue;
+        }
+      }
+      _printClassDeclaration(classMap, cls, false);
     }
 
     try {
@@ -337,36 +370,133 @@ Bool* checkNotNullable(T count, String* name) {
     return "$className *";
   }
 
+  getSuperClassName(Class cls, bool isImplement) {
+    if (isHideClass(cls)) {
+      var superClass = cls;
+      while (superClass.superclass != null) {
+        if (!isHideClass(cls)) {
+          break;
+        }
+        superClass = superClass.superclass!;
+      }
+      if (isHideClass(cls)) {
+        return "Object";
+      }
+      cls = superClass;
+    }
+
+    var _classInfo = _classInfoMap[cls]!;
+    return (isImplement || !_classInfo.isImplement || _classInfo.isInterface())
+        ? _classInfo.interfaceClassName
+        : _classInfo.extendClassName;
+  }
+
+  String _getSuperClassNameList(Class cls, bool isImplement) {
+    var superClassList = "";
+    if (cls.superclass == null) {
+      superClassList = cls.name == "Object" ? "" : " virtual public Object";
+    } else {
+      List<String> interfaceNames = [];
+      interfaceNames.add(
+          "virtual public ${getSuperClassName(cls.superclass!, isImplement)}");
+
+      for (var implemented in cls.implementedTypes) {
+        var superClassName = getSuperClassName(implemented.classNode, true);
+        if (superClassName == "Object") {
+          continue;
+        }
+        interfaceNames.add("virtual public ${superClassName}");
+      }
+      superClassList =
+          interfaceNames.isNotEmpty ? " ${interfaceNames.join(",")}" : "";
+    }
+    return superClassList;
+  }
+
   // 打印类声明头部
   void _printClassDeclarationHeader(
       Map<Class, List<ClassMember>> map, Class cls) {
-    // Print class declaration with inheritance
-    var typeClassName = _getClassDeclareTypeName(cls);
-    var superClassName = "";
-    if (cls.supertype == null) {
-      superClassName = typeClassName == "Object" ? "" : ": public Object";
+    var classInfo = _classInfoMap[cls]!;
+    if (classInfo.isImplement) {
+      _printClassDeclarationInterfaceHeader(map, cls);
     } else {
-      var list = cls.supers.where((e) => !isHideClass(e.classNode));
-      if (list.isEmpty) {
-        superClassName = ": public Object";
-      } else {
-        superClassName =
-            ": ${list.map((e) => "virtual public ${_getVariableType(e.asInterfaceType)}").join(",")}";
-      }
+      _printClassDeclarationClassHeader(map, cls);
     }
-    print2String("$typeClassName $superClassName {");
+  }
+
+  // 打印类声明头部
+  void _printClassDeclarationClassHeader(
+      Map<Class, List<ClassMember>> map, Class cls) {
+    var classInfo = _classInfoMap[cls]!;
+    var superClassList = _getSuperClassNameList(cls, false);
+
+    //定义接口
+    print2String(
+        "class ${classInfo.interfaceClassName} ${superClassList.isEmpty ? "" : " : ${superClassList}"} {");
     print2String("public:");
 
-    // Print fields
-    for (var field in cls!.fields) {
+    for (var field in cls.fields) {
       var fieldString = _getFieldDeclaration(field);
       print2String("${field.isStatic ? "static " : ""}$fieldString;");
     }
 
-    var list = map[cls]!;
-    for (var procedure in list) {
+    for (var procedure in map[cls]!) {
       if (procedure.member.enclosingClass == cls) {
-        print2String(_toString(procedure.member, true));
+        print2String(_toString(procedure.member, true, false));
+      }
+    }
+
+    print2String("};");
+  }
+
+  // 打印类声明头部
+  void _printClassDeclarationInterfaceHeader(
+      Map<Class, List<ClassMember>> map, Class cls) {
+    var classInfo = _classInfoMap[cls]!;
+    var superClassList = _getSuperClassNameList(cls, true);
+
+    //定义接口
+    print2String(
+        "class ${classInfo.interfaceClassName} ${superClassList.isEmpty ? "" : " : ${superClassList}"} {");
+    print2String("public:");
+
+    for (var procedure in map[cls]!) {
+      if (procedure.member.enclosingClass == cls) {
+        if (procedure.member is Procedure) {
+          if ((procedure.member as Procedure).isStatic) {
+            print2String(_toString(procedure.member, true, false));
+            continue;
+          }
+        }
+
+        print2String(_toString(procedure.member, true, true));
+      }
+    }
+    print2String("};");
+
+    if (classInfo.isInterface()) {
+      return;
+    }
+
+    //定义接口实现
+    print2String(
+        "class ${classInfo.extendClassName} : virtual public ${classInfo.interfaceClassName} {");
+    print2String("public:");
+
+    for (var field in cls.fields) {
+      var fieldString = _getFieldDeclaration(field);
+      print2String("${field.isStatic ? "static " : ""}$fieldString;");
+    }
+
+    for (var procedure in map[cls]!) {
+      if (procedure.member.enclosingClass == cls) {
+        if (procedure.member is Procedure) {
+          if ((procedure.member as Procedure).isStatic ||
+              (procedure.member as Procedure).isAbstract) {
+            continue;
+          }
+        }
+        print2String(_toString(procedure.member, true, isImplement));
       }
     }
 
@@ -397,17 +527,40 @@ Bool* checkNotNullable(T count, String* name) {
         _deepPrintClassDeclarationHeader(visited, map, interface.classNode);
       }
     }
+
     _printClassDeclarationHeader(map, cls);
   }
 
   // 打印类声明实现
-  void _printClassDeclaration(Map<Class, List<ClassMember>> map, Class cls) {
+  void _printClassDeclaration(
+      Map<Class, List<ClassMember>> map, Class cls, bool isImplement) {
     // Print class declaration with inheritance
     var list = map[cls];
+    var classInfo = _classInfoMap[cls]!; //当前类是抽象类，当前是定义接口
     if (list?.isNotEmpty ?? false) {
       for (var procedure in list!) {
         if (procedure.member.enclosingClass == cls) {
-          print2String(_toString(procedure.member, false));
+          if (procedure.member is Procedure) {
+            if ((procedure.member as Procedure).isStatic) {
+              //方法是静态的，且当前是定义接口
+              if (classInfo.isInterface() && !isImplement) {
+                continue;
+              }
+            } else {
+              //方法是静态的，且当前是定义接口
+              if (classInfo.isInterface() && isImplement) {
+                continue;
+              }
+            }
+          }
+
+          if (classInfo.isInterface() &&
+              isImplement &&
+              procedure.member is Procedure &&
+              !(procedure.member as Procedure).isStatic) {
+            continue;
+          }
+          print2String(_toString(procedure.member, false, isImplement));
         }
       }
     }
@@ -426,14 +579,40 @@ Bool* checkNotNullable(T count, String* name) {
 //         return ptr;
 //     }
 // ''';
-
-    var cppNewStr = '''
+    if (isImplement) {
+      var cppNewStr = '''
   $typeString $classTypeName $className::cppNew() {
         auto ptr = ($classTypeName)malloc(sizeof($className));
         return ptr;
     }
 ''';
-    print2String(cppNewStr);
+      print2String(cppNewStr);
+    }
+  }
+
+  // 获取类成员列表
+  void _getClassInfoList(
+      Map<Class, ClassInfo> classInfoMap, Iterable<Class> list) {
+    for (var cls in list) {
+      _collectClassInfoList(classInfoMap, cls, false);
+    }
+  }
+
+  ClassInfo _collectClassInfoList(
+      Map<Class, ClassInfo> map, Class cls, bool isImplement) {
+    ClassInfo classInfo = map[cls] ?? ClassInfo(cls, isImplement);
+    if (isImplement) {
+      classInfo.isImplement = true;
+    }
+    if (cls.superclass != null) {
+      _collectClassInfoList(map, cls.superclass!, isImplement);
+    }
+    for (var i = 0; i < cls.implementedTypes.length; i++) {
+      var interface = cls.implementedTypes[i];
+      _collectClassInfoList(map, interface.classNode, true);
+    }
+    map[cls] = classInfo;
+    return classInfo;
   }
 
   // 获取类成员列表
@@ -612,7 +791,7 @@ Bool* checkNotNullable(T count, String* name) {
     return "${_getVariableDeclareType(variableDeclaration.type)} ${variableDeclaration.name}";
   }
 
-  String _toString(TreeNode statement, bool isHeader) {
+  String _toString(TreeNode statement, bool isHeader, bool isImplement) {
     if (statement is Constructor) {
       return (CppCodePrinter()
             ..isHeader = isHeader
@@ -622,6 +801,7 @@ Bool* checkNotNullable(T count, String* name) {
     } else if (statement is Procedure) {
       return (CppCodePrinter()
             ..isHeader = isHeader
+            ..isImplement = isImplement
             ..writeMemberFunctionDeclaration(statement)
             ..writeNewline())
           .getText();
@@ -728,18 +908,21 @@ Bool* checkNotNullable(T count, String* name) {
     String name = getMemberName(procedure);
     String ownerClassType = _getClassDeclareType(procedure.enclosingClass!);
 
+    var classInfo = _classInfoMap[procedure.enclosingClass]!;
     var typeStr = getTypeParametersDiff(
         procedure.enclosingClass!, function.typeParameters);
     if (isHeader) {
-      bool isOverride = isOverrideMember(procedure.enclosingClass!, procedure);
+      bool isOverride = isImplement
+          ? false
+          : isOverrideMember(procedure.enclosingClass!, procedure);
       write(
           "${procedure.isStatic ? "static" : "virtual"} ${_getVariableDeclareType(function.returnType)} $name");
       writeParametersList(function);
 
-      if (procedure.isAbstract) {
+      if (!procedure.isStatic && (procedure.isAbstract || isImplement)) {
         write(" = 0");
       } else {
-        write("${(procedure.isStatic || !isOverride) ? "" : ""}");
+        write("${(procedure.isStatic || !isOverride) ? "" : " override"}");
       }
       write(";");
       return;

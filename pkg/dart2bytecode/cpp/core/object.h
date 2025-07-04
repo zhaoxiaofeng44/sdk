@@ -43,9 +43,9 @@ class Object : public Any {
   Type* cppGet_runtimeType();   // runtimeType getter
 
   // Dart Object的核心方法
-  String* toString();  // 获取字符串表示
-  Int* hashCode();     // 获取哈希码
-  Object* noSuchMethod(Object* obj,
+  virtual String* toString();  // 获取字符串表示
+  virtual Int* hashCode();     // 获取哈希码
+  virtual Object* noSuchMethod(Object* obj,
                        String* methodName,
                        Object** args,
                        Int* argCount);  // 处理不存在的方法调用

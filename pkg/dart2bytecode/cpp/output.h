@@ -5,7 +5,6 @@
 #include "./core/func.h"
 #include "./core/num.h"
 #include "./core/string.h"
-#include "./core/api.h"
 
 void print(Object* obj) {
   if (obj) {
@@ -93,15 +92,13 @@ class Set;
 class StackTrace;
 class StringBuffer;
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyBase : public Object {
+class CyBase : virtual public Object {
  public:
   Int* a;
   String* aa;
   CyBase* cppCtr_(Int* c);
 
   virtual void test();
-
-  static CyBase* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
 class CyFather : virtual public CyBase {
@@ -113,8 +110,6 @@ class CyFather : virtual public CyBase {
   CyFather* cppCtr_ee();
 
   virtual void myTest();
-
-  static CyFather* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
 class CyChild : virtual public CyFather {
@@ -123,12 +118,10 @@ class CyChild : virtual public CyFather {
   Num* e;
   CyChild* cppCtr_();
 
-  virtual void myTest();
-
-  static CyChild* cppNew();
+  virtual void myTest() override;
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyComplexTest : public Object {
+class CyComplexTest : virtual public Object {
  public:
   List* _messages;
   Map* _scores;
@@ -142,14 +135,13 @@ class CyComplexTest : public Object {
   virtual void testLoops();
 
   virtual void testmain();
-
-  static CyComplexTest* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppPointerArray : public Object {
+class CppPointerArray : virtual public Object {
  public:
   void** _data;
   Int* _length;
+  static Function* createArrayRef;
   CppPointerArray* cppCtr_(Int* _length, void** data);
 
   virtual Int* cppGet_length();
@@ -158,14 +150,18 @@ class CppPointerArray : public Object {
 
   virtual void setItem(Int* index, Object* value);
 
-  STATIC_METHOD_FORWARD(CppApi,cppCreatePointerArray);
-  STATIC_METHOD_FORWARD(CppApi,cppGetPointerArrayItem);
-  STATIC_METHOD_FORWARD(CppApi,cppSetPointerArrayItem);
+  static void** cppCreatePointerArray(Int* length);
 
-  static CppPointerArray* cppNew();
+  static Object* cppGetPointerArrayItem(void** array, Int* index);
+
+  static Object* cppSetPointerArrayItem(void** array,
+                                        Int* index,
+                                        Object* value);
+
+  static void** createArrayDirect(Int* length);
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppByteArray : public Object {
+class CppByteArray : virtual public Object {
  public:
   void** _data;
   Int* _length;
@@ -177,16 +173,16 @@ class CppByteArray : public Object {
 
   virtual void setItem(Int* index, Int* value);
 
-  STATIC_METHOD_FORWARD(CppApi,cppCreateByteArray);
-  STATIC_METHOD_FORWARD(CppApi,cppGetByteArrayItem);
-  STATIC_METHOD_FORWARD(CppApi,cppSetByteArrayItem);
+  static void** cppCreateByteArray(Int* length);
 
-  static CppByteArray* cppNew();
+  static Int* cppGetByteArrayItem(void** array, Int* index);
+
+  static Int* cppSetByteArrayItem(void** array, Int* index, Int* value);
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterable : public Object {
+class Iterable : virtual public Object {
  public:
-  virtual String* toString();
+  virtual String* toString() = 0;
 
   Iterable* cppCtr_();
 
@@ -199,6 +195,78 @@ class Iterable : public Object {
   static Iterable* castFrom(Iterable* source);
 
   virtual Iterator* cppGet_iterator() = 0;
+
+  virtual Iterable* cast() = 0;
+
+  virtual Iterable* followedBy(Iterable* other) = 0;
+
+  virtual Iterable* map(Function* toElement) = 0;
+
+  virtual Iterable* where(Function* test) = 0;
+
+  virtual Iterable* whereType() = 0;
+
+  virtual Iterable* expand(Function* toElements) = 0;
+
+  virtual Bool* contains(Object* element) = 0;
+
+  virtual void forEach(Function* action) = 0;
+
+  virtual Object* reduce(Function* combine) = 0;
+
+  virtual Object* fold(Object* initialValue, Function* combine) = 0;
+
+  virtual Bool* every(Function* test) = 0;
+
+  virtual String* join(String* separator) = 0;
+
+  virtual Bool* any(Function* test) = 0;
+
+  virtual List* toList(Bool* growable) = 0;
+
+  virtual Set* toSet() = 0;
+
+  virtual Int* cppGet_length() = 0;
+
+  virtual Bool* cppGet_isEmpty() = 0;
+
+  virtual Bool* cppGet_isNotEmpty() = 0;
+
+  virtual Iterable* take(Int* count) = 0;
+
+  virtual Iterable* takeWhile(Function* test) = 0;
+
+  virtual Iterable* skip(Int* count) = 0;
+
+  virtual Iterable* skipWhile(Function* test) = 0;
+
+  virtual Object* cppGet_first() = 0;
+
+  virtual Object* cppGet_last() = 0;
+
+  virtual Object* cppGet_single() = 0;
+
+  virtual Object* firstWhere(Function* test, Function* orElse) = 0;
+
+  virtual Object* lastWhere(Function* test, Function* orElse) = 0;
+
+  virtual Object* singleWhere(Function* test, Function* orElse) = 0;
+
+  virtual Object* elementAt(Int* index) = 0;
+
+  static String* iterableToShortString(Iterable* iterable,
+                                       String* leftDelimiter,
+                                       String* rightDelimiter);
+
+  static String* iterableToFullString(Iterable* iterable,
+                                      String* leftDelimiter,
+                                      String* rightDelimiter);
+};
+class Iterable_cppImpl : virtual public Iterable {
+ public:
+  virtual String* toString() override;
+
+  Iterable* cppCtr_();
 
   virtual Iterable* cast();
 
@@ -258,38 +326,26 @@ class Iterable : public Object {
 
   virtual Object* elementAt(Int* index);
 
-  static String* iterableToShortString(Iterable* iterable,
-                                       String* leftDelimiter,
-                                       String* rightDelimiter);
-
-  static String* iterableToFullString(Iterable* iterable,
-                                      String* leftDelimiter,
-                                      String* rightDelimiter);
-
   static Iterable* cppNew();
 };
 class EfficientLengthIterable : virtual public Iterable {
  public:
   EfficientLengthIterable* cppCtr_();
 
-  virtual Int* cppGet_length() = 0;
-
-  static EfficientLengthIterable* cppNew();
+  virtual Int* cppGet_length() override = 0 ;
 };
-class HideEfficientLengthIterable : virtual public Iterable {
+class HideEfficientLengthIterable : virtual public Object,
+                                    virtual public Iterable {
  public:
   HideEfficientLengthIterable* cppCtr_();
-
-  static HideEfficientLengthIterable* cppNew();
 };
-class _ListIterable : virtual public EfficientLengthIterable,
+class _ListIterable : virtual public Object,
+                      virtual public EfficientLengthIterable,
                       virtual public HideEfficientLengthIterable {
  public:
   _ListIterable* cppCtr_();
-
-  static _ListIterable* cppNew();
 };
-class List : virtual public Iterable {
+class List : virtual public Object, virtual public Iterable {
  public:
   static List* filled(Int* length, Object* fill, Bool* growable);
 
@@ -373,14 +429,12 @@ class List : virtual public Iterable {
   virtual Map* asMap() = 0;
 
   virtual Bool* cpp_equals(Object* other) = 0;
-
-  static List* cppNew();
 };
-class CppList : virtual public List {
+class CppList : virtual public Object, virtual public List {
  public:
   Int* _length;
   CppPointerArray* _array;
-  virtual String* toString();
+  virtual String* toString() override;
 
   CppList* cppCtr_fromCppArray(CppPointerArray* array);
 
@@ -408,9 +462,9 @@ class CppList : virtual public List {
 
   virtual void forEach(Function* action);
 
-  virtual Object* cppGet_first();
+  virtual Object* cppGet_first() override;
 
-  virtual Object* cppGet_last();
+  virtual Object* cppGet_last() override;
 
   virtual Object* cppGet_single();
 
@@ -422,9 +476,9 @@ class CppList : virtual public List {
 
   virtual String* join(String* separator);
 
-
-
-  STATIC_METHOD_FORWARD(CppApi,cppJoinListString);
+  static String* cppJoinListString(void** strings,
+                                   Int* length,
+                                   String* separator);
 
   virtual Object* lastWhere(Function* test, Function* orElse);
 
@@ -455,37 +509,30 @@ class CppList : virtual public List {
   virtual Iterable* skip(Int* count);
 
   virtual Iterable* skipWhile(Function* test);
-
-  static CppList* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterator : public Object {
+class Iterator : virtual public Object {
  public:
   Iterator* cppCtr_();
 
   virtual Bool* moveNext() = 0;
 
   virtual Object* cppGet_current() = 0;
-
-  static Iterator* cppNew();
 };
-class _CppListIterator : virtual public Iterator {
+class _CppListIterator : virtual public Object, virtual public Iterator {
  public:
   CppList* _list;
   Int* _index;
   _CppListIterator* cppCtr_(CppList* _list);
-
-  static _CppListIterator* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class _SetIterable : virtual public EfficientLengthIterable,
+class _SetIterable : virtual public Object,
+                     virtual public EfficientLengthIterable,
                      virtual public HideEfficientLengthIterable {
  public:
   _SetIterable* cppCtr_();
-
-  static _SetIterable* cppNew();
 };
-class Set : virtual public Iterable {
+class Set : virtual public Object, virtual public Iterable {
  public:
   static Set* cppEpt_();
 
@@ -522,13 +569,11 @@ class Set : virtual public Iterable {
   virtual Set* difference(Set* other) = 0;
 
   virtual void clear() = 0;
-
-  static Set* cppNew();
 };
-class CppSet : virtual public Set {
+class CppSet : virtual public Object, virtual public Set {
  public:
   CppList* _list;
-  virtual String* toString();
+  virtual String* toString() override;
 
   CppSet* cppCtr_fromCppArray(CppPointerArray* array);
 
@@ -585,11 +630,9 @@ class CppSet : virtual public Set {
   virtual Iterable* where(Function* test);
 
   virtual Iterable* whereType();
-
-  static CppSet* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Map : public Object {
+class Map : virtual public Object {
  public:
   static Map* _fromLiteral(List* elements);
 
@@ -652,25 +695,21 @@ class Map : public Object {
   virtual Bool* cppGet_isEmpty() = 0;
 
   virtual Bool* cppGet_isNotEmpty() = 0;
-
-  static Map* cppNew();
 };
-class CppMap : virtual public Map {
+class CppMap : virtual public Object, virtual public Map {
  public:
   CppList* _list;
-  virtual String* toString();
+  virtual String* toString() override;
 
   CppMap* cppCtr_fromCppArray(CppPointerArray* array);
 
   CppMap* cppCtr_(Int* capacity);
-
-  static CppMap* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppStringBuffer : public Object {
+class CppStringBuffer : virtual public Object {
  public:
   CppList* _parts;
-  virtual String* toString();
+  virtual String* toString() override;
 
   CppStringBuffer* cppCtr_();
 
@@ -689,36 +728,32 @@ class CppStringBuffer : public Object {
   virtual Bool* cppGet_isEmpty();
 
   virtual Bool* cppGet_isNotEmpty();
-
-  static CppStringBuffer* cppNew();
 };
 //  dart.collection
-class MapView : virtual public Map {
+class MapView : virtual public Object, virtual public Map {
  public:
   Map* _map;
-  virtual String* toString();
+  virtual String* toString() override;
 
   MapView* cppCtr_(Map* map);
-
-  static MapView* cppNew();
 };
-class _UnmodifiableMapMixin : virtual public Map {
+class _UnmodifiableMapMixin : virtual public Object, virtual public Map {
+ public:
+};
+class _UnmodifiableMapMixin_cppImpl : virtual public _UnmodifiableMapMixin {
  public:
   static _UnmodifiableMapMixin* cppNew();
 };
-class _UnmodifiableMapView$MapView$_UnmodifiableMapMixin : public Object {
+class _UnmodifiableMapView$MapView$_UnmodifiableMapMixin
+    : virtual public Object {
  public:
   _UnmodifiableMapView$MapView$_UnmodifiableMapMixin* cppCtr_(Map* map);
-
-  static _UnmodifiableMapView$MapView$_UnmodifiableMapMixin* cppNew();
 };
-class CppWasmMap : public Object {
+class CppWasmMap : virtual public Object {
  public:
   CppWasmMap* cppCtr_(Map* map);
 
   virtual Map* cast();
-
-  static CppWasmMap* cppNew();
 };
 //  dart._internal
 //  dart._internal
@@ -777,25 +812,23 @@ class ListIterable : virtual public EfficientLengthIterable,
   virtual Object* singleWhere(Function* test, Function* orElse);
 
   virtual Object* elementAt(Int* i) = 0;
-
-  static ListIterable* cppNew();
 };
-class SubListIterable : public Object {
+class SubListIterable : virtual public Iterable {
  public:
   Iterable* _iterable;
   Int* _start;
   Int* _endOrLength;
   SubListIterable* cppCtr_(Iterable* _iterable, Int* _start, Int* _endOrLength);
 
-  virtual List* toList(Bool* growable);
+  virtual List* toList(Bool* growable) override;
 
-  virtual Int* cppGet_length();
+  virtual Int* cppGet_length() override;
 
-  virtual Iterable* take(Int* count);
+  virtual Iterable* take(Int* count) override;
 
-  virtual Iterable* skip(Int* count);
+  virtual Iterable* skip(Int* count) override;
 
-  virtual Object* elementAt(Int* index);
+  virtual Object* elementAt(Int* index) override;
 
   static Iterable* iterableOf(SubListIterable* subListIterable);
 
@@ -804,193 +837,166 @@ class SubListIterable : public Object {
   virtual Int* cppGet__endIndex();
 
   virtual Int* cppGet__startIndex();
-
-  static SubListIterable* cppNew();
 };
 //  dart._internal
-class ListIterator : virtual public Iterator {
+class ListIterator : virtual public Object, virtual public Iterator {
  public:
   Iterable* _iterable;
   Int* _length;
   Int* _index;
   Object* _current;
   ListIterator* cppCtr_(Iterable* iterable);
-
-  static ListIterator* cppNew();
 };
 //  dart._internal
-class MappedIterable : virtual public Iterable {
+class MappedIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Function* _f;
-  virtual Iterator* cppGet_iterator();
+  virtual Iterator* cppGet_iterator() override;
 
-  virtual Int* cppGet_length();
+  virtual Int* cppGet_length() override;
 
-  virtual Bool* cppGet_isEmpty();
+  virtual Bool* cppGet_isEmpty() override;
 
-  virtual Object* cppGet_first();
+  virtual Object* cppGet_first() override;
 
-  virtual Object* cppGet_last();
+  virtual Object* cppGet_last() override;
 
-  virtual Object* cppGet_single();
+  virtual Object* cppGet_single() override;
 
-  virtual Object* elementAt(Int* index);
+  virtual Object* elementAt(Int* index) override;
 
   MappedIterable* cppCtr__(Iterable* _iterable, Function* _f);
 
   static MappedIterable* cppEpt_(Iterable* iterable, Function* function);
-
-  static MappedIterable* cppNew();
 };
 class EfficientLengthMappedIterable
-    : virtual public EfficientLengthIterable,
+    : virtual public Object,
+      virtual public EfficientLengthIterable,
       virtual public HideEfficientLengthIterable {
  public:
   EfficientLengthMappedIterable* cppCtr_(Iterable* iterable,
                                          Function* function);
-
-  static EfficientLengthMappedIterable* cppNew();
 };
 //  dart._internal
-class MappedListIterable : public Object {
+class MappedListIterable : virtual public Object {
  public:
   Iterable* _source;
   Function* _f;
   MappedListIterable* cppCtr_(Iterable* _source, Function* _f);
 
-  virtual Int* cppGet_length();
+  virtual Int* cppGet_length() override;
 
-  virtual Object* elementAt(Int* index);
-
-  static MappedListIterable* cppNew();
+  virtual Object* elementAt(Int* index) override;
 };
 //  dart._internal
-class WhereIterable : virtual public Iterable {
+class WhereIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Function* _f;
   WhereIterable* cppCtr_(Iterable* _iterable, Function* _f);
 
-  virtual Iterator* cppGet_iterator();
+  virtual Iterator* cppGet_iterator() override;
 
-  virtual Iterable* map(Function* toElement);
-
-  static WhereIterable* cppNew();
+  virtual Iterable* map(Function* toElement) override;
 };
 //  dart._internal
-class ExpandIterable : virtual public Iterable {
+class ExpandIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Function* _f;
   ExpandIterable* cppCtr_(Iterable* _iterable, Function* _f);
 
-  virtual Iterator* cppGet_iterator();
-
-  static ExpandIterable* cppNew();
+  virtual Iterator* cppGet_iterator() override;
 };
 //  dart._internal
-class TakeIterable : virtual public Iterable {
+class TakeIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Int* _takeCount;
-  virtual Iterator* cppGet_iterator();
+  virtual Iterator* cppGet_iterator() override;
 
   TakeIterable* cppCtr__(Iterable* _iterable, Int* _takeCount);
 
   static TakeIterable* cppEpt_(Iterable* iterable, Int* takeCount);
-
-  static TakeIterable* cppNew();
 };
 //  dart._internal
-class TakeWhileIterable : virtual public Iterable {
+class TakeWhileIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Function* _f;
   TakeWhileIterable* cppCtr_(Iterable* _iterable, Function* _f);
 
-  virtual Iterator* cppGet_iterator();
-
-  static TakeWhileIterable* cppNew();
+  virtual Iterator* cppGet_iterator() override;
 };
 //  dart._internal
-class SkipWhileIterable : virtual public Iterable {
+class SkipWhileIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _iterable;
   Function* _f;
   SkipWhileIterable* cppCtr_(Iterable* _iterable, Function* _f);
 
-  virtual Iterator* cppGet_iterator();
-
-  static SkipWhileIterable* cppNew();
+  virtual Iterator* cppGet_iterator() override;
 };
 //  dart._internal
-class FollowedByIterable : virtual public Iterable {
+class FollowedByIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _first;
   Iterable* _second;
   FollowedByIterable* cppCtr_(Iterable* _first, Iterable* _second);
 
-  virtual Iterator* cppGet_iterator();
+  virtual Iterator* cppGet_iterator() override;
 
-  virtual Bool* contains(Object* value);
+  virtual Bool* contains(Object* value) override;
 
-  virtual Int* cppGet_length();
+  virtual Int* cppGet_length() override;
 
-  virtual Bool* cppGet_isEmpty();
+  virtual Bool* cppGet_isEmpty() override;
 
-  virtual Bool* cppGet_isNotEmpty();
+  virtual Bool* cppGet_isNotEmpty() override;
 
-  virtual Object* cppGet_first();
+  virtual Object* cppGet_first() override;
 
-  virtual Object* cppGet_last();
+  virtual Object* cppGet_last() override;
 
   static FollowedByIterable* firstEfficient(EfficientLengthIterable* first,
                                             Iterable* second);
-
-  static FollowedByIterable* cppNew();
 };
 //  dart._internal
 class EfficientLengthFollowedByIterable
-    : virtual public FollowedByIterable,
+    : 
       virtual public EfficientLengthIterable,
-      virtual public HideEfficientLengthIterable {
+      virtual public HideEfficientLengthIterable,virtual public FollowedByIterable {
  public:
   EfficientLengthFollowedByIterable* cppCtr_(EfficientLengthIterable* first,
                                              EfficientLengthIterable* second);
 
-  virtual Object* cppGet_first();
+  virtual Object* cppGet_first() override;
 
-  virtual Object* cppGet_last();
+  virtual Object* cppGet_last() override;
 
   virtual Object* elementAt(Int* index);
-
-  static EfficientLengthFollowedByIterable* cppNew();
 };
 //  dart._internal
-class WhereTypeIterable : virtual public Iterable {
+class WhereTypeIterable : virtual public Iterable_cppImpl {
  public:
   Iterable* _source;
   WhereTypeIterable* cppCtr_(Iterable* _source);
 
-  virtual Iterator* cppGet_iterator();
-
-  static WhereTypeIterable* cppNew();
+  virtual Iterator* cppGet_iterator() override;
 };
 //  dart._internal
-class ReversedListIterable : public Object {
+class ReversedListIterable : virtual public Object {
  public:
   Iterable* _source;
   ReversedListIterable* cppCtr_(Iterable* _source);
 
-  virtual Int* cppGet_length();
+  virtual Int* cppGet_length() override;
 
-  virtual Object* elementAt(Int* index);
-
-  static ReversedListIterable* cppNew();
+  virtual Object* elementAt(Int* index) override;
 };
 //  dart._internal
-class Sort : public Object {
+class Sort : virtual public Object {
  public:
   static Int* _INSERTION_SORT_THRESHOLD;
   Sort* cppCtr_();
@@ -1007,13 +1013,10 @@ class Sort : public Object {
                                   Int* left,
                                   Int* right,
                                   Function* compare);
-
-  static Sort* cppNew();
 };
 //  dart.math
-class Random : public Object {
+class Random : virtual public Object {
  public:
-  static Random* _secureRandom;
   static Random* cppEpt_(Int* seed);
 
   static Random* secure();
@@ -1023,52 +1026,39 @@ class Random : public Object {
   virtual Double* nextDouble() = 0;
 
   virtual Bool* nextBool() = 0;
-
-  static Random* cppNew();
 };
 //  nativewrappers
-class NativeFieldWrapperClass1 : public Object {
+class NativeFieldWrapperClass1 : virtual public Object {
  public:
   NativeFieldWrapperClass1* cppCtr_();
-
-  static NativeFieldWrapperClass1* cppNew();
 };
 //  nativewrappers
 class NativeFieldWrapperClass2 : virtual public NativeFieldWrapperClass1 {
  public:
   NativeFieldWrapperClass2* cppCtr_();
-
-  static NativeFieldWrapperClass2* cppNew();
 };
 //  nativewrappers
 class NativeFieldWrapperClass3 : virtual public NativeFieldWrapperClass2 {
  public:
   NativeFieldWrapperClass3* cppCtr_();
-
-  static NativeFieldWrapperClass3* cppNew();
 };
 //  nativewrappers
 class NativeFieldWrapperClass4 : virtual public NativeFieldWrapperClass3 {
  public:
   NativeFieldWrapperClass4* cppCtr_();
-
-  static NativeFieldWrapperClass4* cppNew();
 };
 //  dart.core
-class Comparable : public Object {
+class Comparable : virtual public Object {
  public:
   Comparable* cppCtr_();
 
   virtual Int* compareTo(Object* other) = 0;
 
   static Int* compare(Comparable* a, Comparable* b);
-
-  static Comparable* cppNew();
 };
 //  dart.core
-class Error : public Object {
+class Error : virtual public Object {
  public:
-  StackTrace* _stackTrace;
   Error* cppCtr_();
 
   static String* safeToString(Object* object);
@@ -1077,15 +1067,38 @@ class Error : public Object {
 
   static String* _objectToString(Object* object);
 
-  virtual StackTrace* cppGet_stackTrace();
+  virtual StackTrace* cppGet_stackTrace() = 0;
 
   static void throwWithStackTrace(Object* error, StackTrace* stackTrace);
 
   static void _throw(Object* error, StackTrace* stackTrace);
+};
+class Error_cppImpl : virtual public Error {
+ public:
+  StackTrace* _stackTrace;
+  Error* cppCtr_();
+
+  virtual StackTrace* cppGet_stackTrace();
 
   static Error* cppNew();
 };
-class ArgumentError : public Object {
+class ArgumentError : virtual public Object {
+ public:
+  virtual String* toString() = 0;
+
+  ArgumentError* cppCtr_(void** message, String* name);
+
+  ArgumentError* cppCtr_value(void** value, String* name, void** message);
+
+  ArgumentError* cppCtr_notNull(String* name);
+
+  static Object* checkNotNull(Object* argument, String* name);
+
+  virtual String* cppGet__errorName() = 0;
+
+  virtual String* cppGet__errorExplanation() = 0;
+};
+class ArgumentError_cppImpl : virtual public ArgumentError {
  public:
   Bool* _hasValue;
   void** invalidValue;
@@ -1099,25 +1112,21 @@ class ArgumentError : public Object {
 
   ArgumentError* cppCtr_notNull(String* name);
 
-  static Object* checkNotNull(Object* argument, String* name);
-
   virtual String* cppGet__errorName();
 
   virtual String* cppGet__errorExplanation();
 
   static ArgumentError* cppNew();
 };
-class RangeError : public Object {
+class RangeError : virtual public Object {
  public:
-  Num* start;
-  Num* end;
   RangeError* cppCtr_(void** message);
 
   RangeError* cppCtr_value(Num* value, String* name, String* message);
 
-  virtual String* cppGet__errorName();
+  virtual String* cppGet__errorName() = 0;
 
-  virtual String* cppGet__errorExplanation();
+  virtual String* cppGet__errorExplanation() = 0;
 
   RangeError* cppCtr_range(Num* invalidValue,
                            Int* minValue,
@@ -1125,7 +1134,7 @@ class RangeError : public Object {
                            String* name,
                            String* message);
 
-  virtual Num* cppGet_invalidValue();
+  virtual Num* cppGet_invalidValue() = 0;
 
   static RangeError* index(Int* index,
                            void** indexable,
@@ -1153,6 +1162,26 @@ class RangeError : public Object {
                               String* message);
 
   static Int* checkNotNegative(Int* value, String* name, String* message);
+};
+class RangeError_cppImpl : virtual public RangeError {
+ public:
+  Num* start;
+  Num* end;
+  RangeError* cppCtr_(void** message);
+
+  RangeError* cppCtr_value(Num* value, String* name, String* message);
+
+  virtual String* cppGet__errorName() override;
+
+  virtual String* cppGet__errorExplanation() override;
+
+  RangeError* cppCtr_range(Num* invalidValue,
+                           Int* minValue,
+                           Int* maxValue,
+                           String* name,
+                           String* message);
+
+  virtual Num* cppGet_invalidValue();
 
   static RangeError* cppNew();
 };
@@ -1161,23 +1190,20 @@ class RangeError : public Object {
 //  dart.core
 //  dart.core
 //  dart.core
-class MapEntry : public Object {
+class MapEntry : virtual public Object {
  public:
   Object* key;
   Object* value;
-  virtual String* toString();
+  virtual String* toString() override;
 
   MapEntry* cppCtr__(Object* key, Object* value);
 
   static MapEntry* cppEpt_(Object* key, Object* value);
-
-  static MapEntry* cppNew();
 };
 //  dart.core
 //  dart.core
-class StackTrace : public Object {
+class StackTrace : virtual public Object {
  public:
-  static _StringStackTrace* empty;
   virtual String* toString() = 0;
 
   StackTrace* cppCtr_();
@@ -1185,11 +1211,9 @@ class StackTrace : public Object {
   static StackTrace* fromString(String* stackTraceString);
 
   static StackTrace* cppGet_current();
-
-  static StackTrace* cppNew();
 };
 //  dart.core
-class StringSink : public Object {
+class StringSink : virtual public Object {
  public:
   StringSink* cppCtr_();
 
@@ -1200,10 +1224,8 @@ class StringSink : public Object {
   virtual void writeln(Object* object) = 0;
 
   virtual void writeCharCode(Int* charCode) = 0;
-
-  static StringSink* cppNew();
 };
-class StringBuffer : public Object {
+class StringBuffer : virtual public Object {
  public:
   static Int* _BUFFER_SIZE;
   static Int* _PARTS_TO_COMPACT;
@@ -1215,7 +1237,7 @@ class StringBuffer : public Object {
   Uint16List* _buffer;
   Int* _bufferPosition;
   Int* _bufferCodeUnitMagnitude;
-  virtual String* toString();
+  virtual String* toString() override;
 
   StringBuffer* cppCtr_(Object* content);
 
@@ -1238,6 +1260,4 @@ class StringBuffer : public Object {
   virtual Bool* cppGet_isNotEmpty();
 
   virtual void clear();
-
-  static StringBuffer* cppNew();
 };
