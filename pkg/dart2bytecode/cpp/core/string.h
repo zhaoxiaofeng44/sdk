@@ -3,7 +3,9 @@
 
 #include <cstddef> // 添加这个来定义 NULL
 #include "object.h"
+
 // 前向声明
+class Object;
 class Bool;
 class Int;
 class Double;
@@ -70,6 +72,9 @@ public:
     // 获取引用计数
     int getRefCount() const;
 
+    static Type* cppGet_runtimeType(Object* a);   // runtimeType getter
+    static String* toString(Object* obj);  // 获取字符串表示
+    static Int* hashCode(Object* obj);     // 获取哈希码// 处理不存在的方法调用                      
     // ==================== 静态方法 - 对齐Dart String ====================
 
     // 操作符方法 (根据映射表转换)
@@ -158,16 +163,10 @@ public:
     static String *concat(String **strings, Int *count);                           // 连接多个字符串
     static String *interpolate(String *template_str, String **values, Int *count); // 字符串插值
 
-    static String *cppNew(const char *str, int length);
+    static String *cppNew(const char *str);
 };
 
 
-String *cppToString(Object *obj) {
-  if (obj) {
-    return obj->toString();
-  }
-  return String::cppNew("null", sizeof("null"));
-}
-
+String *cppToString(Object *obj);
 
 #endif // _CORE_STRING_H_

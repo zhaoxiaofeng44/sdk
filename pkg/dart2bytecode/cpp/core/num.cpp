@@ -564,8 +564,8 @@ Num *Num::cppNew(double d) {
     return new Num(d);
 }
 
-// Int方法实现
-Int *Int::bitLength(Int *a) {
+// ==================== 从Int类移动过来的方法实现 ====================
+Int *Num::bitLength(Int *a) {
     if (!a)
         return new Int(0);
     int val = a->getInt();
@@ -587,60 +587,60 @@ Int *Int::bitLength(Int *a) {
     return new Int(length);
 }
 
-Bool *Int::isEven(Int *a) {
+Bool *Num::isEven(Int *a) {
     if (!a)
         return new Bool(false);
     return new Bool((a->getInt() & 1) == 0);
 }
 
-Bool *Int::isOdd(Int *a) {
+Bool *Num::isOdd(Int *a) {
     if (!a)
         return new Bool(false);
     return new Bool((a->getInt() & 1) == 1);
 }
 
-Bool *Int::isNegative(Int *a) {
+Bool *Num::isNegative(Int *a) {
     if (!a)
         return new Bool(false);
     return new Bool(a->getInt() < 0);
 }
 
-Int *Int::parseInt(String *s, Int *radix) {
+Int *Num::parseInt(String *s, Int *radix) {
     if (!s)
         return new Int(0);
     int radixValue = radix ? radix->getInt() : 10;
     return new Int(stringToInt(*s, radixValue));
 }
 
-// Double方法实现
-Bool *Double::isNaN(Double *a) {
+// ==================== 从Double类移动过来的方法实现 ====================
+Bool *Num::isNaN(Double *a) {
     if (!a)
         return new Bool(false);
     double val = a->getDouble();
     return new Bool(val != val);
 }
 
-Bool *Double::isInfinite(Double *a) {
+Bool *Num::isInfinite(Double *a) {
     if (!a)
         return new Bool(false);
     double val = a->getDouble();
     return new Bool(val == 1.0 / 0.0 || val == -1.0 / 0.0);
 }
 
-Bool *Double::isFinite(Double *a) {
+Bool *Num::isFinite(Double *a) {
     if (!a)
         return new Bool(false);
     double val = a->getDouble();
     return new Bool(val == val && val != 1.0 / 0.0 && val != -1.0 / 0.0);
 }
 
-Double *Double::atan(Double *a) {
+Double *Num::atan(Double *a) {
     if (!a)
         return new Double(0.0);
     return new Double(::atan(a->getDouble()));
 }
 
-Double *Double::acos(Double *a) {
+Double *Num::acos(Double *a) {
     if (!a)
         return new Double(0.0);
     double val = a->getDouble();
@@ -650,7 +650,7 @@ Double *Double::acos(Double *a) {
     return new Double(::acos(val));
 }
 
-Double *Double::asin(Double *a) {
+Double *Num::asin(Double *a) {
     if (!a)
         return new Double(0.0);
     double val = a->getDouble();
@@ -660,13 +660,13 @@ Double *Double::asin(Double *a) {
     return new Double(::asin(val));
 }
 
-Double *Double::atan2(Double *a, Double *b) {
+Double *Num::atan2(Double *a, Double *b) {
     if (!a || !b)
         return new Double(0.0);
     return new Double(::atan2(a->getDouble(), b->getDouble()));
 }
 
-Double *Double::parseDouble(String *s) {
+Double *Num::parseDouble(String *s) {
     if (!s)
         return new Double(0.0);
     return new Double(stringToDouble(*s));
@@ -706,32 +706,32 @@ Bool *Bool::cpp_bitwiseOr(Bool *a, Bool *b) {
 // ==================== cppGet前缀的Getter方法实现 ====================
 
 // Int类的cppGet方法
-Int *Int::cppGet_bitLength(Int *a) {
+Int *Num::cppGet_bitLength(Int *a) {
     return bitLength(a);
 }
 
-Bool *Int::cppGet_isEven(Int *a) {
+Bool *Num::cppGet_isEven(Int *a) {
     return isEven(a);
 }
 
-Bool *Int::cppGet_isOdd(Int *a) {
+Bool *Num::cppGet_isOdd(Int *a) {
     return isOdd(a);
 }
 
-Bool *Int::cppGet_isNegative(Int *a) {
+Bool *Num::cppGet_isNegative(Int *a) {
     return isNegative(a);
 }
 
 // Double类的cppGet方法
-Bool *Double::cppGet_isNaN(Double *a) {
+Bool *Num::cppGet_isNaN(Double *a) {
     return isNaN(a);
 }
 
-Bool *Double::cppGet_isInfinite(Double *a) {
+Bool *Num::cppGet_isInfinite(Double *a) {
     return isInfinite(a);
 }
 
-Bool *Double::cppGet_isFinite(Double *a) {
+Bool *Num::cppGet_isFinite(Double *a) {
     return isFinite(a);
 }
 
@@ -759,14 +759,14 @@ Bool *Bool::cppNew(bool b) {
 // ==================== 缺失的 toString 方法实现 ====================
 
 // Int类的toString方法
-String *Int::toString(Int *a) {
+String *Num::toString(Int *a) {
     if (!a)
         return new String("null");
     return new String(intToString(a->getInt()).c_str());
 }
 
 // Double类的toString方法
-String *Double::toString(Double *a) {
+String *Num::toString(Double *a) {
     if (!a)
         return new String("null");
     return new String(doubleToString(a->getDouble()).c_str());

@@ -44,6 +44,11 @@ public:
     int getInt() const { return data.i; }
     double getDouble() const { return data.d; }
 
+
+    static Type* cppGet_runtimeType(Object* a);   // runtimeType getter
+    static String* toString(Object* obj);  // 获取字符串表示
+    static Int* hashCode(Object* obj);     // 获取哈希码// 处理不存在的方法调用    
+
     // ==================== 基础方法（接受Num*参数） ====================
     static Num *cpp_unaryMinus(Num *a);
     static Num *cpp_add(Num *a, Num *b);
@@ -178,18 +183,8 @@ public:
 
     static Num *cppNew(int i);
     static Num *cppNew(double d);
-};
 
-class Int : public Num {
-public:
-    Int() : Num(0) {}
-    Int(int value) : Num(value) {}
-    Int(const Int &other) : Num(other) {}
-
-    // 访问数据使用基类的方法
-    int getValue() const { return getInt(); }
-    operator int() const { return getInt(); }
-
+    // ==================== 从Int类移动过来的方法 ====================
     static Int *bitLength(Int *a);
     static Bool *isEven(Int *a);
     static Bool *isOdd(Int *a);
@@ -204,19 +199,7 @@ public:
     static Int *parseInt(String *s, Int *radix = NULL);
     static String *toString(Int *a);
 
-    static Int *cppNew(int i);
-};
-
-class Double : public Num {
-public:
-    Double() : Num(0.0) {}
-    Double(double value) : Num(value) {}
-    Double(const Double &other) : Num(other) {}
-
-    // 访问数据使用基类的方法
-    double getValue() const { return getDouble(); }
-    operator double() const { return getDouble(); }
-
+    // ==================== 从Double类移动过来的方法 ====================
     static Bool *isNaN(Double *a);
     static Bool *isInfinite(Double *a);
     static Bool *isFinite(Double *a);
@@ -233,6 +216,30 @@ public:
 
     static Double *parseDouble(String *s);
     static String *toString(Double *a);
+};
+
+class Int : public Num {
+public:
+    Int() : Num(0) {}
+    Int(int value) : Num(value) {}
+    Int(const Int &other) : Num(other) {}
+
+    // 访问数据使用基类的方法
+    int getValue() const { return getInt(); }
+    operator int() const { return getInt(); }
+
+    static Int *cppNew(int i);
+};
+
+class Double : public Num {
+public:
+    Double() : Num(0.0) {}
+    Double(double value) : Num(value) {}
+    Double(const Double &other) : Num(other) {}
+
+    // 访问数据使用基类的方法
+    double getValue() const { return getDouble(); }
+    operator double() const { return getDouble(); }
 
     static Double *cppNew(int i);
     static Double *cppNew(double d);

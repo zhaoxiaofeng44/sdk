@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'Iterable.dart';
+
 @pragma("wasm:entry-point")
 class CppPointerArray {
   final dynamic _data;
@@ -62,7 +64,7 @@ class CppByteArray {
 
 @pragma("wasm:entry-point")
 @pragma("cpp:patch-factory", "List")
-class CppList<E> implements List<E> {
+class CppList<E> extends CppIterable<E> implements List<E> {
   int _length;
   CppPointerArray _array;
 
@@ -219,15 +221,6 @@ class CppList<E> implements List<E> {
   }
 
   @override
-  Iterable<T> expand<T>(Iterable<T> Function(E element) toElements) {
-    var result = <T>[];
-    for (int i = 0; i < _length; i++) {
-      result.addAll(toElements(_array.getItem(i) as E));
-    }
-    return result;
-  }
-
-  @override
   void fillRange(int start, int end, [E? fillValue]) {
     for (int i = start; i < end; i++) {
       _array.setItem(i, fillValue as E);
@@ -250,11 +243,6 @@ class CppList<E> implements List<E> {
       value = combine(value, _array.getItem(i) as E);
     }
     return value;
-  }
-
-  @override
-  Iterable<E> followedBy(Iterable<E> other) {
-    return [...this, ...other];
   }
 
   @override
@@ -367,7 +355,7 @@ class CppList<E> implements List<E> {
       dynamic strings, int length, String separator) {
     var list = <String>[];
     for (int i = 0; i < length; i++) {
-      list.add(strings[i]);
+      list.add(strings[i].toString());
     }
     return list.join(separator);
   }
@@ -397,11 +385,6 @@ class CppList<E> implements List<E> {
     }
     if (orElse != null) return orElse();
     throw StateError('No element');
-  }
-
-  @override
-  Iterable<T> map<T>(T Function(E e) toElement) {
-    return Iterable.generate(_length, (i) => toElement(_array.getItem(i) as E));
   }
 
   @override
@@ -508,10 +491,6 @@ class CppList<E> implements List<E> {
   }
 
   @override
-  Iterable<E> get reversed =>
-      Iterable.generate(_length, (i) => _array.getItem(_length - 1 - i) as E);
-
-  @override
   void setAll(int index, Iterable<E> iterable) {
     if (index < 0 || index > _length) throw RangeError.index(index, this);
     var i = index;
@@ -612,23 +591,6 @@ class CppList<E> implements List<E> {
   }
 
   @override
-  Iterable<E> take(int count) {
-    if (count < 0) throw ArgumentError('Count must be positive');
-    return Iterable.generate(
-        count < _length ? count : _length, (i) => _array.getItem(i) as E);
-  }
-
-  @override
-  Iterable<E> takeWhile(bool Function(E value) test) {
-    for (int i = 0; i < _length; i++) {
-      if (!test(_array.getItem(i) as E)) {
-        return Iterable.generate(i, (j) => _array.getItem(j) as E);
-      }
-    }
-    return this;
-  }
-
-  @override
   List<E> toList({bool growable = true}) {
     return CppList.from(this, growable: growable);
   }
@@ -636,30 +598,6 @@ class CppList<E> implements List<E> {
   @override
   Set<E> toSet() {
     return Set.from(this);
-  }
-
-  @override
-  Iterable<E> where(bool Function(E element) test) {
-    var result = <E>[];
-    for (int i = 0; i < _length; i++) {
-      var element = _array.getItem(i) as E;
-      if (test(element)) {
-        result.add(element);
-      }
-    }
-    return result;
-  }
-
-  @override
-  Iterable<T> whereType<T>() {
-    var result = <T>[];
-    for (int i = 0; i < _length; i++) {
-      var element = _array.getItem(i);
-      if (element is T) {
-        result.add(element);
-      }
-    }
-    return result;
   }
 
   @override
@@ -676,24 +614,6 @@ class CppList<E> implements List<E> {
     if (found) return result!;
     if (orElse != null) return orElse();
     throw StateError('No element');
-  }
-
-  @override
-  Iterable<E> skip(int count) {
-    if (count < 0) throw ArgumentError('Count must be positive');
-    return Iterable.generate(_length - count > 0 ? _length - count : 0,
-        (i) => _array.getItem(count + i) as E);
-  }
-
-  @override
-  Iterable<E> skipWhile(bool Function(E value) test) {
-    int skipCount = 0;
-    for (int i = 0; i < _length; i++) {
-      if (!test(_array.getItem(i) as E)) break;
-      skipCount++;
-    }
-    return Iterable.generate(
-        _length - skipCount, (i) => _array.getItem(skipCount + i) as E);
   }
 
   @override
@@ -739,7 +659,7 @@ class _CppListIterator<E> implements Iterator<E> {
 }
 
 @pragma("cpp:patch-factory", "Set")
-class CppSet<E> implements Set<E> {
+class CppSet<E> extends CppIterable<E> implements Set<E> {
   final CppList<E> _list;
 
   @pragma('wasm:entry-point')
@@ -787,14 +707,6 @@ class CppSet<E> implements Set<E> {
   }
 
   @override
-  bool any(bool Function(E element) test) {
-    for (var element in _list) {
-      if (test(element)) return true;
-    }
-    return false;
-  }
-
-  @override
   Set<R> cast<R>() {
     return Set.castFrom<E, R>(this);
   }
@@ -837,53 +749,6 @@ class CppSet<E> implements Set<E> {
   E elementAt(int index) => _list.elementAt(index);
 
   @override
-  bool every(bool Function(E element) test) {
-    for (var element in _list) {
-      if (!test(element)) return false;
-    }
-    return true;
-  }
-
-  @override
-  Iterable<T> expand<T>(Iterable<T> Function(E element) toElements) {
-    var result = <T>[];
-    for (var element in _list) {
-      result.addAll(toElements(element));
-    }
-    return result;
-  }
-
-  @override
-  E firstWhere(bool Function(E element) test, {E Function()? orElse}) {
-    for (var element in _list) {
-      if (test(element)) return element;
-    }
-    if (orElse != null) return orElse();
-    throw StateError('No element');
-  }
-
-  @override
-  T fold<T>(T initialValue, T Function(T previousValue, E element) combine) {
-    var value = initialValue;
-    for (var element in _list) {
-      value = combine(value, element);
-    }
-    return value;
-  }
-
-  @override
-  Iterable<E> followedBy(Iterable<E> other) {
-    return [...this, ...other];
-  }
-
-  @override
-  void forEach(void Function(E element) action) {
-    for (var element in _list) {
-      action(element);
-    }
-  }
-
-  @override
   Set<E> intersection(Set<Object?> other) {
     var result = CppSet<E>();
     for (var element in _list) {
@@ -923,31 +788,6 @@ class CppSet<E> implements Set<E> {
   Iterator<E> get iterator => _list.iterator;
 
   @override
-  String join([String separator = ""]) {
-    if (_list.isEmpty) return "";
-    var buffer = StringBuffer();
-    var iterator = _list.iterator;
-    if (iterator.moveNext()) {
-      buffer.write(iterator.current);
-      while (iterator.moveNext()) {
-        buffer.write(separator);
-        buffer.write(iterator.current);
-      }
-    }
-    return buffer.toString();
-  }
-
-  @override
-  E lastWhere(bool Function(E element) test, {E Function()? orElse}) {
-    for (int i = _list.length - 1; i >= 0; i--) {
-      var element = _list[i];
-      if (test(element)) return element;
-    }
-    if (orElse != null) return orElse();
-    throw StateError('No element');
-  }
-
-  @override
   int get length => _list.length;
 
   @override
@@ -958,21 +798,6 @@ class CppSet<E> implements Set<E> {
       }
     }
     return null;
-  }
-
-  @override
-  Iterable<T> map<T>(T Function(E e) toElement) {
-    return _list.map(toElement);
-  }
-
-  @override
-  E reduce(E Function(E value, E element) combine) {
-    if (_list.isEmpty) throw StateError('No element');
-    var value = _list.first;
-    for (int i = 1; i < _list.length; i++) {
-      value = combine(value, _list[i]);
-    }
-    return value;
   }
 
   @override
@@ -1004,80 +829,10 @@ class CppSet<E> implements Set<E> {
   }
 
   @override
-  E singleWhere(bool Function(E element) test, {E Function()? orElse}) {
-    E? result;
-    bool found = false;
-    for (var element in _list) {
-      if (test(element)) {
-        if (found) throw StateError('Too many elements');
-        result = element;
-        found = true;
-      }
-    }
-    if (found) return result!;
-    if (orElse != null) return orElse();
-    throw StateError('No element');
-  }
-
-  @override
-  Iterable<E> skip(int count) {
-    return _list.skip(count);
-  }
-
-  @override
-  Iterable<E> skipWhile(bool Function(E value) test) {
-    return _list.skipWhile(test);
-  }
-
-  @override
   Set<E> union(Set<E> other) {
     var result = CppSet<E>();
     result.addAll(this);
     result.addAll(other);
-    return result;
-  }
-
-  @override
-  Iterable<E> take(int count) {
-    return _list.take(count);
-  }
-
-  @override
-  Iterable<E> takeWhile(bool Function(E value) test) {
-    return _list.takeWhile(test);
-  }
-
-  @override
-  List<E> toList({bool growable = true}) {
-    return _list.toList(growable: growable);
-  }
-
-  @override
-  Set<E> toSet() {
-    return this;
-  }
-
-  @override
-  Iterable<E> where(bool Function(E element) test) {
-    var result = <E>[];
-    for (int i = 0; i < _list.length; i++) {
-      var element = _list[i];
-      if (test(element)) {
-        result.add(element);
-      }
-    }
-    return result;
-  }
-
-  @override
-  Iterable<T> whereType<T>() {
-    var result = <T>[];
-    for (int i = 0; i < _list.length; i++) {
-      var element = _list[i];
-      if (element is T) {
-        result.add(element);
-      }
-    }
     return result;
   }
 

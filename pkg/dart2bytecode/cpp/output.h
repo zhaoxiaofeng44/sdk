@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
+#include <map>
 #include <sstream>
+#include "./core/api.h"
 #include "./core/array.h"
 #include "./core/func.h"
 #include "./core/num.h"
@@ -8,9 +10,9 @@
 
 void print(Object* obj) {
   if (obj) {
-    String* str = obj->toString();
-    printf("%s", str->c_str());
-    delete str;
+    // String* str = obj->toString();
+    // printf("%s", str->c_str());
+    // delete str;
   } else {
     printf("null");
   }
@@ -60,21 +62,6 @@ class CppSet;
 class CppMap;
 class CppStringBuffer;
 class CppWasmMap;
-class EfficientLengthIterable;
-class HideEfficientLengthIterable;
-class SubListIterable;
-class ListIterator;
-class EfficientLengthMappedIterable;
-class MappedListIterable;
-class WhereIterable;
-class ExpandIterable;
-class TakeIterable;
-class TakeWhileIterable;
-class SkipWhileIterable;
-class FollowedByIterable;
-class EfficientLengthFollowedByIterable;
-class WhereTypeIterable;
-class ReversedListIterable;
 class Sort;
 class Random;
 class NativeFieldWrapperClass1;
@@ -92,974 +79,838 @@ class Set;
 class StackTrace;
 class StringBuffer;
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyBase : virtual public Object {
+class CyBase {
  public:
-  Int* a;
-  String* aa;
-  CyBase* cppCtr_(Int* c);
+  static Object* cppCtr_(Object* cppThis, Int* c);
 
-  virtual void test();
+  static void test(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyFather : virtual public CyBase {
+class CyFather {
  public:
-  Int* b;
-  CyBase* base;
-  CyFather* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  CyFather* cppCtr_ee();
+  static Object* cppCtr_ee(Object* cppThis);
 
-  virtual void myTest();
+  static void myTest(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyChild : virtual public CyFather {
+class CyChild {
  public:
-  Int* c;
-  Num* e;
-  CyChild* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  virtual void myTest() override;
+  static void myTest(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyComplexTest : virtual public Object {
+class CyComplexTest {
  public:
-  List* _messages;
-  Map* _scores;
-  Set* _uniqueIds;
-  CyComplexTest* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  virtual void testConditionals();
+  static void testConditionals(Object* cppThis);
 
-  virtual void testSwitch(Int* value);
+  static void testSwitch(Object* cppThis, Int* value);
 
-  virtual void testLoops();
+  static void testLoops(Object* cppThis);
 
-  virtual void testmain();
+  static void testmain(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppPointerArray : virtual public Object {
+class CppPointerArray {
  public:
-  void** _data;
-  Int* _length;
-  static Function* createArrayRef;
-  CppPointerArray* cppCtr_(Int* _length, void** data);
+  static Object* cppCtr_(Object* cppThis, Int* _length, void** data);
 
-  virtual Int* cppGet_length();
+  static Int* cppGet_length(Object* cppThis);
 
-  virtual Object* getItem(Int* index);
+  static Object* getItem(Object* cppThis, Int* index);
 
-  virtual void setItem(Int* index, Object* value);
+  static void setItem(Object* cppThis, Int* index, Object* value);
 
-  static void** cppCreatePointerArray(Int* length);
+  STATIC_METHOD_FORWARD(CppApi, cppCreatePointerArray)
 
-  static Object* cppGetPointerArrayItem(void** array, Int* index);
+  STATIC_METHOD_FORWARD(CppApi, cppGetPointerArrayItem)
 
-  static Object* cppSetPointerArrayItem(void** array,
-                                        Int* index,
-                                        Object* value);
+  STATIC_METHOD_FORWARD(CppApi, cppSetPointerArrayItem)
 
-  static void** createArrayDirect(Int* length);
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppByteArray : virtual public Object {
+class CppByteArray {
  public:
-  void** _data;
-  Int* _length;
-  CppByteArray* cppCtr_(Int* _length, void** data);
+  static Object* cppCtr_(Object* cppThis, Int* _length, void** data);
 
-  virtual Int* cppGet_length();
+  static Int* cppGet_length(Object* cppThis);
 
-  virtual Int* getItem(Int* index);
+  static Int* getItem(Object* cppThis, Int* index);
 
-  virtual void setItem(Int* index, Int* value);
+  static void setItem(Object* cppThis, Int* index, Int* value);
 
-  static void** cppCreateByteArray(Int* length);
+  STATIC_METHOD_FORWARD(CppApi, cppCreateByteArray)
 
-  static Int* cppGetByteArrayItem(void** array, Int* index);
+  STATIC_METHOD_FORWARD(CppApi, cppGetByteArrayItem)
 
-  static Int* cppSetByteArrayItem(void** array, Int* index, Int* value);
+  STATIC_METHOD_FORWARD(CppApi, cppSetByteArrayItem)
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterable : virtual public Object {
+class Iterable {
  public:
-  virtual String* toString() = 0;
+  static Object* cppCtr_(Object* cppThis);
 
-  Iterable* cppCtr_();
+  static Object* generate(Int* count, Function* generator);
 
-  static Iterable* generate(Int* count, Function* generator);
+  static Object* withIterator(Function* iteratorFactory);
 
-  static Iterable* withIterator(Function* iteratorFactory);
+  static Object* empty();
 
-  static Iterable* empty();
+  static Object* castFrom(Object* source);
 
-  static Iterable* castFrom(Iterable* source);
+  static Object* cast(Object* cppThis);
 
-  virtual Iterator* cppGet_iterator() = 0;
+  static Object* followedBy(Object* cppThis, Object* other);
 
-  virtual Iterable* cast() = 0;
+  static Object* map(Object* cppThis, Function* toElement);
 
-  virtual Iterable* followedBy(Iterable* other) = 0;
+  static Object* where(Object* cppThis, Function* test);
 
-  virtual Iterable* map(Function* toElement) = 0;
+  static Object* whereType(Object* cppThis);
 
-  virtual Iterable* where(Function* test) = 0;
+  static Object* expand(Object* cppThis, Function* toElements);
 
-  virtual Iterable* whereType() = 0;
+  static Bool* contains(Object* cppThis, Object* element);
 
-  virtual Iterable* expand(Function* toElements) = 0;
+  static void forEach(Object* cppThis, Function* action);
 
-  virtual Bool* contains(Object* element) = 0;
+  static Object* reduce(Object* cppThis, Function* combine);
 
-  virtual void forEach(Function* action) = 0;
+  static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
 
-  virtual Object* reduce(Function* combine) = 0;
+  static Bool* every(Object* cppThis, Function* test);
 
-  virtual Object* fold(Object* initialValue, Function* combine) = 0;
+  static String* join(Object* cppThis, String* separator);
 
-  virtual Bool* every(Function* test) = 0;
+  static Bool* any(Object* cppThis, Function* test);
 
-  virtual String* join(String* separator) = 0;
+  static Object* toList(Object* cppThis, Bool* growable);
 
-  virtual Bool* any(Function* test) = 0;
+  static Object* toSet(Object* cppThis);
 
-  virtual List* toList(Bool* growable) = 0;
+  static Int* cppGet_length(Object* cppThis);
 
-  virtual Set* toSet() = 0;
+  static Bool* cppGet_isEmpty(Object* cppThis);
 
-  virtual Int* cppGet_length() = 0;
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
 
-  virtual Bool* cppGet_isEmpty() = 0;
+  static Object* take(Object* cppThis, Int* count);
 
-  virtual Bool* cppGet_isNotEmpty() = 0;
+  static Object* takeWhile(Object* cppThis, Function* test);
 
-  virtual Iterable* take(Int* count) = 0;
+  static Object* skip(Object* cppThis, Int* count);
 
-  virtual Iterable* takeWhile(Function* test) = 0;
+  static Object* skipWhile(Object* cppThis, Function* test);
 
-  virtual Iterable* skip(Int* count) = 0;
+  static Object* cppGet_first(Object* cppThis);
 
-  virtual Iterable* skipWhile(Function* test) = 0;
+  static Object* cppGet_last(Object* cppThis);
 
-  virtual Object* cppGet_first() = 0;
+  static Object* cppGet_single(Object* cppThis);
 
-  virtual Object* cppGet_last() = 0;
+  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
 
-  virtual Object* cppGet_single() = 0;
+  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
 
-  virtual Object* firstWhere(Function* test, Function* orElse) = 0;
+  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
 
-  virtual Object* lastWhere(Function* test, Function* orElse) = 0;
+  static Object* elementAt(Object* cppThis, Int* index);
 
-  virtual Object* singleWhere(Function* test, Function* orElse) = 0;
+  static String* toString(Object* cppThis);
 
-  virtual Object* elementAt(Int* index) = 0;
-
-  static String* iterableToShortString(Iterable* iterable,
+  static String* iterableToShortString(Object* iterable,
                                        String* leftDelimiter,
                                        String* rightDelimiter);
 
-  static String* iterableToFullString(Iterable* iterable,
+  static String* iterableToFullString(Object* iterable,
                                       String* leftDelimiter,
                                       String* rightDelimiter);
+
+  static Object* cppNew();
 };
-class Iterable_cppImpl : virtual public Iterable {
+class EfficientLengthIterable {
  public:
-  virtual String* toString() override;
+  static Object* cppCtr_(Object* cppThis);
 
-  Iterable* cppCtr_();
-
-  virtual Iterable* cast();
-
-  virtual Iterable* followedBy(Iterable* other);
-
-  virtual Iterable* map(Function* toElement);
-
-  virtual Iterable* where(Function* test);
-
-  virtual Iterable* whereType();
-
-  virtual Iterable* expand(Function* toElements);
-
-  virtual Bool* contains(Object* element);
-
-  virtual void forEach(Function* action);
-
-  virtual Object* reduce(Function* combine);
-
-  virtual Object* fold(Object* initialValue, Function* combine);
-
-  virtual Bool* every(Function* test);
-
-  virtual String* join(String* separator);
-
-  virtual Bool* any(Function* test);
-
-  virtual List* toList(Bool* growable);
-
-  virtual Set* toSet();
-
-  virtual Int* cppGet_length();
-
-  virtual Bool* cppGet_isEmpty();
-
-  virtual Bool* cppGet_isNotEmpty();
-
-  virtual Iterable* take(Int* count);
-
-  virtual Iterable* takeWhile(Function* test);
-
-  virtual Iterable* skip(Int* count);
-
-  virtual Iterable* skipWhile(Function* test);
-
-  virtual Object* cppGet_first();
-
-  virtual Object* cppGet_last();
-
-  virtual Object* cppGet_single();
-
-  virtual Object* firstWhere(Function* test, Function* orElse);
-
-  virtual Object* lastWhere(Function* test, Function* orElse);
-
-  virtual Object* singleWhere(Function* test, Function* orElse);
-
-  virtual Object* elementAt(Int* index);
-
-  static Iterable* cppNew();
+  static Object* cppNew();
 };
-class EfficientLengthIterable : virtual public Iterable {
+class HideEfficientLengthIterable {
  public:
-  EfficientLengthIterable* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  virtual Int* cppGet_length() override = 0 ;
+  static Object* cppNew();
 };
-class HideEfficientLengthIterable : virtual public Object,
-                                    virtual public Iterable {
+class _ListIterable {
  public:
-  HideEfficientLengthIterable* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppNew();
 };
-class _ListIterable : virtual public Object,
-                      virtual public EfficientLengthIterable,
-                      virtual public HideEfficientLengthIterable {
+class List {
  public:
-  _ListIterable* cppCtr_();
-};
-class List : virtual public Object, virtual public Iterable {
- public:
-  static List* filled(Int* length, Object* fill, Bool* growable);
+  static Object* filled(Int* length, Object* fill, Bool* growable);
 
-  static List* from(Iterable* elements, Bool* growable);
+  static Object* empty(Bool* growable);
 
-  static List* of(Iterable* elements, Bool* growable);
+  static Object* from(Object* elements, Bool* growable);
 
-  static List* unmodifiable(Iterable* elements);
+  static Object* of(Object* elements, Bool* growable);
 
-  static void copyRange(List* target,
+  static Object* generate(Int* length, Function* generator, Bool* growable);
+
+  static Object* unmodifiable(Object* elements);
+
+  static Object* castFrom(Object* source);
+
+  static void copyRange(Object* target,
                         Int* at,
-                        List* source,
+                        Object* source,
                         Int* start,
                         Int* end);
 
-  static void writeIterable(List* target, Int* at, Iterable* source);
+  static void writeIterable(Object* target, Int* at, Object* source);
 
-  virtual Object* cpp_subscript(Int* index) = 0;
-
-  virtual void cpp_subscriptAssign(Int* index, Object* value) = 0;
-
-  virtual void cppSet_first(Object* value) = 0;
-
-  virtual void cppSet_last(Object* value) = 0;
-
-  virtual void cppSet_length(Int* newLength) = 0;
-
-  virtual void add(Object* value) = 0;
-
-  virtual void addAll(Iterable* iterable) = 0;
-
-  virtual Iterable* cppGet_reversed() = 0;
-
-  virtual void sort(Function* compare) = 0;
-
-  virtual void shuffle(Random* random) = 0;
-
-  virtual Int* indexOf(Object* element, Int* start) = 0;
-
-  virtual Int* indexWhere(Function* test, Int* start) = 0;
-
-  virtual Int* lastIndexWhere(Function* test, Int* start) = 0;
-
-  virtual Int* lastIndexOf(Object* element, Int* start) = 0;
-
-  virtual void clear() = 0;
-
-  virtual void insert(Int* index, Object* element) = 0;
-
-  virtual void insertAll(Int* index, Iterable* iterable) = 0;
-
-  virtual void setAll(Int* index, Iterable* iterable) = 0;
-
-  virtual Bool* remove(Object* value) = 0;
-
-  virtual Object* removeAt(Int* index) = 0;
-
-  virtual Object* removeLast() = 0;
-
-  virtual void removeWhere(Function* test) = 0;
-
-  virtual void retainWhere(Function* test) = 0;
-
-  virtual List* cpp_add(List* other) = 0;
-
-  virtual List* sublist(Int* start, Int* end) = 0;
-
-  virtual Iterable* getRange(Int* start, Int* end) = 0;
-
-  virtual void setRange(Int* start,
-                        Int* end,
-                        Iterable* iterable,
-                        Int* skipCount) = 0;
-
-  virtual void removeRange(Int* start, Int* end) = 0;
-
-  virtual void fillRange(Int* start, Int* end, Object* fillValue) = 0;
-
-  virtual void replaceRange(Int* start, Int* end, Iterable* replacements) = 0;
-
-  virtual Map* asMap() = 0;
-
-  virtual Bool* cpp_equals(Object* other) = 0;
+  static Object* cppNew();
 };
-class CppList : virtual public Object, virtual public List {
+class CppList {
  public:
-  Int* _length;
-  CppPointerArray* _array;
-  virtual String* toString() override;
+  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
 
-  CppList* cppCtr_fromCppArray(CppPointerArray* array);
+  static Object* cppCtr_(Object* cppThis, Int* length, Int* capacity);
 
-  CppList* cppCtr_(Int* length, Int* capacity);
+  static Object* empty(Bool* growable);
+
+  static Object* filled(Int* length, Object* fill, Bool* growable);
+
+  static Object* from(Object* elements, Bool* growable);
+
+  static Object* of(Object* elements, Bool* growable);
+
+  static Object* generate(Int* length, Function* generator, Bool* growable);
+
+  static Object* unmodifiable(Object* elements);
 
   static Int* _getSuggestCapacity(Int* newLen);
 
-  virtual void ensureCapacity(Int* newLen);
+  static Int* cppGet_length(Object* cppThis);
 
-  virtual Bool* any(Function* test);
+  static void ensureCapacity(Object* cppThis, Int* newLen);
 
-  virtual Bool* contains(Object* element);
+  static void cppSet_length(Object* cppThis, Int* newLen);
 
-  virtual Object* elementAt(Int* index);
+  static Object* cpp_subscript(Object* cppThis, Int* index);
 
-  virtual Bool* every(Function* test);
+  static void cpp_subscriptAssign(Object* cppThis, Int* index, Object* value);
 
-  virtual Iterable* expand(Function* toElements);
+  static void add(Object* cppThis, Object* value);
 
-  virtual Object* firstWhere(Function* test, Function* orElse);
+  static void addAll(Object* cppThis, Object* iterable);
 
-  virtual Object* fold(Object* initialValue, Function* combine);
+  static Bool* any(Object* cppThis, Function* test);
 
-  virtual Iterable* followedBy(Iterable* other);
+  static Object* asMap(Object* cppThis);
 
-  virtual void forEach(Function* action);
+  static Object* cast(Object* cppThis);
 
-  virtual Object* cppGet_first() override;
+  static void clear(Object* cppThis);
 
-  virtual Object* cppGet_last() override;
+  static Bool* contains(Object* cppThis, Object* element);
 
-  virtual Object* cppGet_single();
+  static Object* elementAt(Object* cppThis, Int* index);
 
-  virtual Bool* cppGet_isEmpty();
+  static Bool* every(Object* cppThis, Function* test);
 
-  virtual Bool* cppGet_isNotEmpty();
+  static Object* expand(Object* cppThis, Function* toElements);
 
-  virtual Iterator* cppGet_iterator();
+  static void fillRange(Object* cppThis,
+                        Int* start,
+                        Int* end,
+                        Object* fillValue);
 
-  virtual String* join(String* separator);
+  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
 
-  static String* cppJoinListString(void** strings,
-                                   Int* length,
-                                   String* separator);
+  static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
 
-  virtual Object* lastWhere(Function* test, Function* orElse);
+  static Object* followedBy(Object* cppThis, Object* other);
 
-  virtual Iterable* map(Function* toElement);
+  static void forEach(Object* cppThis, Function* action);
 
-  virtual Object* reduce(Function* combine);
+  static Object* getRange(Object* cppThis, Int* start, Int* end);
 
-  virtual void _quickSort(Int* low, Int* high, Function* compare);
+  static Int* indexOf(Object* cppThis, Object* element, Int* start);
 
-  virtual Int* _partition(Int* low, Int* high, Function* compare);
+  static Int* indexWhere(Object* cppThis, Function* test, Int* start);
 
-  virtual void _swap(Int* i, Int* j);
+  static void insert(Object* cppThis, Int* index, Object* element);
 
-  virtual Iterable* take(Int* count);
+  static void insertAll(Object* cppThis, Int* index, Object* iterable);
 
-  virtual Iterable* takeWhile(Function* test);
+  static Object* cppGet_first(Object* cppThis);
 
-  virtual List* toList(Bool* growable);
+  static void cppSet_first(Object* cppThis, Object* value);
 
-  virtual Set* toSet();
+  static Object* cppGet_last(Object* cppThis);
 
-  virtual Iterable* where(Function* test);
+  static void cppSet_last(Object* cppThis, Object* value);
 
-  virtual Iterable* whereType();
+  static Object* cppGet_single(Object* cppThis);
 
-  virtual Object* singleWhere(Function* test, Function* orElse);
+  static Bool* cppGet_isEmpty(Object* cppThis);
 
-  virtual Iterable* skip(Int* count);
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
 
-  virtual Iterable* skipWhile(Function* test);
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static String* join(Object* cppThis, String* separator);
+
+  STATIC_METHOD_FORWARD(CppApi, cppJoinListString)
+
+  static Int* lastIndexOf(Object* cppThis, Object* element, Int* start);
+
+  static Int* lastIndexWhere(Object* cppThis, Function* test, Int* start);
+
+  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* map(Object* cppThis, Function* toElement);
+
+  static Object* reduce(Object* cppThis, Function* combine);
+
+  static Bool* remove(Object* cppThis, Object* value);
+
+  static Object* removeAt(Object* cppThis, Int* index);
+
+  static Object* removeLast(Object* cppThis);
+
+  static void removeRange(Object* cppThis, Int* start, Int* end);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static void replaceRange(Object* cppThis,
+                           Int* start,
+                           Int* end,
+                           Object* replacements);
+
+  static void retainWhere(Object* cppThis, Function* test);
+
+  static Object* cppGet_reversed(Object* cppThis);
+
+  static void setAll(Object* cppThis, Int* index, Object* iterable);
+
+  static void setRange(Object* cppThis,
+                       Int* start,
+                       Int* end,
+                       Object* iterable,
+                       Int* skipCount);
+
+  static void shuffle(Object* cppThis, Object* random);
+
+  static void sort(Object* cppThis, Function* compare);
+
+  static void _quickSort(Object* cppThis,
+                         Int* low,
+                         Int* high,
+                         Function* compare);
+
+  static Int* _partition(Object* cppThis,
+                         Int* low,
+                         Int* high,
+                         Function* compare);
+
+  static void _swap(Object* cppThis, Int* i, Int* j);
+
+  static Object* sublist(Object* cppThis, Int* start, Int* end);
+
+  static Object* take(Object* cppThis, Int* count);
+
+  static Object* takeWhile(Object* cppThis, Function* test);
+
+  static Object* toList(Object* cppThis, Bool* growable);
+
+  static Object* toSet(Object* cppThis);
+
+  static Object* where(Object* cppThis, Function* test);
+
+  static Object* whereType(Object* cppThis);
+
+  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* skip(Object* cppThis, Int* count);
+
+  static Object* skipWhile(Object* cppThis, Function* test);
+
+  static Object* cpp_add(Object* cppThis, Object* other);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterator : virtual public Object {
+class Iterator {
  public:
-  Iterator* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  virtual Bool* moveNext() = 0;
-
-  virtual Object* cppGet_current() = 0;
+  static Object* cppNew();
 };
-class _CppListIterator : virtual public Object, virtual public Iterator {
+class _CppListIterator {
  public:
-  CppList* _list;
-  Int* _index;
-  _CppListIterator* cppCtr_(CppList* _list);
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class _SetIterable : virtual public Object,
-                     virtual public EfficientLengthIterable,
-                     virtual public HideEfficientLengthIterable {
- public:
-  _SetIterable* cppCtr_();
-};
-class Set : virtual public Object, virtual public Iterable {
- public:
-  static Set* cppEpt_();
+  static Object* cppCtr_(Object* cppThis, Object* _list);
 
-  static Set* identity();
+  static Object* cppGet_current(Object* cppThis);
 
-  static Set* from(Iterable* elements);
+  static Bool* moveNext(Object* cppThis);
 
-  static Set* of(Iterable* elements);
-
-  static Set* unmodifiable(Iterable* elements);
-
-  virtual Bool* add(Object* value) = 0;
-
-  virtual void addAll(Iterable* elements) = 0;
-
-  virtual Bool* remove(Object* value) = 0;
-
-  virtual Object* lookup(Object* object) = 0;
-
-  virtual void removeAll(Iterable* elements) = 0;
-
-  virtual void retainAll(Iterable* elements) = 0;
-
-  virtual void removeWhere(Function* test) = 0;
-
-  virtual void retainWhere(Function* test) = 0;
-
-  virtual Bool* containsAll(Iterable* other) = 0;
-
-  virtual Set* intersection(Set* other) = 0;
-
-  virtual Set* cpp_union(Set* other) = 0;
-
-  virtual Set* difference(Set* other) = 0;
-
-  virtual void clear() = 0;
-};
-class CppSet : virtual public Object, virtual public Set {
- public:
-  CppList* _list;
-  virtual String* toString() override;
-
-  CppSet* cppCtr_fromCppArray(CppPointerArray* array);
-
-  CppSet* cppCtr_(Int* capacity);
-
-  virtual Bool* any(Function* test);
-
-  virtual Object* elementAt(Int* index);
-
-  virtual Bool* every(Function* test);
-
-  virtual Iterable* expand(Function* toElements);
-
-  virtual Object* firstWhere(Function* test, Function* orElse);
-
-  virtual Object* fold(Object* initialValue, Function* combine);
-
-  virtual Iterable* followedBy(Iterable* other);
-
-  virtual void forEach(Function* action);
-
-  virtual Object* cppGet_first();
-
-  virtual Object* cppGet_last();
-
-  virtual Object* cppGet_single();
-
-  virtual Bool* cppGet_isEmpty();
-
-  virtual Bool* cppGet_isNotEmpty();
-
-  virtual String* join(String* separator);
-
-  virtual Object* lastWhere(Function* test, Function* orElse);
-
-  virtual Int* cppGet_length();
-
-  virtual Iterable* map(Function* toElement);
-
-  virtual Object* reduce(Function* combine);
-
-  virtual Object* singleWhere(Function* test, Function* orElse);
-
-  virtual Iterable* skip(Int* count);
-
-  virtual Iterable* skipWhile(Function* test);
-
-  virtual Iterable* take(Int* count);
-
-  virtual Iterable* takeWhile(Function* test);
-
-  virtual List* toList(Bool* growable);
-
-  virtual Iterable* where(Function* test);
-
-  virtual Iterable* whereType();
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Map : virtual public Object {
+class _SetIterable {
  public:
-  static Map* _fromLiteral(List* elements);
+  static Object* cppCtr_(Object* cppThis);
 
-  static Map* cppEpt_();
-
-  static Map* from(Map* other);
-
-  static Map* of(Map* other);
-
-  static Map* unmodifiable(Map* other);
-
-  static Map* identity();
-
-  static Map* fromIterable(Iterable* iterable, Function* key, Function* value);
-
-  static Map* fromIterables(Iterable* keys, Iterable* values);
-
-  static Map* castFrom(Map* source);
-
-  static Map* fromEntries(Iterable* entries);
-
-  virtual Map* cast() = 0;
-
-  virtual Bool* containsValue(Object* value) = 0;
-
-  virtual Bool* containsKey(Object* key) = 0;
-
-  virtual Object* cpp_subscript(Object* key) = 0;
-
-  virtual void cpp_subscriptAssign(Object* key, Object* value) = 0;
-
-  virtual Iterable* cppGet_entries() = 0;
-
-  virtual Map* map(Function* convert) = 0;
-
-  virtual void addEntries(Iterable* newEntries) = 0;
-
-  virtual Object* update(Object* key, Function* update, Function* ifAbsent) = 0;
-
-  virtual void updateAll(Function* update) = 0;
-
-  virtual void removeWhere(Function* test) = 0;
-
-  virtual Object* putIfAbsent(Object* key, Function* ifAbsent) = 0;
-
-  virtual void addAll(Map* other) = 0;
-
-  virtual Object* remove(Object* key) = 0;
-
-  virtual void clear() = 0;
-
-  virtual void forEach(Function* action) = 0;
-
-  virtual Iterable* cppGet_keys() = 0;
-
-  virtual Iterable* cppGet_values() = 0;
-
-  virtual Int* cppGet_length() = 0;
-
-  virtual Bool* cppGet_isEmpty() = 0;
-
-  virtual Bool* cppGet_isNotEmpty() = 0;
+  static Object* cppNew();
 };
-class CppMap : virtual public Object, virtual public Map {
+class Set {
  public:
-  CppList* _list;
-  virtual String* toString() override;
+  static Object* cppEpt_();
 
-  CppMap* cppCtr_fromCppArray(CppPointerArray* array);
+  static Object* identity();
 
-  CppMap* cppCtr_(Int* capacity);
+  static Object* from(Object* elements);
+
+  static Object* of(Object* elements);
+
+  static Object* unmodifiable(Object* elements);
+
+  static Object* castFrom(Object* source, Function* newSet);
+
+  static Object* cppNew();
+};
+class CppSet {
+ public:
+  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
+
+  static Object* cppCtr_(Object* cppThis, Int* capacity);
+
+  static Object* identity();
+
+  static Object* from(Object* elements);
+
+  static Object* of(Object* elements);
+
+  static Object* unmodifiable(Object* elements);
+
+  static Bool* add(Object* cppThis, Object* value);
+
+  static void addAll(Object* cppThis, Object* elements);
+
+  static Bool* any(Object* cppThis, Function* test);
+
+  static Object* cast(Object* cppThis);
+
+  static void clear(Object* cppThis);
+
+  static Bool* contains(Object* cppThis, Object* element);
+
+  static Bool* containsAll(Object* cppThis, Object* other);
+
+  static Object* difference(Object* cppThis, Object* other);
+
+  static Object* elementAt(Object* cppThis, Int* index);
+
+  static Bool* every(Object* cppThis, Function* test);
+
+  static Object* expand(Object* cppThis, Function* toElements);
+
+  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
+
+  static Object* followedBy(Object* cppThis, Object* other);
+
+  static void forEach(Object* cppThis, Function* action);
+
+  static Object* intersection(Object* cppThis, Object* other);
+
+  static Object* cppGet_first(Object* cppThis);
+
+  static Object* cppGet_last(Object* cppThis);
+
+  static Object* cppGet_single(Object* cppThis);
+
+  static Bool* cppGet_isEmpty(Object* cppThis);
+
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static String* join(Object* cppThis, String* separator);
+
+  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* lookup(Object* cppThis, Object* element);
+
+  static Object* map(Object* cppThis, Function* toElement);
+
+  static Object* reduce(Object* cppThis, Function* combine);
+
+  static Bool* remove(Object* cppThis, Object* value);
+
+  static void removeAll(Object* cppThis, Object* elementsToRemove);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static void retainAll(Object* cppThis, Object* elementsToRetain);
+
+  static void retainWhere(Object* cppThis, Function* test);
+
+  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* skip(Object* cppThis, Int* count);
+
+  static Object* skipWhile(Object* cppThis, Function* test);
+
+  static Object* cpp_union(Object* cppThis, Object* other);
+
+  static Object* take(Object* cppThis, Int* count);
+
+  static Object* takeWhile(Object* cppThis, Function* test);
+
+  static Object* toList(Object* cppThis, Bool* growable);
+
+  static Object* toSet(Object* cppThis);
+
+  static Object* where(Object* cppThis, Function* test);
+
+  static Object* whereType(Object* cppThis);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppStringBuffer : virtual public Object {
+class Map {
  public:
-  CppList* _parts;
-  virtual String* toString() override;
+  static Object* _fromLiteral(Object* elements);
 
-  CppStringBuffer* cppCtr_();
+  static Object* cppEpt_();
 
-  virtual void write(Object* obj);
+  static Object* from(Object* other);
 
-  virtual void writeAll(Iterable* objects, String* separator);
+  static Object* of(Object* other);
 
-  virtual void writeCharCode(Int* charCode);
+  static Object* unmodifiable(Object* other);
 
-  virtual void writeln(Object* obj);
+  static Object* identity();
 
-  virtual void clear();
+  static Object* fromIterable(Object* iterable, Function* key, Function* value);
 
-  virtual Int* cppGet_length();
+  static Object* fromIterables(Object* keys, Object* values);
 
-  virtual Bool* cppGet_isEmpty();
+  static Object* castFrom(Object* source);
 
-  virtual Bool* cppGet_isNotEmpty();
+  static Object* fromEntries(Object* entries);
+
+  static Object* cppNew();
+};
+class CppMap {
+ public:
+  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
+
+  static Object* cppCtr_(Object* cppThis, Int* capacity);
+
+  static Object* identity();
+
+  static Object* from(Object* other);
+
+  static Object* of(Object* other);
+
+  static Object* unmodifiable(Object* other);
+
+  static Object* fromIterable(Object* iterable, Function* key, Function* value);
+
+  static Object* fromIterables(Object* keys, Object* values);
+
+  static Object* fromEntries(Object* entries);
+
+  static Object* cpp_subscript(Object* cppThis, Object* key);
+
+  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
+
+  static void addAll(Object* cppThis, Object* other);
+
+  static void addEntries(Object* cppThis, Object* entries);
+
+  static Object* cast(Object* cppThis);
+
+  static void clear(Object* cppThis);
+
+  static Bool* containsKey(Object* cppThis, Object* key);
+
+  static Bool* containsValue(Object* cppThis, Object* value);
+
+  static Object* cppGet_entries(Object* cppThis);
+
+  static void forEach(Object* cppThis, Function* action);
+
+  static Bool* cppGet_isEmpty(Object* cppThis);
+
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
+
+  static Object* cppGet_keys(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
+
+  static Object* remove(Object* cppThis, Object* key);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static Object* update(Object* cppThis,
+                        Object* key,
+                        Function* update,
+                        Function* ifAbsent);
+
+  static void updateAll(Object* cppThis, Function* update);
+
+  static Object* cppGet_values(Object* cppThis);
+
+  static Object* map(Object* cppThis, Function* transform);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
+class CppStringBuffer {
+ public:
+  static Object* cppCtr_(Object* cppThis);
+
+  static void write(Object* cppThis, Object* obj);
+
+  static void writeAll(Object* cppThis, Object* objects, String* separator);
+
+  static void writeCharCode(Object* cppThis, Int* charCode);
+
+  static void writeln(Object* cppThis, Object* obj);
+
+  static void clear(Object* cppThis);
+
+  static String* toString(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Bool* cppGet_isEmpty(Object* cppThis);
+
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  dart.collection
-class MapView : virtual public Object, virtual public Map {
+class MapView {
  public:
-  Map* _map;
-  virtual String* toString() override;
+  static Object* cppCtr_(Object* cppThis, Object* map);
 
-  MapView* cppCtr_(Map* map);
+  static Object* cast(Object* cppThis);
+
+  static Object* cpp_subscript(Object* cppThis, Object* key);
+
+  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
+
+  static void addAll(Object* cppThis, Object* other);
+
+  static void clear(Object* cppThis);
+
+  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
+
+  static Bool* containsKey(Object* cppThis, Object* key);
+
+  static Bool* containsValue(Object* cppThis, Object* value);
+
+  static void forEach(Object* cppThis, Function* action);
+
+  static Bool* cppGet_isEmpty(Object* cppThis);
+
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppGet_keys(Object* cppThis);
+
+  static Object* remove(Object* cppThis, Object* key);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppGet_values(Object* cppThis);
+
+  static Object* cppGet_entries(Object* cppThis);
+
+  static void addEntries(Object* cppThis, Object* entries);
+
+  static Object* map(Object* cppThis, Function* transform);
+
+  static Object* update(Object* cppThis,
+                        Object* key,
+                        Function* update,
+                        Function* ifAbsent);
+
+  static void updateAll(Object* cppThis, Function* update);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static Object* cppNew();
 };
-class _UnmodifiableMapMixin : virtual public Object, virtual public Map {
+class _UnmodifiableMapMixin {
  public:
+  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
+
+  static void addAll(Object* cppThis, Object* other);
+
+  static void addEntries(Object* cppThis, Object* entries);
+
+  static void clear(Object* cppThis);
+
+  static Object* remove(Object* cppThis, Object* key);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
+
+  static Object* update(Object* cppThis,
+                        Object* key,
+                        Function* update,
+                        Function* ifAbsent);
+
+  static void updateAll(Object* cppThis, Function* update);
+
+  static Object* cppNew();
 };
-class _UnmodifiableMapMixin_cppImpl : virtual public _UnmodifiableMapMixin {
+class _UnmodifiableMapView$MapView$_UnmodifiableMapMixin {
  public:
-  static _UnmodifiableMapMixin* cppNew();
+  static Object* cppCtr_(Object* cppThis, Object* map);
+
+  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
+
+  static void addAll(Object* cppThis, Object* other);
+
+  static void addEntries(Object* cppThis, Object* entries);
+
+  static void clear(Object* cppThis);
+
+  static Object* remove(Object* cppThis, Object* key);
+
+  static void removeWhere(Object* cppThis, Function* test);
+
+  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
+
+  static Object* update(Object* cppThis,
+                        Object* key,
+                        Function* update,
+                        Function* ifAbsent);
+
+  static void updateAll(Object* cppThis, Function* update);
+
+  static Object* cppNew();
 };
-class _UnmodifiableMapView$MapView$_UnmodifiableMapMixin
-    : virtual public Object {
+class CppWasmMap {
  public:
-  _UnmodifiableMapView$MapView$_UnmodifiableMapMixin* cppCtr_(Map* map);
-};
-class CppWasmMap : virtual public Object {
- public:
-  CppWasmMap* cppCtr_(Map* map);
+  static Object* cppCtr_(Object* cppThis, Object* map);
 
-  virtual Map* cast();
-};
-//  dart._internal
-//  dart._internal
-//  dart._internal
-class ListIterable : virtual public EfficientLengthIterable,
-                     virtual public HideEfficientLengthIterable {
- public:
-  ListIterable* cppCtr_();
+  static Object* cast(Object* cppThis);
 
-  virtual Iterator* cppGet_iterator();
-
-  virtual Iterable* map(Function* toElement);
-
-  virtual Iterable* where(Function* test);
-
-  virtual Bool* contains(Object* element);
-
-  virtual void forEach(Function* action);
-
-  virtual Object* reduce(Function* combine);
-
-  virtual Object* fold(Object* initialValue, Function* combine);
-
-  virtual Bool* every(Function* test);
-
-  virtual String* join(String* separator);
-
-  virtual Bool* any(Function* test);
-
-  virtual List* toList(Bool* growable);
-
-  virtual Set* toSet();
-
-  virtual Int* cppGet_length() = 0;
-
-  virtual Bool* cppGet_isEmpty();
-
-  virtual Iterable* take(Int* count);
-
-  virtual Iterable* takeWhile(Function* test);
-
-  virtual Iterable* skip(Int* count);
-
-  virtual Iterable* skipWhile(Function* test);
-
-  virtual Object* cppGet_first();
-
-  virtual Object* cppGet_last();
-
-  virtual Object* cppGet_single();
-
-  virtual Object* firstWhere(Function* test, Function* orElse);
-
-  virtual Object* lastWhere(Function* test, Function* orElse);
-
-  virtual Object* singleWhere(Function* test, Function* orElse);
-
-  virtual Object* elementAt(Int* i) = 0;
-};
-class SubListIterable : virtual public Iterable {
- public:
-  Iterable* _iterable;
-  Int* _start;
-  Int* _endOrLength;
-  SubListIterable* cppCtr_(Iterable* _iterable, Int* _start, Int* _endOrLength);
-
-  virtual List* toList(Bool* growable) override;
-
-  virtual Int* cppGet_length() override;
-
-  virtual Iterable* take(Int* count) override;
-
-  virtual Iterable* skip(Int* count) override;
-
-  virtual Object* elementAt(Int* index) override;
-
-  static Iterable* iterableOf(SubListIterable* subListIterable);
-
-  static Int* startOf(SubListIterable* subListIterable);
-
-  virtual Int* cppGet__endIndex();
-
-  virtual Int* cppGet__startIndex();
-};
-//  dart._internal
-class ListIterator : virtual public Object, virtual public Iterator {
- public:
-  Iterable* _iterable;
-  Int* _length;
-  Int* _index;
-  Object* _current;
-  ListIterator* cppCtr_(Iterable* iterable);
+  static Object* cppNew();
 };
 //  dart._internal
-class MappedIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Function* _f;
-  virtual Iterator* cppGet_iterator() override;
-
-  virtual Int* cppGet_length() override;
-
-  virtual Bool* cppGet_isEmpty() override;
-
-  virtual Object* cppGet_first() override;
-
-  virtual Object* cppGet_last() override;
-
-  virtual Object* cppGet_single() override;
-
-  virtual Object* elementAt(Int* index) override;
-
-  MappedIterable* cppCtr__(Iterable* _iterable, Function* _f);
-
-  static MappedIterable* cppEpt_(Iterable* iterable, Function* function);
-};
-class EfficientLengthMappedIterable
-    : virtual public Object,
-      virtual public EfficientLengthIterable,
-      virtual public HideEfficientLengthIterable {
- public:
-  EfficientLengthMappedIterable* cppCtr_(Iterable* iterable,
-                                         Function* function);
-};
-//  dart._internal
-class MappedListIterable : virtual public Object {
- public:
-  Iterable* _source;
-  Function* _f;
-  MappedListIterable* cppCtr_(Iterable* _source, Function* _f);
-
-  virtual Int* cppGet_length() override;
-
-  virtual Object* elementAt(Int* index) override;
-};
-//  dart._internal
-class WhereIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Function* _f;
-  WhereIterable* cppCtr_(Iterable* _iterable, Function* _f);
-
-  virtual Iterator* cppGet_iterator() override;
-
-  virtual Iterable* map(Function* toElement) override;
-};
-//  dart._internal
-class ExpandIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Function* _f;
-  ExpandIterable* cppCtr_(Iterable* _iterable, Function* _f);
-
-  virtual Iterator* cppGet_iterator() override;
-};
-//  dart._internal
-class TakeIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Int* _takeCount;
-  virtual Iterator* cppGet_iterator() override;
-
-  TakeIterable* cppCtr__(Iterable* _iterable, Int* _takeCount);
-
-  static TakeIterable* cppEpt_(Iterable* iterable, Int* takeCount);
-};
-//  dart._internal
-class TakeWhileIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Function* _f;
-  TakeWhileIterable* cppCtr_(Iterable* _iterable, Function* _f);
-
-  virtual Iterator* cppGet_iterator() override;
-};
-//  dart._internal
-class SkipWhileIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _iterable;
-  Function* _f;
-  SkipWhileIterable* cppCtr_(Iterable* _iterable, Function* _f);
-
-  virtual Iterator* cppGet_iterator() override;
-};
-//  dart._internal
-class FollowedByIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _first;
-  Iterable* _second;
-  FollowedByIterable* cppCtr_(Iterable* _first, Iterable* _second);
-
-  virtual Iterator* cppGet_iterator() override;
-
-  virtual Bool* contains(Object* value) override;
-
-  virtual Int* cppGet_length() override;
-
-  virtual Bool* cppGet_isEmpty() override;
-
-  virtual Bool* cppGet_isNotEmpty() override;
-
-  virtual Object* cppGet_first() override;
-
-  virtual Object* cppGet_last() override;
-
-  static FollowedByIterable* firstEfficient(EfficientLengthIterable* first,
-                                            Iterable* second);
-};
-//  dart._internal
-class EfficientLengthFollowedByIterable
-    : 
-      virtual public EfficientLengthIterable,
-      virtual public HideEfficientLengthIterable,virtual public FollowedByIterable {
- public:
-  EfficientLengthFollowedByIterable* cppCtr_(EfficientLengthIterable* first,
-                                             EfficientLengthIterable* second);
-
-  virtual Object* cppGet_first() override;
-
-  virtual Object* cppGet_last() override;
-
-  virtual Object* elementAt(Int* index);
-};
-//  dart._internal
-class WhereTypeIterable : virtual public Iterable_cppImpl {
- public:
-  Iterable* _source;
-  WhereTypeIterable* cppCtr_(Iterable* _source);
-
-  virtual Iterator* cppGet_iterator() override;
-};
-//  dart._internal
-class ReversedListIterable : virtual public Object {
- public:
-  Iterable* _source;
-  ReversedListIterable* cppCtr_(Iterable* _source);
-
-  virtual Int* cppGet_length() override;
-
-  virtual Object* elementAt(Int* index) override;
-};
-//  dart._internal
-class Sort : virtual public Object {
+class Sort {
  public:
   static Int* _INSERTION_SORT_THRESHOLD;
-  Sort* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  static void sort(List* a, Function* compare);
+  static void sort(Object* a, Function* compare);
 
-  static void sortRange(List* a, Int* from, Int* to, Function* compare);
+  static void sortRange(Object* a, Int* from, Int* to, Function* compare);
 
-  static void _doSort(List* a, Int* left, Int* right, Function* compare);
+  static void _doSort(Object* a, Int* left, Int* right, Function* compare);
 
-  static void _insertionSort(List* a, Int* left, Int* right, Function* compare);
+  static void _insertionSort(Object* a,
+                             Int* left,
+                             Int* right,
+                             Function* compare);
 
-  static void _dualPivotQuicksort(List* a,
+  static void _dualPivotQuicksort(Object* a,
                                   Int* left,
                                   Int* right,
                                   Function* compare);
+
+  static Object* cppNew();
 };
 //  dart.math
-class Random : virtual public Object {
+class Random {
  public:
-  static Random* cppEpt_(Int* seed);
+  static Object* _secureRandom;
+  static Object* cppEpt_(Int* seed);
 
-  static Random* secure();
+  static Object* secure();
 
-  virtual Int* nextInt(Int* max) = 0;
-
-  virtual Double* nextDouble() = 0;
-
-  virtual Bool* nextBool() = 0;
+  static Object* cppNew();
 };
 //  nativewrappers
-class NativeFieldWrapperClass1 : virtual public Object {
+class NativeFieldWrapperClass1 {
  public:
-  NativeFieldWrapperClass1* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  nativewrappers
-class NativeFieldWrapperClass2 : virtual public NativeFieldWrapperClass1 {
+class NativeFieldWrapperClass2 {
  public:
-  NativeFieldWrapperClass2* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  nativewrappers
-class NativeFieldWrapperClass3 : virtual public NativeFieldWrapperClass2 {
+class NativeFieldWrapperClass3 {
  public:
-  NativeFieldWrapperClass3* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  nativewrappers
-class NativeFieldWrapperClass4 : virtual public NativeFieldWrapperClass3 {
+class NativeFieldWrapperClass4 {
  public:
-  NativeFieldWrapperClass4* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppNew();
 };
 //  dart.core
-class Comparable : virtual public Object {
+class Comparable {
  public:
-  Comparable* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
-  virtual Int* compareTo(Object* other) = 0;
+  static Int* compare(Object* a, Object* b);
 
-  static Int* compare(Comparable* a, Comparable* b);
+  static Object* cppNew();
 };
 //  dart.core
-class Error : virtual public Object {
+class Error {
  public:
-  Error* cppCtr_();
+  static Object* cppCtr_(Object* cppThis);
 
   static String* safeToString(Object* object);
 
@@ -1067,80 +918,58 @@ class Error : virtual public Object {
 
   static String* _objectToString(Object* object);
 
-  virtual StackTrace* cppGet_stackTrace() = 0;
+  static Object* cppGet_stackTrace(Object* cppThis);
 
-  static void throwWithStackTrace(Object* error, StackTrace* stackTrace);
+  static void throwWithStackTrace(Object* error, Object* stackTrace);
 
-  static void _throw(Object* error, StackTrace* stackTrace);
+  static void _throw(Object* error, Object* stackTrace);
+
+  static Object* cppNew();
 };
-class Error_cppImpl : virtual public Error {
+class ArgumentError {
  public:
-  StackTrace* _stackTrace;
-  Error* cppCtr_();
+  static Object* cppCtr_(Object* cppThis, void** message, String* name);
 
-  virtual StackTrace* cppGet_stackTrace();
+  static Object* cppCtr_value(Object* cppThis,
+                              void** value,
+                              String* name,
+                              void** message);
 
-  static Error* cppNew();
-};
-class ArgumentError : virtual public Object {
- public:
-  virtual String* toString() = 0;
-
-  ArgumentError* cppCtr_(void** message, String* name);
-
-  ArgumentError* cppCtr_value(void** value, String* name, void** message);
-
-  ArgumentError* cppCtr_notNull(String* name);
+  static Object* cppCtr_notNull(Object* cppThis, String* name);
 
   static Object* checkNotNull(Object* argument, String* name);
 
-  virtual String* cppGet__errorName() = 0;
+  static String* cppGet__errorName(Object* cppThis);
 
-  virtual String* cppGet__errorExplanation() = 0;
+  static String* cppGet__errorExplanation(Object* cppThis);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
 };
-class ArgumentError_cppImpl : virtual public ArgumentError {
+class RangeError {
  public:
-  Bool* _hasValue;
-  void** invalidValue;
-  String* name;
-  void** message;
-  virtual String* toString();
+  static Object* cppCtr_(Object* cppThis, void** message);
 
-  ArgumentError* cppCtr_(void** message, String* name);
+  static Object* cppCtr_value(Object* cppThis,
+                              Num* value,
+                              String* name,
+                              String* message);
 
-  ArgumentError* cppCtr_value(void** value, String* name, void** message);
+  static Object* cppCtr_range(Object* cppThis,
+                              Num* invalidValue,
+                              Int* minValue,
+                              Int* maxValue,
+                              String* name,
+                              String* message);
 
-  ArgumentError* cppCtr_notNull(String* name);
+  static Num* cppGet_invalidValue(Object* cppThis);
 
-  virtual String* cppGet__errorName();
-
-  virtual String* cppGet__errorExplanation();
-
-  static ArgumentError* cppNew();
-};
-class RangeError : virtual public Object {
- public:
-  RangeError* cppCtr_(void** message);
-
-  RangeError* cppCtr_value(Num* value, String* name, String* message);
-
-  virtual String* cppGet__errorName() = 0;
-
-  virtual String* cppGet__errorExplanation() = 0;
-
-  RangeError* cppCtr_range(Num* invalidValue,
-                           Int* minValue,
-                           Int* maxValue,
-                           String* name,
-                           String* message);
-
-  virtual Num* cppGet_invalidValue() = 0;
-
-  static RangeError* index(Int* index,
-                           void** indexable,
-                           String* name,
-                           String* message,
-                           Int* length);
+  static Object* index(Int* index,
+                       void** indexable,
+                       String* name,
+                       String* message,
+                       Int* length);
 
   static Int* checkValueInInterval(Int* value,
                                    Int* minValue,
@@ -1162,102 +991,84 @@ class RangeError : virtual public Object {
                               String* message);
 
   static Int* checkNotNegative(Int* value, String* name, String* message);
+
+  static String* cppGet__errorName(Object* cppThis);
+
+  static String* cppGet__errorExplanation(Object* cppThis);
+
+  static Object* cppNew();
 };
-class RangeError_cppImpl : virtual public RangeError {
+//  dart.core
+//  dart.core
+//  dart.core
+//  dart.core
+//  dart.core
+class MapEntry {
  public:
-  Num* start;
-  Num* end;
-  RangeError* cppCtr_(void** message);
+  static Object* cppCtr__(Object* cppThis, Object* key, Object* value);
 
-  RangeError* cppCtr_value(Num* value, String* name, String* message);
+  static Object* cppEpt_(Object* key, Object* value);
 
-  virtual String* cppGet__errorName() override;
+  static String* toString(Object* cppThis);
 
-  virtual String* cppGet__errorExplanation() override;
-
-  RangeError* cppCtr_range(Num* invalidValue,
-                           Int* minValue,
-                           Int* maxValue,
-                           String* name,
-                           String* message);
-
-  virtual Num* cppGet_invalidValue();
-
-  static RangeError* cppNew();
+  static Object* cppNew();
 };
 //  dart.core
 //  dart.core
-//  dart.core
-//  dart.core
-//  dart.core
-class MapEntry : virtual public Object {
+class StackTrace {
  public:
-  Object* key;
-  Object* value;
-  virtual String* toString() override;
+  static Object* empty;
+  static Object* cppCtr_(Object* cppThis);
 
-  MapEntry* cppCtr__(Object* key, Object* value);
+  static Object* fromString(String* stackTraceString);
 
-  static MapEntry* cppEpt_(Object* key, Object* value);
+  static Object* cppGet_current();
+
+  static Object* cppNew();
 };
 //  dart.core
-//  dart.core
-class StackTrace : virtual public Object {
+class StringSink {
  public:
-  virtual String* toString() = 0;
+  static Object* cppCtr_(Object* cppThis);
 
-  StackTrace* cppCtr_();
-
-  static StackTrace* fromString(String* stackTraceString);
-
-  static StackTrace* cppGet_current();
+  static Object* cppNew();
 };
-//  dart.core
-class StringSink : virtual public Object {
- public:
-  StringSink* cppCtr_();
-
-  virtual void write(Object* object) = 0;
-
-  virtual void writeAll(Iterable* objects, String* separator) = 0;
-
-  virtual void writeln(Object* object) = 0;
-
-  virtual void writeCharCode(Int* charCode) = 0;
-};
-class StringBuffer : virtual public Object {
+class StringBuffer {
  public:
   static Int* _BUFFER_SIZE;
   static Int* _PARTS_TO_COMPACT;
   static Int* _PARTS_TO_COMPACT_SIZE_LIMIT;
-  List* _parts;
-  Int* _partsCodeUnits;
-  Int* _partsCompactionIndex;
-  Int* _partsCodeUnitsSinceCompaction;
-  Uint16List* _buffer;
-  Int* _bufferPosition;
-  Int* _bufferCodeUnitMagnitude;
-  virtual String* toString() override;
+  static Object* cppCtr_(Object* cppThis, Object* content);
 
-  StringBuffer* cppCtr_(Object* content);
+  static void _writeString(Object* cppThis, String* str);
 
-  virtual void _writeString(String* str);
+  static void _ensureCapacity(Object* cppThis, Int* n);
 
-  virtual void _ensureCapacity(Int* n);
+  static void _consumeBuffer(Object* cppThis);
 
-  virtual void _consumeBuffer();
+  static void _addPart(Object* cppThis, String* str);
 
-  virtual void _addPart(String* str);
+  static void _compact(Object* cppThis);
 
-  virtual void _compact();
+  static String* _create(Object* buffer, Int* length, Bool* isLatin1);
 
-  static String* _create(Uint16List* buffer, Int* length, Bool* isLatin1);
+  static Int* cppGet_length(Object* cppThis);
 
-  virtual Int* cppGet_length();
+  static Bool* cppGet_isEmpty(Object* cppThis);
 
-  virtual Bool* cppGet_isEmpty();
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
 
-  virtual Bool* cppGet_isNotEmpty();
+  static void write(Object* cppThis, Object* obj);
 
-  virtual void clear();
+  static void writeCharCode(Object* cppThis, Int* charCode);
+
+  static void writeAll(Object* cppThis, Object* objects, String* separator);
+
+  static void writeln(Object* cppThis, Object* obj);
+
+  static void clear(Object* cppThis);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
 };

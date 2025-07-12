@@ -3,20 +3,9 @@
 
 #include <cstddef>  // 为了使用 NULL
 #include <cstdlib>  // 为了使用 malloc
+#include <map>      // 为了使用 malloc
 
-#define CppNew(C, name, args...) C::cppNew()->name(args)
 
-#define CppApply(C, name, obj, i, args...)                                     \
-  reinterpret_cast<decltype(&C::name)>(obj->vtab[i])(obj, args);
-
-#define CppNewMap(args...)                                                     \
-  CppMap::cppNew()->cppCtr_fromCppArray(nullptr)
-
-#define CppNewList(args...)                                                    \
-  CppList::cppNew()->cppCtr_fromCppArray(nullptr)
-
-#define CppNewSet(args...)                                                     \
-  CppSet::cppNew()->cppCtr_fromCppArray(nullptr)
 
 // 前向声明
 class String;
@@ -24,37 +13,38 @@ class Bool;
 class Int;
 class Double;
 class Type;
-
-class Any {};
-
-class Null : public Any {};
-
-extern Null null;  // 声明为extern，在cpp文件中定义
-
-class Object : public Any {
+class Object {
  public:
-  int gc_mark;
+  int mark;
   // 构造函数和析构函数
   Object();
+
   virtual ~Object();
 
+  static Type* cppGet_runtimeType(Object* a);  // runtimeType getter
+
   // 操作符和访问器方法 (根据映射表转换，添加前缀)
-  Bool* cpp_equals(Object* b);  // == 相等比较
-  Type* cppGet_runtimeType();   // runtimeType getter
+  static Bool* cpp_equals(Object* a, Object* b);  // == 相等比较
+  static String* toString(Object* obj);           // 获取字符串表示
+  static Int* hashCode(Object* obj);              // 获取哈希码
+  static Object* noSuchMethod(Object* obj,
+                              String* methodName,
+                              Object** args,
+                              Int* argCount);  // 处理不存在的方法调用
+};
 
-  // Dart Object的核心方法
-  virtual String* toString();  // 获取字符串表示
-  virtual Int* hashCode();     // 获取哈希码
-  virtual Object* noSuchMethod(Object* obj,
-                       String* methodName,
-                       Object** args,
-                       Int* argCount);  // 处理不存在的方法调用
+class ObjectImp : public Object {
+ public:
+  std::map<String*, void*>* ptrs;
+  Type* runtimeType;
+  std::map<String*,  Object*>* metas;
+  ObjectImp(Type* type, std::map<String*, void*>* ptrs);
 
-  static Bool* equals(Object* a, Object* b);  // == 相等比较
-  static Object* cppNew() {
-    auto ptr = (Object*)malloc(sizeof(Object));
-    return ptr;
-  }
+  virtual ~ObjectImp();
+
+  static Type* cppGet_runtimeType(Object* a);
+
+  static Object* cppNew();
 };
 
 // Type类 - 表示运行时类型信息
@@ -78,5 +68,15 @@ class Type : public Object {
   static Type* getBoolType();
   static Type* getNullType();
 };
+
+template <typename T>
+T CppSet(Object* obj, String* name, void* value);
+
+template <typename T>
+T CppGet(Object* obj, String* name);
+
+
+template <typename R, typename... Args>
+static R cppApply(Object *thisPtr, String* name, Args... args);
 
 #endif

@@ -161,6 +161,20 @@ String::~String() {
     StringPool::release(poolEntry);
 }
 
+
+Type* String::cppGet_runtimeType(Object* a){
+    return Type::getStringType();
+} 
+
+String* String::toString(Object* obj){
+    return (String*)obj;
+} 
+
+ Int* String::hashCode(Object* obj){
+    return new Int(reinterpret_cast<intptr_t>(((String*)obj)->poolEntry));
+ }                         
+// ==================== 静态方法 - 对齐Dart String ====================
+
 String &String::operator=(const String &other) {
     if (this != &other) {
         StringPool::release(poolEntry);
@@ -1084,36 +1098,6 @@ String *String::interpolate(String *template_str, String **values, Int *count) {
 } 
 // ==================== cppNew 方法实现 ====================
 
-String *String::cppNew(const char *str, int length) {
-    if (!str) {
-        return new String("");
-    }
-    
-    if (length < 0) {
-        // 如果长度为负数，计算实际长度
-        return new String(str);
-    }
-    
-    // 创建指定长度的字符串
-    char *buffer = new char[length + 1];
-    int i = 0;
-    
-    // 复制字符直到指定长度或遇到结束符
-    while (i < length && str[i] != '\0') {
-        buffer[i] = str[i];
-        i++;
-    }
-    
-    // 如果字符串比指定长度短，用空字符填充
-    while (i < length) {
-        buffer[i] = '\0';
-        i++;
-    }
-    
-    buffer[length] = '\0';
-    
-    String *result = new String(buffer);
-    delete[] buffer;
-    
-    return result;
+String *String::cppNew(const char *str) {
+    return new String(str);
 }
