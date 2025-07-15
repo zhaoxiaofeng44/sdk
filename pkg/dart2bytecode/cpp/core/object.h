@@ -5,8 +5,6 @@
 #include <cstdlib>  // 为了使用 malloc
 #include <map>      // 为了使用 malloc
 
-
-
 // 前向声明
 class String;
 class Bool;
@@ -26,7 +24,7 @@ class Object {
   // 操作符和访问器方法 (根据映射表转换，添加前缀)
   static Bool* cpp_equals(Object* a, Object* b);  // == 相等比较
   static String* toString(Object* obj);           // 获取字符串表示
-  static Int* hashCode(Object* obj);              // 获取哈希码
+  static Int* cppGet_hashCode(Object* obj);       // 获取哈希码
   static Object* noSuchMethod(Object* obj,
                               String* methodName,
                               Object** args,
@@ -37,7 +35,7 @@ class ObjectImp : public Object {
  public:
   std::map<String*, void*>* ptrs;
   Type* runtimeType;
-  std::map<String*,  Object*>* metas;
+  std::map<String*, void*>* metas;
   ObjectImp(Type* type, std::map<String*, void*>* ptrs);
 
   virtual ~ObjectImp();
@@ -69,14 +67,26 @@ class Type : public Object {
   static Type* getNullType();
 };
 
-template <typename T>
-T CppSet(Object* obj, String* name, void* value);
+// 前向声明
+class Function;
+class CppPointerArray;
 
 template <typename T>
-T CppGet(Object* obj, String* name);
+T CppObjectSet(Object* obj, String* name, void* value) {
+  reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name) = value;
+  return reinterpret_cast<T>(value);
+}
+
+template <typename T>
+T CppObjectGet(Object* obj, String* name) {
+  return reinterpret_cast<T>(
+      reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name));
+}
+
+
 
 
 template <typename R, typename... Args>
-static R cppApply(Object *thisPtr, String* name, Args... args);
+static R cppApply(Object* thisPtr, String* name, Args... args);
 
 #endif

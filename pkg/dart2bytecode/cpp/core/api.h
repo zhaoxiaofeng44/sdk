@@ -24,42 +24,75 @@
 
 #define CppNewMap(...)                                                         \
   CppNew(CppMap, cppCtr_fromCppArray,                                          \
-         CppNew(CppPointerArray, cppCtr_, , Int::cppNew(PP_NARG(__VA_ARGS__)), \
-                reinterpret_cast<void**>(                                      \
-                    new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
+         new CppPointerArray(                                                  \
+             PP_NARG(__VA_ARGS__),                                             \
+             reinterpret_cast<Object**>(                                       \
+                 new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
 
 #define CppNewList(...)                                                        \
   CppNew(CppList, cppCtr_fromCppArray,                                         \
-         CppNew(CppPointerArray, cppCtr_, Int::cppNew(PP_NARG(__VA_ARGS__)),   \
-                reinterpret_cast<void**>(                                      \
-                    new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
+         new CppPointerArray(                                                  \
+             PP_NARG(__VA_ARGS__),                                             \
+             reinterpret_cast<Object**>(                                       \
+                 new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
 
 #define CppNewSet(...)                                                         \
   CppNew(CppSet, cppCtr_fromCppArray,                                          \
-         CppNew(CppPointerArray, cppCtr_, Int::cppNew(PP_NARG(__VA_ARGS__)),   \
-                reinterpret_cast<void**>(                                      \
-                    new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
+         new CppPointerArray(                                                  \
+             PP_NARG(__VA_ARGS__),                                             \
+             reinterpret_cast<Object**>(                                       \
+                 new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
+
+class CppPointerArray {
+ public:
+  int length;
+  Object** data;
+
+  CppPointerArray(int length) : length(length), data(new Object*[length]) {}
+  CppPointerArray(int length, Object** data) : length(length), data(data) {}
+
+  ~CppPointerArray() { delete[] data; }
+};
+
+class CppByteArray {
+ public:
+  int length;
+  uint8_t* data;
+
+  CppByteArray(int length) : length(length), data(new uint8_t[length]) {}
+  CppByteArray(int length, uint8_t* data) : length(length), data(data) {}
+
+  ~CppByteArray() { delete[] data; }
+};
+
 class CppApi {
  public:
-  static void** cppCreatePointerArray(Int* length);
+  static CppPointerArray* cppCreatePointerArray(Int* length);
 
-  static Object* cppGetPointerArrayItem(void** array, Int* index);
+  static Int* cppGetPointerArrayLength(CppPointerArray* array);
 
-  static void cppSetPointerArrayItem(void** array, Int* index, Object* value);
+  static Object* cppGetPointerArrayItem(CppPointerArray* array, Int* index);
 
-  static void** cppCreateByteArray(Int* length);
+  static void cppSetPointerArrayItem(CppPointerArray* array,
+                                     Int* index,
+                                     Object* value);
 
-  static Int* cppGetByteArrayItem(void** array, Int* index);
+  static CppByteArray* cppCreateByteArray(Int* length);
 
-  static void cppSetByteArrayItem(void** array, Int* index, Object* value);
+  static Int* cppGetByteArrayLength(CppByteArray* array);
 
-  static String* cppJoinListString(void** array,
-                                   Int* length,
+  static Int* cppGetByteArrayItem(CppByteArray* array, Int* index);
+
+  static void cppSetByteArrayItem(CppByteArray* array, Int* index, Int* value);
+
+  static String* cppJoinListString(CppPointerArray* array,
                                    String* separator);
 
   static bool cppBoolValue(Bool* value);
 
   static bool cppBoolValue(bool value);
+
+  static String* getCurrentStackTrace();
 };
 
 #endif

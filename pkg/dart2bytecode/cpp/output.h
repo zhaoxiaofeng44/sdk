@@ -1,14 +1,17 @@
+#ifndef OUTPUT_H
+#define OUTPUT_H
+
 #include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <sstream>
 #include "./core/api.h"
-#include "./core/array.h"
 #include "./core/func.h"
+#include "./core/math.h"
 #include "./core/num.h"
 #include "./core/string.h"
 
-void print(Object* obj) {
+inline void print(Object* obj) {
   if (obj) {
     // String* str = obj->toString();
     // printf("%s", str->c_str());
@@ -18,7 +21,7 @@ void print(Object* obj) {
   }
 }
 
-void print(String* str) {
+inline void print(String* str) {
   if (str) {
     printf("%s", str->c_str());
   } else {
@@ -26,7 +29,7 @@ void print(String* str) {
   }
 }
 
-void print(char* str) {
+inline void print(char* str) {
   if (str) {
     printf("%s", str);
   }
@@ -34,148 +37,91 @@ void print(char* str) {
 
 class Uint16List;
 
-Int* _getSuggestCapacity(int length) {
+inline Int* _getSuggestCapacity(int length) {
   return Int::cppNew(length);
 }
 
-Int* _getSuggestCapacity(Int* length) {
+inline Int* _getSuggestCapacity(Int* length) {
   return length;
 }
 
 template <typename T>
-Bool* checkNotNullable(T count, String* name) {
+inline Bool* checkNotNullable(T count, String* name) {
   if (count == nullptr) {
     throw "error";
   }
   return Bool::cppNew(true);
 }
 
-class CyBase;
-class CyFather;
-class CyChild;
-class CyComplexTest;
-class CppPointerArray;
-class CppByteArray;
 class CppList;
 class _CppListIterator;
 class CppSet;
 class CppMap;
+class CppIterator;
+class CppIterable;
+class CppMappedIterable;
+class CppMappedIterator;
+class CppWhereIterable;
+class CppWhereIterator;
+class CppWhereTypeIterable;
+class CppWhereTypeIterator;
+class CppExpandIterable;
+class CppExpandIterator;
+class CppTakeIterable;
+class CppTakeIterator;
+class CppTakeWhileIterable;
+class CppTakeWhileIterator;
+class CppSkipIterable;
+class CppSkipIterator;
+class CppSkipWhileIterable;
+class CppSkipWhileIterator;
+class CppReversedIterable;
+class CppReversedIterator;
+class CppFollowedByIterable;
+class CppFollowedByIterator;
+class CppCastIterable;
+class CppCastIterator;
+class _CppEmptyIterable;
+class _CppEmptyIterator;
+class _CppGenerateIterable;
+class _CppGenerateIterator;
+class _CppUnmodifiableIterable;
+class _CppCastFromIterable;
+class _CppCastFromIterator;
+class CppError;
+class CppStackTrace;
 class CppStringBuffer;
-class CppWasmMap;
 class Sort;
-class Random;
 class NativeFieldWrapperClass1;
 class NativeFieldWrapperClass2;
 class NativeFieldWrapperClass3;
 class NativeFieldWrapperClass4;
 class Comparable;
+class ArgumentError;
 class RangeError;
-class Iterable;
-class Iterator;
-class List;
-class Map;
+class IndexError;
+class StateError;
 class MapEntry;
-class Set;
-class StackTrace;
-class StringBuffer;
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyBase {
- public:
-  static Object* cppCtr_(Object* cppThis, Int* c);
-
-  static void test(Object* cppThis);
-
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyFather {
+//  library package:dart2bytecode/demo/collection.dart
+class CppIterable {
  public:
   static Object* cppCtr_(Object* cppThis);
 
-  static Object* cppCtr_ee(Object* cppThis);
+  static Bool* cppGet_isEmpty(Object* cppThis);
 
-  static void myTest(Object* cppThis);
+  static Bool* cppGet_isNotEmpty(Object* cppThis);
 
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyChild {
- public:
-  static Object* cppCtr_(Object* cppThis);
+  static Object* cppGet_first(Object* cppThis);
 
-  static void myTest(Object* cppThis);
+  static Object* cppGet_last(Object* cppThis);
 
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart
-class CyComplexTest {
- public:
-  static Object* cppCtr_(Object* cppThis);
+  static Object* cppGet_single(Object* cppThis);
 
-  static void testConditionals(Object* cppThis);
+  static Object* elementAt(Object* cppThis, Int* index);
 
-  static void testSwitch(Object* cppThis, Int* value);
+  static Bool* contains(Object* cppThis, Object* element);
 
-  static void testLoops(Object* cppThis);
-
-  static void testmain(Object* cppThis);
-
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppPointerArray {
- public:
-  static Object* cppCtr_(Object* cppThis, Int* _length, void** data);
-
-  static Int* cppGet_length(Object* cppThis);
-
-  static Object* getItem(Object* cppThis, Int* index);
-
-  static void setItem(Object* cppThis, Int* index, Object* value);
-
-  STATIC_METHOD_FORWARD(CppApi, cppCreatePointerArray)
-
-  STATIC_METHOD_FORWARD(CppApi, cppGetPointerArrayItem)
-
-  STATIC_METHOD_FORWARD(CppApi, cppSetPointerArrayItem)
-
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppByteArray {
- public:
-  static Object* cppCtr_(Object* cppThis, Int* _length, void** data);
-
-  static Int* cppGet_length(Object* cppThis);
-
-  static Int* getItem(Object* cppThis, Int* index);
-
-  static void setItem(Object* cppThis, Int* index, Int* value);
-
-  STATIC_METHOD_FORWARD(CppApi, cppCreateByteArray)
-
-  STATIC_METHOD_FORWARD(CppApi, cppGetByteArrayItem)
-
-  STATIC_METHOD_FORWARD(CppApi, cppSetByteArrayItem)
-
-  static Object* cppNew();
-};
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterable {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* generate(Int* count, Function* generator);
-
-  static Object* withIterator(Function* iteratorFactory);
-
-  static Object* empty();
-
-  static Object* castFrom(Object* source);
-
-  static Object* cast(Object* cppThis);
-
-  static Object* followedBy(Object* cppThis, Object* other);
+  static void forEach(Object* cppThis, Function* action);
 
   static Object* map(Object* cppThis, Function* toElement);
 
@@ -185,29 +131,21 @@ class Iterable {
 
   static Object* expand(Object* cppThis, Function* toElements);
 
-  static Bool* contains(Object* cppThis, Object* element);
+  static Bool* any(Object* cppThis, Function* test);
 
-  static void forEach(Object* cppThis, Function* action);
+  static Bool* every(Object* cppThis, Function* test);
+
+  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
+
+  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
 
   static Object* reduce(Object* cppThis, Function* combine);
 
   static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
 
-  static Bool* every(Object* cppThis, Function* test);
-
   static String* join(Object* cppThis, String* separator);
-
-  static Bool* any(Object* cppThis, Function* test);
-
-  static Object* toList(Object* cppThis, Bool* growable);
-
-  static Object* toSet(Object* cppThis);
-
-  static Int* cppGet_length(Object* cppThis);
-
-  static Bool* cppGet_isEmpty(Object* cppThis);
-
-  static Bool* cppGet_isNotEmpty(Object* cppThis);
 
   static Object* take(Object* cppThis, Int* count);
 
@@ -217,79 +155,27 @@ class Iterable {
 
   static Object* skipWhile(Object* cppThis, Function* test);
 
-  static Object* cppGet_first(Object* cppThis);
+  static Object* cppGet_reversed(Object* cppThis);
 
-  static Object* cppGet_last(Object* cppThis);
+  static Object* followedBy(Object* cppThis, Object* other);
 
-  static Object* cppGet_single(Object* cppThis);
+  static Object* toList(Object* cppThis, Bool* growable);
 
-  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
+  static Object* toSet(Object* cppThis);
 
-  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
+  static Object* cast(Object* cppThis);
 
-  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
+  static Object* empty();
 
-  static Object* elementAt(Object* cppThis, Int* index);
-
-  static String* toString(Object* cppThis);
-
-  static String* iterableToShortString(Object* iterable,
-                                       String* leftDelimiter,
-                                       String* rightDelimiter);
-
-  static String* iterableToFullString(Object* iterable,
-                                      String* leftDelimiter,
-                                      String* rightDelimiter);
-
-  static Object* cppNew();
-};
-class EfficientLengthIterable {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
-class HideEfficientLengthIterable {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
-class _ListIterable {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
-class List {
- public:
-  static Object* filled(Int* length, Object* fill, Bool* growable);
-
-  static Object* empty(Bool* growable);
-
-  static Object* from(Object* elements, Bool* growable);
-
-  static Object* of(Object* elements, Bool* growable);
-
-  static Object* generate(Int* length, Function* generator, Bool* growable);
+  static Object* generate(Int* count, Function* generator);
 
   static Object* unmodifiable(Object* elements);
 
   static Object* castFrom(Object* source);
-
-  static void copyRange(Object* target,
-                        Int* at,
-                        Object* source,
-                        Int* start,
-                        Int* end);
-
-  static void writeIterable(Object* target, Int* at, Object* source);
-
-  static Object* cppNew();
 };
 class CppList {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
 
   static Object* cppCtr_(Object* cppThis, Int* length, Int* capacity);
 
@@ -327,6 +213,10 @@ class CppList {
 
   static Object* cast(Object* cppThis);
 
+  static Object* castFrom(Object* source);
+
+  static Object* castFromWithFactory(Object* source, Function* newList);
+
   static void clear(Object* cppThis);
 
   static Bool* contains(Object* cppThis, Object* element);
@@ -334,8 +224,6 @@ class CppList {
   static Object* elementAt(Object* cppThis, Int* index);
 
   static Bool* every(Object* cppThis, Function* test);
-
-  static Object* expand(Object* cppThis, Function* toElements);
 
   static void fillRange(Object* cppThis,
                         Int* start,
@@ -345,8 +233,6 @@ class CppList {
   static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
 
   static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
-
-  static Object* followedBy(Object* cppThis, Object* other);
 
   static void forEach(Object* cppThis, Function* action);
 
@@ -378,15 +264,11 @@ class CppList {
 
   static String* join(Object* cppThis, String* separator);
 
-  STATIC_METHOD_FORWARD(CppApi, cppJoinListString)
-
   static Int* lastIndexOf(Object* cppThis, Object* element, Int* start);
 
   static Int* lastIndexWhere(Object* cppThis, Function* test, Int* start);
 
   static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
-
-  static Object* map(Object* cppThis, Function* toElement);
 
   static Object* reduce(Object* cppThis, Function* combine);
 
@@ -406,8 +288,6 @@ class CppList {
                            Object* replacements);
 
   static void retainWhere(Object* cppThis, Function* test);
-
-  static Object* cppGet_reversed(Object* cppThis);
 
   static void setAll(Object* cppThis, Int* index, Object* iterable);
 
@@ -435,23 +315,11 @@ class CppList {
 
   static Object* sublist(Object* cppThis, Int* start, Int* end);
 
-  static Object* take(Object* cppThis, Int* count);
-
-  static Object* takeWhile(Object* cppThis, Function* test);
-
   static Object* toList(Object* cppThis, Bool* growable);
 
   static Object* toSet(Object* cppThis);
 
-  static Object* where(Object* cppThis, Function* test);
-
-  static Object* whereType(Object* cppThis);
-
   static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
-
-  static Object* skip(Object* cppThis, Int* count);
-
-  static Object* skipWhile(Object* cppThis, Function* test);
 
   static Object* cpp_add(Object* cppThis, Object* other);
 
@@ -459,13 +327,7 @@ class CppList {
 
   static Object* cppNew();
 };
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Iterator {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
+//  library package:dart2bytecode/demo/collection.dart
 class _CppListIterator {
  public:
   static Object* cppCtr_(Object* cppThis, Object* _list);
@@ -476,32 +338,10 @@ class _CppListIterator {
 
   static Object* cppNew();
 };
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class _SetIterable {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
-class Set {
- public:
-  static Object* cppEpt_();
-
-  static Object* identity();
-
-  static Object* from(Object* elements);
-
-  static Object* of(Object* elements);
-
-  static Object* unmodifiable(Object* elements);
-
-  static Object* castFrom(Object* source, Function* newSet);
-
-  static Object* cppNew();
-};
+//  library package:dart2bytecode/demo/collection.dart
 class CppSet {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
 
   static Object* cppCtr_(Object* cppThis, Int* capacity);
 
@@ -513,11 +353,13 @@ class CppSet {
 
   static Object* unmodifiable(Object* elements);
 
+  static Object* castFrom(Object* source);
+
+  static Object* castFromWithFactory(Object* source, Function* newSet);
+
   static Bool* add(Object* cppThis, Object* value);
 
   static void addAll(Object* cppThis, Object* elements);
-
-  static Bool* any(Object* cppThis, Function* test);
 
   static Object* cast(Object* cppThis);
 
@@ -530,18 +372,6 @@ class CppSet {
   static Object* difference(Object* cppThis, Object* other);
 
   static Object* elementAt(Object* cppThis, Int* index);
-
-  static Bool* every(Object* cppThis, Function* test);
-
-  static Object* expand(Object* cppThis, Function* toElements);
-
-  static Object* firstWhere(Object* cppThis, Function* test, Function* orElse);
-
-  static Object* fold(Object* cppThis, Object* initialValue, Function* combine);
-
-  static Object* followedBy(Object* cppThis, Object* other);
-
-  static void forEach(Object* cppThis, Function* action);
 
   static Object* intersection(Object* cppThis, Object* other);
 
@@ -557,17 +387,9 @@ class CppSet {
 
   static Object* cppGet_iterator(Object* cppThis);
 
-  static String* join(Object* cppThis, String* separator);
-
-  static Object* lastWhere(Object* cppThis, Function* test, Function* orElse);
-
   static Int* cppGet_length(Object* cppThis);
 
   static Object* lookup(Object* cppThis, Object* element);
-
-  static Object* map(Object* cppThis, Function* toElement);
-
-  static Object* reduce(Object* cppThis, Function* combine);
 
   static Bool* remove(Object* cppThis, Object* value);
 
@@ -579,58 +401,16 @@ class CppSet {
 
   static void retainWhere(Object* cppThis, Function* test);
 
-  static Object* singleWhere(Object* cppThis, Function* test, Function* orElse);
-
-  static Object* skip(Object* cppThis, Int* count);
-
-  static Object* skipWhile(Object* cppThis, Function* test);
-
   static Object* cpp_union(Object* cppThis, Object* other);
-
-  static Object* take(Object* cppThis, Int* count);
-
-  static Object* takeWhile(Object* cppThis, Function* test);
-
-  static Object* toList(Object* cppThis, Bool* growable);
-
-  static Object* toSet(Object* cppThis);
-
-  static Object* where(Object* cppThis, Function* test);
-
-  static Object* whereType(Object* cppThis);
 
   static String* toString(Object* cppThis);
 
   static Object* cppNew();
 };
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class Map {
- public:
-  static Object* _fromLiteral(Object* elements);
-
-  static Object* cppEpt_();
-
-  static Object* from(Object* other);
-
-  static Object* of(Object* other);
-
-  static Object* unmodifiable(Object* other);
-
-  static Object* identity();
-
-  static Object* fromIterable(Object* iterable, Function* key, Function* value);
-
-  static Object* fromIterables(Object* keys, Object* values);
-
-  static Object* castFrom(Object* source);
-
-  static Object* fromEntries(Object* entries);
-
-  static Object* cppNew();
-};
+//  library package:dart2bytecode/demo/collection.dart
 class CppMap {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, Object* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
 
   static Object* cppCtr_(Object* cppThis, Int* capacity);
 
@@ -657,6 +437,10 @@ class CppMap {
   static void addEntries(Object* cppThis, Object* entries);
 
   static Object* cast(Object* cppThis);
+
+  static Object* castFrom(Object* source);
+
+  static Object* castFromWithFactory(Object* source, Function* newMap);
 
   static void clear(Object* cppThis);
 
@@ -697,10 +481,362 @@ class CppMap {
 
   static Object* cppNew();
 };
-//  library file:///Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/list.dart
-class CppStringBuffer {
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppIterator {
  public:
   static Object* cppCtr_(Object* cppThis);
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppMappedIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Function* _f);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppMappedIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Function* _f);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppWhereIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Function* _test);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppWhereIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Function* _test);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppWhereTypeIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppWhereTypeIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppExpandIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Function* _f);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppExpandIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Function* _f);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppTakeIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Int* _count);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppTakeIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Int* _count);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppTakeWhileIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Function* _test);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppTakeWhileIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Function* _test);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppSkipIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Int* _count);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppSkipIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Int* _count);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppSkipWhileIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source, Function* _test);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppSkipWhileIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator, Function* _test);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppReversedIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppReversedIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* source);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppFollowedByIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _first, Object* _second);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppFollowedByIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _first, Object* _second);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppCastIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class CppCastIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppEmptyIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppEmptyIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppGenerateIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Int* _count, Function* _generator);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppGenerateIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Int* _count, Function* _generator);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppUnmodifiableIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _elements);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppCastFromIterable {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _source);
+
+  static Object* cppGet_iterator(Object* cppThis);
+
+  static Int* cppGet_length(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/Iterable.dart
+class _CppCastFromIterator {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* _iterator);
+
+  static Object* cppGet_current(Object* cppThis);
+
+  static Bool* moveNext(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/error.dart
+class CppError {
+ public:
+  static Object* cppCtr_(Object* cppThis);
+
+  static String* safeToString(Object* object);
+
+  static Object* cppGet_stackTrace(Object* cppThis);
+
+  static Object* cppGet__stackTrace(Object* cppThis);
+
+  static void cppSet__stackTrace(Object* cppThis, Object* value);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/error.dart
+class CppStackTrace {
+ public:
+  static Object* _current;
+  static Object* cppCtr_(Object* cppThis);
+
+  static Object* cppGet_current();
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
+};
+//  library package:dart2bytecode/demo/string.dart
+class CppStringBuffer {
+ public:
+  static Object* cppCtr_(Object* cppThis, Object* content);
 
   static void write(Object* cppThis, Object* obj);
 
@@ -720,119 +856,44 @@ class CppStringBuffer {
 
   static Bool* cppGet_isNotEmpty(Object* cppThis);
 
-  static Object* cppNew();
-};
-//  dart.collection
-class MapView {
- public:
-  static Object* cppCtr_(Object* cppThis, Object* map);
+  static Object* cppGet__parts(Object* cppThis);
 
-  static Object* cast(Object* cppThis);
+  static void cppSet__parts(Object* cppThis, Object* value);
 
-  static Object* cpp_subscript(Object* cppThis, Object* key);
+  static Int* cppGet__partsCodeUnits(Object* cppThis);
 
-  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
+  static void cppSet__partsCodeUnits(Object* cppThis, Int* value);
 
-  static void addAll(Object* cppThis, Object* other);
+  static Int* cppGet__partsCompactionIndex(Object* cppThis);
 
-  static void clear(Object* cppThis);
+  static void cppSet__partsCompactionIndex(Object* cppThis, Int* value);
 
-  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
+  static Int* cppGet__partsCodeUnitsSinceCompaction(Object* cppThis);
 
-  static Bool* containsKey(Object* cppThis, Object* key);
+  static void cppSet__partsCodeUnitsSinceCompaction(Object* cppThis,
+                                                    Int* value);
 
-  static Bool* containsValue(Object* cppThis, Object* value);
+  static Object* cppGet__buffer(Object* cppThis);
 
-  static void forEach(Object* cppThis, Function* action);
+  static void cppSet__buffer(Object* cppThis, Object* value);
 
-  static Bool* cppGet_isEmpty(Object* cppThis);
+  static Int* cppGet__bufferPosition(Object* cppThis);
 
-  static Bool* cppGet_isNotEmpty(Object* cppThis);
+  static void cppSet__bufferPosition(Object* cppThis, Int* value);
 
-  static Int* cppGet_length(Object* cppThis);
+  static Int* cppGet__bufferCodeUnitMagnitude(Object* cppThis);
 
-  static Object* cppGet_keys(Object* cppThis);
+  static void cppSet__bufferCodeUnitMagnitude(Object* cppThis, Int* value);
 
-  static Object* remove(Object* cppThis, Object* key);
+  static void _writeString(Object* cppThis, String* str);
 
-  static String* toString(Object* cppThis);
+  static void _ensureCapacity(Object* cppThis, Int* n);
 
-  static Object* cppGet_values(Object* cppThis);
+  static void _consumeBuffer(Object* cppThis);
 
-  static Object* cppGet_entries(Object* cppThis);
+  static void _addPart(Object* cppThis, String* str);
 
-  static void addEntries(Object* cppThis, Object* entries);
-
-  static Object* map(Object* cppThis, Function* transform);
-
-  static Object* update(Object* cppThis,
-                        Object* key,
-                        Function* update,
-                        Function* ifAbsent);
-
-  static void updateAll(Object* cppThis, Function* update);
-
-  static void removeWhere(Object* cppThis, Function* test);
-
-  static Object* cppNew();
-};
-class _UnmodifiableMapMixin {
- public:
-  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
-
-  static void addAll(Object* cppThis, Object* other);
-
-  static void addEntries(Object* cppThis, Object* entries);
-
-  static void clear(Object* cppThis);
-
-  static Object* remove(Object* cppThis, Object* key);
-
-  static void removeWhere(Object* cppThis, Function* test);
-
-  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
-
-  static Object* update(Object* cppThis,
-                        Object* key,
-                        Function* update,
-                        Function* ifAbsent);
-
-  static void updateAll(Object* cppThis, Function* update);
-
-  static Object* cppNew();
-};
-class _UnmodifiableMapView$MapView$_UnmodifiableMapMixin {
- public:
-  static Object* cppCtr_(Object* cppThis, Object* map);
-
-  static void cpp_subscriptAssign(Object* cppThis, Object* key, Object* value);
-
-  static void addAll(Object* cppThis, Object* other);
-
-  static void addEntries(Object* cppThis, Object* entries);
-
-  static void clear(Object* cppThis);
-
-  static Object* remove(Object* cppThis, Object* key);
-
-  static void removeWhere(Object* cppThis, Function* test);
-
-  static Object* putIfAbsent(Object* cppThis, Object* key, Function* ifAbsent);
-
-  static Object* update(Object* cppThis,
-                        Object* key,
-                        Function* update,
-                        Function* ifAbsent);
-
-  static void updateAll(Object* cppThis, Function* update);
-
-  static Object* cppNew();
-};
-class CppWasmMap {
- public:
-  static Object* cppCtr_(Object* cppThis, Object* map);
-
-  static Object* cast(Object* cppThis);
+  static void _compact(Object* cppThis);
 
   static Object* cppNew();
 };
@@ -857,16 +918,6 @@ class Sort {
                                   Int* left,
                                   Int* right,
                                   Function* compare);
-
-  static Object* cppNew();
-};
-//  dart.math
-class Random {
- public:
-  static Object* _secureRandom;
-  static Object* cppEpt_(Int* seed);
-
-  static Object* secure();
 
   static Object* cppNew();
 };
@@ -904,36 +955,16 @@ class Comparable {
   static Object* cppCtr_(Object* cppThis);
 
   static Int* compare(Object* a, Object* b);
-
-  static Object* cppNew();
 };
 //  dart.core
-class Error {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static String* safeToString(Object* object);
-
-  static String* _stringToSafeString(String* string);
-
-  static String* _objectToString(Object* object);
-
-  static Object* cppGet_stackTrace(Object* cppThis);
-
-  static void throwWithStackTrace(Object* error, Object* stackTrace);
-
-  static void _throw(Object* error, Object* stackTrace);
-
-  static Object* cppNew();
-};
 class ArgumentError {
  public:
-  static Object* cppCtr_(Object* cppThis, void** message, String* name);
+  static Object* cppCtr_(Object* cppThis, Object* message, String* name);
 
   static Object* cppCtr_value(Object* cppThis,
-                              void** value,
+                              Object* value,
                               String* name,
-                              void** message);
+                              Object* message);
 
   static Object* cppCtr_notNull(Object* cppThis, String* name);
 
@@ -947,9 +978,10 @@ class ArgumentError {
 
   static Object* cppNew();
 };
+//  dart.core
 class RangeError {
  public:
-  static Object* cppCtr_(Object* cppThis, void** message);
+  static Object* cppCtr_(Object* cppThis, Object* message);
 
   static Object* cppCtr_value(Object* cppThis,
                               Num* value,
@@ -966,7 +998,7 @@ class RangeError {
   static Num* cppGet_invalidValue(Object* cppThis);
 
   static Object* index(Int* index,
-                       void** indexable,
+                       Object* indexable,
                        String* name,
                        String* message,
                        Int* length);
@@ -978,7 +1010,7 @@ class RangeError {
                                    String* message);
 
   static Int* checkValidIndex(Int* index,
-                              void** indexable,
+                              Object* indexable,
                               String* name,
                               Int* length,
                               String* message);
@@ -999,9 +1031,51 @@ class RangeError {
   static Object* cppNew();
 };
 //  dart.core
+class IndexError {
+ public:
+  static Object* cppCtr_(Object* cppThis,
+                         Int* invalidValue,
+                         Object* indexable,
+                         String* name,
+                         String* message,
+                         Int* length);
+
+  static Object* cppCtr_withLength(Object* cppThis,
+                                   Int* invalidValue,
+                                   Int* length,
+                                   Object* indexable,
+                                   String* name,
+                                   String* message);
+
+  static Int* cppGet_invalidValue(Object* cppThis);
+
+  static Int* check(Int* index,
+                    Int* length,
+                    Object* indexable,
+                    String* name,
+                    String* message);
+
+  static Int* cppGet_start(Object* cppThis);
+
+  static Int* cppGet_end(Object* cppThis);
+
+  static String* cppGet__errorName(Object* cppThis);
+
+  static String* cppGet__errorExplanation(Object* cppThis);
+
+  static Object* cppNew();
+};
 //  dart.core
-//  dart.core
-//  dart.core
+class StateError {
+ public:
+  static Object* cppCtr_(Object* cppThis, String* message);
+
+  static void _throwNew(String* msg);
+
+  static String* toString(Object* cppThis);
+
+  static Object* cppNew();
+};
 //  dart.core
 class MapEntry {
  public:
@@ -1013,62 +1087,5 @@ class MapEntry {
 
   static Object* cppNew();
 };
-//  dart.core
-//  dart.core
-class StackTrace {
- public:
-  static Object* empty;
-  static Object* cppCtr_(Object* cppThis);
 
-  static Object* fromString(String* stackTraceString);
-
-  static Object* cppGet_current();
-
-  static Object* cppNew();
-};
-//  dart.core
-class StringSink {
- public:
-  static Object* cppCtr_(Object* cppThis);
-
-  static Object* cppNew();
-};
-class StringBuffer {
- public:
-  static Int* _BUFFER_SIZE;
-  static Int* _PARTS_TO_COMPACT;
-  static Int* _PARTS_TO_COMPACT_SIZE_LIMIT;
-  static Object* cppCtr_(Object* cppThis, Object* content);
-
-  static void _writeString(Object* cppThis, String* str);
-
-  static void _ensureCapacity(Object* cppThis, Int* n);
-
-  static void _consumeBuffer(Object* cppThis);
-
-  static void _addPart(Object* cppThis, String* str);
-
-  static void _compact(Object* cppThis);
-
-  static String* _create(Object* buffer, Int* length, Bool* isLatin1);
-
-  static Int* cppGet_length(Object* cppThis);
-
-  static Bool* cppGet_isEmpty(Object* cppThis);
-
-  static Bool* cppGet_isNotEmpty(Object* cppThis);
-
-  static void write(Object* cppThis, Object* obj);
-
-  static void writeCharCode(Object* cppThis, Int* charCode);
-
-  static void writeAll(Object* cppThis, Object* objects, String* separator);
-
-  static void writeln(Object* cppThis, Object* obj);
-
-  static void clear(Object* cppThis);
-
-  static String* toString(Object* cppThis);
-
-  static Object* cppNew();
-};
+#endif

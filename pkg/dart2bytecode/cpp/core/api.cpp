@@ -2,7 +2,7 @@
 #include <cstring>  // 用于strcat函数
 
 // 创建指针数组
-void** CppApi::cppCreatePointerArray(Int* length) {
+CppPointerArray* CppApi::cppCreatePointerArray(Int* length) {
     if (length == NULL) {
         return NULL;
     }
@@ -12,46 +12,48 @@ void** CppApi::cppCreatePointerArray(Int* length) {
         return NULL;
     }
     
-    // 分配内存并初始化为NULL
-    void** array = new void*[len];
-    //不初始化
-    // for (int i = 0; i < len; i++) {
-    //     array[i] = NULL;
-    // }
+    return new CppPointerArray(len);
+}
+
+// 获取指针数组长度
+Int* CppApi::cppGetPointerArrayLength(CppPointerArray* array) {
+    if (array == NULL) {
+        return NULL;
+    }
     
-    return array;
+    return Int::cppNew(array->length);
 }
 
 // 获取指针数组项
-Object* CppApi::cppGetPointerArrayItem(void** array, Int* index) {
+Object* CppApi::cppGetPointerArrayItem(CppPointerArray* array, Int* index) {
     if (array == NULL || index == NULL) {
         return NULL;
     }
     
     int idx = index->getValue();
-    if (idx < 0) {
+    if (idx < 0 || idx >= array->length) {
         return NULL;
     }
     
-    return static_cast<Object*>(array[idx]);
+    return array->data[idx];
 }
 
 // 设置指针数组项
-void CppApi::cppSetPointerArrayItem(void** array, Int* index, Object* value) {
+void CppApi::cppSetPointerArrayItem(CppPointerArray* array, Int* index, Object* value) {
     if (array == NULL || index == NULL) {
         return;
     }
     
     int idx = index->getValue();
-    if (idx < 0) {
+    if (idx < 0 || idx >= array->length) {
         return;
     }
     
-    array[idx] = static_cast<void*>(value);
+    array->data[idx] = value;
 }
 
 // 创建字节数组
-void** CppApi::cppCreateByteArray(Int* length) {
+CppByteArray* CppApi::cppCreateByteArray(Int* length) {
     if (length == NULL) {
         return NULL;
     }
@@ -61,51 +63,49 @@ void** CppApi::cppCreateByteArray(Int* length) {
         return NULL;
     }
     
-    // 分配内存并初始化为NULL
-    void** array = new void*[len];
-    // for (int i = 0; i < len; i++) {
-    //     array[i] = NULL;
-    // }
+    return new CppByteArray(len);
+}
+
+// 获取字节数组长度
+Int* CppApi::cppGetByteArrayLength(CppByteArray* array) {
+    if (array == NULL) {
+        return NULL;
+    }
     
-    return array;
+    return Int::cppNew(array->length);
 }
 
 // 获取字节数组项
-Int* CppApi::cppGetByteArrayItem(void** array, Int* index) {
+Int* CppApi::cppGetByteArrayItem(CppByteArray* array, Int* index) {
     if (array == NULL || index == NULL) {
         return NULL;
     }
     
     int idx = index->getValue();
-    if (idx < 0) {
+    if (idx < 0 || idx >= array->length) {
         return NULL;
     }
     
-    return static_cast<Int*>(array[idx]);
+    return Int::cppNew(array->data[idx]);
 }
 
 // 设置字节数组项
-void CppApi::cppSetByteArrayItem(void** array, Int* index, Object* value) {
-    if (array == NULL || index == NULL) {
+void CppApi::cppSetByteArrayItem(CppByteArray* array, Int* index, Int* value) {
+    if (array == NULL || index == NULL || value == NULL) {
         return;
     }
     
     int idx = index->getValue();
-    if (idx < 0) {
+    if (idx < 0 || idx >= array->length) {
         return;
     }
     
-    array[idx] = static_cast<void*>(value);
+    array->data[idx] = static_cast<uint8_t>(value->getValue());
 }
 
 // 连接字符串列表
-String* CppApi::cppJoinListString(void** array, Int* length, String* separator) {
-    if (array == NULL || length == NULL) {
-        return String::cppNew("");
-    }
-    
-    int len = length->getValue();
-    if (len <= 0) {
+String* CppApi::cppJoinListString(CppPointerArray* array, String* separator) {
+    if (array == NULL) {
         return String::cppNew("");
     }
     
@@ -117,8 +117,8 @@ String* CppApi::cppJoinListString(void** array, Int* length, String* separator) 
     
     // 计算总长度
     int totalLength = 0;
-    for (int i = 0; i < len; i++) {
-        Object* item = static_cast<Object*>(array[i]);
+    for (int i = 0; i < array->length; i++) {
+        Object* item = array->data[i];
         if (item != NULL) {
             String* str = Object::toString(item);
             if (str != NULL) {
@@ -127,7 +127,7 @@ String* CppApi::cppJoinListString(void** array, Int* length, String* separator) 
         }
         
         // 添加分隔符长度（除了最后一个元素）
-        if (i < len - 1 && separator != NULL) {
+        if (i < array->length - 1 && separator != NULL) {
             totalLength += separator->length();
         }
     }
@@ -136,8 +136,8 @@ String* CppApi::cppJoinListString(void** array, Int* length, String* separator) 
     char* result = new char[totalLength + 1];
     result[0] = '\0';
     
-    for (int i = 0; i < len; i++) {
-        Object* item = static_cast<Object*>(array[i]);
+    for (int i = 0; i < array->length; i++) {
+        Object* item = array->data[i];
         if (item != NULL) {
             String* str = Object::toString(item);
             if (str != NULL) {
@@ -146,7 +146,7 @@ String* CppApi::cppJoinListString(void** array, Int* length, String* separator) 
         }
         
         // 添加分隔符（除了最后一个元素）
-        if (i < len - 1 && separator != NULL) {
+        if (i < array->length - 1 && separator != NULL) {
             strcat(result, sep);
         }
     }
@@ -167,7 +167,9 @@ bool CppApi::cppBoolValue(Bool* value) {
 }
 
 bool CppApi::cppBoolValue(bool value) {
-  
-  return value;
+    return value;
 }
 
+String* CppApi::getCurrentStackTrace() {
+    return String::cppNew("");
+}

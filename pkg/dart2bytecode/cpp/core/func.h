@@ -100,29 +100,41 @@ public:
 
 
 
+// template <typename R, typename... Args>
+// static R cppApply(Function *wrapper, Args... args) {
+//     if (!wrapper)
+//         return R{};
+
+//     FunctionApply<R, Args...> *func = reinterpret_cast<FunctionApply<R, Args...> *>(wrapper);
+//     return func(args...);
+// }
+
+
+
+// template <typename R, typename... Args>
+// static R cppApply(R(*func)(Args... args),Args... args) {
+//     return func(args...);
+// }
+
+
+// template <typename ThisPtr, typename R, typename... Args>
+// static R cppApply(ThisPtr *thisPtr, int index, Args... args) {
+//     ProcedureWrapper<ThisPtr, R, Args...> wrapper(thisPtr, index);
+//     return wrapper(args...);
+// }
+
+
+
+
 template <typename R, typename... Args>
 static R cppApply(Function *wrapper, Args... args) {
-    if (!wrapper)
-        return R{};
-
-    FunctionApply<R, Args...> *func = reinterpret_cast<FunctionApply<R, Args...> *>(wrapper);
-    return func(args...);
+    if constexpr(std::is_void<R>::value) {
+        // void时什么都不返回
+        return;
+    } else {
+        return nullptr; // 或者 return R{};
+    }
 }
-
-
-
-template <typename R, typename... Args>
-static R cppApply(R(*func)(Args... args),Args... args) {
-    return func(args...);
-}
-
-
-template <typename ThisPtr, typename R, typename... Args>
-static R cppApply(ThisPtr *thisPtr, int index, Args... args) {
-    ProcedureWrapper<ThisPtr, R, Args...> wrapper(thisPtr, index);
-    return wrapper(args...);
-}
-
 
 
 template <typename R, typename... Args>

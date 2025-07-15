@@ -15,7 +15,7 @@ int StringPool::poolSize = 0;
 
 // ==================== StringPool 实现 ====================
 
-bool StringPool::stringEqual(const char *s1, const char *s2, int len1, int len2) {
+bool StringPool::stringEqual(const uint8_t *s1, const uint8_t *s2, int len1, int len2) {
     if (len1 != len2) return false;
     if (s1 == s2) return true;
     if (!s1 || !s2) return false;
@@ -35,11 +35,32 @@ int StringPool::getStringLength(const char *str) {
     return length;
 }
 
-char *StringPool::copyString(const char *str, int length) {
+int StringPool::getStringLength(const uint8_t *str) {
+    if (!str) return 0;
+    int length = 0;
+    while (str[length] != '\0') {
+        length++;
+    }
+    return length;
+}
+
+uint8_t *StringPool::copyString(const char *str, int length) {
     if (!str) return NULL;
     if (length < 0) length = 0;
     
-    char *copy = new char[length + 1];
+    uint8_t *copy = new uint8_t[length + 1];
+    for (int i = 0; i < length; i++) {
+        copy[i] = static_cast<uint8_t>(str[i]);
+    }
+    copy[length] = '\0';
+    return copy;
+}
+
+uint8_t *StringPool::copyString(const uint8_t *str, int length) {
+    if (!str) return NULL;
+    if (length < 0) length = 0;
+    
+    uint8_t *copy = new uint8_t[length + 1];
     for (int i = 0; i < length; i++) {
         copy[i] = str[i];
     }
@@ -48,6 +69,60 @@ char *StringPool::copyString(const char *str, int length) {
 }
 
 StringPoolEntry *StringPool::intern(const char *str) {
+    if (!str) {
+        static StringPoolEntry emptyEntry;
+        if (!emptyEntry.inUse) {
+            emptyEntry.data = copyString("", 0);
+            emptyEntry.length = 0;
+            emptyEntry.refCount = 1;
+            emptyEntry.inUse = true;
+        } else {
+            emptyEntry.refCount++;
+        }
+        return &emptyEntry;
+    }
+    
+    int length = getStringLength(str);
+    
+    // 查找是否已经存在
+    for (int i = 0; i < poolSize && i < MAX_POOL_SIZE; i++) {
+        if (pool[i].inUse && stringEqual(pool[i].data, reinterpret_cast<const uint8_t*>(str), pool[i].length, length)) {
+            pool[i].refCount++;
+            return &pool[i];
+        }
+    }
+    
+    // 查找空闲位置
+    for (int i = 0; i < MAX_POOL_SIZE; i++) {
+        if (!pool[i].inUse) {
+            pool[i].data = copyString(str, length);
+            if (!pool[i].data) {
+                return NULL; // 内存分配失败
+            }
+            pool[i].length = length;
+            pool[i].refCount = 1;
+            pool[i].inUse = true;
+            if (i >= poolSize) {
+                poolSize = i + 1;
+            }
+            return &pool[i];
+        }
+    }
+    
+    // 池已满，返回新的临时条目
+    StringPoolEntry *temp = new StringPoolEntry();
+    temp->data = copyString(str, length);
+    if (!temp->data) {
+        delete temp;
+        return NULL; // 内存分配失败
+    }
+    temp->length = length;
+    temp->refCount = 1;
+    temp->inUse = true;
+    return temp;
+}
+
+StringPoolEntry *StringPool::intern(const uint8_t *str) {
     if (!str) {
         static StringPoolEntry emptyEntry;
         if (!emptyEntry.inUse) {
@@ -150,6 +225,10 @@ String::String(const char *str) {
     poolEntry = StringPool::intern(str ? str : "");
 }
 
+String::String(const uint8_t *str) {
+    poolEntry = StringPool::intern(str ? reinterpret_cast<const char*>(str) : "");
+}
+
 String::String(const String &other) {
     poolEntry = other.poolEntry;
     if (poolEntry) {
@@ -192,8 +271,14 @@ String &String::operator=(const char *str) {
     return *this;
 }
 
+String &String::operator=(const uint8_t *str) {
+    StringPool::release(poolEntry);
+    poolEntry = StringPool::intern(str ? reinterpret_cast<const char*>(str) : "");
+    return *this;
+}
+
 const char *String::c_str() const {
-    return poolEntry ? poolEntry->data : "";
+    return poolEntry ? reinterpret_cast<const char*>(poolEntry->data) : "";
 }
 
 int String::length() const {
@@ -204,7 +289,7 @@ char String::operator[](int index) const {
     if (!poolEntry || index < 0 || index >= poolEntry->length) {
         return '\0';
     }
-    return poolEntry->data[index];
+    return static_cast<char>(poolEntry->data[index]);
 }
 
 bool String::sharesSameData(const String &other) const {
@@ -222,20 +307,20 @@ String *String::cpp_add(String *a, String *b) {
     if (!a || !b) return new String("");
     
     int newLength = a->length() + b->length();
-    char *newData = new char[newLength + 1];
+    uint8_t *newData = new uint8_t[newLength + 1];
     
     // 复制第一个字符串
     for (int i = 0; i < a->length(); i++) {
-        newData[i] = a->c_str()[i];
+        newData[i] = static_cast<uint8_t>(a->c_str()[i]);
     }
     
     // 复制第二个字符串
     for (int i = 0; i < b->length(); i++) {
-        newData[a->length() + i] = b->c_str()[i];
+        newData[a->length() + i] = static_cast<uint8_t>(b->c_str()[i]);
     }
     
     newData[newLength] = '\0';
-    String *result = new String(newData);
+    String *result = new String(reinterpret_cast<const char*>(newData));
     delete[] newData;
     return result;
 }
@@ -244,7 +329,10 @@ Bool *String::cpp_equals(String *a, String *b) {
     if (!a || !b) return new Bool(false);
     if (a->sharesSameData(*b)) return new Bool(true);
     
-    return new Bool(StringPool::stringEqual(a->c_str(), b->c_str(), a->length(), b->length()));
+    return new Bool(StringPool::stringEqual(
+        reinterpret_cast<const uint8_t*>(a->c_str()), 
+        reinterpret_cast<const uint8_t*>(b->c_str()), 
+        a->length(), b->length()));
 }
 
 Bool *String::cpp_greaterThan(String *a, String *b) {
@@ -453,15 +541,15 @@ String *String::substring(String *str, Int *start, Int *end) {
     if (startPos >= endPos) return new String("");
     
     int newLength = endPos - startPos;
-    char *newData = new char[newLength + 1];
+    uint8_t *newData = new uint8_t[newLength + 1];
     const char *source = str->c_str();
     
     for (int i = 0; i < newLength; i++) {
-        newData[i] = source[startPos + i];
+        newData[i] = static_cast<uint8_t>(source[startPos + i]);
     }
     newData[newLength] = '\0';
     
-    String *result = new String(newData);
+    String *result = new String(reinterpret_cast<const char*>(newData));
     delete[] newData;
     return result;
 }
@@ -550,15 +638,15 @@ String *String::toLowerCase(String *str) {
     if (!str) return new String("");
     
     int len = str->length();
-    char *newData = new char[len + 1];
+    uint8_t *newData = new uint8_t[len + 1];
     const char *source = str->c_str();
     
     for (int i = 0; i < len; i++) {
-        newData[i] = (char)std::tolower(source[i]);
+        newData[i] = static_cast<uint8_t>(std::tolower(source[i]));
     }
     newData[len] = '\0';
     
-    String *result = new String(newData);
+    String *result = new String(reinterpret_cast<const char*>(newData));
     delete[] newData;
     return result;
 }
@@ -567,15 +655,15 @@ String *String::toUpperCase(String *str) {
     if (!str) return new String("");
     
     int len = str->length();
-    char *newData = new char[len + 1];
+    uint8_t *newData = new uint8_t[len + 1];
     const char *source = str->c_str();
     
     for (int i = 0; i < len; i++) {
-        newData[i] = (char)std::toupper(source[i]);
+        newData[i] = static_cast<uint8_t>(std::toupper(source[i]));
     }
     newData[len] = '\0';
     
-    String *result = new String(newData);
+    String *result = new String(reinterpret_cast<const char*>(newData));
     delete[] newData;
     return result;
 }
@@ -593,7 +681,7 @@ String *String::replaceAll(String *str, String *from, String *to) {
     
     // 估算结果大小
     int maxResultLen = sourceLen * 2; // 简单估算
-    char *result = new char[maxResultLen + 1];
+    uint8_t *result = new uint8_t[maxResultLen + 1];
     int resultPos = 0;
     int sourcePos = 0;
     
@@ -613,20 +701,20 @@ String *String::replaceAll(String *str, String *from, String *to) {
         if (found) {
             // 复制替换字符串
             for (int i = 0; i < toLen && resultPos < maxResultLen; i++) {
-                result[resultPos++] = toStr[i];
+                result[resultPos++] = static_cast<uint8_t>(toStr[i]);
             }
             sourcePos += fromLen;
         } else {
             // 复制单个字符
             if (resultPos < maxResultLen) {
-                result[resultPos++] = source[sourcePos];
+                result[resultPos++] = static_cast<uint8_t>(source[sourcePos]);
             }
             sourcePos++;
         }
     }
     
     result[resultPos] = '\0';
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     return resultStr;
 }
@@ -700,22 +788,22 @@ String *String::padLeft(String *str, Int *width, String *padding) {
         return new String(str->c_str());
     }
     
-    char *result = new char[targetWidth + 1];
+    uint8_t *result = new uint8_t[targetWidth + 1];
     int pos = 0;
     
     // 添加填充
     for (int i = 0; i < padNeeded; i++) {
-        result[pos++] = pad->c_str()[i % padLen];
+        result[pos++] = static_cast<uint8_t>(pad->c_str()[i % padLen]);
     }
     
     // 添加原字符串
     const char *source = str->c_str();
     for (int i = 0; i < currentWidth; i++) {
-        result[pos++] = source[i];
+        result[pos++] = static_cast<uint8_t>(source[i]);
     }
     
     result[targetWidth] = '\0';
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     if (!padding) delete pad;
     return resultStr;
@@ -740,22 +828,22 @@ String *String::padRight(String *str, Int *width, String *padding) {
         return new String(str->c_str());
     }
     
-    char *result = new char[targetWidth + 1];
+    uint8_t *result = new uint8_t[targetWidth + 1];
     int pos = 0;
     
     // 添加原字符串
     const char *source = str->c_str();
     for (int i = 0; i < currentWidth; i++) {
-        result[pos++] = source[i];
+        result[pos++] = static_cast<uint8_t>(source[i]);
     }
     
     // 添加填充
     for (int i = 0; i < padNeeded; i++) {
-        result[pos++] = pad->c_str()[i % padLen];
+        result[pos++] = static_cast<uint8_t>(pad->c_str()[i % padLen]);
     }
     
     result[targetWidth] = '\0';
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     if (!padding) delete pad;
     return resultStr;
@@ -800,17 +888,17 @@ String *String::repeat(String *str, Int *times) {
     int sourceLen = str->length();
     int totalLen = sourceLen * repeatCount;
     
-    char *result = new char[totalLen + 1];
+    uint8_t *result = new uint8_t[totalLen + 1];
     const char *source = str->c_str();
     
     for (int i = 0; i < repeatCount; i++) {
         for (int j = 0; j < sourceLen; j++) {
-            result[i * sourceLen + j] = source[j];
+            result[i * sourceLen + j] = static_cast<uint8_t>(source[j]);
         }
     }
     
     result[totalLen] = '\0';
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     return resultStr;
 }
@@ -819,15 +907,15 @@ String *String::reverse(String *str) {
     if (!str) return new String("");
     
     int len = str->length();
-    char *result = new char[len + 1];
+    uint8_t *result = new uint8_t[len + 1];
     const char *source = str->c_str();
     
     for (int i = 0; i < len; i++) {
-        result[i] = source[len - 1 - i];
+        result[i] = static_cast<uint8_t>(source[len - 1 - i]);
     }
     result[len] = '\0';
     
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     return resultStr;
 }
@@ -857,13 +945,13 @@ String *String::fromInt(Int *value) {
     }
     
     // 反转字符串
-    char *result = new char[pos + 1];
+    uint8_t *result = new uint8_t[pos + 1];
     for (int i = 0; i < pos; i++) {
-        result[i] = buffer[pos - 1 - i];
+        result[i] = static_cast<uint8_t>(buffer[pos - 1 - i]);
     }
     result[pos] = '\0';
     
-    String *resultStr = new String(result);
+    String *resultStr = new String(reinterpret_cast<const char*>(result));
     delete[] result;
     return resultStr;
 }
@@ -1044,14 +1132,14 @@ String *String::fromCharCodes(Int **charCodes, Int *length) {
     if (!charCodes || !length) return new String("");
     
     int len = length->getInt();
-    char *buffer = new char[len + 1];
+    uint8_t *buffer = new uint8_t[len + 1];
     
     for (int i = 0; i < len; i++) {
-        buffer[i] = charCodes[i] ? (char)charCodes[i]->getInt() : '\0';
+        buffer[i] = charCodes[i] ? static_cast<uint8_t>(charCodes[i]->getInt()) : '\0';
     }
     buffer[len] = '\0';
     
-    String *result = new String(buffer);
+    String *result = new String(reinterpret_cast<const char*>(buffer));
     delete[] buffer;
     return result;
 }
@@ -1099,5 +1187,9 @@ String *String::interpolate(String *template_str, String **values, Int *count) {
 // ==================== cppNew 方法实现 ====================
 
 String *String::cppNew(const char *str) {
+    return new String(str);
+}
+
+String *String::cppNew(const uint8_t *str) {
     return new String(str);
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'collection.dart';
 
 /// 基础迭代器接口
+@pragma('cpp:patch', 'Iterator')
 abstract class CppIterator<E> implements Iterator<E> {
   /// 当前元素
   E get current;
@@ -11,7 +12,10 @@ abstract class CppIterator<E> implements Iterator<E> {
 }
 
 /// 基础可迭代对象接口
+@pragma('cpp:patch', 'Iterable')
 abstract class CppIterable<E> implements Iterable<E> {
+  const CppIterable();
+
   /// 获取迭代器
   Iterator<E> get iterator;
 
@@ -239,14 +243,31 @@ abstract class CppIterable<E> implements Iterable<E> {
   Iterable<T> cast<T>() {
     return CppCastIterable<E, T>(this);
   }
+
+  /// Iterable.empty()
+  static CppIterable<E> empty<E>() => _CppEmptyIterable<E>();
+
+  /// Iterable.generate()
+  static CppIterable<E> generate<E>(int count, E Function(int) generator) {
+    return _CppGenerateIterable<E>(count, generator);
+  }
+
+  /// Iterable.unmodifiable()
+  static CppIterable<E> unmodifiable<E>(Iterable<E> elements) {
+    return _CppUnmodifiableIterable<E>(elements.toList());
+  }
+
+  /// Iterable.castFrom()
+  static CppIterable<R> castFrom<S, R>(Iterable<S> source) {
+    return _CppCastFromIterable<S, R>(source);
+  }
 }
 
 /// 映射迭代器
 class CppMappedIterable<S, T> extends CppIterable<T> {
   final Iterable<S> _source;
   final T Function(S element) _f;
-
-  CppMappedIterable(this._source, this._f);
+  CppMappedIterable(this._source, this._f) : super();
 
   @override
   Iterator<T> get iterator => CppMappedIterator<S, T>(_source.iterator, _f);
@@ -279,8 +300,7 @@ class CppMappedIterator<S, T> extends CppIterator<T> {
 class CppWhereIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
   final bool Function(E element) _test;
-
-  CppWhereIterable(this._source, this._test);
+  CppWhereIterable(this._source, this._test) : super();
 
   @override
   Iterator<E> get iterator => CppWhereIterator<E>(_source.iterator, _test);
@@ -319,8 +339,7 @@ class CppWhereIterator<E> extends CppIterator<E> {
 /// 类型过滤迭代器
 class CppWhereTypeIterable<T> extends CppIterable<T> {
   final Iterable<dynamic> _source;
-
-  CppWhereTypeIterable(this._source);
+  CppWhereTypeIterable(this._source) : super();
 
   @override
   Iterator<T> get iterator => CppWhereTypeIterator<T>(_source.iterator);
@@ -359,8 +378,7 @@ class CppWhereTypeIterator<T> extends CppIterator<T> {
 class CppExpandIterable<S, T> extends CppIterable<T> {
   final Iterable<S> _source;
   final Iterable<T> Function(S element) _f;
-
-  CppExpandIterable(this._source, this._f);
+  CppExpandIterable(this._source, this._f) : super();
 
   @override
   Iterator<T> get iterator => CppExpandIterator<S, T>(_source.iterator, _f);
@@ -404,8 +422,7 @@ class CppExpandIterator<S, T> extends CppIterator<T> {
 class CppTakeIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
   final int _count;
-
-  CppTakeIterable(this._source, this._count);
+  CppTakeIterable(this._source, this._count) : super();
 
   @override
   Iterator<E> get iterator => CppTakeIterator<E>(_source.iterator, _count);
@@ -439,8 +456,7 @@ class CppTakeIterator<E> extends CppIterator<E> {
 class CppTakeWhileIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
   final bool Function(E value) _test;
-
-  CppTakeWhileIterable(this._source, this._test);
+  CppTakeWhileIterable(this._source, this._test) : super();
 
   @override
   Iterator<E> get iterator => CppTakeWhileIterator<E>(_source.iterator, _test);
@@ -483,8 +499,7 @@ class CppTakeWhileIterator<E> extends CppIterator<E> {
 class CppSkipIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
   final int _count;
-
-  CppSkipIterable(this._source, this._count);
+  CppSkipIterable(this._source, this._count) : super();
 
   @override
   Iterator<E> get iterator => CppSkipIterator<E>(_source.iterator, _count);
@@ -519,8 +534,7 @@ class CppSkipIterator<E> extends CppIterator<E> {
 class CppSkipWhileIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
   final bool Function(E value) _test;
-
-  CppSkipWhileIterable(this._source, this._test);
+  CppSkipWhileIterable(this._source, this._test) : super();
 
   @override
   Iterator<E> get iterator => CppSkipWhileIterator<E>(_source.iterator, _test);
@@ -564,8 +578,7 @@ class CppSkipWhileIterator<E> extends CppIterator<E> {
 /// 反转迭代器
 class CppReversedIterable<E> extends CppIterable<E> {
   final Iterable<E> _source;
-
-  CppReversedIterable(this._source);
+  CppReversedIterable(this._source) : super();
 
   @override
   Iterator<E> get iterator => CppReversedIterator<E>(_source);
@@ -599,8 +612,7 @@ class CppReversedIterator<E> extends CppIterator<E> {
 class CppFollowedByIterable<E> extends CppIterable<E> {
   final Iterable<E> _first;
   final Iterable<E> _second;
-
-  CppFollowedByIterable(this._first, this._second);
+  CppFollowedByIterable(this._first, this._second) : super();
 
   @override
   Iterator<E> get iterator =>
@@ -635,8 +647,7 @@ class CppFollowedByIterator<E> extends CppIterator<E> {
 /// 类型转换迭代器
 class CppCastIterable<S, T> extends CppIterable<T> {
   final Iterable<S> _source;
-
-  CppCastIterable(this._source);
+  CppCastIterable(this._source) : super();
 
   @override
   Iterator<T> get iterator => CppCastIterator<S, T>(_source.iterator);
@@ -653,6 +664,81 @@ class CppCastIterator<S, T> extends CppIterator<T> {
   @override
   T get current => _iterator.current as T;
 
+  @override
+  bool moveNext() => _iterator.moveNext();
+}
+
+/// 空迭代器实现
+class _CppEmptyIterable<E> extends CppIterable<E> {
+  _CppEmptyIterable() : super();
+  @override
+  Iterator<E> get iterator => _CppEmptyIterator<E>();
+  @override
+  int get length => 0;
+}
+
+class _CppEmptyIterator<E> extends CppIterator<E> {
+  _CppEmptyIterator() : super();
+  @override
+  E get current => throw StateError('No element');
+  @override
+  bool moveNext() => false;
+}
+
+/// 生成迭代器实现
+class _CppGenerateIterable<E> extends CppIterable<E> {
+  final int _count;
+  final E Function(int) _generator;
+  _CppGenerateIterable(this._count, this._generator) : super();
+  @override
+  Iterator<E> get iterator => _CppGenerateIterator<E>(_count, _generator);
+  @override
+  int get length => _count;
+}
+
+class _CppGenerateIterator<E> extends CppIterator<E> {
+  final int _count;
+  final E Function(int) _generator;
+  int _index = 0;
+  E? _current;
+  _CppGenerateIterator(this._count, this._generator) : super();
+  @override
+  E get current => _current as E;
+  @override
+  bool moveNext() {
+    if (_index < _count) {
+      _current = _generator(_index++);
+      return true;
+    }
+    return false;
+  }
+}
+
+/// 不可变迭代器实现
+class _CppUnmodifiableIterable<E> extends CppIterable<E> {
+  final List<E> _elements;
+  _CppUnmodifiableIterable(this._elements) : super();
+  @override
+  Iterator<E> get iterator => _elements.iterator;
+  @override
+  int get length => _elements.length;
+}
+
+/// 类型转换工厂实现
+class _CppCastFromIterable<S, R> extends CppIterable<R> {
+  final Iterable<S> _source;
+  _CppCastFromIterable(this._source) : super();
+  @override
+  Iterator<R> get iterator => _CppCastFromIterator<S, R>(_source.iterator);
+  @override
+  int get length => _source.length;
+}
+
+class _CppCastFromIterator<S, R> extends CppIterator<R> {
+  final Iterator<S> _iterator;
+  _CppCastFromIterator(this._iterator) : super();
+  @override
+  R get current => _iterator.current as R;
   @override
   bool moveNext() => _iterator.moveNext();
 }

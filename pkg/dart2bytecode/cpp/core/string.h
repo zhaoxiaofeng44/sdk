@@ -2,6 +2,7 @@
 #define _CORE_STRING_H_
 
 #include <cstddef> // 添加这个来定义 NULL
+#include <cstdint> // 添加这个来定义 uint8_t
 #include "object.h"
 
 // 前向声明
@@ -12,7 +13,7 @@ class Double;
 
 // 字符串池条目
 struct StringPoolEntry {
-    char *data;
+    uint8_t *data;
     int length;
     int refCount;
     bool inUse;
@@ -29,16 +30,19 @@ private:
 
     // 计算字符串长度
     static int getStringLength(const char *str);
+    static int getStringLength(const uint8_t *str);
 
     // 复制字符串
-    static char *copyString(const char *str, int length);
+    static uint8_t *copyString(const char *str, int length);
+    static uint8_t *copyString(const uint8_t *str, int length);
 
 public:
     // 简单的字符串比较函数 - 改为public
-    static bool stringEqual(const char *s1, const char *s2, int len1, int len2);
+    static bool stringEqual(const uint8_t *s1, const uint8_t *s2, int len1, int len2);
 
     // 获取或创建字符串池条目
     static StringPoolEntry *intern(const char *str);
+    static StringPoolEntry *intern(const uint8_t *str);
 
     // 释放引用
     static void release(StringPoolEntry *entry);
@@ -56,11 +60,13 @@ private:
 public:
     String();
     String(const char *str);
+    String(const uint8_t *str);
     String(const String &other);
     ~String();
 
     String &operator=(const String &other);
     String &operator=(const char *str);
+    String &operator=(const uint8_t *str);
 
     const char *c_str() const;
     int length() const;
@@ -71,6 +77,9 @@ public:
 
     // 获取引用计数
     int getRefCount() const;
+
+    // 转换为 UTF-8 编码数组
+    uint8_t* toUnit8Code() const;
 
     static Type* cppGet_runtimeType(Object* a);   // runtimeType getter
     static String* toString(Object* obj);  // 获取字符串表示
@@ -164,6 +173,7 @@ public:
     static String *interpolate(String *template_str, String **values, Int *count); // 字符串插值
 
     static String *cppNew(const char *str);
+    static String *cppNew(const uint8_t *str);
 };
 
 

@@ -5,9 +5,8 @@
 #include <map>
 #include "num.h"
 #include "string.h"
-
-// 定义全局null变量
-Null null;
+#include "func.h"
+#include "api.h"
 
 // 自定义字符串比较函数，避免使用strcmp
 static bool stringEqual(const char* s1, const char* s2) {
@@ -48,7 +47,7 @@ String* Object::toString(Object* obj) {
   return new String(buffer);
 }
 
-Int* Object::hashCode(Object* obj) {
+Int* Object::cppGet_hashCode(Object* obj) {
   // 默认实现：使用对象地址作为哈希
   return new Int(reinterpret_cast<intptr_t>(obj));
 }
@@ -67,7 +66,7 @@ Object* Object::noSuchMethod(Object* obj,
 
 // ==================== ObjectImp类实现 ====================
 ObjectImp::ObjectImp(Type* type, std::map<String*, void*>* ptrs)
-    : runtimeType(type), ptrs(ptrs), metas(new std::map<String*, Object*>()) {}
+    : runtimeType(type), ptrs(ptrs), metas(new std::map<String*, void*>()) {}
 
 ObjectImp::~ObjectImp() {
   delete metas;
@@ -84,7 +83,8 @@ Object* ObjectImp::cppNew() {
       {String::cppNew("cpp_equals"),
        reinterpret_cast<void*>(&Object::cpp_equals)},
       {String::cppNew("toString"), reinterpret_cast<void*>(&Object::toString)},
-      {String::cppNew("hashCode"), reinterpret_cast<void*>(&Object::hashCode)},
+      {String::cppNew("cppGet_hashCode"),
+       reinterpret_cast<void*>(&Object::cppGet_hashCode)},
       {String::cppNew("noSuchMethod"),
        reinterpret_cast<void*>(&Object::noSuchMethod)}};
   Object* ptr = new ObjectImp(Type::getObjectType(), &v_ptrs);
@@ -184,23 +184,5 @@ String* cppToString(Object* obj) {
   return String::cppNew("null");
 }
 
-template <typename T>
-T CppSet(Object* obj, String* name, void* value) {
-  // 简化实现：暂时忽略name参数，直接设置第一个位置
-  reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name) = value;
-  return reinterpret_cast<T>(value);
-}
 
-template <typename T>
-T* CppGet(Object* obj, String* name) {
-  // 简化实现：暂时忽略name参数，直接返回第一个位置
-  return reinterpret_cast<T>(
-      reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name));
-}
 
-template <typename R, typename... Args>
-static R cppApply(Object* thisPtr, String* name, Args... args) {
-  void* ptr = reinterpret_cast<ObjectImp*>(thisPtr)->ptrs->operator[](name);
-  if (!ptr) return nullptr;
-  return reinterpret_cast<R (*)(Args...)>(ptr)(args...);
-}

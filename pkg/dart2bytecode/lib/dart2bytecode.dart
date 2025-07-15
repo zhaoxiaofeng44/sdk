@@ -100,7 +100,7 @@ ${_argParser.usage}
 Future<void> main(List<String> arguments) async {
   arguments = [
     "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
-    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/test/hello.dart"
+    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/hello.dart"
   ];
   io.exitCode = await runCompiler(_argParser.parse(arguments));
 }

@@ -1,7 +1,8 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra
 
-CORE_SRCS = core/object.cpp core/string.cpp core/num.cpp core/array.cpp output.cpp
+CORE_SRCS = core/object.cpp core/string.cpp core/num.cpp core/math.cpp core/func.cpp core/api.cpp output.cpp
+CORE_OBJS = $(CORE_SRCS:.cpp=.o)
 
 .PHONY: all clean test
 

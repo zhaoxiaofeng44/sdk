@@ -22,20 +22,32 @@ void print2String(String text) {
   buffer.write(text + "\n");
 }
 
+bool isInterfaceClass(Class cls) {
+  const cppClassNames = [
+    // "List",
+    // "Map",
+    // "Set",
+    // "Iterable",
+    // "Iterator",
+    // "StackTrace"
+  ];
+  return cppClassNames.contains(cls.name);
+}
+
 bool isHideClass(Class cls) {
   const cppClassNames = [
-    "List",
-    "Map",
-    "Set",
-    "Iterable",
-    "Iterator",
-    "StackTrace",
-    "UnmodifiableMapView",
-    "Random",
+    // "List",
+    // "Map",
+    // "Set",
+    // "Iterable",
+    // "Iterator",
+    //"StackTrace",
+    //"UnmodifiableMapView",
+    // "Random",
     "MapEntry",
     // "ListIterator",
     // "FollowedByIterable",
-    "StringBuffer",
+    //"StringBuffer",
     // "WhereTypeIterable",
     // "MappedListIterable",
     // "WhereIterable",
@@ -46,6 +58,9 @@ bool isHideClass(Class cls) {
     "checkNotNullable",
     "Sort",
     "Comparable",
+    "IndexError",
+    "ArgumentError",
+    "StateError",
     // "EfficientLengthIterable",
     //"TakeIterable",
     "RangeError",
@@ -66,7 +81,10 @@ bool isHideClass(Class cls) {
     }
   }
 
-  if (cls.name == "CppArray") {
+  if (cls.name == "CppArray" ||
+      cls.name == "CppPointerArray" ||
+      cls.name == "CppByteArray" ||
+      cls.name == "CppApi") {
     return true;
   }
   return false;
@@ -113,11 +131,21 @@ final Map<String, String> typeNames = {
   "double": "Double",
   "bool": "Bool",
   "String": "String",
-  "List": "List",
-  "Map": "Map",
-  "Set": "Set",
+  // "List": "List",
+  // "Map": "Map",
+  // "Set": "Set",
   "_Set": "CppSet",
-  "UnmodifiableMapView": "CppWasmMap"
+  "LinkedHashSet": "CppSet",
+  "_List": "CppList",
+  "UnmodifiableMapView": "CppWasmMap",
+  "List": "CppList",
+  "Map": "CppMap",
+  "Set": "CppSet",
+  "Iterable": "CppIterable",
+  "Iterator": "CppIterator",
+  "Error": "CppError",
+  "StackTrace": "CppStackTrace",
+  "StringBuffer": "CppStringBuffer",
 };
 
 final Map<String, String> specialNames = {
@@ -292,11 +320,11 @@ class CppCodePrinter {
 #include <cstdlib>
 #include <sstream>
 #include <map>
-#include "./core/array.h"
 #include "./core/func.h"
 #include "./core/num.h"
 #include "./core/string.h"
 #include "./core/api.h"
+#include "./core/math.h"
 
 void print(Object* obj) {
   if (obj) {
@@ -352,8 +380,37 @@ Bool* checkNotNullable(T count, String* name) {
     return typeString;
   }
 
-  String toEncodeString(String str) {
-    return str.replaceAll("\"", "\\\"");
+  String toUnit8Array(String str) {
+    List<int> utf8Bytes = [];
+
+    for (int codeUnit in str.codeUnits) {
+      // 将 UTF-16 代码单元转换为 UTF-8 字节
+      if (codeUnit < 0x80) {
+        // ASCII 字符，直接添加
+        utf8Bytes.add(codeUnit);
+      } else if (codeUnit < 0x800) {
+        // 2字节 UTF-8
+        utf8Bytes.add(0xC0 | (codeUnit >> 6));
+        utf8Bytes.add(0x80 | (codeUnit & 0x3F));
+      } else if (codeUnit < 0x10000) {
+        // 3字节 UTF-8
+        utf8Bytes.add(0xE0 | (codeUnit >> 12));
+        utf8Bytes.add(0x80 | ((codeUnit >> 6) & 0x3F));
+        utf8Bytes.add(0x80 | (codeUnit & 0x3F));
+      } else {
+        // 4字节 UTF-8 (代理对)
+        utf8Bytes.add(0xF0 | (codeUnit >> 18));
+        utf8Bytes.add(0x80 | ((codeUnit >> 12) & 0x3F));
+        utf8Bytes.add(0x80 | ((codeUnit >> 6) & 0x3F));
+        utf8Bytes.add(0x80 | (codeUnit & 0x3F));
+      }
+    }
+
+    // 添加字符串结束符
+    utf8Bytes.add(0);
+
+    // 转换为 C++ 数组格式的字符串
+    return "new uint8_t[${utf8Bytes.length}] {${utf8Bytes.join(', ')}}";
   }
 
   // 获取类声明类型名称
@@ -440,11 +497,18 @@ Bool* checkNotNullable(T count, String* name) {
       print2String(_toString(constructor, true, true));
     }
     for (var procedure in cls.procedures) {
+      if (isInterfaceClass(cls)) {
+        if (!(procedure.isStatic || procedure.isFactory)) {
+          continue;
+        }
+      }
       if (!procedure.isAbstract) {
         print2String(_toString(procedure, true, true));
       }
     }
-    print2String("static Object* cppNew();");
+    if (!cls.isAbstract) {
+      print2String("static Object* cppNew();");
+    }
 
     print2String("};");
   }
@@ -469,12 +533,31 @@ Bool* checkNotNullable(T count, String* name) {
       }
     }
 
+    if (isHideClass(cls)) {
+      return;
+    }
     _printClassDeclarationHeader(map, cls);
   }
 
   // 打印类声明实现
   void _printClassDeclaration(Map<Class, List<ClassMember>> map, Class cls) {
     // Print class declaration with inheritance
+    var typeString = _getClassDeclareTypeParameters(cls);
+    var className = getClassTypeName(cls);
+    var classTypeName = _getClassDeclareType(cls);
+    for (var field in cls.fields) {
+      if (field.isStatic) {
+        print2String(
+            "${_getVariableDeclareType(field.type)} $className::${field.name.text}");
+        print2String(" = ");
+        if (field.initializer != null) {
+          print2String(_toString(field.initializer!, false, false));
+        } else {
+          print2String("nullptr");
+        }
+        print2String(";");
+      }
+    }
 
     for (var constructor in cls.constructors) {
       print2String(_toString(constructor, false, isImplement));
@@ -489,16 +572,19 @@ Bool* checkNotNullable(T count, String* name) {
     var list = map[cls];
     for (var procedure in list!) {
       if (procedure.member is Procedure) {
+        if (isInterfaceClass(cls)) {
+          if (!((procedure.member as Procedure).isStatic ||
+              (procedure.member as Procedure).isFactory)) {
+            continue;
+          }
+        }
+
         if ((procedure.member as Procedure).isStatic) {
           continue;
         }
         memberList.add(procedure);
       }
     }
-
-    var typeString = _getClassDeclareTypeParameters(cls);
-    var className = getClassTypeName(cls);
-    var classTypeName = _getClassDeclareType(cls);
 
 //     var cppNewStr = '''
 //   $typeString $classTypeName $className::cppNew() {
@@ -510,12 +596,14 @@ Bool* checkNotNullable(T count, String* name) {
 //         return ptr;
 //     }
 // ''';
-    var ptrs = memberList
-        .map((e) =>
-            "{String::cppNew(\"${toEncodeString(e.name)}\"),reinterpret_cast<void*>(&${getClassTypeName(e.member.enclosingClass!)}::${e.name})}")
-        .join(",");
 
-    var cppNewStr = '''
+    if (!cls.isAbstract) {
+      var ptrs = memberList
+          .map((e) =>
+              "{String::cppNew(\"${(e.name)}\"),reinterpret_cast<void*>(&${getClassTypeName(e.member.enclosingClass!)}::${e.name})}")
+          .join(",");
+
+      var cppNewStr = '''
     Object* $className::cppNew() {
 
       static std::map<String*, void*> v_ptrs = {${ptrs}};
@@ -525,7 +613,8 @@ Bool* checkNotNullable(T count, String* name) {
       return ptr;
     }
 ''';
-    print2String(cppNewStr);
+      print2String(cppNewStr);
+    }
   }
 
   // 获取类成员列表
@@ -571,8 +660,12 @@ Bool* checkNotNullable(T count, String* name) {
     List<ClassMember> superList = [];
     if (cls.name == "Object") {
       for (var procedure in cls.procedures) {
-        if (procedure.name.text == "toString") {
-          _replaceOrAddMembersList(superList, procedure);
+        if (procedure.name.text == "hashCode" ||
+            procedure.name.text == "toString" ||
+            procedure.name.text == "runtimeType" ||
+            procedure.name.text == "noSuchMethod" ||
+            procedure.name.text == "==") {
+          _replaceOrAddMembersList(superList, procedure, false);
         }
       }
     } else {
@@ -580,21 +673,21 @@ Bool* checkNotNullable(T count, String* name) {
         superList = [..._getClassMembersList(map, cls.superclass!)];
       }
       for (var constructor in cls.constructors) {
-        _replaceOrAddMembersList(superList, constructor);
+        _replaceOrAddMembersList(superList, constructor, false);
       }
       for (var procedure in cls.procedures) {
         if (procedure.isStatic || procedure.isAbstract) {
           continue;
         }
         if (procedure.name.text != "_typeArguments") {
-          _replaceOrAddMembersList(superList, procedure);
+          _replaceOrAddMembersList(superList, procedure, false);
         }
       }
 
       for (var i = 0; i < cls.implementedTypes.length; i++) {
         var interface = cls.implementedTypes[i];
         for (var member in interface.classNode.procedures) {
-          _replaceOrAddMembersList(superList, member);
+          _replaceOrAddMembersList(superList, member, true);
         }
       }
     }
@@ -623,11 +716,14 @@ Bool* checkNotNullable(T count, String* name) {
     return false;
   }
 
-  void _replaceOrAddMembersList(List<ClassMember> list, Member member) {
+  void _replaceOrAddMembersList(
+      List<ClassMember> list, Member member, bool isImplement) {
     var name = getMemberName(member);
     for (var i = 0; i < list.length; i++) {
       if (list[i].name == name) {
-        list[i] = ClassMember(member, i);
+        if (!isImplement) {
+          list[i] = ClassMember(member, i);
+        }
         return;
       }
     }
@@ -653,7 +749,7 @@ Bool* checkNotNullable(T count, String* name) {
       //return "FunctionApply<${_getVariableDeclareType(type.returnType)},${parameters.join(", ")}>";
       return "Function";
     } else if (type is DynamicType) {
-      return "void*";
+      return "Object";
     } else if (type is FutureOrType) {
       return _getVariableType(type.typeArgument);
     } else if (type is NeverType) {
@@ -793,7 +889,10 @@ Bool* checkNotNullable(T count, String* name) {
         cls.name == "int" ||
         cls.name == "double" ||
         cls.name == "String" ||
-        cls.name == "bool") {
+        cls.name == "bool" ||
+        cls.name == "CppPointerArray" ||
+        cls.name == "CppByteArray" ||
+        cls.name == "CppApi") {
       return true;
     }
     return false;
@@ -920,14 +1019,16 @@ Bool* checkNotNullable(T count, String* name) {
     write("${_getVariableDeclareType(function.returnType)} $className::$name");
     writeParametersList(function,
         ownerClassType: procedure.isStatic ? "" : "Object*");
-    if (function.body is Block) {
-      writeStatement(function.body!);
-    } else {
-      write("{");
-      if (function.body != null) {
+    {
+      if (function.body is Block) {
         writeStatement(function.body!);
+      } else {
+        write("{");
+        if (function.body != null) {
+          writeStatement(function.body!);
+        }
+        write("}");
       }
-      write("}");
     }
   }
 
@@ -972,11 +1073,11 @@ Bool* checkNotNullable(T count, String* name) {
     if (constructor.initializers.isNotEmpty) {
       for (var initializer in constructor.initializers) {
         if (initializer is FieldInitializer) {
-          write('CppSet<Object*>(');
+          var type = _getVariableDeclareType(initializer.field.type);
+          write('CppObjectSet<$type>(');
           write('cppThis');
           write(',');
-          write(
-              'String::cppNew(\"${toEncodeString(initializer.field.name.text)}\")');
+          write('String::cppNew(\"${(initializer.field.name.text)}\")');
           write(',');
           writeExpression(initializer.value);
           write(')');
@@ -1058,10 +1159,14 @@ Bool* checkNotNullable(T count, String* name) {
       writeExpression(statement.expression);
       write(';');
     } else if (statement is ReturnStatement) {
-      write('return');
-      if (statement.expression != null) {
-        write(' ');
+      if (statement.expression is Throw) {
         writeExpression(statement.expression!);
+      } else {
+        write('return');
+        if (statement.expression != null) {
+          write(' ');
+          writeExpression(statement.expression!);
+        }
       }
       write(';');
     } else if (statement is IfStatement) {
@@ -1082,11 +1187,18 @@ Bool* checkNotNullable(T count, String* name) {
       write('continue');
       write(';');
     } else if (statement is VariableDeclaration) {
-      write('${_getVariableDeclareType(statement.type)} ');
-      write(getVariableName(statement));
-      if (statement.initializer != null) {
-        write(' = ');
-        writeExpression(statement.initializer!);
+      var varType = _getVariableDeclareType(statement.type);
+      if (varType == "void") {
+        if (statement.initializer != null) {
+          writeExpression(statement.initializer!);
+        }
+      } else {
+        write('${varType} ');
+        write(getVariableName(statement));
+        if (statement.initializer != null) {
+          write(' = ');
+          writeExpression(statement.initializer!);
+        }
       }
       write(';');
     } else if (statement is WhileStatement) {
@@ -1203,7 +1315,6 @@ Bool* checkNotNullable(T count, String* name) {
       writeStatement(expression.variable);
       writeArgumentsList(
           expression.localFunction.function, expression.arguments);
-    } else if (expression is StaticGet) {
     } else if (expression is FunctionInvocation) {
       if (expression.functionType != null) {
         // write(
@@ -1253,7 +1364,7 @@ Bool* checkNotNullable(T count, String* name) {
       write(")");
     } else if (expression is StringLiteral) {
       write("String::cppNew(");
-      write('"${toEncodeString(expression.value)}"');
+      write("${toUnit8Array(expression.value)}");
       write(")");
     } else if (expression is BoolLiteral) {
       write("Bool::cppNew(");
@@ -1279,7 +1390,7 @@ Bool* checkNotNullable(T count, String* name) {
         write("cppApply<${_getVariableDeclareType(expression.resultType)}>(");
         writeExpression(expression.receiver);
         write(",");
-        write("String::cppNew(\"${toEncodeString(memberName)}\")");
+        write("String::cppNew(\"${(memberName)}\")");
         write(")");
         // writeInstanceTypeBefore(
         //     (expression.interfaceTarget as Procedure).function.returnType,
@@ -1298,10 +1409,10 @@ Bool* checkNotNullable(T count, String* name) {
         // write(expression.name.text);
 
         var str = _getVariableDeclareType(expression.resultType);
-        write("CppGet<${str}>(");
+        write("CppObjectGet<${str}>(");
         writeExpression(expression.receiver);
         write(",");
-        write("String::cppNew(\"${toEncodeString(expression.name.text)}\")");
+        write("String::cppNew(\"${(expression.name.text)}\")");
         write(")");
       }
     } else if (expression is InstanceSet) {
@@ -1326,17 +1437,16 @@ Bool* checkNotNullable(T count, String* name) {
           write("(");
           writeExpression(expression.receiver);
           write(",");
-          write("String::cppNew(\"${toEncodeString(memberName)}\")");
+          write("String::cppNew(\"${(memberName)}\")");
           write(",");
           writeExpression(expression.value);
           write(")");
         }
       } else {
-        write(
-            "CppSet<${_getReceiverType(expression.receiver, expression.interfaceTarget)}*>(");
+        write("CppObjectSet<${_getReceiverType(expression.value, null)}*>(");
         writeExpression(expression.receiver);
         write(",");
-        write('String::cppNew(\"${toEncodeString(expression.name.text)}\")');
+        write('String::cppNew(\"${(expression.name.text)}\")');
         write(",");
         writeExpression(expression.value);
         write(")");
@@ -1397,7 +1507,7 @@ Bool* checkNotNullable(T count, String* name) {
             expression.functionType, expression.arguments,
             skipType: true,
             prefix: expression.receiver,
-            prefixStr: "String::cppNew(\"${toEncodeString(memberName)}\")");
+            prefixStr: "String::cppNew(\"${(memberName)}\")");
       }
 
       // writeInstanceTypeBefore(expression.interfaceTarget.function.returnType,
@@ -1419,11 +1529,25 @@ Bool* checkNotNullable(T count, String* name) {
       // writeInstanceTypeEnd(expression.interfaceTarget.function.returnType,
       //     expression.functionType.returnType);
     } else if (expression is StaticGet) {
-      write(expression.target.name.text);
+      var className = getClassTypeName(expression.target.enclosingClass!);
+      var memberName = getMemberName(expression.target);
+      if (expression.target is Procedure) {
+        write("$className::${memberName}()");
+      } else {
+        write("$className::${memberName}");
+      }
     } else if (expression is StaticSet) {
-      write(expression.target.name.text);
-      write(" = ");
-      writeExpression(expression.value);
+      var className = getClassTypeName(expression.target.enclosingClass!);
+      var memberName = getMemberName(expression.target);
+      if (expression.target is Procedure) {
+        write("$className::${memberName}(");
+        writeExpression(expression.value);
+        write(")");
+      } else {
+        write("$className::${expression.target.name.text}");
+        write(" = ");
+        writeExpression(expression.value);
+      }
     } else if (expression is EqualsCall) {
       write("Object::cpp_equals(");
       writeExpression(expression.left);
@@ -1457,6 +1581,16 @@ Bool* checkNotNullable(T count, String* name) {
       writeExpression(expression.value);
       write(';}()');
     } else if (expression is Let) {
+      // bool isRootLet = true;
+      // TreeNode? exp = expression.parent;
+      // while (exp != null) {
+      //   if (exp is Let) {
+      //     isRootLet = false;
+      //     break;
+      //   }
+      //   exp = exp.parent;
+      // }
+
       var varName = getVariableName(expression.variable);
       write('([&](){');
       var statement = expression.body;
@@ -1467,9 +1601,12 @@ Bool* checkNotNullable(T count, String* name) {
         }
         write("return ${varName};");
       } else {
-        write('return ');
-        writeExpression(statement);
-        write(';');
+        var varType = _getVariableDeclareType(expression.variable.type);
+        if (varType != "void") {
+          write('return ');
+          writeExpression(statement);
+          write(';');
+        }
       }
       write('})()');
 
@@ -1569,9 +1706,11 @@ Bool* checkNotNullable(T count, String* name) {
         write(getMemberInvokeName(procedure));
         write("()");
       } else {
+        write("CppObjectGet<Object*>(");
         write("cppThis");
-        write("->");
-        write(expression.name.text);
+        write(",");
+        write("String::cppNew(\"${(expression.name.text)}\")");
+        write(")");
       }
     } else if (expression is SuperPropertySet) {
       if (expression.interfaceTarget is Procedure) {
@@ -1581,16 +1720,27 @@ Bool* checkNotNullable(T count, String* name) {
         writeExpression(expression.value);
         write(")");
       } else {
+        var receiverType =
+            _getReceiverType(expression.value, expression.interfaceTarget);
+        write("CppObjectSet<$receiverType*>(");
         write("cppThis");
-        write("->");
-        write(expression.name.text);
-        write(" = ");
+        write(",");
+        write("String::cppNew(\"${(expression.name.text)}\")");
+        write(",");
         writeExpression(expression.value);
+        write(")");
       }
     } else if (expression is SuperMethodInvocation) {
       write(getMemberInvokeName(expression.interfaceTarget));
       writeArgumentsList(
           expression.interfaceTarget.function, expression.arguments);
+    } else if (expression is DynamicGet) {
+      //var str = _getVariableDeclareType(expression.resultType);
+      write("CppObjectGet<Object*>(");
+      writeExpression(expression.receiver);
+      write(",");
+      write("String::cppNew(\"${(expression.name.text)}\")");
+      write(")");
     } else {
       // Handle other expression types
       print2String('Unhandled expression type: ${expression.runtimeType}');
@@ -1598,12 +1748,16 @@ Bool* checkNotNullable(T count, String* name) {
   }
 
   void writeParametersList(FunctionNode function,
-      {String ownerClassType = ""}) {
+      {String ownerClassType = "", bool skipType = false}) {
     write('(');
     bool first = true;
     if (ownerClassType.isNotEmpty) {
       first = false;
-      write("$ownerClassType cppThis");
+      if (skipType) {
+        write("cppThis");
+      } else {
+        write("$ownerClassType cppThis");
+      }
     }
     var positionalParameters = function.positionalParameters;
     for (var i = 0; i < positionalParameters.length; i++) {
@@ -1612,8 +1766,10 @@ Bool* checkNotNullable(T count, String* name) {
       }
       first = false;
       var parameter = positionalParameters[i];
-      write(_getVariableDeclareType(parameter.type));
-      write(" ");
+      if (!skipType) {
+        write(_getVariableDeclareType(parameter.type));
+        write(" ");
+      }
       write(parameter.name!);
     }
 
@@ -1624,8 +1780,10 @@ Bool* checkNotNullable(T count, String* name) {
       }
       first = false;
       var namedParameter = namedArguments[i];
-      write(_getVariableDeclareType(namedParameter.type));
-      write(" ");
+      if (!skipType) {
+        write(_getVariableDeclareType(namedParameter.type));
+        write(" ");
+      }
       write(namedParameter.name!);
     }
     write(')');
@@ -1767,7 +1925,7 @@ Bool* checkNotNullable(T count, String* name) {
     } else if (c is BoolConstant) {
       return "Bool::cppNew(${c.value})";
     } else if (c is StringConstant) {
-      return 'String::cppNew("${toEncodeString(c.value)}")';
+      return 'String::cppNew("${toUnit8Array(c.value)}")';
     } else if (c is NullConstant) {
       return "nullptr";
     }
