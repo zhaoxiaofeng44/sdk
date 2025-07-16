@@ -43,7 +43,9 @@
              reinterpret_cast<Object**>(                                       \
                  new Object* [PP_NARG(__VA_ARGS__)] { __VA_ARGS__ })))
 
-class CppPointerArray {
+
+class CppUserData : public Object {};
+class CppPointerArray : public CppUserData {
  public:
   int length;
   Object** data;
@@ -54,7 +56,7 @@ class CppPointerArray {
   ~CppPointerArray() { delete[] data; }
 };
 
-class CppByteArray {
+class CppByteArray : public CppUserData {
  public:
   int length;
   uint8_t* data;
@@ -67,26 +69,25 @@ class CppByteArray {
 
 class CppApi {
  public:
-  static CppPointerArray* cppCreatePointerArray(Int* length);
+  static CppUserData* cppCreatePointerArray(Int* length);
 
-  static Int* cppGetPointerArrayLength(CppPointerArray* array);
+  static Int* cppGetPointerArrayLength(CppUserData* array);
 
-  static Object* cppGetPointerArrayItem(CppPointerArray* array, Int* index);
+  static Object* cppGetPointerArrayItem(CppUserData* array, Int* index);
 
-  static void cppSetPointerArrayItem(CppPointerArray* array,
+  static void cppSetPointerArrayItem(CppUserData* array,
                                      Int* index,
                                      Object* value);
 
-  static CppByteArray* cppCreateByteArray(Int* length);
+  static CppUserData* cppCreateByteArray(Int* length);
 
-  static Int* cppGetByteArrayLength(CppByteArray* array);
+  static Int* cppGetByteArrayLength(CppUserData* array);
 
-  static Int* cppGetByteArrayItem(CppByteArray* array, Int* index);
+  static Int* cppGetByteArrayItem(CppUserData* array, Int* index);
 
-  static void cppSetByteArrayItem(CppByteArray* array, Int* index, Int* value);
+  static void cppSetByteArrayItem(CppUserData* array, Int* index, Int* value);
 
-  static String* cppJoinListString(CppPointerArray* array,
-                                   String* separator);
+  static String* cppJoinListString(CppUserData* array, String* separator);
 
   static bool cppBoolValue(Bool* value);
 
@@ -94,5 +95,23 @@ class CppApi {
 
   static String* getCurrentStackTrace();
 };
+
+
+// 前向声明
+template <typename T>
+T CppObjectSet(Object* obj, String* name, Object* value) {
+  reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name) = value;
+  return reinterpret_cast<T>(value);
+}
+
+template <typename T>
+T CppObjectGet(Object* obj, String* name) {
+  return reinterpret_cast<T>(
+      reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name));
+}
+
+template <typename R, typename... Args>
+static R cppApply(Object* thisPtr, String* name, Args... args);
+
 
 #endif

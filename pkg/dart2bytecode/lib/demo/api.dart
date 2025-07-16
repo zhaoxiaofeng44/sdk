@@ -1,45 +1,42 @@
-@pragma('cpp:native', 'CppPointerArray')
-class CppPointerArray {}
-
-@pragma('cpp:native', 'CppByteArray')
-class CppByteArray {}
+@pragma('cpp:native', 'CppUserData')
+class CppUserData {}
 
 @pragma('cpp:native', 'CppApi')
 class CppApi {
-  static CppPointerArray cppCreatePointerArray(int length) {
+  static CppUserData cppCreatePointerArray(int length) {
     throw UnimplementedError();
   }
 
-  static int cppGetPointerArrayLength(CppPointerArray array) {
+  static int cppGetPointerArrayLength(CppUserData array) {
     throw UnimplementedError();
   }
 
-  static Object? cppGetPointerArrayItem(CppPointerArray array, int index) {
+  static Object? cppGetPointerArrayItem(CppUserData array, int index) {
     throw UnimplementedError();
   }
 
   static void cppSetPointerArrayItem(
-      CppPointerArray array, int index, Object? value) {
+      CppUserData array, int index, Object? value) {
     throw UnimplementedError();
   }
 
-  static CppByteArray cppCreateByteArray(int length) {
+  static CppUserData cppCreateByteArray(int length) {
     throw UnimplementedError();
   }
 
-  static int cppGetByteArrayLength(CppByteArray array) {
+  static int cppGetByteArrayLength(CppUserData array) {
     throw UnimplementedError();
   }
 
-  static int cppGetByteArrayItem(CppByteArray array, int index) {
+  static int cppGetByteArrayItem(CppUserData array, int index) {
     throw UnimplementedError();
   }
 
-  static int cppSetByteArrayItem(CppByteArray array, int index, int value) {
+  static int cppSetByteArrayItem(CppUserData array, int index, int value) {
     throw UnimplementedError();
   }
 
-  static String cppJoinListString(CppPointerArray array, String separator) {
+  static String cppJoinListString(CppUserData array, String separator) {
     throw UnimplementedError();
   }
 

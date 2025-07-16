@@ -1,6 +1,3 @@
-#ifndef OUTPUT_H
-#define OUTPUT_H
-
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -11,7 +8,7 @@
 #include "./core/num.h"
 #include "./core/string.h"
 
-inline void print(Object* obj) {
+void print(Object* obj) {
   if (obj) {
     // String* str = obj->toString();
     // printf("%s", str->c_str());
@@ -21,7 +18,7 @@ inline void print(Object* obj) {
   }
 }
 
-inline void print(String* str) {
+void print(String* str) {
   if (str) {
     printf("%s", str->c_str());
   } else {
@@ -29,24 +26,14 @@ inline void print(String* str) {
   }
 }
 
-inline void print(char* str) {
+void print(char* str) {
   if (str) {
     printf("%s", str);
   }
 }
 
-class Uint16List;
-
-inline Int* _getSuggestCapacity(int length) {
-  return Int::cppNew(length);
-}
-
-inline Int* _getSuggestCapacity(Int* length) {
-  return length;
-}
-
 template <typename T>
-inline Bool* checkNotNullable(T count, String* name) {
+Bool* checkNotNullable(T count, String* name) {
   if (count == nullptr) {
     throw "error";
   }
@@ -175,7 +162,7 @@ class CppIterable {
 };
 class CppList {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppUserData* array);
 
   static Object* cppCtr_(Object* cppThis, Int* length, Int* capacity);
 
@@ -341,7 +328,7 @@ class _CppListIterator {
 //  library package:dart2bytecode/demo/collection.dart
 class CppSet {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppUserData* array);
 
   static Object* cppCtr_(Object* cppThis, Int* capacity);
 
@@ -410,7 +397,7 @@ class CppSet {
 //  library package:dart2bytecode/demo/collection.dart
 class CppMap {
  public:
-  static Object* cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array);
+  static Object* cppCtr_fromCppArray(Object* cppThis, CppUserData* array);
 
   static Object* cppCtr_(Object* cppThis, Int* capacity);
 
@@ -1087,5 +1074,3 @@ class MapEntry {
 
   static Object* cppNew();
 };
-
-#endif

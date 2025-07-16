@@ -1,17 +1,17 @@
 #include "./output.h"
 //  library package:dart2bytecode/demo/collection.dart
-Object* CppList::cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array) {
+Object* CppList::cppCtr_fromCppArray(Object* cppThis, CppUserData* array) {
   CppObjectSet<Int*>(cppThis, String::cppNew("_length"),
                      CppApi::cppGetPointerArrayLength(array));
-  CppObjectSet<CppPointerArray*>(cppThis, String::cppNew("_array"), array);
+  CppObjectSet<CppUserData*>(cppThis, String::cppNew("_array"), array);
 
   return cppThis;
 }
 
 Object* CppList::cppCtr_(Object* cppThis, Int* length, Int* capacity) {
   CppObjectSet<Int*>(cppThis, String::cppNew("_length"), length);
-  CppObjectSet<CppPointerArray*>(cppThis, String::cppNew("_array"),
-                                 CppApi::cppCreatePointerArray(length));
+  CppObjectSet<CppUserData*>(cppThis, String::cppNew("_array"),
+                             CppApi::cppCreatePointerArray(length));
 
   return cppThis;
 }
@@ -25,7 +25,7 @@ Object* CppList::empty(Bool* growable) {
 }
 
 Object* CppList::filled(Int* length, Object* fill, Bool* growable) {
-  CppPointerArray* array = CppApi::cppCreatePointerArray(length);
+  CppUserData* array = CppApi::cppCreatePointerArray(length);
   {
     Int* i = Int::cppNew(0);
     while (CppApi::cppBoolValue(Num::cpp_lessThan(i, length))) {
@@ -38,7 +38,7 @@ Object* CppList::filled(Int* length, Object* fill, Bool* growable) {
 
 Object* CppList::from(Object* elements, Bool* growable) {
   Int* length = cppApply<Int*>(elements, String::cppNew("cppGet_length"));
-  CppPointerArray* array =
+  CppUserData* array =
       CppApi::cppBoolValue(growable)
           ? CppApi::cppCreatePointerArray(length)
           : CppApi::cppCreatePointerArray(CppList::_getSuggestCapacity(length));
@@ -75,7 +75,7 @@ Object* CppList::of(Object* elements, Bool* growable) {
 }
 
 Object* CppList::generate(Int* length, Function* generator, Bool* growable) {
-  CppPointerArray* array =
+  CppUserData* array =
       CppApi::cppBoolValue(growable)
           ? CppApi::cppCreatePointerArray(length)
           : CppApi::cppCreatePointerArray(CppList::_getSuggestCapacity(length));
@@ -94,7 +94,7 @@ Object* CppList::generate(Int* length, Function* generator, Bool* growable) {
 
 Object* CppList::unmodifiable(Object* elements) {
   Int* length = cppApply<Int*>(elements, String::cppNew("cppGet_length"));
-  CppPointerArray* array = CppApi::cppCreatePointerArray(length);
+  CppUserData* array = CppApi::cppCreatePointerArray(length);
   Int* i = Int::cppNew(0);
   {
     Object* $sync_for_iterator =
@@ -137,28 +137,26 @@ Int* CppList::cppGet_length(Object* cppThis) {
 
 void CppList::ensureCapacity(Object* cppThis, Int* newLen) {
   if (CppApi::cppBoolValue(Num::cpp_greaterThan(
-          newLen,
-          CppApi::cppGetPointerArrayLength(CppObjectGet<CppPointerArray*>(
-              cppThis, String::cppNew("_array")))))) {
-    CppPointerArray* newArray =
+          newLen, CppApi::cppGetPointerArrayLength(CppObjectGet<CppUserData*>(
+                      cppThis, String::cppNew("_array")))))) {
+    CppUserData* newArray =
         CppApi::cppCreatePointerArray(CppList::_getSuggestCapacity(newLen));
     {
       Int* i = Int::cppNew(0);
       while (CppApi::cppBoolValue(Num::cpp_lessThan(
-          i, CppApi::cppGetPointerArrayLength(CppObjectGet<CppPointerArray*>(
+          i, CppApi::cppGetPointerArrayLength(CppObjectGet<CppUserData*>(
                  cppThis, String::cppNew("_array")))))) {
         {
           CppApi::cppSetPointerArrayItem(
               newArray, i,
               CppApi::cppGetPointerArrayItem(
-                  CppObjectGet<CppPointerArray*>(cppThis,
-                                                 String::cppNew("_array")),
+                  CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                   i));
         }
         i = Num::cpp_add(i, Int::cppNew(1));
       }
     }
-    CppObjectSet<CppPointerArray*>(cppThis, String::cppNew("_array"), newArray);
+    CppObjectSet<CppUserData*>(cppThis, String::cppNew("_array"), newArray);
   }
 }
 
@@ -169,13 +167,12 @@ void CppList::cppSet_length(Object* cppThis, Int* newLen) {
 
 Object* CppList::cpp_subscript(Object* cppThis, Int* index) {
   return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-      index));
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), index));
 }
 
 void CppList::cpp_subscriptAssign(Object* cppThis, Int* index, Object* value) {
   return CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), index,
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), index,
       value);
 }
 
@@ -185,8 +182,7 @@ void CppList::add(Object* cppThis, Object* value) {
       Num::cpp_add(CppObjectGet<Int*>(cppThis, String::cppNew("_length")),
                    Int::cppNew(1)));
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-      ([&]() {
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), ([&]() {
         Int* cppLet_0 = CppObjectGet<Int*>(cppThis, String::cppNew("_length"));
         return ([&]() {
           Int* cppLet_0 =
@@ -223,8 +219,8 @@ Bool* CppList::any(Object* cppThis, Function* test) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i)))))
           return Bool::cppNew(true);
       }
@@ -244,8 +240,7 @@ Object* CppList::asMap(Object* cppThis) {
         cppApply<void, Int*, Object*>(
             map, String::cppNew("cpp_subscriptAssign"), i,
             reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 i)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -315,7 +310,7 @@ Bool* CppList::contains(Object* cppThis, Object* element) {
       {
         if (CppApi::cppBoolValue(
                 Object::cpp_equals(CppApi::cppGetPointerArrayItem(
-                                       CppObjectGet<CppPointerArray*>(
+                                       CppObjectGet<CppUserData*>(
                                            cppThis, String::cppNew("_array")),
                                        i),
                                    element)))
@@ -329,8 +324,7 @@ Bool* CppList::contains(Object* cppThis, Object* element) {
 
 Object* CppList::elementAt(Object* cppThis, Int* index) {
   return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-      index));
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), index));
 }
 
 Bool* CppList::every(Object* cppThis, Function* test) {
@@ -341,8 +335,8 @@ Bool* CppList::every(Object* cppThis, Function* test) {
       {
         if (CppApi::cppBoolValue(Bool::cpp_not(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i))))))
           return Bool::cppNew(false);
       }
@@ -361,8 +355,8 @@ void CppList::fillRange(Object* cppThis,
     while (CppApi::cppBoolValue(Num::cpp_lessThan(i, end))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i, ([&]() {
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
+            ([&]() {
               Object* cppLet_0 = fillValue;
               return CppApi::cppBoolValue(Bool::cppNew(cppLet_0 == nullptr))
                          ? reinterpret_cast<Object*>(cppLet_0)
@@ -382,11 +376,11 @@ Object* CppList::firstWhere(Object* cppThis, Function* test, Function* orElse) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i))))) {
           return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-              CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+              CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
               i));
         }
       }
@@ -410,8 +404,7 @@ Object* CppList::fold(Object* cppThis,
         value = cppApply<Object*>(
             combine, value,
             reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 i)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -426,11 +419,11 @@ void CppList::forEach(Object* cppThis, Function* action) {
     while (CppApi::cppBoolValue(Num::cpp_lessThan(
         i, CppObjectGet<Int*>(cppThis, String::cppNew("_length"))))) {
       {
-        cppApply<void>(action,
-                       reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                           CppObjectGet<CppPointerArray*>(
-                               cppThis, String::cppNew("_array")),
-                           i)));
+        cppApply<void>(
+            action,
+            reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
+                i)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
     }
@@ -443,8 +436,7 @@ Object* CppList::getRange(Object* cppThis, Int* start, Int* end) {
           Num::cpp_subtract(end, start),
           new LambdaWrapper<Object*, Int*>([&](Int* i) -> Object* {
             return CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 Num::cpp_add(start, i));
           })),
       Bool::cppNew(true));
@@ -458,7 +450,7 @@ Int* CppList::indexOf(Object* cppThis, Object* element, Int* start) {
       {
         if (CppApi::cppBoolValue(
                 Object::cpp_equals(CppApi::cppGetPointerArrayItem(
-                                       CppObjectGet<CppPointerArray*>(
+                                       CppObjectGet<CppUserData*>(
                                            cppThis, String::cppNew("_array")),
                                        i),
                                    element)))
@@ -478,8 +470,8 @@ Int* CppList::indexWhere(Object* cppThis, Function* test, Int* start) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i)))))
           return i;
       }
@@ -504,18 +496,16 @@ void CppList::insert(Object* cppThis, Int* index, Object* element) {
     while (CppApi::cppBoolValue(Num::cpp_greaterThan(i, index))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i,
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
             CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 Num::cpp_subtract(i, Int::cppNew(1))));
       }
       i = Num::cpp_subtract(i, Int::cppNew(1));
     }
   }
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), index,
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), index,
       element);
   CppObjectSet<Int*>(
       cppThis, String::cppNew("_length"),
@@ -544,11 +534,10 @@ void CppList::insertAll(Object* cppThis, Int* index, Object* iterable) {
     while (CppApi::cppBoolValue(Num::cpp_greaterThanOrEqual(i, index))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
             Num::cpp_add(i, insertLength),
             CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 i));
       }
       i = Num::cpp_subtract(i, Int::cppNew(1));
@@ -559,7 +548,7 @@ void CppList::insertAll(Object* cppThis, Int* index, Object* iterable) {
     while (CppApi::cppBoolValue(Num::cpp_lessThan(i, insertLength))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
             Num::cpp_add(index, i),
             cppApply<Object*, Int*>(elements, String::cppNew("cpp_subscript"),
                                     i));
@@ -579,7 +568,7 @@ Object* CppList::cppGet_first(Object* cppThis) {
           Int::cppNew(0))))
     throw "ConstructorInvocation(new StateError(No element))";
   return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Int::cppNew(0)));
 }
 
@@ -589,7 +578,7 @@ void CppList::cppSet_first(Object* cppThis, Object* value) {
           Int::cppNew(0))))
     throw "ConstructorInvocation(new StateError(No element))";
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Int::cppNew(0), value);
 }
 
@@ -599,7 +588,7 @@ Object* CppList::cppGet_last(Object* cppThis) {
           Int::cppNew(0))))
     throw "ConstructorInvocation(new StateError(No element))";
   return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Num::cpp_subtract(CppObjectGet<Int*>(cppThis, String::cppNew("_length")),
                         Int::cppNew(1))));
 }
@@ -610,7 +599,7 @@ void CppList::cppSet_last(Object* cppThis, Object* value) {
           Int::cppNew(0))))
     throw "ConstructorInvocation(new StateError(No element))";
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Num::cpp_subtract(CppObjectGet<Int*>(cppThis, String::cppNew("_length")),
                         Int::cppNew(1)),
       value);
@@ -626,7 +615,7 @@ Object* CppList::cppGet_single(Object* cppThis) {
           Int::cppNew(1))))
     throw "ConstructorInvocation(new StateError(Too many elements))";
   return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Int::cppNew(0)));
 }
 
@@ -650,8 +639,7 @@ String* CppList::join(Object* cppThis, String* separator) {
           Int::cppNew(0))))
     return String::cppNew(new uint8_t[1]{0});
   return CppApi::cppJoinListString(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-      separator);
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), separator);
 }
 
 Int* CppList::lastIndexOf(Object* cppThis, Object* element, Int* start) {
@@ -670,7 +658,7 @@ Int* CppList::lastIndexOf(Object* cppThis, Object* element, Int* start) {
       {
         if (CppApi::cppBoolValue(
                 Object::cpp_equals(CppApi::cppGetPointerArrayItem(
-                                       CppObjectGet<CppPointerArray*>(
+                                       CppObjectGet<CppUserData*>(
                                            cppThis, String::cppNew("_array")),
                                        i),
                                    element)))
@@ -698,8 +686,8 @@ Int* CppList::lastIndexWhere(Object* cppThis, Function* test, Int* start) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i)))))
           return i;
       }
@@ -718,11 +706,11 @@ Object* CppList::lastWhere(Object* cppThis, Function* test, Function* orElse) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i))))) {
           return reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-              CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+              CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
               i));
         }
       }
@@ -740,7 +728,7 @@ Object* CppList::reduce(Object* cppThis, Function* combine) {
           Int::cppNew(0))))
     throw "ConstructorInvocation(new StateError(No element))";
   Object* value = reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
       Int::cppNew(0)));
   {
     Int* i = Int::cppNew(1);
@@ -750,8 +738,7 @@ Object* CppList::reduce(Object* cppThis, Function* combine) {
         value = cppApply<Object*>(
             combine, value,
             reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 i)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -779,7 +766,7 @@ Object* CppList::removeAt(Object* cppThis, Int* index) {
               index, CppObjectGet<Int*>(cppThis, String::cppNew("_length"))))))
     throw "ConstructorInvocation(new IndexError(index, this))";
   Object* element = CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), index);
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), index);
   {
     Int* i = index;
     while (CppApi::cppBoolValue(Num::cpp_lessThan(
@@ -788,11 +775,9 @@ Object* CppList::removeAt(Object* cppThis, Int* index) {
                Int::cppNew(1))))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i,
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
             CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 Num::cpp_add(i, Int::cppNew(1))));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -839,11 +824,9 @@ void CppList::removeRange(Object* cppThis, Int* start, Int* end) {
             CppObjectGet<Int*>(cppThis, String::cppNew("_length")), length)))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i,
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
             CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 Num::cpp_add(i, length)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -864,18 +847,17 @@ void CppList::removeWhere(Object* cppThis, Function* test) {
       {
         if (CppApi::cppBoolValue(Bool::cpp_not(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           readIndex)))))) {
           if (CppApi::cppBoolValue(
                   Bool::cpp_not(Object::cpp_equals(writeIndex, readIndex)))) {
             CppApi::cppSetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 writeIndex,
                 CppApi::cppGetPointerArrayItem(
-                    CppObjectGet<CppPointerArray*>(cppThis,
-                                                   String::cppNew("_array")),
+                    CppObjectGet<CppUserData*>(cppThis,
+                                               String::cppNew("_array")),
                     readIndex));
           }
           writeIndex = Num::cpp_add(writeIndex, Int::cppNew(1));
@@ -927,12 +909,11 @@ void CppList::replaceRange(Object* cppThis,
       while (CppApi::cppBoolValue(Num::cpp_greaterThanOrEqual(i, end))) {
         {
           CppApi::cppSetPointerArrayItem(
-              CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+              CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
               Num::cpp_subtract(Num::cpp_add(i, replacementLength),
                                 rangeLength),
               CppApi::cppGetPointerArrayItem(
-                  CppObjectGet<CppPointerArray*>(cppThis,
-                                                 String::cppNew("_array")),
+                  CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                   i));
         }
         i = Num::cpp_subtract(i, Int::cppNew(1));
@@ -944,7 +925,7 @@ void CppList::replaceRange(Object* cppThis,
     while (CppApi::cppBoolValue(Num::cpp_lessThan(i, replacementLength))) {
       {
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
             Num::cpp_add(start, i),
             cppApply<Object*, Int*>(replacementList,
                                     String::cppNew("cpp_subscript"), i));
@@ -967,18 +948,17 @@ void CppList::retainWhere(Object* cppThis, Function* test) {
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           readIndex))))) {
           if (CppApi::cppBoolValue(
                   Bool::cpp_not(Object::cpp_equals(writeIndex, readIndex)))) {
             CppApi::cppSetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 writeIndex,
                 CppApi::cppGetPointerArrayItem(
-                    CppObjectGet<CppPointerArray*>(cppThis,
-                                                   String::cppNew("_array")),
+                    CppObjectGet<CppUserData*>(cppThis,
+                                               String::cppNew("_array")),
                     readIndex));
           }
           writeIndex = Num::cpp_add(writeIndex, Int::cppNew(1));
@@ -1013,8 +993,7 @@ void CppList::setAll(Object* cppThis, Int* index, Object* iterable) {
               cppApply<void, Object*>(cppThis, String::cppNew("add"), element);
             } else {
               CppApi::cppSetPointerArrayItem(
-                  CppObjectGet<CppPointerArray*>(cppThis,
-                                                 String::cppNew("_array")),
+                  CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                   i, element);
             }
             i = Num::cpp_add(i, Int::cppNew(1));
@@ -1065,8 +1044,8 @@ void CppList::setRange(Object* cppThis,
                 cppApply<Bool*>(iterator, String::cppNew("moveNext")))))
           break;
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i, cppApply<Object*>(iterator, String::cppNew("cppGet_current")));
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
+            cppApply<Object*>(iterator, String::cppNew("cppGet_current")));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
     }
@@ -1085,18 +1064,15 @@ void CppList::shuffle(Object* cppThis, Object* random) {
         Int* j = cppApply<Int*, Int*>(random, String::cppNew("nextInt"),
                                       Num::cpp_add(i, Int::cppNew(1)));
         Object* temp = CppApi::cppGetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i);
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i);
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            i,
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
             CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 j));
         CppApi::cppSetPointerArrayItem(
-            CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-            j, temp);
+            CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), j,
+            temp);
       }
       i = Num::cpp_subtract(i, Int::cppNew(1));
     }
@@ -1136,7 +1112,7 @@ Int* CppList::_partition(Object* cppThis,
                          Int* high,
                          Function* compare) {
   Object* pivot = reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), high));
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), high));
   Int* i = Num::cpp_subtract(low, Int::cppNew(1));
   {
     Int* j = low;
@@ -1144,8 +1120,7 @@ Int* CppList::_partition(Object* cppThis,
       {
         Object* current =
             reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 j));
         Bool* shouldSwap;
         if (CppApi::cppBoolValue(
@@ -1173,15 +1148,13 @@ Int* CppList::_partition(Object* cppThis,
 
 void CppList::_swap(Object* cppThis, Int* i, Int* j) {
   Object* temp = reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), i));
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i));
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), i,
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), i,
       CppApi::cppGetPointerArrayItem(
-          CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
-          j));
+          CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), j));
   CppApi::cppSetPointerArrayItem(
-      CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")), j,
-      temp);
+      CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")), j, temp);
 }
 
 Object* CppList::sublist(Object* cppThis, Int* start, Int* end) {
@@ -1210,8 +1183,7 @@ Object* CppList::sublist(Object* cppThis, Int* start, Int* end) {
           Num::cpp_subtract(endIndex, start),
           new LambdaWrapper<Object*, Int*>([&](Int* i) -> Object* {
             return CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 Num::cpp_add(start, i));
           })),
       Bool::cppNew(true));
@@ -1237,13 +1209,13 @@ Object* CppList::singleWhere(Object* cppThis,
       {
         if (CppApi::cppBoolValue(cppApply<Bool*>(
                 test, reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                          CppObjectGet<CppPointerArray*>(
-                              cppThis, String::cppNew("_array")),
+                          CppObjectGet<CppUserData*>(cppThis,
+                                                     String::cppNew("_array")),
                           i))))) {
           if (CppApi::cppBoolValue(found))
             throw "ConstructorInvocation(new StateError(Too many elements))";
           result = reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-              CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+              CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
               i));
           found = Bool::cppNew(true);
         }
@@ -1270,8 +1242,7 @@ Object* CppList::cpp_add(Object* cppThis, Object* other) {
         cppApply<void, Object*>(
             result, String::cppNew("add"),
             reinterpret_cast<Object*>(CppApi::cppGetPointerArrayItem(
-                CppObjectGet<CppPointerArray*>(cppThis,
-                                               String::cppNew("_array")),
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
                 i)));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
@@ -1304,7 +1275,7 @@ String* CppList::toString(Object* cppThis) {
   cppApply<void, Object*>(
       buffer, String::cppNew("write"),
       CppApi::cppGetPointerArrayItem(
-          CppObjectGet<CppPointerArray*>(cppThis, String::cppNew("_array")),
+          CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
           Int::cppNew(0)));
   {
     Int* i = Int::cppNew(1);
@@ -1313,11 +1284,11 @@ String* CppList::toString(Object* cppThis) {
       {
         cppApply<void, Object*>(buffer, String::cppNew("write"),
                                 String::cppNew(new uint8_t[3]{44, 32, 0}));
-        cppApply<void, Object*>(buffer, String::cppNew("write"),
-                                CppApi::cppGetPointerArrayItem(
-                                    CppObjectGet<CppPointerArray*>(
-                                        cppThis, String::cppNew("_array")),
-                                    i));
+        cppApply<void, Object*>(
+            buffer, String::cppNew("write"),
+            CppApi::cppGetPointerArrayItem(
+                CppObjectGet<CppUserData*>(cppThis, String::cppNew("_array")),
+                i));
       }
       i = Num::cpp_add(i, Int::cppNew(1));
     }
@@ -1488,7 +1459,7 @@ Object* _CppListIterator::cppNew() {
 }
 
 //  library package:dart2bytecode/demo/collection.dart
-Object* CppSet::cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array) {
+Object* CppSet::cppCtr_fromCppArray(Object* cppThis, CppUserData* array) {
   CppObjectSet<Object*>(cppThis, String::cppNew("_list"),
                         CppList::cppCtr_fromCppArray(CppList::cppNew(), array));
 
@@ -1986,7 +1957,7 @@ Object* CppSet::cppNew() {
 }
 
 //  library package:dart2bytecode/demo/collection.dart
-Object* CppMap::cppCtr_fromCppArray(Object* cppThis, CppPointerArray* array) {
+Object* CppMap::cppCtr_fromCppArray(Object* cppThis, CppUserData* array) {
   CppObjectSet<Object*>(cppThis, String::cppNew("_list"),
                         CppList::cppCtr_fromCppArray(CppList::cppNew(), array));
 

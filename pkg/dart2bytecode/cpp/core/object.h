@@ -35,7 +35,7 @@ class ObjectImp : public Object {
  public:
   std::map<String*, void*>* ptrs;
   Type* runtimeType;
-  std::map<String*, void*>* metas;
+  std::map<String*, Object*>* metas;
   ObjectImp(Type* type, std::map<String*, void*>* ptrs);
 
   virtual ~ObjectImp();
@@ -67,26 +67,7 @@ class Type : public Object {
   static Type* getNullType();
 };
 
-// 前向声明
-class Function;
-class CppPointerArray;
-
-template <typename T>
-T CppObjectSet(Object* obj, String* name, void* value) {
-  reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name) = value;
-  return reinterpret_cast<T>(value);
-}
-
-template <typename T>
-T CppObjectGet(Object* obj, String* name) {
-  return reinterpret_cast<T>(
-      reinterpret_cast<ObjectImp*>(obj)->metas->operator[](name));
-}
 
 
-
-
-template <typename R, typename... Args>
-static R cppApply(Object* thisPtr, String* name, Args... args);
 
 #endif

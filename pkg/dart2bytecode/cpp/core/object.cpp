@@ -66,7 +66,7 @@ Object* Object::noSuchMethod(Object* obj,
 
 // ==================== ObjectImp类实现 ====================
 ObjectImp::ObjectImp(Type* type, std::map<String*, void*>* ptrs)
-    : runtimeType(type), ptrs(ptrs), metas(new std::map<String*, void*>()) {}
+    : runtimeType(type), ptrs(ptrs), metas(new std::map<String*, Object*>()) {}
 
 ObjectImp::~ObjectImp() {
   delete metas;

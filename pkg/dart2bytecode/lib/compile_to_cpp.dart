@@ -82,8 +82,7 @@ bool isHideClass(Class cls) {
   }
 
   if (cls.name == "CppArray" ||
-      cls.name == "CppPointerArray" ||
-      cls.name == "CppByteArray" ||
+      cls.name == "CppUserData" ||
       cls.name == "CppApi") {
     return true;
   }
@@ -276,7 +275,6 @@ class CppCodePrinter {
       print2String("//  " + cls.enclosingLibrary.toStringInternal());
       _deepPrintClassDeclarationHeader(classSet, classMap, cls);
     }
-
     try {
       // 写入头文件
       final headerFile = File('./cpp/output.h');
@@ -890,8 +888,7 @@ Bool* checkNotNullable(T count, String* name) {
         cls.name == "double" ||
         cls.name == "String" ||
         cls.name == "bool" ||
-        cls.name == "CppPointerArray" ||
-        cls.name == "CppByteArray" ||
+        cls.name == "CppUserData" ||
         cls.name == "CppApi") {
       return true;
     }

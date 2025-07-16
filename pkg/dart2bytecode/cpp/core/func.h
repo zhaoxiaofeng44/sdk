@@ -1,10 +1,10 @@
 #ifndef _FUNC_H_
 #define _FUNC_H_
 
-#include "object.h"
 #include <any>
 #include <functional>
 #include <tuple>
+#include "object.h"
 
 // 前向声明
 class ProcedureFunc;
@@ -13,92 +13,80 @@ class ProcedureWrapper;
 class Function;
 
 class Function : public Object {
-public:
-    enum Type { Normal,
-                Procedure,
-                Closure,
-                Unkown,
-                Lambda };
-    virtual Type getType() const = 0;
+ public:
+  enum Type { Normal, Procedure, Closure, Unkown, Lambda };
+  virtual Type getType() const = 0;
 };
 
 template <typename R, typename... Args>
 class FunctionApply : public Function {
-
-    virtual R operator()(Args... args) const = 0;
+  virtual R operator()(Args... args) const = 0;
 };
 
 // 过程函数：绑定了this指针的成员函数
 template <typename ThisPtr, typename R, typename... Args>
 class ProcedureWrapper : public FunctionApply<R, Args...> {
+  ThisPtr* owner;
+  int index;
 
-    ThisPtr *owner;
-    int index;
+ public:
+  ProcedureWrapper(ThisPtr t, int i) : owner(t), index(i) {}
 
-public:
-    ProcedureWrapper(ThisPtr t, int i) : owner(t), index(i) {}
+  virtual ~ProcedureWrapper() = default;
 
-    virtual ~ProcedureWrapper() = default;
+  virtual Function::Type getType() const { return Function::Type::Procedure; }
 
-    virtual Function::Type getType() const { return Function::Type::Procedure; }
-
-    virtual R operator()(Args... args) const {
-        return reinterpret_cast<R (*)(ThisPtr, Args...)>(owner->vtab[index])(
-            reinterpret_cast<ThisPtr>(owner), args...);
-    }
+  virtual R operator()(Args... args) const {
+    return reinterpret_cast<R (*)(ThisPtr, Args...)>(owner->vtab[index])(
+        reinterpret_cast<ThisPtr>(owner), args...);
+  }
 };
 
 // 闭包函数：带捕获变量的函数
 template <typename R, typename... Args>
 class ClosureWrapper : public FunctionApply<R, Args...> {
-  
-    Object **array;
-    int length;
-    R (*ptr)(Args...);
+  Object** array;
+  int length;
+  R (*ptr)(Args...);
 
-public:
-    ClosureWrapper(Object **array, int length, R (*ptr)(Args...))
-        : array(array), length(length), ptr(ptr) {}
+ public:
+  ClosureWrapper(Object** array, int length, R (*ptr)(Args...))
+      : array(array), length(length), ptr(ptr) {}
 
-    virtual ~ClosureWrapper() = default;
+  virtual ~ClosureWrapper() = default;
 
-    virtual Function::Type getType() const { return Function::Type::Closure; }
+  virtual Function::Type getType() const { return Function::Type::Closure; }
 
-    virtual R operator()(Args... args) const { return ptr(args...); }
+  virtual R operator()(Args... args) const { return ptr(args...); }
 };
 
 template <typename R, typename... Args>
 class FunctionWrapper : public FunctionApply<R, Args...> {
-    R (*ptr)(Args...);
+  R (*ptr)(Args...);
 
-public:
-    FunctionWrapper(R (*ptr)(Args...)) : ptr(ptr) {}
+ public:
+  FunctionWrapper(R (*ptr)(Args...)) : ptr(ptr) {}
 
-    virtual ~FunctionWrapper() = default;
+  virtual ~FunctionWrapper() = default;
 
-    virtual Function::Type getType() const { return Function::Type::Normal; }
+  virtual Function::Type getType() const { return Function::Type::Normal; }
 
-    virtual R operator()(Args... args) const { return ptr(args...); }
+  virtual R operator()(Args... args) const { return ptr(args...); }
 };
 
 template <typename R, typename... Args>
 class LambdaWrapper : public FunctionApply<R, Args...> {
-    std::function<R(Args...)> func;
-public:
-    LambdaWrapper(std::function<R(Args...)> func) : func(func) {}
+  std::function<R(Args...)> func;
 
-    virtual ~LambdaWrapper() = default;
+ public:
+  LambdaWrapper(std::function<R(Args...)> func) : func(func) {}
 
-    virtual Function::Type getType() const { return Function::Type::Lambda; }
+  virtual ~LambdaWrapper() = default;
 
-    virtual R operator()(Args... args) const { return func(args...); }
+  virtual Function::Type getType() const { return Function::Type::Lambda; }
+
+  virtual R operator()(Args... args) const { return func(args...); }
 };
-
-
-
-
-
-
 
 // template <typename R, typename... Args>
 // static R cppApply(Function *wrapper, Args... args) {
@@ -109,13 +97,10 @@ public:
 //     return func(args...);
 // }
 
-
-
 // template <typename R, typename... Args>
 // static R cppApply(R(*func)(Args... args),Args... args) {
 //     return func(args...);
 // }
-
 
 // template <typename ThisPtr, typename R, typename... Args>
 // static R cppApply(ThisPtr *thisPtr, int index, Args... args) {
@@ -123,30 +108,36 @@ public:
 //     return wrapper(args...);
 // }
 
-
-
-
 template <typename R, typename... Args>
-static R cppApply(Function *wrapper, Args... args) {
-    if constexpr(std::is_void<R>::value) {
-        // void时什么都不返回
-        return;
-    } else {
-        return nullptr; // 或者 return R{};
-    }
+inline static R cppApply(Function* wrapper, Args... args) {
+  if constexpr (std::is_void<R>::value) {
+    // void时什么都不返回
+    reinterpret_cast<FunctionApply<R, Args...>*>(wrapper)()(args...);
+    return;
+  } else {
+    return reinterpret_cast<FunctionApply<R, Args...>*>(wrapper)()(
+        args...);  // 或者 return R{};
+  }
 }
 
-
 template <typename R, typename... Args>
-static R cppApply(Object *thisPtr, String* name, Args... args) {
-
-    if constexpr(std::is_void<R>::value) {
-        // void时什么都不返回
-        return;
-    } else {
-        return nullptr; // 或者 return R{};
+inline static R cppApply(Object* thisPtr, String* name, Args... args) {
+  using FuncType = R (*)(Object*, Args...);
+  FuncType func;
+  ObjectImp* objImp = reinterpret_cast<ObjectImp*>(thisPtr);
+  if (objImp && objImp->ptrs) {
+    // 调用成员函数
+    auto it = objImp->ptrs->find(name);
+    if (it != objImp->ptrs->end()) {
+      func = reinterpret_cast<FuncType>(it->second);
     }
+  }
+  if constexpr (std::is_void<R>::value) {
+    // void时什么都不返回
+    func(thisPtr, args...);
+  } else {
+    return func(thisPtr, args...);
+  }
 }
 
-
-#endif // _FUNC_H_
+#endif  // _FUNC_H_

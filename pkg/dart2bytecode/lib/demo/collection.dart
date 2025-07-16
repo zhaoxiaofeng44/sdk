@@ -7,10 +7,10 @@ import 'Iterable.dart';
 @pragma('cpp:patch', 'List')
 class CppList<E> extends CppIterable<E> implements List<E> {
   int _length;
-  CppPointerArray _array;
+  CppUserData _array;
 
   @pragma('wasm:entry-point')
-  CppList.fromCppArray(CppPointerArray array)
+  CppList.fromCppArray(CppUserData array)
       : _length = CppApi.cppGetPointerArrayLength(array),
         _array = array;
 
@@ -630,8 +630,7 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   final CppList<E> _list;
 
   @pragma('wasm:entry-point')
-  CppSet.fromCppArray(CppPointerArray array)
-      : _list = CppList.fromCppArray(array);
+  CppSet.fromCppArray(CppUserData array) : _list = CppList.fromCppArray(array);
 
   CppSet([int capacity = 4]) : _list = CppList(0, capacity);
 
@@ -844,8 +843,7 @@ class CppMap<K, V> implements Map<K, V> {
   final CppList<MapEntry<K, V>> _list;
 
   @pragma('wasm:entry-point')
-  CppMap.fromCppArray(CppPointerArray array)
-      : _list = CppList.fromCppArray(array);
+  CppMap.fromCppArray(CppUserData array) : _list = CppList.fromCppArray(array);
 
   CppMap([int capacity = 4]) : _list = CppList(0, capacity);
 
