@@ -89,6 +89,30 @@ bool isHideClass(Class cls) {
   return false;
 }
 
+bool isHideStaticMember(Member member) {
+  const cppClassNames = [
+    "print",
+  ];
+
+  if (member.enclosingLibrary.fileUri.scheme == "org-dartlang-sdk") {
+    if (!cppClassNames.contains(member.name.text)) {
+      return true;
+    }
+  }
+  print(member.enclosingLibrary.fileUri.scheme);
+  var libraryName = member.enclosingLibrary.toStringInternal();
+  if (libraryName.startsWith("vm") ||
+      libraryName.startsWith("dart") ||
+      libraryName.startsWith("library dart") ||
+      libraryName.contains("cpp_collection") ||
+      libraryName.contains("cpp_string")) {
+    if (!cppClassNames.contains(member.name.text)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void printTranslator(Component component) {
   var printer = CppCodePrinter();
   printer.translateComponent(component);
@@ -182,7 +206,8 @@ final Map<String, String> specialNames = {
   '[]=': 'cpp_subscriptAssign', // 设置索引元素
 
   //特殊函数名
-  'union': "cpp_union"
+  'union': "cpp_union",
+  "print": "CppApi::print",
 };
 
 String getClassName(Class classInfo) {
@@ -252,8 +277,12 @@ class CppCodePrinter {
     _printCppHeader();
 
     var classList = <Class>[];
+    var fieldList = <Field>[];
+    var procedureList = <Procedure>[];
     for (final library in component.libraries) {
       classList.addAll(library.classes);
+      fieldList.addAll(library.fields);
+      procedureList.addAll(library.procedures);
     }
 
     // 打印前置声明
@@ -262,6 +291,20 @@ class CppCodePrinter {
         continue;
       }
       print2String("${_getClassDeclareTypeName(cls)};");
+    }
+
+    for (final field in fieldList) {
+      if (!isHideStaticMember(field)) {
+        print2String(
+            "${_getVariableDeclareType(field.type)} ${field.name.text}");
+        print2String(";");
+      }
+    }
+
+    for (final procedure in procedureList) {
+      if (!isHideStaticMember(procedure)) {
+        print2String(_toString(procedure, true, true));
+      }
     }
 
     _getClassInfoList(_classInfoMap, classList);
@@ -287,6 +330,25 @@ class CppCodePrinter {
     buffer.clear();
 
     print2String('#include "./output.h"');
+
+    for (final field in fieldList) {
+      if (!isHideStaticMember(field)) {
+        print2String(
+            "${_getVariableDeclareType(field.type)} ${field.name.text}");
+        print2String(" = ");
+        if (field.initializer != null) {
+          print2String(_toString(field.initializer!, false, false) + ";");
+        } else {
+          print2String("nullptr;");
+        }
+      }
+    }
+
+    for (final procedure in procedureList) {
+      if (!isHideStaticMember(procedure)) {
+        print2String(_toString(procedure, false, false));
+      }
+    }
 
     // 打印类实现
     for (final cls in classList) {
@@ -822,10 +884,6 @@ Bool* checkNotNullable(T count, String* name) {
     return "${_getVariableDeclareType(field.type)} ${field.name.text}";
   }
 
-  String _getVariableDeclaration(VariableDeclaration variableDeclaration) {
-    return "${_getVariableDeclareType(variableDeclaration.type)} ${variableDeclaration.name}";
-  }
-
   String _toString(TreeNode statement, bool isHeader, bool isImplement) {
     if (statement is Constructor) {
       return (CppCodePrinter()
@@ -970,7 +1028,9 @@ Bool* checkNotNullable(T count, String* name) {
   void writeMemberFunctionDeclaration(Procedure procedure) {
     FunctionNode function = procedure.function;
     String name = getMemberName(procedure);
-    var className = getClassTypeName(procedure.enclosingClass!);
+    var className = procedure.enclosingClass == null
+        ? ""
+        : getClassTypeName(procedure.enclosingClass!);
 
     var (cppAnnotationKey, cppAnnotationValue) =
         getAnnotationValue(procedure.annotations);
@@ -1013,7 +1073,8 @@ Bool* checkNotNullable(T count, String* name) {
 
     // var typeString = _getClassDeclareTypeParameters(procedure.enclosingClass!);
 
-    write("${_getVariableDeclareType(function.returnType)} $className::$name");
+    write(
+        "${_getVariableDeclareType(function.returnType)} ${className.isNotEmpty ? "$className::" : ""}$name");
     writeParametersList(function,
         ownerClassType: procedure.isStatic ? "" : "Object*");
     {
@@ -1526,24 +1587,44 @@ Bool* checkNotNullable(T count, String* name) {
       // writeInstanceTypeEnd(expression.interfaceTarget.function.returnType,
       //     expression.functionType.returnType);
     } else if (expression is StaticGet) {
-      var className = getClassTypeName(expression.target.enclosingClass!);
       var memberName = getMemberName(expression.target);
-      if (expression.target is Procedure) {
-        write("$className::${memberName}()");
+      if (expression.target.enclosingClass != null) {
+        var className = getClassTypeName(expression.target.enclosingClass!);
+        if (expression.target is Procedure) {
+          write("$className::${memberName}()");
+        } else {
+          write("$className::${memberName}");
+        }
       } else {
-        write("$className::${memberName}");
+        if (expression.target is Procedure) {
+          write("${memberName}()");
+        } else {
+          write("${memberName}");
+        }
       }
     } else if (expression is StaticSet) {
-      var className = getClassTypeName(expression.target.enclosingClass!);
       var memberName = getMemberName(expression.target);
-      if (expression.target is Procedure) {
-        write("$className::${memberName}(");
-        writeExpression(expression.value);
-        write(")");
+      if (expression.target.enclosingClass != null) {
+        var className = getClassTypeName(expression.target.enclosingClass!);
+        if (expression.target is Procedure) {
+          write("$className::${memberName}(");
+          writeExpression(expression.value);
+          write(")");
+        } else {
+          write("$className::${expression.target.name.text}");
+          write(" = ");
+          writeExpression(expression.value);
+        }
       } else {
-        write("$className::${expression.target.name.text}");
-        write(" = ");
-        writeExpression(expression.value);
+        if (expression.target is Procedure) {
+          write("${memberName}(");
+          writeExpression(expression.value);
+          write(")");
+        } else {
+          write("${expression.target.name.text}");
+          write(" = ");
+          writeExpression(expression.value);
+        }
       }
     } else if (expression is EqualsCall) {
       write("Object::cpp_equals(");

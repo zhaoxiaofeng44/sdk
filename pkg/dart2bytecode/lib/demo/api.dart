@@ -47,4 +47,8 @@ class CppApi {
   static String getCurrentStackTrace() {
     throw UnimplementedError();
   }
+
+  static void print(Object? object) {
+    throw UnimplementedError();
+  }
 }
