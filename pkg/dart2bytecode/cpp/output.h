@@ -34,14 +34,6 @@ void cpp_print(char* str) {
 
 class Uint16List;
 
-Int* _getSuggestCapacity(int length) {
-  return Int::cppNew(length);
-}
-
-Int* _getSuggestCapacity(Int* length) {
-  return length;
-}
-
 template <typename T>
 Bool* checkNotNullable(T count, String* name) {
   if (count == nullptr) {
