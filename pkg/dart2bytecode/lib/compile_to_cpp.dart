@@ -90,11 +90,9 @@ bool isHideClass(Class cls) {
 }
 
 bool isHideStaticMember(Member member) {
-  const cppClassNames = [
-    "print",
-  ];
+  const cppClassNames = [];
 
-  if (member.enclosingLibrary.fileUri.scheme == "org-dartlang-sdk") {
+  if (member.enclosingLibrary.fileUri.scheme.contains("org-dartlang-sdk")) {
     if (!cppClassNames.contains(member.name.text)) {
       return true;
     }
@@ -168,7 +166,7 @@ final Map<String, String> typeNames = {
   "Iterator": "CppIterator",
   "Error": "CppError",
   "StackTrace": "CppStackTrace",
-  "StringBuffer": "CppStringBuffer",
+  "StringBuffer": "CppStringBuffer"
 };
 
 final Map<String, String> specialNames = {
@@ -207,7 +205,8 @@ final Map<String, String> specialNames = {
 
   //特殊函数名
   'union': "cpp_union",
-  "print": "CppApi::print",
+  "main": "cpp_main",
+  "print": "cpp_print",
 };
 
 String getClassName(Class classInfo) {
@@ -271,6 +270,7 @@ class CppCodePrinter {
   int _indentLevel = 0;
   bool isHeader = false;
   bool isImplement = false;
+  bool isGlobal = false;
 
   // 主要翻译入口方法
   void translateComponent(Component component) {
@@ -303,7 +303,7 @@ class CppCodePrinter {
 
     for (final procedure in procedureList) {
       if (!isHideStaticMember(procedure)) {
-        print2String(_toString(procedure, true, true));
+        print2String(_toString(procedure, true, true, true));
       }
     }
 
@@ -386,7 +386,7 @@ class CppCodePrinter {
 #include "./core/api.h"
 #include "./core/math.h"
 
-void print(Object* obj) {
+void cpp_print(Object* obj) {
   if (obj) {
     // String* str = obj->toString();
     // printf("%s", str->c_str());
@@ -396,7 +396,7 @@ void print(Object* obj) {
   }
 }
 
-void print(String* str) {
+void cpp_print(String* str) {
   if (str) {
     printf("%s", str->c_str());
   } else {
@@ -404,7 +404,7 @@ void print(String* str) {
   }
 }
 
-void print(char* str) {
+void cpp_print(char* str) {
   if (str) {
     printf("%s", str);
   }
@@ -884,7 +884,8 @@ Bool* checkNotNullable(T count, String* name) {
     return "${_getVariableDeclareType(field.type)} ${field.name.text}";
   }
 
-  String _toString(TreeNode statement, bool isHeader, bool isImplement) {
+  String _toString(TreeNode statement, bool isHeader, bool isImplement,
+      [bool isGlobal = false]) {
     if (statement is Constructor) {
       return (CppCodePrinter()
             ..isHeader = isHeader
@@ -896,6 +897,7 @@ Bool* checkNotNullable(T count, String* name) {
       return (CppCodePrinter()
             ..isHeader = isHeader
             ..isImplement = isImplement
+            ..isGlobal = isGlobal
             ..writeMemberFunctionDeclaration(statement)
             ..writeNewline())
           .getText();
@@ -1051,7 +1053,8 @@ Bool* checkNotNullable(T count, String* name) {
         write("STATIC_METHOD_FORWARD($cls,$name)");
         return;
       }
-      write("static ${_getVariableDeclareType(function.returnType)} $name");
+      write(
+          "${className.isEmpty ? "" : "static"} ${_getVariableDeclareType(function.returnType)} $name");
       writeParametersList(function,
           ownerClassType: procedure.isStatic ? "" : "Object*");
       // if (!procedure.isStatic && (procedure.isAbstract || isImplement)) {
@@ -1312,7 +1315,7 @@ Bool* checkNotNullable(T count, String* name) {
       writeStatement(statement.finalizer);
       write('};');
     } else if (statement is AssertStatement) {
-      write('print("assert");');
+      write('cpp_print("assert");');
     } else if (statement is FunctionDeclaration) {
       write('${_getVariableDeclareType(statement.variable.type)} ');
       write(getVariableName(statement.variable));

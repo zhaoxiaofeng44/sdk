@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include "api.h"
+#include "func.h"
 #include "num.h"
 #include "string.h"
-#include "func.h"
-#include "api.h"
 
 // 自定义字符串比较函数，避免使用strcmp
 static bool stringEqual(const char* s1, const char* s2) {
@@ -183,6 +183,3 @@ String* cppToString(Object* obj) {
   }
   return String::cppNew("null");
 }
-
-
-

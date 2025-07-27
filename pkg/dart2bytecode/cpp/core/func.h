@@ -20,6 +20,7 @@ class Function : public Object {
 
 template <typename R, typename... Args>
 class FunctionApply : public Function {
+ public:
   virtual R operator()(Args... args) const = 0;
 };
 
@@ -112,10 +113,10 @@ template <typename R, typename... Args>
 inline static R cppApply(Function* wrapper, Args... args) {
   if constexpr (std::is_void<R>::value) {
     // void时什么都不返回
-    reinterpret_cast<FunctionApply<R, Args...>*>(wrapper)()(args...);
+    (*reinterpret_cast<FunctionApply<R, Args...>*>(wrapper))(args...);
     return;
   } else {
-    return reinterpret_cast<FunctionApply<R, Args...>*>(wrapper)()(
+    return (*reinterpret_cast<FunctionApply<R, Args...>*>(wrapper))(
         args...);  // 或者 return R{};
   }
 }

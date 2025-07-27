@@ -70,7 +70,7 @@ class Random : public Object {
   static Int* nextInt(Object* cppThis, Int* max);
 
   // 生成随机浮点数 - 对应 double nextDouble()
-  static Double* nextDouble(Object* cppThis );
+  static Double* nextDouble(Object* cppThis);
 
   // 生成随机布尔值 - 对应 bool nextBool()
   static Bool* nextBool(Object* cppThis);

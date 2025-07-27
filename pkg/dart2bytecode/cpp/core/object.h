@@ -67,7 +67,4 @@ class Type : public Object {
   static Type* getNullType();
 };
 
-
-
-
 #endif
