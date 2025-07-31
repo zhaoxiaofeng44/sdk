@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:kernel/kernel.dart';
+import 'package:kernel/visitor.dart';
 
 /// 闭包变量信息
 class ClosureVariable {
@@ -14,6 +15,102 @@ class ClosureVariable {
   @override
   String toString() {
     return 'ClosureVariable(name: $name, type: $type, isParameter: $isParameter)';
+  }
+}
+
+/// 局部变量收集器
+class _LocalVariableCollector extends RecursiveVisitor {
+  final Set<VariableDeclaration> localVariables;
+
+  _LocalVariableCollector(this.localVariables);
+
+  @override
+  Node? defaultNode(Node node) {
+    if (node is TreeNode) {
+      _collectLocalVariablesStatic(node, localVariables);
+    }
+    return null;
+  }
+
+  static void _collectLocalVariablesStatic(
+      TreeNode? node, Set<VariableDeclaration> localVariables) {
+    if (node == null) return;
+
+    if (node is VariableDeclaration) {
+      localVariables.add(node);
+    } else if (node is FunctionDeclaration) {
+      localVariables.add(node.variable);
+    } else if (node is Let) {
+      localVariables.add(node.variable);
+    }
+  }
+}
+
+/// 变量引用分析器
+class _VariableReferenceAnalyzer extends RecursiveVisitor {
+  final Set<VariableDeclaration> parameterVariables;
+  final Set<VariableDeclaration> localVariables;
+  final List<ClosureVariable> capturedVariables;
+
+  _VariableReferenceAnalyzer(
+      this.parameterVariables, this.localVariables, this.capturedVariables);
+
+  @override
+  Node? defaultNode(Node node) {
+    if (node is TreeNode) {
+      _analyzeVariableReferencesStatic(
+          node, parameterVariables, localVariables, capturedVariables);
+    }
+    return null;
+  }
+
+  static void _analyzeVariableReferencesStatic(
+      TreeNode? node,
+      Set<VariableDeclaration> parameterVariables,
+      Set<VariableDeclaration> localVariables,
+      List<ClosureVariable> capturedVariables) {
+    if (node == null) return;
+
+    if (node is VariableGet) {
+      var variable = node.variable;
+      // 如果变量不是参数也不是局部变量，则是外部捕获的变量
+      if (!parameterVariables.contains(variable) &&
+          !localVariables.contains(variable)) {
+        var closureVar = ClosureVariable(
+            variable, _getVariableNameStatic(variable), variable.type, false);
+        if (!capturedVariables.any((v) => v.variable == variable)) {
+          capturedVariables.add(closureVar);
+        }
+      }
+    } else if (node is VariableSet) {
+      var variable = node.variable;
+      // 如果变量不是参数也不是局部变量，则是外部捕获的变量
+      if (!parameterVariables.contains(variable) &&
+          !localVariables.contains(variable)) {
+        var closureVar = ClosureVariable(
+            variable, _getVariableNameStatic(variable), variable.type, false);
+        if (!capturedVariables.any((v) => v.variable == variable)) {
+          capturedVariables.add(closureVar);
+        }
+      }
+    } else if (node is ThisExpression) {
+      // 处理 this 表达式
+      var thisVar = VariableDeclaration("this");
+      var closureVar = ClosureVariable(thisVar, "this", DynamicType(), false);
+      if (!capturedVariables.any((v) => v.name == "this")) {
+        capturedVariables.add(closureVar);
+      }
+    }
+  }
+
+  static String _getVariableNameStatic(VariableDeclaration variable) {
+    if (variable.name != null) {
+      if (variable.name == "this") {
+        return "cppThis";
+      }
+      return variable.name!.replaceAll(":", "\$").replaceAll("-", "_");
+    }
+    return "cppVar_${variable.hashCode}";
   }
 }
 
@@ -271,6 +368,114 @@ class CppCodePrinter {
   bool isHeader = false;
   bool isImplement = false;
   bool isGlobal = false;
+
+  /// 查找函数中引用的外部变量
+  List<ClosureVariable> _findCapturedVariables(FunctionNode function) {
+    var capturedVariables = <ClosureVariable>[];
+
+    // 收集函数的参数变量
+    var parameterVariables = <VariableDeclaration>{};
+    for (var param in function.positionalParameters) {
+      parameterVariables.add(param);
+    }
+    for (var param in function.namedParameters) {
+      parameterVariables.add(param);
+    }
+
+    // 收集函数体中声明的局部变量
+    var localVariables = <VariableDeclaration>{};
+    _collectLocalVariables(function.body, localVariables);
+
+    // 分析函数体中的变量引用
+    _analyzeVariableReferences(
+        function.body, parameterVariables, localVariables, capturedVariables);
+
+    return capturedVariables;
+  }
+
+  /// 收集函数体中声明的局部变量
+  void _collectLocalVariables(
+      TreeNode? node, Set<VariableDeclaration> localVariables) {
+    if (node == null) return;
+
+    if (node is VariableDeclaration) {
+      localVariables.add(node);
+    } else if (node is FunctionDeclaration) {
+      localVariables.add(node.variable);
+    } else if (node is Let) {
+      localVariables.add(node.variable);
+    }
+
+    // 递归遍历子节点
+    if (node != null) {
+      var visitor = _LocalVariableCollector(localVariables);
+      node.visitChildren(visitor);
+    }
+  }
+
+  /// 分析变量引用
+  void _analyzeVariableReferences(
+      TreeNode? node,
+      Set<VariableDeclaration> parameterVariables,
+      Set<VariableDeclaration> localVariables,
+      List<ClosureVariable> capturedVariables) {
+    if (node == null) return;
+
+    if (node is VariableGet) {
+      var variable = node.variable;
+      // 如果变量不是参数也不是局部变量，则是外部捕获的变量
+      if (!parameterVariables.contains(variable) &&
+          !localVariables.contains(variable)) {
+        var closureVar = ClosureVariable(
+            variable, getVariableName(variable), variable.type, false);
+        if (!capturedVariables.any((v) => v.variable == variable)) {
+          capturedVariables.add(closureVar);
+        }
+      }
+    } else if (node is VariableSet) {
+      var variable = node.variable;
+      // 如果变量不是参数也不是局部变量，则是外部捕获的变量
+      if (!parameterVariables.contains(variable) &&
+          !localVariables.contains(variable)) {
+        var closureVar = ClosureVariable(
+            variable, getVariableName(variable), variable.type, false);
+        if (!capturedVariables.any((v) => v.variable == variable)) {
+          capturedVariables.add(closureVar);
+        }
+      }
+    } else if (node is ThisExpression) {
+      // 处理 this 表达式
+      var thisVar = VariableDeclaration("this");
+      var closureVar = ClosureVariable(thisVar, "this", DynamicType(), false);
+      if (!capturedVariables.any((v) => v.name == "this")) {
+        capturedVariables.add(closureVar);
+      }
+    }
+
+    // 递归遍历子节点
+    var visitor = _VariableReferenceAnalyzer(
+        parameterVariables, localVariables, capturedVariables);
+    node.visitChildren(visitor);
+  }
+
+  /// 查找节点中的变量引用
+  List<ClosureVariable> findVariableReferencesInNode(TreeNode? node) {
+    var capturedVariables = <ClosureVariable>[];
+    var parameterVariables = <VariableDeclaration>{};
+    var localVariables = <VariableDeclaration>{};
+
+    // 这里需要更完整的上下文分析，暂时返回空列表
+    return capturedVariables;
+  }
+
+  /// 查找特定变量的使用位置
+  List<TreeNode> findVariableUsages(
+      TreeNode? node, VariableDeclaration variable) {
+    var usages = <TreeNode>[];
+
+    // 这里需要实现变量使用位置的查找逻辑
+    return usages;
+  }
 
   // 主要翻译入口方法
   void translateComponent(Component component) {
@@ -1086,7 +1291,32 @@ Bool* checkNotNullable(T count, String* name) {
   }
 
   void writeFunctionDeclaration(FunctionNode function) {
-    write("[&]");
+    // 分析函数中引用的外部变量
+    var capturedVariables = _findCapturedVariables(function);
+
+    if (capturedVariables.isEmpty) {
+      write("[&]");
+    } else {
+      var captureList = <String>[];
+      bool hasThis = false;
+
+      // 处理捕获的变量
+      for (var closureVar in capturedVariables) {
+        if (closureVar.name == "this") {
+          hasThis = true;
+        } else {
+          captureList.add("&${closureVar.name}");
+        }
+      }
+
+      // 如果有 this，放在最前面
+      if (hasThis) {
+        captureList.insert(0, "this");
+      }
+
+      write("[${captureList.join(", ")}]");
+    }
+
     writeParametersList(function);
     write(" -> ${_getVariableDeclareType(function.returnType)}");
     if (function.body is Block) {

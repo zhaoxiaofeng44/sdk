@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:kernel/kernel.dart';
-import '../lib/compile_to_cpp333.dart';
+import '../lib/compile_to_cpp.dart';
 
 void main() {
   group('闭包变量分析测试', () {
