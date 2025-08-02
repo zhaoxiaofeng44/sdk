@@ -33,7 +33,7 @@ import 'package:vm/kernel_front_end.dart'
 
 import 'bytecode_serialization.dart' show BytecodeSizeStatistics;
 import 'bytecode_generator.dart' show generateBytecode;
-import 'compile_to_cpp.dart';
+import 'compile_to_dart.dart';
 import 'options.dart' show BytecodeOptions;
 
 final ArgParser _argParser = ArgParser(allowTrailingOptions: true)
@@ -100,7 +100,7 @@ ${_argParser.usage}
 Future<void> main(List<String> arguments) async {
   arguments = [
     "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
-    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/hello.dart"
+    "test_bitwise_operators.dart"
   ];
   io.exitCode = await runCompiler(_argParser.parse(arguments));
 }
@@ -202,7 +202,7 @@ Future<int> runCompiler(ArgResults options) async {
     return compileTimeErrorExitCode;
   }
 
-  printTranslator(component!);
+  transformDartToDart(component!);
   final BytecodeOptions bytecodeOptions =
       BytecodeOptions(enableAsserts: enableAsserts)
         ..parseCommandLineFlags(options['bytecode-options']);
