@@ -33,7 +33,7 @@ class BytecodeOptions {
     this.emitAnnotations = false,
     this.emitInstanceFieldInitializers = false,
     this.omitAssertSourcePositions = false,
-    this.keepUnreachableCode = false,
+    this.keepUnreachableCode = true, // 关闭摇树，保留不可达代码
     this.showBytecodeSizeStatistics = true,
   }) {}
 
