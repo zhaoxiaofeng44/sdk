@@ -1,6 +1,5 @@
 import 'dart:core';
 import 'dart:io';
-import './lib/demo/api.dart';
 
 /// 全局Void类型变量，用于替代void返回值
 final Void = null;
@@ -19,11 +18,11 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
     ;
   }
   
-  static int length(Object self) {
-    return return this._length;;
+  int get length {
+    return this._length;
   }
   
-  Object ensureCapacity(int newLen) {
+  void ensureCapacity(int newLen) {
     {
   if (newLen > (CppApi.cppGetPointerArrayLength(this._array))) {
   CppUserData newArray = CppApi.cppCreatePointerArray(CppList._getSuggestCapacity(newLen));
@@ -37,35 +36,27 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  static set length(Object self, int newLen) {
+  set length(int newLen) {
     {
   this.ensureCapacity(newLen);
   this._length = newLen;
 }
   }
   
-  Object [](int index) {
-    return CppApi.cppGetPointerArrayItem(this._array, index) as Object;
-  }
-  
-  Object []=(int index, Object value) {
-    return CppApi.cppSetPointerArrayItem(this._array, index, value);
-  }
-  
-  Object add(Object value) {
+  void add(E value) {
     {
   this.ensureCapacity(this._length + (1));
-  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp = this._length; return (() { final int temp = this._length = temp + (1); return temp; })(); })(), value);
+  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_942125 = this._length; return (() { final int temp_942209 = this._length = temp_942125 + (1); return temp_942209; })(); })(), value);
 }
   }
   
-  Object addAll(Iterable iterable) {
+  void addAll(Iterable<E> iterable) {
     {
   {
   Iterator _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
   this.add(element);
 }
@@ -75,42 +66,42 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  bool any(Function(Object) => Object test) {
+  bool any(bool Function(E) test) {
     {
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return true;
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) return true;
 }
 }
   return false;
 }
   }
   
-  Map asMap() {
+  Map<int, E> asMap() {
     {
   Map map = {};
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  map[i] = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
+  map[i] = CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
 }
   return map;
 }
   }
   
-  List cast() {
+  List<R> cast<R>() {
     {
   return CppList.castFrom(this);
 }
   }
   
-  Object clear() {
+  void clear() {
     {
   this._length = 0;
 }
   }
   
-  bool contains(Object element) {
+  bool contains(Object? element) {
     {
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
@@ -121,74 +112,74 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object elementAt(int index) {
-    return CppApi.cppGetPointerArrayItem(this._array, index) as Object;
+  E elementAt(int index) {
+    return CppApi.cppGetPointerArrayItem(this._array, index) as E;
   }
   
-  bool every(Function(Object) => Object test) {
+  bool every(bool Function(E) test) {
     {
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  if (!test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return false;
+  if (!(test(CppApi.cppGetPointerArrayItem(this._array, i) as E))) return false;
 }
 }
   return true;
 }
   }
   
-  Object fillRange(int start, int end, Object fillValue) {
+  void fillRange(int start, int end, E? fillValue) {
     {
   for (int i = start; i < (end); i = i + (1)) {
   {
-  CppApi.cppSetPointerArrayItem(this._array, i, (() { final Object temp = fillValue; return temp == null ? temp as Object : temp; })());
+  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E temp_948149 = fillValue; return (temp_948149 as Object) == null ? (temp_948149 as Object) as E : (temp_948149 as Object); })());
 }
 }
 }
   }
   
-  Object firstWhere(Function(Object) => Object test) {
+  E firstWhere(bool Function(E) test) {
     {
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
-  return CppApi.cppGetPointerArrayItem(this._array, i) as Object;
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
+  return CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
 }
 }
-  if (!orElse == null) return orElse();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
 }
   }
   
-  Object fold(Object initialValue, Function(ObjectObject) => Object combine) {
+  T fold<T>(T initialValue, T Function(T, E) combine) {
     {
-  Object value = initialValue;
+  T value = initialValue;
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as Object);
+  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
 }
   return value;
 }
   }
   
-  Object forEach(Function(Object) => Object action) {
+  void forEach(void Function(E) action) {
     {
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  action(CppApi.cppGetPointerArrayItem(this._array, i) as Object);
+  action(CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
 }
 }
   }
   
-  Iterable getRange(int start, int end) {
+  Iterable<E> getRange(int start, int end) {
     {
-  return CppList.from(Iterable.generate(end - (start), (int i) => return CppApi.cppGetPointerArrayItem(this._array, start + (i));));
+  return /* auxiliary expression */;
 }
   }
   
-  int indexOf(Object element, int start) {
+  int indexOf(E element, int start) {
     {
   for (int i = start; i < (this._length); i = i + (1)) {
   {
@@ -199,18 +190,18 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  int indexWhere(Function(Object) => Object test, int start) {
+  int indexWhere(bool Function(E) test, int start) {
     {
   for (int i = start; i < (this._length); i = i + (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return i;
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
 }
 }
   return 1.unary-();
 }
   }
   
-  Object insert(int index, Object element) {
+  void insert(int index, E element) {
     {
   if (index < (0) || index > (this._length)) throw new IndexError(index, this)
   this.ensureCapacity(this._length + (1));
@@ -224,7 +215,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object insertAll(int index, Iterable iterable) {
+  void insertAll(int index, Iterable<E> iterable) {
     {
   if (index < (0) || index > (this._length)) throw new IndexError(index, this)
   List elements = iterable.toList();
@@ -245,52 +236,52 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  static Object first(Object self) {
-    return {
+  E get first {
+    {
   if (this._length == 0) throw new StateError("No element")
-  return CppApi.cppGetPointerArrayItem(this._array, 0) as Object;
-};
+  return CppApi.cppGetPointerArrayItem(this._array, 0) as E;
+}
   }
   
-  static set first(Object self, Object value) {
+  set first(E value) {
     {
   if (this._length == 0) throw new StateError("No element")
   CppApi.cppSetPointerArrayItem(this._array, 0, value);
 }
   }
   
-  static Object last(Object self) {
-    return {
+  E get last {
+    {
   if (this._length == 0) throw new StateError("No element")
-  return CppApi.cppGetPointerArrayItem(this._array, this._length - (1)) as Object;
-};
+  return CppApi.cppGetPointerArrayItem(this._array, this._length - (1)) as E;
+}
   }
   
-  static set last(Object self, Object value) {
+  set last(E value) {
     {
   if (this._length == 0) throw new StateError("No element")
   CppApi.cppSetPointerArrayItem(this._array, this._length - (1), value);
 }
   }
   
-  static Object single(Object self) {
-    return {
+  E get single {
+    {
   if (this._length == 0) throw new StateError("No element")
   if (this._length > (1)) throw new StateError("Too many elements")
-  return CppApi.cppGetPointerArrayItem(this._array, 0) as Object;
-};
+  return CppApi.cppGetPointerArrayItem(this._array, 0) as E;
+}
   }
   
-  static bool isEmpty(Object self) {
-    return return this._length == 0;;
+  bool get isEmpty {
+    return this._length == 0;
   }
   
-  static bool isNotEmpty(Object self) {
-    return return !this._length == 0;;
+  bool get isNotEmpty {
+    return !(this._length == 0);
   }
   
-  static Iterator iterator(Object self) {
-    return return new _CppListIterator(this);;
+  Iterator<E> get iterator {
+    return new _CppListIterator<E>(this);
   }
   
   String join(String separator) {
@@ -300,9 +291,9 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  int lastIndexOf(Object element, int start) {
+  int lastIndexOf(E element, int? start) {
     {
-  int startIndex = (() { final int temp = start; return temp == null ? this._length - (1) : temp; })();
+  int startIndex = (() { final int temp_956952 = start; return temp_956952 == null ? this._length - (1) : temp_956952; })();
   for (int i = startIndex; i >= (0); i = i - (1)) {
   {
   if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
@@ -312,49 +303,49 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  int lastIndexWhere(Function(Object) => Object test, int start) {
+  int lastIndexWhere(bool Function(E) test, int? start) {
     {
-  int startIndex = (() { final int temp = start; return temp == null ? this._length - (1) : temp; })();
+  int startIndex = (() { final int temp_957479 = start; return temp_957479 == null ? this._length - (1) : temp_957479; })();
   for (int i = startIndex; i >= (0); i = i - (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return i;
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
 }
 }
   return 1.unary-();
 }
   }
   
-  Object lastWhere(Function(Object) => Object test) {
+  E lastWhere(bool Function(E) test) {
     {
   for (int i = this._length - (1); i >= (0); i = i - (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
-  return CppApi.cppGetPointerArrayItem(this._array, i) as Object;
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
+  return CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
 }
 }
-  if (!orElse == null) return orElse();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
 }
   }
   
-  Object reduce(Function(ObjectObject) => Object combine) {
+  E reduce(E Function(E, E) combine) {
     {
   if (this._length == 0) throw new StateError("No element")
-  Object value = CppApi.cppGetPointerArrayItem(this._array, 0) as Object;
+  E value = CppApi.cppGetPointerArrayItem(this._array, 0) as E;
   for (int i = 1; i < (this._length); i = i + (1)) {
   {
-  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as Object);
+  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
 }
   return value;
 }
   }
   
-  bool remove(Object value) {
+  bool remove(Object? value) {
     {
-  int index = this.indexOf(value as Object);
-  if (!index == 1.unary-()) {
+  int index = this.indexOf(value as E);
+  if (!(index == 1.unary-())) {
   this.removeAt(index);
   return true;
 }
@@ -362,7 +353,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object removeAt(int index) {
+  E removeAt(int index) {
     {
   if (index < (0) || index >= (this._length)) throw new IndexError(index, this)
   Object element = CppApi.cppGetPointerArrayItem(this._array, index);
@@ -372,21 +363,21 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
 }
   this._length = this._length - (1);
-  return element as Object;
+  return element as E;
 }
   }
   
-  Object removeLast() {
+  E removeLast() {
     {
   if (this._length == 0) throw new StateError("No element")
   return this.removeAt(this._length - (1));
 }
   }
   
-  Object removeRange(int start, int end) {
+  void removeRange(int start, int end) {
     {
   if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
+  throw new RangeError(start, 0, this._length)
 }
   int length = end - (start);
   for (int i = start; i < (this._length - (length)); i = i + (1)) {
@@ -398,13 +389,13 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object removeWhere(Function(Object) => Object test) {
+  void removeWhere(bool Function(E) test) {
     {
   int writeIndex = 0;
   for (int readIndex = 0; readIndex < (this._length); readIndex = readIndex + (1)) {
   {
-  if (!test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as Object)) {
-  if (!writeIndex == readIndex) {
+  if (!(test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as E))) {
+  if (!(writeIndex == readIndex)) {
   CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = writeIndex + (1);
@@ -415,10 +406,10 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object replaceRange(int start, int end, Iterable replacements) {
+  void replaceRange(int start, int end, Iterable<E> replacements) {
     {
   if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
+  throw new RangeError(start, 0, this._length)
 }
   List replacementList = replacements.toList();
   int replacementLength = replacementList.length;
@@ -426,7 +417,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   if (replacementLength > (rangeLength)) {
   this.ensureCapacity(this._length + (replacementLength) - (rangeLength));
 }
-  if (!replacementLength == rangeLength) {
+  if (!(replacementLength == rangeLength)) {
   for (int i = this._length - (1); i >= (end); i = i - (1)) {
   {
   CppApi.cppSetPointerArrayItem(this._array, i + (replacementLength) - (rangeLength), CppApi.cppGetPointerArrayItem(this._array, i));
@@ -442,13 +433,13 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object retainWhere(Function(Object) => Object test) {
+  void retainWhere(bool Function(E) test) {
     {
   int writeIndex = 0;
   for (int readIndex = 0; readIndex < (this._length); readIndex = readIndex + (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as Object)) {
-  if (!writeIndex == readIndex) {
+  if (test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as E)) {
+  if (!(writeIndex == readIndex)) {
   CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = writeIndex + (1);
@@ -459,7 +450,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object setAll(int index, Iterable iterable) {
+  void setAll(int index, Iterable<E> iterable) {
     {
   if (index < (0) || index > (this._length)) throw new IndexError(index, this)
   int i = index;
@@ -467,7 +458,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   Iterator _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
   if (i >= (this._length)) {
   this.add(element);
@@ -482,28 +473,29 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
 }
   }
   
-  Object setRange(int start, int end, Iterable iterable, int skipCount) {
+  void setRange(int start, int end, Iterable<E> iterable, int skipCount) {
     {
   if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
+  throw new RangeError(start, 0, this._length)
 }
   Iterator iterator = iterable.iterator;
   for (int i = 0; i < (skipCount); i = i + (1)) {
   {
-  if (!iterator.moveNext()) return;
+  if (!(iterator.moveNext())) return;
 }
 }
-  LabeledStatement(label0:
-for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
-  if (!iterator.{Iterator.moveNext}()) break label0;
-  CppApi.cppSetPointerArrayItem(this.{CppList._array}, i, iterator.{Iterator.current});
-})
+  label: for (int i = start; i < (end); i = i + (1)) {
+  {
+  if (!(iterator.moveNext())) break label;
+  CppApi.cppSetPointerArrayItem(this._array, i, iterator.current);
+}
+}
 }
   }
   
-  Object shuffle(Random random) {
+  void shuffle(Random? random) {
     {
-  random == null ? random = Random.() : null;
+  random == null ? random = /* auxiliary expression */ : null;
   for (int i = this._length - (1); i > (0); i = i - (1)) {
   {
   int j = random.nextInt(i + (1));
@@ -515,14 +507,14 @@ for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
 }
   }
   
-  Object sort(Function(ObjectObject) => Object compare) {
+  void sort(int Function(E, E)? compare) {
     {
   if (this._length <= (1)) return;
   this._quickSort(0, this._length - (1), compare);
 }
   }
   
-  Object _quickSort(int low, int high, Function(ObjectObject) => Object compare) {
+  void _quickSort(int low, int high, int Function(E, E)? compare) {
     {
   if (low < (high)) {
   int pi = this._partition(low, high, compare);
@@ -532,15 +524,15 @@ for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
 }
   }
   
-  int _partition(int low, int high, Function(ObjectObject) => Object compare) {
+  int _partition(int low, int high, int Function(E, E)? compare) {
     {
-  Object pivot = CppApi.cppGetPointerArrayItem(this._array, high) as Object;
+  E pivot = CppApi.cppGetPointerArrayItem(this._array, high) as E;
   int i = low - (1);
   for (int j = low; j < (high); j = j + (1)) {
   {
-  Object current = CppApi.cppGetPointerArrayItem(this._array, j) as Object;
+  E current = CppApi.cppGetPointerArrayItem(this._array, j) as E;
   bool shouldSwap;
-  if (!compare == null) {
+  if (!(compare == null)) {
   shouldSwap = compare(current, pivot) <= (0);
 } else {
   shouldSwap = current as Comparable.compareTo(pivot) <= (0);
@@ -556,75 +548,52 @@ for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
 }
   }
   
-  Object _swap(int i, int j) {
+  void _swap(int i, int j) {
     {
-  Object temp = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
+  E temp = CppApi.cppGetPointerArrayItem(this._array, i) as E;
   CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, j));
   CppApi.cppSetPointerArrayItem(this._array, j, temp);
 }
   }
   
-  List sublist(int start, int end) {
+  List<E> sublist(int start, int? end) {
     {
-  int endIndex = (() { final int temp = end; return temp == null ? this._length : temp; })();
+  int endIndex = (() { final int temp_990566 = end; return temp_990566 == null ? this._length : temp_990566; })();
   if (start < (0) || start > (this._length) || endIndex < (start) || endIndex > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
+  throw new RangeError(start, 0, this._length)
 }
-  return CppList.from(Iterable.generate(endIndex - (start), (int i) => return CppApi.cppGetPointerArrayItem(this._array, start + (i));));
-}
-  }
-  
-  List toList() {
-    {
-  return CppList.from(this, growable: growable);
+  return /* auxiliary expression */;
 }
   }
   
-  Set toSet() {
+  List<E> toList() {
     {
-  return CppSet.from(this);
+  return /* auxiliary expression */;
 }
   }
   
-  Object singleWhere(Function(Object) => Object test) {
+  Set<E> toSet() {
     {
-  Object result;
+  return /* auxiliary expression */;
+}
+  }
+  
+  E singleWhere(bool Function(E) test) {
+    {
+  E result;
   bool found = false;
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
+  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
   if (found) throw new StateError("Too many elements")
-  result = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
+  result = CppApi.cppGetPointerArrayItem(this._array, i) as E;
   found = true;
 }
 }
 }
   if (found) return result!;
-  if (!orElse == null) return orElse();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
-}
-  }
-  
-  List +(List other) {
-    {
-  CppList result = new CppList(0, this._length + (other.length));
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  result.add(CppApi.cppGetPointerArrayItem(this._array, i) as Object);
-}
-}
-  {
-  Iterator _sync_for_iterator = other.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  Object element = _sync_for_iterator.current;
-  {
-  result.add(element);
-}
-}
-}
-}
-  return result;
 }
   }
   
@@ -644,562 +613,69 @@ for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
 }
   }
   
-  static Object ensureCapacity(Object self, int newLen) {
+  static int _getSuggestCapacity(int newLen) {
     {
-  if (newLen > (CppApi.cppGetPointerArrayLength(this._array))) {
-  CppUserData newArray = CppApi.cppCreatePointerArray(CppList._getSuggestCapacity(newLen));
-  for (int i = 0; i < (CppApi.cppGetPointerArrayLength(this._array)); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(newArray, i, CppApi.cppGetPointerArrayItem(this._array, i));
-}
-}
-  this._array = newArray;
-}
+  return newLen > (256) ? newLen : UnknownClass.pow(2, UnknownClass.log(newLen) / (UnknownClass.log(2)).ceil()).toInt();
 }
   }
   
-  static Object add(Object self, Object value) {
+  static List<R> castFrom(List<S> source) {
     {
-  this.ensureCapacity(this._length + (1));
-  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp = this._length; return (() { final int temp = this._length = temp + (1); return temp; })(); })(), value);
-}
-  }
-  
-  static Object addAll(Object self, Iterable iterable) {
-    {
+  CppList result = new CppList<E>(0, 4);
   {
-  Iterator _sync_for_iterator = iterable.iterator;
+  Iterator _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  S element = _sync_for_iterator.current;
   {
-  this.add(element);
+  result.add(element as R);
 }
 }
 }
 }
+  return result;
 }
   }
   
-  static bool any(Object self, Function(Object) => Object test) {
+  static List<R> castFromWithFactory(List<S> source, List<R> Function() newList) {
     {
-  for (int i = 0; i < (this._length); i = i + (1)) {
+  List result = newList();
   {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return true;
-}
-}
-  return false;
-}
-  }
-  
-  static Map asMap(Object self) {
-    {
-  Map map = {};
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  map[i] = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
-}
-}
-  return map;
-}
-  }
-  
-  static List cast(Object self) {
-    {
-  return CppList.castFrom(this);
-}
-  }
-  
-  static Object clear(Object self) {
-    {
-  this._length = 0;
-}
-  }
-  
-  static bool contains(Object self, Object element) {
-    {
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return true;
-}
-}
-  return false;
-}
-  }
-  
-  static Object elementAt(Object self, int index) {
-    return CppApi.cppGetPointerArrayItem(this._array, index) as Object;
-  }
-  
-  static bool every(Object self, Function(Object) => Object test) {
-    {
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  if (!test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return false;
-}
-}
-  return true;
-}
-  }
-  
-  static Object fillRange(Object self, int start, int end, Object fillValue) {
-    {
-  for (int i = start; i < (end); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i, (() { final Object temp = fillValue; return temp == null ? temp as Object : temp; })());
-}
-}
-}
-  }
-  
-  static Object firstWhere(Object self, Function(Object) => Object test) {
-    {
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
-  return CppApi.cppGetPointerArrayItem(this._array, i) as Object;
-}
-}
-}
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static Object fold(Object self, Object initialValue, Function(ObjectObject) => Object combine) {
-    {
-  Object value = initialValue;
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as Object);
-}
-}
-  return value;
-}
-  }
-  
-  static Object forEach(Object self, Function(Object) => Object action) {
-    {
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  action(CppApi.cppGetPointerArrayItem(this._array, i) as Object);
-}
-}
-}
-  }
-  
-  static Iterable getRange(Object self, int start, int end) {
-    {
-  return CppList.from(Iterable.generate(end - (start), (int i) => return CppApi.cppGetPointerArrayItem(this._array, start + (i));));
-}
-  }
-  
-  static int indexOf(Object self, Object element, int start) {
-    {
-  for (int i = start; i < (this._length); i = i + (1)) {
-  {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
-}
-}
-  return 1.unary-();
-}
-  }
-  
-  static int indexWhere(Object self, Function(Object) => Object test, int start) {
-    {
-  for (int i = start; i < (this._length); i = i + (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return i;
-}
-}
-  return 1.unary-();
-}
-  }
-  
-  static Object insert(Object self, int index, Object element) {
-    {
-  if (index < (0) || index > (this._length)) throw new IndexError(index, this)
-  this.ensureCapacity(this._length + (1));
-  for (int i = this._length; i > (index); i = i - (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, i - (1)));
-}
-}
-  CppApi.cppSetPointerArrayItem(this._array, index, element);
-  this._length = this._length + (1);
-}
-  }
-  
-  static Object insertAll(Object self, int index, Iterable iterable) {
-    {
-  if (index < (0) || index > (this._length)) throw new IndexError(index, this)
-  List elements = iterable.toList();
-  int insertLength = elements.length;
-  if (insertLength == 0) return;
-  this.ensureCapacity(this._length + (insertLength));
-  for (int i = this._length - (1); i >= (index); i = i - (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i + (insertLength), CppApi.cppGetPointerArrayItem(this._array, i));
-}
-}
-  for (int i = 0; i < (insertLength); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, index + (i), elements[i]);
-}
-}
-  this._length = this._length + (insertLength);
-}
-  }
-  
-  static String join(Object self, String separator) {
-    {
-  if (this._length == 0) return "";
-  return CppApi.cppJoinListString(this._array, separator);
-}
-  }
-  
-  static int lastIndexOf(Object self, Object element, int start) {
-    {
-  int startIndex = (() { final int temp = start; return temp == null ? this._length - (1) : temp; })();
-  for (int i = startIndex; i >= (0); i = i - (1)) {
-  {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
-}
-}
-  return 1.unary-();
-}
-  }
-  
-  static int lastIndexWhere(Object self, Function(Object) => Object test, int start) {
-    {
-  int startIndex = (() { final int temp = start; return temp == null ? this._length - (1) : temp; })();
-  for (int i = startIndex; i >= (0); i = i - (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) return i;
-}
-}
-  return 1.unary-();
-}
-  }
-  
-  static Object lastWhere(Object self, Function(Object) => Object test) {
-    {
-  for (int i = this._length - (1); i >= (0); i = i - (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
-  return CppApi.cppGetPointerArrayItem(this._array, i) as Object;
-}
-}
-}
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static Object reduce(Object self, Function(ObjectObject) => Object combine) {
-    {
-  if (this._length == 0) throw new StateError("No element")
-  Object value = CppApi.cppGetPointerArrayItem(this._array, 0) as Object;
-  for (int i = 1; i < (this._length); i = i + (1)) {
-  {
-  value = combine(value, CppApi.cppGetPointerArrayItem(this._array, i) as Object);
-}
-}
-  return value;
-}
-  }
-  
-  static bool remove(Object self, Object value) {
-    {
-  int index = this.indexOf(value as Object);
-  if (!index == 1.unary-()) {
-  this.removeAt(index);
-  return true;
-}
-  return false;
-}
-  }
-  
-  static Object removeAt(Object self, int index) {
-    {
-  if (index < (0) || index >= (this._length)) throw new IndexError(index, this)
-  Object element = CppApi.cppGetPointerArrayItem(this._array, index);
-  for (int i = index; i < (this._length - (1)); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, i + (1)));
-}
-}
-  this._length = this._length - (1);
-  return element as Object;
-}
-  }
-  
-  static Object removeLast(Object self) {
-    {
-  if (this._length == 0) throw new StateError("No element")
-  return this.removeAt(this._length - (1));
-}
-  }
-  
-  static Object removeRange(Object self, int start, int end) {
-    {
-  if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
-}
-  int length = end - (start);
-  for (int i = start; i < (this._length - (length)); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, i + (length)));
-}
-}
-  this._length = this._length - (length);
-}
-  }
-  
-  static Object removeWhere(Object self, Function(Object) => Object test) {
-    {
-  int writeIndex = 0;
-  for (int readIndex = 0; readIndex < (this._length); readIndex = readIndex + (1)) {
-  {
-  if (!test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as Object)) {
-  if (!writeIndex == readIndex) {
-  CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
-}
-  writeIndex = writeIndex + (1);
-}
-}
-}
-  this._length = writeIndex;
-}
-  }
-  
-  static Object replaceRange(Object self, int start, int end, Iterable replacements) {
-    {
-  if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
-}
-  List replacementList = replacements.toList();
-  int replacementLength = replacementList.length;
-  int rangeLength = end - (start);
-  if (replacementLength > (rangeLength)) {
-  this.ensureCapacity(this._length + (replacementLength) - (rangeLength));
-}
-  if (!replacementLength == rangeLength) {
-  for (int i = this._length - (1); i >= (end); i = i - (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, i + (replacementLength) - (rangeLength), CppApi.cppGetPointerArrayItem(this._array, i));
-}
-}
-}
-  for (int i = 0; i < (replacementLength); i = i + (1)) {
-  {
-  CppApi.cppSetPointerArrayItem(this._array, start + (i), replacementList[i]);
-}
-}
-  this._length = this._length + (replacementLength - (rangeLength));
-}
-  }
-  
-  static Object retainWhere(Object self, Function(Object) => Object test) {
-    {
-  int writeIndex = 0;
-  for (int readIndex = 0; readIndex < (this._length); readIndex = readIndex + (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, readIndex) as Object)) {
-  if (!writeIndex == readIndex) {
-  CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
-}
-  writeIndex = writeIndex + (1);
-}
-}
-}
-  this._length = writeIndex;
-}
-  }
-  
-  static Object setAll(Object self, int index, Iterable iterable) {
-    {
-  if (index < (0) || index > (this._length)) throw new IndexError(index, this)
-  int i = index;
-  {
-  Iterator _sync_for_iterator = iterable.iterator;
+  Iterator _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  S element = _sync_for_iterator.current;
   {
-  if (i >= (this._length)) {
-  this.add(element);
-} else {
-  CppApi.cppSetPointerArrayItem(this._array, i, element);
-}
-  i = i + (1);
+  result.add(element as R);
 }
 }
 }
 }
+  return result;
 }
   }
   
-  static Object setRange(Object self, int start, int end, Iterable iterable, int skipCount) {
-    {
-  if (start < (0) || start > (this._length) || end < (start) || end > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
-}
-  Iterator iterator = iterable.iterator;
-  for (int i = 0; i < (skipCount); i = i + (1)) {
-  {
-  if (!iterator.moveNext()) return;
-}
-}
-  LabeledStatement(label0:
-for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
-  if (!iterator.{Iterator.moveNext}()) break label0;
-  CppApi.cppSetPointerArrayItem(this.{CppList._array}, i, iterator.{Iterator.current});
-})
-}
+  E operator [](int index) {
+    return CppApi.cppGetPointerArrayItem(this._array, index) as E;
   }
   
-  static Object shuffle(Object self, Random random) {
-    {
-  random == null ? random = Random.() : null;
-  for (int i = this._length - (1); i > (0); i = i - (1)) {
-  {
-  int j = random.nextInt(i + (1));
-  Object temp = CppApi.cppGetPointerArrayItem(this._array, i);
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, j));
-  CppApi.cppSetPointerArrayItem(this._array, j, temp);
-}
-}
-}
-  }
-  
-  static Object sort(Object self, Function(ObjectObject) => Object compare) {
-    {
-  if (this._length <= (1)) return;
-  this._quickSort(0, this._length - (1), compare);
-}
-  }
-  
-  static Object _quickSort(Object self, int low, int high, Function(ObjectObject) => Object compare) {
-    {
-  if (low < (high)) {
-  int pi = this._partition(low, high, compare);
-  this._quickSort(low, pi - (1), compare);
-  this._quickSort(pi + (1), high, compare);
-}
-}
-  }
-  
-  static int _partition(Object self, int low, int high, Function(ObjectObject) => Object compare) {
-    {
-  Object pivot = CppApi.cppGetPointerArrayItem(this._array, high) as Object;
-  int i = low - (1);
-  for (int j = low; j < (high); j = j + (1)) {
-  {
-  Object current = CppApi.cppGetPointerArrayItem(this._array, j) as Object;
-  bool shouldSwap;
-  if (!compare == null) {
-  shouldSwap = compare(current, pivot) <= (0);
-} else {
-  shouldSwap = current as Comparable.compareTo(pivot) <= (0);
-}
-  if (shouldSwap) {
-  i = i + (1);
-  this._swap(i, j);
-}
-}
-}
-  this._swap(i + (1), high);
-  return i + (1);
-}
-  }
-  
-  static Object _swap(Object self, int i, int j) {
-    {
-  Object temp = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, j));
-  CppApi.cppSetPointerArrayItem(this._array, j, temp);
-}
-  }
-  
-  static List sublist(Object self, int start, int end) {
-    {
-  int endIndex = (() { final int temp = end; return temp == null ? this._length : temp; })();
-  if (start < (0) || start > (this._length) || endIndex < (start) || endIndex > (this._length)) {
-  throw new RangeError.range(start, 0, this._length)
-}
-  return CppList.from(Iterable.generate(endIndex - (start), (int i) => return CppApi.cppGetPointerArrayItem(this._array, start + (i));));
-}
-  }
-  
-  static List toList(Object self) {
-    {
-  return CppList.from(this, growable: growable);
-}
-  }
-  
-  static Set toSet(Object self) {
-    {
-  return CppSet.from(this);
-}
-  }
-  
-  static Object singleWhere(Object self, Function(Object) => Object test) {
-    {
-  Object result;
-  bool found = false;
-  for (int i = 0; i < (this._length); i = i + (1)) {
-  {
-  if (test(CppApi.cppGetPointerArrayItem(this._array, i) as Object)) {
-  if (found) throw new StateError("Too many elements")
-  result = CppApi.cppGetPointerArrayItem(this._array, i) as Object;
-  found = true;
-}
-}
-}
-  if (found) return result!;
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static String toString(Object self) {
-    {
-  if (this._length == 0) return "[]";
-  StringBuffer buffer = new StringBuffer("[");
-  buffer.write(CppApi.cppGetPointerArrayItem(this._array, 0));
-  for (int i = 1; i < (this._length); i = i + (1)) {
-  {
-  buffer.write(", ");
-  buffer.write(CppApi.cppGetPointerArrayItem(this._array, i));
-}
-}
-  buffer.write("]");
-  return buffer.toString();
-}
-  }
-  
-  Object operator [](int index) {
-    return CppApi.cppGetPointerArrayItem(this._array, index) as Object;
-  }
-  
-  Object operator []=(int index, Object value) {
+  void operator []=(int index, E value) {
     return CppApi.cppSetPointerArrayItem(this._array, index, value);
   }
   
-  List operator +(List other) {
+  List<E> operator +(List<E> other) {
     {
-  CppList result = new CppList(0, this._length + (other.length));
+  CppList result = new CppList<E>(0, this._length + (other.length));
   for (int i = 0; i < (this._length); i = i + (1)) {
   {
-  result.add(CppApi.cppGetPointerArrayItem(this._array, i) as Object);
+  result.add(CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
 }
   {
   Iterator _sync_for_iterator = other.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
   result.add(element);
 }
@@ -1217,23 +693,16 @@ for (int i = start; i.{num.<}(end); i = i.{num.+}(1)) {
 
 class _CppListIterator<E> implements Iterator<E> {
   int _index;
-  late CppList _list;
-_CppListIterator(CppList _list) : _list = _list, super()   {
+  late CppList<E> _list;
+_CppListIterator(CppList<E> _list) : _list = _list, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._list[this._index];;
+  E get current {
+    return this._list[this._index];
   }
   
   bool moveNext() {
-    {
-  this._index = this._index + (1);
-  return this._index < (this._list.length);
-}
-  }
-  
-  static bool moveNext(Object self) {
     {
   this._index = this._index + (1);
   return this._index < (this._list.length);
@@ -1246,16 +715,16 @@ _CppListIterator(CppList _list) : _list = _list, super()   {
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
 class CppSet<E> extends CppIterable<E> implements Set<E> {
-  late CppList _list;
-CppSet.fromCppArray(CppUserData array) : _list = new CppList.fromCppArray(array), super()   {
+  late CppList<E> _list;
+CppSet.fromCppArray(CppUserData array) : _list = new CppList<E>(array), super()   {
     ;
   }
   
-CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
+CppSet(int capacity) : _list = new CppList<E>(0, capacity), super()   {
     ;
   }
   
-  bool add(Object value) {
+  bool add(E value) {
     {
   if (this.contains(value)) {
   return false;
@@ -1265,13 +734,13 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object addAll(Iterable elements) {
+  void addAll(Iterable<E> elements) {
     {
   {
   Iterator _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
   this.add(element);
 }
@@ -1281,19 +750,19 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Set cast() {
+  Set<R> cast<R>() {
     {
   return CppSet.castFrom(this);
 }
   }
   
-  Object clear() {
+  void clear() {
     {
   this._list.clear();
 }
   }
   
-  bool contains(Object element) {
+  bool contains(Object? element) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
@@ -1306,7 +775,7 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  bool containsAll(Iterable other) {
+  bool containsAll(Iterable<Object?> other) {
     {
   {
   Iterator _sync_for_iterator = other.iterator;
@@ -1314,7 +783,7 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
   {
   Object element = _sync_for_iterator.current;
   {
-  if (!this.contains(element)) return false;
+  if (!(this.contains(element))) return false;
 }
 }
 }
@@ -1323,16 +792,16 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Set difference(Set other) {
+  Set<E> difference(Set<Object?> other) {
     {
-  CppSet result = new CppSet();
+  CppSet result = new CppSet<E>();
   {
   Iterator _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
-  if (!other.contains(element)) {
+  if (!(other.contains(element))) {
   result.add(element);
 }
 }
@@ -1343,18 +812,18 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object elementAt(int index) {
+  E elementAt(int index) {
     return this._list.elementAt(index);
   }
   
-  Set intersection(Set other) {
+  Set<E> intersection(Set<Object?> other) {
     {
-  CppSet result = new CppSet();
+  CppSet result = new CppSet<E>();
   {
   Iterator _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  E element = _sync_for_iterator.current;
   {
   if (other.contains(element)) {
   result.add(element);
@@ -1367,45 +836,45 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static Object first(Object self) {
-    return {
+  E get first {
+    {
   if (this._list.isEmpty) throw new StateError("No element")
   return this._list.first;
-};
+}
   }
   
-  static Object last(Object self) {
-    return {
+  E get last {
+    {
   if (this._list.isEmpty) throw new StateError("No element")
   return this._list.last;
-};
+}
   }
   
-  static Object single(Object self) {
-    return {
+  E get single {
+    {
   if (this._list.isEmpty) throw new StateError("No element")
   if (this._list.length > (1)) throw new StateError("Too many elements")
   return this._list.single;
-};
+}
   }
   
-  static bool isEmpty(Object self) {
-    return return this._list.isEmpty;;
+  bool get isEmpty {
+    return this._list.isEmpty;
   }
   
-  static bool isNotEmpty(Object self) {
-    return return this._list.isNotEmpty;;
+  bool get isNotEmpty {
+    return this._list.isNotEmpty;
   }
   
-  static Iterator iterator(Object self) {
-    return return this._list.iterator;;
+  Iterator<E> get iterator {
+    return this._list.iterator;
   }
   
-  static int length(Object self) {
-    return return this._list.length;;
+  int get length {
+    return this._list.length;
   }
   
-  Object lookup(Object element) {
+  E? lookup(Object? element) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
@@ -1418,13 +887,13 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  bool remove(Object value) {
+  bool remove(Object? value) {
     {
   return this._list.remove(value);
 }
   }
   
-  Object removeAll(Iterable elementsToRemove) {
+  void removeAll(Iterable<Object?> elementsToRemove) {
     {
   {
   Iterator _sync_for_iterator = elementsToRemove.iterator;
@@ -1440,28 +909,28 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object removeWhere(Function(Object) => Object test) {
+  void removeWhere(bool Function(E) test) {
     {
   this._list.removeWhere(test);
 }
   }
   
-  Object retainAll(Iterable elementsToRetain) {
+  void retainAll(Iterable<Object?> elementsToRetain) {
     {
-  CppSet retainSet = CppSet.from(elementsToRetain);
-  this.removeWhere((Object element) => return !retainSet.contains(element););
+  CppSet retainSet = /* auxiliary expression */;
+  this.removeWhere((E element) => return !(retainSet.contains(element)););
 }
   }
   
-  Object retainWhere(Function(Object) => Object test) {
+  void retainWhere(bool Function(E) test) {
     {
   this._list.retainWhere(test);
 }
   }
   
-  Set union(Set other) {
+  Set<E> union(Set<E> other) {
     {
-  CppSet result = new CppSet();
+  CppSet result = new CppSet<E>();
   result.addAll(this);
   result.addAll(other);
   return result;
@@ -1485,86 +954,16 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static bool add(Object self, Object value) {
+  static Set<R> castFrom(Set<S> source) {
     {
-  if (this.contains(value)) {
-  return false;
-}
-  this._list.add(value);
-  return true;
-}
-  }
-  
-  static Object addAll(Object self, Iterable elements) {
-    {
+  CppSet result = new CppSet<E>();
   {
-  Iterator _sync_for_iterator = elements.iterator;
+  Iterator _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  S element = _sync_for_iterator.current;
   {
-  this.add(element);
-}
-}
-}
-}
-}
-  }
-  
-  static Set cast(Object self) {
-    {
-  return CppSet.castFrom(this);
-}
-  }
-  
-  static Object clear(Object self) {
-    {
-  this._list.clear();
-}
-  }
-  
-  static bool contains(Object self, Object element) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  if (element == this._list[i]) {
-  return true;
-}
-}
-}
-  return false;
-}
-  }
-  
-  static bool containsAll(Object self, Iterable other) {
-    {
-  {
-  Iterator _sync_for_iterator = other.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  Object element = _sync_for_iterator.current;
-  {
-  if (!this.contains(element)) return false;
-}
-}
-}
-}
-  return true;
-}
-  }
-  
-  static Set difference(Object self, Set other) {
-    {
-  CppSet result = new CppSet();
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  Object element = _sync_for_iterator.current;
-  {
-  if (!other.contains(element)) {
-  result.add(element);
-}
+  result.add(element as R);
 }
 }
 }
@@ -1573,107 +972,21 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static Object elementAt(Object self, int index) {
-    return this._list.elementAt(index);
-  }
-  
-  static Set intersection(Object self, Set other) {
+  static Set<R> castFromWithFactory(Set<S> source, Set<R> Function() newSet) {
     {
-  CppSet result = new CppSet();
+  Set result = newSet();
   {
-  Iterator _sync_for_iterator = this._list.iterator;
+  Iterator _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext();) {
   {
-  Object element = _sync_for_iterator.current;
+  S element = _sync_for_iterator.current;
   {
-  if (other.contains(element)) {
-  result.add(element);
-}
+  result.add(element as R);
 }
 }
 }
 }
   return result;
-}
-  }
-  
-  static Object lookup(Object self, Object element) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  if (element == this._list[i]) {
-  return this._list[i];
-}
-}
-}
-  return null;
-}
-  }
-  
-  static bool remove(Object self, Object value) {
-    {
-  return this._list.remove(value);
-}
-  }
-  
-  static Object removeAll(Object self, Iterable elementsToRemove) {
-    {
-  {
-  Iterator _sync_for_iterator = elementsToRemove.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  Object element = _sync_for_iterator.current;
-  {
-  this.remove(element);
-}
-}
-}
-}
-}
-  }
-  
-  static Object removeWhere(Object self, Function(Object) => Object test) {
-    {
-  this._list.removeWhere(test);
-}
-  }
-  
-  static Object retainAll(Object self, Iterable elementsToRetain) {
-    {
-  CppSet retainSet = CppSet.from(elementsToRetain);
-  this.removeWhere((Object element) => return !retainSet.contains(element););
-}
-  }
-  
-  static Object retainWhere(Object self, Function(Object) => Object test) {
-    {
-  this._list.retainWhere(test);
-}
-  }
-  
-  static Set union(Object self, Set other) {
-    {
-  CppSet result = new CppSet();
-  result.addAll(this);
-  result.addAll(other);
-  return result;
-}
-  }
-  
-  static String toString(Object self) {
-    {
-  if (this._list.isEmpty) return "{}";
-  StringBuffer buffer = new StringBuffer("{");
-  Iterator iterator = this._list.iterator;
-  if (iterator.moveNext()) {
-  buffer.write(iterator.current);
-  while (iterator.moveNext()) {
-  buffer.write(", ");
-  buffer.write(iterator.current);
-}
-}
-  buffer.write("}");
-  return buffer.toString();
 }
   }
   
@@ -1683,55 +996,22 @@ CppSet(int capacity) : _list = new CppList(0, capacity), super()   {
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
 class CppMap<K, V> implements Map<K, V> {
-  late CppList _list;
-CppMap.fromCppArray(CppUserData array) : _list = new CppList.fromCppArray(array), super()   {
+  late CppList<MapEntry<K, V>> _list;
+CppMap.fromCppArray(CppUserData array) : _list = new CppList<E>(array), super()   {
     ;
   }
   
-CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
+CppMap(int capacity) : _list = new CppList<E>(0, capacity), super()   {
     ;
   }
   
-  Object [](Object key) {
+  void addAll(Map<K, V> other) {
     {
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  if (entry.key == key) {
-  return entry.value;
-}
-}
-}
-}
-}
-  return null;
+  other.forEach((K k, V v) => return (() { final K temp_64875 = k; return (() { final V temp_64911 = v; return (() { final Object temp_64937 = this[(temp_64911 as Object)] = (temp_64911 as Object); return temp_64937; })(); })(); })(););
 }
   }
   
-  Object []=(Object key, Object value) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  if (this._list[i].key == key) {
-  this._list[i] = new MapEntry._(key, value);
-  return;
-}
-}
-}
-  this._list.add(new MapEntry._(key, value));
-}
-  }
-  
-  Object addAll(Map other) {
-    {
-  other.forEach((Object k, Object v) => return (() { final Object temp = k; return (() { final Object temp = v; return (() { final Object temp = this[temp] = temp; return temp; })(); })(); })(););
-}
-  }
-  
-  Object addEntries(Iterable entries) {
+  void addEntries(Iterable<MapEntry<K, V>> entries) {
     {
   {
   Iterator _sync_for_iterator = entries.iterator;
@@ -1747,17 +1027,17 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Map cast() {
+  Map<Object, Object> cast<RK, RV>() {
     return CppMap.castFrom(this);
   }
   
-  Object clear() {
+  void clear() {
     {
   this._list.clear();
 }
   }
   
-  bool containsKey(Object key) {
+  bool containsKey(Object? key) {
     {
   {
   Iterator _sync_for_iterator = this._list.iterator;
@@ -1774,7 +1054,7 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  bool containsValue(Object value) {
+  bool containsValue(Object? value) {
     {
   {
   Iterator _sync_for_iterator = this._list.iterator;
@@ -1791,11 +1071,11 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static Iterable entries(Object self) {
-    return return this._list;;
+  Iterable<MapEntry<K, V>> get entries {
+    return this._list;
   }
   
-  Object forEach(Function(ObjectObject) => Object action) {
+  void forEach(void Function(K, V) action) {
     {
   {
   Iterator _sync_for_iterator = this._list.iterator;
@@ -1811,23 +1091,23 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static bool isEmpty(Object self) {
-    return return this._list.isEmpty;;
+  bool get isEmpty {
+    return this._list.isEmpty;
   }
   
-  static bool isNotEmpty(Object self) {
-    return return this._list.isNotEmpty;;
+  bool get isNotEmpty {
+    return this._list.isNotEmpty;
   }
   
-  static Iterable keys(Object self) {
-    return return this._list.map((MapEntry e) => return e.key;);;
+  Iterable<K> get keys {
+    return this._list.map((MapEntry e) => return e.key;);
   }
   
-  static int length(Object self) {
-    return return this._list.length;;
+  int get length {
+    return this._list.length;
   }
   
-  Object putIfAbsent(Object key, Function() => Object ifAbsent) {
+  V putIfAbsent(K key, V Function() ifAbsent) {
     {
   {
   Iterator _sync_for_iterator = this._list.iterator;
@@ -1840,18 +1120,18 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
 }
 }
-  Object v = ifAbsent();
-  this._list.add(new MapEntry._(key, v));
+  V v = ifAbsent();
+  this._list.add(new MapEntry<K, V>(key, v));
   return v;
 }
   }
   
-  Object remove(Object key) {
+  V? remove(Object? key) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
   if (this._list[i].key == key) {
-  Object v = this._list[i].value;
+  V v = this._list[i].value;
   for (int j = i; j < (this._list.length - (1)); j = j + (1)) {
   {
   this._list[j] = this._list[j + (1)];
@@ -1866,7 +1146,7 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object removeWhere(Function(ObjectObject) => Object test) {
+  void removeWhere(bool Function(K, V) test) {
     {
   int i = 0;
   while (i < (this._list.length)) {
@@ -1880,44 +1160,44 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object update(Object key, Function(Object) => Object update) {
+  V update(K key, V Function(V) update) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
   if (this._list[i].key == key) {
-  Object newValue = update(this._list[i].value);
-  this._list[i] = new MapEntry._(key, newValue);
+  V newValue = update(this._list[i].value);
+  this._list[i] = new MapEntry<K, V>(key, newValue);
   return newValue;
 }
 }
 }
-  if (!ifAbsent == null) {
-  Object v = ifAbsent();
-  this._list.add(new MapEntry._(key, v));
+  if (!(ifAbsent == null)) {
+  V v = ifAbsent();
+  this._list.add(new MapEntry<K, V>(key, v));
   return v;
 }
   throw new ArgumentError("Key not found")
 }
   }
   
-  Object updateAll(Function(ObjectObject) => Object update) {
+  void updateAll(V Function(K, V) update) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
   MapEntry entry = this._list[i];
-  this._list[i] = new MapEntry._(entry.key, update(entry.key, entry.value));
+  this._list[i] = new MapEntry<K, V>(entry.key, update(entry.key, entry.value));
 }
 }
 }
   }
   
-  static Iterable values(Object self) {
-    return return this._list.map((MapEntry e) => return e.value;);;
+  Iterable<V> get values {
+    return this._list.map((MapEntry e) => return e.value;);
   }
   
-  Map map(Function(ObjectObject) => Object transform) {
+  Map<Object, Object> map<K2, V2>(MapEntry<Object, Object> Function(K, V) transform) {
     {
-  CppMap result = new CppMap();
+  CppMap result = new CppMap<K, V>();
   {
   Iterator _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext();) {
@@ -1950,208 +1230,27 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  static Object addAll(Object self, Map other) {
+  static Map<Object, Object> castFrom(Map<K, V> source) {
     {
-  other.forEach((Object k, Object v) => return (() { final Object temp = k; return (() { final Object temp = v; return (() { final Object temp = this[temp] = temp; return temp; })(); })(); })(););
-}
-  }
-  
-  static Object addEntries(Object self, Iterable entries) {
-    {
-  {
-  Iterator _sync_for_iterator = entries.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  this[entry.key] = entry.value;
-}
-}
-}
-}
-}
-  }
-  
-  static Map cast(Object self) {
-    return CppMap.castFrom(this);
-  }
-  
-  static Object clear(Object self) {
-    {
-  this._list.clear();
-}
-  }
-  
-  static bool containsKey(Object self, Object key) {
-    {
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  if (entry.key == key) return true;
-}
-}
-}
-}
-  return false;
-}
-  }
-  
-  static bool containsValue(Object self, Object value) {
-    {
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  if (entry.value == value) return true;
-}
-}
-}
-}
-  return false;
-}
-  }
-  
-  static Object forEach(Object self, Function(ObjectObject) => Object action) {
-    {
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  action(entry.key, entry.value);
-}
-}
-}
-}
-}
-  }
-  
-  static Object putIfAbsent(Object self, Object key, Function() => Object ifAbsent) {
-    {
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  if (entry.key == key) return entry.value;
-}
-}
-}
-}
-  Object v = ifAbsent();
-  this._list.add(new MapEntry._(key, v));
-  return v;
-}
-  }
-  
-  static Object remove(Object self, Object key) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  if (this._list[i].key == key) {
-  Object v = this._list[i].value;
-  for (int j = i; j < (this._list.length - (1)); j = j + (1)) {
-  {
-  this._list[j] = this._list[j + (1)];
-}
-}
-  this._list.length = this._list.length - (1);
-  return v;
-}
-}
-}
-  return null;
-}
-  }
-  
-  static Object removeWhere(Object self, Function(ObjectObject) => Object test) {
-    {
-  int i = 0;
-  while (i < (this._list.length)) {
-  MapEntry entry = this._list[i];
-  if (test(entry.key, entry.value)) {
-  this.remove(entry.key);
-} else {
-  i = i + (1);
-}
-}
-}
-  }
-  
-  static Object update(Object self, Object key, Function(Object) => Object update) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  if (this._list[i].key == key) {
-  Object newValue = update(this._list[i].value);
-  this._list[i] = new MapEntry._(key, newValue);
-  return newValue;
-}
-}
-}
-  if (!ifAbsent == null) {
-  Object v = ifAbsent();
-  this._list.add(new MapEntry._(key, v));
-  return v;
-}
-  throw new ArgumentError("Key not found")
-}
-  }
-  
-  static Object updateAll(Object self, Function(ObjectObject) => Object update) {
-    {
-  for (int i = 0; i < (this._list.length); i = i + (1)) {
-  {
-  MapEntry entry = this._list[i];
-  this._list[i] = new MapEntry._(entry.key, update(entry.key, entry.value));
-}
-}
-}
-  }
-  
-  static Map map(Object self, Function(ObjectObject) => Object transform) {
-    {
-  CppMap result = new CppMap();
-  {
-  Iterator _sync_for_iterator = this._list.iterator;
-  for (; _sync_for_iterator.moveNext();) {
-  {
-  MapEntry entry = _sync_for_iterator.current;
-  {
-  MapEntry newEntry = transform(entry.key, entry.value);
-  result[newEntry.key] = newEntry.value;
-}
-}
-}
-}
+  CppMap result = new CppMap<K, V>();
+  source.forEach((K key, V value) => {
+  result[key as RK] = value as RV;
+});
   return result;
 }
   }
   
-  static String toString(Object self) {
+  static Map<Object, Object> castFromWithFactory(Map<K, V> source, Map<Object, Object> Function() newMap) {
     {
-  if (this._list.isEmpty) return "{}";
-  StringBuffer buffer = new StringBuffer("{");
-  Iterator iterator = this._list.iterator;
-  if (iterator.moveNext()) {
-  buffer.write(iterator.current.key + ": " + iterator.current.value);
-  while (iterator.moveNext()) {
-  buffer.write(", " + iterator.current.key + ": " + iterator.current.value);
-}
-}
-  buffer.write("}");
-  return buffer.toString();
+  Map result = newMap();
+  source.forEach((K key, V value) => {
+  result[key as RK] = value as RV;
+});
+  return result;
 }
   }
   
-  Object operator [](Object key) {
+  V? operator [](Object? key) {
     {
   {
   Iterator _sync_for_iterator = this._list.iterator;
@@ -2170,17 +1269,17 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 }
   }
   
-  Object operator []=(Object key, Object value) {
+  void operator []=(K key, V value) {
     {
   for (int i = 0; i < (this._list.length); i = i + (1)) {
   {
   if (this._list[i].key == key) {
-  this._list[i] = new MapEntry._(key, value);
+  this._list[i] = new MapEntry<K, V>(key, value);
   return;
 }
 }
 }
-  this._list.add(new MapEntry._(key, value));
+  this._list.add(new MapEntry<K, V>(key, value));
 }
   }
   
@@ -2189,80 +1288,76 @@ CppMap(int capacity) : _list = new CppList(0, capacity), super()   {
 /// 转换后的类: CppIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppIterator<E> implements Iterator<E> {
+abstract class CppIterator<E> implements Iterator<E> {
 CppIterator() : super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return null;
-  }
+  E get current;
+  
+  bool moveNext();
   
 }
 
 /// 转换后的类: CppIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppIterable<E> implements Iterable<E> {
+abstract class CppIterable<E> implements Iterable<E> {
 CppIterable() : super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return null;
+  Iterator<E> get iterator;
+  
+  int get length;
+  
+  bool get isEmpty {
+    return this.length == 0;
   }
   
-  static int length(Object self) {
-    return null;
+  bool get isNotEmpty {
+    return this.length > (0);
   }
   
-  static bool isEmpty(Object self) {
-    return return this.length == 0;;
-  }
-  
-  static bool isNotEmpty(Object self) {
-    return return this.length > (0);;
-  }
-  
-  static Object first(Object self) {
-    return {
+  E get first {
+    {
   if (this.isEmpty) throw new StateError("No element")
   Iterator it = this.iterator;
-  if (!it.moveNext()) throw new StateError("No element")
+  if (!(it.moveNext())) throw new StateError("No element")
   return it.current;
-};
+}
   }
   
-  static Object last(Object self) {
-    return {
+  E get last {
+    {
   if (this.isEmpty) throw new StateError("No element")
   Iterator it = this.iterator;
-  Object result;
+  E result;
   while (it.moveNext()) {
   result = it.current;
 }
-  return (() { final Object temp = result; return temp == null ? temp as Object : temp; })();
-};
+  return (() { final E temp_108808 = result; return (temp_108808 as Object) == null ? (temp_108808 as Object) as E : (temp_108808 as Object); })();
+}
   }
   
-  static Object single(Object self) {
-    return {
+  E get single {
+    {
   if (this.isEmpty) throw new StateError("No element")
   Iterator it = this.iterator;
   it.moveNext();
-  Object result = it.current;
+  E result = it.current;
   if (it.moveNext()) throw new StateError("Too many elements")
   return result;
-};
+}
   }
   
-  Object elementAt(int index) {
+  E elementAt(int index) {
     {
   if (index < (0)) throw new ArgumentError("Index cannot be negative")
   Iterator it = this.iterator;
   for (int i = 0; i <= (index); i = i + (1)) {
   {
-  if (!it.moveNext()) throw new IndexError(index, this)
+  if (!(it.moveNext())) throw new IndexError(index, this)
   if (i == index) return it.current;
 }
 }
@@ -2270,7 +1365,7 @@ CppIterable() : super()   {
 }
   }
   
-  bool contains(Object element) {
+  bool contains(Object? element) {
     {
   Iterator it = this.iterator;
   while (it.moveNext()) {
@@ -2280,7 +1375,7 @@ CppIterable() : super()   {
 }
   }
   
-  Object forEach(Function(Object) => Object action) {
+  void forEach(void Function(E) action) {
     {
   Iterator it = this.iterator;
   while (it.moveNext()) {
@@ -2289,31 +1384,31 @@ CppIterable() : super()   {
 }
   }
   
-  Iterable map(Function(Object) => Object toElement) {
+  Iterable<T> map<T>(T Function(E) toElement) {
     {
-  return new CppMappedIterable(this, toElement);
+  return new CppMappedIterable<S, T>(this, toElement);
 }
   }
   
-  Iterable where(Function(Object) => Object test) {
+  Iterable<E> where(bool Function(E) test) {
     {
-  return new CppWhereIterable(this, test);
+  return new CppWhereIterable<E>(this, test);
 }
   }
   
-  Iterable whereType() {
+  Iterable<T> whereType<T>() {
     {
-  return new CppWhereTypeIterable(this);
+  return new CppWhereTypeIterable<T>(this);
 }
   }
   
-  Iterable expand(Function(Object) => Object toElements) {
+  Iterable<T> expand<T>(Iterable<T> Function(E) toElements) {
     {
-  return new CppExpandIterable(this, toElements);
+  return new CppExpandIterable<S, T>(this, toElements);
 }
   }
   
-  bool any(Function(Object) => Object test) {
+  bool any(bool Function(E) test) {
     {
   Iterator it = this.iterator;
   while (it.moveNext()) {
@@ -2323,31 +1418,31 @@ CppIterable() : super()   {
 }
   }
   
-  bool every(Function(Object) => Object test) {
+  bool every(bool Function(E) test) {
     {
   Iterator it = this.iterator;
   while (it.moveNext()) {
-  if (!test(it.current)) return false;
+  if (!(test(it.current))) return false;
 }
   return true;
 }
   }
   
-  Object firstWhere(Function(Object) => Object test) {
+  E firstWhere(bool Function(E) test) {
     {
   Iterator it = this.iterator;
   while (it.moveNext()) {
   if (test(it.current)) return it.current;
 }
-  if (!orElse == null) return orElse();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
 }
   }
   
-  Object lastWhere(Function(Object) => Object test) {
+  E lastWhere(bool Function(E) test) {
     {
   Iterator it = this.iterator;
-  Object result;
+  E result;
   bool found = false;
   while (it.moveNext()) {
   if (test(it.current)) {
@@ -2355,16 +1450,16 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final Object temp = result; return temp == null ? temp as Object : temp; })();
-  if (!orElse == null) return orElse();
+  if (found) return (() { final E temp_112041 = result; return (temp_112041 as Object) == null ? (temp_112041 as Object) as E : (temp_112041 as Object); })();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
 }
   }
   
-  Object singleWhere(Function(Object) => Object test) {
+  E singleWhere(bool Function(E) test) {
     {
   Iterator it = this.iterator;
-  Object result;
+  E result;
   bool found = false;
   while (it.moveNext()) {
   if (test(it.current)) {
@@ -2373,17 +1468,17 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final Object temp = result; return temp == null ? temp as Object : temp; })();
-  if (!orElse == null) return orElse();
+  if (found) return (() { final E temp_113032 = result; return (temp_113032 as Object) == null ? (temp_113032 as Object) as E : (temp_113032 as Object); })();
+  if (!(orElse == null)) return orElse();
   throw new StateError("No element")
 }
   }
   
-  Object reduce(Function(ObjectObject) => Object combine) {
+  E reduce(E Function(E, E) combine) {
     {
   Iterator it = this.iterator;
-  if (!it.moveNext()) throw new StateError("No element")
-  Object value = it.current;
+  if (!(it.moveNext())) throw new StateError("No element")
+  E value = it.current;
   while (it.moveNext()) {
   value = combine(value, it.current);
 }
@@ -2391,9 +1486,9 @@ CppIterable() : super()   {
 }
   }
   
-  Object fold(Object initialValue, Function(ObjectObject) => Object combine) {
+  T fold<T>(T initialValue, T Function(T, E) combine) {
     {
-  Object value = initialValue;
+  T value = initialValue;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   value = combine(value, it.current);
@@ -2405,7 +1500,7 @@ CppIterable() : super()   {
   String join(String separator) {
     {
   Iterator it = this.iterator;
-  if (!it.moveNext()) return "";
+  if (!(it.moveNext())) return "";
   StringBuffer buffer = new StringBuffer(it.current.toString());
   while (it.moveNext()) {
   buffer.write(separator);
@@ -2415,264 +1510,79 @@ CppIterable() : super()   {
 }
   }
   
-  Iterable take(int count) {
+  Iterable<E> take(int count) {
     {
-  return new CppTakeIterable(this, count);
+  return new CppTakeIterable<E>(this, count);
 }
   }
   
-  Iterable takeWhile(Function(Object) => Object test) {
+  Iterable<E> takeWhile(bool Function(E) test) {
     {
-  return new CppTakeWhileIterable(this, test);
+  return new CppTakeWhileIterable<E>(this, test);
 }
   }
   
-  Iterable skip(int count) {
+  Iterable<E> skip(int count) {
     {
-  return new CppSkipIterable(this, count);
+  return new CppSkipIterable<E>(this, count);
 }
   }
   
-  Iterable skipWhile(Function(Object) => Object test) {
+  Iterable<E> skipWhile(bool Function(E) test) {
     {
-  return new CppSkipWhileIterable(this, test);
+  return new CppSkipWhileIterable<E>(this, test);
 }
   }
   
-  static Iterable reversed(Object self) {
-    return {
-  return new CppReversedIterable(this);
-};
-  }
-  
-  Iterable followedBy(Iterable other) {
+  Iterable<E> get reversed {
     {
-  return new CppFollowedByIterable(this, other);
+  return new CppReversedIterable<E>(this);
 }
   }
   
-  List toList() {
+  Iterable<E> followedBy(Iterable<E> other) {
     {
-  return CppList.from(this, growable: growable);
+  return new CppFollowedByIterable<E>(this, other);
 }
   }
   
-  Set toSet() {
+  List<E> toList() {
     {
-  return CppSet.from(this);
+  return /* auxiliary expression */;
 }
   }
   
-  Iterable cast() {
+  Set<E> toSet() {
     {
-  return new CppCastIterable(this);
+  return /* auxiliary expression */;
 }
   }
   
-  static Object elementAt(Object self, int index) {
+  Iterable<T> cast<T>() {
     {
-  if (index < (0)) throw new ArgumentError("Index cannot be negative")
-  Iterator it = this.iterator;
-  for (int i = 0; i <= (index); i = i + (1)) {
-  {
-  if (!it.moveNext()) throw new IndexError(index, this)
-  if (i == index) return it.current;
-}
-}
-  throw new IndexError(index, this)
+  return new CppCastIterable<S, T>(this);
 }
   }
   
-  static bool contains(Object self, Object element) {
+  static CppIterable<E> empty() {
+    return new _CppEmptyIterable<E>();
+  }
+  
+  static CppIterable<E> generate(int count, E Function(int) generator) {
     {
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  if (it.current == element) return true;
-}
-  return false;
+  return new _CppGenerateIterable<E>(count, generator);
 }
   }
   
-  static Object forEach(Object self, Function(Object) => Object action) {
+  static CppIterable<E> unmodifiable(Iterable<E> elements) {
     {
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  action(it.current);
-}
+  return new _CppUnmodifiableIterable<E>(elements.toList());
 }
   }
   
-  static Iterable map(Object self, Function(Object) => Object toElement) {
+  static CppIterable<R> castFrom(Iterable<S> source) {
     {
-  return new CppMappedIterable(this, toElement);
-}
-  }
-  
-  static Iterable where(Object self, Function(Object) => Object test) {
-    {
-  return new CppWhereIterable(this, test);
-}
-  }
-  
-  static Iterable whereType(Object self) {
-    {
-  return new CppWhereTypeIterable(this);
-}
-  }
-  
-  static Iterable expand(Object self, Function(Object) => Object toElements) {
-    {
-  return new CppExpandIterable(this, toElements);
-}
-  }
-  
-  static bool any(Object self, Function(Object) => Object test) {
-    {
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  if (test(it.current)) return true;
-}
-  return false;
-}
-  }
-  
-  static bool every(Object self, Function(Object) => Object test) {
-    {
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  if (!test(it.current)) return false;
-}
-  return true;
-}
-  }
-  
-  static Object firstWhere(Object self, Function(Object) => Object test) {
-    {
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  if (test(it.current)) return it.current;
-}
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static Object lastWhere(Object self, Function(Object) => Object test) {
-    {
-  Iterator it = this.iterator;
-  Object result;
-  bool found = false;
-  while (it.moveNext()) {
-  if (test(it.current)) {
-  result = it.current;
-  found = true;
-}
-}
-  if (found) return (() { final Object temp = result; return temp == null ? temp as Object : temp; })();
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static Object singleWhere(Object self, Function(Object) => Object test) {
-    {
-  Iterator it = this.iterator;
-  Object result;
-  bool found = false;
-  while (it.moveNext()) {
-  if (test(it.current)) {
-  if (found) throw new StateError("Too many elements")
-  result = it.current;
-  found = true;
-}
-}
-  if (found) return (() { final Object temp = result; return temp == null ? temp as Object : temp; })();
-  if (!orElse == null) return orElse();
-  throw new StateError("No element")
-}
-  }
-  
-  static Object reduce(Object self, Function(ObjectObject) => Object combine) {
-    {
-  Iterator it = this.iterator;
-  if (!it.moveNext()) throw new StateError("No element")
-  Object value = it.current;
-  while (it.moveNext()) {
-  value = combine(value, it.current);
-}
-  return value;
-}
-  }
-  
-  static Object fold(Object self, Object initialValue, Function(ObjectObject) => Object combine) {
-    {
-  Object value = initialValue;
-  Iterator it = this.iterator;
-  while (it.moveNext()) {
-  value = combine(value, it.current);
-}
-  return value;
-}
-  }
-  
-  static String join(Object self, String separator) {
-    {
-  Iterator it = this.iterator;
-  if (!it.moveNext()) return "";
-  StringBuffer buffer = new StringBuffer(it.current.toString());
-  while (it.moveNext()) {
-  buffer.write(separator);
-  buffer.write(it.current.toString());
-}
-  return buffer.toString();
-}
-  }
-  
-  static Iterable take(Object self, int count) {
-    {
-  return new CppTakeIterable(this, count);
-}
-  }
-  
-  static Iterable takeWhile(Object self, Function(Object) => Object test) {
-    {
-  return new CppTakeWhileIterable(this, test);
-}
-  }
-  
-  static Iterable skip(Object self, int count) {
-    {
-  return new CppSkipIterable(this, count);
-}
-  }
-  
-  static Iterable skipWhile(Object self, Function(Object) => Object test) {
-    {
-  return new CppSkipWhileIterable(this, test);
-}
-  }
-  
-  static Iterable followedBy(Object self, Iterable other) {
-    {
-  return new CppFollowedByIterable(this, other);
-}
-  }
-  
-  static List toList(Object self) {
-    {
-  return CppList.from(this, growable: growable);
-}
-  }
-  
-  static Set toSet(Object self) {
-    {
-  return CppSet.from(this);
-}
-  }
-  
-  static Iterable cast(Object self) {
-    {
-  return new CppCastIterable(this);
+  return new _CppCastFromIterable<S, R>(source);
 }
   }
   
@@ -2681,19 +1591,19 @@ CppIterable() : super()   {
 /// 转换后的类: CppMappedIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppMappedIterable<S, T> extends CppIterable<S, T> {
-  late Iterable _source;
-  late Function(Object) => Object _f;
-CppMappedIterable(Iterable _source, Function(Object) => Object _f) : _source = _source, _f = _f, super()   {
+class CppMappedIterable<S, T> extends CppIterable<T> {
+  late Iterable<S> _source;
+  late T Function(S) _f;
+CppMappedIterable(Iterable<S> _source, T Function(S) _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppMappedIterator(this._source.iterator, this._f);;
+  Iterator<T> get iterator {
+    return new CppMappedIterator<S, T>(this._source.iterator, this._f);
   }
   
-  static int length(Object self) {
-    return return this._source.length;;
+  int get length {
+    return this._source.length;
   }
   
 }
@@ -2701,32 +1611,22 @@ CppMappedIterable(Iterable _source, Function(Object) => Object _f) : _source = _
 /// 转换后的类: CppMappedIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppMappedIterator<S, T> extends CppIterator<S, T> {
-  Object _current;
-  late Iterator _iterator;
-  late Function(Object) => Object _f;
-CppMappedIterator(Iterator _iterator, Function(Object) => Object _f) : _iterator = _iterator, _f = _f, super()   {
+class CppMappedIterator<S, T> extends CppIterator<T> {
+  T? _current;
+  late Iterator<S> _iterator;
+  late T Function(S) _f;
+CppMappedIterator(Iterator<S> _iterator, T Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return (() { final Object temp = this._current; return temp == null ? temp as Object : temp; })();;
+  T get current {
+    return (() { final T temp_145096 = this._current; return (temp_145096 as Object) == null ? (temp_145096 as Object) as T : (temp_145096 as Object); })();
   }
   
   bool moveNext() {
     {
   if (this._iterator.moveNext()) {
-  this._current = (() { final Object temp = this._iterator.current; return this._f(temp); })();
-  return true;
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  if (this._iterator.moveNext()) {
-  this._current = (() { final Object temp = this._iterator.current; return this._f(temp); })();
+  this._current = (() { final S temp_145782 = this._iterator.current; return this._f((temp_145782 as Object)); })();
   return true;
 }
   return false;
@@ -2739,25 +1639,25 @@ CppMappedIterator(Iterator _iterator, Function(Object) => Object _f) : _iterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppWhereIterable<E> extends CppIterable<E> {
-  late Iterable _source;
-  late Function(Object) => Object _test;
-CppWhereIterable(Iterable _source, Function(Object) => Object _test) : _source = _source, _test = _test, super()   {
+  late Iterable<E> _source;
+  late bool Function(E) _test;
+CppWhereIterable(Iterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppWhereIterator(this._source.iterator, this._test);;
+  Iterator<E> get iterator {
+    return new CppWhereIterator<E>(this._source.iterator, this._test);
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   int count = 0;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   count = count + (1);
 }
   return count;
-};
+}
   }
   
 }
@@ -2766,31 +1666,20 @@ CppWhereIterable(Iterable _source, Function(Object) => Object _test) : _source =
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppWhereIterator<E> extends CppIterator<E> {
-  late Iterator _iterator;
-  late Function(Object) => Object _test;
-CppWhereIterator(Iterator _iterator, Function(Object) => Object _test) : _iterator = _iterator, _test = _test, super()   {
+  late Iterator<E> _iterator;
+  late bool Function(E) _test;
+CppWhereIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current;;
+  E get current {
+    return this._iterator.current;
   }
   
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if ((() { final Object temp = this._iterator.current; return this._test(temp); })()) {
-  return true;
-}
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  while (this._iterator.moveNext()) {
-  if ((() { final Object temp = this._iterator.current; return this._test(temp); })()) {
+  if ((() { final E temp_146845 = this._iterator.current; return this._test((temp_146845 as Object)); })()) {
   return true;
 }
 }
@@ -2804,24 +1693,24 @@ CppWhereIterator(Iterator _iterator, Function(Object) => Object _test) : _iterat
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppWhereTypeIterable<T> extends CppIterable<T> {
-  late Iterable _source;
-CppWhereTypeIterable(Iterable _source) : _source = _source, super()   {
+  late Iterable<Object?> _source;
+CppWhereTypeIterable(Iterable<Object?> _source) : _source = _source, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppWhereTypeIterator(this._source.iterator);;
+  Iterator<T> get iterator {
+    return new CppWhereTypeIterator<T>(this._source.iterator);
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   int count = 0;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   count = count + (1);
 }
   return count;
-};
+}
   }
   
 }
@@ -2830,30 +1719,19 @@ CppWhereTypeIterable(Iterable _source) : _source = _source, super()   {
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppWhereTypeIterator<T> extends CppIterator<T> {
-  late Iterator _iterator;
-CppWhereTypeIterator(Iterator _iterator) : _iterator = _iterator, super()   {
+  late Iterator<Object?> _iterator;
+CppWhereTypeIterator(Iterator<Object?> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current as Object;;
+  T get current {
+    return this._iterator.current as T;
   }
   
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if (this._iterator.current is Object) {
-  return true;
-}
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  while (this._iterator.moveNext()) {
-  if (this._iterator.current is Object) {
+  if (this._iterator.current is T) {
   return true;
 }
 }
@@ -2866,26 +1744,26 @@ CppWhereTypeIterator(Iterator _iterator) : _iterator = _iterator, super()   {
 /// 转换后的类: CppExpandIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppExpandIterable<S, T> extends CppIterable<S, T> {
-  late Iterable _source;
-  late Function(Object) => Object _f;
-CppExpandIterable(Iterable _source, Function(Object) => Object _f) : _source = _source, _f = _f, super()   {
+class CppExpandIterable<S, T> extends CppIterable<T> {
+  late Iterable<S> _source;
+  late Iterable<T> Function(S) _f;
+CppExpandIterable(Iterable<S> _source, Iterable<T> Function(S) _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppExpandIterator(this._source.iterator, this._f);;
+  Iterator<T> get iterator {
+    return new CppExpandIterator<S, T>(this._source.iterator, this._f);
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   int count = 0;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   count = count + (1);
 }
   return count;
-};
+}
   }
   
 }
@@ -2893,42 +1771,28 @@ CppExpandIterable(Iterable _source, Function(Object) => Object _f) : _source = _
 /// 转换后的类: CppExpandIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppExpandIterator<S, T> extends CppIterator<S, T> {
-  Iterator _currentIterator;
-  late Iterator _iterator;
-  late Function(Object) => Object _f;
-CppExpandIterator(Iterator _iterator, Function(Object) => Object _f) : _iterator = _iterator, _f = _f, super()   {
+class CppExpandIterator<S, T> extends CppIterator<T> {
+  Iterator<T>? _currentIterator;
+  late Iterator<S> _iterator;
+  late Iterable<T> Function(S) _f;
+CppExpandIterator(Iterator<S> _iterator, Iterable<T> Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._currentIterator!.current;;
+  T get current {
+    return this._currentIterator!.current;
   }
   
   bool moveNext() {
     {
   while (true) {
-  if (!this._currentIterator == null && this._currentIterator!.moveNext()) {
+  if (!(this._currentIterator == null) && this._currentIterator!.moveNext()) {
   return true;
 }
-  if (!this._iterator.moveNext()) {
+  if (!(this._iterator.moveNext())) {
   return false;
 }
-  this._currentIterator = (() { final Object temp = this._iterator.current; return this._f(temp); })().iterator;
-}
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  while (true) {
-  if (!this._currentIterator == null && this._currentIterator!.moveNext()) {
-  return true;
-}
-  if (!this._iterator.moveNext()) {
-  return false;
-}
-  this._currentIterator = (() { final Object temp = this._iterator.current; return this._f(temp); })().iterator;
+  this._currentIterator = (() { final S temp_149115 = this._iterator.current; return this._f((temp_149115 as Object)); })().iterator;
 }
 }
   }
@@ -2939,18 +1803,18 @@ CppExpandIterator(Iterator _iterator, Function(Object) => Object _f) : _iterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppTakeIterable<E> extends CppIterable<E> {
-  late Iterable _source;
+  late Iterable<E> _source;
   late int _count;
-CppTakeIterable(Iterable _source, int _count) : _source = _source, _count = _count, super()   {
+CppTakeIterable(Iterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppTakeIterator(this._source.iterator, this._count);;
+  Iterator<E> get iterator {
+    return new CppTakeIterator<E>(this._source.iterator, this._count);
   }
   
-  static int length(Object self) {
-    return return UnknownClass.min(this._count, this._source.length);;
+  int get length {
+    return UnknownClass.min(this._count, this._source.length);
   }
   
 }
@@ -2960,28 +1824,17 @@ CppTakeIterable(Iterable _source, int _count) : _source = _source, _count = _cou
 
 class CppTakeIterator<E> extends CppIterator<E> {
   int _remaining;
-  late Iterator _iterator;
+  late Iterator<E> _iterator;
   late int _count;
-CppTakeIterator(Iterator _iterator, int _count) : _iterator = _iterator, _count = _count, _remaining = _count, super()   {
+CppTakeIterator(Iterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, _remaining = _count, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current;;
+  E get current {
+    return this._iterator.current;
   }
   
   bool moveNext() {
-    {
-  if (this._remaining <= (0)) return false;
-  if (this._iterator.moveNext()) {
-  this._remaining = this._remaining - (1);
-  return true;
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
     {
   if (this._remaining <= (0)) return false;
   if (this._iterator.moveNext()) {
@@ -2998,25 +1851,25 @@ CppTakeIterator(Iterator _iterator, int _count) : _iterator = _iterator, _count 
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppTakeWhileIterable<E> extends CppIterable<E> {
-  late Iterable _source;
-  late Function(Object) => Object _test;
-CppTakeWhileIterable(Iterable _source, Function(Object) => Object _test) : _source = _source, _test = _test, super()   {
+  late Iterable<E> _source;
+  late bool Function(E) _test;
+CppTakeWhileIterable(Iterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppTakeWhileIterator(this._source.iterator, this._test);;
+  Iterator<E> get iterator {
+    return new CppTakeWhileIterator<E>(this._source.iterator, this._test);
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   int count = 0;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   count = count + (1);
 }
   return count;
-};
+}
   }
   
 }
@@ -3026,34 +1879,21 @@ CppTakeWhileIterable(Iterable _source, Function(Object) => Object _test) : _sour
 
 class CppTakeWhileIterator<E> extends CppIterator<E> {
   bool _finished;
-  late Iterator _iterator;
-  late Function(Object) => Object _test;
-CppTakeWhileIterator(Iterator _iterator, Function(Object) => Object _test) : _iterator = _iterator, _test = _test, super()   {
+  late Iterator<E> _iterator;
+  late bool Function(E) _test;
+CppTakeWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current;;
+  E get current {
+    return this._iterator.current;
   }
   
   bool moveNext() {
     {
   if (this._finished) return false;
   if (this._iterator.moveNext()) {
-  if ((() { final Object temp = this._iterator.current; return this._test(temp); })()) {
-  return true;
-}
-  this._finished = true;
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  if (this._finished) return false;
-  if (this._iterator.moveNext()) {
-  if ((() { final Object temp = this._iterator.current; return this._test(temp); })()) {
+  if ((() { final E temp_151061 = this._iterator.current; return this._test((temp_151061 as Object)); })()) {
   return true;
 }
   this._finished = true;
@@ -3068,18 +1908,18 @@ CppTakeWhileIterator(Iterator _iterator, Function(Object) => Object _test) : _it
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppSkipIterable<E> extends CppIterable<E> {
-  late Iterable _source;
+  late Iterable<E> _source;
   late int _count;
-CppSkipIterable(Iterable _source, int _count) : _source = _source, _count = _count, super()   {
+CppSkipIterable(Iterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppSkipIterator(this._source.iterator, this._count);;
+  Iterator<E> get iterator {
+    return new CppSkipIterator<E>(this._source.iterator, this._count);
   }
   
-  static int length(Object self) {
-    return return UnknownClass.max(0, this._source.length - (this._count));;
+  int get length {
+    return UnknownClass.max(0, this._source.length - (this._count));
   }
   
 }
@@ -3089,36 +1929,22 @@ CppSkipIterable(Iterable _source, int _count) : _source = _source, _count = _cou
 
 class CppSkipIterator<E> extends CppIterator<E> {
   bool _skipped;
-  late Iterator _iterator;
+  late Iterator<E> _iterator;
   late int _count;
-CppSkipIterator(Iterator _iterator, int _count) : _iterator = _iterator, _count = _count, super()   {
+CppSkipIterator(Iterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current;;
+  E get current {
+    return this._iterator.current;
   }
   
   bool moveNext() {
     {
-  if (!this._skipped) {
+  if (!(this._skipped)) {
   for (int i = 0; i < (this._count); i = i + (1)) {
   {
-  if (!this._iterator.moveNext()) return false;
-}
-}
-  this._skipped = true;
-}
-  return this._iterator.moveNext();
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  if (!this._skipped) {
-  for (int i = 0; i < (this._count); i = i + (1)) {
-  {
-  if (!this._iterator.moveNext()) return false;
+  if (!(this._iterator.moveNext())) return false;
 }
 }
   this._skipped = true;
@@ -3133,25 +1959,25 @@ CppSkipIterator(Iterator _iterator, int _count) : _iterator = _iterator, _count 
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppSkipWhileIterable<E> extends CppIterable<E> {
-  late Iterable _source;
-  late Function(Object) => Object _test;
-CppSkipWhileIterable(Iterable _source, Function(Object) => Object _test) : _source = _source, _test = _test, super()   {
+  late Iterable<E> _source;
+  late bool Function(E) _test;
+CppSkipWhileIterable(Iterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppSkipWhileIterator(this._source.iterator, this._test);;
+  Iterator<E> get iterator {
+    return new CppSkipWhileIterator<E>(this._source.iterator, this._test);
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   int count = 0;
   Iterator it = this.iterator;
   while (it.moveNext()) {
   count = count + (1);
 }
   return count;
-};
+}
   }
   
 }
@@ -3161,36 +1987,21 @@ CppSkipWhileIterable(Iterable _source, Function(Object) => Object _test) : _sour
 
 class CppSkipWhileIterator<E> extends CppIterator<E> {
   bool _skipped;
-  late Iterator _iterator;
-  late Function(Object) => Object _test;
-CppSkipWhileIterator(Iterator _iterator, Function(Object) => Object _test) : _iterator = _iterator, _test = _test, super()   {
+  late Iterator<E> _iterator;
+  late bool Function(E) _test;
+CppSkipWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current;;
+  E get current {
+    return this._iterator.current;
   }
   
   bool moveNext() {
     {
-  if (!this._skipped) {
+  if (!(this._skipped)) {
   while (this._iterator.moveNext()) {
-  if (!(() { final Object temp = this._iterator.current; return this._test(temp); })()) {
-  this._skipped = true;
-  return true;
-}
-}
-  return false;
-}
-  return this._iterator.moveNext();
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  if (!this._skipped) {
-  while (this._iterator.moveNext()) {
-  if (!(() { final Object temp = this._iterator.current; return this._test(temp); })()) {
+  if (!((() { final E temp_153208 = this._iterator.current; return this._test((temp_153208 as Object)); })())) {
   this._skipped = true;
   return true;
 }
@@ -3207,17 +2018,17 @@ CppSkipWhileIterator(Iterator _iterator, Function(Object) => Object _test) : _it
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppReversedIterable<E> extends CppIterable<E> {
-  late Iterable _source;
-CppReversedIterable(Iterable _source) : _source = _source, super()   {
+  late Iterable<E> _source;
+CppReversedIterable(Iterable<E> _source) : _source = _source, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppReversedIterator(this._source);;
+  Iterator<E> get iterator {
+    return new CppReversedIterator<E>(this._source);
   }
   
-  static int length(Object self) {
-    return return this._source.length;;
+  int get length {
+    return this._source.length;
   }
   
 }
@@ -3227,26 +2038,16 @@ CppReversedIterable(Iterable _source) : _source = _source, super()   {
 
 class CppReversedIterator<E> extends CppIterator<E> {
   int _index;
-  late CppList _elements;
-CppReversedIterator(Iterable source) : _elements = CppList.from(source), _index = source.length, super()   {
+  late CppList<E> _elements;
+CppReversedIterator(Iterable<E> source) : _elements = /* auxiliary expression */, _index = source.length, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._elements[this._index];;
+  E get current {
+    return this._elements[this._index];
   }
   
   bool moveNext() {
-    {
-  if (this._index > (0)) {
-  this._index = this._index - (1);
-  return true;
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
     {
   if (this._index > (0)) {
   this._index = this._index - (1);
@@ -3262,18 +2063,18 @@ CppReversedIterator(Iterable source) : _elements = CppList.from(source), _index 
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class CppFollowedByIterable<E> extends CppIterable<E> {
-  late Iterable _first;
-  late Iterable _second;
-CppFollowedByIterable(Iterable _first, Iterable _second) : _first = _first, _second = _second, super()   {
+  late Iterable<E> _first;
+  late Iterable<E> _second;
+CppFollowedByIterable(Iterable<E> _first, Iterable<E> _second) : _first = _first, _second = _second, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppFollowedByIterator(this._first.iterator, this._second.iterator);;
+  Iterator<E> get iterator {
+    return new CppFollowedByIterator<E>(this._first.iterator, this._second.iterator);
   }
   
-  static int length(Object self) {
-    return return this._first.length + (this._second.length);;
+  int get length {
+    return this._first.length + (this._second.length);
   }
   
 }
@@ -3283,29 +2084,17 @@ CppFollowedByIterable(Iterable _first, Iterable _second) : _first = _first, _sec
 
 class CppFollowedByIterator<E> extends CppIterator<E> {
   bool _usingFirst;
-  late Iterator _first;
-  late Iterator _second;
-CppFollowedByIterator(Iterator _first, Iterator _second) : _first = _first, _second = _second, super()   {
+  late Iterator<E> _first;
+  late Iterator<E> _second;
+CppFollowedByIterator(Iterator<E> _first, Iterator<E> _second) : _first = _first, _second = _second, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._usingFirst ? this._first.current : this._second.current;;
+  E get current {
+    return this._usingFirst ? this._first.current : this._second.current;
   }
   
   bool moveNext() {
-    {
-  if (this._usingFirst) {
-  if (this._first.moveNext()) {
-  return true;
-}
-  this._usingFirst = false;
-}
-  return this._second.moveNext();
-}
-  }
-  
-  static bool moveNext(Object self) {
     {
   if (this._usingFirst) {
   if (this._first.moveNext()) {
@@ -3322,18 +2111,18 @@ CppFollowedByIterator(Iterator _first, Iterator _second) : _first = _first, _sec
 /// 转换后的类: CppCastIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppCastIterable<S, T> extends CppIterable<S, T> {
-  late Iterable _source;
-CppCastIterable(Iterable _source) : _source = _source, super()   {
+class CppCastIterable<S, T> extends CppIterable<T> {
+  late Iterable<S> _source;
+CppCastIterable(Iterable<S> _source) : _source = _source, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new CppCastIterator(this._source.iterator);;
+  Iterator<T> get iterator {
+    return new CppCastIterator<S, T>(this._source.iterator);
   }
   
-  static int length(Object self) {
-    return return this._source.length;;
+  int get length {
+    return this._source.length;
   }
   
 }
@@ -3341,21 +2130,17 @@ CppCastIterable(Iterable _source) : _source = _source, super()   {
 /// 转换后的类: CppCastIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class CppCastIterator<S, T> extends CppIterator<S, T> {
-  late Iterator _iterator;
-CppCastIterator(Iterator _iterator) : _iterator = _iterator, super()   {
+class CppCastIterator<S, T> extends CppIterator<T> {
+  late Iterator<S> _iterator;
+CppCastIterator(Iterator<S> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current as Object;;
+  T get current {
+    return this._iterator.current as T;
   }
   
   bool moveNext() {
-    return this._iterator.moveNext();
-  }
-  
-  static bool moveNext(Object self) {
     return this._iterator.moveNext();
   }
   
@@ -3369,12 +2154,12 @@ _CppEmptyIterable() : super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new _CppEmptyIterator();;
+  Iterator<E> get iterator {
+    return new _CppEmptyIterator<E>();
   }
   
-  static int length(Object self) {
-    return return 0;;
+  int get length {
+    return 0;
   }
   
 }
@@ -3387,15 +2172,11 @@ _CppEmptyIterator() : super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return throw new StateError("No element");;
+  E get current {
+    throw new StateError("No element")
   }
   
   bool moveNext() {
-    return false;
-  }
-  
-  static bool moveNext(Object self) {
     return false;
   }
   
@@ -3406,17 +2187,17 @@ _CppEmptyIterator() : super()   {
 
 class _CppGenerateIterable<E> extends CppIterable<E> {
   late int _count;
-  late Function(Object) => Object _generator;
-_CppGenerateIterable(int _count, Function(Object) => Object _generator) : _count = _count, _generator = _generator, super()   {
+  late E Function(int) _generator;
+_CppGenerateIterable(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new _CppGenerateIterator(this._count, this._generator);;
+  Iterator<E> get iterator {
+    return new _CppGenerateIterator<E>(this._count, this._generator);
   }
   
-  static int length(Object self) {
-    return return this._count;;
+  int get length {
+    return this._count;
   }
   
 }
@@ -3426,31 +2207,21 @@ _CppGenerateIterable(int _count, Function(Object) => Object _generator) : _count
 
 class _CppGenerateIterator<E> extends CppIterator<E> {
   int _index;
-  Object _current;
+  E? _current;
   late int _count;
-  late Function(Object) => Object _generator;
-_CppGenerateIterator(int _count, Function(Object) => Object _generator) : _count = _count, _generator = _generator, super()   {
+  late E Function(int) _generator;
+_CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return (() { final Object temp = this._current; return temp == null ? temp as Object : temp; })();;
+  E get current {
+    return (() { final E temp_156100 = this._current; return (temp_156100 as Object) == null ? (temp_156100 as Object) as E : (temp_156100 as Object); })();
   }
   
   bool moveNext() {
     {
   if (this._index < (this._count)) {
-  this._current = (() { final int temp = (() { final int temp = this._index; return (() { final int temp = this._index = temp + (1); return temp; })(); })(); return this._generator(temp); })();
-  return true;
-}
-  return false;
-}
-  }
-  
-  static bool moveNext(Object self) {
-    {
-  if (this._index < (this._count)) {
-  this._current = (() { final int temp = (() { final int temp = this._index; return (() { final int temp = this._index = temp + (1); return temp; })(); })(); return this._generator(temp); })();
+  this._current = (() { final int temp_156665 = (() { final int temp_156685 = this._index; return (() { final int temp_156719 = this._index = temp_156685 + (1); return temp_156719; })(); })(); return this._generator(temp_156665); })();
   return true;
 }
   return false;
@@ -3463,17 +2234,17 @@ _CppGenerateIterator(int _count, Function(Object) => Object _generator) : _count
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
 class _CppUnmodifiableIterable<E> extends CppIterable<E> {
-  late List _elements;
-_CppUnmodifiableIterable(List _elements) : _elements = _elements, super()   {
+  late List<E> _elements;
+_CppUnmodifiableIterable(List<E> _elements) : _elements = _elements, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return this._elements.iterator;;
+  Iterator<E> get iterator {
+    return this._elements.iterator;
   }
   
-  static int length(Object self) {
-    return return this._elements.length;;
+  int get length {
+    return this._elements.length;
   }
   
 }
@@ -3481,18 +2252,18 @@ _CppUnmodifiableIterable(List _elements) : _elements = _elements, super()   {
 /// 转换后的类: _CppCastFromIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class _CppCastFromIterable<S, R> extends CppIterable<S, R> {
-  late Iterable _source;
-_CppCastFromIterable(Iterable _source) : _source = _source, super()   {
+class _CppCastFromIterable<S, R> extends CppIterable<R> {
+  late Iterable<S> _source;
+_CppCastFromIterable(Iterable<S> _source) : _source = _source, super()   {
     ;
   }
   
-  static Iterator iterator(Object self) {
-    return return new _CppCastFromIterator(this._source.iterator);;
+  Iterator<R> get iterator {
+    return new _CppCastFromIterator<S, R>(this._source.iterator);
   }
   
-  static int length(Object self) {
-    return return this._source.length;;
+  int get length {
+    return this._source.length;
   }
   
 }
@@ -3500,21 +2271,17 @@ _CppCastFromIterable(Iterable _source) : _source = _source, super()   {
 /// 转换后的类: _CppCastFromIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class _CppCastFromIterator<S, R> extends CppIterator<S, R> {
-  late Iterator _iterator;
-_CppCastFromIterator(Iterator _iterator) : _iterator = _iterator, super()   {
+class _CppCastFromIterator<S, R> extends CppIterator<R> {
+  late Iterator<S> _iterator;
+_CppCastFromIterator(Iterator<S> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
-  static Object current(Object self) {
-    return return this._iterator.current as Object;;
+  R get current {
+    return this._iterator.current as R;
   }
   
   bool moveNext() {
-    return this._iterator.moveNext();
-  }
-  
-  static bool moveNext(Object self) {
     return this._iterator.moveNext();
   }
   
@@ -3528,16 +2295,28 @@ CppError() : super()   {
     ;
   }
   
-  static StackTrace stackTrace(Object self) {
-    return return current;;
+  StackTrace? get stackTrace {
+    return current;
   }
   
-  static StackTrace _stackTrace(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_stackTrace), 1, [], [], Map.unmodifiable({})));;
+  StackTrace? get _stackTrace {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_stackTrace), 1, [], [], Map.unmodifiable({})))
   }
   
-  static set _stackTrace(Object self, StackTrace value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_stackTrace=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
+  set _stackTrace(StackTrace? value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_stackTrace=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
+  }
+  
+  static String safeToString(Object? object) {
+    {
+  if (object == null) {
+  return "null";
+}
+  if (object is String) {
+  return object as String;
+}
+  return object.toString();
+}
   }
   
 }
@@ -3551,15 +2330,11 @@ CppStackTrace() : super()   {
     ;
   }
   
-  static CppStackTrace current(Object self) {
-    return return _current;;
+  CppStackTrace get current {
+    return _current;
   }
   
   String toString() {
-    return CppApi.getCurrentStackTrace();
-  }
-  
-  static String toString(Object self) {
     return CppApi.getCurrentStackTrace();
   }
   
@@ -3569,21 +2344,21 @@ CppStackTrace() : super()   {
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
 class CppStringBuffer implements StringBuffer {
-  late CppList _parts;
-CppStringBuffer(Object content) : _parts = (() { final CppList temp = new CppList(0, 16); return (() {
-temp.add(content.toString());
-return temp;
+  late CppList<String> _parts;
+CppStringBuffer(Object content) : _parts = (() { final CppList temp_159208 = new CppList<E>(0, 16); return (() {
+temp_159208.add(content.toString());
+return temp_159208;
 })(); })(), super()   {
     ;
   }
   
-  Object write(Object obj) {
+  void write(Object? obj) {
     {
   this._parts.add(obj.toString());
 }
   }
   
-  Object writeAll(Iterable objects, String separator) {
+  void writeAll(Iterable<Object?> objects, String separator) {
     {
   Iterator iterator = objects.iterator;
   if (iterator.moveNext()) {
@@ -3598,21 +2373,20 @@ return temp;
 }
   }
   
-  Object writeCharCode(int charCode) {
+  void writeCharCode(int charCode) {
     {
-  this._parts.add(String.fromCharCode(charCode));
+  this._parts.add(/* auxiliary expression */);
 }
   }
   
-  Object writeln(Object obj) {
+  void writeln(Object? obj) {
     {
   this._parts.add(obj.toString());
-  this._parts.add("
-");
+  this._parts.add("\n");
 }
   }
   
-  Object clear() {
+  void clear() {
     {
   this._parts.clear();
 }
@@ -3624,161 +2398,94 @@ return temp;
 }
   }
   
-  static int length(Object self) {
-    return {
+  int get length {
+    {
   return this._parts.fold(0, (int sum, String part) => return sum + (part.length););
-};
-  }
-  
-  static bool isEmpty(Object self) {
-    return return this._parts.isEmpty;;
-  }
-  
-  static bool isNotEmpty(Object self) {
-    return return this._parts.isNotEmpty;;
-  }
-  
-  static List _parts(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_parts), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _parts(Object self, List value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_parts=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static int _partsCodeUnits(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCodeUnits), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _partsCodeUnits(Object self, int value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCodeUnits=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static int _partsCompactionIndex(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCompactionIndex), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _partsCompactionIndex(Object self, int value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCompactionIndex=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static int _partsCodeUnitsSinceCompaction(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCodeUnitsSinceCompaction), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _partsCodeUnitsSinceCompaction(Object self, int value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_partsCodeUnitsSinceCompaction=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static Uint16List _buffer(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_buffer), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _buffer(Object self, Uint16List value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_buffer=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static int _bufferPosition(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_bufferPosition), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _bufferPosition(Object self, int value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_bufferPosition=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  static int _bufferCodeUnitMagnitude(Object self) {
-    return return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_bufferCodeUnitMagnitude), 1, [], [], Map.unmodifiable({})));;
-  }
-  
-  static set _bufferCodeUnitMagnitude(Object self, int value) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_bufferCodeUnitMagnitude=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})));
-  }
-  
-  Object _writeString(String str) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_writeString), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})));
-  }
-  
-  Object _ensureCapacity(int n) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_ensureCapacity), 0, [], List.unmodifiable(_GrowableList._literal1(n)), Map.unmodifiable({})));
-  }
-  
-  Object _consumeBuffer() {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_consumeBuffer), 0, [], [], Map.unmodifiable({})));
-  }
-  
-  Object _addPart(String str) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_addPart), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})));
-  }
-  
-  Object _compact() {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_compact), 0, [], [], Map.unmodifiable({})));
-  }
-  
-  static Object write(Object self, Object obj) {
-    {
-  this._parts.add(obj.toString());
 }
   }
   
-  static Object writeAll(Object self, Iterable objects, String separator) {
-    {
-  Iterator iterator = objects.iterator;
-  if (iterator.moveNext()) {
-  this._parts.add(iterator.current.toString());
-  while (iterator.moveNext()) {
-  if (separator.isNotEmpty) {
-  this._parts.add(separator);
-}
-  this._parts.add(iterator.current.toString());
-}
-}
-}
+  bool get isEmpty {
+    return this._parts.isEmpty;
   }
   
-  static Object writeCharCode(Object self, int charCode) {
-    {
-  this._parts.add(String.fromCharCode(charCode));
-}
+  bool get isNotEmpty {
+    return this._parts.isNotEmpty;
   }
   
-  static Object writeln(Object self, Object obj) {
-    {
-  this._parts.add(obj.toString());
-  this._parts.add("
-");
-}
+  List<String>? get _parts {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_parts), 1, [], [], Map.unmodifiable({})))
   }
   
-  static Object clear(Object self) {
-    {
-  this._parts.clear();
-}
+  set _parts(List<String>? value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_parts=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
   }
   
-  static String toString(Object self) {
-    {
-  return this._parts.join("");
-}
+  int get _partsCodeUnits {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCodeUnits), 1, [], [], Map.unmodifiable({})))
   }
   
-  static Object _writeString(Object self, String str) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_writeString), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})));
+  set _partsCodeUnits(int value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCodeUnits=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
   }
   
-  static Object _ensureCapacity(Object self, int n) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_ensureCapacity), 0, [], List.unmodifiable(_GrowableList._literal1(n)), Map.unmodifiable({})));
+  int get _partsCompactionIndex {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCompactionIndex), 1, [], [], Map.unmodifiable({})))
   }
   
-  static Object _consumeBuffer(Object self) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_consumeBuffer), 0, [], [], Map.unmodifiable({})));
+  set _partsCompactionIndex(int value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCompactionIndex=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
   }
   
-  static Object _addPart(Object self, String str) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_addPart), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})));
+  int get _partsCodeUnitsSinceCompaction {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCodeUnitsSinceCompaction), 1, [], [], Map.unmodifiable({})))
   }
   
-  static Object _compact(Object self) {
-    return throw NoSuchMethodError.withInvocation(this, new _InvocationMirror._withType(ConstantExpression(#_compact), 0, [], [], Map.unmodifiable({})));
+  set _partsCodeUnitsSinceCompaction(int value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_partsCodeUnitsSinceCompaction=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
+  }
+  
+  Uint16List? get _buffer {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_buffer), 1, [], [], Map.unmodifiable({})))
+  }
+  
+  set _buffer(Uint16List? value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_buffer=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
+  }
+  
+  int get _bufferPosition {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_bufferPosition), 1, [], [], Map.unmodifiable({})))
+  }
+  
+  set _bufferPosition(int value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_bufferPosition=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
+  }
+  
+  int get _bufferCodeUnitMagnitude {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_bufferCodeUnitMagnitude), 1, [], [], Map.unmodifiable({})))
+  }
+  
+  set _bufferCodeUnitMagnitude(int value) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_bufferCodeUnitMagnitude=), 2, [], List.unmodifiable(_GrowableList._literal1(value)), Map.unmodifiable({})))
+  }
+  
+  void _writeString(String str) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_writeString), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})))
+  }
+  
+  void _ensureCapacity(int n) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_ensureCapacity), 0, [], List.unmodifiable(_GrowableList._literal1(n)), Map.unmodifiable({})))
+  }
+  
+  void _consumeBuffer() {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_consumeBuffer), 0, [], [], Map.unmodifiable({})))
+  }
+  
+  void _addPart(String str) {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_addPart), 0, [], List.unmodifiable(_GrowableList._literal1(str)), Map.unmodifiable({})))
+  }
+  
+  void _compact() {
+    throw NoSuchMethodError.withInvocation(this, new _InvocationMirror(ConstantExpression(#_compact), 0, [], [], Map.unmodifiable({})))
   }
   
 }
@@ -3796,4 +2503,82 @@ CppUserData() : super()   {
 /// 转换后的类: CppApi
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
 
+class CppApi {
+CppApi() : super()   {
+    ;
+  }
+  
+  static CppUserData cppCreatePointerArray(int length) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static int cppGetPointerArrayLength(CppUserData array) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static Object? cppGetPointerArrayItem(CppUserData array, int index) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static void cppSetPointerArrayItem(CppUserData array, int index, Object? value) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static CppUserData cppCreateByteArray(int length) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static int cppGetByteArrayLength(CppUserData array) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static int cppGetByteArrayItem(CppUserData array, int index) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static int cppSetByteArrayItem(CppUserData array, int index, int value) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static String cppJoinListString(CppUserData array, String separator) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static bool cppBoolValue(bool value) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static String getCurrentStackTrace() {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+  static void print(Object? object) {
+    {
+  throw new UnimplementedError()
+}
+  }
+  
+}
 
