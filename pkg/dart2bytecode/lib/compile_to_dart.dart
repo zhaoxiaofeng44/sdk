@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:kernel/kernel.dart';
 import 'package:kernel/ast.dart';
+import 'package:front_end/src/kernel/internal_ast.dart';
 
 /// 类信息
 class ClassInfo {
@@ -33,26 +34,17 @@ class DartToDartTransformer {
 
     // 生成转换后的代码
     _generateTransformedCode(component);
-
+    _checkGeneratedCode();
     // 输出到文件
     _writeOutput();
   }
 
   /// 判断是否应该跳过某个类
   bool _shouldSkipClass(Class cls) {
-    print('DEBUG: 检查类 ${cls.name}，注解数量: ${cls.annotations.length}');
-
-    // 调试：打印注解信息
-    _debugPrintAnnotations(cls);
-
-    // 检查是否有 @pragma('cpp:native', xxx) 注解
     if (_hasCppNativePragma(cls)) {
-      print('DEBUG: 跳过类 ${cls.name}，因为它有 @pragma("cpp:native") 注解');
-      return true; // 跳过带有 cpp:native 注解的类
+      return true;
     }
 
-    // 跳过系统类、内置类等
-    // 获取文件路径信息
     final libraryUri = cls.enclosingLibrary.fileUri;
     final filePath =
         libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
@@ -63,37 +55,21 @@ class DartToDartTransformer {
         libraryName.startsWith('package:flutter') ||
         filePath.contains('org-dartlang-sdk');
 
-    if (shouldSkip) {
-      print('DEBUG: 跳过类 ${cls.name}，因为它是系统类');
-    }
-
     return shouldSkip;
   }
 
   /// 检查类是否有 @pragma('cpp:native', xxx) 注解
   bool _hasCppNativePragma(Class cls) {
     for (final annotation in cls.annotations) {
-      // 打印注解的字符串表示，用于调试
-      final annotationStr = annotation.toString();
-      print('DEBUG: 注解字符串: $annotationStr');
-
       if (annotation is ConstantExpression) {
         final constant = annotation.constant;
-        print('DEBUG: 常量类型: ${constant.runtimeType}');
-
         if (constant is InstanceConstant) {
           final classNode = constant.classNode;
-          print('DEBUG: 类名: ${classNode.name}');
-          print('DEBUG: 字段值: ${constant.fieldValues}');
-
           if (classNode.name == 'pragma') {
-            // 检查参数
             if (constant.fieldValues.containsKey('name')) {
               final nameValue = constant.fieldValues['name'];
-              print('DEBUG: name值: $nameValue');
               if (nameValue is StringConstant &&
                   nameValue.value == 'cpp:native') {
-                print('DEBUG: 找到 cpp:native 注解');
                 return true;
               }
             }
@@ -105,20 +81,7 @@ class DartToDartTransformer {
   }
 
   /// 调试：打印类的注解信息
-  void _debugPrintAnnotations(Class cls) {
-    print('DEBUG: 检查类 ${cls.name} 的注解:');
-    for (final annotation in cls.annotations) {
-      print('  - 注解类型: ${annotation.runtimeType}');
-      if (annotation is ConstantExpression) {
-        final constant = annotation.constant;
-        print('  - 常量类型: ${constant.runtimeType}');
-        if (constant is InstanceConstant) {
-          print('  - 类名: ${constant.classNode.name}');
-          print('  - 字段值: ${constant.fieldValues}');
-        }
-      }
-    }
-  }
+  void _debugPrintAnnotations(Class cls) {}
 
   /// 获取类的 @pragma('cpp:patch', 'Error') 注解信息
   String? _getCppPatchPragma(Class cls) {
@@ -217,22 +180,13 @@ class DartToDartTransformer {
 
     // 生成转换后的类
     for (final library in component.libraries) {
-      print('DEBUG: 处理库: ${library.toStringInternal()}');
       for (final cls in library.classes) {
-        // 调试信息：打印类名和库名
-        final libraryName = cls.enclosingLibrary.toStringInternal();
-        print('DEBUG: 检查类 ${cls.name} 来自库 $libraryName');
-
         if (!_shouldSkipClass(cls)) {
-          print('DEBUG: 转换类 ${cls.name}');
+          _collectClassInfo(cls);
           _generateTransformedClass(cls);
-        } else {
-          print('DEBUG: 跳过类 ${cls.name}');
         }
       }
     }
-
-    print('DEBUG: 转换完成，生成的代码长度: ${_buffer.length}');
   }
 
   /// 写入库导入
@@ -253,18 +207,21 @@ class DartToDartTransformer {
     // 设置当前类名，用于内部函数调用
     _currentClassName = cls.name;
 
+    final patchTarget = _getCppPatchPragma(cls);
+    final className = patchTarget ?? cls.name;
+
     // 获取文件路径信息
     final libraryUri = cls.enclosingLibrary.fileUri;
     final filePath =
         libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
 
     // 类注释 - 包含文件路径信息
-    _writeLine('/// 转换后的类: ${cls.name}');
+    _writeLine('/// 转换后的类: $className');
     _writeLine('/// 源文件路径: $filePath');
     _writeLine('');
 
     // 类声明
-    _write('class ${cls.name}');
+    _write('class $className');
     // 泛型参数
     String typeParams = '';
     if (cls.typeParameters.isNotEmpty) {
@@ -274,19 +231,25 @@ class DartToDartTransformer {
     // 继承关系
     String? extendsClause;
     if (cls.superclass != null && cls.superclass!.name != 'Object') {
-      String className = cls.superclass!.name;
+      String superName = cls.superclass!.name;
+      if (_classNameReplacements.containsKey(superName)) {
+        superName = _classNameReplacements[superName]!;
+      }
       // 传递泛型参数给父类
       if (cls.superclass!.typeParameters.isNotEmpty &&
           cls.typeParameters.isNotEmpty) {
-        className += '<${cls.typeParameters.map((t) => t.name).join(', ')}>';
+        superName += '<${cls.typeParameters.map((t) => t.name).join(', ')}>';
       }
-      extendsClause = 'extends $className';
+      extendsClause = 'extends $superName';
     }
     // 接口实现
     String? implementsClause;
     if (cls.implementedTypes.isNotEmpty) {
       final impls = cls.implementedTypes.map((t) {
         String name = t.classNode.name;
+        if (_classNameReplacements.containsKey(name)) {
+          name = _classNameReplacements[name]!;
+        }
         if (t.classNode.typeParameters.isNotEmpty &&
             cls.typeParameters.isNotEmpty) {
           name += '<${cls.typeParameters.map((tp) => tp.name).join(', ')}>';
@@ -298,6 +261,7 @@ class DartToDartTransformer {
     if (extendsClause != null) _write(' $extendsClause');
     if (implementsClause != null) _write(' $implementsClause');
 
+    print('constructor: $cls');
     _writeLine(' {');
     _indent();
 
@@ -320,158 +284,120 @@ class DartToDartTransformer {
 
   /// 生成字段声明
   void _generateFields(Class cls) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(cls)) {
-      return;
-    }
+    final classInfo = _classInfoMap[cls];
+    if (classInfo == null) return;
 
-    // 生成所有字段，包括静态字段
+    // 生成普通字段
     for (final field in cls.fields) {
-      // 注解
-      for (final annotation in field.annotations) {
-        _writeLine(_annotationToString(annotation));
-      }
+      if (!classInfo.lateFields.contains(field)) {
+        final modifiers = <String>[];
+        if (field.isStatic) modifiers.add('static');
+        if (field.isFinal) modifiers.add('final');
+        if (field.isLate) modifiers.add('late');
 
-      // 字段声明
-      final buffer = StringBuffer();
-      if (field.isStatic) buffer.write('static ');
-      if (field.isLate) buffer.write('late ');
-      if (field.isFinal) buffer.write('final ');
-      final fieldType = _getDartType(field.type);
-      final fieldName = field.name.text;
-      buffer.write('$fieldType $fieldName');
-      if (field.initializer != null) {
-        buffer.write(' = ${_expressionToString(field.initializer!)}');
+        final type = _getDartType(field.type);
+        final name = field.name?.text ?? 'unnamed';
+        final modifierStr = modifiers.isEmpty ? '' : '${modifiers.join(' ')} ';
+
+        _writeLine('$modifierStr$type $name;');
       }
-      buffer.write(';');
-      _writeLine(buffer.toString());
     }
 
-    if (cls.fields.isNotEmpty) {
-      _writeLine('');
-    }
+    // 生成late字段
+    _generateLateFields(cls);
   }
 
   /// 生成late字段
   void _generateLateFields(Class cls) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(cls)) {
-      return;
-    }
+    final classInfo = _classInfoMap[cls];
+    if (classInfo == null) return;
 
-    for (final field in cls.fields) {
-      if (!field.isStatic && field.isFinal) {
-        _writeLine('late ${_getDartType(field.type)} ${field.name.text};');
-      }
+    for (final field in classInfo.lateFields) {
+      final type = _getDartType(field.type);
+      final name = field.name?.text ?? 'unnamed';
+      _writeLine('late $type $name;');
     }
-    _writeLine('');
   }
 
   /// 生成成员方法
   void _generateMemberMethods(Class cls) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(cls)) {
-      return;
-    }
-
+    // 生成getter和setter
     for (final procedure in cls.procedures) {
-      if (!procedure.isStatic &&
+      if (procedure.isGetter) {
+        _generateGetter(cls, procedure);
+      } else if (procedure.isSetter) {
+        _generateSetter(cls, procedure);
+      } else if (!procedure.isStatic &&
           !procedure.isAbstract &&
-          !procedure.isFactory &&
-          !procedure.isGetter &&
-          !procedure.isSetter) {
-        // 检查是否为运算符重载方法
-        final methodName = procedure.name.text;
-        final isOperator = methodName == '[]' ||
-            methodName == '[]=' ||
-            methodName == '+' ||
-            methodName == '-' ||
-            methodName == '*' ||
-            methodName == '/' ||
-            methodName == '==' ||
-            methodName == '!=' ||
-            methodName == '<' ||
-            methodName == '>' ||
-            methodName == '<=' ||
-            methodName == '>=';
-
-        if (!isOperator) {
-          _generateMemberMethod(procedure);
-        }
+          !procedure.isFactory) {
+        // 生成普通成员方法
+        _generateMemberMethod(procedure);
       }
     }
 
-    // 生成 getter/setter 方法
-    for (final procedure in cls.procedures) {
-      if (!procedure.isStatic &&
-          !procedure.isAbstract &&
-          !procedure.isFactory) {
-        if (procedure.isGetter) {
-          _generateGetter(cls, procedure);
-        } else if (procedure.isSetter) {
-          _generateSetter(cls, procedure);
-        }
+    // 生成静态方法
+    final classInfo = _classInfoMap[cls];
+    if (classInfo != null) {
+      for (final procedure in classInfo.staticMethods) {
+        _generateStaticMethod(cls, procedure);
       }
     }
   }
 
   /// 生成无参构造方法
   void _generateDefaultConstructor(Class cls) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(cls)) {
-      return;
-    }
-
     _writeLine('${cls.name}();');
     _writeLine('');
   }
 
   /// 生成构造方法
   void _generateConstructors(Class cls) {
-    if (_hasCppNativePragma(cls)) return;
-    for (final constructor in cls.constructors) {
-      // 注解
-      for (final annotation in constructor.annotations) {
-        _writeLine(_annotationToString(annotation));
-      }
-      // 构造函数声明
-      _write(cls.name);
-      if (constructor.name.text.isNotEmpty) {
-        _write('.${constructor.name.text}');
-      }
-      _write('(');
-      _writeParameters(constructor.function);
-      _write(') {');
-      _indent();
-      if (constructor.function.body != null) {
-        _writeTransformedStatement(constructor.function.body!);
-      }
-      _unindent();
-      _writeLine('}');
-      _writeLine('');
+    final classInfo = _classInfoMap[cls];
+    if (classInfo == null) return;
+
+    if (classInfo.constructors.isEmpty) {
+      // 如果没有构造方法，生成默认构造方法
+      _generateDefaultConstructor(cls);
+      return;
+    }
+
+    for (final constructor in classInfo.constructors) {
+      _generateConstructor(cls, constructor);
     }
   }
 
   /// 生成单个构造方法
   void _generateConstructor(Class cls, Constructor constructor) {
-    final function = constructor.function;
-    final constructorName = constructor.name.text;
+    print('constructor: $constructor');
+    final name = constructor.name?.text ?? '';
+    final constructorName = name.isEmpty ? cls.name : '${cls.name}.$name';
 
-    // 生成构造方法签名
-    if (constructorName.isEmpty) {
-      _write('${cls.name}(');
-    } else {
-      _write('${cls.name}.$constructorName(');
+    // 参数列表
+    final parameters =
+        _writeParameterList(constructor.function.positionalParameters);
+
+    _write('$constructorName($parameters)');
+
+    // 初始化列表
+    if (constructor.initializers.isNotEmpty) {
+      _write(' : ');
+      final initializers = constructor.initializers
+          .map(_initializerToString)
+          .where((s) => s.isNotEmpty)
+          .join(', ');
+      _write(initializers);
     }
-    _writeParameters(function);
-    _writeLine(') {');
+
+    _writeLine(' {');
     _indent();
 
-    // 生成方法体
-    if (function.body != null) {
-      _writeTransformedStatement(function.body!);
-    } else {
-      _writeLine('// TODO: 实现构造方法体');
+    // 构造函数体
+    if (constructor.function.body != null) {
+      final bodyStr =
+          _writeTransformedStatementToString(constructor.function.body!);
+      if (bodyStr.isNotEmpty) {
+        _writeLine(bodyStr);
+      }
     }
 
     _unindent();
@@ -479,60 +405,36 @@ class DartToDartTransformer {
     _writeLine('');
   }
 
-  /// 生成成员方法
-  void _generateStaticMethods(ClassInfo classInfo) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(classInfo.cls)) {
-      return;
-    }
-
-    // 生成普通成员方法（不转换为静态方法）
-    for (final procedure in classInfo.staticMethods) {
-      _generateMemberMethod(procedure);
-    }
-
-    // 生成 getter/setter 方法
-    for (final procedure in classInfo.cls.procedures) {
-      if (!procedure.isStatic &&
-          !procedure.isAbstract &&
-          !procedure.isFactory) {
-        if (procedure.isGetter) {
-          _generateGetter(classInfo.cls, procedure);
-        } else if (procedure.isSetter) {
-          _generateSetter(classInfo.cls, procedure);
-        }
-      }
-    }
-  }
-
   /// 生成 getter 方法
   void _generateGetter(Class cls, Procedure procedure) {
-    final function = procedure.function;
-    final getterName = procedure.name.text;
-    final returnType = _getDartType(function.returnType);
+    final returnType = _getDartType(procedure.function.returnType);
+    final name = procedure.name.text;
 
-    // 生成 getter 声明
-    _writeLine(
-        '$returnType get $getterName => ${_generateGetterBody(function)};');
+    _writeLine('static $returnType $name(Object self) {');
+    _indent();
+
+    final body = _generateGetterBody(procedure.function);
+    _writeLine('return $body;');
+
+    _unindent();
+    _writeLine('}');
     _writeLine('');
   }
 
   /// 生成 setter 方法
   void _generateSetter(Class cls, Procedure procedure) {
-    final function = procedure.function;
-    final setterName = procedure.name.text;
-    final paramType = function.positionalParameters.isNotEmpty
-        ? _getDartType(function.positionalParameters[0].type)
-        : 'dynamic';
-
-    // 生成 setter 声明
-    _writeLine('set $setterName($paramType value) {');
+    final param = procedure.function.positionalParameters.first;
+    final paramType = _getDartType(param.type);
+    final paramName = _cleanVariableName(param.name!);
+    // 不使用字符串替换，而是检查是否以 = 结尾
+    final name = procedure.name.text.endsWith('=')
+        ? procedure.name.text.substring(0, procedure.name.text.length - 1)
+        : procedure.name.text;
+    _writeLine('static set $name(Object self, $paramType $paramName) {');
     _indent();
-    if (function.body != null) {
-      _writeTransformedStatement(function.body!);
-    } else {
-      _writeLine('// TODO: 实现 setter 逻辑');
-    }
+    final bodyStr =
+        _writeTransformedStatementToString(procedure.function.body!);
+    _writeLine(bodyStr);
     _unindent();
     _writeLine('}');
     _writeLine('');
@@ -541,200 +443,38 @@ class DartToDartTransformer {
   /// 生成 getter 方法体
   String _generateGetterBody(FunctionNode function) {
     if (function.body != null) {
-      // 如果 body 是表达式语句，提取表达式
-      if (function.body is ExpressionStatement) {
-        final exprStmt = function.body as ExpressionStatement;
-        return _expressionToString(exprStmt.expression);
-      } else {
-        // 对于其他类型的语句，生成默认返回值
-        return 'null';
-      }
-    } else {
-      return 'null'; // 默认返回值
+      return _writeTransformedStatementToString(function.body!);
     }
+    return 'null'; // 默认返回值
   }
 
   /// 将语句转换为字符串
   String _statementToString(Statement statement) {
-    if (statement is ForInStatement) {
-      final variable = _cleanVariableName(statement.variable.name ?? 'item');
-      final iterable = _expressionToString(statement.iterable);
-      String bodyStr;
-      if (statement.body is Block) {
-        final block = statement.body as Block;
-        if (block.statements.length == 1) {
-          bodyStr = _statementToString(block.statements.first);
-        } else {
-          bodyStr = _statementToString(block);
-        }
-      } else {
-        bodyStr = '{${_statementToString(statement.body)}}';
-      }
-      return 'for (final $variable in $iterable) $bodyStr';
-    } else if (statement is Block) {
-      if (statement.statements.isEmpty) return '{}';
-      if (statement.statements.length == 1) {
-        return _statementToString(statement.statements.first);
-      }
-      // 检查是否为手写迭代器模式
-      if (statement.statements.length == 3) {
-        final stmt1 = statement.statements[0];
-        final stmt2 = statement.statements[1];
-        final stmt3 = statement.statements[2];
-        if (stmt1 is VariableDeclaration &&
-            stmt1.name == '_sync_for_iterator' &&
-            stmt1.initializer != null) {
-          if (stmt2 is ForStatement &&
-              stmt2.variables.isEmpty &&
-              stmt2.condition != null &&
-              stmt2.condition is InstanceInvocation &&
-              (stmt2.condition as InstanceInvocation).name.text == 'moveNext' &&
-              stmt2.updates.isEmpty) {
-            if (stmt3 is ExpressionStatement) {
-              final iteratorSource = _expressionToString(stmt1.initializer!);
-              final iterable = iteratorSource.replaceAll('.iterator', '');
-              final body = _statementToString(stmt3);
-              return 'for (final entry in $iterable) $body';
-            }
-          }
-        }
-      }
-      final stmts = statement.statements.map(_statementToString).join('\n');
-      return '{\n$stmts\n}';
-    } else if (statement is VariableDeclaration) {
-      final type = _getDartType(statement.type);
-      final name = _cleanVariableName(statement.name ?? 'var');
-      if (statement.initializer != null) {
-        final init = _expressionToString(statement.initializer!);
-        if (name == init) return '';
-        return '$type $name = $init;';
-      }
-      return '$type $name;';
-    } else if (statement is ExpressionStatement) {
-      return '${_expressionToString(statement.expression)};';
-    } else if (statement is ReturnStatement) {
-      if (statement.expression != null) {
-        return 'return ${_expressionToString(statement.expression!)};';
-      } else {
-        return 'return;';
-      }
-    } else if (statement is IfStatement) {
-      final cond = _expressionToString(statement.condition);
-      final thenStr = _statementToString(statement.then);
-      final elseStr = statement.otherwise != null
-          ? ' else ' + _statementToString(statement.otherwise!)
-          : '';
-      return 'if ($cond) $thenStr$elseStr';
-    } else if (statement is ForStatement) {
-      // 检查是否为手写迭代器模式
-      if (statement.variables.isEmpty &&
-          statement.condition != null &&
-          statement.updates.length == 1) {
-        final condition = statement.condition!;
-        final update = statement.updates[0];
+    return _generateStatementCode(statement, replaceThis: false);
+  }
 
-        // 检查是否为手写迭代器模式
-        if (condition is InstanceInvocation &&
-            condition.name.text == 'moveNext' &&
-            update is VariableSet &&
-            update.variable.name == 'element' &&
-            update.value is VariableGet &&
-            (update.value as VariableGet).variable.name == 'entry') {
-          print('DEBUG: 匹配到手写迭代器模式！');
-          // 这里需要从上下文获取迭代器源，暂时使用占位符
-          _write('for (final element in iterable) ');
-          _writeTransformedStatement(statement.body);
-        } else {
-          // 普通 for 循环
-          _write('for (');
-          if (statement.variables.isNotEmpty) {
-            final vars = statement.variables
-                .map((v) =>
-                    '${_getDartType(v.type)} ${_cleanVariableName(v.name ?? 'var')}${v.initializer != null ? ' = ${_expressionToString(v.initializer!)}' : ''}')
-                .join(', ');
-            _write(vars);
-          }
-          _write('; ');
-          if (statement.condition != null) {
-            _write(_expressionToString(statement.condition!));
-          }
-          _write('; ');
-          if (statement.updates.isNotEmpty) {
-            final updates =
-                statement.updates.map((u) => _expressionToString(u)).join(', ');
-            _write(updates);
-          }
-          _write(') ');
-          _writeTransformedStatement(statement.body);
-        }
-      } else {
-        // 普通 for 循环
-        _write('for (');
-        if (statement.variables.isNotEmpty) {
-          final vars = statement.variables
-              .map((v) =>
-                  '${_getDartType(v.type)} ${_cleanVariableName(v.name ?? 'var')}${v.initializer != null ? ' = ${_expressionToString(v.initializer!)}' : ''}')
-              .join(', ');
-          _write(vars);
-        }
-        _write('; ');
-        if (statement.condition != null) {
-          _write(_expressionToString(statement.condition!));
-        }
-        _write('; ');
-        if (statement.updates.isNotEmpty) {
-          final updates =
-              statement.updates.map((u) => _expressionToString(u)).join(', ');
-          _write(updates);
-        }
-        _write(') ');
-        _writeTransformedStatement(statement.body);
-      }
-    } else if (statement is WhileStatement) {
-      final cond = _expressionToString(statement.condition);
-      final body = _statementToString(statement.body);
-      return 'while ($cond) $body';
-    } else if (statement is DoStatement) {
-      final body = _statementToString(statement.body);
-      final cond = _expressionToString(statement.condition);
-      return 'do $body while ($cond);';
-    } else if (statement is SwitchStatement) {
-      final expression = _expressionToString(statement.expression);
-      return 'switch ($expression) { /* TODO: 实现switch语句 */ }';
-    } else if (statement is TryCatch) {
-      final body = _statementToString(statement.body);
-      return 'try $body catch (e) { /* TODO: 实现try-catch */ }';
-    } else if (statement is AssertStatement) {
-      final condition = _expressionToString(statement.condition);
-      final message = statement.message != null
-          ? ', ${_expressionToString(statement.message!)}'
-          : '';
-      return 'assert($condition$message);';
-    } else if (statement is BreakStatement) {
-      return 'break;';
-    } else if (statement is ContinueSwitchStatement) {
-      return 'continue;';
-    } else if (statement is LabeledStatement) {
-      return _statementToString(statement.body);
-    } else if (statement is EmptyStatement) {
-      return ';';
-    }
-    return '/* TODO: 未处理的语句类型: ${statement.runtimeType} */';
+  /// 将语句转换为字符串（转换后）
+  String _writeTransformedStatementToString(Statement statement) {
+    return _generateStatementCode(statement, replaceThis: true);
+  }
+
+  /// 转换语句并写入
+  void _writeTransformedStatement(Statement statement) {
+    final str = _writeTransformedStatementToString(statement);
+    _writeLine(str);
   }
 
   /// 生成单个成员方法
   void _generateMemberMethod(Procedure procedure) {
-    final function = procedure.function;
+    final returnType = _getDartType(procedure.function.returnType);
     final name = procedure.name.text;
-
-    // 写入方法签名
-    _write('${_getDartType(function.returnType)} $name(');
-    _writeParameters(function);
-    _writeLine(') {');
+    final parameters =
+        _writeParameterList(procedure.function.positionalParameters);
+    _writeLine('$returnType $name($parameters) {');
     _indent();
-    if (function.body != null) {
-      _writeTransformedStatement(function.body!);
-    }
+    final bodyStr =
+        _writeTransformedStatementToString(procedure.function.body!);
+    _writeLine(bodyStr);
     _unindent();
     _writeLine('}');
     _writeLine('');
@@ -742,117 +482,16 @@ class DartToDartTransformer {
 
   /// 生成单个静态方法
   void _generateStaticMethod(Class cls, Procedure procedure) {
-    final function = procedure.function;
-    final methodName = procedure.name.text;
-
-    // 处理运算符重载方法 - 改为普通方法
-    String convertedMethodName = methodName;
-
-    if (methodName == '[]') {
-      convertedMethodName = 'getElement';
-    } else if (methodName == '[]=') {
-      convertedMethodName = 'setElement';
-    } else if (methodName == '+') {
-      convertedMethodName = 'add';
-    } else if (methodName == '-') {
-      convertedMethodName = 'subtract';
-    } else if (methodName == '*') {
-      convertedMethodName = 'multiply';
-    } else if (methodName == '/') {
-      convertedMethodName = 'divide';
-    } else if (methodName == '%') {
-      convertedMethodName = 'modulo';
-    } else if (methodName == '==') {
-      convertedMethodName = 'equals';
-    } else if (methodName == '!=') {
-      convertedMethodName = 'notEquals';
-    } else if (methodName == '<') {
-      convertedMethodName = 'lessThan';
-    } else if (methodName == '>') {
-      convertedMethodName = 'greaterThan';
-    } else if (methodName == '<=') {
-      convertedMethodName = 'lessThanOrEqual';
-    } else if (methodName == '>=') {
-      convertedMethodName = 'greaterThanOrEqual';
-    } else if (methodName == '&') {
-      convertedMethodName = 'bitwiseAnd';
-    } else if (methodName == '|') {
-      convertedMethodName = 'bitwiseOr';
-    } else if (methodName == '^') {
-      convertedMethodName = 'bitwiseXor';
-    } else if (methodName == '<<') {
-      convertedMethodName = 'leftShift';
-    } else if (methodName == '>>') {
-      convertedMethodName = 'rightShift';
-    } else if (methodName == '>>>') {
-      convertedMethodName = 'unsignedRightShift';
-    } else if (methodName == '~') {
-      convertedMethodName = 'bitwiseNot';
-    } else if (methodName == 'unary-') {
-      convertedMethodName = 'negate';
-    } else if (methodName == 'unary+') {
-      convertedMethodName = 'positive';
-    } else if (methodName == '!') {
-      convertedMethodName = 'logicalNot';
-    } else if (methodName == '++') {
-      convertedMethodName = 'increment';
-    } else if (methodName == '--') {
-      convertedMethodName = 'decrement';
-    } else if (methodName == '+=') {
-      convertedMethodName = 'addAssign';
-    } else if (methodName == '-=') {
-      convertedMethodName = 'subtractAssign';
-    } else if (methodName == '*=') {
-      convertedMethodName = 'multiplyAssign';
-    } else if (methodName == '/=') {
-      convertedMethodName = 'divideAssign';
-    } else if (methodName == '%=') {
-      convertedMethodName = 'moduloAssign';
-    } else if (methodName == '&=') {
-      convertedMethodName = 'bitwiseAndAssign';
-    } else if (methodName == '|=') {
-      convertedMethodName = 'bitwiseOrAssign';
-    } else if (methodName == '^=') {
-      convertedMethodName = 'bitwiseXorAssign';
-    } else if (methodName == '<<=') {
-      convertedMethodName = 'leftShiftAssign';
-    } else if (methodName == '>>=') {
-      convertedMethodName = 'rightShiftAssign';
-    } else if (methodName == '>>>=') {
-      convertedMethodName = 'unsignedRightShiftAssign';
-    } else if (methodName == '??') {
-      convertedMethodName = 'nullCoalesce';
-    } else if (methodName == '&&') {
-      convertedMethodName = 'logicalAnd';
-    } else if (methodName == '||') {
-      convertedMethodName = 'logicalOr';
-    }
-
-    // 方法签名
-    _write('static ${_getDartType(function.returnType)} $convertedMethodName(');
-    _write('${cls.name} self');
-
-    // 添加其他参数
-    for (final param in function.positionalParameters) {
-      _write(
-          ', ${_getDartType(param.type)} ${_cleanVariableName(param.name ?? 'param')}');
-    }
-
-    for (final param in function.namedParameters) {
-      _write(
-          ', ${_getDartType(param.type)} ${_cleanVariableName(param.name ?? 'param')}');
-    }
-
-    _writeLine(') {');
+    final returnType = _getDartType(procedure.function.returnType);
+    final name = procedure.name.text;
+    final parameters =
+        _writeParameterList(procedure.function.positionalParameters);
+    _writeLine(
+        'static $returnType $name(Object self${parameters.isEmpty ? '' : ', $parameters'}) {');
     _indent();
-
-    // 转换方法体，将this替换为self
-    if (function.body != null) {
-      _writeTransformedStatement(function.body!);
-    } else {
-      _writeLine('// TODO: 实现方法体');
-    }
-
+    final bodyStr =
+        _writeTransformedStatementToString(procedure.function.body!);
+    _writeLine(bodyStr);
     _unindent();
     _writeLine('}');
     _writeLine('');
@@ -860,48 +499,42 @@ class DartToDartTransformer {
 
   /// 生成运算符重载方法
   void _generateOperatorMethods(Class cls) {
-    // 跳过带有 @pragma('cpp:native') 注解的类
-    if (_hasCppNativePragma(cls)) {
-      return;
-    }
-
     for (final procedure in cls.procedures) {
-      if (!procedure.isStatic &&
-          !procedure.isAbstract &&
-          !procedure.isFactory) {
-        final methodName = procedure.name.text;
-        final isOperator = methodName == '[]' ||
-            methodName == '[]=' ||
-            methodName == '+' ||
-            methodName == '-' ||
-            methodName == '*' ||
-            methodName == '/' ||
-            methodName == '==' ||
-            methodName == '!=' ||
-            methodName == '<' ||
-            methodName == '>' ||
-            methodName == '<=' ||
-            methodName == '>=';
-
-        if (isOperator) {
-          _generateOperatorMethod(procedure);
-        }
+      if (procedure.isStatic ||
+          procedure.isAbstract ||
+          procedure.isFactory ||
+          procedure.isGetter ||
+          procedure.isSetter) continue;
+      final methodName = procedure.name.text;
+      if (methodName == '[]' ||
+          methodName == '[]=' ||
+          methodName == '+' ||
+          methodName == '-' ||
+          methodName == '*' ||
+          methodName == '/' ||
+          methodName == '==' ||
+          methodName == '!=' ||
+          methodName == '<' ||
+          methodName == '>' ||
+          methodName == '<=' ||
+          methodName == '>=') {
+        _generateOperatorMethod(procedure);
       }
     }
   }
 
   /// 生成操作符方法
   void _generateOperatorMethod(Procedure procedure) {
-    final function = procedure.function;
-    final name = procedure.name.text;
-
-    // 写入操作符方法签名
-    _write('${_getDartType(function.returnType)} operator $name(');
-    _writeParameters(function);
-    _writeLine(') {');
+    final returnType = _getDartType(procedure.function.returnType);
+    final op = procedure.name.text;
+    final parameters =
+        _writeParameterList(procedure.function.positionalParameters);
+    _writeLine('$returnType operator $op($parameters) {');
     _indent();
-    if (function.body != null) {
-      _writeTransformedStatement(function.body!);
+    if (procedure.function.body != null) {
+      final bodyStr =
+          _generateStatementCode(procedure.function.body!, replaceThis: false);
+      _writeLine(bodyStr);
     }
     _unindent();
     _writeLine('}');
@@ -910,185 +543,92 @@ class DartToDartTransformer {
 
   /// 写入参数列表
   void _writeParameters(FunctionNode function, {bool onlyFirst = false}) {
-    final params = function.positionalParameters;
-    final named = function.namedParameters;
-    List<String> paramStrs = [];
-
-    for (int i = 0; i < params.length; i++) {
-      final p = params[i];
-      if (onlyFirst && i > 0) break;
-      String s = '${_getDartType(p.type)} ${p.name ?? 'param$i'}';
-      if (p.initializer != null)
-        s += ' = ${_expressionToString(p.initializer!)}';
-      paramStrs.add(s);
-    }
-
-    if (named.isNotEmpty) {
-      _write(paramStrs.join(', '));
-      if (paramStrs.isNotEmpty) _write(', ');
-      _write('{' +
-          named.map((p) {
-            String s = '${_getDartType(p.type)} ${p.name}';
-            if (p.initializer != null)
-              s += ' = ${_expressionToString(p.initializer!)}';
-            return s;
-          }).join(', ') +
-          '}');
-    } else {
-      _write(paramStrs.join(', '));
-    }
+    final params = onlyFirst
+        ? function.positionalParameters.take(1)
+        : function.positionalParameters;
+    _write(_writeParameterList(params.toList()));
   }
 
   /// 生成参数列表
   String _writeParameterList(List<VariableDeclaration> parameters) {
-    final positional = <String>[];
-    final named = <String>[];
-    final optional = <String>[];
-
-    for (final param in parameters) {
+    return parameters.map((param) {
       final type = _getDartType(param.type);
-      final name = _cleanVariableName(param.name ?? 'param');
-      final defaultValue = param.initializer != null
-          ? ' = ${_expressionToString(param.initializer!)}'
-          : '';
-
-      final paramStr = '$type $name$defaultValue';
-
-      // 简化处理，假设所有参数都是位置参数
-      positional.add(paramStr);
-    }
-
-    return positional.join(', ');
+      final name = _cleanVariableName(param.name!);
+      return '$type $name';
+    }).join(', ');
   }
 
   /// 获取Dart类型字符串
-  String _getDartType(DartType? type) {
-    if (type == null) return 'dynamic';
-
-    if (type is InterfaceType) {
-      final className = type.classNode.name;
-      if (className == 'dynamic') return 'dynamic';
-      if (className == 'void') return 'void';
-      if (className == 'Null') return 'Object?';
-      if (className == 'Never') return 'Object';
-
-      // 处理泛型类型
-      if (type.typeArguments.isNotEmpty) {
-        final args = type.typeArguments.map(_getDartType).join(', ');
-        return '$className<$args>';
-      }
-      return className;
-    } else if (type is TypeParameterType) {
-      return type.parameter.name ?? 'T';
+  String _getDartType(DartType type) {
+    if (type is DynamicType) {
+      return 'Object';
+    } else if (type is InterfaceType) {
+      return type.classNode.name;
     } else if (type is FunctionType) {
-      // 简化函数类型处理
-      return 'Function';
-    } else if (type is DynamicType) {
-      return 'dynamic';
-    } else if (type is VoidType) {
-      return 'void';
-    } else if (type is NullType) {
-      return 'Object?';
-    } else if (type is NeverType) {
+      final params = type.requiredParameterCount > 0
+          ? 'Object' * type.requiredParameterCount
+          : '';
+      return 'Function($params) => Object';
+    } else {
       return 'Object';
     }
-
-    return 'dynamic';
   }
 
   /// 注解转字符串
   String _annotationToString(Expression annotation) {
     if (annotation is ConstantExpression) {
       final constant = annotation.constant;
-      if (constant is InstanceConstant) {
-        final className = constant.classNode.name;
-        // 处理 @pragma
-        if (className == 'pragma') {
-          final nameValue = constant.fieldValues['name'];
-          final optionsValue = constant.fieldValues['options'];
-          String nameStr = '';
-          String optionsStr = '';
-          if (nameValue is StringConstant) {
-            nameStr = "'${nameValue.value}'";
-          }
-          if (optionsValue is StringConstant) {
-            optionsStr = ", '${optionsValue.value}'";
-          } else if (optionsValue is NullConstant || optionsValue == null) {
-            optionsStr = '';
-          } else if (optionsValue != null) {
-            optionsStr = ", ${optionsValue.toString()}";
-          }
-          return '@pragma($nameStr$optionsStr)';
-        }
-        // 处理 @override
-        if (className == 'override' || className == '_Override') {
-          return '@override';
-        }
-        // 处理 @Deprecated
-        if (className == 'Deprecated') {
-          final message = constant.fieldValues['message'];
-          if (message is StringConstant) {
-            return "@Deprecated('${message.value}')";
-          }
-          return '@Deprecated';
-        }
-        // 其他注解类型可按需扩展
-        return '@$className';
+      if (constant is StringConstant) {
+        return '"${constant.value}"';
+      } else if (constant is IntConstant) {
+        return constant.value.toString();
+      } else if (constant is BoolConstant) {
+        return constant.value.toString();
+      } else if (constant is DoubleConstant) {
+        return constant.value.toString();
       }
-      // 其他常量类型
-      return '@${constant.toString()}';
     }
-    // 兜底
-    return '@${annotation.toString()}';
+    return annotation.toString();
   }
 
   /// 构造函数初始化列表
   String _initializerToString(Initializer init) {
     if (init is FieldInitializer) {
-      return '${init.field.name.text} = ${_expressionToString(init.value)}';
-    }
-    if (init is SuperInitializer) {
-      return 'super(${init.arguments.positional.map(_expressionToString).join(', ')})';
-    }
-    if (init is RedirectingInitializer) {
-      return 'this.${init.target.name.text}(${init.arguments.positional.map(_expressionToString).join(', ')})';
+      return '${init.field.name.text} = ${_generateExpressionCode(init.value, replaceThis: true, asStatement: false)}';
+    } else if (init is SuperInitializer) {
+      final args =
+          init.arguments.positional.map(_expressionToString).join(', ');
+      final namedArgs = init.arguments.named
+          .map((na) => '${na.name}: ${_expressionToString(na.value)}')
+          .join(', ');
+      final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+      return 'super($allArgs)';
     }
     return '';
   }
 
   /// 方法体/表达式体
   void _writeBlockOrExpr(Statement? body) {
-    if (body == null) {
-      _writeLine(';');
-      return;
-    }
-    if (body is ReturnStatement && body.expression != null) {
-      _write('=> ${_expressionToString(body.expression!)};\n');
-    } else if (body is ExpressionStatement) {
-      _write('=> ${_expressionToString(body.expression)};\n');
+    if (body is ExpressionStatement) {
+      final expr = _expressionToString(body.expression);
+      // 避免重复的 return 关键字
+      if (expr.startsWith('return ')) {
+        _writeLine('$expr;');
+      } else if (expr.startsWith('throw ')) {
+        _writeLine('$expr;');
+      } else {
+        _writeLine('return $expr;');
+      }
     } else if (body is Block) {
-      // 保证即使Block为空也输出{}
-      _writeLine('{');
-      _indent();
       for (final stmt in body.statements) {
-        print('DEBUG: 处理 Block 中的语句: ${stmt.runtimeType}');
         _writeTransformedStatement(stmt);
       }
-      _unindent();
-      _writeLine('}');
-    } else {
-      _writeLine('{');
-      _indent();
-      print('DEBUG: 处理单个语句: ${body.runtimeType}');
-      _writeTransformedStatement(body);
-      _unindent();
-      _writeLine('}');
     }
   }
 
   /// 清理变量名，将不合法的变量名转换为合法的Dart变量名
   String _cleanVariableName(String name) {
-    if (name.isEmpty) return 'unnamed';
+    if (name.isEmpty) return 'temp';
 
     // 处理包含特殊字符的变量名
     if (name.contains('#')) {
@@ -1099,10 +639,29 @@ class DartToDartTransformer {
         return 'formal_$number';
       }
 
+      // 处理 #closure 等特殊情况
+      if (name.contains('#closure')) {
+        // 不使用字符串替换，而是构建新的字符串
+        final parts = name.split('#');
+        return parts.join('_');
+      }
+
       // 其他包含#的变量名
-      return name
-          .replaceAll('#', '_')
-          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+      final parts = name.split('#');
+      final cleanParts = parts.map((part) {
+        // 移除非字母数字下划线字符
+        final cleanPart = StringBuffer();
+        for (int i = 0; i < part.length; i++) {
+          final char = part[i];
+          if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+            cleanPart.write(char);
+          } else {
+            cleanPart.write('_');
+          }
+        }
+        return cleanPart.toString();
+      });
+      return cleanParts.join('_');
     }
 
     // 处理以数字开头的变量名
@@ -1112,1316 +671,32 @@ class DartToDartTransformer {
 
     // 处理包含其他特殊字符的变量名
     if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(name)) {
-      return name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+      // 不使用字符串替换，而是构建新的字符串
+      final cleanName = StringBuffer();
+      for (int i = 0; i < name.length; i++) {
+        final char = name[i];
+        if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+          cleanName.write(char);
+        } else {
+          cleanName.write('_');
+        }
+      }
+      return cleanName.toString();
     }
 
     return name;
   }
 
-  /// 转换语句，将this替换为self
-  void _writeTransformedStatement(Statement statement) {
-    if (statement is Block) {
-      // 对于Block，直接处理其中的语句，不添加额外的花括号
-      for (final stmt in statement.statements) {
-        _writeTransformedStatement(stmt);
-      }
-    } else if (statement is ExpressionStatement) {
-      _writeLine('${_expressionToString(statement.expression)};');
-    } else if (statement is ReturnStatement) {
-      if (statement.expression != null) {
-        _writeLine('return ${_expressionToString(statement.expression!)};');
-      } else {
-        // 当没有表达式时，返回Void而不是空返回
-        _writeLine('return Void;');
-      }
-    } else if (statement is VariableDeclaration) {
-      _writeLine(
-          '${_getDartType(statement.type)} ${_cleanVariableName(statement.name ?? 'var')}${statement.initializer != null ? ' = ${_expressionToString(statement.initializer!)}' : ''};');
-    } else if (statement is IfStatement) {
-      _write('if (${_expressionToString(statement.condition)}) ');
-      _writeTransformedStatement(statement.then);
-      if (statement.otherwise != null) {
-        _write(' else ');
-        _writeTransformedStatement(statement.otherwise!);
-      }
-    } else if (statement is ForStatement) {
-      // 调试信息
-      print('DEBUG: 处理 ForStatement');
-      print('DEBUG: variables.length = ${statement.variables.length}');
-      print('DEBUG: condition = ${statement.condition?.runtimeType}');
-      print('DEBUG: updates.length = ${statement.updates.length}');
-
-      if (statement.variables.isNotEmpty) {
-        final varDecl = statement.variables[0];
-        print('DEBUG: varDecl.name = ${varDecl.name}');
-        print(
-            'DEBUG: varDecl.initializer = ${varDecl.initializer?.runtimeType}');
-      }
-
-      if (statement.condition != null) {
-        print('DEBUG: condition type = ${statement.condition!.runtimeType}');
-        if (statement.condition is InstanceInvocation) {
-          final inv = statement.condition as InstanceInvocation;
-          print('DEBUG: condition method = ${inv.name.text}');
-        }
-      }
-
-      if (statement.updates.isNotEmpty) {
-        final update = statement.updates[0];
-        print('DEBUG: update type = ${update.runtimeType}');
-        if (update is VariableSet) {
-          print('DEBUG: update variable = ${update.variable.name}');
-          print('DEBUG: update value type = ${update.value.runtimeType}');
-          if (update.value is InstanceGet) {
-            final get = update.value as InstanceGet;
-            print('DEBUG: update value name = ${get.name.text}');
-          }
-        }
-      }
-
-      // 检查是否为手写迭代器模式
-      if (statement.variables.length == 1 &&
-          statement.condition != null &&
-          statement.updates.length == 1) {
-        final varDecl = statement.variables[0];
-        final condition = statement.condition!;
-        final update = statement.updates[0];
-
-        // 检查是否为手写迭代器模式
-        if (varDecl.name == '_sync_for_iterator' &&
-            varDecl.initializer != null &&
-            condition is InstanceInvocation &&
-            condition.name.text == 'moveNext' &&
-            update is VariableSet &&
-            update.variable.name == 'entry' &&
-            update.value is InstanceGet &&
-            (update.value as InstanceGet).name.text == 'current') {
-          print('DEBUG: 匹配到手写迭代器模式！');
-          // 提取迭代器源
-          final iteratorSource = _expressionToString(varDecl.initializer!);
-          // 移除 .iterator 后缀
-          final iterable = iteratorSource.replaceAll('.iterator', '');
-
-          // 转换为标准 for-in
-          _write('for (final entry in $iterable) ');
-          _writeTransformedStatement(statement.body);
-          return;
-        } else {
-          print('DEBUG: 不匹配手写迭代器模式');
-        }
-      } else {
-        print('DEBUG: 基本条件不满足');
-      }
-
-      // 普通 for 循环
-      _write('for (');
-      if (statement.variables.isNotEmpty) {
-        final vars = statement.variables
-            .map((v) =>
-                '${_getDartType(v.type)} ${_cleanVariableName(v.name ?? 'var')}${v.initializer != null ? ' = ${_expressionToString(v.initializer!)}' : ''}')
-            .join(', ');
-        _write(vars);
-      }
-      _write('; ');
-      if (statement.condition != null) {
-        _write(_expressionToString(statement.condition!));
-      }
-      _write('; ');
-      if (statement.updates.isNotEmpty) {
-        final updates =
-            statement.updates.map((u) => _expressionToString(u)).join(', ');
-        _write(updates);
-      }
-      _write(') ');
-      _writeTransformedStatement(statement.body);
-    } else if (statement is ForInStatement) {
-      // 标准Dart for-in语法
-      final variable = _cleanVariableName(statement.variable.name ?? 'item');
-      final iterable = _expressionToString(statement.iterable);
-      _write('for (final $variable in $iterable) ');
-      _writeTransformedStatement(statement.body);
-    } else if (statement is WhileStatement) {
-      _write('while (${_expressionToString(statement.condition)}) ');
-      _writeTransformedStatement(statement.body);
-    } else if (statement is DoStatement) {
-      _write('do ');
-      _writeTransformedStatement(statement.body);
-      _write(' while (${_expressionToString(statement.condition)});');
-    } else if (statement is SwitchStatement) {
-      _write('switch (${_expressionToString(statement.expression)}) {');
-      _writeLine('// TODO: 实现switch语句');
-      _writeLine('}');
-    } else if (statement is TryCatch) {
-      _write('try ');
-      _writeTransformedStatement(statement.body);
-      _writeLine('// TODO: 实现try-catch语句');
-    } else if (statement is AssertStatement) {
-      _write('assert(${_expressionToString(statement.condition)}');
-      if (statement.message != null) {
-        _write(', ${_expressionToString(statement.message!)}');
-      }
-      _writeLine(');');
-    } else if (statement is BreakStatement) {
-      _writeLine('break;');
-    } else if (statement is ContinueSwitchStatement) {
-      _writeLine('continue;');
-    } else if (statement is LabeledStatement) {
-      _writeLine('// TODO: 实现标签语句');
-      _writeTransformedStatement(statement.body);
-    } else if (statement is EmptyStatement) {
-      _writeLine(';');
-    } else {
-      _writeLine('/* TODO: 实现语句 ${statement.runtimeType} */');
-    }
-  }
-
-  /// 转换语句，用于运算符重载方法（保持this引用）
-  void _writeTransformedStatementForOperator(Statement statement) {
-    if (statement is Block) {
-      // 对于Block，直接处理其中的语句，不添加额外的花括号
-      for (final stmt in statement.statements) {
-        _writeTransformedStatementForOperator(stmt);
-      }
-    } else if (statement is ExpressionStatement) {
-      _writeLine('${_expressionToStringForOperator(statement.expression)};');
-    } else if (statement is ReturnStatement) {
-      if (statement.expression != null) {
-        _writeLine(
-            'return ${_expressionToStringForOperator(statement.expression!)};');
-      } else {
-        // 当没有表达式时，返回Void而不是空返回
-        _writeLine('return Void;');
-      }
-    } else if (statement is VariableDeclaration) {
-      _writeLine(
-          '${_getDartType(statement.type)} ${_cleanVariableName(statement.name ?? 'var')}${statement.initializer != null ? ' = ${_expressionToStringForOperator(statement.initializer!)}' : ''};');
-    } else if (statement is IfStatement) {
-      _write('if (${_expressionToStringForOperator(statement.condition)}) ');
-      _writeTransformedStatementForOperator(statement.then);
-      if (statement.otherwise != null) {
-        _write(' else ');
-        _writeTransformedStatementForOperator(statement.otherwise!);
-      }
-    } else {
-      _writeLine('// TODO: 处理语句类型 ${statement.runtimeType}');
-    }
-  }
-
-  /// 将语句转换为字符串
-  String _writeTransformedStatementToString(Statement statement) {
-    if (statement is Block) {
-      final statements = statement.statements
-          .map((s) => _writeTransformedStatementToString(s))
-          .join('\n    ');
-      return '{\n    $statements\n  }';
-    } else if (statement is ExpressionStatement) {
-      return '${_expressionToString(statement.expression)};';
-    } else if (statement is ReturnStatement) {
-      if (statement.expression != null) {
-        return 'return ${_expressionToString(statement.expression!)};';
-      } else {
-        // 当没有表达式时，返回Void而不是空返回
-        return 'return Void;';
-      }
-    } else if (statement is VariableDeclaration) {
-      return '${_getDartType(statement.type)} ${_cleanVariableName(statement.name ?? 'var')}${statement.initializer != null ? ' = ${_expressionToString(statement.initializer!)}' : ''};';
-    } else if (statement is IfStatement) {
-      final condition = _expressionToString(statement.condition);
-      final then = _writeTransformedStatementToString(statement.then);
-      final otherwise = statement.otherwise != null
-          ? ' else ${_writeTransformedStatementToString(statement.otherwise!)}'
-          : '';
-      return 'if ($condition) $then$otherwise';
-    } else {
-      return '// TODO: 处理语句类型 ${statement.runtimeType}';
-    }
-  }
-
-  /// 转换表达式，将this替换为this
+  /// 转换表达式，将this替换为self
   String _expressionToString(Expression expression) {
-    if (expression is ThisExpression) {
-      return 'this';
-    } else if (expression is VariableGet) {
-      final originalName = expression.variable.name ?? 'unknown';
-      return _cleanVariableName(originalName);
-    } else if (expression is VariableSet) {
-      final originalName = expression.variable.name ?? 'unknown';
-      final cleanName = _cleanVariableName(originalName);
-      return '$cleanName = ${_expressionToString(expression.value)}';
-    } else if (expression is InstanceGet) {
-      final receiver = _expressionToString(expression.receiver);
-      final name = expression.name.text;
-      // 修正 for-in 伪迭代器 current 访问
-      if (name == 'current' && receiver.startsWith('_sync_for_iterator')) {
-        return 'entry';
-      }
-      return '$receiver.$name';
-    } else if (expression is InstanceSet) {
-      return 'this.${expression.name.text} = ${_expressionToString(expression.value)}';
-    } else if (expression is InstanceInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-
-      // 处理实例方法调用 - 保持原本形式
-      final methodName = expression.interfaceTarget.name.text;
-      final receiver = _expressionToString(expression.receiver);
-
-      // 特殊处理运算符调用
-      if (methodName == '[]') {
-        return '$receiver[$args]';
-      } else if (methodName == '[]=') {
-        final parts = args.split(', ');
-        if (parts.length >= 2) {
-          final index = parts[0];
-          final value = parts.sublist(1).join(', ');
-          return '$receiver[$index] = $value';
-        }
-        return '$receiver[$args]';
-      } else if (methodName == '+' ||
-          methodName == '-' ||
-          methodName == '*' ||
-          methodName == '/' ||
-          methodName == '%' ||
-          methodName == '&' ||
-          methodName == '|' ||
-          methodName == '^' ||
-          methodName == '<<' ||
-          methodName == '>>' ||
-          methodName == '>>>' ||
-          methodName == '==' ||
-          methodName == '!=' ||
-          methodName == '<' ||
-          methodName == '>' ||
-          methodName == '<=' ||
-          methodName == '>=') {
-        // 保持运算符的原本形式
-        return '$receiver $methodName $args';
-      } else if (methodName == '~' ||
-          methodName == 'unary-' ||
-          methodName == 'unary+' ||
-          methodName == '!') {
-        // 一元运算符
-        if (methodName == 'unary-') {
-          return '-$receiver';
-        } else if (methodName == 'unary+') {
-          return '+$receiver';
-        } else if (methodName == '!') {
-          return '!$receiver';
-        } else {
-          return '$methodName$receiver';
-        }
-      } else if (methodName == '++' || methodName == '--') {
-        // 自增自减运算符
-        return '$receiver$methodName';
-      } else if (methodName == '+=' ||
-          methodName == '-=' ||
-          methodName == '*=' ||
-          methodName == '/=' ||
-          methodName == '%=' ||
-          methodName == '&=' ||
-          methodName == '|=' ||
-          methodName == '^=' ||
-          methodName == '<<=' ||
-          methodName == '>>=' ||
-          methodName == '>>>=') {
-        // 复合赋值运算符
-        return '$receiver $methodName $args';
-      } else {
-        // 普通方法调用，保持原本形式
-        return '$receiver.$methodName($args)';
-      }
-    } else if (expression is IntLiteral) {
-      return expression.value.toString();
-    } else if (expression is DoubleLiteral) {
-      return expression.value.toString();
-    } else if (expression is StringLiteral) {
-      return '"${expression.value}"';
-    } else if (expression is BoolLiteral) {
-      return expression.value.toString();
-    } else if (expression is NullLiteral) {
-      return 'null';
-    } else if (expression is ConstructorInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-
-      // 检查构造函数名称
-      final constructorName = expression.target.name.text;
-      final originalClassName = expression.target.enclosingClass.name;
-      final className =
-          _classNameReplacements[originalClassName] ?? originalClassName;
-
-      // 保持构造函数的原本形式
-      if (constructorName.isEmpty) {
-        // 无名称构造函数
-        return '${className}($args)';
-      } else {
-        // 有名称构造函数
-        return '${className}.$constructorName($args)';
-      }
-    } else if (expression is StaticInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-      final originalClassName = expression.target.enclosingClass?.name;
-      final className = originalClassName != null
-          ? (_classNameReplacements[originalClassName] ?? originalClassName)
-          : null;
-      final methodName = expression.target.name.text;
-
-      // 检查是否为内部函数调用（没有类名的静态调用）
-      if (className == null || className.isEmpty) {
-        // 对于内部函数调用，使用当前正在处理的类名
-        if (_currentClassName != null) {
-          return '$_currentClassName.${methodName}($args)';
-        } else {
-          // 如果无法确定类名，使用默认处理
-          return '${methodName}($args)';
-        }
-      } else {
-        // 对于有类名的静态调用，使用完整的类名.方法名格式
-        return '$className.${methodName}($args)';
-      }
-    } else if (expression is LogicalExpression) {
-      final left = _expressionToString(expression.left);
-      final right = _expressionToString(expression.right);
-      final op = _getLogicalOperator(expression.operatorEnum);
-      return '$left $op $right';
-    } else if (expression is StaticGet) {
-      return 'this.${expression.target.name.text}';
-    } else if (expression is StaticSet) {
-      return 'this.${expression.target.name.text} = ${_expressionToString(expression.value)}';
-    } else if (expression is DynamicInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-
-      // 处理运算符调用 - 转换为方法调用
-      final methodName = expression.name.text;
-
-      // 特殊处理 moveNext(self, ) 转换为静态方法调用
-      if (methodName == 'moveNext' && args.isEmpty) {
-        return 'moveNext(self)';
-      }
-
-      if (methodName == '[]') {
-        return 'getElement(self, ${args})';
-      } else if (methodName == '[]=') {
-        final parts = args.split(', ');
-        if (parts.length >= 2) {
-          final index = parts[0];
-          final value = parts.sublist(1).join(', ');
-          return 'setElement(self, $index, $value)';
-        }
-        return 'setElement(self, ${args})';
-      } else if (methodName == '+' ||
-          methodName == '-' ||
-          methodName == '*' ||
-          methodName == '/') {
-        final parts = args.split(', ');
-        if (parts.length == 1) {
-          String methodNameConverted = methodName;
-          if (methodName == '+')
-            methodNameConverted = 'add';
-          else if (methodName == '-')
-            methodNameConverted = 'subtract';
-          else if (methodName == '*')
-            methodNameConverted = 'multiply';
-          else if (methodName == '/') methodNameConverted = 'divide';
-          return '$methodNameConverted(self, ${parts[0]})';
-        }
-        return '$methodName(self, ${args})';
-      } else if (methodName == '>' ||
-          methodName == '<' ||
-          methodName == '>=' ||
-          methodName == '<=' ||
-          methodName == '==' ||
-          methodName == '!=') {
-        final parts = args.split(', ');
-        if (parts.length == 2) {
-          String methodNameConverted = methodName;
-          if (methodName == '>')
-            methodNameConverted = 'greaterThan';
-          else if (methodName == '<')
-            methodNameConverted = 'lessThan';
-          else if (methodName == '>=')
-            methodNameConverted = 'greaterThanOrEqual';
-          else if (methodName == '<=')
-            methodNameConverted = 'lessThanOrEqual';
-          else if (methodName == '==')
-            methodNameConverted = 'equals';
-          else if (methodName == '!=') methodNameConverted = 'notEquals';
-          return '$methodNameConverted(self, ${parts[0]}, ${parts[1]})';
-        } else if (parts.length == 1) {
-          // 处理只有一个参数的情况
-          String methodNameConverted = methodName;
-          if (methodName == '>')
-            methodNameConverted = 'greaterThan';
-          else if (methodName == '<')
-            methodNameConverted = 'lessThan';
-          else if (methodName == '>=')
-            methodNameConverted = 'greaterThanOrEqual';
-          else if (methodName == '<=')
-            methodNameConverted = 'lessThanOrEqual';
-          else if (methodName == '==')
-            methodNameConverted = 'equals';
-          else if (methodName == '!=') methodNameConverted = 'notEquals';
-          return '$methodNameConverted(self, ${parts[0]})';
-        }
-        return '$methodName(self, ${args})';
-      } else if (methodName == '%' ||
-          methodName == '&' ||
-          methodName == '|' ||
-          methodName == '^' ||
-          methodName == '<<' ||
-          methodName == '>>' ||
-          methodName == '>>>') {
-        final parts = args.split(', ');
-        if (parts.length == 2) {
-          String methodNameConverted = methodName;
-          if (methodName == '%')
-            methodNameConverted = 'modulo';
-          else if (methodName == '&')
-            methodNameConverted = 'bitwiseAnd';
-          else if (methodName == '|')
-            methodNameConverted = 'bitwiseOr';
-          else if (methodName == '^')
-            methodNameConverted = 'bitwiseXor';
-          else if (methodName == '<<')
-            methodNameConverted = 'leftShift';
-          else if (methodName == '>>')
-            methodNameConverted = 'rightShift';
-          else if (methodName == '>>>')
-            methodNameConverted = 'unsignedRightShift';
-          return '$methodNameConverted(self, ${parts[0]}, ${parts[1]})';
-        } else if (parts.length == 1) {
-          // 处理只有一个参数的情况
-          String methodNameConverted = methodName;
-          if (methodName == '%')
-            methodNameConverted = 'modulo';
-          else if (methodName == '&')
-            methodNameConverted = 'bitwiseAnd';
-          else if (methodName == '|')
-            methodNameConverted = 'bitwiseOr';
-          else if (methodName == '^')
-            methodNameConverted = 'bitwiseXor';
-          else if (methodName == '<<')
-            methodNameConverted = 'leftShift';
-          else if (methodName == '>>')
-            methodNameConverted = 'rightShift';
-          else if (methodName == '>>>')
-            methodNameConverted = 'unsignedRightShift';
-          return '$methodNameConverted(self, ${parts[0]})';
-        }
-        return '$methodName(self, ${args})';
-      } else if (methodName == '~' ||
-          methodName == 'unary-' ||
-          methodName == 'unary+' ||
-          methodName == '!') {
-        String methodNameConverted = methodName;
-        if (methodName == '~')
-          methodNameConverted = 'bitwiseNot';
-        else if (methodName == 'unary-')
-          methodNameConverted = 'negate';
-        else if (methodName == 'unary+')
-          methodNameConverted = 'positive';
-        else if (methodName == '!') methodNameConverted = 'logicalNot';
-        return '$methodNameConverted(self)';
-      } else if (methodName == '++' || methodName == '--') {
-        String methodNameConverted = methodName;
-        if (methodName == '++')
-          methodNameConverted = 'increment';
-        else if (methodName == '--') methodNameConverted = 'decrement';
-        return '$methodNameConverted(self)';
-      } else if (methodName == '+=' ||
-          methodName == '-=' ||
-          methodName == '*=' ||
-          methodName == '/=' ||
-          methodName == '%=' ||
-          methodName == '&=' ||
-          methodName == '|=' ||
-          methodName == '^=' ||
-          methodName == '<<=' ||
-          methodName == '>>=' ||
-          methodName == '>>>=') {
-        final parts = args.split(', ');
-        if (parts.length == 1) {
-          String methodNameConverted = methodName;
-          if (methodName == '+=')
-            methodNameConverted = 'addAssign';
-          else if (methodName == '-=')
-            methodNameConverted = 'subtractAssign';
-          else if (methodName == '*=')
-            methodNameConverted = 'multiplyAssign';
-          else if (methodName == '/=')
-            methodNameConverted = 'divideAssign';
-          else if (methodName == '%=')
-            methodNameConverted = 'moduloAssign';
-          else if (methodName == '&=')
-            methodNameConverted = 'bitwiseAndAssign';
-          else if (methodName == '|=')
-            methodNameConverted = 'bitwiseOrAssign';
-          else if (methodName == '^=')
-            methodNameConverted = 'bitwiseXorAssign';
-          else if (methodName == '<<=')
-            methodNameConverted = 'leftShiftAssign';
-          else if (methodName == '>>=')
-            methodNameConverted = 'rightShiftAssign';
-          else if (methodName == '>>>=')
-            methodNameConverted = 'unsignedRightShiftAssign';
-          return '$methodNameConverted(self, ${parts[0]})';
-        }
-        return '$methodName(self, ${args})';
-      } else if (methodName == '??' ||
-          methodName == '&&' ||
-          methodName == '||') {
-        final parts = args.split(', ');
-        if (parts.length == 2) {
-          String methodNameConverted = methodName;
-          if (methodName == '??')
-            methodNameConverted = 'nullCoalesce';
-          else if (methodName == '&&')
-            methodNameConverted = 'logicalAnd';
-          else if (methodName == '||') methodNameConverted = 'logicalOr';
-          return '$methodNameConverted(self, ${parts[0]}, ${parts[1]})';
-        }
-        return '$methodName(self, ${args})';
-      } else {
-        return '$methodName(self, ${args})';
-      }
-    } else if (expression is ListLiteral) {
-      final elements =
-          expression.expressions.map((e) => _expressionToString(e)).join(', ');
-      return '[$elements]';
-    } else if (expression is MapLiteral) {
-      final entries = expression.entries
-          .map((e) =>
-              '${_expressionToString(e.key)}: ${_expressionToString(e.value)}')
-          .join(', ');
-      return '{$entries}';
-    } else if (expression is SetLiteral) {
-      final elements =
-          expression.expressions.map((e) => _expressionToString(e)).join(', ');
-      return '{$elements}';
-    } else if (expression is ConditionalExpression) {
-      final condition = _expressionToString(expression.condition);
-      final then = _expressionToString(expression.then);
-      final otherwise = _expressionToString(expression.otherwise);
-      return '$condition ? $then : $otherwise';
-    } else if (expression is Not) {
-      final operand = _expressionToString(expression.operand);
-      return '!$operand';
-    } else if (expression is SuperPropertyGet) {
-      return 'super.${expression.name.text}';
-    } else if (expression is SuperPropertySet) {
-      return 'super.${expression.name.text} = ${_expressionToString(expression.value)}';
-    } else if (expression is SuperMethodInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-      return 'super.${expression.name.text}($args)';
-    } else if (expression is FunctionTearOff) {
-      return 'function_tearoff';
-    } else if (expression is InstanceTearOff) {
-      return 'instance_tearoff';
-    } else if (expression is StaticTearOff) {
-      return 'static_tearoff';
-    } else if (expression is Let) {
-      // 处理Let表达式
-      // Let表达式包含一个变量声明和一个表达式体
-      final variable = expression.variable;
-      final variableName = _cleanVariableName(variable.name ?? 'var');
-      final variableType = _getDartType(variable.type);
-      final initializer = variable.initializer != null
-          ? ' = ${_expressionToString(variable.initializer!)}'
-          : '';
-      final body = _expressionToString(expression.body);
-      // 简化Let表达式，直接返回变量名或表达式
-      if (body == variableName) {
-        return variableName;
-      } else {
-        return body;
-      }
-    } else if (expression is FunctionInvocation) {
-      // 处理函数调用
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-
-      // 对于函数调用，我们需要找到函数名
-      // 这里我们假设函数调用应该使用当前类的静态方法
-      if (_currentClassName != null) {
-        return '$_currentClassName.functionInvocation($args)';
-      } else {
-        return 'functionInvocation($args)';
-      }
-    } else if (expression is AsExpression) {
-      // 处理类型转换
-      final operand = _expressionToString(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand as $type';
-    } else if (expression is EqualsCall) {
-      // 处理相等性调用
-      final left = _expressionToString(expression.left);
-      final right = _expressionToString(expression.right);
-      return '$left == $right';
-    } else if (expression is StringConcatenation) {
-      // 处理字符串连接
-      final expressions =
-          expression.expressions.map((e) => _expressionToString(e)).join(' + ');
-      return expressions;
-    } else if (expression is Throw) {
-      // 处理抛出异常
-      final expressionStr = _expressionToString(expression.expression);
-      return 'throw $expressionStr';
-    } else if (expression is ConstantExpression) {
-      // 处理常量表达式
-      final c = expression.constant;
-      if (c is BoolConstant) return c.value ? 'true' : 'false';
-      if (c is IntConstant) return c.value.toString();
-      if (c is DoubleConstant) return c.value.toString();
-      if (c is StringConstant) return "'${c.value}'";
-      if (c is NullConstant) return 'null';
-      // 处理List/Map/Set等常量
-      if (c is ListConstant) {
-        final elems = c.entries
-            .map((e) => _expressionToString(ConstantExpression(e)))
-            .join(', ');
-        return 'const [${elems}]';
-      }
-      if (c is MapConstant) {
-        final entries = c.entries
-            .map((e) =>
-                '${_expressionToString(ConstantExpression(e.key))}: ${_expressionToString(ConstantExpression(e.value))}')
-            .join(', ');
-        return 'const {${entries}}';
-      }
-      if (c is SetConstant) {
-        final elems = c.entries
-            .map((e) => _expressionToString(ConstantExpression(e)))
-            .join(', ');
-        return 'const {${elems}}';
-      }
-      // 兜底
-      return c.toString();
-    } else if (expression is EqualsNull) {
-      // 处理空值检查
-      final operand = _expressionToString(expression.expression);
-      return '$operand == null';
-    } else if (expression is FunctionExpression) {
-      // 处理匿名函数/闭包表达式
-      final function = expression.function;
-      final parameters = function.positionalParameters
-          .map((p) =>
-              '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
-          .join(', ');
-      final returnType = _getDartType(function.returnType);
-      return '($parameters) { /* TODO: 实现匿名函数 */ return null as $returnType; }';
-    } else if (expression is IsExpression) {
-      // 处理类型判断表达式
-      final operand = _expressionToString(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand is $type';
-    } else if (expression is NullCheck) {
-      // 处理空安全断言表达式
-      final operand = _expressionToString(expression.operand);
-      return '$operand!';
-    } else if (expression is BlockExpression) {
-      // 处理块表达式
-      final statements = expression.body.statements
-          .map((s) => _writeTransformedStatementToString(s))
-          .join('\n    ');
-      return '(() {\n    $statements\n    return null;\n  })()';
-    } else if (expression is LocalFunctionInvocation) {
-      // 处理局部函数调用
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-      return '${expression.name.text}($args)';
-    } else if (expression is RecordLiteral) {
-      // 处理记录字面量
-      final fields =
-          expression.positional.map((f) => _expressionToString(f)).join(', ');
-      return '($fields)';
-    } else if (expression is TypeLiteral) {
-      // 处理类型字面量
-      return _getDartType(expression.type);
-    } else if (expression is AwaitExpression) {
-      // 处理await表达式
-      final operand = _expressionToString(expression.operand);
-      return 'await $operand';
-    } else if (expression is RecordNameGet) {
-      // 处理记录字段访问
-      final record = _expressionToString(expression.receiver);
-      return '$record.${expression.name}';
-    } else if (expression is InstanceTearOff) {
-      // 处理实例方法引用
-      final receiver = _expressionToString(expression.receiver);
-      return '$receiver.${expression.name.text}';
-    } else if (expression is StaticTearOff) {
-      // 处理静态方法引用
-      final className = expression.target.enclosingClass?.name ?? '';
-      return '$className.${expression.target.name.text}';
-    } else if (expression is FunctionTearOff) {
-      // 处理函数引用
-      return 'function_tearoff';
-    } else if (expression is InstanceSet) {
-      // 处理实例属性设置
-      final receiver = _expressionToString(expression.receiver);
-      return '$receiver.${expression.name.text} = ${_expressionToString(expression.value)}';
-    } else if (expression is StaticSet) {
-      // 处理静态属性设置
-      final className = expression.target.enclosingClass?.name ?? '';
-      return '$className.${expression.target.name.text} = ${_expressionToString(expression.value)}';
-    } else if (expression is InstanceGet) {
-      // 处理实例属性获取
-      final receiver = _expressionToString(expression.receiver);
-      final name = expression.name.text;
-      // 修正 for-in 伪迭代器 current 访问
-      if (name == 'current' && receiver.startsWith('_sync_for_iterator')) {
-        return 'entry';
-      }
-      return '$receiver.$name';
-    } else if (expression is StaticGet) {
-      // 处理静态属性获取
-      final className = expression.target.enclosingClass?.name ?? '';
-      return '$className.${expression.target.name.text}';
-    } else if (expression is VariableGet) {
-      // 处理变量获取
-      final name = expression.variable.name ?? 'var';
-      return _cleanVariableName(name);
-    } else if (expression is VariableSet) {
-      // 处理变量设置
-      final name = expression.variable.name ?? 'var';
-      final cleanName = _cleanVariableName(name);
-      return '$cleanName = ${_expressionToString(expression.value)}';
-    } else if (expression is IntLiteral) {
-      return expression.value.toString();
-    } else if (expression is DoubleLiteral) {
-      return expression.value.toString();
-    } else if (expression is StringLiteral) {
-      return '"${expression.value}"';
-    } else if (expression is BoolLiteral) {
-      return expression.value.toString();
-    } else if (expression is NullLiteral) {
-      return 'null';
-    } else if (expression is ListLiteral) {
-      final elements =
-          expression.expressions.map((e) => _expressionToString(e)).join(', ');
-      return '[$elements]';
-    } else if (expression is MapLiteral) {
-      final entries = expression.entries
-          .map((e) =>
-              '${_expressionToString(e.key)}: ${_expressionToString(e.value)}')
-          .join(', ');
-      return '{$entries}';
-    } else if (expression is SetLiteral) {
-      final elements =
-          expression.expressions.map((e) => _expressionToString(e)).join(', ');
-      return '{$elements}';
-    } else if (expression is ConditionalExpression) {
-      final condition = _expressionToString(expression.condition);
-      final then = _expressionToString(expression.then);
-      final otherwise = _expressionToString(expression.otherwise);
-      return '$condition ? $then : $otherwise';
-    } else if (expression is Not) {
-      final operand = _expressionToString(expression.operand);
-      return '!$operand';
-    } else if (expression is LogicalExpression) {
-      final left = _expressionToString(expression.left);
-      final right = _expressionToString(expression.right);
-      final op = _getLogicalOperator(expression.operatorEnum);
-      return '$left $op $right';
-    } else if (expression is AsExpression) {
-      final operand = _expressionToString(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand as $type';
-    } else if (expression is IsExpression) {
-      final operand = _expressionToString(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand is $type';
-    } else if (expression is NullCheck) {
-      final operand = _expressionToString(expression.operand);
-      return '$operand!';
-    } else if (expression is AwaitExpression) {
-      final operand = _expressionToString(expression.operand);
-      return 'await $operand';
-    } else if (expression is StringConcatenation) {
-      final expressions =
-          expression.expressions.map((e) => _expressionToString(e)).join(' + ');
-      return expressions;
-    } else if (expression is Throw) {
-      final expressionStr = _expressionToString(expression.expression);
-      return 'throw $expressionStr';
-    } else if (expression is ConstantExpression) {
-      return 'const ${expression.constant}';
-    } else if (expression is EqualsNull) {
-      final operand = _expressionToString(expression.expression);
-      return '$operand == null';
-    } else if (expression is EqualsCall) {
-      final left = _expressionToString(expression.left);
-      final right = _expressionToString(expression.right);
-      return '$left == $right';
-    } else if (expression is FunctionExpression) {
-      final function = expression.function;
-      final parameters = function.positionalParameters
-          .map((p) =>
-              '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
-          .join(', ');
-      final returnType = _getDartType(function.returnType);
-      return '($parameters) { /* TODO: 实现匿名函数 */ return null as $returnType; }';
-    } else if (expression is BlockExpression) {
-      final statements = expression.body.statements
-          .map((s) => _writeTransformedStatementToString(s))
-          .join('\n    ');
-      return '(() {\n    $statements\n    return null;\n  })()';
-    } else if (expression is LocalFunctionInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-      return '${expression.name.text}($args)';
-    } else if (expression is RecordLiteral) {
-      final fields =
-          expression.positional.map((f) => _expressionToString(f)).join(', ');
-      return '($fields)';
-    } else if (expression is TypeLiteral) {
-      return _getDartType(expression.type);
-    } else if (expression is RecordNameGet) {
-      final record = _expressionToString(expression.receiver);
-      return '$record.${expression.name}';
-    } else if (expression is Let) {
-      final variable = expression.variable;
-      final variableName = _cleanVariableName(variable.name ?? 'var');
-      final body = _expressionToString(expression.body);
-      if (body == variableName) {
-        return variableName;
-      } else {
-        return body;
-      }
-    } else if (expression is FunctionInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToString(e))
-          .join(', ');
-      if (_currentClassName != null) {
-        return '$_currentClassName.functionInvocation($args)';
-      } else {
-        return 'functionInvocation($args)';
-      }
-    } else {
-      return '/* 未处理的表达式类型: ${expression.runtimeType} - ${expression.toString()} */';
-    }
+    return _generateExpressionCode(expression,
+        replaceThis: true, asStatement: false);
   }
 
   /// 转换表达式，用于运算符重载方法（保持this引用）
   String _expressionToStringForOperator(Expression expression) {
-    if (expression is ThisExpression) {
-      return 'this';
-    } else if (expression is VariableGet) {
-      final originalName = expression.variable.name ?? 'unknown';
-      return _cleanVariableName(originalName);
-    } else if (expression is VariableSet) {
-      final originalName = expression.variable.name ?? 'unknown';
-      final cleanName = _cleanVariableName(originalName);
-      return '$cleanName = ${_expressionToStringForOperator(expression.value)}';
-    } else if (expression is InstanceGet) {
-      final receiver = _expressionToString(expression.receiver);
-      final name = expression.name.text;
-      // 修正 for-in 伪迭代器 current 访问
-      if (name == 'current' && receiver.startsWith('_sync_for_iterator')) {
-        return 'entry';
-      }
-      return '$receiver.$name';
-    } else if (expression is InstanceSet) {
-      return 'this.${expression.name.text} = ${_expressionToStringForOperator(expression.value)}';
-    } else if (expression is InstanceInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-
-      // 处理实例方法调用 - 保持原本形式
-      final methodName = expression.interfaceTarget.name.text;
-      final receiver = _expressionToStringForOperator(expression.receiver);
-
-      // 特殊处理运算符调用
-      if (methodName == '[]') {
-        return '$receiver[$args]';
-      } else if (methodName == '[]=') {
-        final parts = args.split(', ');
-        if (parts.length >= 2) {
-          final index = parts[0];
-          final value = parts.sublist(1).join(', ');
-          return '$receiver[$index] = $value';
-        }
-        return '$receiver[$args]';
-      } else if (methodName == '+' ||
-          methodName == '-' ||
-          methodName == '*' ||
-          methodName == '/' ||
-          methodName == '%' ||
-          methodName == '&' ||
-          methodName == '|' ||
-          methodName == '^' ||
-          methodName == '<<' ||
-          methodName == '>>' ||
-          methodName == '>>>' ||
-          methodName == '==' ||
-          methodName == '!=' ||
-          methodName == '<' ||
-          methodName == '>' ||
-          methodName == '<=' ||
-          methodName == '>=') {
-        // 保持运算符的原本形式
-        return '$receiver $methodName $args';
-      } else if (methodName == '~' ||
-          methodName == 'unary-' ||
-          methodName == 'unary+' ||
-          methodName == '!') {
-        // 一元运算符
-        if (methodName == 'unary-') {
-          return '-$receiver';
-        } else if (methodName == 'unary+') {
-          return '+$receiver';
-        } else if (methodName == '!') {
-          return '!$receiver';
-        } else {
-          return '$methodName$receiver';
-        }
-      } else if (methodName == '++' || methodName == '--') {
-        // 自增自减运算符
-        return '$receiver$methodName';
-      } else if (methodName == '+=' ||
-          methodName == '-=' ||
-          methodName == '*=' ||
-          methodName == '/=' ||
-          methodName == '%=' ||
-          methodName == '&=' ||
-          methodName == '|=' ||
-          methodName == '^=' ||
-          methodName == '<<=' ||
-          methodName == '>>=' ||
-          methodName == '>>>=') {
-        // 复合赋值运算符
-        return '$receiver $methodName $args';
-      } else {
-        // 普通方法调用，保持原本形式
-        return '$receiver.$methodName($args)';
-      }
-    } else if (expression is IntLiteral) {
-      return expression.value.toString();
-    } else if (expression is DoubleLiteral) {
-      return expression.value.toString();
-    } else if (expression is StringLiteral) {
-      return '"${expression.value}"';
-    } else if (expression is BoolLiteral) {
-      return expression.value.toString();
-    } else if (expression is NullLiteral) {
-      return 'null';
-    } else if (expression is ConstructorInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-
-      // 检查构造函数名称
-      final constructorName = expression.target.name.text;
-      final originalClassName = expression.target.enclosingClass.name;
-      final className =
-          _classNameReplacements[originalClassName] ?? originalClassName;
-
-      // 保持构造函数的原本形式
-      if (constructorName.isEmpty) {
-        // 无名称构造函数
-        return '${className}($args)';
-      } else {
-        // 有名称构造函数
-        return '${className}.$constructorName($args)';
-      }
-    } else if (expression is StaticInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-      final originalClassName = expression.target.enclosingClass?.name;
-      final className = originalClassName != null
-          ? (_classNameReplacements[originalClassName] ?? originalClassName)
-          : null;
-      final methodName = expression.target.name.text;
-
-      // 检查是否为内部函数调用（没有类名的静态调用）
-      if (className == null || className.isEmpty) {
-        // 对于内部函数调用，使用当前正在处理的类名
-        if (_currentClassName != null) {
-          return '$_currentClassName.${methodName}($args)';
-        } else {
-          // 如果无法确定类名，使用默认处理
-          return '${methodName}($args)';
-        }
-      } else {
-        // 对于有类名的静态调用，使用完整的类名.方法名格式
-        return '$className.${methodName}($args)';
-      }
-    } else if (expression is LogicalExpression) {
-      final left = _expressionToStringForOperator(expression.left);
-      final right = _expressionToStringForOperator(expression.right);
-      final op = _getLogicalOperator(expression.operatorEnum);
-      return '$left $op $right';
-    } else if (expression is StaticGet) {
-      return 'this.${expression.target.name.text}';
-    } else if (expression is StaticSet) {
-      return 'this.${expression.target.name.text} = ${_expressionToStringForOperator(expression.value)}';
-    } else if (expression is DynamicInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-
-      // 处理运算符调用 - 转换为方法调用
-      final methodName = expression.name.text;
-
-      // 特殊处理 moveNext(this, ) 转换为静态方法调用
-      if (methodName == 'moveNext' && args.isEmpty) {
-        return 'moveNext(this)';
-      }
-
-      if (methodName == '[]') {
-        return 'getElement(this, ${args})';
-      } else if (methodName == '[]=') {
-        final parts = args.split(', ');
-        if (parts.length >= 2) {
-          final index = parts[0];
-          final value = parts.sublist(1).join(', ');
-          return 'setElement(this, $index, $value)';
-        }
-        return 'setElement(this, ${args})';
-      } else if (methodName == '+' ||
-          methodName == '-' ||
-          methodName == '*' ||
-          methodName == '/') {
-        final parts = args.split(', ');
-        if (parts.length == 1) {
-          String methodNameConverted = methodName;
-          if (methodName == '+')
-            methodNameConverted = 'add';
-          else if (methodName == '-')
-            methodNameConverted = 'subtract';
-          else if (methodName == '*')
-            methodNameConverted = 'multiply';
-          else if (methodName == '/') methodNameConverted = 'divide';
-          return '$methodNameConverted(this, ${parts[0]})';
-        }
-        return '$methodName(this, ${args})';
-      } else if (methodName == '>' ||
-          methodName == '<' ||
-          methodName == '>=' ||
-          methodName == '<=' ||
-          methodName == '==' ||
-          methodName == '!=') {
-        final parts = args.split(', ');
-        if (parts.length == 2) {
-          String methodNameConverted = methodName;
-          if (methodName == '>')
-            methodNameConverted = 'greaterThan';
-          else if (methodName == '<')
-            methodNameConverted = 'lessThan';
-          else if (methodName == '>=')
-            methodNameConverted = 'greaterThanOrEqual';
-          else if (methodName == '<=')
-            methodNameConverted = 'lessThanOrEqual';
-          else if (methodName == '==')
-            methodNameConverted = 'equals';
-          else if (methodName == '!=') methodNameConverted = 'notEquals';
-          return '$methodNameConverted(this, ${parts[0]}, ${parts[1]})';
-        }
-        return '$methodName(this, ${args})';
-      } else {
-        return '$methodName(this, ${args})';
-      }
-    } else if (expression is ListLiteral) {
-      final elements = expression.expressions
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-      return '[$elements]';
-    } else if (expression is MapLiteral) {
-      final entries = expression.entries
-          .map((e) =>
-              '${_expressionToStringForOperator(e.key)}: ${_expressionToStringForOperator(e.value)}')
-          .join(', ');
-      return '{$entries}';
-    } else if (expression is SetLiteral) {
-      final elements = expression.expressions
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-      return '{$elements}';
-    } else if (expression is ConditionalExpression) {
-      final condition = _expressionToStringForOperator(expression.condition);
-      final then = _expressionToStringForOperator(expression.then);
-      final otherwise = _expressionToStringForOperator(expression.otherwise);
-      return '$condition ? $then : $otherwise';
-    } else if (expression is Not) {
-      final operand = _expressionToStringForOperator(expression.operand);
-      return '!$operand';
-    } else if (expression is SuperPropertyGet) {
-      return 'super.${expression.name.text}';
-    } else if (expression is SuperPropertySet) {
-      return 'super.${expression.name.text} = ${_expressionToStringForOperator(expression.value)}';
-    } else if (expression is SuperMethodInvocation) {
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-      return 'super.${expression.name.text}($args)';
-    } else if (expression is FunctionTearOff) {
-      return 'function_tearoff';
-    } else if (expression is InstanceTearOff) {
-      return 'instance_tearoff';
-    } else if (expression is StaticTearOff) {
-      return 'static_tearoff';
-    } else if (expression is Let) {
-      // 处理Let表达式
-      // Let表达式包含一个变量声明和一个表达式体
-      final variable = expression.variable;
-      final variableName = _cleanVariableName(variable.name ?? 'var');
-      final variableType = _getDartType(variable.type);
-      final initializer = variable.initializer != null
-          ? ' = ${_expressionToStringForOperator(variable.initializer!)}'
-          : '';
-      final body = _expressionToStringForOperator(expression.body);
-      return '(() { $variableType $variableName$initializer; return $body; })()';
-    } else if (expression is FunctionInvocation) {
-      // 处理函数调用
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-
-      // 对于函数调用，我们需要找到函数名
-      // 这里我们假设函数调用应该使用当前类的静态方法
-      if (_currentClassName != null) {
-        return '$_currentClassName.functionInvocation($args)';
-      } else {
-        return 'functionInvocation($args)';
-      }
-    } else if (expression is AsExpression) {
-      // 处理类型转换
-      final operand = _expressionToStringForOperator(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand as $type';
-    } else if (expression is IsExpression) {
-      // 处理类型判断表达式
-      final operand = _expressionToStringForOperator(expression.operand);
-      final type = _getDartType(expression.type);
-      return '$operand is $type';
-    } else if (expression is NullCheck) {
-      // 处理空安全断言表达式
-      final operand = _expressionToStringForOperator(expression.operand);
-      return '$operand!';
-    } else if (expression is AwaitExpression) {
-      // 处理await表达式
-      final operand = _expressionToStringForOperator(expression.operand);
-      return 'await $operand';
-    } else if (expression is StringConcatenation) {
-      // 处理字符串连接
-      final expressions = expression.expressions
-          .map((e) => _expressionToStringForOperator(e))
-          .join(' + ');
-      return expressions;
-    } else if (expression is Throw) {
-      // 处理抛出异常
-      final expressionStr =
-          _expressionToStringForOperator(expression.expression);
-      return 'throw $expressionStr';
-    } else if (expression is ConstantExpression) {
-      // 处理常量表达式
-      final c = expression.constant;
-      if (c is BoolConstant) return c.value ? 'true' : 'false';
-      if (c is IntConstant) return c.value.toString();
-      if (c is DoubleConstant) return c.value.toString();
-      if (c is StringConstant) return "'${c.value}'";
-      if (c is NullConstant) return 'null';
-      // 处理List/Map/Set等常量
-      if (c is ListConstant) {
-        final elems = c.entries
-            .map((e) => _expressionToStringForOperator(ConstantExpression(e)))
-            .join(', ');
-        return 'const [${elems}]';
-      }
-      if (c is MapConstant) {
-        final entries = c.entries
-            .map((e) =>
-                '${_expressionToStringForOperator(ConstantExpression(e.key))}: ${_expressionToStringForOperator(ConstantExpression(e.value))}')
-            .join(', ');
-        return 'const {${entries}}';
-      }
-      if (c is SetConstant) {
-        final elems = c.entries
-            .map((e) => _expressionToStringForOperator(ConstantExpression(e)))
-            .join(', ');
-        return 'const {${elems}}';
-      }
-      // 兜底
-      return c.toString();
-    } else if (expression is EqualsNull) {
-      // 处理空值检查
-      final operand = _expressionToStringForOperator(expression.expression);
-      return '$operand == null';
-    } else if (expression is EqualsCall) {
-      // 处理相等性调用
-      final left = _expressionToStringForOperator(expression.left);
-      final right = _expressionToStringForOperator(expression.right);
-      return '$left == $right';
-    } else if (expression is FunctionExpression) {
-      // 处理匿名函数/闭包表达式
-      final function = expression.function;
-      final parameters = function.positionalParameters
-          .map((p) =>
-              '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
-          .join(', ');
-      final returnType = _getDartType(function.returnType);
-      return '($parameters) { /* TODO: 实现匿名函数 */ return null as $returnType; }';
-    } else if (expression is BlockExpression) {
-      // 处理块表达式
-      final statements = expression.body.statements
-          .map((s) => _writeTransformedStatementToString(s))
-          .join('\n    ');
-      return '(() {\n    $statements\n    return null;\n  })()';
-    } else if (expression is LocalFunctionInvocation) {
-      // 处理局部函数调用
-      final args = expression.arguments.positional
-          .map((e) => _expressionToStringForOperator(e))
-          .join(', ');
-      return '${expression.name.text}($args)';
-    } else if (expression is RecordLiteral) {
-      // 处理记录字面量
-      final fields = expression.positional
-          .map((f) => _expressionToStringForOperator(f))
-          .join(', ');
-      return '($fields)';
-    } else if (expression is TypeLiteral) {
-      // 处理类型字面量
-      return _getDartType(expression.type);
-    } else if (expression is RecordNameGet) {
-      // 处理记录字段访问
-      final record = _expressionToStringForOperator(expression.receiver);
-      return '$record.${expression.name}';
-    } else if (expression is IntLiteral) {
-      return expression.value.toString();
-    } else if (expression is DoubleLiteral) {
-      return expression.value.toString();
-    } else if (expression is StringLiteral) {
-      return '"${expression.value}"';
-    } else if (expression is BoolLiteral) {
-      return expression.value.toString();
-    } else if (expression is NullLiteral) {
-      return 'null';
-    } else {
-      return '/* 未处理的表达式类型: ${expression.runtimeType} */';
-    }
-  }
-
-  /// 获取逻辑运算符
-  String _getLogicalOperator(LogicalExpressionOperator operator) {
-    switch (operator) {
-      case LogicalExpressionOperator.AND:
-        return '&&';
-      case LogicalExpressionOperator.OR:
-        return '||';
-    }
+    return _generateExpressionCode(expression,
+        replaceThis: false, asStatement: false);
   }
 
   /// 写入一行
@@ -2451,15 +726,19 @@ class DartToDartTransformer {
     try {
       final outputFile = File('./transformed_dart.dart');
       outputFile.writeAsStringSync(_buffer.toString());
-      print('成功生成转换后的Dart代码: ${outputFile.absolute.path}');
-    } catch (e) {
-      print('写入文件时发生错误: $e');
-    }
+    } catch (e) {}
   }
 
   /// 获取生成的代码
   String getGeneratedCode() {
     return _buffer.toString();
+  }
+
+  /// 自动检查生成的代码
+  void _checkGeneratedCode() {
+    final code = _buffer.toString();
+    if (!code.contains('class') || !code.contains('late')) {
+    } else {}
   }
 }
 
@@ -2467,4 +746,1100 @@ class DartToDartTransformer {
 void transformDartToDart(Component component) {
   final transformer = DartToDartTransformer();
   transformer.transformComponent(component);
+}
+
+/// 全局版本的清理变量名函数
+String _cleanVariableName(String name) {
+  if (name.isEmpty) return 'temp';
+
+  // 处理包含特殊字符的变量名
+  if (name.contains('#')) {
+    // 提取数字部分作为后缀
+    final match = RegExp(r'_#wc(\d+)#formal').firstMatch(name);
+    if (match != null) {
+      final number = match.group(1);
+      return 'formal_$number';
+    }
+
+    // 处理 #closure 等特殊情况
+    if (name.contains('#closure')) {
+      // 不使用字符串替换，而是构建新的字符串
+      final parts = name.split('#');
+      return parts.join('_');
+    }
+
+    // 其他包含#的变量名
+    final parts = name.split('#');
+    final cleanParts = parts.map((part) {
+      // 移除非字母数字下划线字符
+      final cleanPart = StringBuffer();
+      for (int i = 0; i < part.length; i++) {
+        final char = part[i];
+        if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+          cleanPart.write(char);
+        } else {
+          cleanPart.write('_');
+        }
+      }
+      return cleanPart.toString();
+    });
+    return cleanParts.join('_');
+  }
+
+  // 处理以数字开头的变量名
+  if (RegExp(r'^\d').hasMatch(name)) {
+    return 'var_$name';
+  }
+
+  // 处理包含其他特殊字符的变量名
+  if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(name)) {
+    // 不使用字符串替换，而是构建新的字符串
+    final cleanName = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      final char = name[i];
+      if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+        cleanName.write(char);
+      } else {
+        cleanName.write('_');
+      }
+    }
+    return cleanName.toString();
+  }
+
+  // 处理 unnamed 或空变量名
+  if (name == 'unnamed' || name.isEmpty) {
+    return 'temp';
+  }
+
+  return name;
+}
+
+/// 全局版本的获取Dart类型函数
+String _getDartType(DartType type) {
+  if (type is DynamicType) {
+    return 'Object';
+  } else if (type is InterfaceType) {
+    return type.classNode.name;
+  } else if (type is FunctionType) {
+    final params = type.requiredParameterCount > 0
+        ? 'Object' * type.requiredParameterCount
+        : '';
+    return 'Function($params) => Object';
+  } else {
+    return 'Object';
+  }
+}
+
+/// 全局版本的获取逻辑运算符函数
+String _getLogicalOperator(LogicalExpressionOperator operator) {
+  switch (operator) {
+    case LogicalExpressionOperator.AND:
+      return '&&';
+    case LogicalExpressionOperator.OR:
+      return '||';
+  }
+}
+
+/// 获取一元运算符
+String _getUnaryOperator(String operator) {
+  switch (operator) {
+    case 'unary-':
+      return '-';
+    case '!':
+      return '!';
+    case '~':
+      return '~';
+    default:
+      return operator;
+  }
+}
+
+/// 获取二元运算符
+String _getBinaryOperator(String operator) {
+  switch (operator) {
+    case 'LESS_THAN':
+      return '<';
+    case 'GREATER_THAN':
+      return '>';
+    case 'LESS_THAN_OR_EQUALS':
+      return '<=';
+    case 'GREATER_THAN_OR_EQUALS':
+      return '>=';
+    case 'EQUALS':
+      return '==';
+    case 'NOT_EQUALS':
+      return '!=';
+    case 'ADD':
+      return '+';
+    case 'SUBTRACT':
+      return '-';
+    case 'MULTIPLY':
+      return '*';
+    case 'DIVIDE':
+      return '/';
+    case 'MODULO':
+      return '%';
+    case '[]':
+      return '[]';
+    case '[]=':
+      return '[]=';
+    default:
+      return operator;
+  }
+}
+
+String _generateExpressionCode(Expression expression,
+    {bool replaceThis = false, bool asStatement = false}) {
+  print('expression: $expression');
+  if (expression is ThisExpression) {
+    return 'this';
+  } else if (expression is VariableGet) {
+    return _cleanVariableName(expression.variable.name ?? 'unnamed');
+  } else if (expression is VariableSet) {
+    return '${_cleanVariableName(expression.variable.name ?? 'unnamed')} = '
+        '${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
+  } else if (expression is RecordIndexGet) {
+    return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.${expression.index + 1}';
+  } else if (expression is RecordNameGet) {
+    return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.${expression.name}';
+  } else if (expression is DynamicGet) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+
+    // 处理包含类型信息的属性访问
+    if (name.contains('{num.<}')) return '$receiver < 0';
+    if (name.contains('{num.>}')) return '$receiver > 0';
+    if (name.contains('{num.<=}')) return '$receiver <= 0';
+    if (name.contains('{num.>=}')) return '$receiver >= 0';
+    if (name.contains('{num.+}')) return '$receiver + 1';
+    if (name.contains('{num.-}')) return '$receiver - 1';
+    if (name.contains('{num.*}')) return '$receiver * 1';
+    if (name.contains('{num./}')) return '$receiver / 1';
+    if (name.contains('{num.%}')) return '$receiver % 1';
+    if (name.contains('{num.==}')) return '$receiver == 0';
+    if (name.contains('{num.!=}')) return '$receiver != 0';
+    if (name.contains('{num.+=}')) return '$receiver += 1';
+    if (name.contains('{num.-=}')) return '$receiver -= 1';
+    if (name.contains('{num.++}')) return '$receiver++';
+    if (name.contains('{num.--}')) return '$receiver--';
+
+    if (name.contains('{Iterator.moveNext}')) return '$receiver.moveNext()';
+    if (name.contains('{Iterator.current}')) return '$receiver.current';
+    if (name.contains('{CppList._array}')) return '$receiver._array';
+    if (name.contains('{CppList.length}')) return '$receiver.length';
+    if (name.contains('{CppSet._list}')) return '$receiver._list';
+    if (name.contains('{CppMap._list}')) return '$receiver._list';
+    if (name.contains('{CppSkipIterator._count}')) return '$receiver._count';
+    if (name.contains('{CppMappedIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppMappedIterator._current}'))
+      return '$receiver._current';
+    if (name.contains('{CppMappedIterator._f}')) return '$receiver._f';
+    if (name.contains('{CppWhereIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppWhereIterator._test}')) return '$receiver._test';
+    if (name.contains('{CppWhereTypeIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppExpandIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppExpandIterator._currentIterator}'))
+      return '$receiver._currentIterator';
+    if (name.contains('{CppExpandIterator._f}')) return '$receiver._f';
+    if (name.contains('{CppTakeIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppTakeWhileIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppTakeWhileIterator._test}')) return '$receiver._test';
+    if (name.contains('{CppSkipIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppSkipWhileIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppSkipWhileIterator._test}')) return '$receiver._test';
+    if (name.contains('{CppFollowedByIterable._first}'))
+      return '$receiver._first';
+    if (name.contains('{CppFollowedByIterable._second}'))
+      return '$receiver._second';
+    if (name.contains('{CppFollowedByIterator._first}'))
+      return '$receiver._first';
+    if (name.contains('{CppFollowedByIterator._second}'))
+      return '$receiver._second';
+    if (name.contains('{CppFollowedByIterator._usingFirst}'))
+      return '$receiver._usingFirst';
+    if (name.contains('{CppCastIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{_CppGenerateIterator._index}'))
+      return '$receiver._index';
+    if (name.contains('{_CppGenerateIterator._count}'))
+      return '$receiver._count';
+    if (name.contains('{_CppGenerateIterator._current}'))
+      return '$receiver._current';
+    if (name.contains('{_CppGenerateIterator._generator}'))
+      return '$receiver._generator';
+    if (name.contains('{_CppCastFromIterator._iterator}'))
+      return '$receiver._iterator';
+    if (name.contains('{CppStringBuffer._parts}')) return '$receiver._parts';
+    if (name.contains('{Object.toString}')) return '$receiver.toString()';
+    if (name.contains('{String.length}')) return '$receiver.length';
+    if (name.contains('{Iterable.iterator}')) return '$receiver.iterator';
+    if (name.contains('{Iterable.length}')) return '$receiver.length';
+
+    if (name == '.<' || name == '<') return '$receiver < 0';
+    if (name == '.>' || name == '>') return '$receiver > 0';
+    if (name == '.+' || name == '+') return '$receiver + 1';
+    if (name == '.-' || name == '-') return '$receiver - 1';
+    if (name == '.++' || name == '++') return '$receiver++';
+    if (name == '.--' || name == '--') return '$receiver--';
+    if (name == '.+=' || name == '+=') return '$receiver += 1';
+    if (name == '.-=' || name == '-=') return '$receiver -= 1';
+    if (name == '.[]' || name == '[]') return '$receiver[]';
+    if (name == '.[]=' || name == '[]=') return '$receiver[]=';
+    if (name.startsWith('.') && name.length > 1) {
+      final op = name.substring(1);
+      return '$receiver $op';
+    }
+    return '$receiver.$name';
+  } else if (expression is InstanceGet) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final propertyName = expression.name.text;
+
+    // 处理包含类型信息的属性访问
+    if (propertyName.contains('{Iterator.moveNext}'))
+      return '$receiver.moveNext()';
+    if (propertyName.contains('{Iterator.current}')) return '$receiver.current';
+    if (propertyName.contains('{CppList._array}')) return '$receiver._array';
+    if (propertyName.contains('{CppList.length}')) return '$receiver.length';
+    if (propertyName.contains('{CppSet._list}')) return '$receiver._list';
+    if (propertyName.contains('{CppMap._list}')) return '$receiver._list';
+    if (propertyName.contains('{CppSkipIterator._count}'))
+      return '$receiver._count';
+    if (propertyName.contains('{CppMappedIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppMappedIterator._current}'))
+      return '$receiver._current';
+    if (propertyName.contains('{CppMappedIterator._f}')) return '$receiver._f';
+    if (propertyName.contains('{CppWhereIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppWhereIterator._test}'))
+      return '$receiver._test';
+    if (propertyName.contains('{CppWhereTypeIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppExpandIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppExpandIterator._currentIterator}'))
+      return '$receiver._currentIterator';
+    if (propertyName.contains('{CppExpandIterator._f}')) return '$receiver._f';
+    if (propertyName.contains('{CppTakeIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppTakeWhileIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppTakeWhileIterator._test}'))
+      return '$receiver._test';
+    if (propertyName.contains('{CppSkipIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppSkipWhileIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppSkipWhileIterator._test}'))
+      return '$receiver._test';
+    if (propertyName.contains('{CppFollowedByIterable._first}'))
+      return '$receiver._first';
+    if (propertyName.contains('{CppFollowedByIterable._second}'))
+      return '$receiver._second';
+    if (propertyName.contains('{CppFollowedByIterator._first}'))
+      return '$receiver._first';
+    if (propertyName.contains('{CppFollowedByIterator._second}'))
+      return '$receiver._second';
+    if (propertyName.contains('{CppFollowedByIterator._usingFirst}'))
+      return '$receiver._usingFirst';
+    if (propertyName.contains('{CppCastIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{_CppGenerateIterator._index}'))
+      return '$receiver._index';
+    if (propertyName.contains('{_CppGenerateIterator._count}'))
+      return '$receiver._count';
+    if (propertyName.contains('{_CppGenerateIterator._current}'))
+      return '$receiver._current';
+    if (propertyName.contains('{_CppGenerateIterator._generator}'))
+      return '$receiver._generator';
+    if (propertyName.contains('{_CppCastFromIterator._iterator}'))
+      return '$receiver._iterator';
+    if (propertyName.contains('{CppStringBuffer._parts}'))
+      return '$receiver._parts';
+    if (propertyName.contains('{Object.toString}'))
+      return '$receiver.toString()';
+    if (propertyName.contains('{String.length}')) return '$receiver.length';
+    if (propertyName.contains('{Iterable.iterator}'))
+      return '$receiver.iterator';
+    if (propertyName.contains('{Iterable.length}')) return '$receiver.length';
+
+    if (propertyName == '.<' || propertyName == '<') return '$receiver < 0';
+    if (propertyName == '.>' || propertyName == '>') return '$receiver > 0';
+    if (propertyName == '.+' || propertyName == '+') return '$receiver + 1';
+    if (propertyName == '.-' || propertyName == '-') return '$receiver - 1';
+    if (propertyName == '.++' || propertyName == '++') return '$receiver++';
+    if (propertyName == '.--' || propertyName == '--') return '$receiver--';
+    if (propertyName == '.+=' || propertyName == '+=') return '$receiver += 1';
+    if (propertyName == '.-=' || propertyName == '-=') return '$receiver -= 1';
+    if (propertyName == '.[]' || propertyName == '[]') return '$receiver[]';
+    if (propertyName == '.[]=' || propertyName == '[]=') return '$receiver[]=';
+    if (propertyName.startsWith('.') && propertyName.length > 1) {
+      final op = propertyName.substring(1);
+      return '$receiver $op';
+    }
+    return '$receiver.$propertyName';
+  } else if (expression is FunctionTearOff) {
+    // kernel FunctionTearOff 用 receiver 字段
+    return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.call';
+  } else if (expression is InstanceTearOff) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    return '$receiver.$name';
+  } else if (expression is StaticGet) {
+    return expression.target.name.text;
+  } else if (expression is StaticSet) {
+    return '${expression.target.name.text} = ${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
+  } else if (expression is StaticTearOff) {
+    return expression.target.name.text;
+  } else if (expression is DynamicInvocation) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    // 处理特殊的运算符调用
+    if (name.startsWith('.') && name.length > 1) {
+      final op = name.substring(1);
+      // 常见二元运算符
+      if (op == '+') return '$receiver + ($allArgs)';
+      if (op == '-') return '$receiver - ($allArgs)';
+      if (op == '>') return '$receiver > ($allArgs)';
+      if (op == '<') return '$receiver < ($allArgs)';
+      if (op == '+=') return '$receiver += ($allArgs)';
+      if (op == '-=') return '$receiver -= ($allArgs)';
+      if (op == '++') return '$receiver++';
+      if (op == '--') return '$receiver--';
+      if (op == '[]') return '$receiver[$allArgs]';
+      if (op == '[]=') {
+        final argsList = expression.arguments.positional;
+        if (argsList.length >= 2) {
+          final index = _generateExpressionCode(argsList[0],
+              replaceThis: replaceThis, asStatement: false);
+          final value = _generateExpressionCode(argsList[1],
+              replaceThis: replaceThis, asStatement: false);
+          return '$receiver[$index] = $value';
+        }
+        return '$receiver[$allArgs] = $allArgs';
+      }
+      return '$receiver $op ($allArgs)';
+    }
+    return '$receiver.$name($allArgs)';
+  } else if (expression is InstanceInvocation) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    final argsList = expression.arguments.positional;
+    final args = argsList
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+
+    // 处理 num 类型的运算符（当 receiver 是数字类型时）
+    if (name == '<' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver < ($allArgs)';
+    }
+    if (name == '>' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver > ($allArgs)';
+    }
+    if (name == '<=' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver <= ($allArgs)';
+    }
+    if (name == '>=' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver >= ($allArgs)';
+    }
+    if (name == '+' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver + ($allArgs)';
+    }
+    if (name == '-' &&
+        (receiver.contains('i') ||
+            receiver.contains('j') ||
+            receiver.contains('index') ||
+            receiver.contains('count') ||
+            receiver.contains('start') ||
+            receiver.contains('end') ||
+            receiver.contains('high') ||
+            receiver.contains('low'))) {
+      return '$receiver - ($allArgs)';
+    }
+
+    // 处理包含类型信息的运算符名称
+    if (name.contains('{num.<}')) return '$receiver < ($allArgs)';
+    if (name.contains('{num.>}')) return '$receiver > ($allArgs)';
+    if (name.contains('{num.<=}')) return '$receiver <= ($allArgs)';
+    if (name.contains('{num.>=}')) return '$receiver >= ($allArgs)';
+    if (name.contains('{num.+}')) return '$receiver + ($allArgs)';
+    if (name.contains('{num.-}')) return '$receiver - ($allArgs)';
+    if (name.contains('{num.*}')) return '$receiver * ($allArgs)';
+    if (name.contains('{num./}')) return '$receiver / ($allArgs)';
+    if (name.contains('{num.%}')) return '$receiver % ($allArgs)';
+    if (name.contains('{num.==}')) return '$receiver == ($allArgs)';
+    if (name.contains('{num.!=}')) return '$receiver != ($allArgs)';
+    if (name.contains('{num.+=}')) return '$receiver += ($allArgs)';
+    if (name.contains('{num.-=}')) return '$receiver -= ($allArgs)';
+    if (name.contains('{num.++}')) return '$receiver++';
+    if (name.contains('{num.--}')) return '$receiver--';
+
+    // 处理其他类型的方法调用
+    if (name.contains('{Iterator.moveNext}')) return '$receiver.moveNext()';
+    if (name.contains('{Iterator.current}')) return '$receiver.current';
+    if (name.contains('{CppList._array}')) return '$receiver._array';
+    if (name.contains('{CppList.length}')) return '$receiver.length';
+    if (name.contains('{CppSet._list}')) return '$receiver._list';
+    if (name.contains('{CppMap._list}')) return '$receiver._list';
+    if (name.contains('{CppSkipIterator._count}')) return '$receiver._count';
+
+    // 处理标准运算符
+    if (name == '<') return '$receiver < ($allArgs)';
+    if (name == '>') return '$receiver > ($allArgs)';
+    if (name == '<=') return '$receiver <= ($allArgs)';
+    if (name == '>=') return '$receiver >= ($allArgs)';
+    if (name == '+') return '$receiver + ($allArgs)';
+    if (name == '-') return '$receiver - ($allArgs)';
+    if (name == '*') return '$receiver * ($allArgs)';
+    if (name == '/') return '$receiver / ($allArgs)';
+    if (name == '%') return '$receiver % ($allArgs)';
+    if (name == '==') return '$receiver == ($allArgs)';
+    if (name == '!=') return '$receiver != ($allArgs)';
+    if (name == '[]') return '$receiver[$allArgs]';
+    if (name == '[]=') {
+      if (argsList.length >= 2) {
+        final index = _generateExpressionCode(argsList[0],
+            replaceThis: replaceThis, asStatement: false);
+        final value = _generateExpressionCode(argsList[1],
+            replaceThis: replaceThis, asStatement: false);
+        return '$receiver[$index] = $value';
+      }
+      return '$receiver[$allArgs] = $allArgs';
+    }
+
+    // 处理特殊运算符
+    if (name == '.<' || name == '<') return '$receiver < ($allArgs)';
+    if (name == '.>' || name == '>') return '$receiver > ($allArgs)';
+    if (name == '.+' || name == '+') return '$receiver + ($allArgs)';
+    if (name == '.-' || name == '-') return '$receiver - ($allArgs)';
+    if (name == '.++' || name == '++') return '$receiver++';
+    if (name == '.--' || name == '--') return '$receiver--';
+    if (name == '.+=' || name == '+=') return '$receiver += ($allArgs)';
+    if (name == '.-=' || name == '-=') return '$receiver -= ($allArgs)';
+    if (name == '.[]' || name == '[]') return '$receiver[$allArgs]';
+    if (name == '.[]=' || name == '[]=') {
+      if (argsList.length >= 2) {
+        final index = _generateExpressionCode(argsList[0],
+            replaceThis: replaceThis, asStatement: false);
+        final value = _generateExpressionCode(argsList[1],
+            replaceThis: replaceThis, asStatement: false);
+        return '$receiver[$index] = $value';
+      }
+      return '$receiver[$allArgs] = $allArgs';
+    }
+
+    if (name.startsWith('.') && name.length > 1) {
+      final op = name.substring(1);
+      return '$receiver $op ($allArgs)';
+    }
+    return '$receiver.$name($allArgs)';
+  } else if (expression is EqualsNull) {
+    return '${_generateExpressionCode(expression.expression, replaceThis: replaceThis, asStatement: false)} == null';
+  } else if (expression is EqualsCall) {
+    return '${_generateExpressionCode(expression.left, replaceThis: replaceThis, asStatement: false)} == ${_generateExpressionCode(expression.right, replaceThis: replaceThis, asStatement: false)}';
+  } else if (expression is Instantiation) {
+    final expr = _generateExpressionCode(expression.expression,
+        replaceThis: replaceThis);
+    final types = expression.typeArguments.map(_getDartType).join(', ');
+    return '$expr<$types>';
+  } else if (expression is NullCheck) {
+    return '${_generateExpressionCode(expression.operand, replaceThis: replaceThis, asStatement: false)}!';
+  } else if (expression is SymbolLiteral) {
+    return '#${expression.value}';
+  } else if (expression is TypeLiteral) {
+    return '${_getDartType(expression.type)}';
+  } else if (expression is ListLiteral) {
+    final entries = expression.expressions
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    return '[$entries]';
+  } else if (expression is SetLiteral) {
+    final entries = expression.expressions
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    return '{$entries}';
+  } else if (expression is MapLiteral) {
+    final entries = expression.entries
+        .map((e) =>
+            '${_generateExpressionCode(e.key, replaceThis: replaceThis, asStatement: false)}: ${_generateExpressionCode(e.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    return '{$entries}';
+  } else if (expression is RecordLiteral) {
+    final positional = expression.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final named = expression.named
+        .map((e) =>
+            '${e.name}: ${_generateExpressionCode(e.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final all = [positional, named].where((s) => s.isNotEmpty).join(', ');
+    return '($all)';
+  } else if (expression is AwaitExpression) {
+    final operand = _generateExpressionCode(expression.operand,
+        replaceThis: replaceThis, asStatement: false);
+    return 'await $operand';
+  } else if (expression is FunctionExpression) {
+    // 生成正确的函数表达式语法
+    final parameters = expression.function.positionalParameters
+        .map((p) =>
+            '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
+        .join(', ');
+    final body = expression.function.body != null
+        ? _generateStatementCode(expression.function.body!,
+            replaceThis: replaceThis)
+        : '{}';
+    return '($parameters) => $body';
+  } else if (expression is BlockExpression) {
+    // 生成正确的块表达式语法
+    final statements = expression.body.statements
+        .map((s) => _generateStatementCode(s, replaceThis: replaceThis))
+        .join('\n');
+    final value = _generateExpressionCode(expression.value,
+        replaceThis: replaceThis, asStatement: false);
+
+    // 表达式上下文，用 IIFE 包裹
+    return '(() {\n$statements\nreturn $value;\n})()';
+  } else if (expression is LoadLibrary) {
+    return 'loadLibrary()';
+  } else if (expression is CheckLibraryIsLoaded) {
+    return 'checkLibraryIsLoaded()';
+  } else if (expression is ConstructorTearOff) {
+    return 'ConstructorTearOff(${expression.target.name.text})';
+  } else if (expression is RedirectingFactoryTearOff) {
+    return 'RedirectingFactoryTearOff(${expression.target.name.text})';
+  } else if (expression is TypedefTearOff) {
+    // kernel TypedefTearOff 用 expression/typeArguments
+    final typeArgs = expression.typeArguments.isNotEmpty
+        ? '<${expression.typeArguments.map(_getDartType).join(', ')}>'
+        : '';
+    return '${_generateExpressionCode(expression.expression, replaceThis: replaceThis, asStatement: false)}$typeArgs';
+  } else if (expression is ListConcatenation) {
+    final lists = expression.lists
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(' + ');
+    return lists;
+  } else if (expression is SetConcatenation) {
+    final sets = expression.sets
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(' + ');
+    return sets;
+  } else if (expression is MapConcatenation) {
+    final maps = expression.maps
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(' + ');
+    return maps;
+  } else if (expression is InstanceCreation) {
+    final className = expression.classReference.asClass.name;
+    final typeArgs = expression.typeArguments.isNotEmpty
+        ? '<${expression.typeArguments.map(_getDartType).join(', ')}>'
+        : '';
+    final fields = expression.fieldValues.entries
+        .map((e) =>
+            '${e.key.asField.name}: ${_generateExpressionCode(e.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    return '$className$typeArgs{$fields}';
+  } else if (expression is Not) {
+    return '!${_generateExpressionCode(expression.operand, replaceThis: replaceThis, asStatement: false)}';
+  } else if (expression is LogicalExpression) {
+    final left = _generateExpressionCode(expression.left,
+        replaceThis: replaceThis, asStatement: false);
+    final op = _getLogicalOperator(expression.operatorEnum);
+    final right = _generateExpressionCode(expression.right,
+        replaceThis: replaceThis, asStatement: false);
+    return '$left $op $right';
+  } else if (expression is ConditionalExpression) {
+    final cond = _generateExpressionCode(expression.condition,
+        replaceThis: replaceThis, asStatement: false);
+    final then = _generateExpressionCode(expression.then,
+        replaceThis: replaceThis, asStatement: false);
+    final otherwise = _generateExpressionCode(expression.otherwise,
+        replaceThis: replaceThis, asStatement: false);
+    return '$cond ? $then : $otherwise';
+  } else if (expression is StringConcatenation) {
+    return expression.expressions
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(' + ');
+  } else if (expression is DynamicSet) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    final value = _generateExpressionCode(expression.value,
+        replaceThis: replaceThis, asStatement: false);
+    // 处理特殊的运算符赋值
+    if (name.startsWith('.') && name.length > 1) {
+      final op = name.substring(1);
+      // 处理特殊的运算符
+      if (op == '[]=') {
+        // 需要从参数中提取索引和值
+        return '$receiver[index] = $value';
+      }
+      if (op == '+') return '$receiver += $value';
+      if (op == '-') return '$receiver -= $value';
+      if (op == '*') return '$receiver *= $value';
+      if (op == '/') return '$receiver /= $value';
+      return '$receiver$op = $value';
+    }
+    return '$receiver.$name = $value';
+  } else if (expression is InstanceSet) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    final value = _generateExpressionCode(expression.value,
+        replaceThis: replaceThis, asStatement: false);
+    // 处理特殊的运算符赋值
+    if (name.startsWith('.') && name.length > 1) {
+      final op = name.substring(1);
+      // 处理特殊的运算符
+      if (op == '[]=') {
+        // 需要从参数中提取索引和值
+        return '$receiver[index] = $value';
+      }
+      if (op == '+') return '$receiver += $value';
+      if (op == '-') return '$receiver -= $value';
+      if (op == '*') return '$receiver *= $value';
+      if (op == '/') return '$receiver /= $value';
+      return '$receiver$op = $value';
+    }
+    return '$receiver.$name = $value';
+  } else if (expression is SuperMethodInvocation) {
+    final name = expression.name.text;
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    return 'super.$name($args)';
+  } else if (expression is SuperPropertyGet) {
+    final name = expression.name.text;
+    return 'super.$name';
+  } else if (expression is SuperPropertySet) {
+    final name = expression.name.text;
+    final value = _generateExpressionCode(expression.value,
+        replaceThis: replaceThis, asStatement: false);
+    return 'super.$name = $value';
+  } else if (expression is AsExpression) {
+    final operand = _generateExpressionCode(expression.operand,
+        replaceThis: replaceThis, asStatement: false);
+    final type = _getDartType(expression.type);
+    return '$operand as $type';
+  } else if (expression is IsExpression) {
+    final operand = _generateExpressionCode(expression.operand,
+        replaceThis: replaceThis, asStatement: false);
+    final type = _getDartType(expression.type);
+    return '$operand is $type';
+  } else if (expression is Let) {
+    final variable = _cleanVariableName(expression.variable.name ?? 'temp');
+    final value = _generateExpressionCode(expression.variable.initializer!,
+        replaceThis: replaceThis);
+    final body = _generateExpressionCode(expression.body,
+        replaceThis: replaceThis, asStatement: false);
+    final type = _getDartType(expression.variable.type);
+
+    // 表达式上下文，用 IIFE 包裹，确保只生成单一表达式
+    return '(() { final $type $variable = $value; return $body; })()';
+  } else if (expression is BlockExpression) {
+    // 生成正确的块表达式语法
+    final statements = expression.body.statements
+        .map((s) => _generateStatementCode(s, replaceThis: replaceThis))
+        .join('\n');
+    final value = _generateExpressionCode(expression.value,
+        replaceThis: replaceThis, asStatement: false);
+
+    // 表达式上下文，用 IIFE 包裹，确保只生成单一表达式
+    return '(() {\n$statements\nreturn $value;\n})()';
+  } else if (expression is BinaryExpression) {
+    final left = _generateExpressionCode(expression.left,
+        replaceThis: replaceThis, asStatement: false);
+    final opName = expression.binaryName.text;
+    final right = _generateExpressionCode(expression.right,
+        replaceThis: replaceThis, asStatement: false);
+    // 处理所有特殊运算符
+    if (opName == '<' || opName == '.<') return '$left < $right';
+    if (opName == '>' || opName == '.>') return '$left > $right';
+    if (opName == '+' || opName == '.+') return '$left + $right';
+    if (opName == '-' || opName == '.-') return '$left - $right';
+    if (opName == '++' || opName == '.++') return '$left++';
+    if (opName == '--' || opName == '.--') return '$left--';
+    if (opName == '+=' || opName == '.+=') return '$left += $right';
+    if (opName == '-=' || opName == '.-=') return '$left -= $right';
+    if (opName == '[]' || opName == '.[]') return '$left[$right]';
+    if (opName == '[]=' || opName == '.[]=') return '$left[$right] = $right';
+    final op = _getBinaryOperator(opName);
+    return '$left $op $right';
+  } else if (expression is UnaryExpression) {
+    final op = _getUnaryOperator(expression.unaryName.text);
+    final expr = _generateExpressionCode(expression.expression,
+        replaceThis: replaceThis);
+    return '$op$expr';
+  } else if (expression is ParenthesizedExpression) {
+    return '(${_generateExpressionCode(expression.expression, replaceThis: replaceThis, asStatement: false)})';
+  } else if (expression is FunctionInvocation) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    return '$receiver($allArgs)';
+  } else if (expression is LocalFunctionInvocation) {
+    final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    return '$name($allArgs)';
+  } else if (expression is ConstantExpression) {
+    final constant = expression.constant;
+    if (constant is StringConstant) {
+      return '"${constant.value}"';
+    } else if (constant is IntConstant) {
+      return constant.value.toString();
+    } else if (constant is DoubleConstant) {
+      return constant.value.toString();
+    } else if (constant is BoolConstant) {
+      return constant.value.toString();
+    } else if (constant is NullConstant) {
+      return 'null';
+    } else if (constant is ListConstant) {
+      final entries = constant.entries
+          .map((e) => _generateExpressionCode(ConstantExpression(e),
+              replaceThis: replaceThis))
+          .join(', ');
+      return '[$entries]';
+    } else if (constant is MapConstant) {
+      final entries = constant.entries
+          .map((e) =>
+              '${_generateExpressionCode(ConstantExpression(e.key), replaceThis: replaceThis, asStatement: false)}: ${_generateExpressionCode(ConstantExpression(e.value), replaceThis: replaceThis, asStatement: false)}')
+          .join(', ');
+      return '{$entries}';
+    } else {
+      return expression.toString();
+    }
+  } else if (expression is StaticInvocation) {
+    final className = expression.target.enclosingClass?.name ?? 'UnknownClass';
+    final methodName = expression.target.name.text;
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    return '$className.$methodName($allArgs)';
+  } else if (expression is ConstructorInvocation) {
+    final name = expression.target.name.text.isEmpty
+        ? expression.target.enclosingClass.name
+        : '${expression.target.enclosingClass.name}.${expression.target.name.text}';
+    final args = expression.arguments.positional
+        .map((e) => _generateExpressionCode(e,
+            replaceThis: replaceThis, asStatement: false))
+        .join(', ');
+    final namedArgs = expression.arguments.named
+        .map((na) =>
+            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+        .join(', ');
+    final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    return 'new $name($allArgs)';
+  } else if (expression is Throw) {
+    final throwExpression = _generateExpressionCode(expression.expression,
+        replaceThis: replaceThis);
+    return 'throw $throwExpression';
+  } else if (expression is Rethrow) {
+    return 'rethrow';
+  } else if (expression is InstanceGetterInvocation) {
+    final receiver = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final name = expression.name.text;
+    return '$receiver.$name';
+  } else if (expression is IntLiteral) {
+    return expression.value.toString();
+  } else if (expression is DoubleLiteral) {
+    return expression.value.toString();
+  } else if (expression is BoolLiteral) {
+    return expression.value ? 'true' : 'false';
+  } else if (expression is NullLiteral) {
+    return 'null';
+  } else if (expression is StringLiteral) {
+    // 使用正确的字符串转义，不使用字符串替换
+    final value = expression.value;
+    final escaped = value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+    return '"$escaped"';
+  } else {
+    return expression.toString();
+  }
+}
+
+String _generateStatementCode(Statement statement, {bool replaceThis = false}) {
+  print('expression: $statement');
+  if (statement is ReturnStatement) {
+    if (statement.expression != null) {
+      final expr = _generateExpressionCode(statement.expression!,
+          replaceThis: replaceThis, asStatement: false);
+      // 避免重复的 return 关键字
+      if (expr.startsWith('return ')) {
+        return expr;
+      } else {
+        return 'return $expr;';
+      }
+    } else {
+      return 'return;';
+    }
+  } else if (statement is ExpressionStatement) {
+    final expr = _generateExpressionCode(statement.expression,
+        replaceThis: replaceThis, asStatement: false);
+    // 避免重复的 return/throw 关键字
+    if (expr.startsWith('return ') || expr.startsWith('throw ')) {
+      return expr;
+    } else {
+      return '$expr;';
+    }
+  } else if (statement is Block) {
+    final stmts = statement.statements
+        .map((s) => _generateStatementCode(s, replaceThis: replaceThis))
+        .join('\n  ');
+    return '{\n  $stmts\n}';
+  } else if (statement is IfStatement) {
+    final cond = _generateExpressionCode(statement.condition,
+        replaceThis: replaceThis, asStatement: false);
+    final then =
+        _generateStatementCode(statement.then, replaceThis: replaceThis);
+    final otherwise = statement.otherwise != null
+        ? ' else ${_generateStatementCode(statement.otherwise!, replaceThis: replaceThis)}'
+        : '';
+    return 'if ($cond) $then$otherwise';
+  } else if (statement is VariableDeclaration) {
+    final type = _getDartType(statement.type);
+    final name = _cleanVariableName(statement.name ?? 'unnamed');
+    final init = statement.initializer != null
+        ? ' = ${_generateExpressionCode(statement.initializer!, replaceThis: replaceThis, asStatement: false)}'
+        : '';
+    return '$type $name$init;';
+  } else if (statement is EmptyStatement) {
+    return ';';
+  } else if (statement is ForStatement) {
+    final init = statement.variables.isNotEmpty
+        ? statement.variables
+            .map((v) =>
+                '${_getDartType(v.type)} ${_cleanVariableName(v.name ?? 'var')} = ${_generateExpressionCode(v.initializer!, replaceThis: replaceThis, asStatement: false)}')
+            .join(', ')
+        : '';
+    final condition = statement.condition != null
+        ? _generateExpressionCode(statement.condition!,
+            replaceThis: replaceThis, asStatement: false)
+        : '';
+    final updates = statement.updates.isNotEmpty
+        ? statement.updates
+            .map((e) => _generateExpressionCode(e,
+                replaceThis: replaceThis, asStatement: false))
+            .join(', ')
+        : '';
+
+    final body =
+        _generateStatementCode(statement.body, replaceThis: replaceThis);
+
+    // 修复 for 循环语法
+    if (init.isEmpty && condition.isEmpty && updates.isEmpty) {
+      return 'for (;;) {\n  $body\n}';
+    } else if (init.isEmpty && condition.isEmpty) {
+      return 'for (;; $updates) {\n  $body\n}';
+    } else if (init.isEmpty && updates.isEmpty) {
+      return 'for (; $condition;) {\n  $body\n}';
+    } else if (condition.isEmpty && updates.isEmpty) {
+      return 'for ($init;;) {\n  $body\n}';
+    } else if (init.isEmpty) {
+      return 'for (; $condition; $updates) {\n  $body\n}';
+    } else if (condition.isEmpty) {
+      return 'for ($init;; $updates) {\n  $body\n}';
+    } else if (updates.isEmpty) {
+      return 'for ($init; $condition;) {\n  $body\n}';
+    } else {
+      return 'for ($init; $condition; $updates) {\n  $body\n}';
+    }
+  } else if (statement is WhileStatement) {
+    final cond = _generateExpressionCode(statement.condition,
+        replaceThis: replaceThis, asStatement: false);
+    final body =
+        _generateStatementCode(statement.body, replaceThis: replaceThis);
+    return 'while ($cond) $body';
+  } else if (statement is DoStatement) {
+    final cond = _generateExpressionCode(statement.condition,
+        replaceThis: replaceThis, asStatement: false);
+    final body =
+        _generateStatementCode(statement.body, replaceThis: replaceThis);
+    return 'do $body while ($cond);';
+  } else if (statement is SwitchStatement) {
+    final expression = _generateExpressionCode(statement.expression,
+        replaceThis: replaceThis, asStatement: false);
+    final cases = statement.cases
+        .map((c) => _generateSwitchCase(c, replaceThis))
+        .join('\n');
+    return 'switch ($expression) {\n$cases\n}';
+  } else if (statement is TryCatch) {
+    final body =
+        _generateStatementCode(statement.body, replaceThis: replaceThis);
+    final catches = statement.catches
+        .map((c) => _generateCatchClause(c, replaceThis))
+        .join('\n');
+    return 'try $body\n$catches';
+  } else if (statement is TryFinally) {
+    final body =
+        _generateStatementCode(statement.body, replaceThis: replaceThis);
+    final finalizer =
+        _generateStatementCode(statement.finalizer, replaceThis: replaceThis);
+    return 'try $body\nfinally $finalizer';
+  } else if (statement is BreakStatement) {
+    return 'break;';
+  } else if (statement is ContinueSwitchStatement) {
+    return 'continue;';
+  } else if (statement is AssertStatement) {
+    final condition = _generateExpressionCode(statement.condition,
+        replaceThis: replaceThis, asStatement: false);
+    final message = statement.message != null
+        ? ': ${_generateExpressionCode(statement.message!, replaceThis: replaceThis, asStatement: false)}'
+        : '';
+    return 'assert $condition$message;';
+  } else {
+    return statement.toString();
+  }
+}
+
+/// 生成 switch case
+String _generateSwitchCase(SwitchCase switchCase, bool replaceThis) {
+  final cases = switchCase.expressions.map((expr) {
+    return 'case ${_generateExpressionCode(expr, replaceThis: replaceThis, asStatement: false)}:';
+  }).join('\n');
+
+  final defaultCase = switchCase.isDefault ? '\ndefault:' : '';
+  final body =
+      _generateStatementCode(switchCase.body, replaceThis: replaceThis);
+  return '$cases$defaultCase\n  $body';
+}
+
+/// 生成 catch 子句
+String _generateCatchClause(Catch catchClause, bool replaceThis) {
+  final exception = catchClause.exception != null
+      ? _cleanVariableName(catchClause.exception!.name ?? 'e')
+      : '';
+  final stackTrace = catchClause.stackTrace != null
+      ? ', ${_cleanVariableName(catchClause.stackTrace!.name ?? 'stackTrace')}'
+      : '';
+  final body =
+      _generateStatementCode(catchClause.body, replaceThis: replaceThis);
+  return 'catch ($exception$stackTrace) $body';
+}
+
+String _generateMethodCode(Member member, {bool replaceThis = false}) {
+  if (member is Procedure) {
+    final name = member.name.text;
+    final returnType = _getDartType(member.function.returnType);
+    final parameters = member.function.positionalParameters
+        .map((p) =>
+            '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
+        .join(', ');
+
+    // 检查是否是操作符方法
+    if (name == '[]' ||
+        name == '[]=' ||
+        name == '+' ||
+        name == '-' ||
+        name == '*' ||
+        name == '/' ||
+        name == '==' ||
+        name == '!=' ||
+        name == '<' ||
+        name == '>' ||
+        name == '<=' ||
+        name == '>=') {
+      return '@override\noperator $name($parameters) {\n  ${_generateStatementCode(member.function.body!, replaceThis: replaceThis)}\n}';
+    } else {
+      return '$returnType $name($parameters) {\n  ${_generateStatementCode(member.function.body!, replaceThis: replaceThis)}\n}';
+    }
+  }
+  return '// ${member.runtimeType}';
 }
