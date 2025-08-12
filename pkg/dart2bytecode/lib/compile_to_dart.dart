@@ -4,6 +4,45 @@ import 'package:kernel/kernel.dart';
 import 'package:kernel/ast.dart';
 import 'package:front_end/src/kernel/internal_ast.dart';
 
+// 常量定义
+class DartConstants {
+  static const String defaultOutputPath =
+      '/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/transformed_dart.dart';
+  static const String voidGlobalVar = 'final Void = null;';
+  static const String indentUnit = '  ';
+
+  // 注解相关常量
+  static const String cppNativePragma = 'cpp:native';
+  static const String cppPatchPragma = 'cpp:patch';
+
+  // 库名前缀
+  static const List<String> skipLibraryPrefixes = [
+    'dart.',
+    'dart:',
+    'package:flutter',
+  ];
+
+  // 运算符
+  static const List<String> operatorMethods = [
+    '[]',
+    '[]=' '+',
+    '-',
+    '*',
+    '/',
+    '==',
+    '!=',
+    '<',
+    '>',
+    '<=',
+    '>='
+  ];
+
+  // 特殊方法名
+  static const String unaryMinusMethod = 'unary-';
+  static const String defaultParamName = 'temp';
+  static const String unnamedParam = 'unnamed';
+}
+
 /// 类信息
 class ClassInfo {
   final Class cls;
@@ -14,23 +53,182 @@ class ClassInfo {
   ClassInfo(this.cls);
 }
 
+/// 变量名清理工具类
+class VariableNameCleaner {
+  /// 清理变量名，将不合法的变量名转换为合法的Dart变量名
+  static String clean(String name) {
+    if (name.isEmpty) return DartConstants.defaultParamName;
+
+    // 处理包含特殊字符的变量名
+    if (name.contains('#')) {
+      return _cleanSpecialCharacterName(name);
+    }
+
+    // 处理以数字开头的变量名
+    if (RegExp(r'^\d').hasMatch(name)) {
+      return 'var_$name';
+    }
+
+    // 处理包含其他特殊字符的变量名
+    if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(name)) {
+      return _sanitizeVariableName(name);
+    }
+
+    // 处理 unnamed 或空变量名
+    if (name == DartConstants.unnamedParam) {
+      return DartConstants.defaultParamName;
+    }
+
+    return name;
+  }
+
+  /// 清理包含特殊字符的变量名
+  static String _cleanSpecialCharacterName(String name) {
+    // 提取数字部分作为后缀
+    final match = RegExp(r'_#wc(\d+)#formal').firstMatch(name);
+    if (match != null) {
+      final number = match.group(1);
+      return 'formal_$number';
+    }
+
+    // 处理 #closure 等特殊情况
+    if (name.contains('#closure')) {
+      final parts = name.split('#');
+      return parts.join('_');
+    }
+
+    // 其他包含#的变量名
+    final parts = name.split('#');
+    final cleanParts = parts.map(_sanitizePart);
+    return cleanParts.join('_');
+  }
+
+  /// 清理单个部分的特殊字符
+  static String _sanitizePart(String part) {
+    final cleanPart = StringBuffer();
+    for (int i = 0; i < part.length; i++) {
+      final char = part[i];
+      if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+        cleanPart.write(char);
+      } else {
+        cleanPart.write('_');
+      }
+    }
+    return cleanPart.toString();
+  }
+
+  /// 清理整个变量名的特殊字符
+  static String _sanitizeVariableName(String name) {
+    final cleanName = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      final char = name[i];
+      if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
+        cleanName.write(char);
+      } else {
+        cleanName.write('_');
+      }
+    }
+    return cleanName.toString();
+  }
+}
+
+/// Dart类型转换工具类
+class DartTypeConverter {
+  /// 转换Dart类型为字符串表示
+  static String convert(
+      DartType type, String Function(DartType) recursiveConverter) {
+    final baseType = _getBaseType(type, recursiveConverter);
+    return _applyNullability(baseType, type.nullability);
+  }
+
+  /// 获取基础类型字符串
+  static String _getBaseType(
+      DartType type, String Function(DartType) recursiveConverter) {
+    if (type is DynamicType) {
+      return 'dynamic';
+    } else if (type is InterfaceType) {
+      return _handleInterfaceType(type, recursiveConverter);
+    } else if (type is FunctionType) {
+      return _handleFunctionType(type, recursiveConverter);
+    } else if (type is TypeParameterType) {
+      return _handleTypeParameterType(type);
+    } else if (type is VoidType) {
+      return 'void';
+    } else {
+      return 'Object';
+    }
+  }
+
+  /// 处理接口类型
+  static String _handleInterfaceType(
+      InterfaceType type, String Function(DartType) recursiveConverter) {
+    String typeName = type.classNode.name;
+    if (type.typeArguments.isNotEmpty) {
+      final typeArgs = type.typeArguments.map(recursiveConverter).join(', ');
+      typeName += '<$typeArgs>';
+    }
+    return typeName;
+  }
+
+  /// 处理函数类型
+  static String _handleFunctionType(
+      FunctionType type, String Function(DartType) recursiveConverter) {
+    final paramTypes =
+        type.positionalParameters.map(recursiveConverter).join(', ');
+    final returnType = recursiveConverter(type.returnType);
+    return '$returnType Function($paramTypes)';
+  }
+
+  /// 处理类型参数类型
+  static String _handleTypeParameterType(TypeParameterType type) {
+    final paramName = type.parameter.name;
+    return (paramName != null && paramName.isNotEmpty) ? paramName : 'Object';
+  }
+
+  /// 应用可空性修饰符
+  static String _applyNullability(String baseType, Nullability nullability) {
+    if (nullability == Nullability.nullable) {
+      // void 类型不能是可空的
+      if (baseType == 'void') {
+        return 'void';
+      }
+      return '$baseType?';
+    }
+    return baseType;
+  }
+}
+
 /// Dart到Dart转换器 - 将Dart源码转换为新的Dart类型
+///
+/// 该类负责将Dart源码转换为特定格式的Dart代码，主要功能包括：
+/// - 类信息收集和转换
+/// - 字段转换为late字段
+/// - 构造函数和方法生成
+/// - 表达式和语句代码生成
 class DartToDartTransformer {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
-  // 保留占位，未来可能用于需要上下文返回类型场景（目前未使用）
+
+  /// 当前函数的返回类型，用于生成正确的返回语句
   // ignore: unused_field
   DartType? _currentFunctionReturnType;
 
-  // 存储转换后的类信息
+  /// 存储转换后的类信息
   final Map<Class, ClassInfo> _classInfoMap = {};
 
-  // 当前正在处理的类名（已移除未使用字段）
-
-  // 类名替换映射，用于 @pragma('cpp:patch', 'Error') 注解
+  /// 类名替换映射，用于处理 @pragma('cpp:patch', 'Error') 注解
   final Map<String, String> _classNameReplacements = {};
 
   /// 主要转换入口
+  ///
+  /// 转换整个Kernel Component为新的Dart代码格式。
+  /// 该方法会：
+  /// 1. 清空输出缓冲区
+  /// 2. 生成转换后的代码
+  /// 3. 执行代码质量检查
+  /// 4. 将结果写入输出文件
+  ///
+  /// [component] 要转换的Kernel组件
   void transformComponent(Component component) {
     _buffer.clear();
 
@@ -42,59 +240,77 @@ class DartToDartTransformer {
   }
 
   /// 判断是否应该跳过某个类
+  ///
+  /// 跳过以下类型的类：
+  /// - 包含 cpp:native 注解的类
+  /// - Dart SDK 内置类
+  /// - Flutter 框架类
+  /// - org-dartlang-sdk 路径下的类
   bool _shouldSkipClass(Class cls) {
     if (_hasCppNativePragma(cls)) {
       return true;
     }
 
-    final libraryUri = cls.enclosingLibrary.fileUri;
-    final filePath =
-        libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
+    return _shouldSkipByLibrary(cls.enclosingLibrary);
+  }
 
-    final libraryName = cls.enclosingLibrary.toStringInternal();
-    final shouldSkip = libraryName.startsWith('dart.') ||
-        libraryName.startsWith('dart:') ||
-        libraryName.startsWith('package:flutter') ||
-        filePath.contains('org-dartlang-sdk');
+  /// 基于库信息判断是否应该跳过
+  bool _shouldSkipByLibrary(Library library) {
+    final libraryUri = library.fileUri;
+    final filePath = _extractFilePath(libraryUri);
+    final libraryName = library.toStringInternal();
 
-    return shouldSkip;
+    return _isSystemLibrary(libraryName) || _isSystemPath(filePath);
+  }
+
+  /// 提取文件路径字符串
+  String _extractFilePath(Uri uri) {
+    return uri.isScheme('file') ? uri.path : uri.toString();
+  }
+
+  /// 判断是否为系统库
+  bool _isSystemLibrary(String libraryName) {
+    return DartConstants.skipLibraryPrefixes
+        .any((prefix) => libraryName.startsWith(prefix));
+  }
+
+  /// 判断是否为系统路径
+  bool _isSystemPath(String filePath) {
+    return filePath.contains('org-dartlang-sdk');
   }
 
   /// 判断是否应该跳过某个库
   bool _shouldSkipLibrary(Library library) {
-    final libraryUri = library.fileUri;
-    final filePath =
-        libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
-
-    final libraryName = library.toStringInternal();
-    final shouldSkip = libraryName.startsWith('dart.') ||
-        libraryName.startsWith('dart:') ||
-        libraryName.startsWith('package:flutter') ||
-        filePath.contains('org-dartlang-sdk');
-
-    return shouldSkip;
+    return _shouldSkipByLibrary(library);
   }
 
   /// 检查类是否有 @pragma('cpp:native', xxx) 注解
   bool _hasCppNativePragma(Class cls) {
+    return _hasPragmaAnnotation(cls, DartConstants.cppNativePragma);
+  }
+
+  /// 通用的pragma注解检查方法
+  bool _hasPragmaAnnotation(Class cls, String pragmaName) {
     for (final annotation in cls.annotations) {
-      if (annotation is ConstantExpression) {
-        final constant = annotation.constant;
-        if (constant is InstanceConstant) {
-          final classNode = constant.classNode;
-          if (classNode.name == 'pragma') {
-            if (constant.fieldValues.containsKey('name')) {
-              final nameValue = constant.fieldValues['name'];
-              if (nameValue is StringConstant &&
-                  nameValue.value == 'cpp:native') {
-                return true;
-              }
-            }
-          }
-        }
+      if (_isPragmaAnnotationMatch(annotation, pragmaName)) {
+        return true;
       }
     }
     return false;
+  }
+
+  /// 检查单个注解是否匹配指定的pragma
+  bool _isPragmaAnnotationMatch(Expression annotation, String pragmaName) {
+    if (annotation is! ConstantExpression) return false;
+
+    final constant = annotation.constant;
+    if (constant is! InstanceConstant) return false;
+
+    final classNode = constant.classNode;
+    if (classNode.name != 'pragma') return false;
+
+    final nameValue = constant.fieldValues['name'];
+    return nameValue is StringConstant && nameValue.value == pragmaName;
   }
 
   /// 调试：打印类的注解信息
@@ -103,37 +319,54 @@ class DartToDartTransformer {
   /// 获取类的 @pragma('cpp:patch', 'Error') 注解信息
   String? _getCppPatchPragma(Class cls) {
     for (final annotation in cls.annotations) {
-      if (annotation is ConstantExpression) {
-        final constant = annotation.constant;
-        if (constant is InstanceConstant) {
-          final classNode = constant.classNode;
-          if (classNode.name == 'pragma') {
-            // 检查参数
-            if (constant.fieldValues.containsKey('name')) {
-              final nameValue = constant.fieldValues['name'];
-              if (nameValue is StringConstant &&
-                  nameValue.value == 'cpp:patch') {
-                // 检查第二个参数
-                if (constant.fieldValues.containsKey('arguments')) {
-                  final argsValue = constant.fieldValues['arguments'];
-                  if (argsValue is ListConstant &&
-                      argsValue.entries.isNotEmpty) {
-                    final firstArg = argsValue.entries[0];
-                    if (firstArg is StringConstant) {
-                      return firstArg.value;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      final patchTarget = _extractPatchTargetFromAnnotation(annotation);
+      if (patchTarget != null) {
+        return patchTarget;
       }
     }
     return null;
   }
 
+  /// 从注解中提取patch目标
+  String? _extractPatchTargetFromAnnotation(Expression annotation) {
+    if (annotation is! ConstantExpression) return null;
+
+    final constant = annotation.constant;
+    if (constant is! InstanceConstant) return null;
+
+    if (constant.classNode.name != 'pragma') return null;
+
+    // 检查是否为cpp:patch pragma
+    final nameValue = constant.fieldValues['name'];
+    if (nameValue is! StringConstant ||
+        nameValue.value != DartConstants.cppPatchPragma) {
+      return null;
+    }
+
+    // 提取参数
+    return _extractFirstArgumentFromPragma(constant);
+  }
+
+  /// 从pragma常量中提取第一个参数
+  String? _extractFirstArgumentFromPragma(InstanceConstant constant) {
+    final argsValue = constant.fieldValues['arguments'];
+    if (argsValue is! ListConstant || argsValue.entries.isEmpty) {
+      return null;
+    }
+
+    final firstArg = argsValue.entries[0];
+    return firstArg is StringConstant ? firstArg.value : null;
+  }
+
   /// 收集类信息
+  ///
+  /// 从给定的类中收集以下信息：
+  /// - 需要转换为late的字段（非静态final字段）
+  /// - 所有构造函数
+  /// - 静态方法（非抽象、非工厂、非getter/setter）
+  /// - cpp:patch注解的类名映射
+  ///
+  /// [cls] 要收集信息的类
   void _collectClassInfo(Class cls) {
     // 跳过org-dartlang-sdk的类
     final libraryName = cls.enclosingLibrary.toStringInternal();
@@ -150,35 +383,65 @@ class DartToDartTransformer {
     final classInfo = ClassInfo(cls);
 
     // 收集需要转换为late的字段
-    for (final field in cls.fields) {
-      if (!field.isStatic && field.isFinal) {
-        classInfo.lateFields.add(field);
-      }
-    }
+    _collectLateFields(cls, classInfo);
 
     // 收集构造方法
     classInfo.constructors.addAll(cls.constructors);
 
     // 收集静态方法
-    for (final procedure in cls.procedures) {
-      if (procedure.isStatic &&
-          !procedure.isAbstract &&
-          !procedure.isFactory &&
-          !procedure.isGetter &&
-          !procedure.isSetter) {
-        classInfo.staticMethods.add(procedure);
-      }
-    }
+    _collectStaticMethods(cls, classInfo);
 
     _classInfoMap[cls] = classInfo;
   }
 
+  /// 收集需要转换为late的字段
+  void _collectLateFields(Class cls, ClassInfo classInfo) {
+    for (final field in cls.fields) {
+      if (!field.isStatic && field.isFinal) {
+        classInfo.lateFields.add(field);
+      }
+    }
+  }
+
+  /// 收集静态方法
+  void _collectStaticMethods(Class cls, ClassInfo classInfo) {
+    for (final procedure in cls.procedures) {
+      if (_isValidStaticMethod(procedure)) {
+        classInfo.staticMethods.add(procedure);
+      }
+    }
+  }
+
+  /// 检查是否为有效的静态方法
+  bool _isValidStaticMethod(Procedure procedure) {
+    return procedure.isStatic &&
+        !procedure.isAbstract &&
+        !procedure.isFactory &&
+        !procedure.isGetter &&
+        !procedure.isSetter;
+  }
+
   /// 生成转换后的代码
+  ///
+  /// 该方法按以下顺序生成代码：
+  /// 1. 生成库导入语句
+  /// 2. 遍历所有库，处理其中的类
+  /// 3. 生成全局函数和变量
+  ///
+  /// [component] 要转换的Kernel组件
   void _generateTransformedCode(Component component) {
     // 生成库导入
     _writeLibraryImports(component);
 
     // 生成转换后的类
+    _generateClasses(component);
+
+    // 生成全局函数和变量
+    _generateGlobalMembers(component);
+  }
+
+  /// 生成所有类
+  void _generateClasses(Component component) {
     for (final library in component.libraries) {
       for (final cls in library.classes) {
         if (!_shouldSkipClass(cls)) {
@@ -187,8 +450,10 @@ class DartToDartTransformer {
         }
       }
     }
+  }
 
-    // 生成全局函数和变量
+  /// 生成全局成员
+  void _generateGlobalMembers(Component component) {
     for (final library in component.libraries) {
       if (!_shouldSkipLibrary(library)) {
         _generateGlobalMembersFromLibrary(library);
@@ -199,15 +464,31 @@ class DartToDartTransformer {
   /// 写入库导入
   void _writeLibraryImports(Component component) {
     // 添加基本的导入
-    _writeLine("import 'dart:core';");
-    _writeLine("import 'dart:io';");
-    _writeLine("import 'dart:math';");
-    _writeLine("import 'dart:typed_data';");
-    _writeLine('');
+    _writeStandardImports();
 
     // 添加全局Void类型变量
-    _writeLine("/// 全局Void类型变量，用于替代void返回值");
-    _writeLine("final Void = null;");
+    _writeGlobalVoidVariable();
+  }
+
+  /// 写入标准导入
+  void _writeStandardImports() {
+    final imports = [
+      "import 'dart:core';",
+      "import 'dart:io';",
+      "import 'dart:math';",
+      "import 'dart:typed_data';",
+    ];
+
+    for (final import in imports) {
+      _writeLine(import);
+    }
+    _writeLine('');
+  }
+
+  /// 写入全局Void变量
+  void _writeGlobalVoidVariable() {
+    _writeLine('/// 全局Void类型变量，用于替代void返回值');
+    _writeLine(DartConstants.voidGlobalVar);
     _writeLine('');
   }
 
@@ -280,7 +561,7 @@ class DartToDartTransformer {
     if (extendsClause != null) _write(' $extendsClause');
     if (implementsClause != null) _write(' $implementsClause');
 
-    print('constructor: $cls');
+    // 开始生成类声明
     _writeLine(' {');
     _indent();
 
@@ -412,10 +693,8 @@ class DartToDartTransformer {
     // 生成静态方法
     final classInfo = _classInfoMap[cls];
     if (classInfo != null) {
-      print(
-          'Static methods for ${cls.name}: ${classInfo.staticMethods.length}');
+      // 生成静态方法
       for (final procedure in classInfo.staticMethods) {
-        print('Generating static method: ${procedure.name.text}');
         _generateStaticMethod(cls, procedure);
       }
     }
@@ -445,7 +724,7 @@ class DartToDartTransformer {
 
   /// 生成单个构造方法
   void _generateConstructor(Class cls, Constructor constructor) {
-    print('constructor: $constructor');
+    // 生成构造函数
     final name = constructor.name.text;
     final constructorName = name.isEmpty ? cls.name : '${cls.name}.$name';
 
@@ -863,47 +1142,7 @@ class DartToDartTransformer {
 
   /// 获取Dart类型字符串
   String _getDartType(DartType type) {
-    String baseType;
-
-    if (type is DynamicType) {
-      baseType = 'dynamic';
-    } else if (type is InterfaceType) {
-      String typeName = type.classNode.name;
-      // 处理范型参数
-      if (type.typeArguments.isNotEmpty) {
-        final typeArgs =
-            type.typeArguments.map((t) => _getDartType(t)).join(', ');
-        typeName += '<$typeArgs>';
-      }
-      baseType = typeName;
-    } else if (type is FunctionType) {
-      // 正确处理函数类型
-      final paramTypes = type.positionalParameters
-          .map((param) => _getDartType(param))
-          .join(', ');
-      final returnType = _getDartType(type.returnType);
-      baseType = '$returnType Function($paramTypes)';
-    } else if (type is TypeParameterType) {
-      // 对于类型参数，直接使用其名称（允许多字符名称如 RK、RV、K2、V2）
-      final paramName = type.parameter.name;
-      baseType =
-          (paramName != null && paramName.isNotEmpty) ? paramName : 'Object';
-    } else if (type is VoidType) {
-      baseType = 'void';
-    } else {
-      baseType = 'Object';
-    }
-
-    // 处理可空类型
-    if (type.nullability == Nullability.nullable) {
-      // void 类型不能是可空的
-      if (baseType == 'void') {
-        return 'void';
-      }
-      return '$baseType?';
-    }
-
-    return baseType;
+    return DartTypeConverter.convert(type, this._getDartType);
   }
 
   // 已移除未使用方法 _annotationToString
@@ -928,63 +1167,7 @@ class DartToDartTransformer {
 
   /// 清理变量名，将不合法的变量名转换为合法的Dart变量名
   String _cleanVariableName(String name) {
-    if (name.isEmpty) return 'temp';
-
-    // 处理包含特殊字符的变量名
-    if (name.contains('#')) {
-      // 提取数字部分作为后缀
-      final match = RegExp(r'_#wc(\d+)#formal').firstMatch(name);
-      if (match != null) {
-        final number = match.group(1);
-        return 'formal_$number';
-      }
-
-      // 处理 #closure 等特殊情况
-      if (name.contains('#closure')) {
-        // 不使用字符串替换，而是构建新的字符串
-        final parts = name.split('#');
-        return parts.join('_');
-      }
-
-      // 其他包含#的变量名
-      final parts = name.split('#');
-      final cleanParts = parts.map((part) {
-        // 移除非字母数字下划线字符
-        final cleanPart = StringBuffer();
-        for (int i = 0; i < part.length; i++) {
-          final char = part[i];
-          if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
-            cleanPart.write(char);
-          } else {
-            cleanPart.write('_');
-          }
-        }
-        return cleanPart.toString();
-      });
-      return cleanParts.join('_');
-    }
-
-    // 处理以数字开头的变量名
-    if (RegExp(r'^\d').hasMatch(name)) {
-      return 'var_$name';
-    }
-
-    // 处理包含其他特殊字符的变量名
-    if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(name)) {
-      // 不使用字符串替换，而是构建新的字符串
-      final cleanName = StringBuffer();
-      for (int i = 0; i < name.length; i++) {
-        final char = name[i];
-        if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
-          cleanName.write(char);
-        } else {
-          cleanName.write('_');
-        }
-      }
-      return cleanName.toString();
-    }
-
-    return name;
+    return VariableNameCleaner.clean(name);
   }
 
   // 已移除未使用方法 _generateUniqueId
@@ -999,7 +1182,7 @@ class DartToDartTransformer {
 
   /// 写入一行
   void _writeLine(String text) {
-    _buffer.write('  ' * _indentLevel + text + '\n');
+    _buffer.write(DartConstants.indentUnit * _indentLevel + text + '\n');
   }
 
   /// 写入文本
@@ -1020,24 +1203,54 @@ class DartToDartTransformer {
   }
 
   /// 写入输出文件
+  ///
+  /// 将生成的代码写入指定的输出文件。如果写入失败，会打印错误信息但不会抛出异常。
   void _writeOutput() {
     try {
-      final outputFile = File(
-          '/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/transformed_dart.dart');
+      final outputFile = File(DartConstants.defaultOutputPath);
       outputFile.writeAsStringSync(_buffer.toString());
-    } catch (e) {}
+      print('代码已成功写入: ${DartConstants.defaultOutputPath}');
+    } catch (e) {
+      print('警告：无法写入输出文件 ${DartConstants.defaultOutputPath}: $e');
+      // 继续执行，不中断程序
+    }
   }
 
   /// 获取生成的代码
+  ///
+  /// 返回当前缓冲区中的所有代码内容。
+  /// 该方法通常在转换完成后调用。
+  ///
+  /// 返回：生成的Dart代码字符串
   String getGeneratedCode() {
     return _buffer.toString();
   }
 
-  /// 自动检查生成的代码
+  /// 检查生成的代码质量
+  ///
+  /// 执行基本的代码质量检查，包括：
+  /// - 检查是否包含类定义
+  /// - 检查是否包含late字段
   void _checkGeneratedCode() {
     final code = _buffer.toString();
-    if (!code.contains('class') || !code.contains('late')) {
-    } else {}
+    CodeQualityChecker.check(code);
+  }
+}
+
+/// 代码质量检查器
+class CodeQualityChecker {
+  /// 检查代码质量
+  static void check(String code) {
+    final hasClasses = code.contains('class');
+    final hasLateFields = code.contains('late');
+
+    if (!hasClasses) {
+      print('警告：生成的代码中没有找到类定义');
+    }
+
+    if (!hasLateFields) {
+      print('信息：生成的代码中没有late字段');
+    }
   }
 }
 
@@ -1066,21 +1279,25 @@ String _wrapReceiverIfNeeded(Expression original, String code) {
 final Map<VariableDeclaration, String> _letAliasNames = {};
 
 // 用于追踪在同一位置使用的变量名，确保唯一性
-final Map<String, int> _usedNamesAtPosition = {};
+// 当前未使用，保留以便未来扩展
+// final Map<String, int> _usedNamesAtPosition = {};
 
 // 基于源位置和变量声明生成作用域内唯一的临时变量名
+// 当前未使用，保留以便未来扩展
+/*
 String _uniqueLocalNameForNode(String suggestedBase, TreeNode node) {
   final base = _cleanVariableName(
       (suggestedBase.isEmpty || suggestedBase == 'unnamed')
-          ? 'temp'
+          ? DartConstants.defaultParamName
           : suggestedBase);
   final offset = node.fileOffset;
-  if (offset != null && offset >= 0) {
+  if (offset >= 0) {
     return '${base}_${offset}';
   }
   final fallback = DateTime.now().microsecondsSinceEpoch % 1000000;
   return '${base}_${fallback}';
 }
+*/
 
 // 为Let表达式中的变量生成唯一的变量名，确保在嵌套Let表达式中不会冲突
 String _generateUniqueLetVarName(
@@ -1092,10 +1309,9 @@ String _generateUniqueLetVarName(
   final offset = letExpression.fileOffset;
   final varId = variable.hashCode.abs() % 10000;
 
-  if (offset != null && offset >= 0) {
+  if (offset >= 0) {
     // 组合位置信息和变量ID来确保即使在同一位置的嵌套Let表达式也有唯一名称
-    final baseKey = '${cleanBase}_${offset}_${varId}';
-    return baseKey;
+    return '${cleanBase}_${offset}_${varId}';
   }
 
   // 如果没有位置信息，使用变量的哈希值作为后缀
@@ -1109,114 +1325,19 @@ void transformDartToDart(Component component) {
 }
 
 /// 全局版本的清理变量名函数
+///
+/// 该函数是 DartToDartTransformer._cleanVariableName 的全局版本
+/// 保持两个版本的一致性
 String _cleanVariableName(String name) {
-  if (name.isEmpty) return 'temp';
-
-  // 处理包含特殊字符的变量名
-  if (name.contains('#')) {
-    // 提取数字部分作为后缀
-    final match = RegExp(r'_#wc(\d+)#formal').firstMatch(name);
-    if (match != null) {
-      final number = match.group(1);
-      return 'formal_$number';
-    }
-
-    // 处理 #closure 等特殊情况
-    if (name.contains('#closure')) {
-      // 不使用字符串替换，而是构建新的字符串
-      final parts = name.split('#');
-      return parts.join('_');
-    }
-
-    // 其他包含#的变量名
-    final parts = name.split('#');
-    final cleanParts = parts.map((part) {
-      // 移除非字母数字下划线字符
-      final cleanPart = StringBuffer();
-      for (int i = 0; i < part.length; i++) {
-        final char = part[i];
-        if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
-          cleanPart.write(char);
-        } else {
-          cleanPart.write('_');
-        }
-      }
-      return cleanPart.toString();
-    });
-    return cleanParts.join('_');
-  }
-
-  // 处理以数字开头的变量名
-  if (RegExp(r'^\d').hasMatch(name)) {
-    return 'var_$name';
-  }
-
-  // 处理包含其他特殊字符的变量名
-  if (RegExp(r'[^a-zA-Z0-9_]').hasMatch(name)) {
-    // 不使用字符串替换，而是构建新的字符串
-    final cleanName = StringBuffer();
-    for (int i = 0; i < name.length; i++) {
-      final char = name[i];
-      if (RegExp(r'[a-zA-Z0-9_]').hasMatch(char)) {
-        cleanName.write(char);
-      } else {
-        cleanName.write('_');
-      }
-    }
-    return cleanName.toString();
-  }
-
-  // 处理 unnamed 或空变量名
-  if (name == 'unnamed' || name.isEmpty) {
-    return 'temp';
-  }
-
-  return name;
+  return VariableNameCleaner.clean(name);
 }
 
 /// 全局版本的获取Dart类型函数
+///
+/// 该函数是 DartToDartTransformer._getDartType 的全局版本
+/// 保持两个版本的一致性
 String _getDartType(DartType type) {
-  String baseType;
-
-  if (type is DynamicType) {
-    baseType = 'dynamic';
-  } else if (type is InterfaceType) {
-    String typeName = type.classNode.name;
-    // 处理范型参数
-    if (type.typeArguments.isNotEmpty) {
-      final typeArgs =
-          type.typeArguments.map((t) => _getDartType(t)).join(', ');
-      typeName += '<$typeArgs>';
-    }
-    baseType = typeName;
-  } else if (type is FunctionType) {
-    // 正确处理函数类型
-    final paramTypes = type.positionalParameters
-        .map((param) => _getDartType(param))
-        .join(', ');
-    final returnType = _getDartType(type.returnType);
-    baseType = '$returnType Function($paramTypes)';
-  } else if (type is TypeParameterType) {
-    // 直接使用类型参数名称（允许多字符：如 RK、RV、K2、V2）
-    final paramName = type.parameter.name;
-    baseType =
-        (paramName != null && paramName.isNotEmpty) ? paramName : 'Object';
-  } else if (type is VoidType) {
-    baseType = 'void';
-  } else {
-    baseType = 'Object';
-  }
-
-  // 处理可空类型
-  if (type.nullability == Nullability.nullable) {
-    // void 类型不能是可空的
-    if (baseType == 'void') {
-      return 'void';
-    }
-    return '$baseType?';
-  }
-
-  return baseType;
+  return DartTypeConverter.convert(type, _getDartType);
 }
 
 /// 全局版本的获取逻辑运算符函数
@@ -1256,7 +1377,7 @@ String _generateExpressionCode2(Expression expression,
     {bool replaceThis = false,
     bool asStatement = false,
     bool allowReturn = true}) {
-  print('expression: $expression');
+  // 处理表达式生成
   if (expression is ThisExpression) {
     return replaceThis ? 'this' : 'this';
   } else if (expression is VariableGet) {
@@ -2038,7 +2159,6 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is Let) {
     // 优化 Let 模式，尽量消除 IIFE：
     // 场景1：body 形如 (v == null ? a : v) -> 生成 (init ?? a)
-    final varName = expression.variable.name ?? 'temp';
     final initializerCode = _generateExpressionCode(
         expression.variable.initializer!,
         replaceThis: replaceThis,
@@ -2046,9 +2166,9 @@ String _generateExpressionCode2(Expression expression,
 
     // 如果 Let 绑定的变量类型为 void，则无需声明该变量。
     // 直接顺序执行初始化表达式，然后返回 body 的值。
-    String varType = _getDartType(expression.variable.type);
+    final varType = _getDartType(expression.variable.type);
     if (varType == 'void') {
-      String body = _generateExpressionCode(expression.body,
+      final body = _generateExpressionCode(expression.body,
           replaceThis: replaceThis, asStatement: false, allowReturn: false);
       final initStmt = initializerCode.trimRight().endsWith(';')
           ? initializerCode
@@ -2272,7 +2392,7 @@ String _generateExpressionCode2(Expression expression,
 
 String _generateStatementCode(Statement statement,
     {bool replaceThis = false, bool allowReturn = true}) {
-  print('expression: $statement');
+  // 处理语句生成
   if (statement is ReturnStatement) {
     // if (!allowReturn) {
     //   // 如果不允许return，则只返回表达式部分
