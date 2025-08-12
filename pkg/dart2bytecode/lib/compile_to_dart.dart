@@ -18,12 +18,14 @@ class ClassInfo {
 class DartToDartTransformer {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
+  // 保留占位，未来可能用于需要上下文返回类型场景（目前未使用）
+  // ignore: unused_field
+  DartType? _currentFunctionReturnType;
 
   // 存储转换后的类信息
   final Map<Class, ClassInfo> _classInfoMap = {};
 
-  // 当前正在处理的类名，用于内部函数调用
-  String? _currentClassName;
+  // 当前正在处理的类名（已移除未使用字段）
 
   // 类名替换映射，用于 @pragma('cpp:patch', 'Error') 注解
   final Map<String, String> _classNameReplacements = {};
@@ -58,6 +60,21 @@ class DartToDartTransformer {
     return shouldSkip;
   }
 
+  /// 判断是否应该跳过某个库
+  bool _shouldSkipLibrary(Library library) {
+    final libraryUri = library.fileUri;
+    final filePath =
+        libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
+
+    final libraryName = library.toStringInternal();
+    final shouldSkip = libraryName.startsWith('dart.') ||
+        libraryName.startsWith('dart:') ||
+        libraryName.startsWith('package:flutter') ||
+        filePath.contains('org-dartlang-sdk');
+
+    return shouldSkip;
+  }
+
   /// 检查类是否有 @pragma('cpp:native', xxx) 注解
   bool _hasCppNativePragma(Class cls) {
     for (final annotation in cls.annotations) {
@@ -81,7 +98,7 @@ class DartToDartTransformer {
   }
 
   /// 调试：打印类的注解信息
-  void _debugPrintAnnotations(Class cls) {}
+  // 已移除未使用方法 _debugPrintAnnotations
 
   /// 获取类的 @pragma('cpp:patch', 'Error') 注解信息
   String? _getCppPatchPragma(Class cls) {
@@ -170,6 +187,13 @@ class DartToDartTransformer {
         }
       }
     }
+
+    // 生成全局函数和变量
+    for (final library in component.libraries) {
+      if (!_shouldSkipLibrary(library)) {
+        _generateGlobalMembersFromLibrary(library);
+      }
+    }
   }
 
   /// 写入库导入
@@ -177,6 +201,8 @@ class DartToDartTransformer {
     // 添加基本的导入
     _writeLine("import 'dart:core';");
     _writeLine("import 'dart:io';");
+    _writeLine("import 'dart:math';");
+    _writeLine("import 'dart:typed_data';");
     _writeLine('');
 
     // 添加全局Void类型变量
@@ -187,9 +213,10 @@ class DartToDartTransformer {
 
   /// 生成转换后的类
   void _generateTransformedClass(Class cls) {
-    // 设置当前类名，用于内部函数调用
-    _currentClassName = cls.name;
-
+    // 设置当前类名（已移除未使用字段）
+    // 标记当前 emitting 类名（用于在构造调用时补齐类型参数）
+    // 此处仅为可读性保留调用，实际使用的是下方的 className
+    /* final currentClassName = */ _getCppPatchPragma(cls) ?? cls.name;
     final patchTarget = _getCppPatchPragma(cls);
     final className = patchTarget ?? cls.name;
 
@@ -272,6 +299,7 @@ class DartToDartTransformer {
     _unindent();
     _writeLine('}');
     _writeLine('');
+    // 重置：currentClassName 为局部，不需要重置
   }
 
   /// 生成字段声明
@@ -287,11 +315,23 @@ class DartToDartTransformer {
         if (field.isFinal) modifiers.add('final');
         if (field.isLate) modifiers.add('late');
 
-        final type = _getDartType(field.type);
-        final name = field.name?.text ?? 'unnamed';
-        final modifierStr = modifiers.isEmpty ? '' : '${modifiers.join(' ')} ';
+        // 对于没有初始化器的非空字段，添加 late 以避免编译期未初始化错误（含静态/实例）
+        if (!field.isLate &&
+            field.initializer == null &&
+            field.type.nullability != Nullability.nullable) {
+          if (!modifiers.contains('late')) modifiers.add('late');
+        }
 
-        _writeLine('$modifierStr$type $name;');
+        final type = _getDartType(field.type);
+        final name = field.name.text;
+        final modifierStr = modifiers.isEmpty ? '' : '${modifiers.join(' ')} ';
+        // 支持字段初始化表达式
+        String init = '';
+        if (field.initializer != null) {
+          init =
+              ' = ${_generateExpressionCode(field.initializer!, replaceThis: true, asStatement: false)}';
+        }
+        _writeLine('$modifierStr$type $name$init;');
       }
     }
 
@@ -306,18 +346,40 @@ class DartToDartTransformer {
 
     for (final field in classInfo.lateFields) {
       final type = _getDartType(field.type);
-      final name = field.name?.text ?? 'unnamed';
-      _writeLine('late $type $name;');
+      final name = field.name.text;
+      // 保留可能存在的初始化表达式
+      String init = '';
+      if (field.initializer != null) {
+        init =
+            ' = ${_generateExpressionCode(field.initializer!, replaceThis: true, asStatement: false)}';
+      }
+      _writeLine('late $type $name$init;');
     }
   }
 
   /// 生成成员方法
   void _generateMemberMethods(Class cls) {
+    // 收集字段名，用于避免与同名 getter/setter 冲突
+    final fieldNames = <String>{};
+    for (final f in cls.fields) {
+      fieldNames.add(f.name.text);
+    }
     // 生成getter和setter
     for (final procedure in cls.procedures) {
+      // 跳过编译器生成的 noSuchMethod 转发桩
+      if (procedure.isNoSuchMethodForwarder) {
+        continue;
+      }
       if (procedure.isGetter) {
+        // 跳过与已有字段同名的 getter（避免重复定义）
+        if (fieldNames.contains(procedure.name.text)) continue;
         _generateGetter(cls, procedure);
       } else if (procedure.isSetter) {
+        // 跳过与已有字段同名的 setter（避免重复定义）
+        final name = procedure.name.text.endsWith('=')
+            ? procedure.name.text.substring(0, procedure.name.text.length - 1)
+            : procedure.name.text;
+        if (fieldNames.contains(name)) continue;
         _generateSetter(cls, procedure);
       } else if (procedure.isFactory) {
         // 生成factory方法
@@ -384,12 +446,11 @@ class DartToDartTransformer {
   /// 生成单个构造方法
   void _generateConstructor(Class cls, Constructor constructor) {
     print('constructor: $constructor');
-    final name = constructor.name?.text ?? '';
+    final name = constructor.name.text;
     final constructorName = name.isEmpty ? cls.name : '${cls.name}.$name';
 
-    // 参数列表
-    final parameters =
-        _writeParameterList(constructor.function.positionalParameters);
+    // 参数列表（包含必需位置、可选位置与命名参数，正确分组 [] / {}）
+    final parameters = _writeParametersToString(constructor.function);
 
     _write('$constructorName($parameters)');
 
@@ -424,19 +485,22 @@ class DartToDartTransformer {
   void _generateGetter(Class cls, Procedure procedure) {
     final returnType = _getDartType(procedure.function.returnType);
     final name = procedure.name.text;
+    final staticPrefix = procedure.isStatic ? 'static ' : '';
 
     if (procedure.isAbstract) {
       // 抽象getter没有方法体
-      _writeLine('$returnType get $name;');
+      _writeLine('${staticPrefix}$returnType get $name;');
       _writeLine('');
     } else {
       // 具体getter有方法体
-      _writeLine('$returnType get $name {');
+      _writeLine('${staticPrefix}$returnType get $name {');
       _indent();
       if (procedure.function.body != null) {
+        _currentFunctionReturnType = procedure.function.returnType;
         final bodyStr =
             _writeTransformedStatementToString(procedure.function.body!);
-        _writeLine(bodyStr);
+        _currentFunctionReturnType = null;
+        _writeLine(_normalizeBody(bodyStr, isVoid: false));
       }
       _unindent();
       _writeLine('}');
@@ -449,6 +513,7 @@ class DartToDartTransformer {
     final param = procedure.function.positionalParameters.first;
     final paramType = _getDartType(param.type);
     final paramName = _cleanVariableName(param.name!);
+    final staticPrefix = procedure.isStatic ? 'static ' : '';
     // 不使用字符串替换，而是检查是否以 = 结尾
     final name = procedure.name.text.endsWith('=')
         ? procedure.name.text.substring(0, procedure.name.text.length - 1)
@@ -456,45 +521,26 @@ class DartToDartTransformer {
 
     if (procedure.isAbstract) {
       // 抽象setter没有方法体
-      _writeLine('set $name($paramType $paramName);');
+      _writeLine('${staticPrefix}set $name($paramType $paramName);');
       _writeLine('');
     } else {
       // 具体setter有方法体
-      _writeLine('set $name($paramType $paramName) {');
+      _writeLine('${staticPrefix}set $name($paramType $paramName) {');
       _indent();
+      _currentFunctionReturnType = procedure.function.returnType;
       final bodyStr =
           _writeTransformedStatementToString(procedure.function.body!);
-      _writeLine(bodyStr);
+      _currentFunctionReturnType = null;
+      _writeLine(_normalizeBody(bodyStr, isVoid: true));
       _unindent();
       _writeLine('}');
       _writeLine('');
     }
   }
 
-  /// 生成 getter 方法体
-  String _generateGetterBody(FunctionNode function) {
-    if (function.body != null) {
-      // 对于getter，我们需要表达式而不是语句
-      if (function.body is ReturnStatement) {
-        final returnStmt = function.body as ReturnStatement;
-        if (returnStmt.expression != null) {
-          return _generateExpressionCode(returnStmt.expression!,
-              replaceThis: true, asStatement: false);
-        }
-      } else if (function.body is Expression) {
-        // 如果不是ReturnStatement，尝试作为表达式处理
-        return _generateExpressionCode(function.body as Expression,
-            replaceThis: true, asStatement: false);
-      }
-    }
-    return 'null'; // 默认返回值
-  }
+  // 已移除未使用方法 _generateGetterBody
 
-  /// 将语句转换为字符串
-  String _statementToString(Statement statement) {
-    return _generateStatementCode(statement,
-        replaceThis: false, allowReturn: true);
-  }
+  // 已移除未使用方法 _statementToString
 
   /// 将语句转换为字符串（转换后）
   String _writeTransformedStatementToString(Statement statement) {
@@ -502,11 +548,7 @@ class DartToDartTransformer {
         replaceThis: true, allowReturn: true);
   }
 
-  /// 转换语句并写入
-  void _writeTransformedStatement(Statement statement) {
-    final str = _writeTransformedStatementToString(statement);
-    _writeLine(str);
-  }
+  // 已移除未使用方法 _writeTransformedStatement
 
   /// 生成单个成员方法
   void _generateMemberMethod(Procedure procedure) {
@@ -532,9 +574,12 @@ class DartToDartTransformer {
       _writeLine('$returnType $methodName($parameters) {');
       _indent();
       if (procedure.function.body != null) {
+        _currentFunctionReturnType = procedure.function.returnType;
         final bodyStr =
             _writeTransformedStatementToString(procedure.function.body!);
-        _writeLine(bodyStr);
+        _currentFunctionReturnType = null;
+        _writeLine(
+            _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
       }
       _unindent();
       _writeLine('}');
@@ -559,9 +604,11 @@ class DartToDartTransformer {
 
     _writeLine('static $returnType $methodName($parameters) {');
     _indent();
+    _currentFunctionReturnType = procedure.function.returnType;
     final bodyStr =
         _writeTransformedStatementToString(procedure.function.body!);
-    _writeLine(bodyStr);
+    _currentFunctionReturnType = null;
+    _writeLine(_normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
     _unindent();
     _writeLine('}');
     _writeLine('');
@@ -569,7 +616,6 @@ class DartToDartTransformer {
 
   /// 生成factory方法
   void _generateFactoryMethod(Class cls, Procedure procedure) {
-    final returnType = _getDartType(procedure.function.returnType);
     final name = procedure.name.text;
     final parameters = _writeParametersToString(procedure.function);
 
@@ -584,9 +630,11 @@ class DartToDartTransformer {
     _writeLine('factory $factoryName($parameters) {');
     _indent();
     if (procedure.function.body != null) {
+      _currentFunctionReturnType = procedure.function.returnType;
       final bodyStr =
           _writeTransformedStatementToString(procedure.function.body!);
-      _writeLine(bodyStr);
+      _currentFunctionReturnType = null;
+      _writeLine(_normalizeBody(bodyStr, isVoid: false));
     }
     _unindent();
     _writeLine('}');
@@ -610,7 +658,6 @@ class DartToDartTransformer {
           methodName == '*' ||
           methodName == '/' ||
           methodName == '==' ||
-          methodName == '!=' ||
           methodName == '<' ||
           methodName == '>' ||
           methodName == '<=' ||
@@ -620,6 +667,100 @@ class DartToDartTransformer {
         _generateOperatorMethod(procedure);
       }
     }
+  }
+
+  /// 生成库的全局成员（函数和变量）
+  void _generateGlobalMembersFromLibrary(Library library) {
+    final libraryUri = library.fileUri;
+    final filePath =
+        libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
+
+    bool hasGlobalMembers = false;
+
+    // 检查是否有全局函数或变量
+    for (final procedure in library.procedures) {
+      if (!hasGlobalMembers) {
+        _writeLine('/// 全局函数和变量');
+        _writeLine('/// 源文件路径: $filePath');
+        _writeLine('');
+        hasGlobalMembers = true;
+      }
+      _generateGlobalFunction(procedure);
+    }
+
+    for (final field in library.fields) {
+      if (!hasGlobalMembers) {
+        _writeLine('/// 全局函数和变量');
+        _writeLine('/// 源文件路径: $filePath');
+        _writeLine('');
+        hasGlobalMembers = true;
+      }
+      _generateGlobalVariable(field);
+    }
+  }
+
+  /// 生成全局函数
+  void _generateGlobalFunction(Procedure procedure) {
+    final returnType = _getDartType(procedure.function.returnType);
+    final name = procedure.name.text;
+    final parameters = _writeParametersToString(procedure.function);
+
+    // 处理范型参数
+    String methodName = name;
+    if (procedure.function.typeParameters.isNotEmpty) {
+      final typeParams = procedure.function.typeParameters
+          .map((t) => t.name ?? 'Object')
+          .join(', ');
+      methodName += '<$typeParams>';
+    }
+
+    if (procedure.isAbstract) {
+      // 抽象函数没有方法体
+      _writeLine('$returnType $methodName($parameters);');
+      _writeLine('');
+    } else {
+      // 具体函数有方法体
+      _writeLine('$returnType $methodName($parameters) {');
+      _indent();
+      if (procedure.function.body != null) {
+        _currentFunctionReturnType = procedure.function.returnType;
+        final bodyStr =
+            _writeTransformedStatementToString(procedure.function.body!);
+        _currentFunctionReturnType = null;
+        _writeLine(
+            _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
+      }
+      _unindent();
+      _writeLine('}');
+      _writeLine('');
+    }
+  }
+
+  /// 生成全局变量
+  void _generateGlobalVariable(Field field) {
+    final modifiers = <String>[];
+    if (field.isFinal) modifiers.add('final');
+    if (field.isLate) modifiers.add('late');
+
+    // 对于没有初始化器的非空字段，添加 late 以避免编译期未初始化错误
+    if (!field.isLate &&
+        field.initializer == null &&
+        field.type.nullability != Nullability.nullable) {
+      if (!modifiers.contains('late')) modifiers.add('late');
+    }
+
+    final type = _getDartType(field.type);
+    final name = field.name.text;
+    final modifierStr = modifiers.isEmpty ? '' : '${modifiers.join(' ')} ';
+
+    // 支持字段初始化表达式
+    String init = '';
+    if (field.initializer != null) {
+      init =
+          ' = ${_generateExpressionCode(field.initializer!, replaceThis: true, asStatement: false)}';
+    }
+    _writeLine('$modifierStr$type $name$init;');
+    _writeLine('');
   }
 
   /// 生成操作符方法
@@ -632,50 +773,69 @@ class DartToDartTransformer {
     if (procedure.function.body != null) {
       final bodyStr = _generateStatementCode(procedure.function.body!,
           replaceThis: false, allowReturn: true);
-      _writeLine(bodyStr);
+      _writeLine(_normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
     }
     _unindent();
     _writeLine('}');
     _writeLine('');
   }
 
-  /// 写入参数列表
-  void _writeParameters(FunctionNode function, {bool onlyFirst = false}) {
-    // 处理位置参数
-    final positionalParams = onlyFirst
-        ? function.positionalParameters.take(1)
-        : function.positionalParameters;
-    final positionalStr =
-        _writeParameterList(positionalParams.toList(), function: function);
+  /// 规范化方法体，移除 void 函数中的 `return expr;`，并确保语句以分号结尾
+  String _normalizeBody(String body, {required bool isVoid}) {
+    // 如果是块语句，直接返回
+    final trimmed = body.trimRight();
+    if (trimmed.startsWith('{')) return body;
 
-    // 处理命名参数
-    final namedParams = function.namedParameters;
-    final namedStr = _writeParameterList(namedParams, function: function);
-
-    // 组合参数列表
-    String parameters = positionalStr;
-    if (namedStr.isNotEmpty) {
-      if (parameters.isNotEmpty) {
-        parameters += ', {$namedStr}';
-      } else {
-        parameters = '{$namedStr}';
-      }
+    String result = body;
+    if (isVoid) {
+      // 将行首或换行后的 return expr; 改为 expr;
+      result = result
+          .replaceAllMapped(RegExp(r'(^|\n)\s*return\s+([^;]+);'),
+              (m) => '${m.group(1)}${m.group(2)};')
+          .replaceAllMapped(
+              RegExp(r'(^|\n)\s*return\s*;'), (m) => '${m.group(1)}return;');
     }
-
-    _write(parameters);
+    // 确保非空且不以分号或大括号结尾的语句添加分号
+    final rtrim = result.trimRight();
+    if (!rtrim.endsWith(';') && !rtrim.endsWith('}') && !rtrim.endsWith('{')) {
+      result = rtrim + ';';
+    }
+    return result;
   }
+
+  // 已移除未使用方法 _writeParameters
 
   /// 生成参数列表字符串
   String _writeParametersToString(FunctionNode function,
       {bool onlyFirst = false}) {
-    // 处理位置参数
-    final positionalParams = onlyFirst
-        ? function.positionalParameters.take(1)
-        : function.positionalParameters;
-    final positionalStr =
-        _writeParameterList(positionalParams.toList(), function: function);
+    // 处理位置参数（拆分必需与可选位置参数，整体使用 [] 包裹可选部分）
+    final allPositional = (onlyFirst
+            ? function.positionalParameters.take(1)
+            : function.positionalParameters)
+        .toList();
+    final requiredCount =
+        function.requiredParameterCount.clamp(0, allPositional.length);
+    final requiredParams = allPositional.take(requiredCount).toList();
+    final optionalParams = allPositional.skip(requiredCount).toList();
 
-    // 处理命名参数
+    String formatParam(VariableDeclaration param) {
+      final type = _getDartType(param.type);
+      final name = _cleanVariableName(param.name ?? 'param');
+      String defaultValue = '';
+      if (param.initializer != null) {
+        defaultValue =
+            ' = ${_generateExpressionCode(param.initializer!, replaceThis: false, asStatement: false)}';
+      }
+      return '$type $name$defaultValue';
+    }
+
+    final requiredStr = requiredParams.map(formatParam).join(', ');
+    String optionalStr = optionalParams.map(formatParam).join(', ');
+    if (optionalStr.isNotEmpty) {
+      optionalStr = '[$optionalStr]';
+    }
+
+    // 处理命名参数（整体使用 {} 包裹）
     final namedParams = function.namedParameters;
     String namedStr = '';
     if (namedParams.isNotEmpty) {
@@ -692,49 +852,14 @@ class DartToDartTransformer {
       namedStr = '{$namedParamList}';
     }
 
-    // 组合参数列表
-    String parameters = positionalStr;
-    if (namedStr.isNotEmpty) {
-      if (parameters.isNotEmpty) {
-        parameters += ', $namedStr';
-      } else {
-        parameters = namedStr;
-      }
-    }
-
-    return parameters;
+    // 组合参数列表，顺序：必需位置参数, 可选位置参数, 命名参数
+    final parts = <String>[requiredStr, optionalStr, namedStr]
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return parts.join(', ');
   }
 
-  /// 生成参数列表
-  String _writeParameterList(List<VariableDeclaration> parameters,
-      {FunctionNode? function}) {
-    return parameters.asMap().entries.map((entry) {
-      final index = entry.key;
-      final param = entry.value;
-      final type = _getDartType(param.type);
-      final name = _cleanVariableName(param.name!);
-
-      // 检查是否是可选参数
-      bool isOptional = false;
-      if (function != null) {
-        // 如果参数索引大于等于必需参数数量，则为可选参数
-        isOptional = index >= function.requiredParameterCount;
-      }
-
-      // 处理默认值
-      String defaultValue = '';
-      if (param.initializer != null) {
-        defaultValue =
-            ' = ${_generateExpressionCode(param.initializer!, replaceThis: false, asStatement: false)}';
-      }
-
-      if (isOptional) {
-        return '[$type $name$defaultValue]';
-      } else {
-        return '$type $name$defaultValue';
-      }
-    }).join(', ');
-  }
+  // 删除：旧的 _writeParameterList 已被统一的 _writeParametersToString 替代
 
   /// 获取Dart类型字符串
   String _getDartType(DartType type) {
@@ -759,21 +884,10 @@ class DartToDartTransformer {
       final returnType = _getDartType(type.returnType);
       baseType = '$returnType Function($paramTypes)';
     } else if (type is TypeParameterType) {
-      // 对于类型参数，我们应该保持类型参数名称
-      // 但确保它们是有效的类型名称
+      // 对于类型参数，直接使用其名称（允许多字符名称如 RK、RV、K2、V2）
       final paramName = type.parameter.name;
-      if (paramName != null && paramName.isNotEmpty) {
-        // 检查是否是有效的类型名称（单字母类型参数）
-        if (paramName.length == 1 &&
-            paramName.codeUnitAt(0) >= 65 &&
-            paramName.codeUnitAt(0) <= 90) {
-          baseType = paramName; // 单字母大写类型参数（如 E、T、R）
-        } else {
-          baseType = 'Object';
-        }
-      } else {
-        baseType = 'Object';
-      }
+      baseType =
+          (paramName != null && paramName.isNotEmpty) ? paramName : 'Object';
     } else if (type is VoidType) {
       baseType = 'void';
     } else {
@@ -792,22 +906,7 @@ class DartToDartTransformer {
     return baseType;
   }
 
-  /// 注解转字符串
-  String _annotationToString(Expression annotation) {
-    if (annotation is ConstantExpression) {
-      final constant = annotation.constant;
-      if (constant is StringConstant) {
-        return '"${constant.value}"';
-      } else if (constant is IntConstant) {
-        return constant.value.toString();
-      } else if (constant is BoolConstant) {
-        return constant.value.toString();
-      } else if (constant is DoubleConstant) {
-        return constant.value.toString();
-      }
-    }
-    return annotation.toString();
-  }
+  // 已移除未使用方法 _annotationToString
 
   /// 构造函数初始化列表
   String _initializerToString(Initializer init) {
@@ -825,24 +924,7 @@ class DartToDartTransformer {
     return '';
   }
 
-  /// 方法体/表达式体
-  void _writeBlockOrExpr(Statement? body) {
-    if (body is ExpressionStatement) {
-      final expr = _expressionToString(body.expression);
-      // 避免重复的 return 关键字
-      if (expr.startsWith('return ')) {
-        _writeLine('$expr;');
-      } else if (expr.startsWith('throw ')) {
-        _writeLine('$expr;');
-      } else {
-        _writeLine('return $expr;');
-      }
-    } else if (body is Block) {
-      for (final stmt in body.statements) {
-        _writeTransformedStatement(stmt);
-      }
-    }
-  }
+  // 已移除未使用方法 _writeBlockOrExpr
 
   /// 清理变量名，将不合法的变量名转换为合法的Dart变量名
   String _cleanVariableName(String name) {
@@ -905,10 +987,7 @@ class DartToDartTransformer {
     return name;
   }
 
-  /// 生成唯一ID
-  int _generateUniqueId() {
-    return DateTime.now().microsecondsSinceEpoch % 1000000;
-  }
+  // 已移除未使用方法 _generateUniqueId
 
   /// 转换表达式，将this替换为self
   String _expressionToString(Expression expression) {
@@ -916,11 +995,7 @@ class DartToDartTransformer {
         replaceThis: true, asStatement: false);
   }
 
-  /// 转换表达式，用于运算符重载方法（保持this引用）
-  String _expressionToStringForOperator(Expression expression) {
-    return _generateExpressionCode(expression,
-        replaceThis: false, asStatement: false);
-  }
+  // 已移除未使用方法 _expressionToStringForOperator
 
   /// 写入一行
   void _writeLine(String text) {
@@ -947,7 +1022,8 @@ class DartToDartTransformer {
   /// 写入输出文件
   void _writeOutput() {
     try {
-      final outputFile = File('./transformed_dart.dart');
+      final outputFile = File(
+          '/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/transformed_dart.dart');
       outputFile.writeAsStringSync(_buffer.toString());
     } catch (e) {}
   }
@@ -963,6 +1039,67 @@ class DartToDartTransformer {
     if (!code.contains('class') || !code.contains('late')) {
     } else {}
   }
+}
+
+/// 为成员/方法访问时，必要时用括号包裹接收者表达式
+String _wrapReceiverIfNeeded(Expression original, String code) {
+  // 类型断言、三元、逻辑表达式作为接收者时需要括号以确保优先级
+  if (original is AsExpression ||
+      original is ConditionalExpression ||
+      original is IfNullExpression ||
+      original is LogicalExpression) {
+    final t = code.trim();
+    if (!(t.startsWith('(') && t.endsWith(')'))) {
+      return '($code)';
+    }
+  }
+  if (code.contains(' as ')) {
+    final t = code.trim();
+    if (!(t.startsWith('(') && t.endsWith(')'))) {
+      return '($code)';
+    }
+  }
+  return code;
+}
+
+// Let 变量到唯一本地名称的映射，用于在生成 body 代码时正确引用
+final Map<VariableDeclaration, String> _letAliasNames = {};
+
+// 用于追踪在同一位置使用的变量名，确保唯一性
+final Map<String, int> _usedNamesAtPosition = {};
+
+// 基于源位置和变量声明生成作用域内唯一的临时变量名
+String _uniqueLocalNameForNode(String suggestedBase, TreeNode node) {
+  final base = _cleanVariableName(
+      (suggestedBase.isEmpty || suggestedBase == 'unnamed')
+          ? 'temp'
+          : suggestedBase);
+  final offset = node.fileOffset;
+  if (offset != null && offset >= 0) {
+    return '${base}_${offset}';
+  }
+  final fallback = DateTime.now().microsecondsSinceEpoch % 1000000;
+  return '${base}_${fallback}';
+}
+
+// 为Let表达式中的变量生成唯一的变量名，确保在嵌套Let表达式中不会冲突
+String _generateUniqueLetVarName(
+    VariableDeclaration variable, Expression letExpression) {
+  final baseName = variable.name ?? 'temp';
+  final cleanBase = _cleanVariableName(baseName);
+
+  // 使用Let表达式的位置信息和变量本身的信息来生成唯一标识符
+  final offset = letExpression.fileOffset;
+  final varId = variable.hashCode.abs() % 10000;
+
+  if (offset != null && offset >= 0) {
+    // 组合位置信息和变量ID来确保即使在同一位置的嵌套Let表达式也有唯一名称
+    final baseKey = '${cleanBase}_${offset}_${varId}';
+    return baseKey;
+  }
+
+  // 如果没有位置信息，使用变量的哈希值作为后缀
+  return '${cleanBase}_${varId}';
 }
 
 /// 全局转换函数
@@ -1039,23 +1176,47 @@ String _cleanVariableName(String name) {
 
 /// 全局版本的获取Dart类型函数
 String _getDartType(DartType type) {
+  String baseType;
+
   if (type is DynamicType) {
-    return 'Object';
+    baseType = 'dynamic';
   } else if (type is InterfaceType) {
-    return type.classNode.name;
+    String typeName = type.classNode.name;
+    // 处理范型参数
+    if (type.typeArguments.isNotEmpty) {
+      final typeArgs =
+          type.typeArguments.map((t) => _getDartType(t)).join(', ');
+      typeName += '<$typeArgs>';
+    }
+    baseType = typeName;
   } else if (type is FunctionType) {
     // 正确处理函数类型
     final paramTypes = type.positionalParameters
         .map((param) => _getDartType(param))
         .join(', ');
     final returnType = _getDartType(type.returnType);
-    return '$returnType Function($paramTypes)';
+    baseType = '$returnType Function($paramTypes)';
   } else if (type is TypeParameterType) {
-    // 保持范型类型参数名称
-    return type.parameter.name ?? 'Object';
+    // 直接使用类型参数名称（允许多字符：如 RK、RV、K2、V2）
+    final paramName = type.parameter.name;
+    baseType =
+        (paramName != null && paramName.isNotEmpty) ? paramName : 'Object';
+  } else if (type is VoidType) {
+    baseType = 'void';
   } else {
-    return 'Object';
+    baseType = 'Object';
   }
+
+  // 处理可空类型
+  if (type.nullability == Nullability.nullable) {
+    // void 类型不能是可空的
+    if (baseType == 'void') {
+      return 'void';
+    }
+    return '$baseType?';
+  }
+
+  return baseType;
 }
 
 /// 全局版本的获取逻辑运算符函数
@@ -1068,19 +1229,7 @@ String _getLogicalOperator(LogicalExpressionOperator operator) {
   }
 }
 
-/// 获取一元运算符
-String _getUnaryOperator(String operator) {
-  switch (operator) {
-    case 'unary-':
-      return '-';
-    case '!':
-      return '!';
-    case '~':
-      return '~';
-    default:
-      return operator;
-  }
-}
+// 已移除未使用方法 _getUnaryOperator
 
 /// 检查是否为数字字面量
 bool _isNumericLiteral(String expr) {
@@ -1090,39 +1239,7 @@ bool _isNumericLiteral(String expr) {
   return RegExp(r'^-?\d+(\.\d+)?$').hasMatch(cleanExpr);
 }
 
-/// 获取二元运算符
-String _getBinaryOperator(String operator) {
-  switch (operator) {
-    case 'LESS_THAN':
-      return '<';
-    case 'GREATER_THAN':
-      return '>';
-    case 'LESS_THAN_OR_EQUALS':
-      return '<=';
-    case 'GREATER_THAN_OR_EQUALS':
-      return '>=';
-    case 'EQUALS':
-      return '==';
-    case 'NOT_EQUALS':
-      return '!=';
-    case 'ADD':
-      return '+';
-    case 'SUBTRACT':
-      return '-';
-    case 'MULTIPLY':
-      return '*';
-    case 'DIVIDE':
-      return '/';
-    case 'MODULO':
-      return '%';
-    case '[]':
-      return '[]';
-    case '[]=':
-      return '[]=';
-    default:
-      return operator;
-  }
-}
+// 已移除未使用方法 _getBinaryOperator
 
 String _generateExpressionCode(Expression expression,
     {bool replaceThis = false,
@@ -1145,6 +1262,8 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is VariableGet) {
     // 获取变量类型信息
     //final type = _getDartType(expression.variable.type);
+    final alias = _letAliasNames[expression.variable];
+    if (alias != null) return alias;
     final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
     // 如果类型不是 Object，则包含类型信息
     // if (type != 'Object') {
@@ -1154,6 +1273,8 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is VariableGetImpl) {
     // 获取变量类型信息
     // final type = _getDartType(expression.variable.type);
+    final alias = _letAliasNames[expression.variable];
+    if (alias != null) return alias;
     final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
     // // 如果类型不是 Object，则包含类型信息
     // if (type != 'Object') {
@@ -1190,20 +1311,24 @@ String _generateExpressionCode2(Expression expression,
     final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
     return '$className${typeArgs.isNotEmpty ? '<$typeArgs>' : ''}$constructorName($allArgs)';
   } else if (expression is VariableSet) {
-    return '${_cleanVariableName(expression.variable.name ?? 'unnamed')} = '
+    final left = _letAliasNames[expression.variable] ??
+        _cleanVariableName(expression.variable.name ?? 'unnamed');
+    return '${left} = '
         '${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
   } else if (expression is RecordIndexGet) {
     return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.${expression.index + 1}';
   } else if (expression is RecordNameGet) {
     return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.${expression.name}';
   } else if (expression is InstanceGet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final propertyName = expression.name.text;
     return '$receiver.$propertyName';
   } else if (expression is DynamicGet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
 
     // 特殊处理 unary- 属性访问
@@ -1221,19 +1346,29 @@ String _generateExpressionCode2(Expression expression,
     // kernel FunctionTearOff 用 receiver 字段
     return '${_generateExpressionCode(expression.receiver, replaceThis: replaceThis, asStatement: false)}.call';
   } else if (expression is InstanceTearOff) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     return '$receiver.$name';
   } else if (expression is StaticGet) {
-    return expression.target.name.text;
+    final encl = expression.target.enclosingClass;
+    final name = expression.target.name.text;
+    return encl == null ? name : '${encl.name}.$name';
   } else if (expression is StaticSet) {
-    return '${expression.target.name.text} = ${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
-  } else if (expression is StaticTearOff) {
-    return expression.target.name.text;
-  } else if (expression is InstanceInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final encl = expression.target.enclosingClass;
+    final name = expression.target.name.text;
+    final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
+    return encl == null ? '$name = $value' : '${encl.name}.$name = $value';
+  } else if (expression is StaticTearOff) {
+    final encl = expression.target.enclosingClass;
+    final name = expression.target.name.text;
+    return encl == null ? name : '${encl.name}.$name';
+  } else if (expression is InstanceInvocation) {
+    final receiverRaw = _generateExpressionCode(expression.receiver,
+        replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final argsList = expression.arguments.positional;
 
@@ -1282,8 +1417,9 @@ String _generateExpressionCode2(Expression expression,
     final allArgs = [...processedArgs, ...namedArgs].join(', ');
     return '$receiver.$name($allArgs)';
   } else if (expression is DynamicInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final args = expression.arguments.positional
         .map((e) => _generateExpressionCode(e,
@@ -1359,10 +1495,23 @@ String _generateExpressionCode2(Expression expression,
     // 处理构造函数名
     String constructorName = '';
     if (expression.target.name.text.isNotEmpty) {
-      constructorName = '.${expression.target.name.text}';
+      // 避免使用外部库的私有命名构造（如 MapEntry._），改用公有默认构造
+      final ctorName = expression.target.name.text;
+      if (!ctorName.startsWith('_')) {
+        constructorName = '.$ctorName';
+      }
     }
 
-    final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
+    // 仅当调用提供了类型实参时保留；否则若在当前类作用域且为本类构造，自动补上当前类的类型参数名称
+    String typeArgs = expression.arguments.types.map(_getDartType).join(', ');
+    if (typeArgs.isEmpty) {
+      // 尝试通过作用域类名匹配（方法作用域内与类名一致时补齐）
+      // 由于 className 即为当前类名，因此直接使用 enclosingClass 的类型参数
+      final params = expression.target.enclosingClass.typeParameters;
+      if (params.isNotEmpty) {
+        typeArgs = params.map((t) => t.name ?? 'Object').join(', ');
+      }
+    }
     final args = expression.arguments.positional
         .map((e) => _generateExpressionCode(e,
             replaceThis: replaceThis, asStatement: false))
@@ -1373,56 +1522,6 @@ String _generateExpressionCode2(Expression expression,
         .join(', ');
     final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
     return '$className${typeArgs.isNotEmpty ? '<$typeArgs>' : ''}$constructorName($allArgs)';
-  } else if (expression is InstanceInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
-        replaceThis: replaceThis, asStatement: false);
-    final name = expression.name.text;
-    final argsList = expression.arguments.positional;
-
-    // 处理参数，根据目标方法的参数类型要求进行类型转换
-    final processedArgs = <String>[];
-    // 处理位置参数
-    for (int i = 0; i < argsList.length; i++) {
-      final arg = argsList[i];
-      final argCode = _generateExpressionCode(arg,
-          replaceThis: replaceThis, asStatement: false);
-      processedArgs.add(argCode);
-    }
-
-    if (expression.interfaceTarget.kind == ProcedureKind.Operator) {
-      if (processedArgs.isEmpty) {
-        if (name == '++' || name == '--') {
-          return '${receiver}${name}';
-        }
-
-        if (name == '!') {
-          return '!(${receiver})';
-        }
-        if (name == 'unary-') {
-          return '-$receiver';
-        }
-        return '$name${receiver}';
-      } else if (processedArgs.length == 1) {
-        if (name == '[]') {
-          return '${receiver}[${processedArgs[0]}]';
-        }
-        return '($receiver $name ${processedArgs[0]})';
-      } else {
-        if (name == '[]=') {
-          return '${receiver}[${processedArgs[0]}] = ${processedArgs[1]}';
-        }
-      }
-      throw Exception('Unsupported operator: $name');
-    }
-
-    // 处理命名参数
-    final namedArgs = expression.arguments.named
-        .map((na) =>
-            '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
-        .toList();
-
-    final allArgs = [...processedArgs, ...namedArgs].join(', ');
-    return '$receiver.$name($allArgs)';
   } else if (expression is EqualsNull) {
     final expr = _generateExpressionCode(expression.expression,
         replaceThis: replaceThis, asStatement: false);
@@ -1559,13 +1658,19 @@ String _generateExpressionCode2(Expression expression,
         replaceThis: replaceThis, asStatement: false);
     return '$cond ? $then : $otherwise';
   } else if (expression is StringConcatenation) {
-    return expression.expressions
-        .map((e) => _generateExpressionCode(e,
-            replaceThis: replaceThis, asStatement: false))
-        .join(' + ');
-  } else if (expression is DynamicSet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    String stringify(Expression e) {
+      final code = _generateExpressionCode(e,
+          replaceThis: replaceThis, asStatement: false);
+      if (e is StringLiteral || (code.startsWith('"') && code.endsWith('"')))
+        return code;
+      return '(${code}).toString()';
+    }
+
+    return expression.expressions.map(stringify).join(' + ');
+  } else if (expression is InstanceSet) {
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
@@ -1584,9 +1689,10 @@ String _generateExpressionCode2(Expression expression,
       return '$receiver$op = $value';
     }
     return '$receiver.$name = $value';
-  } else if (expression is InstanceSet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+  } else if (expression is DynamicSet) {
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
@@ -1625,44 +1731,10 @@ String _generateExpressionCode2(Expression expression,
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
     return 'super.$name = $value';
-  } else if (expression is BinaryExpression) {
-    final left = _generateExpressionCode(expression.left,
-        replaceThis: replaceThis, asStatement: false);
-    final opName = expression.binaryName.text;
-    final right = _generateExpressionCode(expression.right,
-        replaceThis: replaceThis, asStatement: false);
-    // 处理所有特殊运算符
-    if (opName == '<' || opName == '.<') return '$left < $right';
-    if (opName == '>' || opName == '.>') return '$left > $right';
-    if (opName == '+' || opName == '.+') return '$left + $right';
-    if (opName == '-' || opName == '.-') return '$left - $right';
-    if (opName == '!=' || opName == '.!=') return '$left != $right';
-    if (opName == '++' || opName == '.++') return '$left++';
-    if (opName == '--' || opName == '.--') return '$left--';
-    if (opName == '+=' || opName == '.+=') return '$left += $right';
-    if (opName == '-=' || opName == '.-=') return '$left -= $right';
-    if (opName == '[]' || opName == '.[]') return '$left[$right]';
-    if (opName == '[]=' || opName == '.[]=') return '$left[$right] = $right';
-    final op = _getBinaryOperator(opName);
-    return '$left $op $right';
-  } else if (expression is UnaryExpression) {
-    final op = _getUnaryOperator(expression.unaryName.text);
-    final expr = _generateExpressionCode(expression.expression,
-        replaceThis: replaceThis);
-    // 对于否定操作符，需要给表达式加括号以避免优先级问题
-    if (op == '!') {
-      return '$op($expr)';
-    }
-    // // 对于取负操作符，如果表达式是数字字面量，直接生成负数
-    // if (op == '-' && _isNumericLiteral(expr)) {
-    //   return '-$expr';
-    // }
-    return '$op$expr';
-  } else if (expression is ParenthesizedExpression) {
-    return '(${_generateExpressionCode(expression.expression, replaceThis: replaceThis, asStatement: false)})';
   } else if (expression is MethodInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final args = expression.arguments.positional
         .map((e) => _generateExpressionCode(e,
@@ -1686,8 +1758,9 @@ String _generateExpressionCode2(Expression expression,
 
     return '$receiver.$name($allArgs)';
   } else if (expression is PropertyGet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
 
     // 特殊处理 unary- 属性访问
@@ -1702,21 +1775,24 @@ String _generateExpressionCode2(Expression expression,
 
     return '$receiver.$name';
   } else if (expression is PropertySet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
     return '$receiver.$name = $value';
   } else if (expression is IndexGet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final index = _generateExpressionCode(expression.index,
         replaceThis: replaceThis, asStatement: false);
     return '$receiver[$index]';
   } else if (expression is IndexSet) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final index = _generateExpressionCode(expression.index,
         replaceThis: replaceThis, asStatement: false);
     final value = _generateExpressionCode(expression.value,
@@ -1893,8 +1969,9 @@ String _generateExpressionCode2(Expression expression,
     final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
     return 'super.$name /* abstract */($allArgs)';
   } else if (expression is InstanceGetterInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final name = expression.name.text;
 
     // 特殊处理 unary- 方法调用
@@ -1918,8 +1995,9 @@ String _generateExpressionCode2(Expression expression,
     final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
     return '$receiver.$name($allArgs)';
   } else if (expression is FunctionInvocation) {
-    final receiver = _generateExpressionCode(expression.receiver,
+    final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
+    final receiver = _wrapReceiverIfNeeded(expression.receiver, receiverRaw);
     final args = expression.arguments.positional
         .map((e) => _generateExpressionCode(e,
             replaceThis: replaceThis, asStatement: false))
@@ -1958,70 +2036,83 @@ String _generateExpressionCode2(Expression expression,
     final type = _getDartType(expression.type);
     return '$operand is $type';
   } else if (expression is Let) {
-    // 为嵌套的 Let 表达式生成唯一的变量名
-    final baseName = _cleanVariableName(expression.variable.name ?? 'temp');
-    // 使用更简单的变量名生成策略，避免嵌套冲突
-    final variable =
-        '${baseName}_${DateTime.now().microsecondsSinceEpoch % 1000000}';
-    final value = _generateExpressionCode(expression.variable.initializer!,
-        replaceThis: replaceThis, allowReturn: false);
+    // 优化 Let 模式，尽量消除 IIFE：
+    // 场景1：body 形如 (v == null ? a : v) -> 生成 (init ?? a)
+    final varName = expression.variable.name ?? 'temp';
+    final initializerCode = _generateExpressionCode(
+        expression.variable.initializer!,
+        replaceThis: replaceThis,
+        allowReturn: false);
 
-    // 在生成 body 之前，记录当前变量名映射
-    final originalVariableName = expression.variable.name ?? 'temp';
-    final variableMapping = <String, String>{originalVariableName: variable};
+    // 如果 Let 绑定的变量类型为 void，则无需声明该变量。
+    // 直接顺序执行初始化表达式，然后返回 body 的值。
+    String varType = _getDartType(expression.variable.type);
+    if (varType == 'void') {
+      String body = _generateExpressionCode(expression.body,
+          replaceThis: replaceThis, asStatement: false, allowReturn: false);
+      final initStmt = initializerCode.trimRight().endsWith(';')
+          ? initializerCode
+          : '$initializerCode;';
+      return '(() { $initStmt $body; })()';
+    }
 
-    // 生成 body，并替换其中的变量引用
-    String body = _generateExpressionCode(expression.body,
-        replaceThis: replaceThis, asStatement: false, allowReturn: false);
-
-    // 获取变量类型，确保正确处理可空性
-    String type = _getDartType(expression.variable.type);
-
-    // 直接判断变量类型是否是可选的（nullable）
-    if (expression.variable.type.nullability == Nullability.nullable) {
-      // 如果类型是可空的，确保生成的类型字符串包含 ?
-      if (!type.endsWith('?')) {
-        type = '$type?';
+    Expression bodyExpr = expression.body;
+    if (bodyExpr is ConditionalExpression) {
+      // 匹配 v == null ? then : otherwise
+      final cond = bodyExpr.condition;
+      if (cond is EqualsNull) {
+        final operand = cond.expression;
+        if (operand is VariableGet &&
+            operand.variable.name == expression.variable.name) {
+          final thenStr = _generateExpressionCode(bodyExpr.then,
+              replaceThis: replaceThis, asStatement: false, allowReturn: false);
+          final otherwiseExpr = bodyExpr.otherwise;
+          // 如果 otherwise 就是变量本身，使用 ?? 简化
+          if (otherwiseExpr is VariableGet &&
+              otherwiseExpr.variable.name == expression.variable.name) {
+            // 安全性：当 then 分支涉及类型转换等语义性操作（如 `as`/throw）时，
+            // 不进行 ?? 简化以避免改变语义（例如 `result as E` 被错误改写为 `result ?? (temp as E)`）。
+            final thenLower = thenStr.replaceAll('\n', ' ').trim();
+            final hasPotentialSemanticOps = thenLower.contains(' as ') ||
+                thenLower.startsWith('throw ') ||
+                thenLower.contains(' rethrow');
+            if (!hasPotentialSemanticOps) {
+              return '(${initializerCode}) ?? (${thenStr})';
+            }
+            // 否则回退：使用 IIFE，严格按作用域声明局部变量，避免不安全的文本替换
+            final localName =
+                _generateUniqueLetVarName(expression.variable, expression);
+            final localType = _getDartType(expression.variable.type);
+            _letAliasNames[expression.variable] = localName;
+            final body = _generateExpressionCode(expression.body,
+                replaceThis: replaceThis,
+                asStatement: false,
+                allowReturn: false);
+            _letAliasNames.remove(expression.variable);
+            return '(() { final ${localType} ${localName} = ${initializerCode}; return ${body}; })()';
+          }
+          // 其他情况同样回退到 IIFE 形式
+          final localName =
+              _generateUniqueLetVarName(expression.variable, expression);
+          final localType = _getDartType(expression.variable.type);
+          _letAliasNames[expression.variable] = localName;
+          final body = _generateExpressionCode(expression.body,
+              replaceThis: replaceThis, asStatement: false, allowReturn: false);
+          _letAliasNames.remove(expression.variable);
+          return '(() { final ${localType} ${localName} = ${initializerCode}; return ${body}; })()';
+        }
       }
     }
 
-    // 替换 body 中的变量引用
-    for (final entry in variableMapping.entries) {
-      final originalName = entry.key;
-      final newName = entry.value;
-      // 使用正则表达式替换变量引用，确保只替换完整的变量名
-      body = body.replaceAll(
-          RegExp(r'\b' + RegExp.escape(originalName) + r'\b'), newName);
-    }
-
-    // 表达式上下文，用 IIFE 包裹，确保只生成单一表达式
-    return '(() { final $type $variable = $value; return $body; })()';
-  } else if (expression is BinaryExpression) {
-    final left = _generateExpressionCode(expression.left,
-        replaceThis: replaceThis, asStatement: false);
-    final opName = expression.binaryName.text;
-    final right = _generateExpressionCode(expression.right,
-        replaceThis: replaceThis, asStatement: false);
-    // 处理所有特殊运算符
-    if (opName == '<' || opName == '.<') return '$left < $right';
-    if (opName == '>' || opName == '.>') return '$left > $right';
-    if (opName == '+' || opName == '.+') return '$left + $right';
-    if (opName == '-' || opName == '.-') return '$left - $right';
-    if (opName == '++' || opName == '.++') return '$left++';
-    if (opName == '--' || opName == '.--') return '$left--';
-    if (opName == '+=' || opName == '.+=') return '$left += $right';
-    if (opName == '-=' || opName == '.-=') return '$left -= $right';
-    if (opName == '[]' || opName == '.[]') return '$left[$right]';
-    if (opName == '[]=' || opName == '.[]=') return '$left[$right] = $right';
-    final op = _getBinaryOperator(opName);
-    return '$left $op $right';
-  } else if (expression is UnaryExpression) {
-    final op = _getUnaryOperator(expression.unaryName.text);
-    final expr = _generateExpressionCode(expression.expression,
-        replaceThis: replaceThis);
-    return '$op$expr';
-  } else if (expression is ParenthesizedExpression) {
-    return '(${_generateExpressionCode(expression.expression, replaceThis: replaceThis, asStatement: false)})';
+    // 回退：保留原 IIFE 形式，使用基于位置的唯一变量名，避免命名冲突
+    final localName =
+        _generateUniqueLetVarName(expression.variable, expression);
+    final localType = _getDartType(expression.variable.type);
+    _letAliasNames[expression.variable] = localName;
+    final body = _generateExpressionCode(expression.body,
+        replaceThis: replaceThis, asStatement: false, allowReturn: false);
+    _letAliasNames.remove(expression.variable);
+    return '(() { final ${localType} ${localName} = ${initializerCode}; return ${body}; })()';
   } else if (expression is LocalFunctionInvocation) {
     final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
     final args = expression.arguments.positional
@@ -2099,7 +2190,8 @@ String _generateExpressionCode2(Expression expression,
       return expression.toString();
     }
   } else if (expression is StaticInvocation) {
-    final className = expression.target.enclosingClass?.name ?? 'UnknownClass';
+    final encl = expression.target.enclosingClass;
+    final className = encl?.name;
     final methodName = expression.target.name.text;
 
     // 特殊处理 unary- 方法调用
@@ -2128,6 +2220,9 @@ String _generateExpressionCode2(Expression expression,
             '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
         .join(', ');
     final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+    if (className == null) {
+      return '$methodName${typeArgs.isNotEmpty ? '<$typeArgs>' : ''}($allArgs)';
+    }
     return '$className.$methodName${typeArgs.isNotEmpty ? '<$typeArgs>' : ''}($allArgs)';
   } else if (expression is Throw) {
     final throwExpression = _generateExpressionCode(expression.expression,
@@ -2241,9 +2336,28 @@ String _generateStatementCode(Statement statement,
     }
 
     final name = _cleanVariableName(statement.name ?? 'unnamed');
-    final init = statement.initializer != null
-        ? ' = ${_generateExpressionCode(statement.initializer!, replaceThis: replaceThis, asStatement: false)}'
-        : '';
+    // Map 类型需要在空字面量时加上类型参数
+    String init = '';
+    if (statement.initializer != null) {
+      final initExpr = _generateExpressionCode(statement.initializer!,
+          replaceThis: replaceThis, asStatement: false);
+      if (type.startsWith('Map') && initExpr.trim() == '{}') {
+        if (statement.type is InterfaceType) {
+          final it = statement.type as InterfaceType;
+          if (it.typeArguments.length == 2) {
+            final k = _getDartType(it.typeArguments[0]);
+            final v = _getDartType(it.typeArguments[1]);
+            init = ' = <${k}, ${v}>{}';
+          } else {
+            init = ' = <Object, Object>{}';
+          }
+        } else {
+          init = ' = <Object, Object>{}';
+        }
+      } else {
+        init = ' = ' + initExpr;
+      }
+    }
     return '$type $name$init;';
   } else if (statement is EmptyStatement) {
     return ';';
@@ -2326,13 +2440,11 @@ String _generateStatementCode(Statement statement,
         replaceThis: replaceThis, allowReturn: true);
     return 'try $body\nfinally $finalizer';
   } else if (statement is BreakStatement) {
-    // BreakStatement的target是LabeledStatement，需要通过printer获取标签名
-    final label = statement.target != null ? 'label' : null;
-    return label != null ? 'break $label;' : 'break;';
+    // 无法直接获取标签名，统一输出 break;
+    return 'break;';
   } else if (statement is ContinueSwitchStatement) {
-    // ContinueSwitchStatement的target是LabeledStatement，需要通过printer获取标签名
-    final label = statement.target != null ? 'label' : null;
-    return label != null ? 'continue $label;' : 'continue;';
+    // 无法直接获取标签名，统一输出 continue;
+    return 'continue;';
   } else if (statement is LabeledStatement) {
     // LabeledStatement没有直接的label属性，需要通过printer获取
     final label = 'label'; // 使用默认标签名
@@ -2342,10 +2454,14 @@ String _generateStatementCode(Statement statement,
   } else if (statement is AssertStatement) {
     final condition = _generateExpressionCode(statement.condition,
         replaceThis: replaceThis, asStatement: false);
-    final message = statement.message != null
-        ? ': ${_generateExpressionCode(statement.message!, replaceThis: replaceThis, asStatement: false)}'
-        : '';
-    return 'assert $condition$message;';
+    // 生成正确的assert语法：assert(condition) 或 assert(condition, message)
+    if (statement.message != null) {
+      final message = _generateExpressionCode(statement.message!,
+          replaceThis: replaceThis, asStatement: false);
+      return 'assert($condition, $message);';
+    } else {
+      return 'assert($condition);';
+    }
   } else if (statement is YieldStatement) {
     final expression = _generateExpressionCode(statement.expression,
         replaceThis: replaceThis, asStatement: false);
@@ -2377,9 +2493,10 @@ String _generateStatementCode(Statement statement,
   } else if (statement is IfCaseStatement) {
     final expression = _generateExpressionCode(statement.expression,
         replaceThis: replaceThis, asStatement: false);
-    final patternGuard = statement.patternGuard != null
-        ? ' when ${statement.patternGuard.toString()}' // PatternGuard不是Expression类型
-        : '';
+    // 直接转为字符串（如果不存在则为空串）
+    final patternGuardStr = statement.patternGuard.toString();
+    final patternGuard =
+        patternGuardStr.isNotEmpty ? ' when $patternGuardStr' : '';
     final then = _generateStatementCode(statement.then,
         replaceThis: replaceThis, allowReturn: true);
     final otherwise = statement.otherwise != null
@@ -2425,51 +2542,4 @@ String _generateSwitchExpressionCase(
   return 'case $patternGuard => $body';
 }
 
-String _generateMethodCode(Member member, {bool replaceThis = false}) {
-  if (member is Procedure) {
-    final name = member.name.text;
-    final returnType = _getDartType(member.function.returnType);
-
-    // 处理位置参数
-    final positionalParams = member.function.positionalParameters
-        .map((p) =>
-            '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
-        .join(', ');
-
-    // 处理命名参数
-    final namedParams = member.function.namedParameters.map((p) {
-      final type = _getDartType(p.type);
-      final paramName = _cleanVariableName(p.name ?? 'param');
-      return '$type $paramName';
-    }).join(', ');
-
-    // 组合参数列表
-    String parameters = positionalParams;
-    if (namedParams.isNotEmpty) {
-      if (parameters.isNotEmpty) {
-        parameters += ', {$namedParams}';
-      } else {
-        parameters = '{$namedParams}';
-      }
-    }
-
-    // 检查是否是操作符方法
-    if (name == '[]' ||
-        name == '[]=' ||
-        name == '+' ||
-        name == '-' ||
-        name == '*' ||
-        name == '/' ||
-        name == '==' ||
-        name == '!=' ||
-        name == '<' ||
-        name == '>' ||
-        name == '<=' ||
-        name == '>=') {
-      return '@override\noperator $name($parameters) {\n  ${_generateStatementCode(member.function.body!, replaceThis: replaceThis, allowReturn: true)}\n}';
-    } else {
-      return '$returnType $name($parameters) {\n  ${_generateStatementCode(member.function.body!, replaceThis: replaceThis, allowReturn: true)}\n}';
-    }
-  }
-  return '// ${member.runtimeType}';
-}
+// 已移除未使用方法 _generateMethodCode

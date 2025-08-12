@@ -1,60 +1,54 @@
 @pragma('cpp:native', 'CppUserData')
-class CppUserData {
-  List<dynamic> data = List<dynamic>.filled(0, null, growable: true);
-}
+class CppUserData {}
 
 @pragma('cpp:native', 'CppApi')
 class CppApi {
   static CppUserData cppCreatePointerArray(int length) {
-    CppUserData userData = CppUserData();
-    userData.data.length = length;
-    return userData;
+    throw UnimplementedError();
   }
 
   static int cppGetPointerArrayLength(CppUserData array) {
-    return array.data.length;
+    throw UnimplementedError();
   }
 
   static Object? cppGetPointerArrayItem(CppUserData array, int index) {
-    return array.data[index];
+    throw UnimplementedError();
   }
 
   static void cppSetPointerArrayItem(
       CppUserData array, int index, Object? value) {
-    array.data[index] = value;
+    throw UnimplementedError();
   }
 
   static CppUserData cppCreateByteArray(int length) {
-    CppUserData userData = CppUserData();
-    userData.data.length = length;
-    return userData;
+    throw UnimplementedError();
   }
 
   static int cppGetByteArrayLength(CppUserData array) {
-    return array.data.length;
+    throw UnimplementedError();
   }
 
   static int cppGetByteArrayItem(CppUserData array, int index) {
-    return array.data[index];
+    throw UnimplementedError();
   }
 
   static void cppSetByteArrayItem(CppUserData array, int index, int value) {
-    array.data[index] = value;
+    throw UnimplementedError();
   }
 
   static String cppJoinListString(CppUserData array, String separator) {
-    return array.data.join(separator);
+    throw UnimplementedError();
   }
 
   static bool cppBoolValue(bool value) {
-    return value;
+    throw UnimplementedError();
   }
 
   static String getCurrentStackTrace() {
-    return StackTrace.current.toString();
+    throw UnimplementedError();
   }
 
   static void print(Object? object) {
-    print(object);
+    throw UnimplementedError();
   }
 }
