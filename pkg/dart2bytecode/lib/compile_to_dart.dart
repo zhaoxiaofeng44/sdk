@@ -546,13 +546,16 @@ class DartToDartTransformer {
     String? implementsClause;
     if (cls.implementedTypes.isNotEmpty) {
       final impls = cls.implementedTypes.map((t) {
+        // 获取接口类名
         String name = t.classNode.name;
         if (_classNameReplacements.containsKey(name)) {
           name = _classNameReplacements[name]!;
         }
-        if (t.classNode.typeParameters.isNotEmpty &&
-            cls.typeParameters.isNotEmpty) {
-          name += '<${cls.typeParameters.map((tp) => tp.name).join(', ')}>';
+
+        // 处理泛型类型参数
+        if (t.typeArguments.isNotEmpty) {
+          final typeArgs = t.typeArguments.map(_getDartType).join(', ');
+          name += '<$typeArgs>';
         }
         return name;
       }).join(', ');
@@ -1616,9 +1619,13 @@ String _generateExpressionCode2(Expression expression,
     // 处理构造函数名
     String constructorName = '';
     if (expression.target.name.text.isNotEmpty) {
-      // 避免使用外部库的私有命名构造（如 MapEntry._），改用公有默认构造
       final ctorName = expression.target.name.text;
-      if (!ctorName.startsWith('_')) {
+
+      // 特殊处理：构造函数名为 "_" 时，这通常表示默认构造函数
+      // 在这种情况下不添加点前缀
+      if (ctorName != '_') {
+        // 保留所有命名构造函数，包括以下划线开头的私有命名构造函数
+        // 这对于单例模式等设计模式非常重要
         constructorName = '.$ctorName';
       }
     }

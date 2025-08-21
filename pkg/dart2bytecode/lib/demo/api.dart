@@ -24,6 +24,22 @@ class CppApi {
     array.data[index] = value;
   }
 
+  static CppUserData cppCreatePointerArrayConst(int length,
+      [Object? v1,
+      Object? v2,
+      Object? v3,
+      Object? v4,
+      Object? v5,
+      Object? v6,
+      Object? v7,
+      Object? v8,
+      Object? v9,
+      Object? v10]) {
+    CppUserData userData = CppUserData();
+    userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
+    return userData;
+  }
+
   static CppUserData cppCreateByteArray(int length) {
     CppUserData userData = CppUserData();
     userData.data.length = length;
@@ -40,10 +56,6 @@ class CppApi {
 
   static void cppSetByteArrayItem(CppUserData array, int index, int value) {
     array.data[index] = value;
-  }
-
-  static String cppJoinListString(CppUserData array, String separator) {
-    return array.data.join(separator);
   }
 
   static bool cppBoolValue(bool value) {

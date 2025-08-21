@@ -1,11 +1,19 @@
 import 'dart:math';
 
+import 'api.dart';
 import 'collection.dart';
-import 'Iterable.dart';
 import 'error.dart';
 import 'string.dart';
 
 void main() {
+  CppString a = CppString.fromCppUserData(CppApi.cppCreateByteArray(6));
+  a.toString();
+  a.length;
+  a.codeUnitAt(0);
+  a.substring(0, 1);
+  a.compareTo(CppString.Empty);
+  a.contains(CppString.Empty);
+
   testCollectionMethods();
   testIterableMethods();
 }
@@ -44,7 +52,7 @@ void testCollectionMethods() {
 @pragma('wasm:entry-point')
 void testIterableMethods() {
   // 测试 CppIterable
-  CppList<int> iterableList = CppList<int>.from([1, 2, 3, 4, 5]);
+  CppList<int> iterableList = CppList.from(List.from([1, 2, 3, 4, 5]));
 
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);

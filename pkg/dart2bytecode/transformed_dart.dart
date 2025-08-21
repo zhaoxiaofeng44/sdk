@@ -6,6 +6,97 @@ import 'dart:typed_data';
 /// 全局Void类型变量，用于替代void返回值
 final Void = null;
 
+/// 转换后的类: CppUserData
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+
+class CppUserData {
+  List<dynamic?> data = _GrowableList.<dynamic?>(0);
+CppUserData() : super()   {
+    ;
+  }
+  
+}
+
+/// 转换后的类: CppApi
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+
+class CppApi {
+CppApi() : super()   {
+    ;
+  }
+  
+  static CppUserData cppCreatePointerArray(int length) {
+    {
+  CppUserData userData = CppUserData();
+  userData.data.length = length;
+  return userData;
+}
+  }
+  
+  static int cppGetPointerArrayLength(CppUserData array) {
+    {
+  return array.data.length;
+}
+  }
+  
+  static Object? cppGetPointerArrayItem(CppUserData array, int index) {
+    {
+  return array.data[index];
+}
+  }
+  
+  static void cppSetPointerArrayItem(CppUserData array, int index, Object? value) {
+    {
+  array.data[index] = value;
+}
+  }
+  
+  static CppUserData cppCreateByteArray(int length) {
+    {
+  CppUserData userData = CppUserData();
+  userData.data.length = length;
+  return userData;
+}
+  }
+  
+  static int cppGetByteArrayLength(CppUserData array) {
+    {
+  return array.data.length;
+}
+  }
+  
+  static int cppGetByteArrayItem(CppUserData array, int index) {
+    {
+  return array.data[index] as int;
+}
+  }
+  
+  static void cppSetByteArrayItem(CppUserData array, int index, int value) {
+    {
+  array.data[index] = value;
+}
+  }
+  
+  static bool cppBoolValue(bool value) {
+    {
+  return value;
+}
+  }
+  
+  static String getCurrentStackTrace() {
+    {
+  return StackTrace.current.toString();
+}
+  }
+  
+  static void print(Object? object) {
+    {
+  CppApi.print(object);
+}
+  }
+  
+}
+
 /// 转换后的类: CppList
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
@@ -49,7 +140,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_1268_2190 = i; return (() { final int temp_1268_2194 = i = (temp_1268_2190 + 1); return temp_1268_2190; })(); })(), element);
+  CppApi.cppSetPointerArrayItem(array, (() { final int temp_1290_2299 = i; return (() { final int temp_1290_2303 = i = (temp_1290_2299 + 1); return temp_1290_2299; })(); })(), element);
 }
 }
 }
@@ -85,7 +176,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_2097_2286 = i; return (() { final int temp_2097_2290 = i = (temp_2097_2286 + 1); return temp_2097_2286; })(); })(), element as E);
+  CppApi.cppSetPointerArrayItem(array, (() { final int temp_2119_2395 = i; return (() { final int temp_2119_2399 = i = (temp_2119_2395 + 1); return temp_2119_2395; })(); })(), element as E);
 }
 }
 }
@@ -122,7 +213,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   void add(E value) {
     {
   this.ensureCapacity((this._length + 1));
-  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_3193_2443 = this._length; return (() { final int temp_3186_2448 = this._length = (temp_3193_2443 + 1); return temp_3193_2443; })(); })(), value);
+  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_3215_2552 = this._length; return (() { final int temp_3208_2557 = this._length = (temp_3215_2552 + 1); return temp_3215_2552; })(); })(), value);
 }
   }
   
@@ -207,7 +298,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
     {
   for (int i = start; (i < end); i = (i + 1)) {
   {
-  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_8960 = fillValue; return temp_8960 == null ? temp_8960 as E : temp_8960; })());
+  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_1563 = fillValue; return temp_1563 == null ? temp_1563 as E : temp_1563; })());
 }
 }
 }
@@ -363,7 +454,9 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   String join([String separator = ""]) {
     {
   if (this._length == 0) return "";
-  return CppApi.cppJoinListString(this._array, separator);
+  StringBuffer buffer = StringBuffer();
+  buffer.writeAll(this, separator);
+  return buffer.toString();
 }
   }
   
@@ -1112,6 +1205,18 @@ CppSet([int capacity = 4]) : _list = CppList<E>(0, capacity), super()   {
   
 }
 
+/// 转换后的类: CppMapEntry
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
+
+class CppMapEntry<K, V> {
+  late K key;
+  late V value;
+CppMapEntry(K key, V value) : key = key, value = value, super()   {
+    ;
+  }
+  
+}
+
 /// 转换后的类: CppMap
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
@@ -1156,8 +1261,8 @@ CppMap([int capacity = 4]) : _list = CppList<MapEntry<K, V>>(0, capacity), super
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  dynamic? k = ((() { final K Function(dynamic?)? temp_22404_5569 = key; return temp_22404_5569 == null ? null : temp_22404_5569(element); })()) ?? (element);
-  dynamic? v = ((() { final V Function(dynamic?)? temp_22449_5579 = value; return temp_22449_5579 == null ? null : temp_22449_5579(element); })()) ?? (element);
+  dynamic? k = ((() { final K Function(dynamic?)? temp_22638_5693 = key; return temp_22638_5693 == null ? null : temp_22638_5693(element); })()) ?? (element);
+  dynamic? v = ((() { final V Function(dynamic?)? temp_22683_5703 = value; return temp_22683_5703 == null ? null : temp_22683_5703(element); })()) ?? (element);
   map[k as K] = v as V;
 }
 }
@@ -1199,7 +1304,7 @@ CppMap([int capacity = 4]) : _list = CppList<MapEntry<K, V>>(0, capacity), super
   
   void addAll(Map<K, V> other) {
     {
-  other.forEach((K k, V v) { return (() { final K temp_23521_5794 = k; return (() { final V temp_23527_5796 = v; return (() { this[temp_23521_5794] = temp_23527_5796; temp_23527_5796; })(); })(); })();});
+  other.forEach((K k, V v) { return (() { final K temp_23755_5918 = k; return (() { final V temp_23761_5920 = v; return (() { this[temp_23755_5918] = temp_23761_5920; temp_23761_5920; })(); })(); })();});
 }
   }
   
@@ -1477,6 +1582,917 @@ CppMap([int capacity = 4]) : _list = CppList<MapEntry<K, V>>(0, capacity), super
   
 }
 
+/// 转换后的类: CppError
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
+
+class CppError implements Error {
+CppError() : super()   {
+    ;
+  }
+  
+  StackTrace? get stackTrace {
+    return CppStackTrace.current;
+  }
+  
+  static String safeToString(Object? object) {
+    {
+  if (object == null) {
+  return "null";
+}
+  if (object is String) {
+  return object as String;
+}
+  return object.toString();
+}
+  }
+  
+}
+
+/// 转换后的类: CppStackTrace
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
+
+class CppStackTrace implements StackTrace {
+  static CppStackTrace _current = CppStackTrace();
+CppStackTrace() : super()   {
+    ;
+  }
+  
+  static CppStackTrace get current {
+    return CppStackTrace._current;
+  }
+  
+  String toString() {
+    return CppApi.getCurrentStackTrace();
+  }
+  
+}
+
+/// 转换后的类: CppStringPool
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class CppStringPool {
+  static final CppStringPool _instance = CppStringPool._internal();
+  late List<CppUserData> _pool = _GrowableList._literal1<CppUserData>(cppUserDataEmpty);
+CppStringPool._internal() : super()   {
+    ;
+  }
+  
+  static CppStringPool get instance {
+    return CppStringPool._instance;
+  }
+  
+  CppUserData getOrCreateFromCodeUnits(List<int> codeUnits) {
+    {
+  {
+  Iterator<CppUserData> _sync_for_iterator = this._pool.iterator;
+  for (; _sync_for_iterator.moveNext();) {
+  {
+  CppUserData existing = _sync_for_iterator.current;
+  {
+  if (this._compareUserData(existing, codeUnits)) {
+  return existing;
+}
+}
+}
+}
+}
+  CppUserData userData = CppApi.cppCreateByteArray(codeUnits.length);
+  for (int i = 0; (i < codeUnits.length); i = (i + 1)) {
+  {
+  CppApi.cppSetByteArrayItem(userData, i, codeUnits[i]);
+}
+}
+  this._pool.add(userData);
+  return userData;
+}
+  }
+  
+  CppUserData getOrCreateFromUserData(CppUserData userData) {
+    {
+  if (this._pool.contains(userData)) {
+  return userData;
+}
+  this._pool.add(userData);
+  return userData;
+}
+  }
+  
+  bool _compareUserData(CppUserData userData, List<int> codeUnits) {
+    {
+  int length = CppApi.cppGetByteArrayLength(userData);
+  if (!(length == codeUnits.length)) return false;
+  for (int i = 0; (i < length); i = (i + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(userData, i) == codeUnits[i])) {
+  return false;
+}
+}
+}
+  return true;
+}
+  }
+  
+  void clear() {
+    {
+  this._pool.clear();
+}
+  }
+  
+  CppStringPoolStats getStats() {
+    {
+  int totalMemory = 0;
+  {
+  Iterator<CppUserData> _sync_for_iterator = this._pool.iterator;
+  for (; _sync_for_iterator.moveNext();) {
+  {
+  CppUserData userData = _sync_for_iterator.current;
+  {
+  totalMemory = (totalMemory + CppApi.cppGetByteArrayLength(userData));
+}
+}
+}
+}
+  return CppStringPoolStats(totalStrings: this._pool.length, totalMemory: totalMemory);
+}
+  }
+  
+}
+
+/// 转换后的类: CppStringPoolStats
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class CppStringPoolStats {
+  late int totalStrings;
+  late int totalMemory;
+CppStringPoolStats({int totalStrings, int totalMemory}) : totalStrings = totalStrings, totalMemory = totalMemory, super()   {
+    ;
+  }
+  
+  String toString() {
+    {
+  return "CppStringPoolStats{\n" + "  不同字符串数: " + (this.totalStrings).toString() + "\n" + "  总内存使用: " + (this.totalMemory).toString() + " 字符\n" + "}";
+}
+  }
+  
+}
+
+/// 转换后的类: CppStringBuffer
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class CppStringBuffer {
+  late List<CppUserData> _parts;
+CppStringBuffer([Object content = ""]) : _parts = _GrowableList._literal1<CppUserData>(CppStringBuffer._convertStringToUserData(content)), super()   {
+    ;
+  }
+  
+  void write(Object? obj) {
+    {
+  if (obj == null) return;
+  this._parts.add(CppStringBuffer._convertStringToUserData(obj));
+}
+  }
+  
+  void writeAll(Iterable<dynamic?> objects, [CppString? separator = null]) {
+    {
+  Iterator<dynamic?> iterator = objects.iterator;
+  if (iterator.moveNext()) {
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1800 = iterator.current; return temp_1800 == null ? temp_1800 as Object : temp_1800; })()));
+  while (iterator.moveNext()) {
+  if (!(separator == null) && separator.isNotEmpty) {
+  this._parts.add(separator._codeUnits);
+}
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1808 = iterator.current; return temp_1808 == null ? temp_1808 as Object : temp_1808; })()));
+}
+}
+}
+  }
+  
+  void writeCharCode(int charCode) {
+    {
+  this._parts.add(CppStringBuffer._convertStringToUserData(CppString.fromCharCode(charCode)));
+}
+  }
+  
+  void writeln([Object? obj = ""]) {
+    {
+  if (!(obj == null)) {
+  this._parts.add(CppStringBuffer._convertStringToUserData(obj));
+}
+  this._parts.add(CppStringBuffer._convertStringToUserData(CppString.fromCharCode(10)));
+}
+  }
+  
+  void clear() {
+    {
+  this._parts.clear();
+}
+  }
+  
+  CppString toCppString() {
+    {
+  List<int> codeUnits = _GrowableList.<int>(0);
+  {
+  Iterator<CppUserData> _sync_for_iterator = this._parts.iterator;
+  for (; _sync_for_iterator.moveNext();) {
+  {
+  CppUserData part = _sync_for_iterator.current;
+  {
+  int length = CppApi.cppGetByteArrayLength(part);
+  for (int i = 0; (i < length); i = (i + 1)) {
+  {
+  codeUnits.add(CppApi.cppGetByteArrayItem(part, i));
+}
+}
+}
+}
+}
+}
+  return CppString.fromCodeUnits(codeUnits);
+}
+  }
+  
+  int get length {
+    {
+  int totalLength = 0;
+  {
+  Iterator<CppUserData> _sync_for_iterator = this._parts.iterator;
+  for (; _sync_for_iterator.moveNext();) {
+  {
+  CppUserData part = _sync_for_iterator.current;
+  {
+  totalLength = (totalLength + CppApi.cppGetByteArrayLength(part));
+}
+}
+}
+}
+  return totalLength;
+}
+  }
+  
+  bool get isEmpty {
+    return this._parts.isEmpty;
+  }
+  
+  bool get isNotEmpty {
+    return this._parts.isNotEmpty;
+  }
+  
+  static CppUserData _convertStringToUserData(Object obj) {
+    {
+  if (obj is CppString) {
+  return obj._codeUnits;
+}
+  return CppStringPool.instance.getOrCreateFromCodeUnits(CppStringBuffer._convertStringToCodeUnits(obj.toString()));
+}
+  }
+  
+  static List<int> _convertStringToCodeUnits(String str) {
+    {
+  List<int> codeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < str.length); i = (i + 1)) {
+  {
+  codeUnits.add(str.codeUnitAt(i));
+}
+}
+  return codeUnits;
+}
+  }
+  
+}
+
+/// 转换后的类: CppString
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class CppString implements Comparable<CppString> {
+  static CppString Empty = CppString.fromCppUserData(cppUserDataEmpty);
+  late CppUserData _codeUnits;
+CppString.fromCppUserData(CppUserData userData) : _codeUnits = CppStringPool.instance.getOrCreateFromUserData(userData), super()   {
+    ;
+  }
+  
+CppString.fromCodeUnits(List<int> codeUnits) : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(codeUnits), super()   {
+    ;
+  }
+  
+CppString.fromCharCode(int charCode) : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(_GrowableList._literal1<int>(charCode)), super()   {
+    ;
+  }
+  
+CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null]) : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(charCodes.skip(start).take(((end) ?? (charCodes.length) - start)).toList()), super()   {
+    ;
+  }
+  
+  String _toExternalString() {
+    {
+  List<int> codeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  codeUnits.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
+}
+}
+  return String.fromCharCodes(codeUnits);
+}
+  }
+  
+  bool _equalCodeUnits(CppString other) {
+    {
+  int thisLength = this.length;
+  int otherLength = other.length;
+  if (!(thisLength == otherLength)) return false;
+  for (int i = 0; (i < thisLength); i = (i + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(this._codeUnits, i) == CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
+  return false;
+}
+}
+}
+  return true;
+}
+  }
+  
+  int get length {
+    return CppApi.cppGetByteArrayLength(this._codeUnits);
+  }
+  
+  bool get isEmpty {
+    return this.length == 0;
+  }
+  
+  bool get isNotEmpty {
+    return (this.length > 0);
+  }
+  
+  int get hashCode {
+    {
+  int hash = 0;
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  hash = (((hash * 31) + CppApi.cppGetByteArrayItem(this._codeUnits, i)) & 2147483647);
+}
+}
+  return hash;
+}
+  }
+  
+  int codeUnitAt(int index) {
+    {
+  if ((index < 0) || (index >= this.length)) {
+  throw IndexError(index, this, "index");
+}
+  return CppApi.cppGetByteArrayItem(this._codeUnits, index);
+}
+  }
+  
+  List<int> get codeUnits {
+    {
+  int thisLength = this.length;
+  List<int> units = _GrowableList.<int>(0);
+  for (int i = 0; (i < thisLength); i = (i + 1)) {
+  {
+  units.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
+}
+}
+  return units;
+}
+  }
+  
+  Runes get runes {
+    return this._toExternalString().runes;
+  }
+  
+  int compareTo(CppString other) {
+    {
+  int thisLength = this.length;
+  int otherLength = other.length;
+  int minLength = (thisLength < otherLength) ? thisLength : otherLength;
+  for (int i = 0; (i < minLength); i = (i + 1)) {
+  {
+  int thisCodeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  int otherCodeUnit = CppApi.cppGetByteArrayItem(other._codeUnits, i);
+  if (!(thisCodeUnit == otherCodeUnit)) {
+  return (thisCodeUnit - otherCodeUnit);
+}
+}
+}
+  return (thisLength - otherLength);
+}
+  }
+  
+  bool startsWith(CppString pattern, [int index = 0]) {
+    {
+  if ((index < 0) || (index >= this.length)) return false;
+  if (((index + pattern.length) > this.length)) return false;
+  for (int i = 0; (i < pattern.length); i = (i + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(this._codeUnits, (index + i)) == CppApi.cppGetByteArrayItem(pattern._codeUnits, i))) {
+  return false;
+}
+}
+}
+  return true;
+}
+  }
+  
+  bool endsWith(CppString other) {
+    {
+  if ((other.length > this.length)) return false;
+  int startIndex = (this.length - other.length);
+  for (int i = 0; (i < other.length); i = (i + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(this._codeUnits, (startIndex + i)) == CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
+  return false;
+}
+}
+}
+  return true;
+}
+  }
+  
+  int indexOf(CppString pattern, [int start = 0]) {
+    {
+  if ((start < 0)) start = 0;
+  if (pattern.isEmpty) return start;
+  if (((start + pattern.length) > this.length)) return -1;
+  for (int i = start; (i <= (this.length - pattern.length)); i = (i + 1)) {
+  {
+  bool match = true;
+  label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
+  match = false;
+  break;
+}
+}
+}
+  if (match) return i;
+}
+}
+  return -1;
+}
+  }
+  
+  int lastIndexOf(CppString pattern, [int? start = null]) {
+    {
+  if (pattern.isEmpty) return (start) ?? (this.length);
+  start == null ? start = this.length : null;
+  if ((start < 0)) return -1;
+  if (((start + pattern.length) > this.length)) start = (this.length - pattern.length);
+  for (int i = start; (i >= 0); i = (i - 1)) {
+  {
+  bool match = true;
+  label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
+  match = false;
+  break;
+}
+}
+}
+  if (match) return i;
+}
+}
+  return -1;
+}
+  }
+  
+  bool contains(CppString other, [int startIndex = 0]) {
+    {
+  return !(this.indexOf(other, startIndex) == -1);
+}
+  }
+  
+  CppString substring(int start, [int? end = null]) {
+    {
+  end == null ? end = this.length : null;
+  if ((start < 0)) start = 0;
+  if ((end > this.length)) end = this.length;
+  if ((start >= end)) return CppString.Empty;
+  int newLength = (end - start);
+  List<int> newCodeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < newLength); i = (i + 1)) {
+  {
+  int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, (start + i));
+  newCodeUnits.add(codeUnit);
+}
+}
+  return CppString.fromCodeUnits(newCodeUnits);
+}
+  }
+  
+  CppString trim() {
+    {
+  int start = 0;
+  int end = this.length;
+  while ((start < end) && this._isWhitespace(CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
+  start = (start + 1);
+}
+  while ((end > start) && this._isWhitespace(CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
+  end = (end - 1);
+}
+  return this.substring(start, end);
+}
+  }
+  
+  CppString trimLeft() {
+    {
+  int start = 0;
+  while ((start < this.length) && this._isWhitespace(CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
+  start = (start + 1);
+}
+  return this.substring(start);
+}
+  }
+  
+  CppString trimRight() {
+    {
+  int end = this.length;
+  while ((end > 0) && this._isWhitespace(CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
+  end = (end - 1);
+}
+  return this.substring(0, end);
+}
+  }
+  
+  bool _isWhitespace(int codeUnit) {
+    {
+  return codeUnit == 9 || codeUnit == 10 || codeUnit == 11 || codeUnit == 12 || codeUnit == 13 || codeUnit == 32 || codeUnit == 160;
+}
+  }
+  
+  CppString padLeft(int width, [CppString? padding = null]) {
+    {
+  if ((width <= this.length)) return this;
+  padding == null ? padding = CppString.fromCharCode(32) : null;
+  int padLength = (width - this.length);
+  int padCount = (padLength / padding.length).ceil();
+  CppString padString = (padding * padCount);
+  CppString actualPad = padString.substring(0, padLength);
+  return (actualPad + this);
+}
+  }
+  
+  CppString padRight(int width, [CppString? padding = null]) {
+    {
+  if ((width <= this.length)) return this;
+  padding == null ? padding = CppString.fromCharCode(32) : null;
+  int padLength = (width - this.length);
+  int padCount = (padLength / padding.length).ceil();
+  CppString padString = (padding * padCount);
+  CppString actualPad = padString.substring(0, padLength);
+  return (this + actualPad);
+}
+  }
+  
+  CppString replaceFirst(CppString from, CppString to, [int startIndex = 0]) {
+    {
+  int index = this.indexOf(from, startIndex);
+  if (index == -1) return this;
+  CppString beforePart = this.substring(0, index);
+  CppString afterPart = this.substring((index + from.length));
+  return ((beforePart + to) + afterPart);
+}
+  }
+  
+  CppString replaceAll(CppString from, CppString replace) {
+    {
+  if (from.isEmpty) return this;
+  List<CppString> parts = this.split(from);
+  if (parts.length == 1) return this;
+  List<CppString> result = _GrowableList.<CppString>(0);
+  for (int i = 0; (i < parts.length); i = (i + 1)) {
+  {
+  result.add(parts[i]);
+  if ((i < (parts.length - 1))) {
+  result.add(replace);
+}
+}
+}
+  return CppString.join(result);
+}
+  }
+  
+  CppString replaceRange(int start, int? end, CppString replacement) {
+    {
+  end == null ? end = this.length : null;
+  if ((start < 0)) start = 0;
+  if ((end > this.length)) end = this.length;
+  if ((start >= end)) return (this + replacement);
+  CppString beforePart = this.substring(0, start);
+  CppString afterPart = this.substring(end);
+  return ((beforePart + replacement) + afterPart);
+}
+  }
+  
+  List<CppString> split(CppString separator) {
+    {
+  if (separator.isEmpty) {
+  List<CppString> result = _GrowableList.<CppString>(0);
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  result.add(this.substring(i, (i + 1)));
+}
+}
+  return result;
+}
+  List<CppString> result = _GrowableList.<CppString>(0);
+  int start = 0;
+  int index = this.indexOf(separator, start);
+  while (!(index == -1)) {
+  result.add(this.substring(start, index));
+  start = (index + separator.length);
+  index = this.indexOf(separator, start);
+}
+  result.add(this.substring(start));
+  return result;
+}
+  }
+  
+  CppString toLowerCase() {
+    {
+  List<int> resultCodeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  if ((codeUnit >= 65) && (codeUnit <= 90)) {
+  codeUnit = (codeUnit + 32);
+}
+  resultCodeUnits.add(codeUnit);
+}
+}
+  return CppString.fromCodeUnits(resultCodeUnits);
+}
+  }
+  
+  CppString toUpperCase() {
+    {
+  List<int> resultCodeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  if ((codeUnit >= 97) && (codeUnit <= 122)) {
+  codeUnit = (codeUnit - 32);
+}
+  resultCodeUnits.add(codeUnit);
+}
+}
+  return CppString.fromCodeUnits(resultCodeUnits);
+}
+  }
+  
+  Iterable<CppStringMatch> allMatches(CppString string, [int start = 0]) {
+    {
+  if ((start < 0) || (start > string.length)) {
+  throw RangeError.range(start, 0, string.length, "start");
+}
+  return _CppStringAllMatchesIterable(string, this, start);
+}
+  }
+  
+  CppStringMatch? matchAsPrefix(CppString string, [int start = 0]) {
+    {
+  if ((start < 0) || (start > string.length)) {
+  throw RangeError.range(start, 0, string.length);
+}
+  if (((start + this.length) > string.length)) return null;
+  for (int i = 0; (i < this.length); i = (i + 1)) {
+  {
+  if (!(CppApi.cppGetByteArrayItem(string._codeUnits, (start + i)) == CppApi.cppGetByteArrayItem(this._codeUnits, i))) {
+  return null;
+}
+}
+}
+  return CppStringMatch(start, string, this);
+}
+  }
+  
+  CppString toCppString() {
+    {
+  return this;
+}
+  }
+  
+  String toStandardString() {
+    {
+  return this._toExternalString();
+}
+  }
+  
+  void dispose() {
+    {
+  
+}
+  }
+  
+  bool sharesDataWith(CppString other) {
+    {
+  return identical(this._codeUnits, other._codeUnits);
+}
+  }
+  
+  int get dataHashCode {
+    return this._codeUnits.hashCode;
+  }
+  
+  static CppString fromString(String source) {
+    {
+  List<int> codeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < source.length); i = (i + 1)) {
+  {
+  codeUnits.add(source.codeUnitAt(i));
+}
+}
+  return CppString.fromCodeUnits(codeUnits);
+}
+  }
+  
+  static CppString join(Iterable<CppString> strings, [CppString? separator = null]) {
+    {
+  separator == null ? separator = CppString.Empty : null;
+  List<CppString> stringList = strings.toList();
+  if (stringList.isEmpty) return CppString.Empty;
+  if (stringList.length == 1) return stringList[0];
+  List<int> newCodeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < stringList.length); i = (i + 1)) {
+  {
+  CppString str = stringList[i];
+  for (int j = 0; (j < str.length); j = (j + 1)) {
+  {
+  newCodeUnits.add(CppApi.cppGetByteArrayItem(str._codeUnits, j));
+}
+}
+  if ((i < (stringList.length - 1))) {
+  for (int j = 0; (j < separator.length); j = (j + 1)) {
+  {
+  newCodeUnits.add(CppApi.cppGetByteArrayItem(separator._codeUnits, j));
+}
+}
+}
+}
+}
+  return CppString.fromCodeUnits(newCodeUnits);
+}
+  }
+  
+  CppString operator [](int index) {
+    {
+  int thisLength = this.length;
+  if ((index < 0) || (index >= thisLength)) {
+  throw IndexError(index, this, "index");
+}
+  int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, index);
+  return CppString.fromCharCode(codeUnit);
+}
+  }
+  
+  bool operator ==(Object other) {
+    {
+  if (identical(this, other)) return true;
+  if (other is CppString) {
+  return this._equalCodeUnits(other);
+}
+  return false;
+}
+  }
+  
+  CppString operator +(CppString other) {
+    {
+  int thisLength = this.length;
+  int otherLength = other.length;
+  List<int> newCodeUnits = _GrowableList.<int>(0);
+  for (int i = 0; (i < thisLength); i = (i + 1)) {
+  {
+  newCodeUnits.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
+}
+}
+  for (int i = 0; (i < otherLength); i = (i + 1)) {
+  {
+  newCodeUnits.add(CppApi.cppGetByteArrayItem(other._codeUnits, i));
+}
+}
+  return CppString.fromCodeUnits(newCodeUnits);
+}
+  }
+  
+  CppString operator *(int times) {
+    {
+  if ((times <= 0)) return CppString.Empty;
+  if (times == 1) return this;
+  int thisLength = this.length;
+  List<int> newCodeUnits = _GrowableList.<int>(0);
+  for (int repeat = 0; (repeat < times); repeat = (repeat + 1)) {
+  {
+  for (int i = 0; (i < thisLength); i = (i + 1)) {
+  {
+  newCodeUnits.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
+}
+}
+}
+}
+  return CppString.fromCodeUnits(newCodeUnits);
+}
+  }
+  
+}
+
+/// 转换后的类: CppStringMatch
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class CppStringMatch {
+  late int start;
+  late CppString input;
+  late CppString pattern;
+CppStringMatch(int start, CppString input, CppString pattern) : start = start, input = input, pattern = pattern, super()   {
+    ;
+  }
+  
+  int get end {
+    return (this.start + this.pattern.length);
+  }
+  
+  CppString group(int group) {
+    {
+  if (!(group == 0)) {
+  throw RangeError.value(group);
+}
+  return this.pattern;
+}
+  }
+  
+  int get groupCount {
+    return 0;
+  }
+  
+  CppString operator [](int group) {
+    return group == 0 ? this.pattern : throw RangeError.value(group);
+  }
+  
+}
+
+/// 转换后的类: _CppStringAllMatchesIterable
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class _CppStringAllMatchesIterable extends Iterable<CppStringMatch> {
+  late CppString _input;
+  late CppString _pattern;
+  late int _index;
+_CppStringAllMatchesIterable(CppString _input, CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
+    ;
+  }
+  
+  Iterator<CppStringMatch> get iterator {
+    return _CppStringAllMatchesIterator(this._input, this._pattern, this._index);
+  }
+  
+  CppStringMatch get first {
+    {
+  int index = this._input.indexOf(this._pattern, this._index);
+  if ((index >= 0)) {
+  return CppStringMatch(index, this._input, this._pattern);
+}
+  throw StateError("No element");
+}
+  }
+  
+}
+
+/// 转换后的类: _CppStringAllMatchesIterator
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+class _CppStringAllMatchesIterator implements Iterator<CppStringMatch> {
+  late int _index;
+  CppStringMatch? _current = null;
+  late CppString _input;
+  late CppString _pattern;
+_CppStringAllMatchesIterator(CppString _input, CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
+    ;
+  }
+  
+  bool moveNext() {
+    {
+  int patternLen = this._pattern.length;
+  if (((this._index + patternLen) > this._input.length)) {
+  this._current = null;
+  return false;
+}
+  int index = this._input.indexOf(this._pattern, this._index);
+  if ((index < 0)) {
+  this._index = (this._input.length + 1);
+  this._current = null;
+  return false;
+}
+  int end = (index + patternLen);
+  this._current = CppStringMatch(index, this._input, this._pattern);
+  this._index = end == this._index ? (end + 1) : end;
+  return true;
+}
+  }
+  
+  CppStringMatch get current {
+    return (() { final CppStringMatch? temp_1877 = this._current; return temp_1877 == null ? temp_1877 as CppStringMatch : temp_1877; })();
+  }
+  
+}
+
 /// 转换后的类: CppIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
@@ -1528,7 +2544,7 @@ CppIterable() : super()   {
   while (it.moveNext()) {
   result = it.current;
 }
-  return (() { final E? temp_9168 = result; return temp_9168 == null ? temp_9168 as E : temp_9168; })();
+  return (() { final E? temp_1885 = result; return temp_1885 == null ? temp_1885 as E : temp_1885; })();
 }
   }
   
@@ -1642,7 +2658,7 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_9176 = result; return temp_9176 == null ? temp_9176 as E : temp_9176; })();
+  if (found) return (() { final E? temp_1893 = result; return temp_1893 == null ? temp_1893 as E : temp_1893; })();
   if (!(orElse == null)) return orElse();
   throw StateError("No element");
 }
@@ -1660,7 +2676,7 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_9184 = result; return temp_9184 == null ? temp_9184 as E : temp_9184; })();
+  if (found) return (() { final E? temp_1901 = result; return temp_1901 == null ? temp_1901 as E : temp_1901; })();
   if (!(orElse == null)) return orElse();
   throw StateError("No element");
 }
@@ -1812,13 +2828,13 @@ CppMappedIterator(Iterator<S> _iterator, T Function(S) _f) : _iterator = _iterat
   }
   
   T get current {
-    return (() { final T? temp_9192 = this._current; return temp_9192 == null ? temp_9192 as T : temp_9192; })();
+    return (() { final T? temp_1909 = this._current; return temp_1909 == null ? temp_1909 as T : temp_1909; })();
   }
   
   bool moveNext() {
     {
   if (this._iterator.moveNext()) {
-  this._current = (() { final S temp_6672_7183 = this._iterator.current; return this._f(temp_6672_7183); })();
+  this._current = (() { final S temp_6672_154 = this._iterator.current; return this._f(temp_6672_154); })();
   return true;
 }
   return false;
@@ -1871,7 +2887,7 @@ CppWhereIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator = _i
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if ((() { final E temp_7471_7269 = this._iterator.current; return this._test(temp_7471_7269); })()) {
+  if ((() { final E temp_7471_240 = this._iterator.current; return this._test(temp_7471_240); })()) {
   return true;
 }
 }
@@ -1984,7 +3000,7 @@ CppExpandIterator(Iterator<S> _iterator, Iterable<T> Function(S) _f) : _iterator
   if (!(this._iterator.moveNext())) {
   return false;
 }
-  this._currentIterator = (() { final S temp_9233_7450 = this._iterator.current; return this._f(temp_9233_7450); })().iterator;
+  this._currentIterator = (() { final S temp_9233_421 = this._iterator.current; return this._f(temp_9233_421); })().iterator;
 }
 }
   }
@@ -2085,7 +3101,7 @@ CppTakeWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator 
     {
   if (this._finished) return false;
   if (this._iterator.moveNext()) {
-  if ((() { final E temp_10824_7631 = this._iterator.current; return this._test(temp_10824_7631); })()) {
+  if ((() { final E temp_10824_602 = this._iterator.current; return this._test(temp_10824_602); })()) {
   return true;
 }
   this._finished = true;
@@ -2193,7 +3209,7 @@ CppSkipWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator 
     {
   if (!(this._skipped)) {
   while (this._iterator.moveNext()) {
-  if (!((() { final E temp_12510_7833 = this._iterator.current; return this._test(temp_12510_7833); })())) {
+  if (!((() { final E temp_12510_804 = this._iterator.current; return this._test(temp_12510_804); })())) {
   this._skipped = true;
   return true;
 }
@@ -2407,13 +3423,13 @@ _CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, 
   }
   
   E get current {
-    return (() { final E? temp_9200 = this._current; return temp_9200 == null ? temp_9200 as E : temp_9200; })();
+    return (() { final E? temp_1917 = this._current; return temp_1917 == null ? temp_1917 as E : temp_1917; })();
   }
   
   bool moveNext() {
     {
   if ((this._index < this._count)) {
-  this._current = (() { final int temp_15700_8139 = (() { final int temp_15700_8107 = this._index; return (() { final int temp_15694_8112 = this._index = (temp_15700_8107 + 1); return temp_15700_8107; })(); })(); return this._generator(temp_15700_8139); })();
+  this._current = (() { final int temp_15700_1110 = (() { final int temp_15700_1078 = this._index; return (() { final int temp_15694_1083 = this._index = (temp_15700_1078 + 1); return temp_15700_1078; })(); })(); return this._generator(temp_15700_1110); })();
   return true;
 }
   return false;
@@ -2479,227 +3495,18 @@ _CppCastFromIterator(Iterator<S> _iterator) : _iterator = _iterator, super()   {
   
 }
 
-/// 转换后的类: CppError
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
-
-class CppError implements Error {
-CppError() : super()   {
-    ;
-  }
-  
-  StackTrace? get stackTrace {
-    return CppStackTrace.current;
-  }
-  
-  static String safeToString(Object? object) {
-    {
-  if (object == null) {
-  return "null";
-}
-  if (object is String) {
-  return object as String;
-}
-  return object.toString();
-}
-  }
-  
-}
-
-/// 转换后的类: CppStackTrace
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
-
-class CppStackTrace implements StackTrace {
-  static CppStackTrace _current = CppStackTrace();
-CppStackTrace() : super()   {
-    ;
-  }
-  
-  static CppStackTrace get current {
-    return CppStackTrace._current;
-  }
-  
-  String toString() {
-    return CppApi.getCurrentStackTrace();
-  }
-  
-}
-
-/// 转换后的类: CppStringBuffer
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
-
-class CppStringBuffer implements StringBuffer {
-  late CppList<String> _parts;
-CppStringBuffer([Object content = ""]) : _parts = (() { final CppList<String> temp_246_8246 = CppList<String>(0, 16); return (() {
-temp_246_8246.add(content.toString());
-return temp_246_8246;
-})(); })(), super()   {
-    ;
-  }
-  
-  void write(Object? obj) {
-    {
-  this._parts.add(obj.toString());
-}
-  }
-  
-  void writeAll(Iterable<dynamic?> objects, [String separator = ""]) {
-    {
-  Iterator<dynamic?> iterator = objects.iterator;
-  if (iterator.moveNext()) {
-  this._parts.add(iterator.current.toString());
-  while (iterator.moveNext()) {
-  if (separator.isNotEmpty) {
-  this._parts.add(separator);
-}
-  this._parts.add(iterator.current.toString());
-}
-}
-}
-  }
-  
-  void writeCharCode(int charCode) {
-    {
-  this._parts.add(String.fromCharCode(charCode));
-}
-  }
-  
-  void writeln([Object? obj = ""]) {
-    {
-  this._parts.add(obj.toString());
-  this._parts.add("\n");
-}
-  }
-  
-  void clear() {
-    {
-  this._parts.clear();
-}
-  }
-  
-  String toString() {
-    {
-  return this._parts.join("");
-}
-  }
-  
-  int get length {
-    {
-  return this._parts.fold(0, (int sum, String part) { return (sum + part.length);});
-}
-  }
-  
-  bool get isEmpty {
-    return this._parts.isEmpty;
-  }
-  
-  bool get isNotEmpty {
-    return this._parts.isNotEmpty;
-  }
-  
-}
-
-/// 转换后的类: CppUserData
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
-
-class CppUserData {
-  List<dynamic?> data = _GrowableList.<dynamic?>(0);
-CppUserData() : super()   {
-    ;
-  }
-  
-}
-
-/// 转换后的类: CppApi
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
-
-class CppApi {
-CppApi() : super()   {
-    ;
-  }
-  
-  static CppUserData cppCreatePointerArray(int length) {
-    {
-  CppUserData userData = CppUserData();
-  userData.data.length = length;
-  return userData;
-}
-  }
-  
-  static int cppGetPointerArrayLength(CppUserData array) {
-    {
-  return array.data.length;
-}
-  }
-  
-  static Object? cppGetPointerArrayItem(CppUserData array, int index) {
-    {
-  return array.data[index];
-}
-  }
-  
-  static void cppSetPointerArrayItem(CppUserData array, int index, Object? value) {
-    {
-  array.data[index] = value;
-}
-  }
-  
-  static CppUserData cppCreateByteArray(int length) {
-    {
-  CppUserData userData = CppUserData();
-  userData.data.length = length;
-  return userData;
-}
-  }
-  
-  static int cppGetByteArrayLength(CppUserData array) {
-    {
-  return array.data.length;
-}
-  }
-  
-  static int cppGetByteArrayItem(CppUserData array, int index) {
-    {
-  return array.data[index] as int;
-}
-  }
-  
-  static void cppSetByteArrayItem(CppUserData array, int index, int value) {
-    {
-  array.data[index] = value;
-}
-  }
-  
-  static String cppJoinListString(CppUserData array, String separator) {
-    {
-  return array.data.join(separator);
-}
-  }
-  
-  static bool cppBoolValue(bool value) {
-    {
-  return value;
-}
-  }
-  
-  static String getCurrentStackTrace() {
-    {
-  return StackTrace.current.toString();
-}
-  }
-  
-  static void print(Object? object) {
-    {
-  CppApi.print(object);
-}
-  }
-  
-}
-
 /// 全局函数和变量
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/hello.dart
 
 void main() {
   {
+  CppString a = CppString.fromCppUserData(CppApi.cppCreateByteArray(6));
+  a.toString();
+  a.length;
+  a.codeUnitAt(0);
+  a.substring(0, 1);
+  a.compareTo(CppString.Empty);
+  a.contains(CppString.Empty);
   testCollectionMethods();
   testIterableMethods();
 }
@@ -2733,7 +3540,7 @@ void testCollectionMethods() {
 
 void testIterableMethods() {
   {
-  CppList<int> iterableList = CppList<int>.from(_GrowableList._literal5<dynamic?>(1, 2, 3, 4, 5));
+  CppList<int> iterableList = CppList<int>.from(List<dynamic?>.from(_GrowableList._literal5<dynamic?>(1, 2, 3, 4, 5)));
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);
   assert(iterableList.length == 5);
@@ -2754,9 +3561,14 @@ void testIterableMethods() {
   buffer2.write("Hello");
   buffer2.write("World");
   print(buffer2.toString());
-  List<int> list =  .generate<int>(10, (int index) { return index;});
+  List<int> list = _GrowableList.generate<int>(10, (int index) { return index;});
   list.add(11);
   print(list.toString());
 }
 }
+
+/// 全局函数和变量
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+
+final CppUserData cppUserDataEmpty = CppApi.cppCreateByteArray(0);
 

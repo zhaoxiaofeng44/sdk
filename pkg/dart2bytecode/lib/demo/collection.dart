@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'api.dart';
 import 'Iterable.dart';
+import 'string.dart';
 
 @pragma("wasm:entry-point")
 @pragma("cpp:patch-factory", "List")
@@ -312,7 +313,9 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   @override
   String join([String separator = ""]) {
     if (_length == 0) return "";
-    return CppApi.cppJoinListString(this._array, separator);
+    var buffer = StringBuffer();
+    buffer.writeAll(this, separator);
+    return buffer.toString();
   }
 
   @override
@@ -835,6 +838,14 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
     buffer.write("}");
     return buffer.toString();
   }
+}
+
+@pragma("cpp:patch-factory", "MapEntry")
+@pragma('cpp:patch', 'MapEntry')
+class CppMapEntry<K, V> {
+  final K key;
+  final V value;
+  CppMapEntry(this.key, this.value);
 }
 
 @pragma("cpp:patch-factory", "Map")

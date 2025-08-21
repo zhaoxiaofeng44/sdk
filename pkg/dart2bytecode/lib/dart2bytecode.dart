@@ -203,35 +203,35 @@ Future<int> runCompiler(ArgResults options) async {
   }
 
   transformDartToDart(component!);
-  final BytecodeOptions bytecodeOptions =
-      BytecodeOptions(enableAsserts: enableAsserts)
-        ..parseCommandLineFlags(options['bytecode-options']);
+  // final BytecodeOptions bytecodeOptions =
+  //     BytecodeOptions(enableAsserts: enableAsserts)
+  //       ..parseCommandLineFlags(options['bytecode-options']);
 
-  if (bytecodeOptions.showBytecodeSizeStatistics) {
-    BytecodeSizeStatistics.reset();
-  }
-  final io.IOSink sink = io.File(outputFileName).openWrite();
-  generateBytecode(component, sink,
-      libraries: component.libraries
-          .where((lib) => !results.loadedLibraries.contains(lib))
-          .toList(),
-      hierarchy: results.classHierarchy!,
-      coreTypes: results.coreTypes!,
-      options: bytecodeOptions,
-      target: compilerOptions.target!);
-  await sink.close();
-  if (bytecodeOptions.showBytecodeSizeStatistics) {
-    BytecodeSizeStatistics.dump();
-  }
+  // if (bytecodeOptions.showBytecodeSizeStatistics) {
+  //   BytecodeSizeStatistics.reset();
+  // }
+  // final io.IOSink sink = io.File(outputFileName).openWrite();
+  // generateBytecode(component, sink,
+  //     libraries: component.libraries
+  //         .where((lib) => !results.loadedLibraries.contains(lib))
+  //         .toList(),
+  //     hierarchy: results.classHierarchy!,
+  //     coreTypes: results.coreTypes!,
+  //     options: bytecodeOptions,
+  //     target: compilerOptions.target!);
+  // await sink.close();
+  // if (bytecodeOptions.showBytecodeSizeStatistics) {
+  //   BytecodeSizeStatistics.dump();
+  // }
 
-  if (depfile != null) {
-    await writeDepfile(
-      fileSystem,
-      results.compiledSources!,
-      depfileTarget ?? outputFileName,
-      depfile,
-    );
-  }
+  // if (depfile != null) {
+  //   await writeDepfile(
+  //     fileSystem,
+  //     results.compiledSources!,
+  //     depfileTarget ?? outputFileName,
+  //     depfile,
+  //   );
+  // }
 
   return successExitCode;
 }

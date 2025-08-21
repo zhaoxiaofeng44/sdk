@@ -36,10 +36,6 @@ class CppApi {
     throw UnimplementedError();
   }
 
-  static String cppJoinListString(CppUserData array, String separator) {
-    throw UnimplementedError();
-  }
-
   static bool cppBoolValue(bool value) {
     throw UnimplementedError();
   }
