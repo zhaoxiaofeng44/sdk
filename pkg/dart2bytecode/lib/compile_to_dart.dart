@@ -1129,7 +1129,14 @@ class DartToDartTransformer {
           defaultValue =
               ' = ${_generateExpressionCode(param.initializer!, replaceThis: false, asStatement: false)}';
         }
-        return '$type $name$defaultValue';
+
+        // 检查是否为required参数
+        String requiredKeyword = '';
+        if (param.isRequired) {
+          requiredKeyword = 'required ';
+        }
+
+        return '$requiredKeyword$type $name$defaultValue';
       }).join(', ');
       namedStr = '{$namedParamList}';
     }
@@ -1407,6 +1414,23 @@ String _generateExpressionCode2(Expression expression,
     return name;
   } else if (expression is FactoryConstructorInvocation) {
     String className = expression.target.enclosingClass?.name ?? 'Unknown';
+
+    // 特殊处理 _GrowableList 工厂构造函数
+    if (className == '_GrowableList') {
+      final typeArgs =
+          expression.arguments.types.map((e) => _getDartType(e)).join(', ');
+      final args = expression.arguments.positional
+          .map((e) => _generateExpressionCode(e,
+              replaceThis: replaceThis, asStatement: false))
+          .join(', ');
+
+      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
+      if (expression.target.name.text.isEmpty && args == '0') {
+        // 将 _GrowableList.<T>(0) 转换为 <T>[]
+        return '<$typeArgs>[]';
+      }
+    }
+
     // 处理范型参数
     // if (expression.target.enclosingClass?.typeParameters.isNotEmpty == true) {
     //   final typeArgs = expression.target.enclosingClass!.typeParameters
@@ -1595,6 +1619,34 @@ String _generateExpressionCode2(Expression expression,
     return '$receiver.$name($allArgs)';
   } else if (expression is ConstructorInvocation) {
     String className = expression.target.enclosingClass.name;
+
+    // 特殊处理 _GrowableList 构造函数
+    if (className == '_GrowableList') {
+      final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
+      final args = expression.arguments.positional
+          .map((e) => _generateExpressionCode(e,
+              replaceThis: replaceThis, asStatement: false))
+          .join(', ');
+
+      // 处理 _GrowableList._literal 系列构造函数
+      if (expression.target.name.text.startsWith('_literal')) {
+        // 将 _GrowableList._literalN<T>(...) 转换为 <T>[...]
+        return '<$typeArgs>[$args]';
+      }
+
+      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
+      if (expression.target.name.text.isEmpty && args == '0') {
+        // 将 _GrowableList.<T>(0) 转换为 <T>[]
+        return '<$typeArgs>[]';
+      }
+
+      // 处理 _GrowableList.generate<T>(length, generator) 方法
+      if (expression.target.name.text == 'generate') {
+        // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
+        return 'List<$typeArgs>.generate($args)';
+      }
+    }
+
     // 处理范型参数 - 尝试使用构造函数调用的实际范型参数
     // 注意：ConstructorInvocation 可能没有直接的 typeArguments 属性
     // 这里暂时使用类定义的范型参数，但需要根据上下文推断正确的范型参数
@@ -1757,6 +1809,16 @@ String _generateExpressionCode2(Expression expression,
     return maps;
   } else if (expression is InstanceCreation) {
     final className = expression.classReference.asClass.name;
+
+    // 特殊处理 _GrowableList 实例创建
+    if (className == '_GrowableList') {
+      final typeArgs = expression.typeArguments.isNotEmpty
+          ? '<${expression.typeArguments.map(_getDartType).join(', ')}>'
+          : '';
+      // 将 _GrowableList<T>() 转换为 <T>[]
+      return '$typeArgs[]';
+    }
+
     final typeArgs = expression.typeArguments.isNotEmpty
         ? '<${expression.typeArguments.map(_getDartType).join(', ')}>'
         : '';
@@ -2320,6 +2382,33 @@ String _generateExpressionCode2(Expression expression,
     final encl = expression.target.enclosingClass;
     final className = encl?.name;
     final methodName = expression.target.name.text;
+
+    // 特殊处理 _GrowableList 静态方法调用
+    if (className == '_GrowableList') {
+      final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
+      final args = expression.arguments.positional
+          .map((e) => _generateExpressionCode(e,
+              replaceThis: replaceThis, asStatement: false))
+          .join(', ');
+
+      // 处理 _GrowableList._literal 系列方法
+      if (methodName.startsWith('_literal')) {
+        // 将 _GrowableList._literalN<T>(...) 转换为 <T>[...]
+        return '<$typeArgs>[$args]';
+      }
+
+      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
+      if (methodName.isEmpty && args == '0') {
+        // 将 _GrowableList.<T>(0) 转换为 <T>[]
+        return '<$typeArgs>[]';
+      }
+
+      // 处理 _GrowableList.generate<T>(length, generator) 方法
+      if (methodName == 'generate') {
+        // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
+        return 'List<$typeArgs>.generate($args)';
+      }
+    }
 
     // 特殊处理 unary- 方法调用
     // if (methodName == 'unary-' || methodName.contains('unary-')) {

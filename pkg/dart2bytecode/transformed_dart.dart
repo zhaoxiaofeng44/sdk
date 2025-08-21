@@ -10,7 +10,7 @@ final Void = null;
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
 
 class CppUserData {
-  List<dynamic?> data = _GrowableList.<dynamic?>(0);
+  List<dynamic?> data = <dynamic?>[];
 CppUserData() : super()   {
     ;
   }
@@ -48,6 +48,17 @@ CppApi() : super()   {
   static void cppSetPointerArrayItem(CppUserData array, int index, Object? value) {
     {
   array.data[index] = value;
+}
+  }
+  
+  static CppUserData cppCreatePointerArrayConst(int length, [Object? v1 = null, Object? v2 = null, Object? v3 = null, Object? v4 = null, Object? v5 = null, Object? v6 = null, Object? v7 = null, Object? v8 = null, Object? v9 = null, Object? v10 = null]) {
+    {
+  CppUserData userData = CppUserData();
+  userData.data = (() { final List<dynamic?> temp_972_2150 = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]; return (() {
+temp_972_2150.length = length;
+return temp_972_2150;
+})(); })();
+  return userData;
 }
   }
   
@@ -140,7 +151,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_1290_2299 = i; return (() { final int temp_1290_2303 = i = (temp_1290_2299 + 1); return temp_1290_2299; })(); })(), element);
+  CppApi.cppSetPointerArrayItem(array, (() { final int temp_1290_2311 = i; return (() { final int temp_1290_2315 = i = (temp_1290_2311 + 1); return temp_1290_2311; })(); })(), element);
 }
 }
 }
@@ -176,7 +187,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_2119_2395 = i; return (() { final int temp_2119_2399 = i = (temp_2119_2395 + 1); return temp_2119_2395; })(); })(), element as E);
+  CppApi.cppSetPointerArrayItem(array, (() { final int temp_2119_2407 = i; return (() { final int temp_2119_2411 = i = (temp_2119_2407 + 1); return temp_2119_2407; })(); })(), element as E);
 }
 }
 }
@@ -213,7 +224,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
   void add(E value) {
     {
   this.ensureCapacity((this._length + 1));
-  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_3215_2552 = this._length; return (() { final int temp_3208_2557 = this._length = (temp_3215_2552 + 1); return temp_3215_2552; })(); })(), value);
+  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_3215_2564 = this._length; return (() { final int temp_3208_2569 = this._length = (temp_3215_2564 + 1); return temp_3215_2564; })(); })(), value);
 }
   }
   
@@ -298,7 +309,7 @@ CppList(int length, int capacity) : _length = length, _array = CppApi.cppCreateP
     {
   for (int i = start; (i < end); i = (i + 1)) {
   {
-  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_1563 = fillValue; return temp_1563 == null ? temp_1563 as E : temp_1563; })());
+  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_1585 = fillValue; return temp_1585 == null ? temp_1585 as E : temp_1585; })());
 }
 }
 }
@@ -1261,8 +1272,8 @@ CppMap([int capacity = 4]) : _list = CppList<MapEntry<K, V>>(0, capacity), super
   {
   dynamic? element = _sync_for_iterator.current;
   {
-  dynamic? k = ((() { final K Function(dynamic?)? temp_22638_5693 = key; return temp_22638_5693 == null ? null : temp_22638_5693(element); })()) ?? (element);
-  dynamic? v = ((() { final V Function(dynamic?)? temp_22683_5703 = value; return temp_22683_5703 == null ? null : temp_22683_5703(element); })()) ?? (element);
+  dynamic? k = ((() { final K Function(dynamic?)? temp_22638_5705 = key; return temp_22638_5705 == null ? null : temp_22638_5705(element); })()) ?? (element);
+  dynamic? v = ((() { final V Function(dynamic?)? temp_22683_5715 = value; return temp_22683_5715 == null ? null : temp_22683_5715(element); })()) ?? (element);
   map[k as K] = v as V;
 }
 }
@@ -1304,7 +1315,7 @@ CppMap([int capacity = 4]) : _list = CppList<MapEntry<K, V>>(0, capacity), super
   
   void addAll(Map<K, V> other) {
     {
-  other.forEach((K k, V v) { return (() { final K temp_23755_5918 = k; return (() { final V temp_23761_5920 = v; return (() { this[temp_23755_5918] = temp_23761_5920; temp_23761_5920; })(); })(); })();});
+  other.forEach((K k, V v) { return (() { final K temp_23755_5930 = k; return (() { final V temp_23761_5932 = v; return (() { this[temp_23755_5930] = temp_23761_5932; temp_23761_5932; })(); })(); })();});
 }
   }
   
@@ -1632,7 +1643,7 @@ CppStackTrace() : super()   {
 
 class CppStringPool {
   static final CppStringPool _instance = CppStringPool._internal();
-  late List<CppUserData> _pool = _GrowableList._literal1<CppUserData>(cppUserDataEmpty);
+  late List<CppUserData> _pool = <CppUserData>[cppUserDataEmpty];
 CppStringPool._internal() : super()   {
     ;
   }
@@ -1724,7 +1735,7 @@ CppStringPool._internal() : super()   {
 class CppStringPoolStats {
   late int totalStrings;
   late int totalMemory;
-CppStringPoolStats({int totalStrings, int totalMemory}) : totalStrings = totalStrings, totalMemory = totalMemory, super()   {
+CppStringPoolStats({required int totalStrings, required int totalMemory}) : totalStrings = totalStrings, totalMemory = totalMemory, super()   {
     ;
   }
   
@@ -1741,7 +1752,7 @@ CppStringPoolStats({int totalStrings, int totalMemory}) : totalStrings = totalSt
 
 class CppStringBuffer {
   late List<CppUserData> _parts;
-CppStringBuffer([Object content = ""]) : _parts = _GrowableList._literal1<CppUserData>(CppStringBuffer._convertStringToUserData(content)), super()   {
+CppStringBuffer([Object content = ""]) : _parts = <CppUserData>[CppStringBuffer._convertStringToUserData(content)], super()   {
     ;
   }
   
@@ -1756,12 +1767,12 @@ CppStringBuffer([Object content = ""]) : _parts = _GrowableList._literal1<CppUse
     {
   Iterator<dynamic?> iterator = objects.iterator;
   if (iterator.moveNext()) {
-  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1800 = iterator.current; return temp_1800 == null ? temp_1800 as Object : temp_1800; })()));
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1822 = iterator.current; return temp_1822 == null ? temp_1822 as Object : temp_1822; })()));
   while (iterator.moveNext()) {
   if (!(separator == null) && separator.isNotEmpty) {
   this._parts.add(separator._codeUnits);
 }
-  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1808 = iterator.current; return temp_1808 == null ? temp_1808 as Object : temp_1808; })()));
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_1830 = iterator.current; return temp_1830 == null ? temp_1830 as Object : temp_1830; })()));
 }
 }
 }
@@ -1790,7 +1801,7 @@ CppStringBuffer([Object content = ""]) : _parts = _GrowableList._literal1<CppUse
   
   CppString toCppString() {
     {
-  List<int> codeUnits = _GrowableList.<int>(0);
+  List<int> codeUnits = <int>[];
   {
   Iterator<CppUserData> _sync_for_iterator = this._parts.iterator;
   for (; _sync_for_iterator.moveNext();) {
@@ -1848,7 +1859,7 @@ CppStringBuffer([Object content = ""]) : _parts = _GrowableList._literal1<CppUse
   
   static List<int> _convertStringToCodeUnits(String str) {
     {
-  List<int> codeUnits = _GrowableList.<int>(0);
+  List<int> codeUnits = <int>[];
   for (int i = 0; (i < str.length); i = (i + 1)) {
   {
   codeUnits.add(str.codeUnitAt(i));
@@ -1874,7 +1885,7 @@ CppString.fromCodeUnits(List<int> codeUnits) : _codeUnits = CppStringPool.instan
     ;
   }
   
-CppString.fromCharCode(int charCode) : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(_GrowableList._literal1<int>(charCode)), super()   {
+CppString.fromCharCode(int charCode) : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(<int>[charCode]), super()   {
     ;
   }
   
@@ -1884,7 +1895,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   
   String _toExternalString() {
     {
-  List<int> codeUnits = _GrowableList.<int>(0);
+  List<int> codeUnits = <int>[];
   for (int i = 0; (i < this.length); i = (i + 1)) {
   {
   codeUnits.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
@@ -1946,7 +1957,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   List<int> get codeUnits {
     {
   int thisLength = this.length;
-  List<int> units = _GrowableList.<int>(0);
+  List<int> units = <int>[];
   for (int i = 0; (i < thisLength); i = (i + 1)) {
   {
   units.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
@@ -2068,7 +2079,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   if ((end > this.length)) end = this.length;
   if ((start >= end)) return CppString.Empty;
   int newLength = (end - start);
-  List<int> newCodeUnits = _GrowableList.<int>(0);
+  List<int> newCodeUnits = <int>[];
   for (int i = 0; (i < newLength); i = (i + 1)) {
   {
   int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, (start + i));
@@ -2158,7 +2169,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   if (from.isEmpty) return this;
   List<CppString> parts = this.split(from);
   if (parts.length == 1) return this;
-  List<CppString> result = _GrowableList.<CppString>(0);
+  List<CppString> result = <CppString>[];
   for (int i = 0; (i < parts.length); i = (i + 1)) {
   {
   result.add(parts[i]);
@@ -2186,7 +2197,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   List<CppString> split(CppString separator) {
     {
   if (separator.isEmpty) {
-  List<CppString> result = _GrowableList.<CppString>(0);
+  List<CppString> result = <CppString>[];
   for (int i = 0; (i < this.length); i = (i + 1)) {
   {
   result.add(this.substring(i, (i + 1)));
@@ -2194,7 +2205,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
 }
   return result;
 }
-  List<CppString> result = _GrowableList.<CppString>(0);
+  List<CppString> result = <CppString>[];
   int start = 0;
   int index = this.indexOf(separator, start);
   while (!(index == -1)) {
@@ -2209,7 +2220,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   
   CppString toLowerCase() {
     {
-  List<int> resultCodeUnits = _GrowableList.<int>(0);
+  List<int> resultCodeUnits = <int>[];
   for (int i = 0; (i < this.length); i = (i + 1)) {
   {
   int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, i);
@@ -2225,7 +2236,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   
   CppString toUpperCase() {
     {
-  List<int> resultCodeUnits = _GrowableList.<int>(0);
+  List<int> resultCodeUnits = <int>[];
   for (int i = 0; (i < this.length); i = (i + 1)) {
   {
   int codeUnit = CppApi.cppGetByteArrayItem(this._codeUnits, i);
@@ -2295,7 +2306,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   
   static CppString fromString(String source) {
     {
-  List<int> codeUnits = _GrowableList.<int>(0);
+  List<int> codeUnits = <int>[];
   for (int i = 0; (i < source.length); i = (i + 1)) {
   {
   codeUnits.add(source.codeUnitAt(i));
@@ -2311,7 +2322,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   List<CppString> stringList = strings.toList();
   if (stringList.isEmpty) return CppString.Empty;
   if (stringList.length == 1) return stringList[0];
-  List<int> newCodeUnits = _GrowableList.<int>(0);
+  List<int> newCodeUnits = <int>[];
   for (int i = 0; (i < stringList.length); i = (i + 1)) {
   {
   CppString str = stringList[i];
@@ -2358,7 +2369,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
     {
   int thisLength = this.length;
   int otherLength = other.length;
-  List<int> newCodeUnits = _GrowableList.<int>(0);
+  List<int> newCodeUnits = <int>[];
   for (int i = 0; (i < thisLength); i = (i + 1)) {
   {
   newCodeUnits.add(CppApi.cppGetByteArrayItem(this._codeUnits, i));
@@ -2378,7 +2389,7 @@ CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end = null
   if ((times <= 0)) return CppString.Empty;
   if (times == 1) return this;
   int thisLength = this.length;
-  List<int> newCodeUnits = _GrowableList.<int>(0);
+  List<int> newCodeUnits = <int>[];
   for (int repeat = 0; (repeat < times); repeat = (repeat + 1)) {
   {
   for (int i = 0; (i < thisLength); i = (i + 1)) {
@@ -2488,7 +2499,7 @@ _CppStringAllMatchesIterator(CppString _input, CppString _pattern, int _index) :
   }
   
   CppStringMatch get current {
-    return (() { final CppStringMatch? temp_1877 = this._current; return temp_1877 == null ? temp_1877 as CppStringMatch : temp_1877; })();
+    return (() { final CppStringMatch? temp_1899 = this._current; return temp_1899 == null ? temp_1899 as CppStringMatch : temp_1899; })();
   }
   
 }
@@ -2544,7 +2555,7 @@ CppIterable() : super()   {
   while (it.moveNext()) {
   result = it.current;
 }
-  return (() { final E? temp_1885 = result; return temp_1885 == null ? temp_1885 as E : temp_1885; })();
+  return (() { final E? temp_1907 = result; return temp_1907 == null ? temp_1907 as E : temp_1907; })();
 }
   }
   
@@ -2658,7 +2669,7 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_1893 = result; return temp_1893 == null ? temp_1893 as E : temp_1893; })();
+  if (found) return (() { final E? temp_1915 = result; return temp_1915 == null ? temp_1915 as E : temp_1915; })();
   if (!(orElse == null)) return orElse();
   throw StateError("No element");
 }
@@ -2676,7 +2687,7 @@ CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_1901 = result; return temp_1901 == null ? temp_1901 as E : temp_1901; })();
+  if (found) return (() { final E? temp_1923 = result; return temp_1923 == null ? temp_1923 as E : temp_1923; })();
   if (!(orElse == null)) return orElse();
   throw StateError("No element");
 }
@@ -2828,13 +2839,13 @@ CppMappedIterator(Iterator<S> _iterator, T Function(S) _f) : _iterator = _iterat
   }
   
   T get current {
-    return (() { final T? temp_1909 = this._current; return temp_1909 == null ? temp_1909 as T : temp_1909; })();
+    return (() { final T? temp_1931 = this._current; return temp_1931 == null ? temp_1931 as T : temp_1931; })();
   }
   
   bool moveNext() {
     {
   if (this._iterator.moveNext()) {
-  this._current = (() { final S temp_6672_154 = this._iterator.current; return this._f(temp_6672_154); })();
+  this._current = (() { final S temp_6672_166 = this._iterator.current; return this._f(temp_6672_166); })();
   return true;
 }
   return false;
@@ -2887,7 +2898,7 @@ CppWhereIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator = _i
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if ((() { final E temp_7471_240 = this._iterator.current; return this._test(temp_7471_240); })()) {
+  if ((() { final E temp_7471_252 = this._iterator.current; return this._test(temp_7471_252); })()) {
   return true;
 }
 }
@@ -3000,7 +3011,7 @@ CppExpandIterator(Iterator<S> _iterator, Iterable<T> Function(S) _f) : _iterator
   if (!(this._iterator.moveNext())) {
   return false;
 }
-  this._currentIterator = (() { final S temp_9233_421 = this._iterator.current; return this._f(temp_9233_421); })().iterator;
+  this._currentIterator = (() { final S temp_9233_433 = this._iterator.current; return this._f(temp_9233_433); })().iterator;
 }
 }
   }
@@ -3101,7 +3112,7 @@ CppTakeWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator 
     {
   if (this._finished) return false;
   if (this._iterator.moveNext()) {
-  if ((() { final E temp_10824_602 = this._iterator.current; return this._test(temp_10824_602); })()) {
+  if ((() { final E temp_10824_614 = this._iterator.current; return this._test(temp_10824_614); })()) {
   return true;
 }
   this._finished = true;
@@ -3209,7 +3220,7 @@ CppSkipWhileIterator(Iterator<E> _iterator, bool Function(E) _test) : _iterator 
     {
   if (!(this._skipped)) {
   while (this._iterator.moveNext()) {
-  if (!((() { final E temp_12510_804 = this._iterator.current; return this._test(temp_12510_804); })())) {
+  if (!((() { final E temp_12510_816 = this._iterator.current; return this._test(temp_12510_816); })())) {
   this._skipped = true;
   return true;
 }
@@ -3423,13 +3434,13 @@ _CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, 
   }
   
   E get current {
-    return (() { final E? temp_1917 = this._current; return temp_1917 == null ? temp_1917 as E : temp_1917; })();
+    return (() { final E? temp_1939 = this._current; return temp_1939 == null ? temp_1939 as E : temp_1939; })();
   }
   
   bool moveNext() {
     {
   if ((this._index < this._count)) {
-  this._current = (() { final int temp_15700_1110 = (() { final int temp_15700_1078 = this._index; return (() { final int temp_15694_1083 = this._index = (temp_15700_1078 + 1); return temp_15700_1078; })(); })(); return this._generator(temp_15700_1110); })();
+  this._current = (() { final int temp_15700_1122 = (() { final int temp_15700_1090 = this._index; return (() { final int temp_15694_1095 = this._index = (temp_15700_1090 + 1); return temp_15700_1090; })(); })(); return this._generator(temp_15700_1122); })();
   return true;
 }
   return false;
@@ -3500,13 +3511,6 @@ _CppCastFromIterator(Iterator<S> _iterator) : _iterator = _iterator, super()   {
 
 void main() {
   {
-  CppString a = CppString.fromCppUserData(CppApi.cppCreateByteArray(6));
-  a.toString();
-  a.length;
-  a.codeUnitAt(0);
-  a.substring(0, 1);
-  a.compareTo(CppString.Empty);
-  a.contains(CppString.Empty);
   testCollectionMethods();
   testIterableMethods();
 }
@@ -3540,16 +3544,16 @@ void testCollectionMethods() {
 
 void testIterableMethods() {
   {
-  CppList<int> iterableList = CppList<int>.from(List<dynamic?>.from(_GrowableList._literal5<dynamic?>(1, 2, 3, 4, 5)));
+  CppList<int> iterableList = CppList<int>.from(<dynamic?>[1, 2, 3, 4, 5]);
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);
   assert(iterableList.length == 5);
   assert(iterableList.any((int element) { return (element > 3);}));
   assert(!(iterableList.every((int element) { return (element < 3);})));
   Iterable<int> mappedList = iterableList.map((int e) { return (e * 2);});
-  assert(mappedList.toList().toString() == _GrowableList._literal5<int>(2, 4, 6, 8, 10).toString());
+  assert(mappedList.toList().toString() == <int>[2, 4, 6, 8, 10].toString());
   Iterable<int> filteredList = iterableList.where((int e) { return (e % 2) == 0;});
-  assert(filteredList.toList().toString() == _GrowableList._literal2<int>(2, 4).toString());
+  assert(filteredList.toList().toString() == <int>[2, 4].toString());
   print("CppIterable 方法测试通过！");
   CppStringBuffer buffer = CppStringBuffer();
   buffer.write("Hello");
@@ -3561,7 +3565,7 @@ void testIterableMethods() {
   buffer2.write("Hello");
   buffer2.write("World");
   print(buffer2.toString());
-  List<int> list = _GrowableList.generate<int>(10, (int index) { return index;});
+  List<int> list = List<int>.generate(10, (int index) { return index;});
   list.add(11);
   print(list.toString());
 }
