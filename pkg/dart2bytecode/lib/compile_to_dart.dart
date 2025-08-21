@@ -136,18 +136,23 @@ class VariableNameCleaner {
 class DartTypeConverter {
   /// 转换Dart类型为字符串表示
   static String convert(
-      DartType type, String Function(DartType) recursiveConverter) {
-    final baseType = _getBaseType(type, recursiveConverter);
+      DartType type, String Function(DartType) recursiveConverter,
+      {String? Function(String)? classNamePrefixResolver}) {
+    final baseType =
+        _getBaseType(type, recursiveConverter, classNamePrefixResolver);
     return _applyNullability(baseType, type.nullability);
   }
 
   /// 获取基础类型字符串
   static String _getBaseType(
-      DartType type, String Function(DartType) recursiveConverter) {
+      DartType type,
+      String Function(DartType) recursiveConverter,
+      String? Function(String)? classNamePrefixResolver) {
     if (type is DynamicType) {
       return 'dynamic';
     } else if (type is InterfaceType) {
-      return _handleInterfaceType(type, recursiveConverter);
+      return _handleInterfaceType(
+          type, recursiveConverter, classNamePrefixResolver);
     } else if (type is FunctionType) {
       return _handleFunctionType(type, recursiveConverter);
     } else if (type is TypeParameterType) {
@@ -161,10 +166,25 @@ class DartTypeConverter {
 
   /// 处理接口类型
   static String _handleInterfaceType(
-      InterfaceType type, String Function(DartType) recursiveConverter) {
+      InterfaceType type,
+      String Function(DartType) recursiveConverter,
+      String? Function(String)? classNamePrefixResolver) {
     String typeName = type.classNode.name;
+
+    // 应用类名前缀
+    if (classNamePrefixResolver != null) {
+      final prefixedName = classNamePrefixResolver(typeName);
+      if (prefixedName != null) {
+        typeName = prefixedName;
+      }
+    } else {
+      // 如果没有提供解析器，尝试使用全局映射
+      typeName = DartToDartTransformer._getGlobalPrefixedClassName(typeName);
+    }
+
     if (type.typeArguments.isNotEmpty) {
-      final typeArgs = type.typeArguments.map(recursiveConverter).join(', ');
+      final typeArgs =
+          type.typeArguments.map((t) => recursiveConverter(t)).join(', ');
       typeName += '<$typeArgs>';
     }
     return typeName;
@@ -219,6 +239,66 @@ class DartToDartTransformer {
   /// 类名替换映射，用于处理 @pragma('cpp:patch', 'Error') 注解
   final Map<String, String> _classNameReplacements = {};
 
+  /// 文件路径到编码的映射
+  final Map<String, String> _filePathToCode = {};
+
+  /// 编码到文件路径的映射（用于生成注解）
+  final Map<String, String> _codeToFilePath = {};
+
+  /// 类名到带前缀类名的映射
+  final Map<String, String> _classNameToPrefixedName = {};
+
+  /// 当前编码计数器
+  int _codeCounter = 0;
+
+  /// 生成2位编码（字母或数字）
+  String _generateCode() {
+    final codes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final code1 = codes[_codeCounter ~/ codes.length];
+    final code2 = codes[_codeCounter % codes.length];
+    _codeCounter++;
+    return '$code1$code2';
+  }
+
+  /// 获取文件路径的编码
+  String _getFilePathCode(String filePath) {
+    if (_filePathToCode.containsKey(filePath)) {
+      return _filePathToCode[filePath]!;
+    }
+
+    final code = _generateCode();
+    _filePathToCode[filePath] = code;
+    _codeToFilePath[code] = filePath;
+    return code;
+  }
+
+  /// 为类名添加文件前缀
+  String _addFilePrefixToClassName(String className, String filePath) {
+    final code = _getFilePathCode(filePath);
+    final prefixedName = '\$${code}_$className';
+    _classNameToPrefixedName[className] = prefixedName;
+    return prefixedName;
+  }
+
+  /// 获取带前缀的类名
+  String _getPrefixedClassName(String className) {
+    return _classNameToPrefixedName[className] ?? className;
+  }
+
+  /// 全局类名前缀映射（用于表达式生成）
+  static final Map<String, String> _globalClassNameToPrefixedName = {};
+
+  /// 设置全局类名前缀映射
+  void _setGlobalClassNameMapping() {
+    _globalClassNameToPrefixedName.clear();
+    _globalClassNameToPrefixedName.addAll(_classNameToPrefixedName);
+  }
+
+  /// 获取全局带前缀的类名
+  static String _getGlobalPrefixedClassName(String className) {
+    return _globalClassNameToPrefixedName[className] ?? className;
+  }
+
   /// 主要转换入口
   ///
   /// 转换整个Kernel Component为新的Dart代码格式。
@@ -231,6 +311,12 @@ class DartToDartTransformer {
   /// [component] 要转换的Kernel组件
   void transformComponent(Component component) {
     _buffer.clear();
+
+    // 首先生成所有类以收集文件路径信息
+    _collectAllFilePaths(component);
+
+    // 设置全局类名前缀映射
+    _setGlobalClassNameMapping();
 
     // 生成转换后的代码
     _generateTransformedCode(component);
@@ -425,19 +511,61 @@ class DartToDartTransformer {
   ///
   /// 该方法按以下顺序生成代码：
   /// 1. 生成库导入语句
-  /// 2. 遍历所有库，处理其中的类
-  /// 3. 生成全局函数和变量
+  /// 2. 生成文件编码注解
+  /// 3. 遍历所有库，处理其中的类
+  /// 4. 生成全局函数和变量
   ///
   /// [component] 要转换的Kernel组件
   void _generateTransformedCode(Component component) {
     // 生成库导入
     _writeLibraryImports(component);
 
+    // 生成文件编码注解
+    _writeFileCodeAnnotations();
+
     // 生成转换后的类
     _generateClasses(component);
 
     // 生成全局函数和变量
     _generateGlobalMembers(component);
+  }
+
+  /// 收集所有文件路径信息
+  void _collectAllFilePaths(Component component) {
+    for (final library in component.libraries) {
+      for (final cls in library.classes) {
+        if (!_shouldSkipClass(cls)) {
+          final libraryUri = cls.enclosingLibrary.fileUri;
+          final filePath = libraryUri.isScheme('file')
+              ? libraryUri.path
+              : libraryUri.toString();
+          _getFilePathCode(filePath); // 这会自动生成编码并存储映射
+
+          // 为类名生成前缀映射
+          final patchTarget = _getCppPatchPragma(cls);
+          final originalClassName = patchTarget ?? cls.name;
+          _addFilePrefixToClassName(originalClassName, filePath);
+        }
+      }
+    }
+  }
+
+  /// 写入文件编码注解
+  void _writeFileCodeAnnotations() {
+    if (_codeToFilePath.isEmpty) return;
+
+    _writeLine('/// 文件编码映射注解');
+    _writeLine('/// 用于标识不同源文件中的类，避免类名冲突');
+    _writeLine('/// 格式: 编码 -> 源文件路径');
+    _writeLine('///');
+
+    // 按编码排序
+    final sortedCodes = _codeToFilePath.keys.toList()..sort();
+    for (final code in sortedCodes) {
+      final filePath = _codeToFilePath[code]!;
+      _writeLine('/// $code -> $filePath');
+    }
+    _writeLine('');
   }
 
   /// 生成所有类
@@ -499,15 +627,19 @@ class DartToDartTransformer {
     // 此处仅为可读性保留调用，实际使用的是下方的 className
     /* final currentClassName = */ _getCppPatchPragma(cls) ?? cls.name;
     final patchTarget = _getCppPatchPragma(cls);
-    final className = patchTarget ?? cls.name;
+    final originalClassName = patchTarget ?? cls.name;
 
     // 获取文件路径信息
     final libraryUri = cls.enclosingLibrary.fileUri;
     final filePath =
         libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
 
+    // 为类名添加文件前缀
+    final className = _addFilePrefixToClassName(originalClassName, filePath);
+
     // 类注释 - 包含文件路径信息
     _writeLine('/// 转换后的类: $className');
+    _writeLine('/// 原始类名: $originalClassName');
     _writeLine('/// 源文件路径: $filePath');
     _writeLine('');
 
@@ -530,6 +662,8 @@ class DartToDartTransformer {
       if (_classNameReplacements.containsKey(superName)) {
         superName = _classNameReplacements[superName]!;
       }
+      // 应用文件前缀
+      superName = _getPrefixedClassName(superName);
       // 传递泛型参数给父类
       if (cls.supertype != null && cls.supertype!.typeArguments.isNotEmpty) {
         // 根据父类的范型参数数量来决定传递哪些参数
@@ -551,6 +685,8 @@ class DartToDartTransformer {
         if (_classNameReplacements.containsKey(name)) {
           name = _classNameReplacements[name]!;
         }
+        // 应用文件前缀
+        name = _getPrefixedClassName(name);
 
         // 处理泛型类型参数
         if (t.typeArguments.isNotEmpty) {
@@ -705,7 +841,8 @@ class DartToDartTransformer {
 
   /// 生成无参构造方法
   void _generateDefaultConstructor(Class cls) {
-    _writeLine('${cls.name}();');
+    final prefixedClassName = _getPrefixedClassName(cls.name);
+    _writeLine('$prefixedClassName();');
     _writeLine('');
   }
 
@@ -729,7 +866,10 @@ class DartToDartTransformer {
   void _generateConstructor(Class cls, Constructor constructor) {
     // 生成构造函数
     final name = constructor.name.text;
-    final constructorName = name.isEmpty ? cls.name : '${cls.name}.$name';
+    final originalClassName = cls.name;
+    final prefixedClassName = _getPrefixedClassName(originalClassName);
+    final constructorName =
+        name.isEmpty ? prefixedClassName : '$prefixedClassName.$name';
 
     // 参数列表（包含必需位置、可选位置与命名参数，正确分组 [] / {}）
     final parameters = _writeParametersToString(constructor.function);
@@ -903,10 +1043,11 @@ class DartToDartTransformer {
 
     // 处理factory方法名
     String factoryName;
+    final prefixedClassName = _getPrefixedClassName(cls.name);
     if (name.isEmpty) {
-      factoryName = cls.name;
+      factoryName = prefixedClassName;
     } else {
-      factoryName = '${cls.name}.$name';
+      factoryName = '$prefixedClassName.$name';
     }
 
     _writeLine('factory $factoryName($parameters) {');
@@ -1152,7 +1293,8 @@ class DartToDartTransformer {
 
   /// 获取Dart类型字符串
   String _getDartType(DartType type) {
-    return DartTypeConverter.convert(type, this._getDartType);
+    return DartTypeConverter.convert(type, this._getDartType,
+        classNamePrefixResolver: _getPrefixedClassName);
   }
 
   // 已移除未使用方法 _annotationToString
@@ -1347,7 +1489,11 @@ String _cleanVariableName(String name) {
 /// 该函数是 DartToDartTransformer._getDartType 的全局版本
 /// 保持两个版本的一致性
 String _getDartType(DartType type) {
-  return DartTypeConverter.convert(type, _getDartType);
+  return DartTypeConverter.convert(type, _getDartType,
+      classNamePrefixResolver: (className) {
+    // 使用全局类名前缀映射
+    return DartToDartTransformer._getGlobalPrefixedClassName(className);
+  });
 }
 
 /// 全局版本的获取逻辑运算符函数
@@ -1413,10 +1559,13 @@ String _generateExpressionCode2(Expression expression,
     // }
     return name;
   } else if (expression is FactoryConstructorInvocation) {
-    String className = expression.target.enclosingClass?.name ?? 'Unknown';
+    String originalClassName =
+        expression.target.enclosingClass?.name ?? 'Unknown';
+    String className =
+        DartToDartTransformer._getGlobalPrefixedClassName(originalClassName);
 
     // 特殊处理 _GrowableList 工厂构造函数
-    if (className == '_GrowableList') {
+    if (originalClassName == '_GrowableList') {
       final typeArgs =
           expression.arguments.types.map((e) => _getDartType(e)).join(', ');
       final args = expression.arguments.positional
@@ -1501,18 +1650,30 @@ String _generateExpressionCode2(Expression expression,
     return '$receiver.$name';
   } else if (expression is StaticGet) {
     final encl = expression.target.enclosingClass;
+    final originalClassName = encl?.name;
+    final className = originalClassName != null
+        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
+        : null;
     final name = expression.target.name.text;
-    return encl == null ? name : '${encl.name}.$name';
+    return encl == null ? name : '$className.$name';
   } else if (expression is StaticSet) {
     final encl = expression.target.enclosingClass;
+    final originalClassName = encl?.name;
+    final className = originalClassName != null
+        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
+        : null;
     final name = expression.target.name.text;
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
-    return encl == null ? '$name = $value' : '${encl.name}.$name = $value';
+    return encl == null ? '$name = $value' : '$className.$name = $value';
   } else if (expression is StaticTearOff) {
     final encl = expression.target.enclosingClass;
+    final originalClassName = encl?.name;
+    final className = originalClassName != null
+        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
+        : null;
     final name = expression.target.name.text;
-    return encl == null ? name : '${encl.name}.$name';
+    return encl == null ? name : '$className.$name';
   } else if (expression is InstanceInvocation) {
     final receiverRaw = _generateExpressionCode(expression.receiver,
         replaceThis: replaceThis, asStatement: false);
@@ -1618,10 +1779,12 @@ String _generateExpressionCode2(Expression expression,
     }
     return '$receiver.$name($allArgs)';
   } else if (expression is ConstructorInvocation) {
-    String className = expression.target.enclosingClass.name;
+    String originalClassName = expression.target.enclosingClass.name;
+    String className =
+        DartToDartTransformer._getGlobalPrefixedClassName(originalClassName);
 
     // 特殊处理 _GrowableList 构造函数
-    if (className == '_GrowableList') {
+    if (originalClassName == '_GrowableList') {
       final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
       final args = expression.arguments.positional
           .map((e) => _generateExpressionCode(e,
@@ -2380,11 +2543,14 @@ String _generateExpressionCode2(Expression expression,
     }
   } else if (expression is StaticInvocation) {
     final encl = expression.target.enclosingClass;
-    final className = encl?.name;
+    final originalClassName = encl?.name;
+    final className = originalClassName != null
+        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
+        : null;
     final methodName = expression.target.name.text;
 
     // 特殊处理 _GrowableList 静态方法调用
-    if (className == '_GrowableList') {
+    if (originalClassName == '_GrowableList') {
       final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
       final args = expression.arguments.positional
           .map((e) => _generateExpressionCode(e,
