@@ -196,6 +196,7 @@ class DartTypeConverter {
     final paramTypes =
         type.positionalParameters.map(recursiveConverter).join(', ');
     final returnType = recursiveConverter(type.returnType);
+    // 只有在特定上下文中才转换为FunctionWrapper，这里保持原始Function类型
     return '$returnType Function($paramTypes)';
   }
 
@@ -460,6 +461,9 @@ class DartToDartTransformer {
 
   /// 全局闭包装箱信息栈
   static final List<ClosureBoxingInfo> _globalClosureBoxingStack = [];
+
+  /// 是否在闭包上下文中（用于决定是否使用FunctionWrapper）
+  static bool _inClosureContext = false;
 
   /// 全局变量作用域
   static final Map<String, String> _globalScopeVariables = {};
@@ -1134,6 +1138,7 @@ class DartToDartTransformer {
       "import 'dart:math';",
       "import 'dart:typed_data';",
       "import 'lib/demo/box.dart';",
+      "import 'lib/demo/function_wrapper.dart';",
     ];
 
     for (final import in imports) {
@@ -2041,6 +2046,78 @@ String _generateUniqueLetVarName(
   return '${cleanBase}_${varId}';
 }
 
+/// 分析闭包函数捕获的外部变量
+List<String> _analyzeCapturedVariables(FunctionNode function) {
+  final capturedVars = <String>[];
+
+  if (function.body != null) {
+    _findCapturedVariablesInStatement(function.body!, capturedVars);
+  }
+
+  return capturedVars;
+}
+
+/// 在语句中查找捕获的变量
+void _findCapturedVariablesInStatement(
+    Statement statement, List<String> capturedVars) {
+  if (statement is Block) {
+    for (final stmt in statement.statements) {
+      _findCapturedVariablesInStatement(stmt, capturedVars);
+    }
+  } else if (statement is ExpressionStatement) {
+    _findCapturedVariablesInExpression(statement.expression, capturedVars);
+  } else if (statement is IfStatement) {
+    _findCapturedVariablesInExpression(statement.condition, capturedVars);
+    _findCapturedVariablesInStatement(statement.then, capturedVars);
+    if (statement.otherwise != null) {
+      _findCapturedVariablesInStatement(statement.otherwise!, capturedVars);
+    }
+  } else if (statement is ReturnStatement) {
+    if (statement.expression != null) {
+      _findCapturedVariablesInExpression(statement.expression!, capturedVars);
+    }
+  }
+}
+
+/// 在表达式中查找捕获的变量
+void _findCapturedVariablesInExpression(
+    Expression expression, List<String> capturedVars) {
+  if (expression is VariableGet) {
+    final varName = _cleanVariableName(expression.variable.name ?? 'unnamed');
+
+    // 检查是否是外部变量且需要装箱
+    if (DartToDartTransformer._globalVariablesToBox.contains(varName)) {
+      if (!capturedVars.contains(varName)) {
+        capturedVars.add(varName);
+      }
+    }
+  } else if (expression is VariableGetImpl) {
+    final varName = _cleanVariableName(expression.variable.name ?? 'unnamed');
+
+    // 检查是否是外部变量且需要装箱
+    if (DartToDartTransformer._globalVariablesToBox.contains(varName)) {
+      if (!capturedVars.contains(varName)) {
+        capturedVars.add(varName);
+      }
+    }
+  } else if (expression is InstanceInvocation) {
+    _findCapturedVariablesInExpression(expression.receiver, capturedVars);
+    for (final arg in expression.arguments.positional) {
+      _findCapturedVariablesInExpression(arg, capturedVars);
+    }
+    for (final arg in expression.arguments.named) {
+      _findCapturedVariablesInExpression(arg.value, capturedVars);
+    }
+  } else if (expression is StaticInvocation) {
+    for (final arg in expression.arguments.positional) {
+      _findCapturedVariablesInExpression(arg, capturedVars);
+    }
+    for (final arg in expression.arguments.named) {
+      _findCapturedVariablesInExpression(arg.value, capturedVars);
+    }
+  }
+}
+
 /// 全局转换函数
 void transformDartToDart(Component component) {
   final transformer = DartToDartTransformer();
@@ -2059,7 +2136,17 @@ String _cleanVariableName(String name) {
 ///
 /// 该函数是 DartToDartTransformer._getDartType 的全局版本
 /// 保持两个版本的一致性
-String _getDartType(DartType type) {
+String _getDartType(DartType type, {bool forceWrapper = false}) {
+  if (type is FunctionType &&
+      (DartToDartTransformer._inClosureContext || forceWrapper)) {
+    // 在闭包上下文中，将Function类型转换为FunctionWrapper
+    final paramTypes =
+        type.positionalParameters.map((t) => _getDartType(t)).join(', ');
+    final returnType = _getDartType(type.returnType);
+    final functionType = '$returnType Function($paramTypes)';
+    return 'FunctionWrapper<$functionType>';
+  }
+
   return DartTypeConverter.convert(type, _getDartType,
       classNamePrefixResolver: (className) {
     // 使用全局类名前缀映射
@@ -2568,8 +2655,13 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is FunctionExpression) {
     // 进入闭包作用域
     DartToDartTransformer._globalEnterClosureScope();
+    final oldClosureContext = DartToDartTransformer._inClosureContext;
+    DartToDartTransformer._inClosureContext = true;
 
     try {
+      // 分析捕获的外部变量
+      final capturedVariables = _analyzeCapturedVariables(expression.function);
+
       // 生成正确的函数表达式语法
       final parameters = expression.function.positionalParameters
           .map((p) =>
@@ -2579,9 +2671,23 @@ String _generateExpressionCode2(Expression expression,
           ? _generateStatementCode(expression.function.body!,
               replaceThis: replaceThis, allowReturn: true)
           : '{}';
-      return '($parameters) { $body}';
+
+      // 生成函数类型，强制使用FunctionWrapper
+      final paramTypes = expression.function.positionalParameters
+          .map((p) => _getDartType(p.type))
+          .join(', ');
+      final returnType = _getDartType(expression.function.returnType);
+      final functionType = '$returnType Function($paramTypes)';
+
+      // 生成捕获变量列表
+      final capturedVarsCode = capturedVariables.isNotEmpty
+          ? '[${capturedVariables.join(', ')}]'
+          : '[]';
+
+      return 'FunctionWrapper<$functionType>($capturedVarsCode, ($parameters) { $body}).call()';
     } finally {
       // 退出闭包作用域
+      DartToDartTransformer._inClosureContext = oldClosureContext;
       DartToDartTransformer._globalExitClosureScope();
     }
   } else if (expression is BlockExpression) {
@@ -3031,7 +3137,8 @@ String _generateExpressionCode2(Expression expression,
       }
     }
 
-    return '$receiver($allArgs)';
+    // 使用.call()方式调用FunctionWrapper
+    return '$receiver.call($allArgs)';
   } else if (expression is FileUriExpression) {
     final expr = _generateExpressionCode(expression.expression,
         replaceThis: replaceThis, asStatement: false);
@@ -3147,7 +3254,8 @@ String _generateExpressionCode2(Expression expression,
       }
     }
 
-    return '$name($allArgs)';
+    // 使用.call()方式调用FunctionWrapper
+    return '$name.call($allArgs)';
   } else if (expression is ConstantExpression) {
     final constant = expression.constant;
     if (constant is StringConstant) {
