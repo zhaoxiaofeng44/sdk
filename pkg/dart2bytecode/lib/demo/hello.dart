@@ -76,4 +76,49 @@ void testIterableMethods() {
   var list = List.generate(10, (index) => index, growable: true);
   list.add(11);
   print(list.toString());
+
+  int g1 = 1;
+  int g2;
+  g2 = 5;
+  var ff = () {
+    g1 += 1;
+    g2 += 1;
+    print(g1.toString() + " " + g2.toString());
+  };
+
+  ff();
+
+  // 复杂for循环暂时注释掉，因为需要额外处理
+
+  var list2 = [];
+  for (var i = 0; i < 10; i++) {
+    list2.add(() {
+      print(i);
+    });
+  }
+
+  list2.forEach((f) => f());
+
+  {
+    var list3 = [];
+    var i = 0;
+    for (i = 0; i < 10; i++) {
+      list3.add(() {
+        print(i);
+      });
+    }
+
+    list3.forEach((f) => f());
+  }
+
+  // 测试for循环装箱
+  {
+    var list4 = [];
+    for (int i = 0; i < 3; i++) {
+      list4.add(() {
+        print(i);
+      });
+    }
+    list4.forEach((f) => f());
+  }
 }

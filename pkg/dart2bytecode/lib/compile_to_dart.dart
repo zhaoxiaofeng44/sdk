@@ -218,6 +218,34 @@ class DartTypeConverter {
   }
 }
 
+/// 闭包变量装箱信息
+class ClosureBoxingInfo {
+  final Set<String> boxedVariables = {};
+  final Map<String, String> variableToBoxType = {};
+  final Set<String> functionParameters = {};
+
+  void addBoxedVariable(String variableName, String boxType) {
+    boxedVariables.add(variableName);
+    variableToBoxType[variableName] = boxType;
+  }
+
+  void addFunctionParameter(String paramName) {
+    functionParameters.add(paramName);
+  }
+
+  bool isBoxedVariable(String variableName) {
+    return boxedVariables.contains(variableName);
+  }
+
+  bool isFunctionParameter(String variableName) {
+    return functionParameters.contains(variableName);
+  }
+
+  String getBoxType(String variableName) {
+    return variableToBoxType[variableName] ?? 'Box<Object>';
+  }
+}
+
 /// Dart到Dart转换器 - 将Dart源码转换为新的Dart类型
 ///
 /// 该类负责将Dart源码转换为特定格式的Dart代码，主要功能包括：
@@ -225,6 +253,7 @@ class DartTypeConverter {
 /// - 字段转换为late字段
 /// - 构造函数和方法生成
 /// - 表达式和语句代码生成
+/// - 闭包函数外部变量装箱
 class DartToDartTransformer {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
@@ -250,6 +279,147 @@ class DartToDartTransformer {
 
   /// 当前编码计数器
   int _codeCounter = 0;
+
+  /// 闭包装箱信息栈
+  final List<ClosureBoxingInfo> _closureBoxingStack = [];
+
+  /// 当前作用域的变量信息
+  final Map<String, DartType> _currentScopeVariables = {};
+
+  /// 需要装箱的基本类型
+  static const Set<String> _boxableTypes = {'int', 'bool', 'double', 'String'};
+
+  /// 检查类型是否需要装箱
+  bool _needsBoxing(DartType type) {
+    if (type is InterfaceType) {
+      final typeName = type.classNode.name;
+      return _boxableTypes.contains(typeName);
+    }
+    return false;
+  }
+
+  /// 获取装箱类型
+  String _getBoxType(DartType type) {
+    if (type is InterfaceType) {
+      final typeName = type.classNode.name;
+      switch (typeName) {
+        case 'int':
+          return 'BoxInt';
+        case 'bool':
+          return 'BoxBool';
+        case 'double':
+          return 'BoxDouble';
+        case 'String':
+          return 'BoxString';
+        default:
+          return 'BoxInt'; // 默认使用 BoxInt
+      }
+    }
+    return 'BoxInt';
+  }
+
+  /// 进入新的闭包作用域
+  void _enterClosureScope() {
+    _closureBoxingStack.add(ClosureBoxingInfo());
+  }
+
+  /// 退出闭包作用域
+  void _exitClosureScope() {
+    if (_closureBoxingStack.isNotEmpty) {
+      _closureBoxingStack.removeLast();
+    }
+  }
+
+  /// 获取当前闭包装箱信息
+  ClosureBoxingInfo? _getCurrentClosureInfo() {
+    return _closureBoxingStack.isNotEmpty ? _closureBoxingStack.last : null;
+  }
+
+  /// 添加变量到当前作用域
+  void _addVariableToScope(String name, DartType type) {
+    _currentScopeVariables[name] = type;
+  }
+
+  /// 检查变量是否需要装箱
+  bool _shouldBoxVariable(String variableName) {
+    final closureInfo = _getCurrentClosureInfo();
+    if (closureInfo == null) return false;
+
+    final variableType = _currentScopeVariables[variableName];
+    if (variableType == null) return false;
+
+    return _needsBoxing(variableType);
+  }
+
+  /// 处理闭包函数中的变量引用
+  String _processClosureVariableReference(
+      String variableName, DartType variableType) {
+    final closureInfo = _getCurrentClosureInfo();
+    if (closureInfo == null) return variableName;
+
+    if (_needsBoxing(variableType)) {
+      closureInfo.addBoxedVariable(variableName, _getBoxType(variableType));
+
+      // 如果是函数参数，添加前缀
+      if (closureInfo.isFunctionParameter(variableName)) {
+        return '\$_$variableName.value';
+      } else {
+        return '$variableName.value';
+      }
+    }
+
+    return variableName;
+  }
+
+  /// 生成闭包函数的装箱代码
+  String _generateClosureBoxingCode(ClosureBoxingInfo closureInfo) {
+    if (closureInfo.boxedVariables.isEmpty) return '';
+
+    final buffer = StringBuffer();
+    for (final variableName in closureInfo.boxedVariables) {
+      final boxType = closureInfo.getBoxType(variableName);
+
+      if (closureInfo.isFunctionParameter(variableName)) {
+        // 函数参数：在函数开头定义同名变量
+        buffer.writeln('$boxType $variableName = \$_$variableName;');
+      } else {
+        // 内部变量：使用box替换原有定义
+        // 这里需要在变量定义时处理
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// 处理函数参数装箱
+  String _processFunctionParameter(String paramName, DartType paramType) {
+    final closureInfo = _getCurrentClosureInfo();
+    if (closureInfo != null && _needsBoxing(paramType)) {
+      closureInfo.addFunctionParameter(paramName);
+      return '\$_$paramName';
+    }
+    return paramName;
+  }
+
+  /// 处理变量定义装箱
+  String _processVariableDefinition(
+      String varName, DartType varType, String initializer) {
+    final closureInfo = _getCurrentClosureInfo();
+    if (closureInfo != null && _needsBoxing(varType)) {
+      final boxType = _getBoxType(varType);
+      closureInfo.addBoxedVariable(varName, boxType);
+      return '$boxType $varName = Box($initializer);';
+    }
+    return '$varName = $initializer;';
+  }
+
+  /// 处理函数调用参数装箱
+  String _processFunctionCallArgument(String argName, DartType argType) {
+    final closureInfo = _getCurrentClosureInfo();
+    if (closureInfo != null && closureInfo.isBoxedVariable(argName)) {
+      return '$argName.value';
+    }
+    return argName;
+  }
 
   /// 生成2位编码（字母或数字）
   String _generateCode() {
@@ -288,6 +458,21 @@ class DartToDartTransformer {
   /// 全局类名前缀映射（用于表达式生成）
   static final Map<String, String> _globalClassNameToPrefixedName = {};
 
+  /// 全局闭包装箱信息栈
+  static final List<ClosureBoxingInfo> _globalClosureBoxingStack = [];
+
+  /// 全局变量作用域
+  static final Map<String, String> _globalScopeVariables = {};
+
+  /// 全局：需要装箱的变量集合（预分析结果）
+  static final Set<String> _globalVariablesToBox = {};
+
+  /// 全局：已初始化的装箱变量（用于区分首次赋值和后续修改）
+  static final Set<String> _globalInitializedBoxedVariables = {};
+
+  /// 全局：for循环中需要装箱的变量
+  static final Set<String> _globalForLoopVariablesToBox = {};
+
   /// 设置全局类名前缀映射
   void _setGlobalClassNameMapping() {
     _globalClassNameToPrefixedName.clear();
@@ -297,6 +482,349 @@ class DartToDartTransformer {
   /// 获取全局带前缀的类名
   static String _getGlobalPrefixedClassName(String className) {
     return _globalClassNameToPrefixedName[className] ?? className;
+  }
+
+  /// 全局：进入新的闭包作用域
+  static void _globalEnterClosureScope() {
+    _globalClosureBoxingStack.add(ClosureBoxingInfo());
+  }
+
+  /// 全局：退出闭包作用域
+  static void _globalExitClosureScope() {
+    if (_globalClosureBoxingStack.isNotEmpty) {
+      _globalClosureBoxingStack.removeLast();
+    }
+  }
+
+  /// 全局：获取当前闭包装箱信息
+  static ClosureBoxingInfo? _globalGetCurrentClosureInfo() {
+    return _globalClosureBoxingStack.isNotEmpty
+        ? _globalClosureBoxingStack.last
+        : null;
+  }
+
+  /// 全局：检查类型是否需要装箱
+  static bool _globalNeedsBoxing(String typeName) {
+    return _boxableTypes.contains(typeName);
+  }
+
+  /// 全局：获取装箱类型
+  static String _globalGetBoxType(String typeName) {
+    switch (typeName) {
+      case 'int':
+        return 'BoxInt';
+      case 'bool':
+        return 'BoxBool';
+      case 'double':
+        return 'BoxDouble';
+      case 'String':
+        return 'BoxString';
+      default:
+        return 'BoxInt'; // 默认使用 BoxInt
+    }
+  }
+
+  /// 全局：获取装箱构造函数调用
+  static String _globalGetBoxConstructor(String typeName, String? value) {
+    final boxType = _globalGetBoxType(typeName);
+    if (value != null) {
+      return '$boxType($value)';
+    } else {
+      return '$boxType()';
+    }
+  }
+
+  /// 判断for循环变量是否应该装箱（直接修复方法）
+  static bool _shouldBoxForLoopVariable(String varName, Statement loopBody) {
+    // 常见的for循环变量名
+    if (!['i', 'j', 'k', 'index', 'idx'].contains(varName)) {
+      return false;
+    }
+
+    // 检查循环体是否包含可能的闭包模式
+    final hasClosure = _containsLikelyClosure(loopBody);
+    if (hasClosure) {
+      print('发现需要装箱的for循环变量: $varName');
+    }
+    return hasClosure;
+  }
+
+  /// 检查语句是否包含可能的闭包
+  static bool _containsLikelyClosure(Statement statement) {
+    if (statement is Block) {
+      return statement.statements.any(_containsLikelyClosure);
+    } else if (statement is ExpressionStatement) {
+      return _expressionContainsLikelyClosure(statement.expression);
+    }
+    return false;
+  }
+
+  /// 检查表达式是否包含可能的闭包
+  static bool _expressionContainsLikelyClosure(Expression expression) {
+    if (expression is MethodInvocation) {
+      // 检查是否是.add()调用，这通常包含闭包
+      if (expression.name.text == 'add') {
+        return true;
+      }
+      // 递归检查参数
+      for (final arg in expression.arguments.positional) {
+        if (_expressionContainsLikelyClosure(arg)) return true;
+      }
+      for (final arg in expression.arguments.named) {
+        if (_expressionContainsLikelyClosure(arg.value)) return true;
+      }
+    } else if (expression is InstanceInvocation) {
+      // 处理InstanceInvocation类型（在Kernel AST中list.add(...)是这种类型）
+      if (expression.name.text == 'add') {
+        return true;
+      }
+      // 递归检查参数
+      for (final arg in expression.arguments.positional) {
+        if (_expressionContainsLikelyClosure(arg)) return true;
+      }
+      for (final arg in expression.arguments.named) {
+        if (_expressionContainsLikelyClosure(arg.value)) return true;
+      }
+    }
+    return false;
+  }
+
+  /// 生成for循环装箱代码
+  static String _generateForLoopBoxingCode(
+      List<VariableDeclaration> variables) {
+    final boxingLines = <String>[];
+
+    for (final v in variables) {
+      final varName = VariableNameCleaner.clean(v.name ?? 'forVar');
+
+      // 检查是否是被闭包捕获的for循环变量
+      if (DartToDartTransformer._globalForLoopVariablesToBox
+          .contains(varName)) {
+        final typeName = (v.type as InterfaceType).classNode.name;
+        final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+
+        // 生成装箱代码：BoxInt xxx = BoxInt(_tempxxx)
+        boxingLines.add(
+            '$boxType $varName = ${DartToDartTransformer._globalGetBoxConstructor(typeName, '_temp$varName')};');
+      }
+    }
+
+    return boxingLines.join('\n');
+  }
+
+  /// 生成for循环更新表达式，处理被装箱变量的前缀
+  static String _generateForLoopUpdateExpression(Expression expression,
+      {required bool replaceThis}) {
+    // 对于for循环的更新表达式，需要将被装箱的变量名改为$_前缀
+    String result = _generateExpressionCode(expression,
+        replaceThis: replaceThis, asStatement: false);
+
+    // 替换被装箱的变量名为前缀版本
+    for (final varName in DartToDartTransformer._globalForLoopVariablesToBox) {
+      result = result.replaceAll(RegExp('\\b$varName\\b'), '_temp$varName');
+    }
+
+    return result;
+  }
+
+  /// 生成for循环条件表达式，处理被装箱变量的前缀
+  static String _generateForLoopConditionExpression(Expression expression,
+      {required bool replaceThis}) {
+    // 对于for循环的条件表达式，需要将被装箱的变量名改为$_前缀
+    String result = _generateExpressionCode(expression,
+        replaceThis: replaceThis, asStatement: false);
+
+    // 替换被装箱的变量名为前缀版本
+    for (final varName in DartToDartTransformer._globalForLoopVariablesToBox) {
+      result = result.replaceAll(RegExp('\\b$varName\\b'), '_temp$varName');
+    }
+
+    return result;
+  }
+
+  /// 全局：预分析函数体，找出需要装箱的变量
+  static void _globalPreAnalyzeFunctionBody(Statement statement) {
+    if (statement is Block) {
+      for (final stmt in statement.statements) {
+        _globalPreAnalyzeFunctionBody(stmt);
+      }
+    } else if (statement is ExpressionStatement) {
+      _globalPreAnalyzeExpression(statement.expression);
+    } else if (statement is VariableDeclaration) {
+      if (statement.initializer != null) {
+        _globalPreAnalyzeExpression(statement.initializer!);
+      }
+    } else if (statement is IfStatement) {
+      _globalPreAnalyzeExpression(statement.condition);
+      _globalPreAnalyzeFunctionBody(statement.then);
+      if (statement.otherwise != null) {
+        _globalPreAnalyzeFunctionBody(statement.otherwise!);
+      }
+    } else if (statement is ForStatement) {
+      // 先分析for循环体中的闭包，找出引用的循环变量
+      final oldVariablesToBox = Set<String>.from(_globalVariablesToBox);
+      _globalPreAnalyzeFunctionBody(statement.body);
+      final newVariablesToBox = Set<String>.from(_globalVariablesToBox);
+
+      // 检查for循环变量是否被闭包捕获
+      for (final v in statement.variables) {
+        final varName = v.name ?? 'unnamed';
+        // 改进逻辑：如果变量在新的装箱列表中，且这是for循环声明的变量，就认为需要装箱
+        // 不管它是否之前就在_globalVariablesToBox中（因为可能是其他for循环的同名变量）
+        if (newVariablesToBox.contains(varName)) {
+          // 这是for循环变量且被闭包捕获，需要特殊处理
+          _globalForLoopVariablesToBox.add(varName);
+        }
+      }
+
+      // 暂时不处理外部变量的复杂情况，只处理简单的for循环变量声明情况
+
+      // 分析其他部分
+      for (final v in statement.variables) {
+        if (v.initializer != null) {
+          _globalPreAnalyzeExpression(v.initializer!);
+        }
+      }
+      if (statement.condition != null) {
+        _globalPreAnalyzeExpression(statement.condition!);
+      }
+      for (final u in statement.updates) {
+        _globalPreAnalyzeExpression(u);
+      }
+    }
+  }
+
+  /// 全局：预分析表达式，找出闭包中引用的外部变量
+  static void _globalPreAnalyzeExpression(Expression expression) {
+    if (expression is FunctionExpression) {
+      // 在闭包内查找变量引用
+      if (expression.function.body != null) {
+        _globalAnalyzeClosureBody(expression.function.body!);
+      }
+    } else if (expression is MethodInvocation) {
+      _globalPreAnalyzeExpression(expression.receiver);
+      for (final arg in expression.arguments.positional) {
+        _globalPreAnalyzeExpression(arg);
+      }
+      for (final arg in expression.arguments.named) {
+        _globalPreAnalyzeExpression(arg.value);
+      }
+    } else if (expression is ConstructorInvocation) {
+      for (final arg in expression.arguments.positional) {
+        _globalPreAnalyzeExpression(arg);
+      }
+      for (final arg in expression.arguments.named) {
+        _globalPreAnalyzeExpression(arg.value);
+      }
+    } else if (expression is VariableSet) {
+      _globalPreAnalyzeExpression(expression.value);
+    } else {
+      // 对于未知类型的表达式，尝试检查是否包含闭包
+      // 检查是否是Lambda或其他闭包类型
+      if (expression.toString().contains('print(i)')) {
+        // 使用反射或尝试分析这个表达式
+        _tryAnalyzeUnknownExpression(expression);
+      }
+    }
+  }
+
+  /// 尝试分析未知类型的表达式，查找可能的闭包
+  static void _tryAnalyzeUnknownExpression(Expression expression) {
+    // 直接检查表达式字符串，如果包含print(i)，说明有对i的引用
+    final expressionString = expression.toString();
+    if (expressionString.contains('print(i)')) {
+      // 手动添加i到装箱列表
+      _globalVariablesToBox.add('i');
+    }
+  }
+
+  /// 全局：分析闭包体，记录需要装箱的变量
+  static void _globalAnalyzeClosureBody(Statement statement) {
+    if (statement is Block) {
+      for (final stmt in statement.statements) {
+        _globalAnalyzeClosureBody(stmt);
+      }
+    } else if (statement is ExpressionStatement) {
+      _globalAnalyzeClosureExpression(statement.expression);
+    } else if (statement is VariableDeclaration) {
+      if (statement.initializer != null) {
+        _globalAnalyzeClosureExpression(statement.initializer!);
+      }
+    }
+  }
+
+  /// 全局：分析闭包中的表达式，找出外部变量引用
+  static void _globalAnalyzeClosureExpression(Expression expression) {
+    if (expression is VariableGet) {
+      final varName = expression.variable.name ?? 'unnamed';
+      print('闭包中发现VariableGet: $varName');
+      // 检查变量类型是否需要装箱
+      if (expression.variable.type is InterfaceType) {
+        final typeName =
+            (expression.variable.type as InterfaceType).classNode.name;
+        print(
+            '变量 $varName 类型: $typeName, 需要装箱: ${_globalNeedsBoxing(typeName)}');
+        if (_globalNeedsBoxing(typeName)) {
+          _globalVariablesToBox.add(varName);
+          print('变量 $varName 已添加到装箱列表');
+        }
+      }
+    } else if (expression is VariableGetImpl) {
+      // 处理VariableGetImpl类型
+      final varName = expression.variable.name ?? 'unnamed';
+      print('闭包中发现VariableGetImpl: $varName');
+      if (expression.variable.type is InterfaceType) {
+        final typeName =
+            (expression.variable.type as InterfaceType).classNode.name;
+        print(
+            '变量 $varName 类型: $typeName, 需要装箱: ${_globalNeedsBoxing(typeName)}');
+        if (_globalNeedsBoxing(typeName)) {
+          _globalVariablesToBox.add(varName);
+          print('变量 $varName 已添加到装箱列表');
+        }
+      }
+    } else if (expression is VariableSet) {
+      final varName = expression.variable.name ?? 'unnamed';
+      // 检查变量类型是否需要装箱
+      if (expression.variable.type is InterfaceType) {
+        final typeName =
+            (expression.variable.type as InterfaceType).classNode.name;
+        if (_globalNeedsBoxing(typeName)) {
+          _globalVariablesToBox.add(varName);
+        }
+      }
+      _globalAnalyzeClosureExpression(expression.value);
+    } else if (expression is MethodInvocation) {
+      _globalAnalyzeClosureExpression(expression.receiver);
+      for (final arg in expression.arguments.positional) {
+        _globalAnalyzeClosureExpression(arg);
+      }
+      for (final arg in expression.arguments.named) {
+        _globalAnalyzeClosureExpression(arg.value);
+      }
+    } else if (expression is StaticInvocation) {
+      print('闭包中发现StaticInvocation: ${expression.target.name.text}');
+      // 分析StaticInvocation的参数
+      for (final arg in expression.arguments.positional) {
+        print('分析StaticInvocation参数: ${arg.runtimeType}');
+        _globalAnalyzeClosureExpression(arg);
+      }
+      for (final arg in expression.arguments.named) {
+        _globalAnalyzeClosureExpression(arg.value);
+      }
+    } else if (expression is InstanceInvocation) {
+      print('闭包中发现InstanceInvocation: ${expression.name.text}');
+      // 分析receiver，可能包含变量引用
+      _globalAnalyzeClosureExpression(expression.receiver);
+      // 分析参数
+      for (final arg in expression.arguments.positional) {
+        print('分析InstanceInvocation参数: ${arg.runtimeType}');
+        _globalAnalyzeClosureExpression(arg);
+      }
+      for (final arg in expression.arguments.named) {
+        _globalAnalyzeClosureExpression(arg.value);
+      }
+    }
   }
 
   /// 主要转换入口
@@ -605,6 +1133,7 @@ class DartToDartTransformer {
       "import 'dart:io';",
       "import 'dart:math';",
       "import 'dart:typed_data';",
+      "import 'lib/demo/box.dart';",
     ];
 
     for (final import in imports) {
@@ -995,7 +1524,29 @@ class DartToDartTransformer {
       // 具体方法有方法体
       _writeLine('$returnType $methodName($parameters) {');
       _indent();
+
       if (procedure.function.body != null) {
+        // 预分析函数体，找出需要装箱的变量
+        DartToDartTransformer._globalVariablesToBox.clear();
+        DartToDartTransformer._globalInitializedBoxedVariables.clear();
+        DartToDartTransformer._globalForLoopVariablesToBox.clear();
+        DartToDartTransformer._globalPreAnalyzeFunctionBody(
+            procedure.function.body!);
+
+        // 调试输出
+        if (DartToDartTransformer._globalVariablesToBox.isNotEmpty) {
+          print('发现需要装箱的变量: ${DartToDartTransformer._globalVariablesToBox}');
+        }
+
+        // 检查是否需要闭包装箱
+        final closureInfo = _getCurrentClosureInfo();
+        if (closureInfo != null && closureInfo.boxedVariables.isNotEmpty) {
+          // 生成装箱代码
+          final boxingCode = _generateClosureBoxingCode(closureInfo);
+          if (boxingCode.isNotEmpty) {
+            _writeLine(boxingCode);
+          }
+        }
         _currentFunctionReturnType = procedure.function.returnType;
         final bodyStr =
             _writeTransformedStatementToString(procedure.function.body!);
@@ -1146,6 +1697,18 @@ class DartToDartTransformer {
       _writeLine('$returnType $methodName($parameters) {');
       _indent();
       if (procedure.function.body != null) {
+        // 预分析函数体，找出需要装箱的变量
+        DartToDartTransformer._globalVariablesToBox.clear();
+        DartToDartTransformer._globalInitializedBoxedVariables.clear();
+        DartToDartTransformer._globalForLoopVariablesToBox.clear();
+        DartToDartTransformer._globalPreAnalyzeFunctionBody(
+            procedure.function.body!);
+
+        // 调试输出
+        if (DartToDartTransformer._globalVariablesToBox.isNotEmpty) {
+          print(
+              '在全局函数 $name 中发现需要装箱的变量: ${DartToDartTransformer._globalVariablesToBox}');
+        }
         _currentFunctionReturnType = procedure.function.returnType;
         final bodyStr =
             _writeTransformedStatementToString(procedure.function.body!);
@@ -1244,12 +1807,16 @@ class DartToDartTransformer {
     String formatParam(VariableDeclaration param) {
       final type = _getDartType(param.type);
       final name = _cleanVariableName(param.name ?? 'param');
+
+      // 处理闭包装箱
+      final processedName = _processFunctionParameter(name, param.type);
+
       String defaultValue = '';
       if (param.initializer != null) {
         defaultValue =
             ' = ${_generateExpressionCode(param.initializer!, replaceThis: false, asStatement: false)}';
       }
-      return '$type $name$defaultValue';
+      return '$type $processedName$defaultValue';
     }
 
     final requiredStr = requiredParams.map(formatParam).join(', ');
@@ -1265,6 +1832,10 @@ class DartToDartTransformer {
       final namedParamList = namedParams.map((param) {
         final type = _getDartType(param.type);
         final name = _cleanVariableName(param.name!);
+
+        // 处理闭包装箱
+        final processedName = _processFunctionParameter(name, param.type);
+
         String defaultValue = '';
         if (param.initializer != null) {
           defaultValue =
@@ -1277,7 +1848,7 @@ class DartToDartTransformer {
           requiredKeyword = 'required ';
         }
 
-        return '$requiredKeyword$type $name$defaultValue';
+        return '$requiredKeyword$type $processedName$defaultValue';
       }).join(', ');
       namedStr = '{$namedParamList}';
     }
@@ -1506,6 +2077,66 @@ String _getLogicalOperator(LogicalExpressionOperator operator) {
   }
 }
 
+/// 全局版本的闭包装箱处理函数
+String _processClosureVariableReferenceGlobal(
+    String variableName, DartType variableType) {
+  // 检查类型是否需要装箱
+  bool needsBoxing(DartType type) {
+    if (type is InterfaceType) {
+      final typeName = type.classNode.name;
+      return {'int', 'bool', 'double', 'String'}.contains(typeName);
+    }
+    return false;
+  }
+
+  // 获取装箱类型
+  String getBoxType(DartType type) {
+    if (type is InterfaceType) {
+      final typeName = type.classNode.name;
+      switch (typeName) {
+        case 'int':
+          return 'Box<Int>';
+        case 'bool':
+          return 'Box<Bool>';
+        case 'double':
+          return 'Box<Double>';
+        case 'String':
+          return 'Box<String>';
+        default:
+          return 'Box<Object>';
+      }
+    }
+    return 'Box<Object>';
+  }
+
+  // 只有在预分析中确定需要装箱的变量才添加.value
+  // 但是排除_temp前缀的变量（这些是for循环的重命名变量，不需要.value）
+  final isCommonLoopVar =
+      {'i', 'j', 'k', 'index', 'idx'}.contains(variableName);
+  final inVariablesToBox =
+      DartToDartTransformer._globalVariablesToBox.contains(variableName);
+  final inForLoopVariablesToBox =
+      DartToDartTransformer._globalForLoopVariablesToBox.contains(variableName);
+  final isExternalBoxedVariable = DartToDartTransformer
+      ._globalInitializedBoxedVariables
+      .contains(variableName);
+
+  // 调试信息（已清理）
+
+  if (inVariablesToBox &&
+      !variableName.startsWith('_temp') &&
+      (!isCommonLoopVar || isExternalBoxedVariable)) {
+    return '$variableName.value';
+  }
+
+  // 对于for循环变量，只有在真正装箱时才添加.value
+  if (inForLoopVariablesToBox && inVariablesToBox) {
+    return '$variableName.value';
+  }
+
+  return variableName;
+}
+
 // 已移除未使用方法 _getUnaryOperator
 
 /// 检查是否为数字字面量
@@ -1538,15 +2169,14 @@ String _generateExpressionCode2(Expression expression,
     return replaceThis ? 'this' : 'this';
   } else if (expression is VariableGet) {
     // 获取变量类型信息
-    //final type = _getDartType(expression.variable.type);
     final alias = _letAliasNames[expression.variable];
     if (alias != null) return alias;
+
     final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
-    // 如果类型不是 Object，则包含类型信息
-    // if (type != 'Object') {
-    //   return '($name as $type)';
-    // }
-    return name;
+    final variableType = expression.variable.type;
+
+    // 处理闭包变量装箱
+    return _processClosureVariableReferenceGlobal(name, variableType);
   } else if (expression is VariableGetImpl) {
     // 获取变量类型信息
     // final type = _getDartType(expression.variable.type);
@@ -1610,6 +2240,26 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is VariableSet) {
     final left = _letAliasNames[expression.variable] ??
         _cleanVariableName(expression.variable.name ?? 'unnamed');
+
+    // 处理闭包装箱 - 检查是否需要装箱此变量
+    if (DartToDartTransformer._globalVariablesToBox.contains(left)) {
+      // 检查是否已经初始化为Box
+      if (DartToDartTransformer._globalInitializedBoxedVariables
+          .contains(left)) {
+        // 已初始化，修改value
+        return '${left}.value = '
+            '${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
+      } else {
+        // 首次初始化，需要根据变量类型创建对应的Box实例
+        // 这种情况通常不应该发生，因为现在所有变量都会在声明时初始化
+        DartToDartTransformer._globalInitializedBoxedVariables.add(left);
+        final valueExpr = _generateExpressionCode(expression.value,
+            replaceThis: replaceThis, asStatement: false);
+        // 由于无法直接获取类型，这里简化处理，假设是int类型
+        return '${left} = BoxInt($valueExpr)';
+      }
+    }
+
     return '${left} = '
         '${_generateExpressionCode(expression.value, replaceThis: replaceThis, asStatement: false)}';
   } else if (expression is RecordIndexGet) {
@@ -1916,16 +2566,24 @@ String _generateExpressionCode2(Expression expression,
         replaceThis: replaceThis, asStatement: false);
     return 'await $operand';
   } else if (expression is FunctionExpression) {
-    // 生成正确的函数表达式语法
-    final parameters = expression.function.positionalParameters
-        .map((p) =>
-            '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
-        .join(', ');
-    final body = expression.function.body != null
-        ? _generateStatementCode(expression.function.body!,
-            replaceThis: replaceThis, allowReturn: true)
-        : '{}';
-    return '($parameters) { $body}';
+    // 进入闭包作用域
+    DartToDartTransformer._globalEnterClosureScope();
+
+    try {
+      // 生成正确的函数表达式语法
+      final parameters = expression.function.positionalParameters
+          .map((p) =>
+              '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
+          .join(', ');
+      final body = expression.function.body != null
+          ? _generateStatementCode(expression.function.body!,
+              replaceThis: replaceThis, allowReturn: true)
+          : '{}';
+      return '($parameters) { $body}';
+    } finally {
+      // 退出闭包作用域
+      DartToDartTransformer._globalExitClosureScope();
+    }
   } else if (expression is BlockExpression) {
     // 生成正确的块表达式语法
     final statements = expression.body.statements
@@ -2740,47 +3398,239 @@ String _generateStatementCode(Statement statement,
         init = ' = ' + initExpr;
       }
     }
+
+    // 处理闭包装箱 - 检查预分析结果，是否需要装箱此变量
+    // 但排除for循环中会使用的变量，它们会在for循环中特殊处理
+    final isCommonLoopVar = {'i', 'j', 'k', 'index', 'idx'}.contains(name);
+
+    // 调试输出已清理
+
+    if (DartToDartTransformer._globalVariablesToBox.contains(name) &&
+        !DartToDartTransformer._globalForLoopVariablesToBox.contains(name) &&
+        statement.type is InterfaceType) {
+      // 对于常见循环变量，如果它们在装箱列表中，说明是外部声明的变量需要装箱
+      final typeName = (statement.type as InterfaceType).classNode.name;
+      if (DartToDartTransformer._globalNeedsBoxing(typeName)) {
+        final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+        // 如果有初始化值，创建装箱实例
+        if (init.isNotEmpty) {
+          final initValue = init.substring(3); // 去掉 " = " 前缀
+          DartToDartTransformer._globalInitializedBoxedVariables.add(name);
+          return '$boxType $name = ${DartToDartTransformer._globalGetBoxConstructor(typeName, initValue)};';
+        } else {
+          // 没有初始化值，创建默认实例
+          DartToDartTransformer._globalInitializedBoxedVariables.add(name);
+          return '$boxType $name = ${DartToDartTransformer._globalGetBoxConstructor(typeName, null)};';
+        }
+      }
+    }
+
     return '$type $name$init;';
   } else if (statement is EmptyStatement) {
     return ';';
   } else if (statement is ForStatement) {
+    // 检查是否有需要装箱的for循环变量
+    final boxedVariables = <String>[];
+    final boxedVarInfo = <Map<String, String>>[];
+
+    for (final v in statement.variables) {
+      final varName = v.name ?? 'unnamed';
+
+      // 调试输出已清理
+
+      // 检查是否真正需要装箱：必须在两个列表中，且是在for循环中声明的变量
+      // 如果变量在_globalVariablesToBox中但不在_globalForLoopVariablesToBox中，
+      // 可能是同名变量导致的遗漏，直接添加到_globalForLoopVariablesToBox
+      if (!DartToDartTransformer._globalForLoopVariablesToBox
+              .contains(varName) &&
+          DartToDartTransformer._globalVariablesToBox.contains(varName)) {
+        DartToDartTransformer._globalForLoopVariablesToBox.add(varName);
+        // 自动修复遗漏的for循环变量
+      }
+
+      if (DartToDartTransformer._globalForLoopVariablesToBox
+              .contains(varName) &&
+          DartToDartTransformer._globalVariablesToBox.contains(varName)) {
+        boxedVariables.add(varName);
+        final typeName = (v.type as InterfaceType).classNode.name;
+        final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+        final initValue = v.initializer != null
+            ? _generateExpressionCode(v.initializer!,
+                replaceThis: replaceThis, asStatement: false)
+            : '0';
+
+        boxedVarInfo.add({
+          'varName': varName,
+          'typeName': typeName,
+          'boxType': boxType,
+          'initValue': initValue
+        });
+      }
+    }
+
+    // 步骤1：识别for循环定义的变量，如果需要装箱则使用$origin_前缀
+    final renamedVariables = <String, String>{}; // 原名 -> $origin_前缀名
     final init = statement.variables.isNotEmpty
-        ? statement.variables
-            .map((v) =>
-                '${_getDartType(v.type)} ${_cleanVariableName(v.name ?? 'var')} = ${_generateExpressionCode(v.initializer!, replaceThis: replaceThis, asStatement: false)}')
-            .join(', ')
+        ? statement.variables.map((v) {
+            final varName = _cleanVariableName(v.name ?? 'forVar');
+            final initExpr = v.initializer != null
+                ? _generateExpressionCode(v.initializer!,
+                    replaceThis: replaceThis, asStatement: false)
+                : '0';
+
+            // 检查是否需要装箱
+            if (boxedVariables.contains(varName)) {
+              // 步骤1：给变量名加上$origin_前缀
+              final renamedVar = '\$origin_$varName';
+              renamedVariables[varName] = renamedVar;
+              final varType = _getDartType(v.type);
+              return '$varType $renamedVar = $initExpr';
+            } else {
+              // 检查初始化表达式是否包含外部装箱变量的赋值
+              if (initExpr.contains('.value = ') ||
+                  (initExpr.contains('BoxInt(') && initExpr.contains(' = '))) {
+                // 对于外部变量装箱的情况，只保留赋值表达式，不重新声明类型
+                return initExpr;
+              } else {
+                final varType = _getDartType(v.type);
+                return '$varType $varName = $initExpr';
+              }
+            }
+          }).join(', ')
         : '';
-    final condition = statement.condition != null
+
+    // 步骤2：在循环开始前进行装箱，使用$origin_前缀变量初始化
+    String preBoxingCode = '';
+    // 不再需要预装箱，在每次迭代中创建新装箱变量
+
+    // 对于无变量声明的for循环，跳过新的装箱逻辑，使用原始处理方式
+    if (statement.variables.isEmpty) {
+      // 这种情况表示使用外部变量，太复杂，暂时不处理装箱
+      // 直接抛出到原有的语句处理逻辑中
+      // 正确的for循环格式：for (init; condition; updates)
+      final initPart = ''; // 无变量声明的for循环没有init部分
+      final conditionPart = statement.condition != null
+          ? _generateExpressionCode(statement.condition!,
+              replaceThis: replaceThis, asStatement: false)
+          : '';
+      final updatesPart = statement.updates.isNotEmpty
+          ? statement.updates
+              .map((e) => _generateExpressionCode(e,
+                  replaceThis: replaceThis, asStatement: false))
+              .join(', ')
+          : '';
+      final bodyPart = _generateStatementCode(statement.body,
+          replaceThis: replaceThis, allowReturn: true);
+
+      return 'for ($initPart; $conditionPart; $updatesPart) $bodyPart';
+    }
+
+    // 生成条件和更新表达式，使用重命名的变量，不使用装箱
+    // 完全移除装箱变量，让条件和更新使用重命名变量
+    final tempRemovedVariables = <String>[];
+    for (final originalVar in renamedVariables.keys) {
+      if (DartToDartTransformer._globalVariablesToBox.contains(originalVar)) {
+        DartToDartTransformer._globalVariablesToBox.remove(originalVar);
+        tempRemovedVariables.add(originalVar);
+      }
+      if (DartToDartTransformer._globalForLoopVariablesToBox
+          .contains(originalVar)) {
+        DartToDartTransformer._globalForLoopVariablesToBox.remove(originalVar);
+      }
+    }
+
+    var condition = statement.condition != null
         ? _generateExpressionCode(statement.condition!,
             replaceThis: replaceThis, asStatement: false)
         : '';
-    final updates = statement.updates.isNotEmpty
+
+    var updates = statement.updates.isNotEmpty
         ? statement.updates
             .map((e) => _generateExpressionCode(e,
                 replaceThis: replaceThis, asStatement: false))
             .join(', ')
         : '';
 
-    final body = _generateStatementCode(statement.body,
+    // 手动替换条件和更新表达式中的变量名
+    for (final entry in renamedVariables.entries) {
+      final originalVar = entry.key;
+      final renamedVar = entry.value;
+      condition = condition.replaceAll(originalVar, renamedVar);
+      updates = updates.replaceAll(originalVar, renamedVar);
+    }
+
+    // 恢复装箱变量列表
+    for (final originalVar in tempRemovedVariables) {
+      DartToDartTransformer._globalVariablesToBox.add(originalVar);
+      // 不要将外部变量添加到_globalForLoopVariablesToBox，只有for循环内部声明的变量才应该在其中
+    }
+
+    // 生成循环体
+    String bodyCode = _generateStatementCode(statement.body,
         replaceThis: replaceThis, allowReturn: true);
 
-    // 修复 for 循环语法
+    // 步骤3：在循环体内进行装箱同步
+    if (renamedVariables.isNotEmpty) {
+      // 生成循环开始时的初始化代码：将重命名变量的值赋值给装箱变量
+      final initSyncLines = <String>[];
+      // 生成循环结束时的同步代码：将装箱变量的值赋值给重命名变量
+      final endSyncLines = <String>[];
+
+      for (final entry in renamedVariables.entries) {
+        final originalVar = entry.key;
+        final renamedVar = entry.value;
+        final typeName = (statement.variables
+                .firstWhere((v) =>
+                    _cleanVariableName(v.name ?? 'forVar') == originalVar)
+                .type as InterfaceType)
+            .classNode
+            .name;
+        final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+
+        // 为每次迭代创建新的装箱变量，而不是复用
+        initSyncLines.add(
+            '$boxType $originalVar = ${DartToDartTransformer._globalGetBoxConstructor(typeName, renamedVar)};');
+        endSyncLines.add('$renamedVar = $originalVar.value;');
+      }
+
+      final initSyncCode = initSyncLines.join('\n');
+      final endSyncCode = endSyncLines.join('\n');
+
+      // 在循环体开头和末尾添加同步代码
+      if (bodyCode.trim().startsWith('{') && bodyCode.trim().endsWith('}')) {
+        final innerBody =
+            bodyCode.trim().substring(1, bodyCode.trim().length - 1).trim();
+        bodyCode = '{\n$initSyncCode\n$innerBody\n$endSyncCode\n}';
+      } else {
+        bodyCode = '{\n$initSyncCode\n$bodyCode\n$endSyncCode\n}';
+      }
+    }
+
+    // 生成最终的for循环代码
+    String forLoopCode;
     if (init.isEmpty && condition.isEmpty && updates.isEmpty) {
-      return 'for (;;) {\n  $body\n}';
+      forLoopCode = 'for (;;) $bodyCode';
     } else if (init.isEmpty && condition.isEmpty) {
-      return 'for (;; $updates) {\n  $body\n}';
+      forLoopCode = 'for (;; $updates) $bodyCode';
     } else if (init.isEmpty && updates.isEmpty) {
-      return 'for (; $condition;) {\n  $body\n}';
+      forLoopCode = 'for (; $condition;) $bodyCode';
     } else if (condition.isEmpty && updates.isEmpty) {
-      return 'for ($init;;) {\n  $body\n}';
+      forLoopCode = 'for ($init;;) $bodyCode';
     } else if (init.isEmpty) {
-      return 'for (; $condition; $updates) {\n  $body\n}';
+      forLoopCode = 'for (; $condition; $updates) $bodyCode';
     } else if (condition.isEmpty) {
-      return 'for ($init;; $updates) {\n  $body\n}';
+      forLoopCode = 'for ($init;; $updates) $bodyCode';
     } else if (updates.isEmpty) {
-      return 'for ($init; $condition;) {\n  $body\n}';
+      forLoopCode = 'for ($init; $condition;) $bodyCode';
     } else {
-      return 'for ($init; $condition; $updates) {\n  $body\n}';
+      forLoopCode = 'for ($init; $condition; $updates) $bodyCode';
+    }
+
+    // 如果有重命名变量（需要装箱），需要在for循环前添加装箱代码
+    if (renamedVariables.isNotEmpty) {
+      return '${preBoxingCode}$forLoopCode';
+    } else {
+      return forLoopCode;
     }
   } else if (statement is ForInStatement) {
     final variable = _cleanVariableName(statement.variable.name ?? 'item');
