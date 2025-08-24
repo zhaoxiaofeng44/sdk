@@ -12,53 +12,157 @@ final Void = null;
 /// 用于标识不同源文件中的类，避免类名冲突
 /// 格式: 编码 -> 源文件路径
 ///
-/// AA -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
-/// AB -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
-/// AC -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
-/// AD -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
-/// AE -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+/// AA -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+/// AB -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
+/// AC -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
+/// AD -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
+/// AE -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 /// AF -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/object.dart
 
-/// 转换后的类: $AA_CppList
+/// 转换后的类: $AA_CppUserData
+/// 原始类名: CppUserData
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+
+class $AA_CppUserData {
+  late List<dynamic?> data;
+$AA_CppUserData() : data = <dynamic?>[], super()   {
+    ;
+  }
+  
+$AA_CppUserData.constant(List<dynamic?> data) : data = data, super()   {
+    ;
+  }
+  
+}
+
+/// 转换后的类: $AA_CppApi
+/// 原始类名: CppApi
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
+
+class $AA_CppApi {
+$AA_CppApi() : super()   {
+    ;
+  }
+  
+  static $AA_CppUserData cppCreatePointerArray(int length) {
+    {
+  $AA_CppUserData userData = $AA_CppUserData();
+  userData.data.length = length;
+  return userData;
+}
+  }
+  
+  static int cppGetPointerArrayLength($AA_CppUserData array) {
+    {
+  return array.data.length;
+}
+  }
+  
+  static Object? cppGetPointerArrayItem($AA_CppUserData array, int index) {
+    {
+  return array.data[index];
+}
+  }
+  
+  static void cppSetPointerArrayItem($AA_CppUserData array, int index, Object? value) {
+    {
+  array.data[index] = value;
+}
+  }
+  
+  static $AA_CppUserData cppCreateByteArray(int length) {
+    {
+  return $AA_CppUserData.constant(_GrowableList.empty<dynamic?>());
+}
+  }
+  
+  static int cppGetByteArrayLength($AA_CppUserData array) {
+    {
+  return array.data.length;
+}
+  }
+  
+  static int cppGetByteArrayItem($AA_CppUserData array, int index) {
+    {
+  return array.data[index] as int;
+}
+  }
+  
+  static void cppSetByteArrayItem($AA_CppUserData array, int index, int value) {
+    {
+  array.data[index] = value;
+}
+  }
+  
+  static bool cppBoolValue(bool value) {
+    {
+  return value;
+}
+  }
+  
+  static String getCurrentStackTrace() {
+    {
+  return StackTrace.current.toString();
+}
+  }
+  
+  static void print(Object? object) {
+    {
+  $AA_CppApi.print(object);
+}
+  }
+  
+  static $AA_CppUserData cppArrayConst(int length, [Object? v1 = null, Object? v2 = null, Object? v3 = null, Object? v4 = null, Object? v5 = null, Object? v6 = null, Object? v7 = null, Object? v8 = null, Object? v9 = null, Object? v10 = null]) {
+    {
+  return $AA_CppUserData.constant((() { final List<dynamic?> temp_1745_2947 = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]; return (() {
+temp_1745_2947.length = length;
+return temp_1745_2947;
+})(); })());
+}
+  }
+  
+}
+
+/// 转换后的类: $AB_CppList
 /// 原始类名: CppList
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
-  $AA_CppList();
+abstract class $AB_CppList<E> extends $AE_CppIterable<E> {
+  $AB_CppList();
   
-  factory $AA_CppList.empty({bool growable = false}) {
+  factory $AB_CppList.empty({bool growable = false}) {
     {
-  return $AA_CppArrayList<E>.empty(growable: growable);
+  return $AB_CppArrayList<E>.empty(growable: growable);
 }
   }
   
-  factory $AA_CppList.filled(int length, E fill, {bool growable = false}) {
+  factory $AB_CppList.filled(int length, E fill, {bool growable = false}) {
     {
-  return $AA_CppArrayList<E>.filled(length, fill, growable: growable);
+  return $AB_CppArrayList<E>.filled(length, fill, growable: growable);
 }
   }
   
-  factory $AA_CppList.from($AD_CppIterable<dynamic?> elements, {bool growable = true}) {
+  factory $AB_CppList.from($AE_CppIterable<dynamic?> elements, {bool growable = true}) {
     {
-  return $AA_CppArrayList<E>.from(elements, growable: growable);
+  return $AB_CppArrayList<E>.from(elements, growable: growable);
 }
   }
   
-  factory $AA_CppList.of($AD_CppIterable<E> elements, {bool growable = true}) {
+  factory $AB_CppList.of($AE_CppIterable<E> elements, {bool growable = true}) {
     {
-  return $AA_CppArrayList<E>.of(elements, growable: growable);
+  return $AB_CppArrayList<E>.of(elements, growable: growable);
 }
   }
   
-  factory $AA_CppList.generate(int length, E Function(int) generator, {bool growable = true}) {
+  factory $AB_CppList.generate(int length, E Function(int) generator, {bool growable = true}) {
     {
-  return $AA_CppArrayList<E>.generate(length, generator, growable: growable);
+  return $AB_CppArrayList<E>.generate(length, generator, growable: growable);
 }
   }
   
-  factory $AA_CppList.unmodifiable($AD_CppIterable<dynamic?> elements) {
+  factory $AB_CppList.unmodifiable($AE_CppIterable<dynamic?> elements) {
     {
-  return $AA_CppArrayList<E>.unmodifiable(elements);
+  return $AB_CppArrayList<E>.unmodifiable(elements);
 }
   }
   
@@ -68,13 +172,13 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void add(E value);
   
-  void addAll($AD_CppIterable<E> iterable);
+  void addAll($AE_CppIterable<E> iterable);
   
   bool any(bool Function(E) test);
   
-  $AA_CppMap<int, E> asMap();
+  $AB_CppMap<int, E> asMap();
   
-  $AD_CppIterable<R> cast<R>();
+  $AE_CppIterable<R> cast<R>();
   
   void clear();
   
@@ -92,7 +196,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void forEach(void Function(E) action);
   
-  $AD_CppIterable<E> getRange(int start, int end);
+  $AE_CppIterable<E> getRange(int start, int end);
   
   int indexOf(E element, [int start = 0]);
   
@@ -100,7 +204,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void insert(int index, E element);
   
-  void insertAll(int index, $AD_CppIterable<E> iterable);
+  void insertAll(int index, $AE_CppIterable<E> iterable);
   
   E get first;
   
@@ -116,9 +220,9 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   bool get isNotEmpty;
   
-  $AD_CppIterator<E> get iterator;
+  $AE_CppIterator<E> get iterator;
   
-  $AC_CppString join([$AC_CppString separator = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}})]);
+  $AD_CppString join([$AD_CppString separator = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}})]);
   
   int lastIndexOf(E element, [int? start = null]);
   
@@ -138,114 +242,114 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void removeWhere(bool Function(E) test);
   
-  void replaceRange(int start, int end, $AD_CppIterable<E> replacements);
+  void replaceRange(int start, int end, $AE_CppIterable<E> replacements);
   
   void retainWhere(bool Function(E) test);
   
-  void setAll(int index, $AD_CppIterable<E> iterable);
+  void setAll(int index, $AE_CppIterable<E> iterable);
   
-  void setRange(int start, int end, $AD_CppIterable<E> iterable, [int skipCount = 0]);
+  void setRange(int start, int end, $AE_CppIterable<E> iterable, [int skipCount = 0]);
   
   void shuffle([Random? random = null]);
   
   void sort([int Function(E, E)? compare = null]);
   
-  $AA_CppList<E> sublist(int start, [int? end = null]);
+  $AB_CppList<E> sublist(int start, [int? end = null]);
   
-  $AA_CppList<E> toList({bool growable = true});
+  $AB_CppList<E> toList({bool growable = true});
   
-  $AA_CppSet<E> toSet();
+  $AB_CppSet<E> toSet();
   
   E singleWhere(bool Function(E) test, {E Function()? orElse = null});
   
-  $AC_CppString toCppString();
+  $AD_CppString toCppString();
   
-  static $AA_CppList<R> castFrom<S, R>($AA_CppList<S> source) {
+  static $AB_CppList<R> castFrom<S, R>($AB_CppList<S> source) {
     {
-  return $AA_CppArrayList.castFrom<S, R>(source);
+  return $AB_CppArrayList.castFrom<S, R>(source);
 }
   }
   
-  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, $AA_CppList<R> Function() newList) {
+  static $AB_CppList<R> castFromWithFactory<S, R>($AB_CppList<S> source, $AB_CppList<R> Function() newList) {
     {
-  return $AA_CppArrayList.castFromWithFactory<S, R>(source, newList);
+  return $AB_CppArrayList.castFromWithFactory<S, R>(source, newList);
 }
   }
   
 }
 
-/// 转换后的类: $AA_CppArrayList
+/// 转换后的类: $AB_CppArrayList
 /// 原始类名: CppArrayList
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-class $AA_CppArrayList<E> extends $AD_CppIterable<E> implements $AA_CppList<E> {
+class $AB_CppArrayList<E> extends $AE_CppIterable<E> implements $AB_CppList<E> {
   late int _length;
-  late $AE_CppUserData _array;
-$AA_CppArrayList.fromCppArray($AE_CppUserData array) : _length = $AE_CppApi.cppGetPointerArrayLength(array), _array = array, super()   {
+  late $AA_CppUserData _array;
+$AB_CppArrayList.fromCppArray($AA_CppUserData array) : _length = $AA_CppApi.cppGetPointerArrayLength(array), _array = array, super()   {
     ;
   }
   
-$AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppApi.cppCreatePointerArray(length), super()   {
+$AB_CppArrayList(int length, int capacity) : _length = length, _array = $AA_CppApi.cppCreatePointerArray(length), super()   {
     ;
   }
   
-  factory $AA_CppArrayList.empty({bool growable = false}) {
+  factory $AB_CppArrayList.empty({bool growable = false}) {
     {
-  return growable ? $AA_CppArrayList<E>(0, 0) : $AA_CppArrayList<E>(0, 0);
+  return growable ? $AB_CppArrayList<E>(0, 0) : $AB_CppArrayList<E>(0, 0);
 }
   }
   
-  factory $AA_CppArrayList.filled(int length, E fill, {bool growable = false}) {
+  factory $AB_CppArrayList.filled(int length, E fill, {bool growable = false}) {
     {
-  $AE_CppUserData array = $AE_CppApi.cppCreatePointerArray(length);
+  $AA_CppUserData array = $AA_CppApi.cppCreatePointerArray(length);
   for (int i = 0; (i < length); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(array, i, fill);
+  $AA_CppApi.cppSetPointerArrayItem(array, i, fill);
 }
-  return $AA_CppArrayList<E>.fromCppArray(array);
+  return $AB_CppArrayList<E>.fromCppArray(array);
 }
   }
   
-  factory $AA_CppArrayList.from($AD_CppIterable<dynamic?> elements, {bool growable = true}) {
+  factory $AB_CppArrayList.from($AE_CppIterable<dynamic?> elements, {bool growable = true}) {
     {
   int length = elements.length;
-  $AE_CppUserData array = growable ? $AE_CppApi.cppCreatePointerArray(length) : $AE_CppApi.cppCreatePointerArray($AA_CppArrayList._getSuggestCapacity(length));
+  $AA_CppUserData array = growable ? $AA_CppApi.cppCreatePointerArray(length) : $AA_CppApi.cppCreatePointerArray($AB_CppArrayList._getSuggestCapacity(length));
   int i = 0;
   {
-  $AD_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
+  $AE_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppApi.cppSetPointerArrayItem(array, (() { final int temp_5417_3056 = i; return (() { final int temp_5417_3060 = i = (temp_5417_3056 + 1); return temp_5417_3056; })(); })(), _sync_for_iterator.current);
+  $AA_CppApi.cppSetPointerArrayItem(array, (() { final int temp_5417_3188 = i; return (() { final int temp_5417_3192 = i = (temp_5417_3188 + 1); return temp_5417_3188; })(); })(), _sync_for_iterator.current);
 }
 }
-  return $AA_CppArrayList<E>.fromCppArray(array);
+  return $AB_CppArrayList<E>.fromCppArray(array);
 }
   }
   
-  factory $AA_CppArrayList.of($AD_CppIterable<E> elements, {bool growable = true}) {
-    return $AA_CppArrayList<E>.from(elements, growable: growable);
+  factory $AB_CppArrayList.of($AE_CppIterable<E> elements, {bool growable = true}) {
+    return $AB_CppArrayList<E>.from(elements, growable: growable);
   }
   
-  factory $AA_CppArrayList.generate(int length, E Function(int) generator, {bool growable = true}) {
+  factory $AB_CppArrayList.generate(int length, E Function(int) generator, {bool growable = true}) {
     {
-  $AE_CppUserData array = growable ? $AE_CppApi.cppCreatePointerArray(length) : $AE_CppApi.cppCreatePointerArray($AA_CppArrayList._getSuggestCapacity(length));
+  $AA_CppUserData array = growable ? $AA_CppApi.cppCreatePointerArray(length) : $AA_CppApi.cppCreatePointerArray($AB_CppArrayList._getSuggestCapacity(length));
   for (int i = 0; (i < length); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(array, i, generator.call(i));
+  $AA_CppApi.cppSetPointerArrayItem(array, i, generator.call(i));
 }
-  return $AA_CppArrayList<E>.fromCppArray(array);
+  return $AB_CppArrayList<E>.fromCppArray(array);
 }
   }
   
-  factory $AA_CppArrayList.unmodifiable($AD_CppIterable<dynamic?> elements) {
+  factory $AB_CppArrayList.unmodifiable($AE_CppIterable<dynamic?> elements) {
     {
   int length = elements.length;
-  $AE_CppUserData array = $AE_CppApi.cppCreatePointerArray(length);
+  $AA_CppUserData array = $AA_CppApi.cppCreatePointerArray(length);
   int i = 0;
   {
-  $AD_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
+  $AE_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppApi.cppSetPointerArrayItem(array, (() { final int temp_6408_3160 = i; return (() { final int temp_6408_3164 = i = (temp_6408_3160 + 1); return temp_6408_3160; })(); })(), _sync_for_iterator.current as E);
+  $AA_CppApi.cppSetPointerArrayItem(array, (() { final int temp_6408_3292 = i; return (() { final int temp_6408_3296 = i = (temp_6408_3292 + 1); return temp_6408_3292; })(); })(), _sync_for_iterator.current as E);
 }
 }
-  return $AA_CppArrayList<E>.fromCppArray(array);
+  return $AB_CppArrayList<E>.fromCppArray(array);
 }
   }
   
@@ -255,10 +359,10 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   
   void ensureCapacity(int newLen) {
     {
-  if ((newLen > $AE_CppApi.cppGetPointerArrayLength(this._array))) {
-  $AE_CppUserData newArray = $AE_CppApi.cppCreatePointerArray($AA_CppArrayList._getSuggestCapacity(newLen));
-  for (int i = 0; (i < $AE_CppApi.cppGetPointerArrayLength(this._array)); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(newArray, i, $AE_CppApi.cppGetPointerArrayItem(this._array, i));
+  if ((newLen > $AA_CppApi.cppGetPointerArrayLength(this._array))) {
+  $AA_CppUserData newArray = $AA_CppApi.cppCreatePointerArray($AB_CppArrayList._getSuggestCapacity(newLen));
+  for (int i = 0; (i < $AA_CppApi.cppGetPointerArrayLength(this._array)); i = (i + 1)) {
+  $AA_CppApi.cppSetPointerArrayItem(newArray, i, $AA_CppApi.cppGetPointerArrayItem(this._array, i));
 }
   this._array = newArray;
 }
@@ -275,14 +379,14 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   void add(E value) {
     {
   this.ensureCapacity((this._length + 1));
-  $AE_CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_7536_3319 = this._length; return (() { final int temp_7529_3324 = this._length = (temp_7536_3319 + 1); return temp_7536_3319; })(); })(), value);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_7536_3451 = this._length; return (() { final int temp_7529_3456 = this._length = (temp_7536_3451 + 1); return temp_7536_3451; })(); })(), value);
 }
   }
   
-  void addAll($AD_CppIterable<E> iterable) {
+  void addAll($AE_CppIterable<E> iterable) {
     {
   {
-  $AD_CppIterator<E> _sync_for_iterator = iterable.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   this.add(_sync_for_iterator.current);
 }
@@ -293,25 +397,25 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   bool any(bool Function(E) test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return true;
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return true;
 }
   return false;
 }
   }
   
-  $AA_CppMap<int, E> asMap() {
+  $AB_CppMap<int, E> asMap() {
     {
-  $AA_CppArrayMap<int, E> map = $AA_CppArrayMap<int, E>();
+  $AB_CppArrayMap<int, E> map = $AB_CppArrayMap<int, E>();
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  map[i] = $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E;
+  map[i] = $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
   return map;
 }
   }
   
-  $AD_CppIterable<R> cast<R>() {
+  $AE_CppIterable<R> cast<R>() {
     {
-  return $AA_CppArrayList.castFrom<E, R>(this) as $AD_CppIterable<R>;
+  return $AB_CppArrayList.castFrom<E, R>(this) as $AE_CppIterable<R>;
 }
   }
   
@@ -324,20 +428,20 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   bool contains(Object? element) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if ($AE_CppApi.cppGetPointerArrayItem(this._array, i) == element) return true;
+  if ($AA_CppApi.cppGetPointerArrayItem(this._array, i) == element) return true;
 }
   return false;
 }
   }
   
   E elementAt(int index) {
-    return $AE_CppApi.cppGetPointerArrayItem(this._array, index) as E;
+    return $AA_CppApi.cppGetPointerArrayItem(this._array, index) as E;
   }
   
   bool every(bool Function(E) test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (!(test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E))) return false;
+  if (!(test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E))) return false;
 }
   return true;
 }
@@ -346,7 +450,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   void fillRange(int start, int end, [E? fillValue = null]) {
     {
   for (int i = start; (i < end); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_3053 = fillValue; return temp_3053 == null ? temp_3053 as E : temp_3053; })());
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_3035 = fillValue; return temp_3035 == null ? temp_3035 as E : temp_3035; })());
 }
 }
   }
@@ -354,8 +458,8 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E firstWhere(bool Function(E) test, {E Function()? orElse = null}) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
-  return $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E;
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
+  return $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
 }
   if (!(orElse == null)) return orElse.call();
@@ -367,7 +471,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     {
   T value = initialValue;
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  value = combine.call(value, $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  value = combine.call(value, $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
   return value;
 }
@@ -376,21 +480,21 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   void forEach(void Function(E) action) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  action.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  action.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
 }
   }
   
-  $AD_CppIterable<E> getRange(int start, int end) {
+  $AE_CppIterable<E> getRange(int start, int end) {
     {
-  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((end - start), FunctionWrapper<Object? Function(int)>([], (int i) { return $AE_CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
+  return $AB_CppArrayList<E>.from($AE_CppIterable.generate<dynamic?>((end - start), FunctionWrapper<Object? Function(int)>([], (int i) { return $AA_CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
 }
   }
   
   int indexOf(E element, [int start = 0]) {
     {
   for (int i = start; (i < this._length); i = (i + 1)) {
-  if ($AE_CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
+  if ($AA_CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
 }
   return -1;
 }
@@ -399,7 +503,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   int indexWhere(bool Function(E) test, [int start = 0]) {
     {
   for (int i = start; (i < this._length); i = (i + 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
 }
   return -1;
 }
@@ -410,25 +514,25 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   if ((index < 0) || (index > this._length)) throw IndexError(index, this);
   this.ensureCapacity((this._length + 1));
   for (int i = this._length; (i > index); i = (i - 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, $AE_CppApi.cppGetPointerArrayItem(this._array, (i - 1)));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, $AA_CppApi.cppGetPointerArrayItem(this._array, (i - 1)));
 }
-  $AE_CppApi.cppSetPointerArrayItem(this._array, index, element);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, index, element);
   this._length = (this._length + 1);
 }
   }
   
-  void insertAll(int index, $AD_CppIterable<E> iterable) {
+  void insertAll(int index, $AE_CppIterable<E> iterable) {
     {
   if ((index < 0) || (index > this._length)) throw IndexError(index, this);
-  $AA_CppList<E> elements = iterable.toList();
+  $AB_CppList<E> elements = iterable.toList();
   int insertLength = elements.length;
   if (insertLength == 0) return;
   this.ensureCapacity((this._length + insertLength));
   for (int i = (this._length - 1); (i >= index); i = (i - 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, (i + insertLength), $AE_CppApi.cppGetPointerArrayItem(this._array, i));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, (i + insertLength), $AA_CppApi.cppGetPointerArrayItem(this._array, i));
 }
   for (int i = 0; (i < insertLength); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, (index + i), elements[i]);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, (index + i), elements[i]);
 }
   this._length = (this._length + insertLength);
 }
@@ -437,28 +541,28 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E get first {
     {
   if (this._length == 0) throw StateError("No element");
-  return $AE_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
+  return $AA_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
 }
   }
   
   set first(E value) {
     {
   if (this._length == 0) throw StateError("No element");
-  $AE_CppApi.cppSetPointerArrayItem(this._array, 0, value);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, 0, value);
 }
   }
   
   E get last {
     {
   if (this._length == 0) throw StateError("No element");
-  return $AE_CppApi.cppGetPointerArrayItem(this._array, (this._length - 1)) as E;
+  return $AA_CppApi.cppGetPointerArrayItem(this._array, (this._length - 1)) as E;
 }
   }
   
   set last(E value) {
     {
   if (this._length == 0) throw StateError("No element");
-  $AE_CppApi.cppSetPointerArrayItem(this._array, (this._length - 1), value);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, (this._length - 1), value);
 }
   }
   
@@ -466,7 +570,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     {
   if (this._length == 0) throw StateError("No element");
   if ((this._length > 1)) throw StateError("Too many elements");
-  return $AE_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
+  return $AA_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
 }
   }
   
@@ -478,15 +582,15 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     return !(this._length == 0);
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AA__CppListIterator<E>(this);
+  $AE_CppIterator<E> get iterator {
+    return $AB__CppListIterator<E>(this);
   }
   
   int lastIndexOf(E element, [int? start = null]) {
     {
   int startIndex = (start) ?? ((this._length - 1));
   for (int i = startIndex; (i >= 0); i = (i - 1)) {
-  if ($AE_CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
+  if ($AA_CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
 }
   return -1;
 }
@@ -496,7 +600,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     {
   int startIndex = (start) ?? ((this._length - 1));
   for (int i = startIndex; (i >= 0); i = (i - 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
 }
   return -1;
 }
@@ -505,8 +609,8 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E lastWhere(bool Function(E) test, {E Function()? orElse = null}) {
     {
   for (int i = (this._length - 1); (i >= 0); i = (i - 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
-  return $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E;
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
+  return $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E;
 }
 }
   if (!(orElse == null)) return orElse.call();
@@ -517,9 +621,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E reduce(E Function(E, E) combine) {
     {
   if (this._length == 0) throw StateError("No element");
-  E value = $AE_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
+  E value = $AA_CppApi.cppGetPointerArrayItem(this._array, 0) as E;
   for (int i = 1; (i < this._length); i = (i + 1)) {
-  value = combine.call(value, $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  value = combine.call(value, $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
   return value;
 }
@@ -539,9 +643,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E removeAt(int index) {
     {
   if ((index < 0) || (index >= this._length)) throw IndexError(index, this);
-  Object? element = $AE_CppApi.cppGetPointerArrayItem(this._array, index);
+  Object? element = $AA_CppApi.cppGetPointerArrayItem(this._array, index);
   for (int i = index; (i < (this._length - 1)); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, $AE_CppApi.cppGetPointerArrayItem(this._array, (i + 1)));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, $AA_CppApi.cppGetPointerArrayItem(this._array, (i + 1)));
 }
   this._length = (this._length - 1);
   return element as E;
@@ -562,7 +666,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   int length = (end - start);
   for (int i = start; (i < (this._length - length)); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, $AE_CppApi.cppGetPointerArrayItem(this._array, (i + length)));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, $AA_CppApi.cppGetPointerArrayItem(this._array, (i + length)));
 }
   this._length = (this._length - length);
 }
@@ -572,9 +676,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
-  if (!(test.call($AE_CppApi.cppGetPointerArrayItem(this._array, readIndex) as E))) {
+  if (!(test.call($AA_CppApi.cppGetPointerArrayItem(this._array, readIndex) as E))) {
   if (!(writeIndex == readIndex)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, writeIndex, $AE_CppApi.cppGetPointerArrayItem(this._array, readIndex));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, writeIndex, $AA_CppApi.cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = (writeIndex + 1);
 }
@@ -583,12 +687,12 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  void replaceRange(int start, int end, $AD_CppIterable<E> replacements) {
+  void replaceRange(int start, int end, $AE_CppIterable<E> replacements) {
     {
   if ((start < 0) || (start > this._length) || (end < start) || (end > this._length)) {
   throw RangeError.range(start, 0, this._length);
 }
-  $AA_CppList<E> replacementList = replacements.toList();
+  $AB_CppList<E> replacementList = replacements.toList();
   int replacementLength = replacementList.length;
   int rangeLength = (end - start);
   if ((replacementLength > rangeLength)) {
@@ -596,11 +700,11 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   if (!(replacementLength == rangeLength)) {
   for (int i = (this._length - 1); (i >= end); i = (i - 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, ((i + replacementLength) - rangeLength), $AE_CppApi.cppGetPointerArrayItem(this._array, i));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, ((i + replacementLength) - rangeLength), $AA_CppApi.cppGetPointerArrayItem(this._array, i));
 }
 }
   for (int i = 0; (i < replacementLength); i = (i + 1)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, (start + i), replacementList[i]);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, (start + i), replacementList[i]);
 }
   this._length = (this._length + (replacementLength - rangeLength));
 }
@@ -610,9 +714,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, readIndex) as E)) {
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, readIndex) as E)) {
   if (!(writeIndex == readIndex)) {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, writeIndex, $AE_CppApi.cppGetPointerArrayItem(this._array, readIndex));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, writeIndex, $AA_CppApi.cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = (writeIndex + 1);
 }
@@ -621,18 +725,18 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  void setAll(int index, $AD_CppIterable<E> iterable) {
+  void setAll(int index, $AE_CppIterable<E> iterable) {
     {
   if ((index < 0) || (index > this._length)) throw IndexError(index, this);
   int i = index;
   {
-  $AD_CppIterator<E> _sync_for_iterator = iterable.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   E element = _sync_for_iterator.current;
   if ((i >= this._length)) {
   this.add(element);
 } else {
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, element);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, element);
 }
   i = (i + 1);
 }
@@ -640,18 +744,18 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  void setRange(int start, int end, $AD_CppIterable<E> iterable, [int skipCount = 0]) {
+  void setRange(int start, int end, $AE_CppIterable<E> iterable, [int skipCount = 0]) {
     {
   if ((start < 0) || (start > this._length) || (end < start) || (end > this._length)) {
   throw RangeError.range(start, 0, this._length);
 }
-  $AD_CppIterator<E> iterator = iterable.iterator;
+  $AE_CppIterator<E> iterator = iterable.iterator;
   for (int i = 0; (i < skipCount); i = (i + 1)) {
   if (!(iterator.moveNext())) return;
 }
   label: for (int i = start; (i < end); i = (i + 1)) {
   if (!(iterator.moveNext())) break;
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, iterator.current);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, iterator.current);
 }
 }
   }
@@ -661,9 +765,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   random == null ? random = Random() : null;
   for (int i = (this._length - 1); (i > 0); i = (i - 1)) {
   int j = random.nextInt((i + 1));
-  Object? temp = $AE_CppApi.cppGetPointerArrayItem(this._array, i);
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, $AE_CppApi.cppGetPointerArrayItem(this._array, j));
-  $AE_CppApi.cppSetPointerArrayItem(this._array, j, temp);
+  Object? temp = $AA_CppApi.cppGetPointerArrayItem(this._array, i);
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, $AA_CppApi.cppGetPointerArrayItem(this._array, j));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, j, temp);
 }
 }
   }
@@ -687,10 +791,10 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   
   int _partition(int low, int high, int Function(E, E)? compare) {
     {
-  E pivot = $AE_CppApi.cppGetPointerArrayItem(this._array, high) as E;
+  E pivot = $AA_CppApi.cppGetPointerArrayItem(this._array, high) as E;
   int i = (low - 1);
   for (int j = low; (j < high); j = (j + 1)) {
-  E current = $AE_CppApi.cppGetPointerArrayItem(this._array, j) as E;
+  E current = $AA_CppApi.cppGetPointerArrayItem(this._array, j) as E;
   bool shouldSwap;
   if (!(compare == null)) {
   shouldSwap = (compare.call(current, pivot) <= 0);
@@ -709,31 +813,31 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   
   void _swap(int i, int j) {
     {
-  E temp = $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E;
-  $AE_CppApi.cppSetPointerArrayItem(this._array, i, $AE_CppApi.cppGetPointerArrayItem(this._array, j));
-  $AE_CppApi.cppSetPointerArrayItem(this._array, j, temp);
+  E temp = $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E;
+  $AA_CppApi.cppSetPointerArrayItem(this._array, i, $AA_CppApi.cppGetPointerArrayItem(this._array, j));
+  $AA_CppApi.cppSetPointerArrayItem(this._array, j, temp);
 }
   }
   
-  $AA_CppList<E> sublist(int start, [int? end = null]) {
+  $AB_CppList<E> sublist(int start, [int? end = null]) {
     {
   int endIndex = (end) ?? (this._length);
   if ((start < 0) || (start > this._length) || (endIndex < start) || (endIndex > this._length)) {
   throw RangeError.range(start, 0, this._length);
 }
-  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return $AE_CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
+  return $AB_CppArrayList<E>.from($AE_CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return $AA_CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
 }
   }
   
-  $AA_CppList<E> toList({bool growable = true}) {
+  $AB_CppList<E> toList({bool growable = true}) {
     {
-  return $AA_CppArrayList<E>.from(this as $AD_CppIterable<dynamic?>, growable: growable);
+  return $AB_CppArrayList<E>.from(this as $AE_CppIterable<dynamic?>, growable: growable);
 }
   }
   
-  $AA_CppSet<E> toSet() {
+  $AB_CppSet<E> toSet() {
     {
-  return $AA_CppArraySet<E>.from(this);
+  return $AB_CppArraySet<E>.from(this);
 }
   }
   
@@ -742,9 +846,9 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   E? result;
   bool found = false;
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
+  if (test.call($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
   if (found) throw StateError("Too many elements");
-  result = $AE_CppApi.cppGetPointerArrayItem(this._array, i) as E;
+  result = $AA_CppApi.cppGetPointerArrayItem(this._array, i) as E;
   found = true;
 }
 }
@@ -754,14 +858,14 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
-  if (this._length == 0) return $AC_CppString.fromString("[]");
-  $AC_CppStringBuffer buffer = $AC_CppStringBuffer("[");
-  buffer.write($AE_CppApi.cppGetPointerArrayItem(this._array, 0));
+  if (this._length == 0) return $AD_CppString.fromString("[]");
+  $AD_CppStringBuffer buffer = $AD_CppStringBuffer("[");
+  buffer.write($AA_CppApi.cppGetPointerArrayItem(this._array, 0));
   for (int i = 1; (i < this._length); i = (i + 1)) {
   buffer.write(", ");
-  buffer.write($AE_CppApi.cppGetPointerArrayItem(this._array, i));
+  buffer.write($AA_CppApi.cppGetPointerArrayItem(this._array, i));
 }
   buffer.write("]");
   return buffer.toCppString();
@@ -774,11 +878,11 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  static $AA_CppList<R> castFrom<S, R>($AA_CppList<S> source) {
+  static $AB_CppList<R> castFrom<S, R>($AB_CppList<S> source) {
     {
-  $AA_CppArrayList<R> result = $AA_CppArrayList<R>(0, 4);
+  $AB_CppArrayList<R> result = $AB_CppArrayList<R>(0, 4);
   {
-  $AD_CppIterator<S> _sync_for_iterator = source.iterator;
+  $AE_CppIterator<S> _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   result.add(_sync_for_iterator.current as R);
 }
@@ -787,11 +891,11 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
 }
   }
   
-  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, $AA_CppList<R> Function() newList) {
+  static $AB_CppList<R> castFromWithFactory<S, R>($AB_CppList<S> source, $AB_CppList<R> Function() newList) {
     {
-  $AA_CppList<R> result = newList.call();
+  $AB_CppList<R> result = newList.call();
   {
-  $AD_CppIterator<S> _sync_for_iterator = source.iterator;
+  $AE_CppIterator<S> _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   result.add(_sync_for_iterator.current as R);
 }
@@ -801,21 +905,21 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   }
   
   E operator [](int index) {
-    return $AE_CppApi.cppGetPointerArrayItem(this._array, index) as E;
+    return $AA_CppApi.cppGetPointerArrayItem(this._array, index) as E;
   }
   
   void operator []=(int index, E value) {
-    $AE_CppApi.cppSetPointerArrayItem(this._array, index, value);
+    $AA_CppApi.cppSetPointerArrayItem(this._array, index, value);
   }
   
-  $AA_CppList<E> operator +($AA_CppList<E> other) {
+  $AB_CppList<E> operator +($AB_CppList<E> other) {
     {
-  $AA_CppArrayList<E> result = $AA_CppArrayList<E>(0, (this._length + other.length));
+  $AB_CppArrayList<E> result = $AB_CppArrayList<E>(0, (this._length + other.length));
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  result.add($AE_CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  result.add($AA_CppApi.cppGetPointerArrayItem(this._array, i) as E);
 }
   {
-  $AD_CppIterator<E> _sync_for_iterator = other.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = other.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   result.add(_sync_for_iterator.current);
 }
@@ -826,14 +930,14 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = $AE_CppA
   
 }
 
-/// 转换后的类: $AA__CppListIterator
+/// 转换后的类: $AB__CppListIterator
 /// 原始类名: _CppListIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-class $AA__CppListIterator<E> extends $AF_CppObject implements $AD_CppIterator<E> {
+class $AB__CppListIterator<E> extends $AF_CppObject implements $AE_CppIterator<E> {
   int _index = -1;
-  late $AA_CppArrayList<E> _list;
-$AA__CppListIterator($AA_CppArrayList<E> _list) : _list = _list, super()   {
+  late $AB_CppArrayList<E> _list;
+$AB__CppListIterator($AB_CppArrayList<E> _list) : _list = _list, super()   {
     ;
   }
   
@@ -850,50 +954,50 @@ $AA__CppListIterator($AA_CppArrayList<E> _list) : _list = _list, super()   {
   
 }
 
-/// 转换后的类: $AA_CppSet
+/// 转换后的类: $AB_CppSet
 /// 原始类名: CppSet
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-abstract class $AA_CppSet<E> extends $AF_CppObject {
-  $AA_CppSet();
+abstract class $AB_CppSet<E> extends $AF_CppObject {
+  $AB_CppSet();
   
-  factory $AA_CppSet.identity() {
-    return $AA_CppArraySet<E>.identity();
+  factory $AB_CppSet.identity() {
+    return $AB_CppArraySet<E>.identity();
   }
   
-  factory $AA_CppSet.from($AD_CppIterable<dynamic?> elements) {
+  factory $AB_CppSet.from($AE_CppIterable<dynamic?> elements) {
     {
-  return $AA_CppArraySet<E>.from(elements);
+  return $AB_CppArraySet<E>.from(elements);
 }
   }
   
-  factory $AA_CppSet.of($AD_CppIterable<E> elements) {
-    return $AA_CppArraySet<E>.of(elements);
+  factory $AB_CppSet.of($AE_CppIterable<E> elements) {
+    return $AB_CppArraySet<E>.of(elements);
   }
   
-  factory $AA_CppSet.unmodifiable($AD_CppIterable<E> elements) {
+  factory $AB_CppSet.unmodifiable($AE_CppIterable<E> elements) {
     {
-  return $AA_CppArraySet<E>.unmodifiable(elements);
+  return $AB_CppArraySet<E>.unmodifiable(elements);
 }
   }
   
   bool add(E value);
   
-  void addAll($AD_CppIterable<E> elements);
+  void addAll($AE_CppIterable<E> elements);
   
-  $AD_CppIterable<R> cast<R>();
+  $AE_CppIterable<R> cast<R>();
   
   void clear();
   
   bool contains(Object? element);
   
-  bool containsAll($AD_CppIterable<Object?> other);
+  bool containsAll($AE_CppIterable<Object?> other);
   
-  $AA_CppSet<E> difference($AA_CppSet<Object?> other);
+  $AB_CppSet<E> difference($AB_CppSet<Object?> other);
   
   E elementAt(int index);
   
-  $AA_CppSet<E> intersection($AA_CppSet<Object?> other);
+  $AB_CppSet<E> intersection($AB_CppSet<Object?> other);
   
   E get first;
   
@@ -905,7 +1009,7 @@ abstract class $AA_CppSet<E> extends $AF_CppObject {
   
   bool get isNotEmpty;
   
-  $AD_CppIterator<E> get iterator;
+  $AE_CppIterator<E> get iterator;
   
   int get length;
   
@@ -913,55 +1017,55 @@ abstract class $AA_CppSet<E> extends $AF_CppObject {
   
   bool remove(Object? value);
   
-  void removeAll($AD_CppIterable<Object?> elementsToRemove);
+  void removeAll($AE_CppIterable<Object?> elementsToRemove);
   
   void removeWhere(bool Function(E) test);
   
-  void retainAll($AD_CppIterable<Object?> elementsToRetain);
+  void retainAll($AE_CppIterable<Object?> elementsToRetain);
   
   void retainWhere(bool Function(E) test);
   
-  $AA_CppSet<E> union($AA_CppSet<E> other);
+  $AB_CppSet<E> union($AB_CppSet<E> other);
   
-  $AC_CppString toCppString();
+  $AD_CppString toCppString();
   
-  static $AA_CppSet<R> castFrom<S, R>($AA_CppSet<S> source) {
+  static $AB_CppSet<R> castFrom<S, R>($AB_CppSet<S> source) {
     {
-  return $AA_CppArraySet.castFrom<S, R>(source);
+  return $AB_CppArraySet.castFrom<S, R>(source);
 }
   }
   
-  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, $AA_CppSet<R> Function() newSet) {
+  static $AB_CppSet<R> castFromWithFactory<S, R>($AB_CppSet<S> source, $AB_CppSet<R> Function() newSet) {
     {
-  return $AA_CppArraySet.castFromWithFactory<S, R>(source, newSet);
+  return $AB_CppArraySet.castFromWithFactory<S, R>(source, newSet);
 }
   }
   
 }
 
-/// 转换后的类: $AA_CppArraySet
+/// 转换后的类: $AB_CppArraySet
 /// 原始类名: CppArraySet
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-class $AA_CppArraySet<E> extends $AD_CppIterable<E> implements $AA_CppSet<E> {
-  late $AA_CppArrayList<E> _list;
-$AA_CppArraySet.fromCppArray($AE_CppUserData array) : _list = $AA_CppArrayList<E>.fromCppArray(array), super()   {
+class $AB_CppArraySet<E> extends $AE_CppIterable<E> implements $AB_CppSet<E> {
+  late $AB_CppArrayList<E> _list;
+$AB_CppArraySet.fromCppArray($AA_CppUserData array) : _list = $AB_CppArrayList<E>.fromCppArray(array), super()   {
     ;
   }
   
-$AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), super()   {
+$AB_CppArraySet([int capacity = 4]) : _list = $AB_CppArrayList<E>(0, capacity), super()   {
     ;
   }
   
-  factory $AA_CppArraySet.identity() {
-    return $AA_CppArraySet<E>(4);
+  factory $AB_CppArraySet.identity() {
+    return $AB_CppArraySet<E>(4);
   }
   
-  factory $AA_CppArraySet.from($AD_CppIterable<dynamic?> elements) {
+  factory $AB_CppArraySet.from($AE_CppIterable<dynamic?> elements) {
     {
-  $AA_CppArraySet<E> set = $AA_CppArraySet<E>();
+  $AB_CppArraySet<E> set = $AB_CppArraySet<E>();
   {
-  $AD_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
+  $AE_CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   set.add(_sync_for_iterator.current as E);
 }
@@ -970,15 +1074,15 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  factory $AA_CppArraySet.of($AD_CppIterable<E> elements) {
-    return $AA_CppArraySet<E>.from(elements);
+  factory $AB_CppArraySet.of($AE_CppIterable<E> elements) {
+    return $AB_CppArraySet<E>.from(elements);
   }
   
-  factory $AA_CppArraySet.unmodifiable($AD_CppIterable<E> elements) {
+  factory $AB_CppArraySet.unmodifiable($AE_CppIterable<E> elements) {
     {
-  $AA_CppArraySet<E> set = $AA_CppArraySet<E>();
+  $AB_CppArraySet<E> set = $AB_CppArraySet<E>();
   {
-  $AD_CppIterator<E> _sync_for_iterator = elements.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   set.add(_sync_for_iterator.current);
 }
@@ -997,10 +1101,10 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  void addAll($AD_CppIterable<E> elements) {
+  void addAll($AE_CppIterable<E> elements) {
     {
   {
-  $AD_CppIterator<E> _sync_for_iterator = elements.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   this.add(_sync_for_iterator.current);
 }
@@ -1008,9 +1112,9 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  $AD_CppIterable<R> cast<R>() {
+  $AE_CppIterable<R> cast<R>() {
     {
-  return $AA_CppSet.castFrom<E, R>(this) as $AD_CppIterable<R>;
+  return $AB_CppSet.castFrom<E, R>(this) as $AE_CppIterable<R>;
 }
   }
   
@@ -1031,10 +1135,10 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  bool containsAll($AD_CppIterable<Object?> other) {
+  bool containsAll($AE_CppIterable<Object?> other) {
     {
   {
-  $AD_CppIterator<Object?> _sync_for_iterator = other.iterator;
+  $AE_CppIterator<Object?> _sync_for_iterator = other.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   if (!(this.contains(_sync_for_iterator.current))) return false;
 }
@@ -1043,11 +1147,11 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  $AA_CppSet<E> difference($AA_CppSet<Object?> other) {
+  $AB_CppSet<E> difference($AB_CppSet<Object?> other) {
     {
-  $AA_CppArraySet<E> result = $AA_CppArraySet<E>();
+  $AB_CppArraySet<E> result = $AB_CppArraySet<E>();
   {
-  $AD_CppIterator<E> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   E element = _sync_for_iterator.current;
   if (!(other.contains(element))) {
@@ -1063,11 +1167,11 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
     return this._list.elementAt(index);
   }
   
-  $AA_CppSet<E> intersection($AA_CppSet<Object?> other) {
+  $AB_CppSet<E> intersection($AB_CppSet<Object?> other) {
     {
-  $AA_CppArraySet<E> result = $AA_CppArraySet<E>();
+  $AB_CppArraySet<E> result = $AB_CppArraySet<E>();
   {
-  $AD_CppIterator<E> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<E> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   E element = _sync_for_iterator.current;
   if (other.contains(element)) {
@@ -1109,7 +1213,7 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
     return this._list.isNotEmpty;
   }
   
-  $AD_CppIterator<E> get iterator {
+  $AE_CppIterator<E> get iterator {
     return this._list.iterator;
   }
   
@@ -1134,10 +1238,10 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  void removeAll($AD_CppIterable<Object?> elementsToRemove) {
+  void removeAll($AE_CppIterable<Object?> elementsToRemove) {
     {
   {
-  $AD_CppIterator<Object?> _sync_for_iterator = elementsToRemove.iterator;
+  $AE_CppIterator<Object?> _sync_for_iterator = elementsToRemove.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   this.remove(_sync_for_iterator.current);
 }
@@ -1151,9 +1255,9 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  void retainAll($AD_CppIterable<Object?> elementsToRetain) {
+  void retainAll($AE_CppIterable<Object?> elementsToRetain) {
     {
-  $AA_CppSet<dynamic?> retainSet = $AA_CppSet<dynamic?>.from(elementsToRetain);
+  $AB_CppSet<dynamic?> retainSet = $AB_CppSet<dynamic?>.from(elementsToRetain);
   this.removeWhere(FunctionWrapper<bool Function(E)>([], (E element) { return !(retainSet.contains(element));}).call());
 }
   }
@@ -1164,20 +1268,20 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  $AA_CppSet<E> union($AA_CppSet<E> other) {
+  $AB_CppSet<E> union($AB_CppSet<E> other) {
     {
-  $AA_CppArraySet<E> result = $AA_CppArraySet<E>();
-  result.addAll(this as $AD_CppIterable<E>);
-  result.addAll(other as $AD_CppIterable<E>);
+  $AB_CppArraySet<E> result = $AB_CppArraySet<E>();
+  result.addAll(this as $AE_CppIterable<E>);
+  result.addAll(other as $AE_CppIterable<E>);
   return result;
 }
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
-  if (this._list.isEmpty) return $AC_CppString.fromString("{}");
-  $AC_CppStringBuffer buffer = $AC_CppStringBuffer("{");
-  $AD_CppIterator<E> iterator = this._list.iterator;
+  if (this._list.isEmpty) return $AD_CppString.fromString("{}");
+  $AD_CppStringBuffer buffer = $AD_CppStringBuffer("{");
+  $AE_CppIterator<E> iterator = this._list.iterator;
   if (iterator.moveNext()) {
   buffer.write(iterator.current);
   while (iterator.moveNext()) {
@@ -1190,11 +1294,11 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  static $AA_CppSet<R> castFrom<S, R>($AA_CppSet<S> source) {
+  static $AB_CppSet<R> castFrom<S, R>($AB_CppSet<S> source) {
     {
-  $AA_CppArraySet<R> result = $AA_CppArraySet<R>();
+  $AB_CppArraySet<R> result = $AB_CppArraySet<R>();
   {
-  $AD_CppIterator<S> _sync_for_iterator = source.iterator;
+  $AE_CppIterator<S> _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   result.add(_sync_for_iterator.current as R);
 }
@@ -1203,11 +1307,11 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, $AA_CppSet<R> Function() newSet) {
+  static $AB_CppSet<R> castFromWithFactory<S, R>($AB_CppSet<S> source, $AB_CppSet<R> Function() newSet) {
     {
-  $AA_CppSet<R> result = newSet.call();
+  $AB_CppSet<R> result = newSet.call();
   {
-  $AD_CppIterator<S> _sync_for_iterator = source.iterator;
+  $AE_CppIterator<S> _sync_for_iterator = source.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   result.add(_sync_for_iterator.current as R);
 }
@@ -1218,67 +1322,67 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
   
 }
 
-/// 转换后的类: $AA_CppMapEntry
+/// 转换后的类: $AB_CppMapEntry
 /// 原始类名: CppMapEntry
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-class $AA_CppMapEntry<K, V> extends $AF_CppObject {
+class $AB_CppMapEntry<K, V> extends $AF_CppObject {
   late K key;
   late V value;
-$AA_CppMapEntry(K key, V value) : key = key, value = value, super()   {
+$AB_CppMapEntry(K key, V value) : key = key, value = value, super()   {
     ;
   }
   
 }
 
-/// 转换后的类: $AA_CppMap
+/// 转换后的类: $AB_CppMap
 /// 原始类名: CppMap
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-abstract class $AA_CppMap<K, V> extends $AF_CppObject {
-  $AA_CppMap();
+abstract class $AB_CppMap<K, V> extends $AF_CppObject {
+  $AB_CppMap();
   
-  factory $AA_CppMap.identity() {
-    return $AA_CppArrayMap<K, V>.identity();
+  factory $AB_CppMap.identity() {
+    return $AB_CppArrayMap<K, V>.identity();
   }
   
-  factory $AA_CppMap.from($AA_CppMap<dynamic?, dynamic?> other) {
-    return $AA_CppArrayMap<K, V>.from(other);
+  factory $AB_CppMap.from($AB_CppMap<dynamic?, dynamic?> other) {
+    return $AB_CppArrayMap<K, V>.from(other);
   }
   
-  factory $AA_CppMap.of($AA_CppMap<K, V> other) {
-    return $AA_CppArrayMap<K, V>.of(other);
+  factory $AB_CppMap.of($AB_CppMap<K, V> other) {
+    return $AB_CppArrayMap<K, V>.of(other);
   }
   
-  factory $AA_CppMap.unmodifiable($AA_CppMap<dynamic?, dynamic?> other) {
+  factory $AB_CppMap.unmodifiable($AB_CppMap<dynamic?, dynamic?> other) {
     {
-  return $AA_CppArrayMap<K, V>.unmodifiable(other);
+  return $AB_CppArrayMap<K, V>.unmodifiable(other);
 }
   }
   
-  factory $AA_CppMap.fromIterable($AD_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
+  factory $AB_CppMap.fromIterable($AE_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
     {
-  return $AA_CppArrayMap<K, V>.fromIterable(iterable, key: key, value: value);
+  return $AB_CppArrayMap<K, V>.fromIterable(iterable, key: key, value: value);
 }
   }
   
-  factory $AA_CppMap.fromIterables($AD_CppIterable<K> keys, $AD_CppIterable<V> values) {
+  factory $AB_CppMap.fromIterables($AE_CppIterable<K> keys, $AE_CppIterable<V> values) {
     {
-  return $AA_CppArrayMap<K, V>.fromIterables(keys, values);
+  return $AB_CppArrayMap<K, V>.fromIterables(keys, values);
 }
   }
   
-  factory $AA_CppMap.fromEntries($AD_CppIterable<MapEntry<K, V>> entries) {
+  factory $AB_CppMap.fromEntries($AE_CppIterable<MapEntry<K, V>> entries) {
     {
-  return $AA_CppArrayMap<K, V>.fromEntries(entries);
+  return $AB_CppArrayMap<K, V>.fromEntries(entries);
 }
   }
   
-  void addAll($AA_CppMap<K, V> other);
+  void addAll($AB_CppMap<K, V> other);
   
-  void addEntries($AD_CppIterable<MapEntry<K, V>> entries);
+  void addEntries($AE_CppIterable<MapEntry<K, V>> entries);
   
-  $AA_CppMap<RK, RV> cast<RK, RV>();
+  $AB_CppMap<RK, RV> cast<RK, RV>();
   
   void clear();
   
@@ -1286,7 +1390,7 @@ abstract class $AA_CppMap<K, V> extends $AF_CppObject {
   
   bool containsValue(Object? value);
   
-  $AD_CppIterable<MapEntry<K, V>> get entries;
+  $AE_CppIterable<MapEntry<K, V>> get entries;
   
   void forEach(void Function(K, V) action);
   
@@ -1294,7 +1398,7 @@ abstract class $AA_CppMap<K, V> extends $AF_CppObject {
   
   bool get isNotEmpty;
   
-  $AD_CppIterable<K> get keys;
+  $AE_CppIterable<K> get keys;
   
   int get length;
   
@@ -1308,55 +1412,55 @@ abstract class $AA_CppMap<K, V> extends $AF_CppObject {
   
   void updateAll(V Function(K, V) update);
   
-  $AD_CppIterable<V> get values;
+  $AE_CppIterable<V> get values;
   
-  $AA_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform);
+  $AB_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform);
   
-  $AC_CppString toCppString();
+  $AD_CppString toCppString();
   
-  static $AA_CppMap<RK, RV> castFrom<K, V, RK, RV>($AA_CppMap<K, V> source) {
+  static $AB_CppMap<RK, RV> castFrom<K, V, RK, RV>($AB_CppMap<K, V> source) {
     {
-  return $AA_CppArrayMap.castFrom<K, V, RK, RV>(source);
+  return $AB_CppArrayMap.castFrom<K, V, RK, RV>(source);
 }
   }
   
-  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, $AA_CppMap<RK, RV> Function() newMap) {
+  static $AB_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AB_CppMap<K, V> source, $AB_CppMap<RK, RV> Function() newMap) {
     {
-  return $AA_CppArrayMap.castFromWithFactory<K, V, RK, RV>(source, newMap);
+  return $AB_CppArrayMap.castFromWithFactory<K, V, RK, RV>(source, newMap);
 }
   }
   
 }
 
-/// 转换后的类: $AA_CppArrayMap
+/// 转换后的类: $AB_CppArrayMap
 /// 原始类名: CppArrayMap
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 
-class $AA_CppArrayMap<K, V> extends $AF_CppObject implements $AA_CppMap<K, V> {
-  late $AA_CppArrayList<MapEntry<K, V>> _list;
-$AA_CppArrayMap.fromCppArray($AE_CppUserData array) : _list = $AA_CppArrayList<MapEntry<K, V>>.fromCppArray(array), super()   {
+class $AB_CppArrayMap<K, V> extends $AF_CppObject implements $AB_CppMap<K, V> {
+  late $AB_CppArrayList<MapEntry<K, V>> _list;
+$AB_CppArrayMap.fromCppArray($AA_CppUserData array) : _list = $AB_CppArrayList<MapEntry<K, V>>.fromCppArray(array), super()   {
     ;
   }
   
-$AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0, capacity), super()   {
+$AB_CppArrayMap([int capacity = 4]) : _list = $AB_CppArrayList<MapEntry<K, V>>(0, capacity), super()   {
     ;
   }
   
-  factory $AA_CppArrayMap.identity() {
-    return $AA_CppArrayMap<K, V>();
+  factory $AB_CppArrayMap.identity() {
+    return $AB_CppArrayMap<K, V>();
   }
   
-  factory $AA_CppArrayMap.from($AA_CppMap<dynamic?, dynamic?> other) {
-    return $AA_CppArrayMap<K, V>.unmodifiable(other);
+  factory $AB_CppArrayMap.from($AB_CppMap<dynamic?, dynamic?> other) {
+    return $AB_CppArrayMap<K, V>.unmodifiable(other);
   }
   
-  factory $AA_CppArrayMap.of($AA_CppMap<K, V> other) {
-    return $AA_CppArrayMap<K, V>.fromEntries(other.entries);
+  factory $AB_CppArrayMap.of($AB_CppMap<K, V> other) {
+    return $AB_CppArrayMap<K, V>.fromEntries(other.entries);
   }
   
-  factory $AA_CppArrayMap.unmodifiable($AA_CppMap<dynamic?, dynamic?> other) {
+  factory $AB_CppArrayMap.unmodifiable($AB_CppMap<dynamic?, dynamic?> other) {
     {
-  $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
+  $AB_CppArrayMap<K, V> map = $AB_CppArrayMap<K, V>();
   other.forEach(FunctionWrapper<void Function(dynamic?, dynamic?)>([], (dynamic? key, dynamic? value) { {
   map[key as K] = value as V;
 }}).call());
@@ -1364,15 +1468,15 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  factory $AA_CppArrayMap.fromIterable($AD_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
+  factory $AB_CppArrayMap.fromIterable($AE_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
     {
-  $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
+  $AB_CppArrayMap<K, V> map = $AB_CppArrayMap<K, V>();
   {
-  $AD_CppIterator<dynamic?> _sync_for_iterator = iterable.iterator;
+  $AE_CppIterator<dynamic?> _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   dynamic? element = _sync_for_iterator.current;
-  dynamic? k = ((() { final K Function(dynamic?)? temp_33289_6725 = key; return temp_33289_6725 == null ? null : temp_33289_6725.call(element); })()) ?? (element);
-  dynamic? v = ((() { final V Function(dynamic?)? temp_33336_6735 = value; return temp_33336_6735 == null ? null : temp_33336_6735.call(element); })()) ?? (element);
+  dynamic? k = ((() { final K Function(dynamic?)? temp_33289_6857 = key; return temp_33289_6857 == null ? null : temp_33289_6857.call(element); })()) ?? (element);
+  dynamic? v = ((() { final V Function(dynamic?)? temp_33336_6867 = value; return temp_33336_6867 == null ? null : temp_33336_6867.call(element); })()) ?? (element);
   map[k as K] = v as V;
 }
 }
@@ -1380,11 +1484,11 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  factory $AA_CppArrayMap.fromIterables($AD_CppIterable<K> keys, $AD_CppIterable<V> values) {
+  factory $AB_CppArrayMap.fromIterables($AE_CppIterable<K> keys, $AE_CppIterable<V> values) {
     {
-  $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
-  $AD_CppIterator<K> keyIter = keys.iterator;
-  $AD_CppIterator<V> valueIter = values.iterator;
+  $AB_CppArrayMap<K, V> map = $AB_CppArrayMap<K, V>();
+  $AE_CppIterator<K> keyIter = keys.iterator;
+  $AE_CppIterator<V> valueIter = values.iterator;
   while (keyIter.moveNext() && valueIter.moveNext()) {
   map[keyIter.current] = valueIter.current;
 }
@@ -1392,11 +1496,11 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  factory $AA_CppArrayMap.fromEntries($AD_CppIterable<MapEntry<K, V>> entries) {
+  factory $AB_CppArrayMap.fromEntries($AE_CppIterable<MapEntry<K, V>> entries) {
     {
-  $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
+  $AB_CppArrayMap<K, V> map = $AB_CppArrayMap<K, V>();
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   map[entry.key] = entry.value;
@@ -1406,16 +1510,16 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  void addAll($AA_CppMap<K, V> other) {
+  void addAll($AB_CppMap<K, V> other) {
     {
-  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_34763_6972 = k; return (() { final V temp_34769_6974 = v; return (() { this[temp_34763_6972] = temp_34769_6974; temp_34769_6974; })(); })(); })();}).call());
+  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_34763_7104 = k; return (() { final V temp_34769_7106 = v; return (() { this[temp_34763_7104] = temp_34769_7106; temp_34769_7106; })(); })(); })();}).call());
 }
   }
   
-  void addEntries($AD_CppIterable<MapEntry<K, V>> entries) {
+  void addEntries($AE_CppIterable<MapEntry<K, V>> entries) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   this[entry.key] = entry.value;
@@ -1424,8 +1528,8 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  $AA_CppMap<RK, RV> cast<RK, RV>() {
-    return $AA_CppMap.castFrom<K, V, RK, RV>(this);
+  $AB_CppMap<RK, RV> cast<RK, RV>() {
+    return $AB_CppMap.castFrom<K, V, RK, RV>(this);
   }
   
   void clear() {
@@ -1437,7 +1541,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   bool containsKey(Object? key) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   if (entry.key == key) return true;
@@ -1450,7 +1554,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   bool containsValue(Object? value) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   if (entry.value == value) return true;
@@ -1460,14 +1564,14 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  $AD_CppIterable<MapEntry<K, V>> get entries {
+  $AE_CppIterable<MapEntry<K, V>> get entries {
     return this._list;
   }
   
   void forEach(void Function(K, V) action) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   action.call(entry.key, entry.value);
@@ -1484,7 +1588,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
     return this._list.isNotEmpty;
   }
   
-  $AD_CppIterable<K> get keys {
+  $AE_CppIterable<K> get keys {
     return this._list.map(FunctionWrapper<K Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.key;}).call());
   }
   
@@ -1495,7 +1599,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   V putIfAbsent(K key, V Function() ifAbsent) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   if (entry.key == key) return entry.value;
@@ -1564,15 +1668,15 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  $AD_CppIterable<V> get values {
+  $AE_CppIterable<V> get values {
     return this._list.map(FunctionWrapper<V Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.value;}).call());
   }
   
-  $AA_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform) {
+  $AB_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform) {
     {
-  $AA_CppArrayMap<K2, V2> result = $AA_CppArrayMap<K2, V2>();
+  $AB_CppArrayMap<K2, V2> result = $AB_CppArrayMap<K2, V2>();
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   MapEntry<K2, V2> newEntry = transform.call(entry.key, entry.value);
@@ -1583,11 +1687,11 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
-  if (this._list.isEmpty) return $AC_CppString.fromString("{}");
-  $AC_CppStringBuffer buffer = $AC_CppStringBuffer("{");
-  $AD_CppIterator<MapEntry<K, V>> iterator = this._list.iterator;
+  if (this._list.isEmpty) return $AD_CppString.fromString("{}");
+  $AD_CppStringBuffer buffer = $AD_CppStringBuffer("{");
+  $AE_CppIterator<MapEntry<K, V>> iterator = this._list.iterator;
   if (iterator.moveNext()) {
   buffer.write((iterator.current.key).toString() + ": " + (iterator.current.value).toString());
   while (iterator.moveNext()) {
@@ -1599,9 +1703,9 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  static $AA_CppMap<RK, RV> castFrom<K, V, RK, RV>($AA_CppMap<K, V> source) {
+  static $AB_CppMap<RK, RV> castFrom<K, V, RK, RV>($AB_CppMap<K, V> source) {
     {
-  $AA_CppArrayMap<RK, RV> result = $AA_CppArrayMap<RK, RV>();
+  $AB_CppArrayMap<RK, RV> result = $AB_CppArrayMap<RK, RV>();
   source.forEach(FunctionWrapper<void Function(K, V)>([], (K key, V value) { {
   result[key as RK] = value as RV;
 }}).call());
@@ -1609,9 +1713,9 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, $AA_CppMap<RK, RV> Function() newMap) {
+  static $AB_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AB_CppMap<K, V> source, $AB_CppMap<RK, RV> Function() newMap) {
     {
-  $AA_CppMap<RK, RV> result = newMap.call();
+  $AB_CppMap<RK, RV> result = newMap.call();
   source.forEach(FunctionWrapper<void Function(K, V)>([], (K key, V value) { {
   result[key as RK] = value as RV;
 }}).call());
@@ -1622,7 +1726,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   V? operator [](Object? key) {
     {
   {
-  $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
+  $AE_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   MapEntry<K, V> entry = _sync_for_iterator.current;
   if (entry.key == key) {
@@ -1648,77 +1752,77 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   
 }
 
-/// 转换后的类: $AB_CppError
+/// 转换后的类: $AC_CppError
 /// 原始类名: CppError
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
 
-class $AB_CppError extends $AF_CppObject {
-$AB_CppError() : super()   {
+class $AC_CppError extends $AF_CppObject {
+$AC_CppError() : super()   {
     ;
   }
   
-  $AB_CppStackTrace? get stackTrace {
-    return $AB_CppStackTrace.current;
+  $AC_CppStackTrace? get stackTrace {
+    return $AC_CppStackTrace.current;
   }
   
 }
 
-/// 转换后的类: $AB_CppStackTrace
+/// 转换后的类: $AC_CppStackTrace
 /// 原始类名: CppStackTrace
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
 
-class $AB_CppStackTrace extends $AF_CppObject {
-  static $AB_CppStackTrace _current = $AB_CppStackTrace();
-$AB_CppStackTrace() : super()   {
+class $AC_CppStackTrace extends $AF_CppObject {
+  static $AC_CppStackTrace _current = $AC_CppStackTrace();
+$AC_CppStackTrace() : super()   {
     ;
   }
   
-  static $AB_CppStackTrace get current {
-    return $AB_CppStackTrace._current;
+  static $AC_CppStackTrace get current {
+    return $AC_CppStackTrace._current;
   }
   
-  $AC_CppString toCppString() {
-    return $AC_CppString.fromString($AE_CppApi.getCurrentStackTrace());
+  $AD_CppString toCppString() {
+    return $AD_CppString.fromString($AA_CppApi.getCurrentStackTrace());
   }
   
 }
 
-/// 转换后的类: $AC_CppStringPool
+/// 转换后的类: $AD_CppStringPool
 /// 原始类名: CppStringPool
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC_CppStringPool {
-  static final $AC_CppStringPool _instance = $AC_CppStringPool._internal();
-  late $AA_CppList<$AE_CppUserData> _pool = $AA_CppList<$AE_CppUserData>.from(<$AE_CppUserData>[ConstantExpression(const CppUserData{CppUserData.data: const <dynamic>[]})] as $AD_CppIterable<dynamic?>);
-$AC_CppStringPool._internal() : super()   {
+class $AD_CppStringPool {
+  static final $AD_CppStringPool _instance = $AD_CppStringPool._internal();
+  late $AB_CppList<$AA_CppUserData> _pool = $AB_CppList<$AA_CppUserData>.from(<$AA_CppUserData>[ConstantExpression(const CppUserData{CppUserData.data: const <dynamic>[]})] as $AE_CppIterable<dynamic?>);
+$AD_CppStringPool._internal() : super()   {
     ;
   }
   
-  static $AC_CppStringPool get instance {
-    return $AC_CppStringPool._instance;
+  static $AD_CppStringPool get instance {
+    return $AD_CppStringPool._instance;
   }
   
-  $AE_CppUserData getOrCreateFromCodeUnits($AA_CppList<int> codeUnits) {
+  $AA_CppUserData getOrCreateFromCodeUnits($AB_CppList<int> codeUnits) {
     {
   {
-  $AD_CppIterator<$AE_CppUserData> _sync_for_iterator = this._pool.iterator;
+  $AE_CppIterator<$AA_CppUserData> _sync_for_iterator = this._pool.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppUserData existing = _sync_for_iterator.current;
+  $AA_CppUserData existing = _sync_for_iterator.current;
   if (this._compareUserData(existing, codeUnits)) {
   return existing;
 }
 }
 }
-  $AE_CppUserData userData = $AE_CppApi.cppCreateByteArray(codeUnits.length);
+  $AA_CppUserData userData = $AA_CppApi.cppCreateByteArray(codeUnits.length);
   for (int i = 0; (i < codeUnits.length); i = (i + 1)) {
-  $AE_CppApi.cppSetByteArrayItem(userData, i, codeUnits[i]);
+  $AA_CppApi.cppSetByteArrayItem(userData, i, codeUnits[i]);
 }
   this._pool.add(userData);
   return userData;
 }
   }
   
-  $AE_CppUserData getOrCreateFromUserData($AE_CppUserData userData) {
+  $AA_CppUserData getOrCreateFromUserData($AA_CppUserData userData) {
     {
   if (this._pool.contains(userData)) {
   return userData;
@@ -1728,12 +1832,12 @@ $AC_CppStringPool._internal() : super()   {
 }
   }
   
-  bool _compareUserData($AE_CppUserData userData, $AA_CppList<int> codeUnits) {
+  bool _compareUserData($AA_CppUserData userData, $AB_CppList<int> codeUnits) {
     {
-  int length = $AE_CppApi.cppGetByteArrayLength(userData);
+  int length = $AA_CppApi.cppGetByteArrayLength(userData);
   if (!(length == codeUnits.length)) return false;
   for (int i = 0; (i < length); i = (i + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(userData, i) == codeUnits[i])) {
+  if (!($AA_CppApi.cppGetByteArrayItem(userData, i) == codeUnits[i])) {
   return false;
 }
 }
@@ -1747,30 +1851,30 @@ $AC_CppStringPool._internal() : super()   {
 }
   }
   
-  $AC_CppStringPoolStats getStats() {
+  $AD_CppStringPoolStats getStats() {
     {
   int totalMemory = 0;
   {
-  $AD_CppIterator<$AE_CppUserData> _sync_for_iterator = this._pool.iterator;
+  $AE_CppIterator<$AA_CppUserData> _sync_for_iterator = this._pool.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppUserData userData = _sync_for_iterator.current;
-  totalMemory = (totalMemory + $AE_CppApi.cppGetByteArrayLength(userData));
+  $AA_CppUserData userData = _sync_for_iterator.current;
+  totalMemory = (totalMemory + $AA_CppApi.cppGetByteArrayLength(userData));
 }
 }
-  return $AC_CppStringPoolStats(totalStrings: this._pool.length, totalMemory: totalMemory);
+  return $AD_CppStringPoolStats(totalStrings: this._pool.length, totalMemory: totalMemory);
 }
   }
   
 }
 
-/// 转换后的类: $AC_CppStringPoolStats
+/// 转换后的类: $AD_CppStringPoolStats
 /// 原始类名: CppStringPoolStats
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC_CppStringPoolStats {
+class $AD_CppStringPoolStats {
   late int totalStrings;
   late int totalMemory;
-$AC_CppStringPoolStats({required int totalStrings, required int totalMemory}) : totalStrings = totalStrings, totalMemory = totalMemory, super()   {
+$AD_CppStringPoolStats({required int totalStrings, required int totalMemory}) : totalStrings = totalStrings, totalMemory = totalMemory, super()   {
     ;
   }
   
@@ -1782,33 +1886,33 @@ $AC_CppStringPoolStats({required int totalStrings, required int totalMemory}) : 
   
 }
 
-/// 转换后的类: $AC_CppStringBuffer
+/// 转换后的类: $AD_CppStringBuffer
 /// 原始类名: CppStringBuffer
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC_CppStringBuffer {
-  late $AA_CppList<$AE_CppUserData> _parts;
-$AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserData>.from(<$AE_CppUserData>[$AC_CppStringBuffer._convertStringToUserData(content)] as $AD_CppIterable<dynamic?>), super()   {
+class $AD_CppStringBuffer {
+  late $AB_CppList<$AA_CppUserData> _parts;
+$AD_CppStringBuffer([Object content = ""]) : _parts = $AB_CppList<$AA_CppUserData>.from(<$AA_CppUserData>[$AD_CppStringBuffer._convertStringToUserData(content)] as $AE_CppIterable<dynamic?>), super()   {
     ;
   }
   
   void write(Object? obj) {
     {
   if (obj == null) return;
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData(obj));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData(obj));
 }
   }
   
-  void writeAll($AD_CppIterable<dynamic?> objects, [$AC_CppString? separator = null]) {
+  void writeAll($AE_CppIterable<dynamic?> objects, [$AD_CppString? separator = null]) {
     {
-  $AD_CppIterator<dynamic?> iterator = objects.iterator;
+  $AE_CppIterator<dynamic?> iterator = objects.iterator;
   if (iterator.moveNext()) {
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3065 = iterator.current; return temp_3065 == null ? temp_3065 as Object : temp_3065; })()));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3047 = iterator.current; return temp_3047 == null ? temp_3047 as Object : temp_3047; })()));
   while (iterator.moveNext()) {
   if (!(separator == null) && separator.isNotEmpty) {
   this._parts.add(separator._codeUnits);
 }
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3073 = iterator.current; return temp_3073 == null ? temp_3073 as Object : temp_3073; })()));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3055 = iterator.current; return temp_3055 == null ? temp_3055 as Object : temp_3055; })()));
 }
 }
 }
@@ -1816,16 +1920,16 @@ $AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserDat
   
   void writeCharCode(int charCode) {
     {
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData($AC_CppString.fromCharCode(charCode)));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData($AD_CppString.fromCharCode(charCode)));
 }
   }
   
   void writeln([Object? obj = ""]) {
     {
   if (!(obj == null)) {
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData(obj));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData(obj));
 }
-  this._parts.add($AC_CppStringBuffer._convertStringToUserData($AC_CppString.fromCharCode(10)));
+  this._parts.add($AD_CppStringBuffer._convertStringToUserData($AD_CppString.fromCharCode(10)));
 }
   }
   
@@ -1835,20 +1939,20 @@ $AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserDat
 }
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
-  $AA_CppList<int> codeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> codeUnits = $AB_CppList<int>.empty(growable: true);
   {
-  $AD_CppIterator<$AE_CppUserData> _sync_for_iterator = this._parts.iterator;
+  $AE_CppIterator<$AA_CppUserData> _sync_for_iterator = this._parts.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppUserData part = _sync_for_iterator.current;
-  int length = $AE_CppApi.cppGetByteArrayLength(part);
+  $AA_CppUserData part = _sync_for_iterator.current;
+  int length = $AA_CppApi.cppGetByteArrayLength(part);
   for (int i = 0; (i < length); i = (i + 1)) {
-  codeUnits.add($AE_CppApi.cppGetByteArrayItem(part, i));
+  codeUnits.add($AA_CppApi.cppGetByteArrayItem(part, i));
 }
 }
 }
-  return $AC_CppString.fromCodeUnits(codeUnits);
+  return $AD_CppString.fromCodeUnits(codeUnits);
 }
   }
   
@@ -1856,10 +1960,10 @@ $AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserDat
     {
   int totalLength = 0;
   {
-  $AD_CppIterator<$AE_CppUserData> _sync_for_iterator = this._parts.iterator;
+  $AE_CppIterator<$AA_CppUserData> _sync_for_iterator = this._parts.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  $AE_CppUserData part = _sync_for_iterator.current;
-  totalLength = (totalLength + $AE_CppApi.cppGetByteArrayLength(part));
+  $AA_CppUserData part = _sync_for_iterator.current;
+  totalLength = (totalLength + $AA_CppApi.cppGetByteArrayLength(part));
 }
 }
   return totalLength;
@@ -1874,18 +1978,18 @@ $AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserDat
     return this._parts.isNotEmpty;
   }
   
-  static $AE_CppUserData _convertStringToUserData(Object obj) {
+  static $AA_CppUserData _convertStringToUserData(Object obj) {
     {
-  if (obj is $AC_CppString) {
+  if (obj is $AD_CppString) {
   return obj._codeUnits;
 }
-  return $AC_CppStringPool.instance.getOrCreateFromCodeUnits($AC_CppStringBuffer._convertStringToCodeUnits(obj.toString()));
+  return $AD_CppStringPool.instance.getOrCreateFromCodeUnits($AD_CppStringBuffer._convertStringToCodeUnits(obj.toString()));
 }
   }
   
-  static $AA_CppList<int> _convertStringToCodeUnits(String str) {
+  static $AB_CppList<int> _convertStringToCodeUnits(String str) {
     {
-  $AA_CppList<int> codeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> codeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < str.length); i = (i + 1)) {
   codeUnits.add(str.codeUnitAt(i));
 }
@@ -1895,46 +1999,46 @@ $AC_CppStringBuffer([Object content = ""]) : _parts = $AA_CppList<$AE_CppUserDat
   
 }
 
-/// 转换后的类: $AC_CppString
+/// 转换后的类: $AD_CppString
 /// 原始类名: CppString
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC_CppString extends $AF_CppObject implements Comparable<$AC_CppString> {
-  static $AC_CppString Empty = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
-  late $AE_CppUserData _codeUnits;
-$AC_CppString.fromCppUserData($AE_CppUserData userData) : _codeUnits = userData, super()   {
+class $AD_CppString extends $AF_CppObject implements Comparable<$AD_CppString> {
+  static $AD_CppString Empty = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
+  late $AA_CppUserData _codeUnits;
+$AD_CppString.fromCppUserData($AA_CppUserData userData) : _codeUnits = userData, super()   {
     ;
   }
   
-$AC_CppString.fromCodeUnits($AA_CppList<int> codeUnits) : _codeUnits = $AC_CppStringPool.instance.getOrCreateFromCodeUnits(codeUnits), super()   {
+$AD_CppString.fromCodeUnits($AB_CppList<int> codeUnits) : _codeUnits = $AD_CppStringPool.instance.getOrCreateFromCodeUnits(codeUnits), super()   {
     ;
   }
   
-$AC_CppString.fromCharCode(int charCode) : _codeUnits = $AC_CppStringPool.instance.getOrCreateFromCodeUnits($AA_CppList<int>.filled(1, charCode)), super()   {
+$AD_CppString.fromCharCode(int charCode) : _codeUnits = $AD_CppStringPool.instance.getOrCreateFromCodeUnits($AB_CppList<int>.filled(1, charCode)), super()   {
     ;
   }
   
-$AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int? end = null]) : _codeUnits = $AC_CppStringPool.instance.getOrCreateFromCodeUnits(charCodes.skip(start).take(((end) ?? (charCodes.length) - start)).toList()), super()   {
+$AD_CppString.fromCharCodes($AE_CppIterable<int> charCodes, [int start = 0, int? end = null]) : _codeUnits = $AD_CppStringPool.instance.getOrCreateFromCodeUnits(charCodes.skip(start).take(((end) ?? (charCodes.length) - start)).toList()), super()   {
     ;
   }
   
   String _toExternalString() {
     {
-  $AA_CppList<int> codeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> codeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  codeUnits.add($AE_CppApi.cppGetByteArrayItem(this._codeUnits, i));
+  codeUnits.add($AA_CppApi.cppGetByteArrayItem(this._codeUnits, i));
 }
   return String.fromCharCodes(codeUnits as Iterable<int>);
 }
   }
   
-  bool _equalCodeUnits($AC_CppString other) {
+  bool _equalCodeUnits($AD_CppString other) {
     {
   int thisLength = this.length;
   int otherLength = other.length;
   if (!(thisLength == otherLength)) return false;
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(this._codeUnits, i) == $AE_CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(this._codeUnits, i) == $AA_CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
   return false;
 }
 }
@@ -1943,7 +2047,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
   }
   
   int get length {
-    return $AE_CppApi.cppGetByteArrayLength(this._codeUnits);
+    return $AA_CppApi.cppGetByteArrayLength(this._codeUnits);
   }
   
   bool get isEmpty {
@@ -1958,7 +2062,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
     {
   int hash = 0;
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  hash = (((hash * 31) + $AE_CppApi.cppGetByteArrayItem(this._codeUnits, i)) & 2147483647);
+  hash = (((hash * 31) + $AA_CppApi.cppGetByteArrayItem(this._codeUnits, i)) & 2147483647);
 }
   return hash;
 }
@@ -1969,16 +2073,16 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
   if ((index < 0) || (index >= this.length)) {
   throw IndexError(index, this, "index");
 }
-  return $AE_CppApi.cppGetByteArrayItem(this._codeUnits, index);
+  return $AA_CppApi.cppGetByteArrayItem(this._codeUnits, index);
 }
   }
   
-  $AA_CppList<int> get codeUnits {
+  $AB_CppList<int> get codeUnits {
     {
   int thisLength = this.length;
-  $AA_CppList<int> units = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> units = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  units.add($AE_CppApi.cppGetByteArrayItem(this._codeUnits, i));
+  units.add($AA_CppApi.cppGetByteArrayItem(this._codeUnits, i));
 }
   return units;
 }
@@ -1988,14 +2092,14 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
     return this._toExternalString().runes;
   }
   
-  int compareTo($AC_CppString other) {
+  int compareTo($AD_CppString other) {
     {
   int thisLength = this.length;
   int otherLength = other.length;
   int minLength = (thisLength < otherLength) ? thisLength : otherLength;
   for (int i = 0; (i < minLength); i = (i + 1)) {
-  int thisCodeUnit = $AE_CppApi.cppGetByteArrayItem(this._codeUnits, i);
-  int otherCodeUnit = $AE_CppApi.cppGetByteArrayItem(other._codeUnits, i);
+  int thisCodeUnit = $AA_CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  int otherCodeUnit = $AA_CppApi.cppGetByteArrayItem(other._codeUnits, i);
   if (!(thisCodeUnit == otherCodeUnit)) {
   return (thisCodeUnit - otherCodeUnit);
 }
@@ -2004,12 +2108,12 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  bool startsWith($AC_CppString pattern, [int index = 0]) {
+  bool startsWith($AD_CppString pattern, [int index = 0]) {
     {
   if ((index < 0) || (index >= this.length)) return false;
   if (((index + pattern.length) > this.length)) return false;
   for (int i = 0; (i < pattern.length); i = (i + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (index + i)) == $AE_CppApi.cppGetByteArrayItem(pattern._codeUnits, i))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (index + i)) == $AA_CppApi.cppGetByteArrayItem(pattern._codeUnits, i))) {
   return false;
 }
 }
@@ -2017,12 +2121,12 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  bool endsWith($AC_CppString other) {
+  bool endsWith($AD_CppString other) {
     {
   if ((other.length > this.length)) return false;
   int startIndex = (this.length - other.length);
   for (int i = 0; (i < other.length); i = (i + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (startIndex + i)) == $AE_CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (startIndex + i)) == $AA_CppApi.cppGetByteArrayItem(other._codeUnits, i))) {
   return false;
 }
 }
@@ -2030,7 +2134,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  int indexOf($AC_CppString pattern, [int start = 0]) {
+  int indexOf($AD_CppString pattern, [int start = 0]) {
     {
   if ((start < 0)) start = 0;
   if (pattern.isEmpty) return start;
@@ -2038,7 +2142,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
   for (int i = start; (i <= (this.length - pattern.length)); i = (i + 1)) {
   bool match = true;
   label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == $AE_CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == $AA_CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
   match = false;
   break;
 }
@@ -2049,7 +2153,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  int lastIndexOf($AC_CppString pattern, [int? start = null]) {
+  int lastIndexOf($AD_CppString pattern, [int? start = null]) {
     {
   if (pattern.isEmpty) return (start) ?? (this.length);
   start == null ? start = this.length : null;
@@ -2058,7 +2162,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
   for (int i = start; (i >= 0); i = (i - 1)) {
   bool match = true;
   label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == $AE_CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (i + j)) == $AA_CppApi.cppGetByteArrayItem(pattern._codeUnits, j))) {
   match = false;
   break;
 }
@@ -2069,56 +2173,56 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  bool contains($AC_CppString other, [int startIndex = 0]) {
+  bool contains($AD_CppString other, [int startIndex = 0]) {
     {
   return !(this.indexOf(other, startIndex) == -1);
 }
   }
   
-  $AC_CppString substring(int start, [int? end = null]) {
+  $AD_CppString substring(int start, [int? end = null]) {
     {
   end == null ? end = this.length : null;
   if ((start < 0)) start = 0;
   if ((end > this.length)) end = this.length;
   if ((start >= end)) return ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
   int newLength = (end - start);
-  $AA_CppList<int> newCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> newCodeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < newLength); i = (i + 1)) {
-  int codeUnit = $AE_CppApi.cppGetByteArrayItem(this._codeUnits, (start + i));
+  int codeUnit = $AA_CppApi.cppGetByteArrayItem(this._codeUnits, (start + i));
   newCodeUnits.add(codeUnit);
 }
-  return $AC_CppString.fromCodeUnits(newCodeUnits);
+  return $AD_CppString.fromCodeUnits(newCodeUnits);
 }
   }
   
-  $AC_CppString trim() {
+  $AD_CppString trim() {
     {
   int start = 0;
   int end = this.length;
-  while ((start < end) && this._isWhitespace($AE_CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
+  while ((start < end) && this._isWhitespace($AA_CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
   start = (start + 1);
 }
-  while ((end > start) && this._isWhitespace($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
+  while ((end > start) && this._isWhitespace($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
   end = (end - 1);
 }
   return this.substring(start, end);
 }
   }
   
-  $AC_CppString trimLeft() {
+  $AD_CppString trimLeft() {
     {
   int start = 0;
-  while ((start < this.length) && this._isWhitespace($AE_CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
+  while ((start < this.length) && this._isWhitespace($AA_CppApi.cppGetByteArrayItem(this._codeUnits, start))) {
   start = (start + 1);
 }
   return this.substring(start);
 }
   }
   
-  $AC_CppString trimRight() {
+  $AD_CppString trimRight() {
     {
   int end = this.length;
-  while ((end > 0) && this._isWhitespace($AE_CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
+  while ((end > 0) && this._isWhitespace($AA_CppApi.cppGetByteArrayItem(this._codeUnits, (end - 1)))) {
   end = (end - 1);
 }
   return this.substring(0, end);
@@ -2131,78 +2235,78 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  $AC_CppString padLeft(int width, [$AC_CppString? padding = null]) {
+  $AD_CppString padLeft(int width, [$AD_CppString? padding = null]) {
     {
   if ((width <= this.length)) return this;
-  padding == null ? padding = $AC_CppString.fromCharCode(32) : null;
+  padding == null ? padding = $AD_CppString.fromCharCode(32) : null;
   int padLength = (width - this.length);
   int padCount = (padLength / padding.length).ceil();
-  $AC_CppString padString = (padding * padCount);
-  $AC_CppString actualPad = padString.substring(0, padLength);
+  $AD_CppString padString = (padding * padCount);
+  $AD_CppString actualPad = padString.substring(0, padLength);
   return (actualPad + this);
 }
   }
   
-  $AC_CppString padRight(int width, [$AC_CppString? padding = null]) {
+  $AD_CppString padRight(int width, [$AD_CppString? padding = null]) {
     {
   if ((width <= this.length)) return this;
-  padding == null ? padding = $AC_CppString.fromCharCode(32) : null;
+  padding == null ? padding = $AD_CppString.fromCharCode(32) : null;
   int padLength = (width - this.length);
   int padCount = (padLength / padding.length).ceil();
-  $AC_CppString padString = (padding * padCount);
-  $AC_CppString actualPad = padString.substring(0, padLength);
+  $AD_CppString padString = (padding * padCount);
+  $AD_CppString actualPad = padString.substring(0, padLength);
   return (this + actualPad);
 }
   }
   
-  $AC_CppString replaceFirst($AC_CppString from, $AC_CppString to, [int startIndex = 0]) {
+  $AD_CppString replaceFirst($AD_CppString from, $AD_CppString to, [int startIndex = 0]) {
     {
   int index = this.indexOf(from, startIndex);
   if (index == -1) return this;
-  $AC_CppString beforePart = this.substring(0, index);
-  $AC_CppString afterPart = this.substring((index + from.length));
+  $AD_CppString beforePart = this.substring(0, index);
+  $AD_CppString afterPart = this.substring((index + from.length));
   return ((beforePart + to) + afterPart);
 }
   }
   
-  $AC_CppString replaceAll($AC_CppString from, $AC_CppString replace) {
+  $AD_CppString replaceAll($AD_CppString from, $AD_CppString replace) {
     {
   if (from.isEmpty) return this;
-  $AA_CppList<$AC_CppString> parts = this.split(from);
+  $AB_CppList<$AD_CppString> parts = this.split(from);
   if (parts.length == 1) return this;
-  $AA_CppList<$AC_CppString> result = $AA_CppList<$AC_CppString>.empty(growable: true);
+  $AB_CppList<$AD_CppString> result = $AB_CppList<$AD_CppString>.empty(growable: true);
   for (int i = 0; (i < parts.length); i = (i + 1)) {
   result.add(parts[i]);
   if ((i < (parts.length - 1))) {
   result.add(replace);
 }
 }
-  return $AC_CppString.join(result as $AD_CppIterable<$AC_CppString>);
+  return $AD_CppString.join(result as $AE_CppIterable<$AD_CppString>);
 }
   }
   
-  $AC_CppString replaceRange(int start, int? end, $AC_CppString replacement) {
+  $AD_CppString replaceRange(int start, int? end, $AD_CppString replacement) {
     {
   end == null ? end = this.length : null;
   if ((start < 0)) start = 0;
   if ((end > this.length)) end = this.length;
   if ((start >= end)) return (this + replacement);
-  $AC_CppString beforePart = this.substring(0, start);
-  $AC_CppString afterPart = this.substring(end);
+  $AD_CppString beforePart = this.substring(0, start);
+  $AD_CppString afterPart = this.substring(end);
   return ((beforePart + replacement) + afterPart);
 }
   }
   
-  $AA_CppList<$AC_CppString> split($AC_CppString separator) {
+  $AB_CppList<$AD_CppString> split($AD_CppString separator) {
     {
   if (separator.isEmpty) {
-  $AA_CppList<$AC_CppString> result = $AA_CppList<$AC_CppString>.empty(growable: true);
+  $AB_CppList<$AD_CppString> result = $AB_CppList<$AD_CppString>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
   result.add(this.substring(i, (i + 1)));
 }
   return result;
 }
-  $AA_CppList<$AC_CppString> result = $AA_CppList<$AC_CppString>.empty(growable: true);
+  $AB_CppList<$AD_CppString> result = $AB_CppList<$AD_CppString>.empty(growable: true);
   int start = 0;
   int index = this.indexOf(separator, start);
   while (!(index == -1)) {
@@ -2215,59 +2319,59 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  $AC_CppString toLowerCase() {
+  $AD_CppString toLowerCase() {
     {
-  $AA_CppList<int> resultCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> resultCodeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  int codeUnit = $AE_CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  int codeUnit = $AA_CppApi.cppGetByteArrayItem(this._codeUnits, i);
   if ((codeUnit >= 65) && (codeUnit <= 90)) {
   codeUnit = (codeUnit + 32);
 }
   resultCodeUnits.add(codeUnit);
 }
-  return $AC_CppString.fromCodeUnits(resultCodeUnits);
+  return $AD_CppString.fromCodeUnits(resultCodeUnits);
 }
   }
   
-  $AC_CppString toUpperCase() {
+  $AD_CppString toUpperCase() {
     {
-  $AA_CppList<int> resultCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> resultCodeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  int codeUnit = $AE_CppApi.cppGetByteArrayItem(this._codeUnits, i);
+  int codeUnit = $AA_CppApi.cppGetByteArrayItem(this._codeUnits, i);
   if ((codeUnit >= 97) && (codeUnit <= 122)) {
   codeUnit = (codeUnit - 32);
 }
   resultCodeUnits.add(codeUnit);
 }
-  return $AC_CppString.fromCodeUnits(resultCodeUnits);
+  return $AD_CppString.fromCodeUnits(resultCodeUnits);
 }
   }
   
-  $AD_CppIterable<$AC_CppStringMatch> allMatches($AC_CppString string, [int start = 0]) {
+  $AE_CppIterable<$AD_CppStringMatch> allMatches($AD_CppString string, [int start = 0]) {
     {
   if ((start < 0) || (start > string.length)) {
   throw RangeError.range(start, 0, string.length, "start");
 }
-  return $AC__CppStringAllMatchesIterable(string, this, start);
+  return $AD__CppStringAllMatchesIterable(string, this, start);
 }
   }
   
-  $AC_CppStringMatch? matchAsPrefix($AC_CppString string, [int start = 0]) {
+  $AD_CppStringMatch? matchAsPrefix($AD_CppString string, [int start = 0]) {
     {
   if ((start < 0) || (start > string.length)) {
   throw RangeError.range(start, 0, string.length);
 }
   if (((start + this.length) > string.length)) return null;
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  if (!($AE_CppApi.cppGetByteArrayItem(string._codeUnits, (start + i)) == $AE_CppApi.cppGetByteArrayItem(this._codeUnits, i))) {
+  if (!($AA_CppApi.cppGetByteArrayItem(string._codeUnits, (start + i)) == $AA_CppApi.cppGetByteArrayItem(this._codeUnits, i))) {
   return null;
 }
 }
-  return $AC_CppStringMatch(start, string, this);
+  return $AD_CppStringMatch(start, string, this);
 }
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
   return this;
 }
@@ -2285,7 +2389,7 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
 }
   }
   
-  bool sharesDataWith($AC_CppString other) {
+  bool sharesDataWith($AD_CppString other) {
     {
   return identical(this._codeUnits, other._codeUnits);
 }
@@ -2295,101 +2399,101 @@ $AC_CppString.fromCharCodes($AD_CppIterable<int> charCodes, [int start = 0, int?
     return this._codeUnits.hashCode;
   }
   
-  static $AC_CppString fromString(String source) {
+  static $AD_CppString fromString(String source) {
     {
-  $AA_CppList<int> codeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> codeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < source.length); i = (i + 1)) {
   codeUnits.add(source.codeUnitAt(i));
 }
-  return $AC_CppString.fromCodeUnits(codeUnits);
+  return $AD_CppString.fromCodeUnits(codeUnits);
 }
   }
   
-  static $AC_CppString join($AD_CppIterable<$AC_CppString> strings, [$AC_CppString? separator = null]) {
+  static $AD_CppString join($AE_CppIterable<$AD_CppString> strings, [$AD_CppString? separator = null]) {
     {
   separator == null ? separator = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}}) : null;
-  $AA_CppList<$AC_CppString> stringList = strings.toList();
+  $AB_CppList<$AD_CppString> stringList = strings.toList();
   if (stringList.isEmpty) return ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
   if (stringList.length == 1) return stringList[0];
-  $AA_CppList<int> newCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> newCodeUnits = $AB_CppList<int>.empty(growable: true);
   for (int i = 0; (i < stringList.length); i = (i + 1)) {
-  $AC_CppString str = stringList[i];
+  $AD_CppString str = stringList[i];
   for (int j = 0; (j < str.length); j = (j + 1)) {
-  newCodeUnits.add($AE_CppApi.cppGetByteArrayItem(str._codeUnits, j));
+  newCodeUnits.add($AA_CppApi.cppGetByteArrayItem(str._codeUnits, j));
 }
   if ((i < (stringList.length - 1))) {
   for (int j = 0; (j < separator.length); j = (j + 1)) {
-  newCodeUnits.add($AE_CppApi.cppGetByteArrayItem(separator._codeUnits, j));
+  newCodeUnits.add($AA_CppApi.cppGetByteArrayItem(separator._codeUnits, j));
 }
 }
 }
-  return $AC_CppString.fromCodeUnits(newCodeUnits);
+  return $AD_CppString.fromCodeUnits(newCodeUnits);
 }
   }
   
-  $AC_CppString operator [](int index) {
+  $AD_CppString operator [](int index) {
     {
   int thisLength = this.length;
   if ((index < 0) || (index >= thisLength)) {
   throw IndexError(index, this, "index");
 }
-  int codeUnit = $AE_CppApi.cppGetByteArrayItem(this._codeUnits, index);
-  return $AC_CppString.fromCharCode(codeUnit);
+  int codeUnit = $AA_CppApi.cppGetByteArrayItem(this._codeUnits, index);
+  return $AD_CppString.fromCharCode(codeUnit);
 }
   }
   
   bool operator ==(Object other) {
     {
   if (identical(this, other)) return true;
-  if (other is $AC_CppString) {
+  if (other is $AD_CppString) {
   return this._equalCodeUnits(other);
 }
   return false;
 }
   }
   
-  $AC_CppString operator +($AC_CppString other) {
+  $AD_CppString operator +($AD_CppString other) {
     {
   int thisLength = this.length;
   int otherLength = other.length;
-  $AA_CppList<int> newCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> newCodeUnits = $AB_CppList<int>.empty(growable: true);
   ;
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  newCodeUnits.add($AE_CppApi.cppGetByteArrayItem(this._codeUnits, i));
+  newCodeUnits.add($AA_CppApi.cppGetByteArrayItem(this._codeUnits, i));
 }
   for (int i = 0; (i < otherLength); i = (i + 1)) {
-  newCodeUnits.add($AE_CppApi.cppGetByteArrayItem(other._codeUnits, i));
+  newCodeUnits.add($AA_CppApi.cppGetByteArrayItem(other._codeUnits, i));
 }
-  return $AC_CppString.fromCodeUnits(newCodeUnits);
+  return $AD_CppString.fromCodeUnits(newCodeUnits);
 }
   }
   
-  $AC_CppString operator *(int times) {
+  $AD_CppString operator *(int times) {
     {
   if ((times <= 0)) return ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
   if (times == 1) return this;
   int thisLength = this.length;
-  $AA_CppList<int> newCodeUnits = $AA_CppList<int>.empty(growable: true);
+  $AB_CppList<int> newCodeUnits = $AB_CppList<int>.empty(growable: true);
   for (int repeat = 0; (repeat < times); repeat = (repeat + 1)) {
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  newCodeUnits.add($AE_CppApi.cppGetByteArrayItem(this._codeUnits, i));
+  newCodeUnits.add($AA_CppApi.cppGetByteArrayItem(this._codeUnits, i));
 }
 }
-  return $AC_CppString.fromCodeUnits(newCodeUnits);
+  return $AD_CppString.fromCodeUnits(newCodeUnits);
 }
   }
   
 }
 
-/// 转换后的类: $AC_CppStringMatch
+/// 转换后的类: $AD_CppStringMatch
 /// 原始类名: CppStringMatch
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC_CppStringMatch {
+class $AD_CppStringMatch {
   late int start;
-  late $AC_CppString input;
-  late $AC_CppString pattern;
-$AC_CppStringMatch(int start, $AC_CppString input, $AC_CppString pattern) : start = start, input = input, pattern = pattern, super()   {
+  late $AD_CppString input;
+  late $AD_CppString pattern;
+$AD_CppStringMatch(int start, $AD_CppString input, $AD_CppString pattern) : start = start, input = input, pattern = pattern, super()   {
     ;
   }
   
@@ -2397,7 +2501,7 @@ $AC_CppStringMatch(int start, $AC_CppString input, $AC_CppString pattern) : star
     return (this.start + this.pattern.length);
   }
   
-  $AC_CppString group(int group) {
+  $AD_CppString group(int group) {
     {
   if (!(group == 0)) {
   throw RangeError.value(group);
@@ -2410,32 +2514,32 @@ $AC_CppStringMatch(int start, $AC_CppString input, $AC_CppString pattern) : star
     return 0;
   }
   
-  $AC_CppString operator [](int group) {
+  $AD_CppString operator [](int group) {
     return group == 0 ? this.pattern : throw RangeError.value(group);
   }
   
 }
 
-/// 转换后的类: $AC__CppStringAllMatchesIterable
+/// 转换后的类: $AD__CppStringAllMatchesIterable
 /// 原始类名: _CppStringAllMatchesIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC__CppStringAllMatchesIterable extends $AD_CppIterable<$AC_CppStringMatch> {
-  late $AC_CppString _input;
-  late $AC_CppString _pattern;
+class $AD__CppStringAllMatchesIterable extends $AE_CppIterable<$AD_CppStringMatch> {
+  late $AD_CppString _input;
+  late $AD_CppString _pattern;
   late int _index;
-$AC__CppStringAllMatchesIterable($AC_CppString _input, $AC_CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
+$AD__CppStringAllMatchesIterable($AD_CppString _input, $AD_CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
     ;
   }
   
-  $AD_CppIterator<$AC_CppStringMatch> get iterator {
-    return $AC__CppStringAllMatchesIterator(this._input, this._pattern, this._index);
+  $AE_CppIterator<$AD_CppStringMatch> get iterator {
+    return $AD__CppStringAllMatchesIterator(this._input, this._pattern, this._index);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<$AC_CppStringMatch> it = this.iterator;
+  $AE_CppIterator<$AD_CppStringMatch> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -2443,11 +2547,11 @@ $AC__CppStringAllMatchesIterable($AC_CppString _input, $AC_CppString _pattern, i
 }
   }
   
-  $AC_CppStringMatch get first {
+  $AD_CppStringMatch get first {
     {
   int index = this._input.indexOf(this._pattern, this._index);
   if ((index >= 0)) {
-  return $AC_CppStringMatch(index, this._input, this._pattern);
+  return $AD_CppStringMatch(index, this._input, this._pattern);
 }
   throw StateError("No element");
 }
@@ -2455,16 +2559,16 @@ $AC__CppStringAllMatchesIterable($AC_CppString _input, $AC_CppString _pattern, i
   
 }
 
-/// 转换后的类: $AC__CppStringAllMatchesIterator
+/// 转换后的类: $AD__CppStringAllMatchesIterator
 /// 原始类名: _CppStringAllMatchesIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 
-class $AC__CppStringAllMatchesIterator extends $AF_CppObject implements $AD_CppIterator<$AC_CppStringMatch> {
+class $AD__CppStringAllMatchesIterator extends $AF_CppObject implements $AE_CppIterator<$AD_CppStringMatch> {
   late int _index;
-  $AC_CppStringMatch? _current = null;
-  late $AC_CppString _input;
-  late $AC_CppString _pattern;
-$AC__CppStringAllMatchesIterator($AC_CppString _input, $AC_CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
+  $AD_CppStringMatch? _current = null;
+  late $AD_CppString _input;
+  late $AD_CppString _pattern;
+$AD__CppStringAllMatchesIterator($AD_CppString _input, $AD_CppString _pattern, int _index) : _input = _input, _pattern = _pattern, _index = _index, super()   {
     ;
   }
   
@@ -2482,24 +2586,24 @@ $AC__CppStringAllMatchesIterator($AC_CppString _input, $AC_CppString _pattern, i
   return false;
 }
   int end = (index + patternLen);
-  this._current = $AC_CppStringMatch(index, this._input, this._pattern);
+  this._current = $AD_CppStringMatch(index, this._input, this._pattern);
   this._index = end == this._index ? (end + 1) : end;
   return true;
 }
   }
   
-  $AC_CppStringMatch get current {
-    return (() { final $AC_CppStringMatch? temp_3081 = this._current; return temp_3081 == null ? temp_3081 as $AC_CppStringMatch : temp_3081; })();
+  $AD_CppStringMatch get current {
+    return (() { final $AD_CppStringMatch? temp_3063 = this._current; return temp_3063 == null ? temp_3063 as $AD_CppStringMatch : temp_3063; })();
   }
   
 }
 
-/// 转换后的类: $AD_CppIterator
+/// 转换后的类: $AE_CppIterator
 /// 原始类名: CppIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-abstract class $AD_CppIterator<E> extends $AF_CppObject {
-$AD_CppIterator() : super()   {
+abstract class $AE_CppIterator<E> extends $AF_CppObject {
+$AE_CppIterator() : super()   {
     ;
   }
   
@@ -2509,16 +2613,16 @@ $AD_CppIterator() : super()   {
   
 }
 
-/// 转换后的类: $AD_CppIterable
+/// 转换后的类: $AE_CppIterable
 /// 原始类名: CppIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-abstract class $AD_CppIterable<E> extends $AF_CppObject {
-$AD_CppIterable() : super()   {
+abstract class $AE_CppIterable<E> extends $AF_CppObject {
+$AE_CppIterable() : super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator;
+  $AE_CppIterator<E> get iterator;
   
   int get length;
   
@@ -2533,7 +2637,7 @@ $AD_CppIterable() : super()   {
   E get first {
     {
   if (this.isEmpty) throw StateError("No element");
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   if (!(it.moveNext())) throw StateError("No element");
   return it.current;
 }
@@ -2542,19 +2646,19 @@ $AD_CppIterable() : super()   {
   E get last {
     {
   if (this.isEmpty) throw StateError("No element");
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   E? result;
   while (it.moveNext()) {
   result = it.current;
 }
-  return (() { final E? temp_3089 = result; return temp_3089 == null ? temp_3089 as E : temp_3089; })();
+  return (() { final E? temp_3071 = result; return temp_3071 == null ? temp_3071 as E : temp_3071; })();
 }
   }
   
   E get single {
     {
   if (this.isEmpty) throw StateError("No element");
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   it.moveNext();
   E result = it.current;
   if (it.moveNext()) throw StateError("Too many elements");
@@ -2565,7 +2669,7 @@ $AD_CppIterable() : super()   {
   E elementAt(int index) {
     {
   if ((index < 0)) throw ArgumentError("Index cannot be negative");
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   for (int i = 0; (i <= index); i = (i + 1)) {
   if (!(it.moveNext())) throw IndexError(index, this);
   if (i == index) return it.current;
@@ -2576,7 +2680,7 @@ $AD_CppIterable() : super()   {
   
   bool contains(Object? element) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   if (it.current == element) return true;
 }
@@ -2586,40 +2690,40 @@ $AD_CppIterable() : super()   {
   
   void forEach(void Function(E) action) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   action.call(it.current);
 }
 }
   }
   
-  $AD_CppIterable<T> map<T>(T Function(E) toElement) {
+  $AE_CppIterable<T> map<T>(T Function(E) toElement) {
     {
-  return $AD_CppMappedIterable<E, T>(this, toElement);
+  return $AE_CppMappedIterable<E, T>(this, toElement);
 }
   }
   
-  $AD_CppIterable<E> where(bool Function(E) test) {
+  $AE_CppIterable<E> where(bool Function(E) test) {
     {
-  return $AD_CppWhereIterable<E>(this, test);
+  return $AE_CppWhereIterable<E>(this, test);
 }
   }
   
-  $AD_CppIterable<T> whereType<T>() {
+  $AE_CppIterable<T> whereType<T>() {
     {
-  return $AD_CppWhereTypeIterable<T>(this);
+  return $AE_CppWhereTypeIterable<T>(this);
 }
   }
   
-  $AD_CppIterable<T> expand<T>($AD_CppIterable<T> Function(E) toElements) {
+  $AE_CppIterable<T> expand<T>($AE_CppIterable<T> Function(E) toElements) {
     {
-  return $AD_CppExpandIterable<E, T>(this, toElements);
+  return $AE_CppExpandIterable<E, T>(this, toElements);
 }
   }
   
   bool any(bool Function(E) test) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   if (test.call(it.current)) return true;
 }
@@ -2629,7 +2733,7 @@ $AD_CppIterable() : super()   {
   
   bool every(bool Function(E) test) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   if (!(test.call(it.current))) return false;
 }
@@ -2639,7 +2743,7 @@ $AD_CppIterable() : super()   {
   
   E firstWhere(bool Function(E) test, {E Function()? orElse = null}) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   if (test.call(it.current)) return it.current;
 }
@@ -2650,7 +2754,7 @@ $AD_CppIterable() : super()   {
   
   E lastWhere(bool Function(E) test, {E Function()? orElse = null}) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   E? result;
   bool found = false;
   while (it.moveNext()) {
@@ -2659,7 +2763,7 @@ $AD_CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_3097 = result; return temp_3097 == null ? temp_3097 as E : temp_3097; })();
+  if (found) return (() { final E? temp_3079 = result; return temp_3079 == null ? temp_3079 as E : temp_3079; })();
   if (!(orElse == null)) return orElse.call();
   throw StateError("No element");
 }
@@ -2667,7 +2771,7 @@ $AD_CppIterable() : super()   {
   
   E singleWhere(bool Function(E) test, {E Function()? orElse = null}) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   E? result;
   bool found = false;
   while (it.moveNext()) {
@@ -2677,7 +2781,7 @@ $AD_CppIterable() : super()   {
   found = true;
 }
 }
-  if (found) return (() { final E? temp_3105 = result; return temp_3105 == null ? temp_3105 as E : temp_3105; })();
+  if (found) return (() { final E? temp_3087 = result; return temp_3087 == null ? temp_3087 as E : temp_3087; })();
   if (!(orElse == null)) return orElse.call();
   throw StateError("No element");
 }
@@ -2685,7 +2789,7 @@ $AD_CppIterable() : super()   {
   
   E reduce(E Function(E, E) combine) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   if (!(it.moveNext())) throw StateError("No element");
   E value = it.current;
   while (it.moveNext()) {
@@ -2698,7 +2802,7 @@ $AD_CppIterable() : super()   {
   T fold<T>(T initialValue, T Function(T, E) combine) {
     {
   T value = initialValue;
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   value = combine.call(value, it.current);
 }
@@ -2706,11 +2810,11 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AC_CppString join([$AC_CppString separator = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}})]) {
+  $AD_CppString join([$AD_CppString separator = ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}})]) {
     {
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   if (!(it.moveNext())) return ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
-  $AC_CppStringBuffer buffer = $AC_CppStringBuffer(it.current.toString());
+  $AD_CppStringBuffer buffer = $AD_CppStringBuffer(it.current.toString());
   while (it.moveNext()) {
   buffer.write(separator);
   buffer.write(it.current.toString());
@@ -2719,97 +2823,97 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AD_CppIterable<E> take(int count) {
+  $AE_CppIterable<E> take(int count) {
     {
-  return $AD_CppTakeIterable<E>(this, count);
+  return $AE_CppTakeIterable<E>(this, count);
 }
   }
   
-  $AD_CppIterable<E> takeWhile(bool Function(E) test) {
+  $AE_CppIterable<E> takeWhile(bool Function(E) test) {
     {
-  return $AD_CppTakeWhileIterable<E>(this, test);
+  return $AE_CppTakeWhileIterable<E>(this, test);
 }
   }
   
-  $AD_CppIterable<E> skip(int count) {
+  $AE_CppIterable<E> skip(int count) {
     {
-  return $AD_CppSkipIterable<E>(this, count);
+  return $AE_CppSkipIterable<E>(this, count);
 }
   }
   
-  $AD_CppIterable<E> skipWhile(bool Function(E) test) {
+  $AE_CppIterable<E> skipWhile(bool Function(E) test) {
     {
-  return $AD_CppSkipWhileIterable<E>(this, test);
+  return $AE_CppSkipWhileIterable<E>(this, test);
 }
   }
   
-  $AD_CppIterable<E> get reversed {
+  $AE_CppIterable<E> get reversed {
     {
-  return $AD_CppReversedIterable<E>(this);
+  return $AE_CppReversedIterable<E>(this);
 }
   }
   
-  $AD_CppIterable<E> followedBy($AD_CppIterable<E> other) {
+  $AE_CppIterable<E> followedBy($AE_CppIterable<E> other) {
     {
-  return $AD_CppFollowedByIterable<E>(this, other);
+  return $AE_CppFollowedByIterable<E>(this, other);
 }
   }
   
-  $AA_CppList<E> toList({bool growable = true}) {
+  $AB_CppList<E> toList({bool growable = true}) {
     {
-  return $AA_CppList<E>.from(this as $AD_CppIterable<dynamic?>, growable: growable);
+  return $AB_CppList<E>.from(this as $AE_CppIterable<dynamic?>, growable: growable);
 }
   }
   
-  $AA_CppSet<E> toSet() {
+  $AB_CppSet<E> toSet() {
     {
-  return $AA_CppSet<E>.from(this);
+  return $AB_CppSet<E>.from(this);
 }
   }
   
-  $AD_CppIterable<T> cast<T>() {
+  $AE_CppIterable<T> cast<T>() {
     {
-  return $AD_CppCastIterable<E, T>(this);
+  return $AE_CppCastIterable<E, T>(this);
 }
   }
   
-  static $AD_CppIterable<E> empty<E>() {
-    return $AD__CppEmptyIterable<E>();
+  static $AE_CppIterable<E> empty<E>() {
+    return $AE__CppEmptyIterable<E>();
   }
   
-  static $AD_CppIterable<E> generate<E>(int count, E Function(int) generator) {
+  static $AE_CppIterable<E> generate<E>(int count, E Function(int) generator) {
     {
-  return $AD__CppGenerateIterable<E>(count, generator);
+  return $AE__CppGenerateIterable<E>(count, generator);
 }
   }
   
-  static $AD_CppIterable<E> unmodifiable<E>($AD_CppIterable<E> elements) {
+  static $AE_CppIterable<E> unmodifiable<E>($AE_CppIterable<E> elements) {
     {
-  return $AD__CppUnmodifiableIterable<E>(elements.toList());
+  return $AE__CppUnmodifiableIterable<E>(elements.toList());
 }
   }
   
-  static $AD_CppIterable<R> castFrom<S, R>($AD_CppIterable<S> source) {
+  static $AE_CppIterable<R> castFrom<S, R>($AE_CppIterable<S> source) {
     {
-  return $AD__CppCastFromIterable<S, R>(source);
+  return $AE__CppCastFromIterable<S, R>(source);
 }
   }
   
 }
 
-/// 转换后的类: $AD_CppMappedIterable
+/// 转换后的类: $AE_CppMappedIterable
 /// 原始类名: CppMappedIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppMappedIterable<S, T> extends $AD_CppIterable<T> {
-  late $AD_CppIterable<S> _source;
+class $AE_CppMappedIterable<S, T> extends $AE_CppIterable<T> {
+  late $AE_CppIterable<S> _source;
   late T Function(S) _f;
-$AD_CppMappedIterable($AD_CppIterable<S> _source, T Function(S) _f) : _source = _source, _f = _f, super()   {
+$AE_CppMappedIterable($AE_CppIterable<S> _source, T Function(S) _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
-  $AD_CppIterator<T> get iterator {
-    return $AD_CppMappedIterator<S, T>(this._source.iterator, this._f);
+  $AE_CppIterator<T> get iterator {
+    return $AE_CppMappedIterator<S, T>(this._source.iterator, this._f);
   }
   
   int get length {
@@ -2818,26 +2922,26 @@ $AD_CppMappedIterable($AD_CppIterable<S> _source, T Function(S) _f) : _source = 
   
 }
 
-/// 转换后的类: $AD_CppMappedIterator
+/// 转换后的类: $AE_CppMappedIterator
 /// 原始类名: CppMappedIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppMappedIterator<S, T> extends $AD_CppIterator<T> {
+class $AE_CppMappedIterator<S, T> extends $AE_CppIterator<T> {
   T? _current = null;
-  late $AD_CppIterator<S> _iterator;
+  late $AE_CppIterator<S> _iterator;
   late T Function(S) _f;
-$AD_CppMappedIterator($AD_CppIterator<S> _iterator, T Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
+$AE_CppMappedIterator($AE_CppIterator<S> _iterator, T Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
   T get current {
-    return (() { final T? temp_3113 = this._current; return temp_3113 == null ? temp_3113 as T : temp_3113; })();
+    return (() { final T? temp_3095 = this._current; return temp_3095 == null ? temp_3095 as T : temp_3095; })();
   }
   
   bool moveNext() {
     {
   if (this._iterator.moveNext()) {
-  this._current = (() { final S temp_6840_1394 = this._iterator.current; return this._f.call(temp_6840_1394); })();
+  this._current = (() { final S temp_6840_1526 = this._iterator.current; return this._f.call(temp_6840_1526); })();
   return true;
 }
   return false;
@@ -2846,25 +2950,25 @@ $AD_CppMappedIterator($AD_CppIterator<S> _iterator, T Function(S) _f) : _iterato
   
 }
 
-/// 转换后的类: $AD_CppWhereIterable
+/// 转换后的类: $AE_CppWhereIterable
 /// 原始类名: CppWhereIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppWhereIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
+class $AE_CppWhereIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
   late bool Function(E) _test;
-$AD_CppWhereIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+$AE_CppWhereIterable($AE_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppWhereIterator<E>(this._source.iterator, this._test);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppWhereIterator<E>(this._source.iterator, this._test);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -2874,14 +2978,14 @@ $AD_CppWhereIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _sour
   
 }
 
-/// 转换后的类: $AD_CppWhereIterator
+/// 转换后的类: $AE_CppWhereIterator
 /// 原始类名: CppWhereIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppWhereIterator<E> extends $AD_CppIterator<E> {
-  late $AD_CppIterator<E> _iterator;
+class $AE_CppWhereIterator<E> extends $AE_CppIterator<E> {
+  late $AE_CppIterator<E> _iterator;
   late bool Function(E) _test;
-$AD_CppWhereIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+$AE_CppWhereIterator($AE_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -2892,7 +2996,7 @@ $AD_CppWhereIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _it
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if ((() { final E temp_7648_1480 = this._iterator.current; return this._test.call(temp_7648_1480); })()) {
+  if ((() { final E temp_7648_1612 = this._iterator.current; return this._test.call(temp_7648_1612); })()) {
   return true;
 }
 }
@@ -2902,24 +3006,24 @@ $AD_CppWhereIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _it
   
 }
 
-/// 转换后的类: $AD_CppWhereTypeIterable
+/// 转换后的类: $AE_CppWhereTypeIterable
 /// 原始类名: CppWhereTypeIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppWhereTypeIterable<T> extends $AD_CppIterable<T> {
-  late $AD_CppIterable<dynamic?> _source;
-$AD_CppWhereTypeIterable($AD_CppIterable<dynamic?> _source) : _source = _source, super()   {
+class $AE_CppWhereTypeIterable<T> extends $AE_CppIterable<T> {
+  late $AE_CppIterable<dynamic?> _source;
+$AE_CppWhereTypeIterable($AE_CppIterable<dynamic?> _source) : _source = _source, super()   {
     ;
   }
   
-  $AD_CppIterator<T> get iterator {
-    return $AD_CppWhereTypeIterator<T>(this._source.iterator);
+  $AE_CppIterator<T> get iterator {
+    return $AE_CppWhereTypeIterator<T>(this._source.iterator);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<T> it = this.iterator;
+  $AE_CppIterator<T> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -2929,13 +3033,13 @@ $AD_CppWhereTypeIterable($AD_CppIterable<dynamic?> _source) : _source = _source,
   
 }
 
-/// 转换后的类: $AD_CppWhereTypeIterator
+/// 转换后的类: $AE_CppWhereTypeIterator
 /// 原始类名: CppWhereTypeIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppWhereTypeIterator<T> extends $AD_CppIterator<T> {
-  late $AD_CppIterator<dynamic?> _iterator;
-$AD_CppWhereTypeIterator($AD_CppIterator<dynamic?> _iterator) : _iterator = _iterator, super()   {
+class $AE_CppWhereTypeIterator<T> extends $AE_CppIterator<T> {
+  late $AE_CppIterator<dynamic?> _iterator;
+$AE_CppWhereTypeIterator($AE_CppIterator<dynamic?> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
@@ -2956,25 +3060,25 @@ $AD_CppWhereTypeIterator($AD_CppIterator<dynamic?> _iterator) : _iterator = _ite
   
 }
 
-/// 转换后的类: $AD_CppExpandIterable
+/// 转换后的类: $AE_CppExpandIterable
 /// 原始类名: CppExpandIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppExpandIterable<S, T> extends $AD_CppIterable<T> {
-  late $AD_CppIterable<S> _source;
-  late $AD_CppIterable<T> Function(S) _f;
-$AD_CppExpandIterable($AD_CppIterable<S> _source, $AD_CppIterable<T> Function(S) _f) : _source = _source, _f = _f, super()   {
+class $AE_CppExpandIterable<S, T> extends $AE_CppIterable<T> {
+  late $AE_CppIterable<S> _source;
+  late $AE_CppIterable<T> Function(S) _f;
+$AE_CppExpandIterable($AE_CppIterable<S> _source, $AE_CppIterable<T> Function(S) _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
-  $AD_CppIterator<T> get iterator {
-    return $AD_CppExpandIterator<S, T>(this._source.iterator, this._f);
+  $AE_CppIterator<T> get iterator {
+    return $AE_CppExpandIterator<S, T>(this._source.iterator, this._f);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<T> it = this.iterator;
+  $AE_CppIterator<T> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -2984,15 +3088,15 @@ $AD_CppExpandIterable($AD_CppIterable<S> _source, $AD_CppIterable<T> Function(S)
   
 }
 
-/// 转换后的类: $AD_CppExpandIterator
+/// 转换后的类: $AE_CppExpandIterator
 /// 原始类名: CppExpandIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppExpandIterator<S, T> extends $AD_CppIterator<T> {
-  $AD_CppIterator<T>? _currentIterator = null;
-  late $AD_CppIterator<S> _iterator;
-  late $AD_CppIterable<T> Function(S) _f;
-$AD_CppExpandIterator($AD_CppIterator<S> _iterator, $AD_CppIterable<T> Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
+class $AE_CppExpandIterator<S, T> extends $AE_CppIterator<T> {
+  $AE_CppIterator<T>? _currentIterator = null;
+  late $AE_CppIterator<S> _iterator;
+  late $AE_CppIterable<T> Function(S) _f;
+$AE_CppExpandIterator($AE_CppIterator<S> _iterator, $AE_CppIterable<T> Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
@@ -3009,26 +3113,26 @@ $AD_CppExpandIterator($AD_CppIterator<S> _iterator, $AD_CppIterable<T> Function(
   if (!(this._iterator.moveNext())) {
   return false;
 }
-  this._currentIterator = (() { final S temp_9437_1661 = this._iterator.current; return this._f.call(temp_9437_1661); })().iterator;
+  this._currentIterator = (() { final S temp_9437_1793 = this._iterator.current; return this._f.call(temp_9437_1793); })().iterator;
 }
 }
   }
   
 }
 
-/// 转换后的类: $AD_CppTakeIterable
+/// 转换后的类: $AE_CppTakeIterable
 /// 原始类名: CppTakeIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppTakeIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
+class $AE_CppTakeIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
   late int _count;
-$AD_CppTakeIterable($AD_CppIterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
+$AE_CppTakeIterable($AE_CppIterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppTakeIterator<E>(this._source.iterator, this._count);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppTakeIterator<E>(this._source.iterator, this._count);
   }
   
   int get length {
@@ -3037,15 +3141,15 @@ $AD_CppTakeIterable($AD_CppIterable<E> _source, int _count) : _source = _source,
   
 }
 
-/// 转换后的类: $AD_CppTakeIterator
+/// 转换后的类: $AE_CppTakeIterator
 /// 原始类名: CppTakeIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppTakeIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppTakeIterator<E> extends $AE_CppIterator<E> {
   late int _remaining;
-  late $AD_CppIterator<E> _iterator;
+  late $AE_CppIterator<E> _iterator;
   late int _count;
-$AD_CppTakeIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, _remaining = _count, super()   {
+$AE_CppTakeIterator($AE_CppIterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, _remaining = _count, super()   {
     ;
   }
   
@@ -3066,25 +3170,25 @@ $AD_CppTakeIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _ite
   
 }
 
-/// 转换后的类: $AD_CppTakeWhileIterable
+/// 转换后的类: $AE_CppTakeWhileIterable
 /// 原始类名: CppTakeWhileIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppTakeWhileIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
+class $AE_CppTakeWhileIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
   late bool Function(E) _test;
-$AD_CppTakeWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+$AE_CppTakeWhileIterable($AE_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppTakeWhileIterator<E>(this._source.iterator, this._test);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppTakeWhileIterator<E>(this._source.iterator, this._test);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -3094,15 +3198,15 @@ $AD_CppTakeWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _
   
 }
 
-/// 转换后的类: $AD_CppTakeWhileIterator
+/// 转换后的类: $AE_CppTakeWhileIterator
 /// 原始类名: CppTakeWhileIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppTakeWhileIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppTakeWhileIterator<E> extends $AE_CppIterator<E> {
   bool _finished = false;
-  late $AD_CppIterator<E> _iterator;
+  late $AE_CppIterator<E> _iterator;
   late bool Function(E) _test;
-$AD_CppTakeWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+$AE_CppTakeWhileIterator($AE_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -3114,7 +3218,7 @@ $AD_CppTakeWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) :
     {
   if (this._finished) return false;
   if (this._iterator.moveNext()) {
-  if ((() { final E temp_11052_1842 = this._iterator.current; return this._test.call(temp_11052_1842); })()) {
+  if ((() { final E temp_11052_1974 = this._iterator.current; return this._test.call(temp_11052_1974); })()) {
   return true;
 }
   this._finished = true;
@@ -3125,19 +3229,19 @@ $AD_CppTakeWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) :
   
 }
 
-/// 转换后的类: $AD_CppSkipIterable
+/// 转换后的类: $AE_CppSkipIterable
 /// 原始类名: CppSkipIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppSkipIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
+class $AE_CppSkipIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
   late int _count;
-$AD_CppSkipIterable($AD_CppIterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
+$AE_CppSkipIterable($AE_CppIterable<E> _source, int _count) : _source = _source, _count = _count, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppSkipIterator<E>(this._source.iterator, this._count);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppSkipIterator<E>(this._source.iterator, this._count);
   }
   
   int get length {
@@ -3146,15 +3250,15 @@ $AD_CppSkipIterable($AD_CppIterable<E> _source, int _count) : _source = _source,
   
 }
 
-/// 转换后的类: $AD_CppSkipIterator
+/// 转换后的类: $AE_CppSkipIterator
 /// 原始类名: CppSkipIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppSkipIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppSkipIterator<E> extends $AE_CppIterator<E> {
   bool _skipped = false;
-  late $AD_CppIterator<E> _iterator;
+  late $AE_CppIterator<E> _iterator;
   late int _count;
-$AD_CppSkipIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, super()   {
+$AE_CppSkipIterator($AE_CppIterator<E> _iterator, int _count) : _iterator = _iterator, _count = _count, super()   {
     ;
   }
   
@@ -3176,25 +3280,25 @@ $AD_CppSkipIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _ite
   
 }
 
-/// 转换后的类: $AD_CppSkipWhileIterable
+/// 转换后的类: $AE_CppSkipWhileIterable
 /// 原始类名: CppSkipWhileIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppSkipWhileIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
+class $AE_CppSkipWhileIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
   late bool Function(E) _test;
-$AD_CppSkipWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+$AE_CppSkipWhileIterable($AE_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppSkipWhileIterator<E>(this._source.iterator, this._test);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppSkipWhileIterator<E>(this._source.iterator, this._test);
   }
   
   int get length {
     {
   int count = 0;
-  $AD_CppIterator<E> it = this.iterator;
+  $AE_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
   count = (count + 1);
 }
@@ -3204,15 +3308,15 @@ $AD_CppSkipWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _
   
 }
 
-/// 转换后的类: $AD_CppSkipWhileIterator
+/// 转换后的类: $AE_CppSkipWhileIterator
 /// 原始类名: CppSkipWhileIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppSkipWhileIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppSkipWhileIterator<E> extends $AE_CppIterator<E> {
   bool _skipped = false;
-  late $AD_CppIterator<E> _iterator;
+  late $AE_CppIterator<E> _iterator;
   late bool Function(E) _test;
-$AD_CppSkipWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+$AE_CppSkipWhileIterator($AE_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -3224,7 +3328,7 @@ $AD_CppSkipWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) :
     {
   if (!(this._skipped)) {
   while (this._iterator.moveNext()) {
-  if (!((() { final E temp_12762_2044 = this._iterator.current; return this._test.call(temp_12762_2044); })())) {
+  if (!((() { final E temp_12762_2176 = this._iterator.current; return this._test.call(temp_12762_2176); })())) {
   this._skipped = true;
   return true;
 }
@@ -3237,18 +3341,18 @@ $AD_CppSkipWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) :
   
 }
 
-/// 转换后的类: $AD_CppReversedIterable
+/// 转换后的类: $AE_CppReversedIterable
 /// 原始类名: CppReversedIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppReversedIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _source;
-$AD_CppReversedIterable($AD_CppIterable<E> _source) : _source = _source, super()   {
+class $AE_CppReversedIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _source;
+$AE_CppReversedIterable($AE_CppIterable<E> _source) : _source = _source, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppReversedIterator<E>(this._source);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppReversedIterator<E>(this._source);
   }
   
   int get length {
@@ -3257,14 +3361,14 @@ $AD_CppReversedIterable($AD_CppIterable<E> _source) : _source = _source, super()
   
 }
 
-/// 转换后的类: $AD_CppReversedIterator
+/// 转换后的类: $AE_CppReversedIterator
 /// 原始类名: CppReversedIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppReversedIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppReversedIterator<E> extends $AE_CppIterator<E> {
   late int _index;
-  late $AA_CppList<E> _elements;
-$AD_CppReversedIterator($AD_CppIterable<E> source) : _elements = $AA_CppList<E>.from(source as $AD_CppIterable<dynamic?>), _index = source.length, super()   {
+  late $AB_CppList<E> _elements;
+$AE_CppReversedIterator($AE_CppIterable<E> source) : _elements = $AB_CppList<E>.from(source as $AE_CppIterable<dynamic?>), _index = source.length, super()   {
     ;
   }
   
@@ -3284,19 +3388,19 @@ $AD_CppReversedIterator($AD_CppIterable<E> source) : _elements = $AA_CppList<E>.
   
 }
 
-/// 转换后的类: $AD_CppFollowedByIterable
+/// 转换后的类: $AE_CppFollowedByIterable
 /// 原始类名: CppFollowedByIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppFollowedByIterable<E> extends $AD_CppIterable<E> {
-  late $AD_CppIterable<E> _first;
-  late $AD_CppIterable<E> _second;
-$AD_CppFollowedByIterable($AD_CppIterable<E> _first, $AD_CppIterable<E> _second) : _first = _first, _second = _second, super()   {
+class $AE_CppFollowedByIterable<E> extends $AE_CppIterable<E> {
+  late $AE_CppIterable<E> _first;
+  late $AE_CppIterable<E> _second;
+$AE_CppFollowedByIterable($AE_CppIterable<E> _first, $AE_CppIterable<E> _second) : _first = _first, _second = _second, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD_CppFollowedByIterator<E>(this._first.iterator, this._second.iterator);
+  $AE_CppIterator<E> get iterator {
+    return $AE_CppFollowedByIterator<E>(this._first.iterator, this._second.iterator);
   }
   
   int get length {
@@ -3305,15 +3409,15 @@ $AD_CppFollowedByIterable($AD_CppIterable<E> _first, $AD_CppIterable<E> _second)
   
 }
 
-/// 转换后的类: $AD_CppFollowedByIterator
+/// 转换后的类: $AE_CppFollowedByIterator
 /// 原始类名: CppFollowedByIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppFollowedByIterator<E> extends $AD_CppIterator<E> {
+class $AE_CppFollowedByIterator<E> extends $AE_CppIterator<E> {
   bool _usingFirst = true;
-  late $AD_CppIterator<E> _first;
-  late $AD_CppIterator<E> _second;
-$AD_CppFollowedByIterator($AD_CppIterator<E> _first, $AD_CppIterator<E> _second) : _first = _first, _second = _second, super()   {
+  late $AE_CppIterator<E> _first;
+  late $AE_CppIterator<E> _second;
+$AE_CppFollowedByIterator($AE_CppIterator<E> _first, $AE_CppIterator<E> _second) : _first = _first, _second = _second, super()   {
     ;
   }
   
@@ -3335,18 +3439,18 @@ $AD_CppFollowedByIterator($AD_CppIterator<E> _first, $AD_CppIterator<E> _second)
   
 }
 
-/// 转换后的类: $AD_CppCastIterable
+/// 转换后的类: $AE_CppCastIterable
 /// 原始类名: CppCastIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppCastIterable<S, T> extends $AD_CppIterable<T> {
-  late $AD_CppIterable<S> _source;
-$AD_CppCastIterable($AD_CppIterable<S> _source) : _source = _source, super()   {
+class $AE_CppCastIterable<S, T> extends $AE_CppIterable<T> {
+  late $AE_CppIterable<S> _source;
+$AE_CppCastIterable($AE_CppIterable<S> _source) : _source = _source, super()   {
     ;
   }
   
-  $AD_CppIterator<T> get iterator {
-    return $AD_CppCastIterator<S, T>(this._source.iterator);
+  $AE_CppIterator<T> get iterator {
+    return $AE_CppCastIterator<S, T>(this._source.iterator);
   }
   
   int get length {
@@ -3355,13 +3459,13 @@ $AD_CppCastIterable($AD_CppIterable<S> _source) : _source = _source, super()   {
   
 }
 
-/// 转换后的类: $AD_CppCastIterator
+/// 转换后的类: $AE_CppCastIterator
 /// 原始类名: CppCastIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD_CppCastIterator<S, T> extends $AD_CppIterator<T> {
-  late $AD_CppIterator<S> _iterator;
-$AD_CppCastIterator($AD_CppIterator<S> _iterator) : _iterator = _iterator, super()   {
+class $AE_CppCastIterator<S, T> extends $AE_CppIterator<T> {
+  late $AE_CppIterator<S> _iterator;
+$AE_CppCastIterator($AE_CppIterator<S> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
@@ -3375,17 +3479,17 @@ $AD_CppCastIterator($AD_CppIterator<S> _iterator) : _iterator = _iterator, super
   
 }
 
-/// 转换后的类: $AD__CppEmptyIterable
+/// 转换后的类: $AE__CppEmptyIterable
 /// 原始类名: _CppEmptyIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppEmptyIterable<E> extends $AD_CppIterable<E> {
-$AD__CppEmptyIterable() : super()   {
+class $AE__CppEmptyIterable<E> extends $AE_CppIterable<E> {
+$AE__CppEmptyIterable() : super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD__CppEmptyIterator<E>();
+  $AE_CppIterator<E> get iterator {
+    return $AE__CppEmptyIterator<E>();
   }
   
   int get length {
@@ -3394,12 +3498,12 @@ $AD__CppEmptyIterable() : super()   {
   
 }
 
-/// 转换后的类: $AD__CppEmptyIterator
+/// 转换后的类: $AE__CppEmptyIterator
 /// 原始类名: _CppEmptyIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppEmptyIterator<E> extends $AD_CppIterator<E> {
-$AD__CppEmptyIterator() : super()   {
+class $AE__CppEmptyIterator<E> extends $AE_CppIterator<E> {
+$AE__CppEmptyIterator() : super()   {
     ;
   }
   
@@ -3413,19 +3517,19 @@ $AD__CppEmptyIterator() : super()   {
   
 }
 
-/// 转换后的类: $AD__CppGenerateIterable
+/// 转换后的类: $AE__CppGenerateIterable
 /// 原始类名: _CppGenerateIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppGenerateIterable<E> extends $AD_CppIterable<E> {
+class $AE__CppGenerateIterable<E> extends $AE_CppIterable<E> {
   late int _count;
   late E Function(int) _generator;
-$AD__CppGenerateIterable(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
+$AE__CppGenerateIterable(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
-    return $AD__CppGenerateIterator<E>(this._count, this._generator);
+  $AE_CppIterator<E> get iterator {
+    return $AE__CppGenerateIterator<E>(this._count, this._generator);
   }
   
   int get length {
@@ -3434,27 +3538,27 @@ $AD__CppGenerateIterable(int _count, E Function(int) _generator) : _count = _cou
   
 }
 
-/// 转换后的类: $AD__CppGenerateIterator
+/// 转换后的类: $AE__CppGenerateIterator
 /// 原始类名: _CppGenerateIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppGenerateIterator<E> extends $AD_CppIterator<E> {
+class $AE__CppGenerateIterator<E> extends $AE_CppIterator<E> {
   int _index = 0;
   E? _current = null;
   late int _count;
   late E Function(int) _generator;
-$AD__CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
+$AE__CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
   E get current {
-    return (() { final E? temp_3121 = this._current; return temp_3121 == null ? temp_3121 as E : temp_3121; })();
+    return (() { final E? temp_3103 = this._current; return temp_3103 == null ? temp_3103 as E : temp_3103; })();
   }
   
   bool moveNext() {
     {
   if ((this._index < this._count)) {
-  this._current = (() { final int temp_16006_2351 = (() { final int temp_16006_2319 = this._index; return (() { final int temp_16000_2324 = this._index = (temp_16006_2319 + 1); return temp_16006_2319; })(); })(); return this._generator.call(temp_16006_2351); })();
+  this._current = (() { final int temp_16006_2483 = (() { final int temp_16006_2451 = this._index; return (() { final int temp_16000_2456 = this._index = (temp_16006_2451 + 1); return temp_16006_2451; })(); })(); return this._generator.call(temp_16006_2483); })();
   return true;
 }
   return false;
@@ -3463,17 +3567,17 @@ $AD__CppGenerateIterator(int _count, E Function(int) _generator) : _count = _cou
   
 }
 
-/// 转换后的类: $AD__CppUnmodifiableIterable
+/// 转换后的类: $AE__CppUnmodifiableIterable
 /// 原始类名: _CppUnmodifiableIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppUnmodifiableIterable<E> extends $AD_CppIterable<E> {
-  late $AA_CppList<E> _elements;
-$AD__CppUnmodifiableIterable($AA_CppList<E> _elements) : _elements = _elements, super()   {
+class $AE__CppUnmodifiableIterable<E> extends $AE_CppIterable<E> {
+  late $AB_CppList<E> _elements;
+$AE__CppUnmodifiableIterable($AB_CppList<E> _elements) : _elements = _elements, super()   {
     ;
   }
   
-  $AD_CppIterator<E> get iterator {
+  $AE_CppIterator<E> get iterator {
     return this._elements.iterator;
   }
   
@@ -3483,18 +3587,18 @@ $AD__CppUnmodifiableIterable($AA_CppList<E> _elements) : _elements = _elements, 
   
 }
 
-/// 转换后的类: $AD__CppCastFromIterable
+/// 转换后的类: $AE__CppCastFromIterable
 /// 原始类名: _CppCastFromIterable
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppCastFromIterable<S, R> extends $AD_CppIterable<R> {
-  late $AD_CppIterable<S> _source;
-$AD__CppCastFromIterable($AD_CppIterable<S> _source) : _source = _source, super()   {
+class $AE__CppCastFromIterable<S, R> extends $AE_CppIterable<R> {
+  late $AE_CppIterable<S> _source;
+$AE__CppCastFromIterable($AE_CppIterable<S> _source) : _source = _source, super()   {
     ;
   }
   
-  $AD_CppIterator<R> get iterator {
-    return $AD__CppCastFromIterator<S, R>(this._source.iterator);
+  $AE_CppIterator<R> get iterator {
+    return $AE__CppCastFromIterator<S, R>(this._source.iterator);
   }
   
   int get length {
@@ -3503,13 +3607,13 @@ $AD__CppCastFromIterable($AD_CppIterable<S> _source) : _source = _source, super(
   
 }
 
-/// 转换后的类: $AD__CppCastFromIterator
+/// 转换后的类: $AE__CppCastFromIterator
 /// 原始类名: _CppCastFromIterator
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/Iterable.dart
 
-class $AD__CppCastFromIterator<S, R> extends $AD_CppIterator<R> {
-  late $AD_CppIterator<S> _iterator;
-$AD__CppCastFromIterator($AD_CppIterator<S> _iterator) : _iterator = _iterator, super()   {
+class $AE__CppCastFromIterator<S, R> extends $AE_CppIterator<R> {
+  late $AE_CppIterator<S> _iterator;
+$AE__CppCastFromIterator($AE_CppIterator<S> _iterator) : _iterator = _iterator, super()   {
     ;
   }
   
@@ -3523,107 +3627,6 @@ $AD__CppCastFromIterator($AD_CppIterator<S> _iterator) : _iterator = _iterator, 
   
 }
 
-/// 转换后的类: $AE_CppUserData
-/// 原始类名: CppUserData
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
-
-class $AE_CppUserData {
-  late List<dynamic?> data;
-$AE_CppUserData() : data = <dynamic?>[], super()   {
-    ;
-  }
-  
-$AE_CppUserData.constant(List<dynamic?> data) : data = data, super()   {
-    ;
-  }
-  
-}
-
-/// 转换后的类: $AE_CppApi
-/// 原始类名: CppApi
-/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
-
-class $AE_CppApi {
-$AE_CppApi() : super()   {
-    ;
-  }
-  
-  static $AE_CppUserData cppCreatePointerArray(int length) {
-    {
-  $AE_CppUserData userData = $AE_CppUserData();
-  userData.data.length = length;
-  return userData;
-}
-  }
-  
-  static int cppGetPointerArrayLength($AE_CppUserData array) {
-    {
-  return array.data.length;
-}
-  }
-  
-  static Object? cppGetPointerArrayItem($AE_CppUserData array, int index) {
-    {
-  return array.data[index];
-}
-  }
-  
-  static void cppSetPointerArrayItem($AE_CppUserData array, int index, Object? value) {
-    {
-  array.data[index] = value;
-}
-  }
-  
-  static $AE_CppUserData cppCreatePointerArrayConst(int length, [Object? v1 = null, Object? v2 = null, Object? v3 = null, Object? v4 = null, Object? v5 = null, Object? v6 = null, Object? v7 = null, Object? v8 = null, Object? v9 = null, Object? v10 = null]) {
-    {
-  return $AE_CppUserData.constant(<dynamic?>[]);
-}
-  }
-  
-  static $AE_CppUserData cppCreateByteArray(int length) {
-    {
-  return $AE_CppUserData.constant(_GrowableList.empty<dynamic?>());
-}
-  }
-  
-  static int cppGetByteArrayLength($AE_CppUserData array) {
-    {
-  return array.data.length;
-}
-  }
-  
-  static int cppGetByteArrayItem($AE_CppUserData array, int index) {
-    {
-  return array.data[index] as int;
-}
-  }
-  
-  static void cppSetByteArrayItem($AE_CppUserData array, int index, int value) {
-    {
-  array.data[index] = value;
-}
-  }
-  
-  static bool cppBoolValue(bool value) {
-    {
-  return value;
-}
-  }
-  
-  static String getCurrentStackTrace() {
-    {
-  return StackTrace.current.toString();
-}
-  }
-  
-  static void print(Object? object) {
-    {
-  $AE_CppApi.print(object);
-}
-  }
-  
-}
-
 /// 转换后的类: $AF_CppObject
 /// 原始类名: CppObject
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/object.dart
@@ -3633,7 +3636,7 @@ $AF_CppObject() : super()   {
     ;
   }
   
-  $AC_CppString toCppString() {
+  $AD_CppString toCppString() {
     {
   return ConstantExpression(const CppString{CppString._codeUnits: const CppUserData{CppUserData.data: const <dynamic>[]}});
 }
@@ -3657,7 +3660,7 @@ void testCollectionMethods() {
   aa.nextDouble();
   aa.nextDouble();
   aa.nextDouble();
-  $AA_CppList<int> list = $AA_CppList<int>.filled(3, 0);
+  $AB_CppList<int> list = $AB_CppList<int>.filled(3, 0);
   list[0] = 1;
   list[1] = 2;
   list[2] = 3;
@@ -3679,22 +3682,22 @@ void testCollectionMethods() {
 
 void testIterableMethods() {
   {
-  $AA_CppList<int> iterableList = $AA_CppList<int>.from(<int>[1, 2, 3, 4, 5] as $AD_CppIterable<dynamic?>);
+  $AB_CppList<int> iterableList = $AB_CppArrayList<int>.fromCppArray($AA_CppApi.cppArrayConst(5, 1, 2, 3, 4, 5));
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);
   assert(iterableList.length == 5);
   assert(iterableList.any(FunctionWrapper<bool Function(int)>([], (int element) { return (element > 3);}).call()));
   assert(!(iterableList.every(FunctionWrapper<bool Function(int)>([], (int element) { return (element < 3);}).call())));
-  $AD_CppIterable<int> mappedList = iterableList.map(FunctionWrapper<int Function(int)>([], (int e) { return (e * 2);}).call());
+  $AE_CppIterable<int> mappedList = iterableList.map(FunctionWrapper<int Function(int)>([], (int e) { return (e * 2);}).call());
   assert(mappedList.toList().toString() == <int>[2, 4, 6, 8, 10].toString());
-  $AD_CppIterable<int> filteredList = iterableList.where(FunctionWrapper<bool Function(int)>([], (int e) { return (e % 2) == 0;}).call());
+  $AE_CppIterable<int> filteredList = iterableList.where(FunctionWrapper<bool Function(int)>([], (int e) { return (e % 2) == 0;}).call());
   assert(filteredList.toList().toString() == <int>[2, 4].toString());
   print("CppIterable 方法测试通过！");
-  $AC_CppStringBuffer buffer = $AC_CppStringBuffer();
+  $AD_CppStringBuffer buffer = $AD_CppStringBuffer();
   buffer.write("Hello");
   buffer.write("World");
   print(buffer.toString());
-  $AB_CppError error = $AB_CppError();
+  $AC_CppError error = $AC_CppError();
   error.toString();
   StringBuffer buffer2 = StringBuffer("xx");
   buffer2.write("Hello");
@@ -3748,11 +3751,5 @@ $origin_i = i.value;
 /// 全局函数和变量
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
 
-$AE_CppUserData cppCreatePointerArrayConst(int length, [Object? v1 = null, Object? v2 = null, Object? v3 = null, Object? v4 = null, Object? v5 = null, Object? v6 = null, Object? v7 = null, Object? v8 = null, Object? v9 = null, Object? v10 = null]) {
-  {
-  return $AE_CppUserData.constant(<dynamic?>[]);
-}
-}
-
-$AE_CppUserData cppUserDataEmpty = ConstantExpression(const CppUserData{CppUserData.data: const <dynamic>[]});
+$AA_CppUserData cppUserDataEmpty = ConstantExpression(const CppUserData{CppUserData.data: const <dynamic>[]});
 

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:io' as io show exitCode, File, IOSink;
+import 'dart:io' as io show exitCode;
 
 import 'package:args/args.dart' show ArgParser, ArgResults;
 import 'package:front_end/src/api_unstable/vm.dart'

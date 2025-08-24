@@ -30,22 +30,6 @@ class CppApi {
     array.data[index] = value;
   }
 
-  static CppUserData cppCreatePointerArrayConst(int length,
-      [Object? v1,
-      Object? v2,
-      Object? v3,
-      Object? v4,
-      Object? v5,
-      Object? v6,
-      Object? v7,
-      Object? v8,
-      Object? v9,
-      Object? v10]) {
-    // CppUserData userData = CppUserData();
-    // userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
-    return CppUserData.constant([]);
-  }
-
   static CppUserData cppCreateByteArray(int length) {
     return CppUserData.constant(List<dynamic>.empty(growable: true));
   }
@@ -73,20 +57,19 @@ class CppApi {
   static void print(Object? object) {
     print(object);
   }
-}
 
-CppUserData cppCreatePointerArrayConst(int length,
-    [Object? v1,
-    Object? v2,
-    Object? v3,
-    Object? v4,
-    Object? v5,
-    Object? v6,
-    Object? v7,
-    Object? v8,
-    Object? v9,
-    Object? v10]) {
-  // CppUserData userData = CppUserData();
-  // userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
-  return CppUserData.constant([]);
+  static CppUserData cppArrayConst(int length,
+      [Object? v1,
+      Object? v2,
+      Object? v3,
+      Object? v4,
+      Object? v5,
+      Object? v6,
+      Object? v7,
+      Object? v8,
+      Object? v9,
+      Object? v10]) {
+    return CppUserData.constant(
+        [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length);
+  }
 }
