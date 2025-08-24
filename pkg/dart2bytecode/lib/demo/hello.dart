@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'api.dart';
 import 'collection.dart';
 import 'error.dart';
 import 'string.dart';
+import 'Iterable.dart';
 
 void main() {
   testCollectionMethods();
@@ -44,7 +44,7 @@ void testCollectionMethods() {
 @pragma('wasm:entry-point')
 void testIterableMethods() {
   // 测试 CppIterable
-  CppList<int> iterableList = CppList.from([1, 2, 3, 4, 5]);
+  CppList<int> iterableList = CppList.from([1, 2, 3, 4, 5] as CppIterable);
 
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);

@@ -1,6 +1,7 @@
+import 'collection.dart';
+import 'Iterable.dart';
 import 'api.dart';
-
-final CppUserData cppUserDataEmpty = CppApi.cppCreateByteArray(0);
+import 'object.dart';
 
 /// 字符串池管理类
 ///
@@ -15,14 +16,19 @@ class CppStringPool {
   CppStringPool._internal();
 
   /// 直接存储CppUserData对象的池
-  final List<CppUserData> _pool = [cppUserDataEmpty];
+  final CppList<CppUserData> _pool =
+      CppList<CppUserData>.from([cppUserDataEmpty] as CppIterable);
 
   /// 从代码单元列表获取或创建CppUserData
-  CppUserData getOrCreateFromCodeUnits(List<int> codeUnits) {
+  CppUserData getOrCreateFromCodeUnits(CppList<int> codeUnits) {
     // 直接在池中查找相同内容的CppUserData
-    for (final existing in _pool) {
-      if (_compareUserData(existing, codeUnits)) {
-        return existing;
+    {
+      CppIterator<CppUserData> _sync_for_iterator = _pool.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        final existing = _sync_for_iterator.current;
+        if (_compareUserData(existing, codeUnits)) {
+          return existing;
+        }
       }
     }
 
@@ -46,7 +52,7 @@ class CppStringPool {
   }
 
   /// 比较CppUserData与代码单元列表是否相同
-  bool _compareUserData(CppUserData userData, List<int> codeUnits) {
+  bool _compareUserData(CppUserData userData, CppList<int> codeUnits) {
     final length = CppApi.cppGetByteArrayLength(userData);
     if (length != codeUnits.length) return false;
 
@@ -66,8 +72,12 @@ class CppStringPool {
   /// 获取池的统计信息
   CppStringPoolStats getStats() {
     int totalMemory = 0;
-    for (final userData in _pool) {
-      totalMemory += CppApi.cppGetByteArrayLength(userData);
+    {
+      CppIterator<CppUserData> _sync_for_iterator = _pool.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        final userData = _sync_for_iterator.current;
+        totalMemory += CppApi.cppGetByteArrayLength(userData);
+      }
     }
 
     return CppStringPoolStats(
@@ -99,10 +109,11 @@ class CppStringPoolStats {
 @pragma("cpp:patch-class", "StringBuffer")
 @pragma('cpp:patch', 'StringBuffer')
 class CppStringBuffer {
-  final List<CppUserData> _parts;
+  final CppList<CppUserData> _parts;
 
   CppStringBuffer([Object content = ""])
-      : _parts = [_convertStringToUserData(content)];
+      : _parts = CppList<CppUserData>.from(
+            [_convertStringToUserData(content)] as CppIterable);
 
   static CppUserData _convertStringToUserData(Object obj) {
     if (obj is CppString) {
@@ -113,8 +124,8 @@ class CppStringBuffer {
   }
 
   // 工具方法：将String转换为代码单元列表
-  static List<int> _convertStringToCodeUnits(String str) {
-    final codeUnits = <int>[];
+  static CppList<int> _convertStringToCodeUnits(String str) {
+    final codeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < str.length; i++) {
       codeUnits.add(str.codeUnitAt(i));
     }
@@ -127,7 +138,7 @@ class CppStringBuffer {
     _parts.add(_convertStringToUserData(obj));
   }
 
-  void writeAll(Iterable objects, [CppString? separator]) {
+  void writeAll(CppIterable objects, [CppString? separator]) {
     var iterator = objects.iterator;
     if (iterator.moveNext()) {
       _parts.add(_convertStringToUserData(iterator.current));
@@ -156,11 +167,15 @@ class CppStringBuffer {
   }
 
   CppString toCppString() {
-    final codeUnits = <int>[];
-    for (final part in _parts) {
-      final length = CppApi.cppGetByteArrayLength(part);
-      for (int i = 0; i < length; i++) {
-        codeUnits.add(CppApi.cppGetByteArrayItem(part, i));
+    final codeUnits = CppList<int>.empty(growable: true);
+    {
+      CppIterator<CppUserData> _sync_for_iterator = _parts.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        final part = _sync_for_iterator.current;
+        final length = CppApi.cppGetByteArrayLength(part);
+        for (int i = 0; i < length; i++) {
+          codeUnits.add(CppApi.cppGetByteArrayItem(part, i));
+        }
       }
     }
     return CppString.fromCodeUnits(codeUnits);
@@ -168,8 +183,12 @@ class CppStringBuffer {
 
   int get length {
     int totalLength = 0;
-    for (final part in _parts) {
-      totalLength += CppApi.cppGetByteArrayLength(part);
+    {
+      CppIterator<CppUserData> _sync_for_iterator = _parts.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        final part = _sync_for_iterator.current;
+        totalLength += CppApi.cppGetByteArrayLength(part);
+      }
     }
     return totalLength;
   }
@@ -189,26 +208,26 @@ class CppStringBuffer {
 /// 但提供了String的所有方法和功能。
 @pragma("cpp:patch-class", "String")
 @pragma('cpp:patch', 'String')
-class CppString implements Comparable<CppString> {
-  static CppString Empty = CppString.fromCppUserData(cppUserDataEmpty);
+class CppString extends CppObject implements Comparable<CppString> {
+  static const CppString Empty =
+      const CppString.fromCppUserData(cppUserDataEmpty);
 
   final CppUserData _codeUnits;
 
   /// 构造函数 - 从代码单元数组创建CppString
-  CppString.fromCppUserData(CppUserData userData)
-      : _codeUnits = CppStringPool.instance.getOrCreateFromUserData(userData);
+  const CppString.fromCppUserData(CppUserData userData) : _codeUnits = userData;
 
   /// 构造函数 - 从代码单元数组创建CppString
-  CppString.fromCodeUnits(List<int> codeUnits)
+  CppString.fromCodeUnits(CppList<int> codeUnits)
       : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(codeUnits);
 
   /// 从单个字符的代码单元创建CppString
   CppString.fromCharCode(int charCode)
-      : _codeUnits =
-            CppStringPool.instance.getOrCreateFromCodeUnits([charCode]);
+      : _codeUnits = CppStringPool.instance
+            .getOrCreateFromCodeUnits(CppList<int>.filled(1, charCode));
 
   /// 从字符代码列表创建CppString
-  CppString.fromCharCodes(Iterable<int> charCodes, [int start = 0, int? end])
+  CppString.fromCharCodes(CppIterable<int> charCodes, [int start = 0, int? end])
       : _codeUnits = CppStringPool.instance.getOrCreateFromCodeUnits(charCodes
             .skip(start)
             .take((end ?? charCodes.length) - start)
@@ -216,11 +235,11 @@ class CppString implements Comparable<CppString> {
 
   /// 将内部代码单元转换为完整字符串（仅在与外部String互操作时使用）
   String _toExternalString() {
-    final codeUnits = <int>[];
+    final codeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
       codeUnits.add(CppApi.cppGetByteArrayItem(_codeUnits, i));
     }
-    return String.fromCharCodes(codeUnits);
+    return String.fromCharCodes(codeUnits as Iterable<int>);
   }
 
   /// 比较两个CppString的代码单元是否相等
@@ -278,7 +297,8 @@ class CppString implements Comparable<CppString> {
     // 直接连接代码单元
     final thisLength = length;
     final otherLength = other.length;
-    final newCodeUnits = <int>[];
+    final newCodeUnits = CppList<int>.empty(growable: true);
+    ;
     for (int i = 0; i < thisLength; i++) {
       newCodeUnits.add(CppApi.cppGetByteArrayItem(_codeUnits, i));
     }
@@ -294,7 +314,7 @@ class CppString implements Comparable<CppString> {
 
     // 直接重复代码单元
     final thisLength = length;
-    final newCodeUnits = <int>[];
+    final newCodeUnits = CppList<int>.empty(growable: true);
     for (int repeat = 0; repeat < times; repeat++) {
       for (int i = 0; i < thisLength; i++) {
         newCodeUnits.add(CppApi.cppGetByteArrayItem(_codeUnits, i));
@@ -314,9 +334,9 @@ class CppString implements Comparable<CppString> {
     return CppApi.cppGetByteArrayItem(_codeUnits, index);
   }
 
-  List<int> get codeUnits {
+  CppList<int> get codeUnits {
     final thisLength = length;
-    final units = <int>[];
+    final units = CppList<int>.empty(growable: true);
     for (int i = 0; i < thisLength; i++) {
       units.add(CppApi.cppGetByteArrayItem(_codeUnits, i));
     }
@@ -427,7 +447,7 @@ class CppString implements Comparable<CppString> {
     if (start >= end) return CppString.Empty;
 
     final newLength = end - start;
-    final newCodeUnits = <int>[];
+    final newCodeUnits = CppList<int>.empty(growable: true);
 
     for (int i = 0; i < newLength; i++) {
       final codeUnit = CppApi.cppGetByteArrayItem(_codeUnits, start + i);
@@ -545,7 +565,7 @@ class CppString implements Comparable<CppString> {
     final parts = split(from);
     if (parts.length == 1) return this; // 没有找到任何匹配
 
-    final result = <CppString>[];
+    final result = CppList<CppString>.empty(growable: true);
     for (int i = 0; i < parts.length; i++) {
       result.add(parts[i]);
       if (i < parts.length - 1) {
@@ -553,7 +573,7 @@ class CppString implements Comparable<CppString> {
       }
     }
 
-    return join(result);
+    return join(result as CppIterable<CppString>);
   }
 
   // Note: replaceAllMapped 需要Match和Pattern支持，在纯CppString环境中暫不实现
@@ -573,17 +593,17 @@ class CppString implements Comparable<CppString> {
   // 分割方法
   // ============================================================================
 
-  List<CppString> split(CppString separator) {
+  CppList<CppString> split(CppString separator) {
     if (separator.isEmpty) {
       // 分割为单个字符
-      final result = <CppString>[];
+      final result = CppList<CppString>.empty(growable: true);
       for (int i = 0; i < length; i++) {
         result.add(substring(i, i + 1));
       }
       return result;
     }
 
-    final result = <CppString>[];
+    final result = CppList<CppString>.empty(growable: true);
     int start = 0;
     int index = indexOf(separator, start);
 
@@ -606,7 +626,7 @@ class CppString implements Comparable<CppString> {
 
   CppString toLowerCase() {
     // 先计算结果字符串，然后使用池化创建
-    final resultCodeUnits = <int>[];
+    final resultCodeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
       int codeUnit = CppApi.cppGetByteArrayItem(_codeUnits, i);
       // 简单的ASCII大写转小写
@@ -622,7 +642,7 @@ class CppString implements Comparable<CppString> {
 
   CppString toUpperCase() {
     // 先计算结果字符串，然后使用池化创建
-    final resultCodeUnits = <int>[];
+    final resultCodeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
       int codeUnit = CppApi.cppGetByteArrayItem(_codeUnits, i);
       // 简单的ASCII小写转大写
@@ -640,7 +660,7 @@ class CppString implements Comparable<CppString> {
   // Pattern接口实现（String实现了Pattern）
   // ============================================================================
 
-  Iterable<CppStringMatch> allMatches(CppString string, [int start = 0]) {
+  CppIterable<CppStringMatch> allMatches(CppString string, [int start = 0]) {
     if (start < 0 || start > string.length) {
       throw RangeError.range(start, 0, string.length, 'start');
     }
@@ -677,7 +697,7 @@ class CppString implements Comparable<CppString> {
 
   /// 从标准String创建CppString的工厂方法
   static CppString fromString(String source) {
-    final codeUnits = <int>[];
+    final codeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < source.length; i++) {
       codeUnits.add(source.codeUnitAt(i));
     }
@@ -700,7 +720,8 @@ class CppString implements Comparable<CppString> {
   int get dataHashCode => _codeUnits.hashCode;
 
   /// 连接多个CppString
-  static CppString join(Iterable<CppString> strings, [CppString? separator]) {
+  static CppString join(CppIterable<CppString> strings,
+      [CppString? separator]) {
     separator ??= CppString.Empty;
 
     final stringList = strings.toList();
@@ -710,7 +731,7 @@ class CppString implements Comparable<CppString> {
     // 直接创建结果，无需预计算总长度
 
     // 创建结果数组
-    final newCodeUnits = <int>[];
+    final newCodeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < stringList.length; i++) {
       final str = stringList[i];
       for (int j = 0; j < str.length; j++) {
@@ -751,7 +772,7 @@ final class CppStringMatch {
   final CppString pattern;
 }
 
-final class _CppStringAllMatchesIterable extends Iterable<CppStringMatch> {
+final class _CppStringAllMatchesIterable extends CppIterable<CppStringMatch> {
   final CppString _input;
   final CppString _pattern;
   final int _index;
@@ -759,8 +780,18 @@ final class _CppStringAllMatchesIterable extends Iterable<CppStringMatch> {
   _CppStringAllMatchesIterable(this._input, this._pattern, this._index);
 
   @override
-  Iterator<CppStringMatch> get iterator =>
+  CppIterator<CppStringMatch> get iterator =>
       _CppStringAllMatchesIterator(_input, _pattern, _index);
+
+  @override
+  int get length {
+    int count = 0;
+    var it = iterator;
+    while (it.moveNext()) {
+      count++;
+    }
+    return count;
+  }
 
   @override
   CppStringMatch get first {
@@ -772,7 +803,8 @@ final class _CppStringAllMatchesIterable extends Iterable<CppStringMatch> {
   }
 }
 
-final class _CppStringAllMatchesIterator implements Iterator<CppStringMatch> {
+final class _CppStringAllMatchesIterator extends CppObject
+    implements CppIterator<CppStringMatch> {
   final CppString _input;
   final CppString _pattern;
   int _index;

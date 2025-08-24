@@ -1,53 +1,254 @@
 import 'dart:math';
-import 'api.dart';
 import 'Iterable.dart';
+import 'api.dart';
+import 'object.dart';
 import 'string.dart';
 
 @pragma("wasm:entry-point")
-@pragma("cpp:patch-factory", "List")
-@pragma('cpp:patch', 'List')
-class CppList<E> extends CppIterable<E> implements List<E> {
+@pragma("cpp:patch-factory", "CppList")
+@pragma('cpp:patch', 'CppList')
+abstract class CppList<E> extends CppIterable<E> {
+  // 工厂方法
+  factory CppList.empty({bool growable = false}) {
+    return CppArrayList.empty(growable: growable);
+  }
+
+  factory CppList.filled(int length, E fill, {bool growable = false}) {
+    return CppArrayList.filled(length, fill, growable: growable);
+  }
+
+  factory CppList.from(CppIterable elements, {bool growable = true}) {
+    return CppArrayList.from(elements, growable: growable);
+  }
+
+  factory CppList.of(CppIterable<E> elements, {bool growable = true}) {
+    return CppArrayList.of(elements, growable: growable);
+  }
+
+  factory CppList.generate(
+    int length,
+    E Function(int index) generator, {
+    bool growable = true,
+  }) {
+    return CppArrayList.generate(length, generator, growable: growable);
+  }
+
+  factory CppList.unmodifiable(CppIterable elements) {
+    return CppArrayList.unmodifiable(elements);
+  }
+
+  // 静态方法
+  static CppList<R> castFrom<S, R>(CppList<S> source) {
+    return CppArrayList.castFrom<S, R>(source);
+  }
+
+  static CppList<R> castFromWithFactory<S, R>(
+      CppList<S> source, CppList<R> Function() newList) {
+    return CppArrayList.castFromWithFactory<S, R>(source, newList);
+  }
+
+  // 抽象方法 - 所有List接口方法
+  @override
+  int get length;
+
+  @override
+  set length(int newLen);
+
+  E operator [](int index);
+
+  void operator []=(int index, E value);
+
+  @override
+  void add(E value);
+
+  @override
+  void addAll(CppIterable<E> iterable);
+
+  @override
+  bool any(bool Function(E element) test);
+
+  @override
+  CppMap<int, E> asMap();
+
+  @override
+  CppIterable<R> cast<R>();
+
+  @override
+  void clear();
+
+  @override
+  bool contains(Object? element);
+
+  @override
+  E elementAt(int index);
+
+  @override
+  bool every(bool Function(E element) test);
+
+  @override
+  void fillRange(int start, int end, [E? fillValue]);
+
+  @override
+  E firstWhere(bool Function(E element) test, {E Function()? orElse});
+
+  @override
+  T fold<T>(T initialValue, T Function(T previousValue, E element) combine);
+
+  @override
+  void forEach(void Function(E element) action);
+
+  @override
+  CppIterable<E> getRange(int start, int end);
+
+  @override
+  int indexOf(E element, [int start = 0]);
+
+  @override
+  int indexWhere(bool Function(E element) test, [int start = 0]);
+
+  @override
+  void insert(int index, E element);
+
+  @override
+  void insertAll(int index, CppIterable<E> iterable);
+
+  @override
+  E get first;
+
+  @override
+  set first(E value);
+
+  @override
+  E get last;
+
+  @override
+  set last(E value);
+
+  @override
+  E get single;
+
+  @override
+  bool get isEmpty;
+
+  @override
+  bool get isNotEmpty;
+
+  @override
+  CppIterator<E> get iterator;
+
+  @override
+  CppString join([CppString separator = CppString.Empty]);
+
+  @override
+  int lastIndexOf(E element, [int? start]);
+
+  @override
+  int lastIndexWhere(bool Function(E element) test, [int? start]);
+
+  @override
+  E lastWhere(bool Function(E element) test, {E Function()? orElse});
+
+  @override
+  E reduce(E Function(E value, E element) combine);
+
+  @override
+  bool remove(Object? value);
+
+  @override
+  E removeAt(int index);
+
+  @override
+  E removeLast();
+
+  @override
+  void removeRange(int start, int end);
+
+  @override
+  void removeWhere(bool Function(E element) test);
+
+  @override
+  void replaceRange(int start, int end, CppIterable<E> replacements);
+
+  @override
+  void retainWhere(bool Function(E element) test);
+
+  @override
+  void setAll(int index, CppIterable<E> iterable);
+
+  @override
+  void setRange(int start, int end, CppIterable<E> iterable,
+      [int skipCount = 0]);
+
+  @override
+  void shuffle([Random? random]);
+
+  @override
+  void sort([int Function(E a, E b)? compare]);
+
+  @override
+  CppList<E> sublist(int start, [int? end]);
+
+  @override
+  CppList<E> toList({bool growable = true});
+
+  @override
+  CppSet<E> toSet();
+
+  @override
+  E singleWhere(bool Function(E element) test, {E Function()? orElse});
+
+  @override
+  CppList<E> operator +(CppList<E> other);
+
+  @override
+  CppString toCppString();
+}
+
+class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   int _length;
   CppUserData _array;
 
   @pragma('wasm:entry-point')
-  CppList.fromCppArray(CppUserData array)
+  CppArrayList.fromCppArray(CppUserData array)
       : _length = CppApi.cppGetPointerArrayLength(array),
         _array = array;
 
-  CppList(int length, int capacity)
+  CppArrayList(int length, int capacity)
       : _length = length,
         _array = CppApi.cppCreatePointerArray(length);
 
   // 标准List工厂方法
-  factory CppList.empty({bool growable = false}) {
-    return growable ? CppList<E>(0, 0) : CppList<E>(0, 0);
+  factory CppArrayList.empty({bool growable = false}) {
+    return growable ? CppArrayList<E>(0, 0) : CppArrayList<E>(0, 0);
   }
 
-  factory CppList.filled(int length, E fill, {bool growable = false}) {
+  factory CppArrayList.filled(int length, E fill, {bool growable = false}) {
     var array = CppApi.cppCreatePointerArray(length);
     for (int i = 0; i < length; i++) {
       CppApi.cppSetPointerArrayItem(array, i, fill);
     }
-    return CppList.fromCppArray(array);
+    return CppArrayList.fromCppArray(array);
   }
 
-  factory CppList.from(Iterable elements, {bool growable = true}) {
+  factory CppArrayList.from(CppIterable elements, {bool growable = true}) {
     var length = elements.length;
     var array = growable
         ? CppApi.cppCreatePointerArray(length)
         : CppApi.cppCreatePointerArray(_getSuggestCapacity(length));
     int i = 0;
-    for (var element in elements) {
-      CppApi.cppSetPointerArrayItem(array, i++, element);
+    {
+      CppIterator<dynamic> _sync_for_iterator = elements.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        CppApi.cppSetPointerArrayItem(array, i++, _sync_for_iterator.current);
+      }
     }
-    return CppList.fromCppArray(array);
+    return CppArrayList.fromCppArray(array);
   }
 
-  factory CppList.of(Iterable<E> elements, {bool growable = true}) =>
-      CppList.from(elements, growable: growable);
+  factory CppArrayList.of(CppIterable<E> elements, {bool growable = true}) =>
+      CppArrayList.from(elements, growable: growable);
 
-  factory CppList.generate(
+  factory CppArrayList.generate(
     int length,
     E Function(int index) generator, {
     bool growable = true,
@@ -58,17 +259,21 @@ class CppList<E> extends CppIterable<E> implements List<E> {
     for (int i = 0; i < length; i++) {
       CppApi.cppSetPointerArrayItem(array, i, generator(i));
     }
-    return CppList.fromCppArray(array);
+    return CppArrayList.fromCppArray(array);
   }
 
-  factory CppList.unmodifiable(Iterable elements) {
+  factory CppArrayList.unmodifiable(CppIterable elements) {
     var length = elements.length;
     var array = CppApi.cppCreatePointerArray(length);
     int i = 0;
-    for (var element in elements) {
-      CppApi.cppSetPointerArrayItem(array, i++, element as E);
+    {
+      CppIterator<dynamic> _sync_for_iterator = elements.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        CppApi.cppSetPointerArrayItem(
+            array, i++, _sync_for_iterator.current as E);
+      }
     }
-    return CppList.fromCppArray(array);
+    return CppArrayList.fromCppArray(array);
   }
 
   static int _getSuggestCapacity(int newLen) {
@@ -112,9 +317,12 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  void addAll(Iterable<E> iterable) {
-    for (var element in iterable) {
-      add(element);
+  void addAll(CppIterable<E> iterable) {
+    {
+      CppIterator<E> _sync_for_iterator = iterable.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        add(_sync_for_iterator.current);
+      }
     }
   }
 
@@ -127,8 +335,8 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  Map<int, E> asMap() {
-    var map = <int, E>{};
+  CppMap<int, E> asMap() {
+    var map = CppArrayMap<int, E>();
     for (int i = 0; i < _length; i++) {
       map[i] = CppApi.cppGetPointerArrayItem(_array, i) as E;
     }
@@ -136,24 +344,30 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  List<R> cast<R>() {
-    return CppList.castFrom<E, R>(this);
+  CppIterable<R> cast<R>() {
+    return CppArrayList.castFrom<E, R>(this) as CppIterable<R>;
   }
 
   // 静态方法 - 对应Dart List类的静态方法
-  static List<R> castFrom<S, R>(List<S> source) {
-    var result = CppList<R>(0, 4);
-    for (var element in source) {
-      result.add(element as R);
+  static CppList<R> castFrom<S, R>(CppList<S> source) {
+    var result = CppArrayList<R>(0, 4);
+    {
+      CppIterator<S> _sync_for_iterator = source.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        result.add(_sync_for_iterator.current as R);
+      }
     }
     return result;
   }
 
-  static List<R> castFromWithFactory<S, R>(
-      List<S> source, List<R> Function() newList) {
+  static CppList<R> castFromWithFactory<S, R>(
+      CppList<S> source, CppList<R> Function() newList) {
     var result = newList();
-    for (var element in source) {
-      result.add(element as R);
+    {
+      CppIterator<S> _sync_for_iterator = source.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        result.add(_sync_for_iterator.current as R);
+      }
     }
     return result;
   }
@@ -217,8 +431,8 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  Iterable<E> getRange(int start, int end) {
-    return CppList.from(Iterable.generate(
+  CppIterable<E> getRange(int start, int end) {
+    return CppArrayList.from(CppIterable.generate(
         end - start, (i) => CppApi.cppGetPointerArrayItem(_array, start + i)));
   }
 
@@ -251,7 +465,7 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  void insertAll(int index, Iterable<E> iterable) {
+  void insertAll(int index, CppIterable<E> iterable) {
     if (index < 0 || index > _length) throw RangeError.index(index, this);
     var elements = iterable.toList();
     var insertLength = elements.length;
@@ -308,15 +522,7 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   bool get isNotEmpty => _length != 0;
 
   @override
-  Iterator<E> get iterator => _CppListIterator(this);
-
-  @override
-  String join([String separator = ""]) {
-    if (_length == 0) return "";
-    var buffer = StringBuffer();
-    buffer.writeAll(this, separator);
-    return buffer.toString();
-  }
+  CppIterator<E> get iterator => _CppListIterator(this);
 
   @override
   int lastIndexOf(E element, [int? start]) {
@@ -414,7 +620,7 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  void replaceRange(int start, int end, Iterable<E> replacements) {
+  void replaceRange(int start, int end, CppIterable<E> replacements) {
     if (start < 0 || start > _length || end < start || end > _length) {
       throw RangeError.range(start, 0, _length);
     }
@@ -458,21 +664,26 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  void setAll(int index, Iterable<E> iterable) {
+  void setAll(int index, CppIterable<E> iterable) {
     if (index < 0 || index > _length) throw RangeError.index(index, this);
     var i = index;
-    for (var element in iterable) {
-      if (i >= _length) {
-        add(element);
-      } else {
-        CppApi.cppSetPointerArrayItem(_array, i, element);
+    {
+      CppIterator<E> _sync_for_iterator = iterable.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var element = _sync_for_iterator.current;
+        if (i >= _length) {
+          add(element);
+        } else {
+          CppApi.cppSetPointerArrayItem(_array, i, element);
+        }
+        i++;
       }
-      i++;
     }
   }
 
   @override
-  void setRange(int start, int end, Iterable<E> iterable, [int skipCount = 0]) {
+  void setRange(int start, int end, CppIterable<E> iterable,
+      [int skipCount = 0]) {
     if (start < 0 || start > _length || end < start || end > _length) {
       throw RangeError.range(start, 0, _length);
     }
@@ -547,7 +758,7 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  List<E> sublist(int start, [int? end]) {
+  CppList<E> sublist(int start, [int? end]) {
     var endIndex = end ?? _length;
     if (start < 0 ||
         start > _length ||
@@ -555,18 +766,18 @@ class CppList<E> extends CppIterable<E> implements List<E> {
         endIndex > _length) {
       throw RangeError.range(start, 0, _length);
     }
-    return CppList.from(Iterable.generate(endIndex - start,
+    return CppArrayList.from(CppIterable.generate(endIndex - start,
         (i) => CppApi.cppGetPointerArrayItem(_array, start + i)));
   }
 
   @override
-  List<E> toList({bool growable = true}) {
-    return CppList.from(this, growable: growable);
+  CppList<E> toList({bool growable = true}) {
+    return CppArrayList.from(this as CppIterable, growable: growable);
   }
 
   @override
-  Set<E> toSet() {
-    return CppSet.from(this);
+  CppSet<E> toSet() {
+    return CppArraySet.from(this);
   }
 
   @override
@@ -586,33 +797,36 @@ class CppList<E> extends CppIterable<E> implements List<E> {
   }
 
   @override
-  List<E> operator +(List<E> other) {
-    var result = CppList<E>(0, _length + other.length);
+  CppList<E> operator +(CppList<E> other) {
+    var result = CppArrayList<E>(0, _length + other.length);
     for (int i = 0; i < _length; i++) {
       result.add(CppApi.cppGetPointerArrayItem(_array, i) as E);
     }
-    for (var element in other) {
-      result.add(element);
+    {
+      CppIterator<E> _sync_for_iterator = other.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        result.add(_sync_for_iterator.current);
+      }
     }
     return result;
   }
 
   @override
-  String toString() {
-    if (_length == 0) return "[]";
-    var buffer = StringBuffer("[");
+  CppString toCppString() {
+    if (_length == 0) return CppString.fromString("[]");
+    var buffer = CppStringBuffer("[");
     buffer.write(CppApi.cppGetPointerArrayItem(_array, 0));
     for (int i = 1; i < _length; i++) {
       buffer.write(", ");
       buffer.write(CppApi.cppGetPointerArrayItem(_array, i));
     }
     buffer.write("]");
-    return buffer.toString();
+    return buffer.toCppString();
   }
 }
 
-class _CppListIterator<E> implements Iterator<E> {
-  final CppList<E> _list;
+class _CppListIterator<E> extends CppObject implements CppIterator<E> {
+  final CppArrayList<E> _list;
   int _index = -1;
 
   _CppListIterator(this._list);
@@ -627,51 +841,162 @@ class _CppListIterator<E> implements Iterator<E> {
   }
 }
 
-@pragma("cpp:patch-factory", "Set")
-@pragma('cpp:patch', 'Set')
-class CppSet<E> extends CppIterable<E> implements Set<E> {
-  final CppList<E> _list;
+@pragma("cpp:patch-factory", "CppSet")
+@pragma('cpp:patch', 'CppSet')
+abstract class CppSet<E> extends CppObject {
+  // 工厂方法
+  factory CppSet.identity() => CppArraySet.identity();
+
+  factory CppSet.from(CppIterable elements) {
+    return CppArraySet.from(elements);
+  }
+
+  factory CppSet.of(CppIterable<E> elements) => CppArraySet.of(elements);
+
+  factory CppSet.unmodifiable(CppIterable<E> elements) {
+    return CppArraySet.unmodifiable(elements);
+  }
+
+  // 静态方法
+  static CppSet<R> castFrom<S, R>(CppSet<S> source) {
+    return CppArraySet.castFrom<S, R>(source);
+  }
+
+  static CppSet<R> castFromWithFactory<S, R>(
+      CppSet<S> source, CppSet<R> Function() newSet) {
+    return CppArraySet.castFromWithFactory<S, R>(source, newSet);
+  }
+
+  // 抽象方法 - 所有Set接口方法
+  @override
+  bool add(E value);
+
+  @override
+  void addAll(CppIterable<E> elements);
+
+  @override
+  CppIterable<R> cast<R>();
+
+  @override
+  void clear();
+
+  @override
+  bool contains(Object? element);
+
+  @override
+  bool containsAll(CppIterable<Object?> other);
+
+  @override
+  CppSet<E> difference(CppSet<Object?> other);
+
+  @override
+  E elementAt(int index);
+
+  @override
+  CppSet<E> intersection(CppSet<Object?> other);
+
+  @override
+  E get first;
+
+  @override
+  E get last;
+
+  @override
+  E get single;
+
+  @override
+  bool get isEmpty;
+
+  @override
+  bool get isNotEmpty;
+
+  @override
+  CppIterator<E> get iterator;
+
+  @override
+  int get length;
+
+  @override
+  E? lookup(Object? element);
+
+  @override
+  bool remove(Object? value);
+
+  @override
+  void removeAll(CppIterable<Object?> elementsToRemove);
+
+  @override
+  void removeWhere(bool Function(E element) test);
+
+  @override
+  void retainAll(CppIterable<Object?> elementsToRetain);
+
+  @override
+  void retainWhere(bool Function(E element) test);
+
+  @override
+  CppSet<E> union(CppSet<E> other);
+
+  @override
+  CppString toCppString();
+}
+
+class CppArraySet<E> extends CppIterable<E> implements CppSet<E> {
+  final CppArrayList<E> _list;
 
   @pragma('wasm:entry-point')
-  CppSet.fromCppArray(CppUserData array) : _list = CppList.fromCppArray(array);
+  CppArraySet.fromCppArray(CppUserData array)
+      : _list = CppArrayList.fromCppArray(array);
 
-  CppSet([int capacity = 4]) : _list = CppList(0, capacity);
+  CppArraySet([int capacity = 4]) : _list = CppArrayList(0, capacity);
 
   // 标准Set工厂方法 - 对应Dart Set类的所有factory方法
-  factory CppSet.identity() => CppSet<E>(4);
+  factory CppArraySet.identity() => CppArraySet<E>(4);
 
-  factory CppSet.from(Iterable elements) {
-    var set = CppSet<E>();
-    for (var element in elements) {
-      set.add(element as E);
+  factory CppArraySet.from(CppIterable elements) {
+    var set = CppArraySet<E>();
+    {
+      CppIterator<dynamic> _sync_for_iterator = elements.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        set.add(_sync_for_iterator.current as E);
+      }
     }
     return set;
   }
 
-  factory CppSet.of(Iterable<E> elements) => CppSet.from(elements);
+  factory CppArraySet.of(CppIterable<E> elements) => CppArraySet.from(elements);
 
-  factory CppSet.unmodifiable(Iterable<E> elements) {
-    var set = CppSet<E>();
-    for (var element in elements) {
-      set.add(element);
+  factory CppArraySet.unmodifiable(CppIterable<E> elements) {
+    var set = CppArraySet<E>();
+    {
+      CppIterator<E> _sync_for_iterator = elements.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        set.add(_sync_for_iterator.current);
+      }
     }
     return set;
   }
 
   // 静态方法 - 对应Dart Set类的静态方法
-  static Set<R> castFrom<S, R>(Set<S> source) {
-    var result = CppSet<R>();
-    for (var element in source) {
-      result.add(element as R);
+  static CppSet<R> castFrom<S, R>(CppSet<S> source) {
+    var result = CppArraySet<R>();
+    {
+      CppIterator<S> _sync_for_iterator = source.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        result.add(_sync_for_iterator.current as R);
+      }
     }
     return result;
   }
 
-  static Set<R> castFromWithFactory<S, R>(
-      Set<S> source, Set<R> Function() newSet) {
+  static CppSet<R> castFromWithFactory<S, R>(
+      CppSet<S> source, CppSet<R> Function() newSet) {
     var result = newSet();
-    for (var element in source) {
-      result.add(element as R);
+    {
+      CppIterator<S> _sync_for_iterator = source.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        result.add(_sync_for_iterator.current as R);
+      }
     }
     return result;
   }
@@ -687,15 +1012,18 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   }
 
   @override
-  void addAll(Iterable<E> elements) {
-    for (var element in elements) {
-      add(element);
+  void addAll(CppIterable<E> elements) {
+    {
+      CppIterator<E> _sync_for_iterator = elements.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        add(_sync_for_iterator.current);
+      }
     }
   }
 
   @override
-  Set<R> cast<R>() {
-    return CppSet.castFrom<E, R>(this);
+  CppIterable<R> cast<R>() {
+    return CppSet.castFrom<E, R>(this) as CppIterable<R>;
   }
 
   @override
@@ -714,19 +1042,26 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   }
 
   @override
-  bool containsAll(Iterable<Object?> other) {
-    for (var element in other) {
-      if (!contains(element)) return false;
+  bool containsAll(CppIterable<Object?> other) {
+    {
+      CppIterator<Object?> _sync_for_iterator = other.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        if (!contains(_sync_for_iterator.current)) return false;
+      }
     }
     return true;
   }
 
   @override
-  Set<E> difference(Set<Object?> other) {
-    var result = CppSet<E>();
-    for (var element in _list) {
-      if (!other.contains(element)) {
-        result.add(element);
+  CppSet<E> difference(CppSet<Object?> other) {
+    var result = CppArraySet<E>();
+    {
+      CppIterator<E> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var element = _sync_for_iterator.current;
+        if (!other.contains(element)) {
+          result.add(element);
+        }
       }
     }
     return result;
@@ -736,11 +1071,15 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   E elementAt(int index) => _list.elementAt(index);
 
   @override
-  Set<E> intersection(Set<Object?> other) {
-    var result = CppSet<E>();
-    for (var element in _list) {
-      if (other.contains(element)) {
-        result.add(element);
+  CppSet<E> intersection(CppSet<Object?> other) {
+    var result = CppArraySet<E>();
+    {
+      CppIterator<E> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var element = _sync_for_iterator.current;
+        if (other.contains(element)) {
+          result.add(element);
+        }
       }
     }
     return result;
@@ -772,7 +1111,7 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   bool get isNotEmpty => _list.isNotEmpty;
 
   @override
-  Iterator<E> get iterator => _list.iterator;
+  CppIterator<E> get iterator => _list.iterator;
 
   @override
   int get length => _list.length;
@@ -793,9 +1132,12 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   }
 
   @override
-  void removeAll(Iterable<Object?> elementsToRemove) {
-    for (var element in elementsToRemove) {
-      remove(element);
+  void removeAll(CppIterable<Object?> elementsToRemove) {
+    {
+      CppIterator<Object?> _sync_for_iterator = elementsToRemove.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        remove(_sync_for_iterator.current);
+      }
     }
   }
 
@@ -805,7 +1147,7 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   }
 
   @override
-  void retainAll(Iterable<Object?> elementsToRetain) {
+  void retainAll(CppIterable<Object?> elementsToRetain) {
     var retainSet = CppSet.from(elementsToRetain);
     removeWhere((element) => !retainSet.contains(element));
   }
@@ -816,17 +1158,17 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
   }
 
   @override
-  Set<E> union(Set<E> other) {
-    var result = CppSet<E>();
-    result.addAll(this);
-    result.addAll(other);
+  CppSet<E> union(CppSet<E> other) {
+    var result = CppArraySet<E>();
+    result.addAll(this as CppIterable<E>);
+    result.addAll(other as CppIterable<E>);
     return result;
   }
 
   @override
-  String toString() {
-    if (_list.isEmpty) return "{}";
-    var buffer = StringBuffer("{");
+  CppString toCppString() {
+    if (_list.isEmpty) return CppString.fromString("{}");
+    var buffer = CppStringBuffer("{");
     var iterator = _list.iterator;
     if (iterator.moveNext()) {
       buffer.write(iterator.current);
@@ -836,59 +1178,173 @@ class CppSet<E> extends CppIterable<E> implements Set<E> {
       }
     }
     buffer.write("}");
-    return buffer.toString();
+    return buffer.toCppString();
   }
 }
 
 @pragma("cpp:patch-factory", "MapEntry")
 @pragma('cpp:patch', 'MapEntry')
-class CppMapEntry<K, V> {
+class CppMapEntry<K, V> extends CppObject {
   final K key;
   final V value;
   CppMapEntry(this.key, this.value);
 }
 
-@pragma("cpp:patch-factory", "Map")
-@pragma('cpp:patch', 'Map')
-class CppMap<K, V> implements Map<K, V> {
-  final CppList<MapEntry<K, V>> _list;
+@pragma("cpp:patch-factory", "CppMap")
+@pragma('cpp:patch', 'CppMap')
+abstract class CppMap<K, V> extends CppObject {
+  // 工厂方法
+  factory CppMap.identity() => CppArrayMap.identity();
+
+  factory CppMap.from(CppMap other) => CppArrayMap.from(other);
+
+  factory CppMap.of(CppMap<K, V> other) => CppArrayMap.of(other);
+
+  factory CppMap.unmodifiable(CppMap<dynamic, dynamic> other) {
+    return CppArrayMap.unmodifiable(other);
+  }
+
+  factory CppMap.fromIterable(
+    CppIterable iterable, {
+    K Function(dynamic element)? key,
+    V Function(dynamic element)? value,
+  }) {
+    return CppArrayMap.fromIterable(iterable, key: key, value: value);
+  }
+
+  factory CppMap.fromIterables(CppIterable<K> keys, CppIterable<V> values) {
+    return CppArrayMap.fromIterables(keys, values);
+  }
+
+  factory CppMap.fromEntries(CppIterable<MapEntry<K, V>> entries) {
+    return CppArrayMap.fromEntries(entries);
+  }
+
+  // 静态方法
+  static CppMap<RK, RV> castFrom<K, V, RK, RV>(CppMap<K, V> source) {
+    return CppArrayMap.castFrom<K, V, RK, RV>(source);
+  }
+
+  static CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>(
+      CppMap<K, V> source, CppMap<RK, RV> Function() newMap) {
+    return CppArrayMap.castFromWithFactory<K, V, RK, RV>(source, newMap);
+  }
+
+  // 抽象方法 - 所有Map接口方法
+  @override
+  V? operator [](Object? key);
+
+  @override
+  void operator []=(K key, V value);
+
+  @override
+  void addAll(CppMap<K, V> other);
+
+  @override
+  void addEntries(CppIterable<MapEntry<K, V>> entries);
+
+  @override
+  CppMap<RK, RV> cast<RK, RV>();
+
+  @override
+  void clear();
+
+  @override
+  bool containsKey(Object? key);
+
+  @override
+  bool containsValue(Object? value);
+
+  @override
+  CppIterable<MapEntry<K, V>> get entries;
+
+  @override
+  void forEach(void Function(K key, V value) action);
+
+  @override
+  bool get isEmpty;
+
+  @override
+  bool get isNotEmpty;
+
+  @override
+  CppIterable<K> get keys;
+
+  @override
+  int get length;
+
+  @override
+  V putIfAbsent(K key, V Function() ifAbsent);
+
+  @override
+  V? remove(Object? key);
+
+  @override
+  void removeWhere(bool Function(K key, V value) test);
+
+  @override
+  V update(K key, V Function(V value) update, {V Function()? ifAbsent});
+
+  @override
+  void updateAll(V Function(K key, V value) update);
+
+  @override
+  CppIterable<V> get values;
+
+  @override
+  CppMap<K2, V2> map<K2, V2>(
+      MapEntry<K2, V2> Function(K key, V value) transform);
+
+  @override
+  CppString toCppString();
+}
+
+class CppArrayMap<K, V> extends CppObject implements CppMap<K, V> {
+  final CppArrayList<MapEntry<K, V>> _list;
 
   @pragma('wasm:entry-point')
-  CppMap.fromCppArray(CppUserData array) : _list = CppList.fromCppArray(array);
+  CppArrayMap.fromCppArray(CppUserData array)
+      : _list = CppArrayList.fromCppArray(array);
 
-  CppMap([int capacity = 4]) : _list = CppList(0, capacity);
+  CppArrayMap([int capacity = 4]) : _list = CppArrayList(0, capacity);
 
   // 标准Map工厂方法
-  factory CppMap.identity() => CppMap<K, V>();
+  factory CppArrayMap.identity() => CppArrayMap<K, V>();
 
-  factory CppMap.from(Map other) => CppMap.unmodifiable(other);
+  factory CppArrayMap.from(CppMap other) => CppArrayMap.unmodifiable(other);
 
-  factory CppMap.of(Map<K, V> other) => CppMap.fromEntries(other.entries);
+  factory CppArrayMap.of(CppMap<K, V> other) =>
+      CppArrayMap.fromEntries(other.entries);
 
-  factory CppMap.unmodifiable(Map<dynamic, dynamic> other) {
-    var map = CppMap<K, V>();
+  factory CppArrayMap.unmodifiable(CppMap<dynamic, dynamic> other) {
+    var map = CppArrayMap<K, V>();
     other.forEach((key, value) {
       map[key as K] = value as V;
     });
     return map;
   }
 
-  factory CppMap.fromIterable(
-    Iterable iterable, {
+  factory CppArrayMap.fromIterable(
+    CppIterable iterable, {
     K Function(dynamic element)? key,
     V Function(dynamic element)? value,
   }) {
-    var map = CppMap<K, V>();
-    for (var element in iterable) {
-      var k = key?.call(element) ?? element;
-      var v = value?.call(element) ?? element;
-      map[k] = v;
+    var map = CppArrayMap<K, V>();
+    {
+      CppIterator<dynamic> _sync_for_iterator = iterable.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var element = _sync_for_iterator.current;
+        var k = key?.call(element) ?? element;
+        var v = value?.call(element) ?? element;
+        map[k] = v;
+      }
     }
     return map;
   }
 
-  factory CppMap.fromIterables(Iterable<K> keys, Iterable<V> values) {
-    var map = CppMap<K, V>();
+  factory CppArrayMap.fromIterables(
+      CppIterable<K> keys, CppIterable<V> values) {
+    var map = CppArrayMap<K, V>();
     var keyIter = keys.iterator;
     var valueIter = values.iterator;
     while (keyIter.moveNext() && valueIter.moveNext()) {
@@ -897,10 +1353,14 @@ class CppMap<K, V> implements Map<K, V> {
     return map;
   }
 
-  factory CppMap.fromEntries(Iterable<MapEntry<K, V>> entries) {
-    var map = CppMap<K, V>();
-    for (var entry in entries) {
-      map[entry.key] = entry.value;
+  factory CppArrayMap.fromEntries(CppIterable<MapEntry<K, V>> entries) {
+    var map = CppArrayMap<K, V>();
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        map[entry.key] = entry.value;
+      }
     }
     return map;
   }
@@ -908,9 +1368,13 @@ class CppMap<K, V> implements Map<K, V> {
   // Map接口实现
   @override
   V? operator [](Object? key) {
-    for (var entry in _list) {
-      if (entry.key == key) {
-        return entry.value;
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        if (entry.key == key) {
+          return entry.value;
+        }
       }
     }
     return null;
@@ -928,31 +1392,35 @@ class CppMap<K, V> implements Map<K, V> {
   }
 
   @override
-  void addAll(Map<K, V> other) {
+  void addAll(CppMap<K, V> other) {
     other.forEach((k, v) => this[k] = v);
   }
 
   @override
-  void addEntries(Iterable<MapEntry<K, V>> entries) {
-    for (var entry in entries) {
-      this[entry.key] = entry.value;
+  void addEntries(CppIterable<MapEntry<K, V>> entries) {
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = entries.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        this[entry.key] = entry.value;
+      }
     }
   }
 
   @override
-  Map<RK, RV> cast<RK, RV>() => CppMap.castFrom<K, V, RK, RV>(this);
+  CppMap<RK, RV> cast<RK, RV>() => CppMap.castFrom<K, V, RK, RV>(this);
 
   // 静态方法 - 对应Dart Map类的静态方法
-  static Map<RK, RV> castFrom<K, V, RK, RV>(Map<K, V> source) {
-    var result = CppMap<RK, RV>();
+  static CppMap<RK, RV> castFrom<K, V, RK, RV>(CppMap<K, V> source) {
+    var result = CppArrayMap<RK, RV>();
     source.forEach((key, value) {
       result[key as RK] = value as RV;
     });
     return result;
   }
 
-  static Map<RK, RV> castFromWithFactory<K, V, RK, RV>(
-      Map<K, V> source, Map<RK, RV> Function() newMap) {
+  static CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>(
+      CppMap<K, V> source, CppMap<RK, RV> Function() newMap) {
     var result = newMap();
     source.forEach((key, value) {
       result[key as RK] = value as RV;
@@ -967,27 +1435,39 @@ class CppMap<K, V> implements Map<K, V> {
 
   @override
   bool containsKey(Object? key) {
-    for (var entry in _list) {
-      if (entry.key == key) return true;
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        if (entry.key == key) return true;
+      }
     }
     return false;
   }
 
   @override
   bool containsValue(Object? value) {
-    for (var entry in _list) {
-      if (entry.value == value) return true;
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        if (entry.value == value) return true;
+      }
     }
     return false;
   }
 
   @override
-  Iterable<MapEntry<K, V>> get entries => _list;
+  CppIterable<MapEntry<K, V>> get entries => _list;
 
   @override
   void forEach(void Function(K key, V value) action) {
-    for (var entry in _list) {
-      action(entry.key, entry.value);
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        action(entry.key, entry.value);
+      }
     }
   }
 
@@ -998,15 +1478,19 @@ class CppMap<K, V> implements Map<K, V> {
   bool get isNotEmpty => _list.isNotEmpty;
 
   @override
-  Iterable<K> get keys => _list.map((e) => e.key);
+  CppIterable<K> get keys => _list.map((e) => e.key);
 
   @override
   int get length => _list.length;
 
   @override
   V putIfAbsent(K key, V Function() ifAbsent) {
-    for (var entry in _list) {
-      if (entry.key == key) return entry.value;
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        if (entry.key == key) return entry.value;
+      }
     }
     var v = ifAbsent();
     _list.add(MapEntry(key, v));
@@ -1067,22 +1551,27 @@ class CppMap<K, V> implements Map<K, V> {
   }
 
   @override
-  Iterable<V> get values => _list.map((e) => e.value);
+  CppIterable<V> get values => _list.map((e) => e.value);
 
   @override
-  Map<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K key, V value) transform) {
-    var result = CppMap<K2, V2>();
-    for (var entry in _list) {
-      var newEntry = transform(entry.key, entry.value);
-      result[newEntry.key] = newEntry.value;
+  CppMap<K2, V2> map<K2, V2>(
+      MapEntry<K2, V2> Function(K key, V value) transform) {
+    var result = CppArrayMap<K2, V2>();
+    {
+      CppIterator<MapEntry<K, V>> _sync_for_iterator = _list.iterator;
+      for (; _sync_for_iterator.moveNext();) {
+        var entry = _sync_for_iterator.current;
+        var newEntry = transform(entry.key, entry.value);
+        result[newEntry.key] = newEntry.value;
+      }
     }
     return result;
   }
 
   @override
-  String toString() {
-    if (_list.isEmpty) return '{}';
-    var buffer = StringBuffer('{');
+  CppString toCppString() {
+    if (_list.isEmpty) return CppString.fromString('{}');
+    var buffer = CppStringBuffer('{');
     var iterator = _list.iterator;
     if (iterator.moveNext()) {
       buffer.write('${iterator.current.key}: ${iterator.current.value}');
@@ -1091,6 +1580,6 @@ class CppMap<K, V> implements Map<K, V> {
       }
     }
     buffer.write('}');
-    return buffer.toString();
+    return buffer.toCppString();
   }
 }

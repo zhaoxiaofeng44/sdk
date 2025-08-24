@@ -1,7 +1,13 @@
 @pragma('cpp:native', 'CppUserData')
 class CppUserData {
-  List<dynamic> data = List<dynamic>.filled(0, null, growable: true);
+  final List<dynamic> data;
+
+  CppUserData() : data = List<dynamic>.filled(0, null, growable: true);
+
+  const CppUserData.constant(List<dynamic> data) : data = data;
 }
+
+const CppUserData cppUserDataEmpty = CppUserData.constant([]);
 
 @pragma('cpp:native', 'CppApi')
 class CppApi {
@@ -35,15 +41,13 @@ class CppApi {
       Object? v8,
       Object? v9,
       Object? v10]) {
-    CppUserData userData = CppUserData();
-    userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
-    return userData;
+    // CppUserData userData = CppUserData();
+    // userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
+    return CppUserData.constant([]);
   }
 
   static CppUserData cppCreateByteArray(int length) {
-    CppUserData userData = CppUserData();
-    userData.data.length = length;
-    return userData;
+    return CppUserData.constant(List<dynamic>.empty(growable: true));
   }
 
   static int cppGetByteArrayLength(CppUserData array) {
@@ -69,4 +73,20 @@ class CppApi {
   static void print(Object? object) {
     print(object);
   }
+}
+
+CppUserData cppCreatePointerArrayConst(int length,
+    [Object? v1,
+    Object? v2,
+    Object? v3,
+    Object? v4,
+    Object? v5,
+    Object? v6,
+    Object? v7,
+    Object? v8,
+    Object? v9,
+    Object? v10]) {
+  // CppUserData userData = CppUserData();
+  // userData.data = [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length;
+  return CppUserData.constant([]);
 }
