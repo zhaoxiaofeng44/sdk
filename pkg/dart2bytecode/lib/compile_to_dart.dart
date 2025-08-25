@@ -171,16 +171,8 @@ class DartTypeConverter {
       String? Function(String)? classNamePrefixResolver) {
     String typeName = type.classNode.name;
 
-    // 应用类名前缀
-    if (classNamePrefixResolver != null) {
-      final prefixedName = classNamePrefixResolver(typeName);
-      if (prefixedName != null) {
-        typeName = prefixedName;
-      }
-    } else {
-      // 如果没有提供解析器，尝试使用全局映射
-      typeName = DartToDartTransformer._getGlobalPrefixedClassName(typeName);
-    }
+    // 使用完整的类名处理（先 patch 替换，再加前缀）
+    typeName = DartToDartTransformer._getCompleteClassName(typeName);
 
     if (type.typeArguments.isNotEmpty) {
       final typeArgs =
@@ -259,6 +251,9 @@ class DartToDartTransformer {
   final StringBuffer _buffer = StringBuffer();
   int _indentLevel = 0;
 
+  /// 存储当前的 Component，用于检查 cpp:native 注解
+  Component? _component;
+
   /// 当前函数的返回类型，用于生成正确的返回语句
   // ignore: unused_field
   DartType? _currentFunctionReturnType;
@@ -266,8 +261,13 @@ class DartToDartTransformer {
   /// 存储转换后的类信息
   final Map<Class, ClassInfo> _classInfoMap = {};
 
-  /// 类名替换映射，用于处理 @pragma('cpp:patch', 'Error') 注解
+  /// 类名替换映射，用于处理 @pragma('cpp:patch', 'xxx') 注解
+  /// 键：被patch的类名，值：当前类名
   final Map<String, String> _classNameReplacements = {};
+
+  /// 当前类名到被patch类名的映射，用于在表达式生成时进行替换
+  /// 键：当前类名，值：被patch的类名列表
+  final Map<String, List<String>> _currentClassToPatchedNames = {};
 
   /// 文件路径到编码的映射
   final Map<String, String> _filePathToCode = {};
@@ -453,11 +453,38 @@ class DartToDartTransformer {
 
   /// 获取带前缀的类名
   String _getPrefixedClassName(String className) {
+    // 检查是否有 cpp:native 注解的类，如果有则返回原始类名
+    if (_isCppNativeClass(className)) {
+      return className;
+    }
     return _classNameToPrefixedName[className] ?? className;
+  }
+
+  /// 检查类名是否对应有 cpp:native 注解的类
+  bool _isCppNativeClass(String className) {
+    // 遍历所有库和类，检查是否有 cpp:native 注解
+    if (_component == null) return false;
+
+    for (final library in _component!.libraries) {
+      for (final cls in library.classes) {
+        if (cls.name == className && _hasCppNativePragma(cls)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// 获取替换后的类名（处理 @pragma('cpp:patch', 'xxx') 注解）
+  String _getReplacedClassName(String className) {
+    return _classNameReplacements[className] ?? className;
   }
 
   /// 全局类名前缀映射（用于表达式生成）
   static final Map<String, String> _globalClassNameToPrefixedName = {};
+
+  /// 全局类名替换映射（用于处理 @pragma('cpp:patch', 'xxx') 注解）
+  static final Map<String, String> _globalClassNameReplacements = {};
 
   /// 全局闭包装箱信息栈
   static final List<ClosureBoxingInfo> _globalClosureBoxingStack = [];
@@ -477,15 +504,46 @@ class DartToDartTransformer {
   /// 全局：for循环中需要装箱的变量
   static final Set<String> _globalForLoopVariablesToBox = {};
 
-  /// 设置全局类名前缀映射
+  /// 设置全局类名映射
   void _setGlobalClassNameMapping() {
     _globalClassNameToPrefixedName.clear();
-    _globalClassNameToPrefixedName.addAll(_classNameToPrefixedName);
+
+    // 只添加非 cpp:native 类的映射
+    for (final entry in _classNameToPrefixedName.entries) {
+      final className = entry.key;
+      final prefixedName = entry.value;
+
+      // 检查是否为 cpp:native 类
+      if (!_isCppNativeClass(className)) {
+        _globalClassNameToPrefixedName[className] = prefixedName;
+      }
+    }
+
+    // 设置全局类名替换映射
+    _globalClassNameReplacements.clear();
+    _globalClassNameReplacements.addAll(_classNameReplacements);
   }
 
   /// 获取全局带前缀的类名
   static String _getGlobalPrefixedClassName(String className) {
+    // 对于 cpp:native 类，直接返回原始类名
+    // 注意：这里我们无法直接检查 cpp:native 注解，因为这是静态方法
+    // 所以依赖调用方在设置全局映射时已经处理了这种情况
     return _globalClassNameToPrefixedName[className] ?? className;
+  }
+
+  /// 获取全局替换后的类名（处理 @pragma('cpp:patch', 'xxx') 注解）
+  static String _getGlobalReplacedClassName(String className) {
+    return _globalClassNameReplacements[className] ?? className;
+  }
+
+  /// 获取完整的类名（先进行 patch 替换，再加前缀）
+  static String _getCompleteClassName(String className) {
+    // 第一步：进行 patch 替换
+    final patchedClassName = _getGlobalReplacedClassName(className);
+
+    // 第二步：加前缀
+    return _getGlobalPrefixedClassName(patchedClassName);
   }
 
   /// 全局：进入新的闭包作用域
@@ -844,6 +902,9 @@ class DartToDartTransformer {
   void transformComponent(Component component) {
     _buffer.clear();
 
+    // 设置当前 component，用于检查 cpp:native 注解
+    _component = component;
+
     // 首先生成所有类以收集文件路径信息
     _collectAllFilePaths(component);
 
@@ -927,22 +988,52 @@ class DartToDartTransformer {
     final classNode = constant.classNode;
     if (classNode.name != 'pragma') return false;
 
-    final nameValue = constant.fieldValues['name'];
-    return nameValue is StringConstant && nameValue.value == pragmaName;
+    // 遍历所有字段，查找 name 字段
+    StringConstant? nameValue;
+    dynamic optionsValue;
+    dynamic argumentsValue;
+
+    for (final entry in constant.fieldValues.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      // 检查字段名是否包含 'name'
+      if (key.toStringInternal().contains('name')) {
+        nameValue = value as StringConstant?;
+      } else if (key.toStringInternal().contains('options')) {
+        optionsValue = value;
+      } else if (key.toStringInternal().contains('arguments')) {
+        argumentsValue = value;
+      }
+    }
+
+    if (nameValue == null || nameValue.value != pragmaName) {
+      return false;
+    }
+
+    // 如果有 options 或 arguments，则认为匹配
+    return optionsValue != null || argumentsValue != null;
   }
 
   /// 调试：打印类的注解信息
   // 已移除未使用方法 _debugPrintAnnotations
 
-  /// 获取类的 @pragma('cpp:patch', 'Error') 注解信息
-  String? _getCppPatchPragma(Class cls) {
+  /// 获取类的 @pragma('cpp:patch', 'xxx') 注解信息
+  List<String> _getCppPatchPragmas(Class cls) {
+    final patchTargets = <String>[];
     for (final annotation in cls.annotations) {
       final patchTarget = _extractPatchTargetFromAnnotation(annotation);
       if (patchTarget != null) {
-        return patchTarget;
+        patchTargets.add(patchTarget);
       }
     }
-    return null;
+    return patchTargets;
+  }
+
+  /// 获取类的 @pragma('cpp:patch', 'xxx') 注解信息（兼容旧版本）
+  String? _getCppPatchPragma(Class cls) {
+    final patchTargets = _getCppPatchPragmas(cls);
+    return patchTargets.isNotEmpty ? patchTargets.first : null;
   }
 
   /// 从注解中提取patch目标
@@ -992,11 +1083,7 @@ class DartToDartTransformer {
       return;
     }
 
-    // 检查是否有 @pragma('cpp:patch', 'Error') 注解
-    final patchTarget = _getCppPatchPragma(cls);
-    if (patchTarget != null) {
-      _classNameReplacements[patchTarget] = cls.name;
-    }
+    // 注解信息已经在 _collectAllFilePaths 中收集，这里不需要重复收集
 
     final classInfo = ClassInfo(cls);
 
@@ -1064,6 +1151,22 @@ class DartToDartTransformer {
 
   /// 收集所有文件路径信息
   void _collectAllFilePaths(Component component) {
+    // 第一步：收集所有的 @pragma('cpp:patch', 'xxx') 映射关系
+    for (final library in component.libraries) {
+      for (final cls in library.classes) {
+        final patchTargets = _getCppPatchPragmas(cls);
+        if (patchTargets.isNotEmpty) {
+          // 建立双向映射关系
+          for (final patchTarget in patchTargets) {
+            _classNameReplacements[patchTarget] = cls.name;
+          }
+          // 建立当前类到被patch类名的映射
+          _currentClassToPatchedNames[cls.name] = patchTargets;
+        }
+      }
+    }
+
+    // 第二步：为所有类生成文件前缀映射
     for (final library in component.libraries) {
       for (final cls in library.classes) {
         if (!_shouldSkipClass(cls)) {
@@ -1073,10 +1176,8 @@ class DartToDartTransformer {
               : libraryUri.toString();
           _getFilePathCode(filePath); // 这会自动生成编码并存储映射
 
-          // 为类名生成前缀映射
-          final patchTarget = _getCppPatchPragma(cls);
-          final originalClassName = patchTarget ?? cls.name;
-          _addFilePrefixToClassName(originalClassName, filePath);
+          // 为类名生成前缀映射（使用原始类名，不是 patch 后的类名）
+          _addFilePrefixToClassName(cls.name, filePath);
         }
       }
     }
@@ -1126,6 +1227,9 @@ class DartToDartTransformer {
     // 添加基本的导入
     _writeStandardImports();
 
+    // 添加 cpp:native 类的导入
+    _writeCppNativeImports(component);
+
     // 添加全局Void类型变量
     _writeGlobalVoidVariable();
   }
@@ -1145,6 +1249,48 @@ class DartToDartTransformer {
       _writeLine(import);
     }
     _writeLine('');
+  }
+
+  /// 写入 cpp:native 类的导入
+  void _writeCppNativeImports(Component component) {
+    final cppNativeImports = <String>{};
+
+    // 收集所有有 cpp:native 注解的类
+    for (final library in component.libraries) {
+      for (final cls in library.classes) {
+        if (_hasCppNativePragma(cls)) {
+          final libraryUri = cls.enclosingLibrary.fileUri;
+          final filePath = libraryUri.isScheme('file')
+              ? libraryUri.path
+              : libraryUri.toString();
+
+          // 生成相对路径的导入语句
+          final relativePath = _getRelativeImportPath(filePath);
+          if (relativePath.isNotEmpty) {
+            cppNativeImports.add("import '$relativePath';");
+          }
+        }
+      }
+    }
+
+    // 写入导入语句
+    if (cppNativeImports.isNotEmpty) {
+      _writeLine('/// cpp:native 类导入');
+      for (final import in cppNativeImports) {
+        _writeLine(import);
+      }
+      _writeLine('');
+    }
+  }
+
+  /// 获取相对导入路径
+  String _getRelativeImportPath(String filePath) {
+    // 从当前工作目录到目标文件的相对路径
+    // 这里简化处理，假设目标文件在当前目录下
+    if (filePath.contains('lib/demo/')) {
+      return filePath.substring(filePath.indexOf('lib/demo/'));
+    }
+    return '';
   }
 
   /// 写入全局Void变量
@@ -1193,9 +1339,8 @@ class DartToDartTransformer {
     String? extendsClause;
     if (cls.supertype != null && cls.supertype!.classNode.name != 'Object') {
       String superName = cls.supertype!.classNode.name;
-      if (_classNameReplacements.containsKey(superName)) {
-        superName = _classNameReplacements[superName]!;
-      }
+      // 应用类名替换（处理 @pragma('cpp:patch', 'xxx') 注解）
+      superName = _getReplacedClassName(superName);
       // 应用文件前缀
       superName = _getPrefixedClassName(superName);
       // 传递泛型参数给父类
@@ -1216,9 +1361,8 @@ class DartToDartTransformer {
       final impls = cls.implementedTypes.map((t) {
         // 获取接口类名
         String name = t.classNode.name;
-        if (_classNameReplacements.containsKey(name)) {
-          name = _classNameReplacements[name]!;
-        }
+        // 应用类名替换（处理 @pragma('cpp:patch', 'xxx') 注解）
+        name = _getReplacedClassName(name);
         // 应用文件前缀
         name = _getPrefixedClassName(name);
 
@@ -2278,8 +2422,9 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is FactoryConstructorInvocation) {
     String originalClassName =
         expression.target.enclosingClass?.name ?? 'Unknown';
+    // 使用完整的类名处理（先 patch 替换，再加前缀）
     String className =
-        DartToDartTransformer._getGlobalPrefixedClassName(originalClassName);
+        DartToDartTransformer._getCompleteClassName(originalClassName);
 
     // 特殊处理 _GrowableList 工厂构造函数
     if (originalClassName == '_GrowableList') {
@@ -2388,17 +2533,23 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is StaticGet) {
     final encl = expression.target.enclosingClass;
     final originalClassName = encl?.name;
-    final className = originalClassName != null
-        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
-        : null;
+    String? className;
+    if (originalClassName != null) {
+      // 使用完整的类名处理（先 patch 替换，再加前缀）
+      className =
+          DartToDartTransformer._getCompleteClassName(originalClassName);
+    }
     final name = expression.target.name.text;
     return encl == null ? name : '$className.$name';
   } else if (expression is StaticSet) {
     final encl = expression.target.enclosingClass;
     final originalClassName = encl?.name;
-    final className = originalClassName != null
-        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
-        : null;
+    String? className;
+    if (originalClassName != null) {
+      // 使用完整的类名处理（先 patch 替换，再加前缀）
+      className =
+          DartToDartTransformer._getCompleteClassName(originalClassName);
+    }
     final name = expression.target.name.text;
     final value = _generateExpressionCode(expression.value,
         replaceThis: replaceThis, asStatement: false);
@@ -2406,9 +2557,12 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is StaticTearOff) {
     final encl = expression.target.enclosingClass;
     final originalClassName = encl?.name;
-    final className = originalClassName != null
-        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
-        : null;
+    String? className;
+    if (originalClassName != null) {
+      // 使用完整的类名处理（先 patch 替换，再加前缀）
+      className =
+          DartToDartTransformer._getCompleteClassName(originalClassName);
+    }
     final name = expression.target.name.text;
     return encl == null ? name : '$className.$name';
   } else if (expression is InstanceInvocation) {
@@ -2517,8 +2671,9 @@ String _generateExpressionCode2(Expression expression,
     return '$receiver.$name($allArgs)';
   } else if (expression is ConstructorInvocation) {
     String originalClassName = expression.target.enclosingClass.name;
+    // 使用完整的类名处理（先 patch 替换，再加前缀）
     String className =
-        DartToDartTransformer._getGlobalPrefixedClassName(originalClassName);
+        DartToDartTransformer._getCompleteClassName(originalClassName);
 
     // 特殊处理 _GrowableList 构造函数
     if (originalClassName == '_GrowableList') {
@@ -3304,15 +3459,47 @@ String _generateExpressionCode2(Expression expression,
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
       return '{$entries}';
+    } else if (constant is InstanceConstant) {
+      // 处理实例常量，需要替换类名
+      final className = constant.classNode.name;
+      final prefixedClassName =
+          DartToDartTransformer._getCompleteClassName(className);
+
+      // 生成字段值，需要替换字段引用中的类名
+      final fieldValues = constant.fieldValues.entries.map((e) {
+        final fieldName = e.key.toStringInternal(); // 获取字段名
+        final fieldValue = _generateExpressionCode(ConstantExpression(e.value),
+            replaceThis: replaceThis, asStatement: false);
+
+        // 如果字段名包含类名引用（如 CppString._codeUnits），需要替换类名
+        String processedFieldName = fieldName;
+        if (fieldName.contains('.')) {
+          final parts = fieldName.split('.');
+          if (parts.length == 2) {
+            final fieldClassName = parts[0];
+            final fieldFieldName = parts[1];
+            final prefixedFieldClassName =
+                DartToDartTransformer._getCompleteClassName(fieldClassName);
+            processedFieldName = '$prefixedFieldClassName.$fieldFieldName';
+          }
+        }
+
+        return '$processedFieldName: $fieldValue';
+      }).join(', ');
+
+      return 'const $prefixedClassName($fieldValues)';
     } else {
       return expression.toString();
     }
   } else if (expression is StaticInvocation) {
     final encl = expression.target.enclosingClass;
     final originalClassName = encl?.name;
-    final className = originalClassName != null
-        ? DartToDartTransformer._getGlobalPrefixedClassName(originalClassName)
-        : null;
+    String? className;
+    if (originalClassName != null) {
+      // 使用完整的类名处理（先 patch 替换，再加前缀）
+      className =
+          DartToDartTransformer._getCompleteClassName(originalClassName);
+    }
     final methodName = expression.target.name.text;
 
     // 特殊处理 _GrowableList 静态方法调用

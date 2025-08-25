@@ -4,9 +4,7 @@ import 'api.dart';
 import 'object.dart';
 import 'string.dart';
 
-@pragma("wasm:entry-point")
-@pragma("cpp:patch-factory", "CppList")
-@pragma('cpp:patch', 'CppList')
+@pragma('cpp:patch', 'List')
 abstract class CppList<E> extends CppIterable<E> {
   // 工厂方法
   factory CppList.empty({bool growable = false}) {
@@ -841,8 +839,7 @@ class _CppListIterator<E> extends CppObject implements CppIterator<E> {
   }
 }
 
-@pragma("cpp:patch-factory", "CppSet")
-@pragma('cpp:patch', 'CppSet')
+@pragma('cpp:patch', 'Set')
 abstract class CppSet<E> extends CppObject {
   // 工厂方法
   factory CppSet.identity() => CppArraySet.identity();
@@ -1182,7 +1179,6 @@ class CppArraySet<E> extends CppIterable<E> implements CppSet<E> {
   }
 }
 
-@pragma("cpp:patch-factory", "MapEntry")
 @pragma('cpp:patch', 'MapEntry')
 class CppMapEntry<K, V> extends CppObject {
   final K key;
@@ -1190,8 +1186,7 @@ class CppMapEntry<K, V> extends CppObject {
   CppMapEntry(this.key, this.value);
 }
 
-@pragma("cpp:patch-factory", "CppMap")
-@pragma('cpp:patch', 'CppMap')
+@pragma('cpp:patch', 'Map')
 abstract class CppMap<K, V> extends CppObject {
   // 工厂方法
   factory CppMap.identity() => CppArrayMap.identity();

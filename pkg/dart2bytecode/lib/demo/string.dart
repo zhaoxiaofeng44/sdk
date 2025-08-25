@@ -106,7 +106,6 @@ class CppStringPoolStats {
   }
 }
 
-@pragma("cpp:patch-class", "StringBuffer")
 @pragma('cpp:patch', 'StringBuffer')
 class CppStringBuffer {
   final CppList<CppUserData> _parts;
@@ -206,7 +205,6 @@ class CppStringBuffer {
 ///
 /// 注意：由于Dart的限制，此类不能直接implement String，
 /// 但提供了String的所有方法和功能。
-@pragma("cpp:patch-class", "String")
 @pragma('cpp:patch', 'String')
 class CppString extends CppObject implements Comparable<CppString> {
   static const CppString Empty =

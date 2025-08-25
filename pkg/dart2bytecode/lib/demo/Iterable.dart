@@ -4,7 +4,7 @@ import 'object.dart';
 import 'string.dart';
 
 /// 基础迭代器接口
-@pragma('cpp:patch', 'CppIterator')
+@pragma('cpp:patch', 'Iterator')
 abstract class CppIterator<E> extends CppObject {
   /// 当前元素
   E get current;
@@ -14,7 +14,7 @@ abstract class CppIterator<E> extends CppObject {
 }
 
 /// 基础可迭代对象接口
-@pragma('cpp:patch', 'CppIterable')
+@pragma('cpp:patch', 'Iterable')
 abstract class CppIterable<E> extends CppObject {
   const CppIterable();
 
