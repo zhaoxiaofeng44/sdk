@@ -2,6 +2,8 @@ import 'dart:core';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:dart2bytecode/demo/function.dart';
+
 import 'lib/demo/box.dart';
 import 'lib/demo/function_wrapper.dart';
 
@@ -52,7 +54,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
 }
   }
   
-  factory $AA_CppList.generate(int length, E Function(int) generator, {bool growable = true}) {
+  factory $AA_CppList.generate(int length, FunctionWrapper<E Function(int)> generator, {bool growable = true}) {
     {
   return $AA_CppArrayList<E>.generate(length, generator, growable: growable);
 }
@@ -72,7 +74,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void addAll($AD_CppIterable<E> iterable);
   
-  bool any(bool Function(E) test);
+  bool any(FunctionWrapper<bool Function(E)> test);
   
   $AA_CppMap<int, E> asMap();
   
@@ -84,21 +86,21 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   E elementAt(int index);
   
-  bool every(bool Function(E) test);
+  bool every(FunctionWrapper<bool Function(E)> test);
   
   void fillRange(int start, int end, [E? fillValue = null]);
   
-  E firstWhere(bool Function(E) test, {E Function()? orElse = null});
+  E firstWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null});
   
-  T fold<T>(T initialValue, T Function(T, E) combine);
+  T fold<T>(T initialValue, FunctionWrapper<T Function(T, E)> combine);
   
-  void forEach(void Function(E) action);
+  void forEach(FunctionWrapper<void Function(E)> action);
   
   $AD_CppIterable<E> getRange(int start, int end);
   
   int indexOf(E element, [int start = 0]);
   
-  int indexWhere(bool Function(E) test, [int start = 0]);
+  int indexWhere(FunctionWrapper<bool Function(E)> test, [int start = 0]);
   
   void insert(int index, E element);
   
@@ -124,11 +126,11 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   int lastIndexOf(E element, [int? start = null]);
   
-  int lastIndexWhere(bool Function(E) test, [int? start = null]);
+  int lastIndexWhere(FunctionWrapper<bool Function(E)> test, [int? start = null]);
   
-  E lastWhere(bool Function(E) test, {E Function()? orElse = null});
+  E lastWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null});
   
-  E reduce(E Function(E, E) combine);
+  E reduce(FunctionWrapper<E Function(E, E)> combine);
   
   bool remove(Object? value);
   
@@ -138,11 +140,11 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void removeRange(int start, int end);
   
-  void removeWhere(bool Function(E) test);
+  void removeWhere(FunctionWrapper<bool Function(E)> test);
   
   void replaceRange(int start, int end, $AD_CppIterable<E> replacements);
   
-  void retainWhere(bool Function(E) test);
+  void retainWhere(FunctionWrapper<bool Function(E)> test);
   
   void setAll(int index, $AD_CppIterable<E> iterable);
   
@@ -150,7 +152,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   void shuffle([Random? random = null]);
   
-  void sort([int Function(E, E)? compare = null]);
+  void sort([FunctionWrapper<int Function(E, E)>? compare = null]);
   
   $AA_CppList<E> sublist(int start, [int? end = null]);
   
@@ -158,7 +160,7 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
   
   $AA_CppSet<E> toSet();
   
-  E singleWhere(bool Function(E) test, {E Function()? orElse = null});
+  E singleWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null});
   
   $AC_CppString toCppString();
   
@@ -168,11 +170,17 @@ abstract class $AA_CppList<E> extends $AD_CppIterable<E> {
 }
   }
   
-  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, $AA_CppList<R> Function() newList) {
+  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, FunctionWrapper<$AA_CppList<R> Function()> newList) {
     {
   return $AA_CppArrayList.castFromWithFactory<S, R>(source, newList);
 }
   }
+  
+  E operator [](int index);
+  
+  void operator []=(int index, E value);
+  
+  $AA_CppList<E> operator +($AA_CppList<E> other);
   
 }
 
@@ -226,7 +234,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
     return $AA_CppArrayList<E>.from(elements, growable: growable);
   }
   
-  factory $AA_CppArrayList.generate(int length, E Function(int) generator, {bool growable = true}) {
+  factory $AA_CppArrayList.generate(int length, FunctionWrapper<E Function(int)> generator, {bool growable = true}) {
     {
   CppUserData array = growable ? CppApi.cppCreatePointerArray(length) : CppApi.cppCreatePointerArray($AA_CppArrayList._getSuggestCapacity(length));
   for (int i = 0; (i < length); i = (i + 1)) {
@@ -292,7 +300,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  bool any(bool Function(E) test) {
+  bool any(FunctionWrapper<bool Function(E)> test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
   if (test.call(CppApi.cppGetPointerArrayItem(this._array, i) as E)) return true;
@@ -336,7 +344,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
     return CppApi.cppGetPointerArrayItem(this._array, index) as E;
   }
   
-  bool every(bool Function(E) test) {
+  bool every(FunctionWrapper<bool Function(E)> test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
   if (!(test.call(CppApi.cppGetPointerArrayItem(this._array, i) as E))) return false;
@@ -353,7 +361,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  E firstWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E firstWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
   if (test.call(CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
@@ -365,7 +373,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  T fold<T>(T initialValue, T Function(T, E) combine) {
+  T fold<T>(T initialValue, FunctionWrapper<T Function(T, E)> combine) {
     {
   T value = initialValue;
   for (int i = 0; (i < this._length); i = (i + 1)) {
@@ -375,7 +383,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  void forEach(void Function(E) action) {
+  void forEach(FunctionWrapper<void Function(E)> action) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
   action.call(CppApi.cppGetPointerArrayItem(this._array, i) as E);
@@ -385,7 +393,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
   
   $AD_CppIterable<E> getRange(int start, int end) {
     {
-  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((end - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
+  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((end - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));})));
 }
   }
   
@@ -398,7 +406,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  int indexWhere(bool Function(E) test, [int start = 0]) {
+  int indexWhere(FunctionWrapper<bool Function(E)> test, [int start = 0]) {
     {
   for (int i = start; (i < this._length); i = (i + 1)) {
   if (test.call(CppApi.cppGetPointerArrayItem(this._array, i) as E)) return i;
@@ -494,7 +502,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  int lastIndexWhere(bool Function(E) test, [int? start = null]) {
+  int lastIndexWhere(FunctionWrapper<bool Function(E)> test, [int? start = null]) {
     {
   int startIndex = (start) ?? ((this._length - 1));
   for (int i = startIndex; (i >= 0); i = (i - 1)) {
@@ -504,7 +512,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  E lastWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E lastWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   for (int i = (this._length - 1); (i >= 0); i = (i - 1)) {
   if (test.call(CppApi.cppGetPointerArrayItem(this._array, i) as E)) {
@@ -516,7 +524,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  E reduce(E Function(E, E) combine) {
+  E reduce(FunctionWrapper<E Function(E, E)> combine) {
     {
   if (this._length == 0) throw StateError("No element");
   E value = CppApi.cppGetPointerArrayItem(this._array, 0) as E;
@@ -570,7 +578,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  void removeWhere(bool Function(E) test) {
+  void removeWhere(FunctionWrapper<bool Function(E)> test) {
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
@@ -608,7 +616,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  void retainWhere(bool Function(E) test) {
+  void retainWhere(FunctionWrapper<bool Function(E)> test) {
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
@@ -670,14 +678,14 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  void sort([int Function(E, E)? compare = null]) {
+  void sort([FunctionWrapper<int Function(E, E)>? compare = null]) {
     {
   if ((this._length <= 1)) return;
   this._quickSort(0, (this._length - 1), compare);
 }
   }
   
-  void _quickSort(int low, int high, int Function(E, E)? compare) {
+  void _quickSort(int low, int high, FunctionWrapper<int Function(E, E)>? compare) {
     {
   if ((low < high)) {
   int pi = this._partition(low, high, compare);
@@ -687,7 +695,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  int _partition(int low, int high, int Function(E, E)? compare) {
+  int _partition(int low, int high, FunctionWrapper<int Function(E, E)>? compare) {
     {
   E pivot = CppApi.cppGetPointerArrayItem(this._array, high) as E;
   int i = (low - 1);
@@ -723,7 +731,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
   if ((start < 0) || (start > this._length) || (endIndex < start) || (endIndex > this._length)) {
   throw RangeError.range(start, 0, this._length);
 }
-  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));}).call()));
+  return $AA_CppArrayList<E>.from($AD_CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));})));
 }
   }
   
@@ -739,7 +747,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  E singleWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E singleWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   E? result;
   bool found = false;
@@ -789,7 +797,7 @@ $AA_CppArrayList(int length, int capacity) : _length = length, _array = CppApi.c
 }
   }
   
-  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, $AA_CppList<R> Function() newList) {
+  static $AA_CppList<R> castFromWithFactory<S, R>($AA_CppList<S> source, FunctionWrapper<$AA_CppList<R> Function()> newList) {
     {
   $AA_CppList<R> result = newList.call();
   {
@@ -917,11 +925,11 @@ abstract class $AA_CppSet<E> extends $AE_CppObject {
   
   void removeAll($AD_CppIterable<Object?> elementsToRemove);
   
-  void removeWhere(bool Function(E) test);
+  void removeWhere(FunctionWrapper<bool Function(E)> test);
   
   void retainAll($AD_CppIterable<Object?> elementsToRetain);
   
-  void retainWhere(bool Function(E) test);
+  void retainWhere(FunctionWrapper<bool Function(E)> test);
   
   $AA_CppSet<E> union($AA_CppSet<E> other);
   
@@ -933,7 +941,7 @@ abstract class $AA_CppSet<E> extends $AE_CppObject {
 }
   }
   
-  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, $AA_CppSet<R> Function() newSet) {
+  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, FunctionWrapper<$AA_CppSet<R> Function()> newSet) {
     {
   return $AA_CppArraySet.castFromWithFactory<S, R>(source, newSet);
 }
@@ -1147,7 +1155,7 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  void removeWhere(bool Function(E) test) {
+  void removeWhere(FunctionWrapper<bool Function(E)> test) {
     {
   this._list.removeWhere(test);
 }
@@ -1156,11 +1164,11 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
   void retainAll($AD_CppIterable<Object?> elementsToRetain) {
     {
   $AA_CppSet<dynamic?> retainSet = $AA_CppSet<dynamic?>.from(elementsToRetain);
-  this.removeWhere(FunctionWrapper<bool Function(E)>([], (E element) { return !(retainSet.contains(element));}).call());
+  this.removeWhere(FunctionWrapper<bool Function(E)>([], (E element) { return !(retainSet.contains(element));}));
 }
   }
   
-  void retainWhere(bool Function(E) test) {
+  void retainWhere(FunctionWrapper<bool Function(E)> test) {
     {
   this._list.retainWhere(test);
 }
@@ -1205,7 +1213,7 @@ $AA_CppArraySet([int capacity = 4]) : _list = $AA_CppArrayList<E>(0, capacity), 
 }
   }
   
-  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, $AA_CppSet<R> Function() newSet) {
+  static $AA_CppSet<R> castFromWithFactory<S, R>($AA_CppSet<S> source, FunctionWrapper<$AA_CppSet<R> Function()> newSet) {
     {
   $AA_CppSet<R> result = newSet.call();
   {
@@ -1258,7 +1266,7 @@ abstract class $AA_CppMap<K, V> extends $AE_CppObject {
 }
   }
   
-  factory $AA_CppMap.fromIterable($AD_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
+  factory $AA_CppMap.fromIterable($AD_CppIterable<dynamic?> iterable, {FunctionWrapper<K Function(dynamic?)>? key = null, FunctionWrapper<V Function(dynamic?)>? value = null}) {
     {
   return $AA_CppArrayMap<K, V>.fromIterable(iterable, key: key, value: value);
 }
@@ -1290,7 +1298,7 @@ abstract class $AA_CppMap<K, V> extends $AE_CppObject {
   
   $AD_CppIterable<MapEntry<K, V>> get entries;
   
-  void forEach(void Function(K, V) action);
+  void forEach(FunctionWrapper<void Function(K, V)> action);
   
   bool get isEmpty;
   
@@ -1300,19 +1308,19 @@ abstract class $AA_CppMap<K, V> extends $AE_CppObject {
   
   int get length;
   
-  V putIfAbsent(K key, V Function() ifAbsent);
+  V putIfAbsent(K key, FunctionWrapper<V Function()> ifAbsent);
   
   V? remove(Object? key);
   
-  void removeWhere(bool Function(K, V) test);
+  void removeWhere(FunctionWrapper<bool Function(K, V)> test);
   
-  V update(K key, V Function(V) update, {V Function()? ifAbsent = null});
+  V update(K key, FunctionWrapper<V Function(V)> update, {FunctionWrapper<V Function()>? ifAbsent = null});
   
-  void updateAll(V Function(K, V) update);
+  void updateAll(FunctionWrapper<V Function(K, V)> update);
   
   $AD_CppIterable<V> get values;
   
-  $AA_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform);
+  $AA_CppMap<K2, V2> map<K2, V2>(FunctionWrapper<MapEntry<K2, V2> Function(K, V)> transform);
   
   $AC_CppString toCppString();
   
@@ -1322,11 +1330,15 @@ abstract class $AA_CppMap<K, V> extends $AE_CppObject {
 }
   }
   
-  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, $AA_CppMap<RK, RV> Function() newMap) {
+  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, FunctionWrapper<$AA_CppMap<RK, RV> Function()> newMap) {
     {
   return $AA_CppArrayMap.castFromWithFactory<K, V, RK, RV>(source, newMap);
 }
   }
+  
+  V? operator [](Object? key);
+  
+  void operator []=(K key, V value);
   
 }
 
@@ -1361,20 +1373,20 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
   other.forEach(FunctionWrapper<void Function(dynamic?, dynamic?)>([], (dynamic? key, dynamic? value) { {
   map[key as K] = value as V;
-}}).call());
+}}));
   return map;
 }
   }
   
-  factory $AA_CppArrayMap.fromIterable($AD_CppIterable<dynamic?> iterable, {K Function(dynamic?)? key = null, V Function(dynamic?)? value = null}) {
+  factory $AA_CppArrayMap.fromIterable($AD_CppIterable<dynamic?> iterable, {FunctionWrapper<K Function(dynamic?)>? key = null, FunctionWrapper<V Function(dynamic?)>? value = null}) {
     {
   $AA_CppArrayMap<K, V> map = $AA_CppArrayMap<K, V>();
   {
   $AD_CppIterator<dynamic?> _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   dynamic? element = _sync_for_iterator.current;
-  dynamic? k = ((() { final K Function(dynamic?)? temp_33093_6821 = key; return temp_33093_6821 == null ? null : temp_33093_6821.call(element); })()) ?? (element);
-  dynamic? v = ((() { final V Function(dynamic?)? temp_33140_6831 = value; return temp_33140_6831 == null ? null : temp_33140_6831.call(element); })()) ?? (element);
+  dynamic? k = ((() { final FunctionWrapper<K Function(dynamic?)>? temp_33093_6821 = key; return temp_33093_6821 == null ? null : temp_33093_6821.call(element); })()) ?? (element);
+  dynamic? v = ((() { final FunctionWrapper<V Function(dynamic?)>? temp_33140_6831 = value; return temp_33140_6831 == null ? null : temp_33140_6831.call(element); })()) ?? (element);
   map[k as K] = v as V;
 }
 }
@@ -1410,7 +1422,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   
   void addAll($AA_CppMap<K, V> other) {
     {
-  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_34567_7068 = k; return (() { final V temp_34573_7070 = v; return (() { this[temp_34567_7068] = temp_34573_7070; temp_34573_7070; })(); })(); })();}).call());
+  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_34567_7068 = k; return (() { final V temp_34573_7070 = v; return (() { this[temp_34567_7068] = temp_34573_7070; temp_34573_7070; })(); })(); })();}));
 }
   }
   
@@ -1466,7 +1478,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
     return this._list;
   }
   
-  void forEach(void Function(K, V) action) {
+  void forEach(FunctionWrapper<void Function(K, V)> action) {
     {
   {
   $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
@@ -1487,14 +1499,14 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   }
   
   $AD_CppIterable<K> get keys {
-    return this._list.map(FunctionWrapper<K Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.key;}).call());
+    return this._list.map(FunctionWrapper<K Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.key;}));
   }
   
   int get length {
     return this._list.length;
   }
   
-  V putIfAbsent(K key, V Function() ifAbsent) {
+  V putIfAbsent(K key, FunctionWrapper<V Function()> ifAbsent) {
     {
   {
   $AD_CppIterator<MapEntry<K, V>> _sync_for_iterator = this._list.iterator;
@@ -1525,7 +1537,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  void removeWhere(bool Function(K, V) test) {
+  void removeWhere(FunctionWrapper<bool Function(K, V)> test) {
     {
   int i = 0;
   while ((i < this._list.length)) {
@@ -1539,7 +1551,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  V update(K key, V Function(V) update, {V Function()? ifAbsent = null}) {
+  V update(K key, FunctionWrapper<V Function(V)> update, {FunctionWrapper<V Function()>? ifAbsent = null}) {
     {
   for (int i = 0; (i < this._list.length); i = (i + 1)) {
   if (this._list[i].key == key) {
@@ -1557,7 +1569,7 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
 }
   }
   
-  void updateAll(V Function(K, V) update) {
+  void updateAll(FunctionWrapper<V Function(K, V)> update) {
     {
   for (int i = 0; (i < this._list.length); i = (i + 1)) {
   MapEntry<K, V> entry = this._list[i];
@@ -1567,10 +1579,10 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   }
   
   $AD_CppIterable<V> get values {
-    return this._list.map(FunctionWrapper<V Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.value;}).call());
+    return this._list.map(FunctionWrapper<V Function(MapEntry<K, V>)>([], (MapEntry<K, V> e) { return e.value;}));
   }
   
-  $AA_CppMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K, V) transform) {
+  $AA_CppMap<K2, V2> map<K2, V2>(FunctionWrapper<MapEntry<K2, V2> Function(K, V)> transform) {
     {
   $AA_CppArrayMap<K2, V2> result = $AA_CppArrayMap<K2, V2>();
   {
@@ -1606,17 +1618,17 @@ $AA_CppArrayMap([int capacity = 4]) : _list = $AA_CppArrayList<MapEntry<K, V>>(0
   $AA_CppArrayMap<RK, RV> result = $AA_CppArrayMap<RK, RV>();
   source.forEach(FunctionWrapper<void Function(K, V)>([], (K key, V value) { {
   result[key as RK] = value as RV;
-}}).call());
+}}));
   return result;
 }
   }
   
-  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, $AA_CppMap<RK, RV> Function() newMap) {
+  static $AA_CppMap<RK, RV> castFromWithFactory<K, V, RK, RV>($AA_CppMap<K, V> source, FunctionWrapper<$AA_CppMap<RK, RV> Function()> newMap) {
     {
   $AA_CppMap<RK, RV> result = newMap.call();
   source.forEach(FunctionWrapper<void Function(K, V)>([], (K key, V value) { {
   result[key as RK] = value as RV;
-}}).call());
+}}));
   return result;
 }
   }
@@ -2586,7 +2598,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  void forEach(void Function(E) action) {
+  void forEach(FunctionWrapper<void Function(E)> action) {
     {
   $AD_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
@@ -2595,13 +2607,13 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AD_CppIterable<T> map<T>(T Function(E) toElement) {
+  $AD_CppIterable<T> map<T>(FunctionWrapper<T Function(E)> toElement) {
     {
   return $AD_CppMappedIterable<E, T>(this, toElement);
 }
   }
   
-  $AD_CppIterable<E> where(bool Function(E) test) {
+  $AD_CppIterable<E> where(FunctionWrapper<bool Function(E)> test) {
     {
   return $AD_CppWhereIterable<E>(this, test);
 }
@@ -2613,13 +2625,13 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AD_CppIterable<T> expand<T>($AD_CppIterable<T> Function(E) toElements) {
+  $AD_CppIterable<T> expand<T>(FunctionWrapper<$AD_CppIterable<T> Function(E)> toElements) {
     {
   return $AD_CppExpandIterable<E, T>(this, toElements);
 }
   }
   
-  bool any(bool Function(E) test) {
+  bool any(FunctionWrapper<bool Function(E)> test) {
     {
   $AD_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
@@ -2629,7 +2641,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  bool every(bool Function(E) test) {
+  bool every(FunctionWrapper<bool Function(E)> test) {
     {
   $AD_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
@@ -2639,7 +2651,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  E firstWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E firstWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   $AD_CppIterator<E> it = this.iterator;
   while (it.moveNext()) {
@@ -2650,7 +2662,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  E lastWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E lastWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   $AD_CppIterator<E> it = this.iterator;
   E? result;
@@ -2667,7 +2679,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  E singleWhere(bool Function(E) test, {E Function()? orElse = null}) {
+  E singleWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   $AD_CppIterator<E> it = this.iterator;
   E? result;
@@ -2685,7 +2697,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  E reduce(E Function(E, E) combine) {
+  E reduce(FunctionWrapper<E Function(E, E)> combine) {
     {
   $AD_CppIterator<E> it = this.iterator;
   if (!(it.moveNext())) throw StateError("No element");
@@ -2697,7 +2709,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  T fold<T>(T initialValue, T Function(T, E) combine) {
+  T fold<T>(T initialValue, FunctionWrapper<T Function(T, E)> combine) {
     {
   T value = initialValue;
   $AD_CppIterator<E> it = this.iterator;
@@ -2727,7 +2739,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AD_CppIterable<E> takeWhile(bool Function(E) test) {
+  $AD_CppIterable<E> takeWhile(FunctionWrapper<bool Function(E)> test) {
     {
   return $AD_CppTakeWhileIterable<E>(this, test);
 }
@@ -2739,7 +2751,7 @@ $AD_CppIterable() : super()   {
 }
   }
   
-  $AD_CppIterable<E> skipWhile(bool Function(E) test) {
+  $AD_CppIterable<E> skipWhile(FunctionWrapper<bool Function(E)> test) {
     {
   return $AD_CppSkipWhileIterable<E>(this, test);
 }
@@ -2779,7 +2791,7 @@ $AD_CppIterable() : super()   {
     return $AD__CppEmptyIterable<E>();
   }
   
-  static $AD_CppIterable<E> generate<E>(int count, E Function(int) generator) {
+  static $AD_CppIterable<E> generate<E>(int count, FunctionWrapper<E Function(int)> generator) {
     {
   return $AD__CppGenerateIterable<E>(count, generator);
 }
@@ -2805,8 +2817,8 @@ $AD_CppIterable() : super()   {
 
 class $AD_CppMappedIterable<S, T> extends $AD_CppIterable<T> {
   late $AD_CppIterable<S> _source;
-  late T Function(S) _f;
-$AD_CppMappedIterable($AD_CppIterable<S> _source, T Function(S) _f) : _source = _source, _f = _f, super()   {
+  late FunctionWrapper<T Function(S)> _f;
+$AD_CppMappedIterable($AD_CppIterable<S> _source, FunctionWrapper<T Function(S)> _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
@@ -2827,8 +2839,8 @@ $AD_CppMappedIterable($AD_CppIterable<S> _source, T Function(S) _f) : _source = 
 class $AD_CppMappedIterator<S, T> extends $AD_CppIterator<T> {
   T? _current = null;
   late $AD_CppIterator<S> _iterator;
-  late T Function(S) _f;
-$AD_CppMappedIterator($AD_CppIterator<S> _iterator, T Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
+  late FunctionWrapper<T Function(S)> _f;
+$AD_CppMappedIterator($AD_CppIterator<S> _iterator, FunctionWrapper<T Function(S)> _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
@@ -2854,8 +2866,8 @@ $AD_CppMappedIterator($AD_CppIterator<S> _iterator, T Function(S) _f) : _iterato
 
 class $AD_CppWhereIterable<E> extends $AD_CppIterable<E> {
   late $AD_CppIterable<E> _source;
-  late bool Function(E) _test;
-$AD_CppWhereIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppWhereIterable($AD_CppIterable<E> _source, FunctionWrapper<bool Function(E)> _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
@@ -2882,8 +2894,8 @@ $AD_CppWhereIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _sour
 
 class $AD_CppWhereIterator<E> extends $AD_CppIterator<E> {
   late $AD_CppIterator<E> _iterator;
-  late bool Function(E) _test;
-$AD_CppWhereIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppWhereIterator($AD_CppIterator<E> _iterator, FunctionWrapper<bool Function(E)> _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -2964,8 +2976,8 @@ $AD_CppWhereTypeIterator($AD_CppIterator<dynamic?> _iterator) : _iterator = _ite
 
 class $AD_CppExpandIterable<S, T> extends $AD_CppIterable<T> {
   late $AD_CppIterable<S> _source;
-  late $AD_CppIterable<T> Function(S) _f;
-$AD_CppExpandIterable($AD_CppIterable<S> _source, $AD_CppIterable<T> Function(S) _f) : _source = _source, _f = _f, super()   {
+  late FunctionWrapper<$AD_CppIterable<T> Function(S)> _f;
+$AD_CppExpandIterable($AD_CppIterable<S> _source, FunctionWrapper<$AD_CppIterable<T> Function(S)> _f) : _source = _source, _f = _f, super()   {
     ;
   }
   
@@ -2993,8 +3005,8 @@ $AD_CppExpandIterable($AD_CppIterable<S> _source, $AD_CppIterable<T> Function(S)
 class $AD_CppExpandIterator<S, T> extends $AD_CppIterator<T> {
   $AD_CppIterator<T>? _currentIterator = null;
   late $AD_CppIterator<S> _iterator;
-  late $AD_CppIterable<T> Function(S) _f;
-$AD_CppExpandIterator($AD_CppIterator<S> _iterator, $AD_CppIterable<T> Function(S) _f) : _iterator = _iterator, _f = _f, super()   {
+  late FunctionWrapper<$AD_CppIterable<T> Function(S)> _f;
+$AD_CppExpandIterator($AD_CppIterator<S> _iterator, FunctionWrapper<$AD_CppIterable<T> Function(S)> _f) : _iterator = _iterator, _f = _f, super()   {
     ;
   }
   
@@ -3074,8 +3086,8 @@ $AD_CppTakeIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _ite
 
 class $AD_CppTakeWhileIterable<E> extends $AD_CppIterable<E> {
   late $AD_CppIterable<E> _source;
-  late bool Function(E) _test;
-$AD_CppTakeWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppTakeWhileIterable($AD_CppIterable<E> _source, FunctionWrapper<bool Function(E)> _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
@@ -3103,8 +3115,8 @@ $AD_CppTakeWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _
 class $AD_CppTakeWhileIterator<E> extends $AD_CppIterator<E> {
   bool _finished = false;
   late $AD_CppIterator<E> _iterator;
-  late bool Function(E) _test;
-$AD_CppTakeWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppTakeWhileIterator($AD_CppIterator<E> _iterator, FunctionWrapper<bool Function(E)> _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -3184,8 +3196,8 @@ $AD_CppSkipIterator($AD_CppIterator<E> _iterator, int _count) : _iterator = _ite
 
 class $AD_CppSkipWhileIterable<E> extends $AD_CppIterable<E> {
   late $AD_CppIterable<E> _source;
-  late bool Function(E) _test;
-$AD_CppSkipWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _source = _source, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppSkipWhileIterable($AD_CppIterable<E> _source, FunctionWrapper<bool Function(E)> _test) : _source = _source, _test = _test, super()   {
     ;
   }
   
@@ -3213,8 +3225,8 @@ $AD_CppSkipWhileIterable($AD_CppIterable<E> _source, bool Function(E) _test) : _
 class $AD_CppSkipWhileIterator<E> extends $AD_CppIterator<E> {
   bool _skipped = false;
   late $AD_CppIterator<E> _iterator;
-  late bool Function(E) _test;
-$AD_CppSkipWhileIterator($AD_CppIterator<E> _iterator, bool Function(E) _test) : _iterator = _iterator, _test = _test, super()   {
+  late FunctionWrapper<bool Function(E)> _test;
+$AD_CppSkipWhileIterator($AD_CppIterator<E> _iterator, FunctionWrapper<bool Function(E)> _test) : _iterator = _iterator, _test = _test, super()   {
     ;
   }
   
@@ -3421,8 +3433,8 @@ $AD__CppEmptyIterator() : super()   {
 
 class $AD__CppGenerateIterable<E> extends $AD_CppIterable<E> {
   late int _count;
-  late E Function(int) _generator;
-$AD__CppGenerateIterable(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
+  late FunctionWrapper<E Function(int)> _generator;
+$AD__CppGenerateIterable(int _count, FunctionWrapper<E Function(int)> _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
@@ -3444,8 +3456,8 @@ class $AD__CppGenerateIterator<E> extends $AD_CppIterator<E> {
   int _index = 0;
   E? _current = null;
   late int _count;
-  late E Function(int) _generator;
-$AD__CppGenerateIterator(int _count, E Function(int) _generator) : _count = _count, _generator = _generator, super()   {
+  late FunctionWrapper<E Function(int)> _generator;
+$AD__CppGenerateIterator(int _count, FunctionWrapper<E Function(int)> _generator) : _count = _count, _generator = _generator, super()   {
     ;
   }
   
@@ -3584,11 +3596,11 @@ void testIterableMethods() {
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);
   assert(iterableList.length == 5);
-  assert(iterableList.any(FunctionWrapper<bool Function(int)>([], (int element) { return (element > 3);}).call()));
-  assert(!(iterableList.every(FunctionWrapper<bool Function(int)>([], (int element) { return (element < 3);}).call())));
-  $AD_CppIterable<int> mappedList = iterableList.map(FunctionWrapper<int Function(int)>([], (int e) { return (e * 2);}).call());
+  assert(iterableList.any(FunctionWrapper<bool Function(int)>([], (int element) { return (element > 3);})));
+  assert(!(iterableList.every(FunctionWrapper<bool Function(int)>([], (int element) { return (element < 3);}))));
+  $AD_CppIterable<int> mappedList = iterableList.map(FunctionWrapper<int Function(int)>([], (int e) { return (e * 2);}));
   assert(mappedList.toList().toString() == <int>[2, 4, 6, 8, 10].toString());
-  $AD_CppIterable<int> filteredList = iterableList.where(FunctionWrapper<bool Function(int)>([], (int e) { return (e % 2) == 0;}).call());
+  $AD_CppIterable<int> filteredList = iterableList.where(FunctionWrapper<bool Function(int)>([], (int e) { return (e % 2) == 0;}));
   assert(filteredList.toList().toString() == <int>[2, 4].toString());
   print("CppIterable 方法测试通过！");
   $AC_CppStringBuffer buffer = $AC_CppStringBuffer();
@@ -3601,36 +3613,36 @@ void testIterableMethods() {
   buffer2.write("Hello");
   buffer2.write("World");
   print(buffer2.toString());
-  List<int> list = List<int>.generate(10, FunctionWrapper<int Function(int)>([], (int index) { return index;}).call());
+  List<int> list = List<int>.generate(10, FunctionWrapper<int Function(int)>([], (int index) { return index;}));
   list.add(11);
   print(list.toString());
   BoxInt g1 = BoxInt(1);
   BoxInt g2 = BoxInt();
   g2.value = 5;
-  Object? Function() ff = FunctionWrapper<Object? Function()>([g1, g2], () { {
+  FunctionWrapper<Object? Function()> ff = FunctionWrapper<Object? Function()>([g1, g2], () { {
   g1.value = (g1.value + 1);
   g2.value = (g2.value + 1);
   print(((g1.value.toString() + " ") + g2.value.toString()));
-}}).call();
+}});
   ff.call();
   List<dynamic?> list2 = <dynamic?>[];
   for (int $origin_i = 0; ($origin_i < 10); $origin_i = ($origin_i + 1)) {
 BoxInt i = BoxInt($origin_i);
 list2.add(FunctionWrapper<Object? Function()>([i], () { {
   print(i);
-}}).call());
+}}));
 $origin_i = i.value;
 }
-  list2.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}).call());
+  list2.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}));
   {
   List<dynamic?> list3 = <dynamic?>[];
   BoxInt i = BoxInt(0);
   for (i.value = 0; (i.value < 10); i.value = (i.value + 1)) {
   list3.add(FunctionWrapper<Object? Function()>([i], () { {
   print(i.value);
-}}).call());
+}}));
 }
-  list3.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}).call());
+  list3.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}));
 }
   {
   List<dynamic?> list4 = <dynamic?>[];
@@ -3638,10 +3650,10 @@ $origin_i = i.value;
 BoxInt i = BoxInt($origin_i);
 list4.add(FunctionWrapper<Object? Function()>([i], () { {
   print(i.value);
-}}).call());
+}}));
 $origin_i = i.value;
 }
-  list4.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}).call());
+  list4.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}));
 }
 }
 }

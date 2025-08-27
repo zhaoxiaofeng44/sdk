@@ -188,8 +188,8 @@ class DartTypeConverter {
     final paramTypes =
         type.positionalParameters.map(recursiveConverter).join(', ');
     final returnType = recursiveConverter(type.returnType);
-    // 只有在特定上下文中才转换为FunctionWrapper，这里保持原始Function类型
-    return '$returnType Function($paramTypes)';
+    // 将函数类型转换为FunctionWrapper类型
+    return 'FunctionWrapper<$returnType Function($paramTypes)>';
   }
 
   /// 处理类型参数类型
@@ -1768,7 +1768,6 @@ class DartToDartTransformer {
   void _generateOperatorMethods(Class cls) {
     for (final procedure in cls.procedures) {
       if (procedure.isStatic ||
-          procedure.isAbstract ||
           procedure.isFactory ||
           procedure.isGetter ||
           procedure.isSetter) continue;
@@ -1903,16 +1902,25 @@ class DartToDartTransformer {
     final returnType = _getDartType(procedure.function.returnType);
     final op = procedure.name.text;
     final parameters = _writeParametersToString(procedure.function);
-    _writeLine('$returnType operator $op($parameters) {');
-    _indent();
-    if (procedure.function.body != null) {
-      final bodyStr = _generateStatementCode(procedure.function.body!,
-          replaceThis: false, allowReturn: true);
-      _writeLine(_normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
+
+    if (procedure.isAbstract) {
+      // 抽象方法只生成声明
+      _writeLine('$returnType operator $op($parameters);');
+      _writeLine('');
+    } else {
+      // 具体方法生成完整实现
+      _writeLine('$returnType operator $op($parameters) {');
+      _indent();
+      if (procedure.function.body != null) {
+        final bodyStr = _generateStatementCode(procedure.function.body!,
+            replaceThis: false, allowReturn: true);
+        _writeLine(
+            _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
+      }
+      _unindent();
+      _writeLine('}');
+      _writeLine('');
     }
-    _unindent();
-    _writeLine('}');
-    _writeLine('');
   }
 
   /// 规范化方法体，移除 void 函数中的 `return expr;`，并确保语句以分号结尾
@@ -2839,7 +2847,7 @@ String _generateExpressionCode2(Expression expression,
           ? '[${capturedVariables.join(', ')}]'
           : '[]';
 
-      return 'FunctionWrapper<$functionType>($capturedVarsCode, ($parameters) { $body}).call()';
+      return 'FunctionWrapper<$functionType>($capturedVarsCode, ($parameters) { $body})';
     } finally {
       // 退出闭包作用域
       DartToDartTransformer._inClosureContext = oldClosureContext;
