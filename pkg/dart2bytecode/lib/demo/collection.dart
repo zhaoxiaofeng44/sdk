@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'Iterable.dart';
+import 'iterable.dart';
 import 'api.dart';
 import 'object.dart';
 import 'string.dart';
@@ -823,7 +823,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   }
 }
 
-class _CppListIterator<E> extends CppObject implements CppIterator<E> {
+class _CppListIterator<E> extends CppAny implements CppIterator<E> {
   final CppArrayList<E> _list;
   int _index = -1;
 
@@ -840,7 +840,7 @@ class _CppListIterator<E> extends CppObject implements CppIterator<E> {
 }
 
 @pragma('cpp:patch', 'Set')
-abstract class CppSet<E> extends CppObject {
+abstract class CppSet<E> extends CppAny {
   // 工厂方法
   factory CppSet.identity() => CppArraySet.identity();
 
@@ -1180,14 +1180,14 @@ class CppArraySet<E> extends CppIterable<E> implements CppSet<E> {
 }
 
 @pragma('cpp:patch', 'MapEntry')
-class CppMapEntry<K, V> extends CppObject {
+class CppMapEntry<K, V> extends CppAny {
   final K key;
   final V value;
   CppMapEntry(this.key, this.value);
 }
 
 @pragma('cpp:patch', 'Map')
-abstract class CppMap<K, V> extends CppObject {
+abstract class CppMap<K, V> extends CppAny {
   // 工厂方法
   factory CppMap.identity() => CppArrayMap.identity();
 
@@ -1294,7 +1294,7 @@ abstract class CppMap<K, V> extends CppObject {
   CppString toCppString();
 }
 
-class CppArrayMap<K, V> extends CppObject implements CppMap<K, V> {
+class CppArrayMap<K, V> extends CppAny implements CppMap<K, V> {
   final CppArrayList<MapEntry<K, V>> _list;
 
   @pragma('wasm:entry-point')

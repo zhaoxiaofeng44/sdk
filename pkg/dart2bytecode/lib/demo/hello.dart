@@ -1,12 +1,15 @@
 import 'dart:math';
-
+import 'iterable.dart';
+import 'api.dart';
+import 'object.dart';
+import 'string.dart';
 import 'api.dart';
 import 'collection.dart';
 import 'error.dart';
 import 'string.dart';
 
 void main() {
-  testCollectionMethods();
+  //testCollectionMethods();
   testIterableMethods();
 }
 

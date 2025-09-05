@@ -1,3 +1,7 @@
+import 'package:dart2bytecode/demo/object.dart';
+
+import 'string.dart';
+
 @pragma('cpp:native', 'CppUserData')
 class CppUserData {
   final List<dynamic> data;
@@ -30,32 +34,19 @@ class CppApi {
     array.data[index] = value;
   }
 
-  static CppUserData cppCreateByteArray(int length) {
-    return CppUserData.constant(List<dynamic>.empty(growable: true));
-  }
-
-  static int cppGetByteArrayLength(CppUserData array) {
-    return array.data.length;
-  }
-
-  static int cppGetByteArrayItem(CppUserData array, int index) {
-    return array.data[index];
-  }
-
-  static void cppSetByteArrayItem(CppUserData array, int index, int value) {
-    array.data[index] = value;
-  }
-
-  static bool cppBoolValue(bool value) {
-    return value;
-  }
-
-  static String getCurrentStackTrace() {
-    return StackTrace.current.toString();
-  }
-
   static void print(Object? object) {
     print(object);
+  }
+
+  static CppUserData getCurrentStackTrace() {
+    return cppToString(StackTrace.current.toString());
+  }
+
+  static CppUserData cppToString(Object? object) {
+    if (object == null) {
+      return CppUserData.constant(['null']);
+    }
+    return CppUserData.constant(object.toString().codeUnits);
   }
 
   static CppUserData cppArrayConst(int length,
@@ -71,5 +62,9 @@ class CppApi {
       Object? v10]) {
     return CppUserData.constant(
         [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10]..length = length);
+  }
+
+  static CppUserData cppCharCodes(Object? value) {
+    return CppUserData.constant(value.toString().codeUnits);
   }
 }

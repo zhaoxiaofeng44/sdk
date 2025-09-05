@@ -1,6 +1,6 @@
 import 'object.dart';
 
-class BoxInt extends CppObject {
+class BoxInt extends CppAny {
   int value;
 
   BoxInt([this.value = 0]);
@@ -8,7 +8,7 @@ class BoxInt extends CppObject {
   int unbox() => value;
 }
 
-class BoxDouble extends CppObject {
+class BoxDouble extends CppAny {
   double value;
 
   BoxDouble([this.value = 0.0]);
@@ -16,7 +16,7 @@ class BoxDouble extends CppObject {
   double unbox() => value;
 }
 
-class BoxBool extends CppObject {
+class BoxBool extends CppAny {
   bool value;
 
   BoxBool([this.value = false]);
@@ -24,7 +24,7 @@ class BoxBool extends CppObject {
   bool unbox() => value;
 }
 
-class BoxString extends CppObject {
+class BoxString extends CppAny {
   String value;
 
   BoxString([this.value = ""]);

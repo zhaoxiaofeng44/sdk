@@ -5,7 +5,7 @@ import 'string.dart';
 
 /// 基础迭代器接口
 @pragma('cpp:patch', 'Iterator')
-abstract class CppIterator<E> extends CppObject {
+abstract class CppIterator<E> extends CppAny {
   /// 当前元素
   E get current;
 
@@ -15,7 +15,7 @@ abstract class CppIterator<E> extends CppObject {
 
 /// 基础可迭代对象接口
 @pragma('cpp:patch', 'Iterable')
-abstract class CppIterable<E> extends CppObject {
+abstract class CppIterable<E> extends CppAny {
   const CppIterable();
 
   /// 获取迭代器
@@ -233,12 +233,12 @@ abstract class CppIterable<E> extends CppObject {
 
   /// 转换为CppList
   CppList<E> toList({bool growable = true}) {
-    return CppList<E>.from(this as CppIterable, growable: growable);
+    return CppList<E>.from(this as CppIterable<dynamic>, growable: growable);
   }
 
   /// 转换为CppSet
   CppSet<E> toSet() {
-    return CppSet<E>.from(this);
+    return CppSet<E>.from(this as CppIterable<dynamic>);
   }
 
   /// 类型转换

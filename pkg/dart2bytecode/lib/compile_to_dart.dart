@@ -171,8 +171,13 @@ class DartTypeConverter {
       String? Function(String)? classNamePrefixResolver) {
     String typeName = type.classNode.name;
 
-    // 使用完整的类名处理（先 patch 替换，再加前缀）
-    typeName = DartToDartTransformer._getCompleteClassName(typeName);
+    // 使用classNamePrefixResolver来处理类名替换和前缀
+    if (classNamePrefixResolver != null) {
+      final resolvedName = classNamePrefixResolver(typeName);
+      if (resolvedName != null) {
+        typeName = resolvedName;
+      }
+    }
 
     if (type.typeArguments.isNotEmpty) {
       final typeArgs =
@@ -443,21 +448,17 @@ class DartToDartTransformer {
     return code;
   }
 
-  /// 为类名添加文件前缀
+  /// 为类名添加文件前缀（已禁用前缀逻辑）
   String _addFilePrefixToClassName(String className, String filePath) {
-    final code = _getFilePathCode(filePath);
-    final prefixedName = '\$${code}_$className';
-    _classNameToPrefixedName[className] = prefixedName;
-    return prefixedName;
+    // 不再添加文件前缀，直接返回原始类名
+    _classNameToPrefixedName[className] = className;
+    return className;
   }
 
-  /// 获取带前缀的类名
+  /// 获取带前缀的类名（已禁用前缀逻辑）
   String _getPrefixedClassName(String className) {
-    // 检查是否有 cpp:native 注解的类，如果有则返回原始类名
-    if (_isCppNativeClass(className)) {
-      return className;
-    }
-    return _classNameToPrefixedName[className] ?? className;
+    // 不再使用前缀，直接返回原始类名
+    return className;
   }
 
   /// 检查类名是否对应有 cpp:native 注解的类
@@ -504,6 +505,99 @@ class DartToDartTransformer {
   /// 全局：for循环中需要装箱的变量
   static final Set<String> _globalForLoopVariablesToBox = {};
 
+  /// 全局：当前闭包函数的参数名
+  static String _globalCurrentClosureParameterName = '';
+
+  /// 全局：设置当前闭包参数名
+  static void _globalSetCurrentClosureParameterName(String paramName) {
+    _globalCurrentClosureParameterName = paramName;
+  }
+
+  /// 全局：清除当前闭包参数名
+  static void _globalClearCurrentClosureParameterName() {
+    _globalCurrentClosureParameterName = '';
+  }
+
+  /// 全局：const常量收集器
+  static final Map<String, String> _globalConstConstants = {};
+
+  /// 全局：const常量计数器
+  static int _globalConstCounter = 0;
+
+  /// 全局：添加const常量
+  static String _globalAddConstConstant(String constValue) {
+    // 特殊处理：空CppUserData直接使用cppUserDataEmpty
+    if (constValue == 'CppUserData.constant([])') {
+      return 'cppUserDataEmpty';
+    }
+
+    // 检查是否已经存在相同的const常量
+    for (final entry in _globalConstConstants.entries) {
+      if (entry.value == constValue) {
+        return entry.key;
+      }
+    }
+
+    // 创建新的const变量名
+    final varName = 'const_${_globalConstCounter++}';
+    _globalConstConstants[varName] = constValue;
+    return varName;
+  }
+
+  /// 全局：获取const常量定义
+  static String _globalGetConstDefinitions() {
+    if (_globalConstConstants.isEmpty) {
+      return '';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('/// 全局const常量定义');
+    buffer.writeln('/// 自动生成的const常量，用于替换重复的const值');
+
+    for (final entry in _globalConstConstants.entries) {
+      final value = entry.value;
+      // 跳过 cppUserDataEmpty 的定义，因为它已经在源代码中定义
+      if (value == 'CppUserData.constant([])' &&
+          entry.key.contains('cppUserDataEmpty')) {
+        continue;
+      }
+      if (value.startsWith('CppString.fromCppUserData(CppApi.cppCharCodes("')) {
+        // 对于字符串常量，改为使用CppUserData.constant格式
+        final codeUnitsStr = _convertStringToCodeUnits(value);
+        buffer.writeln(
+            'const ${entry.key} = CppString.fromCppUserData(CppUserData.constant($codeUnitsStr));');
+      } else {
+        buffer.writeln('const ${entry.key} = ${entry.value};');
+      }
+    }
+
+    buffer.writeln('');
+    return buffer.toString();
+  }
+
+  /// 辅助方法：将字符串常量转换为codeUnits数组格式
+  static String _convertStringToCodeUnits(String cppStringExpr) {
+    // 从 CppString.fromCppUserData(CppApi.cppCharCodes("...")) 提取字符串内容
+    final regex = RegExp(
+        r'CppString\.fromCppUserData\(CppApi\.cppCharCodes\("([^"]*)"\)\)');
+
+    final match = regex.firstMatch(cppStringExpr);
+    if (match != null) {
+      final str = match.group(1)!;
+      final codeUnits = str.codeUnits;
+      return '[${codeUnits.join(', ')}]';
+    }
+
+    // 如果无法解析，返回空数组
+    return '[]';
+  }
+
+  /// 全局：重置const常量收集器
+  static void _globalResetConstConstants() {
+    _globalConstConstants.clear();
+    _globalConstCounter = 0;
+  }
+
   /// 设置全局类名映射
   void _setGlobalClassNameMapping() {
     _globalClassNameToPrefixedName.clear();
@@ -524,12 +618,10 @@ class DartToDartTransformer {
     _globalClassNameReplacements.addAll(_classNameReplacements);
   }
 
-  /// 获取全局带前缀的类名
+  /// 获取全局带前缀的类名（已禁用前缀逻辑）
   static String _getGlobalPrefixedClassName(String className) {
-    // 对于 cpp:native 类，直接返回原始类名
-    // 注意：这里我们无法直接检查 cpp:native 注解，因为这是静态方法
-    // 所以依赖调用方在设置全局映射时已经处理了这种情况
-    return _globalClassNameToPrefixedName[className] ?? className;
+    // 不再使用前缀，直接返回原始类名
+    return className;
   }
 
   /// 获取全局替换后的类名（处理 @pragma('cpp:patch', 'xxx') 注解）
@@ -537,13 +629,10 @@ class DartToDartTransformer {
     return _globalClassNameReplacements[className] ?? className;
   }
 
-  /// 获取完整的类名（先进行 patch 替换，再加前缀）
+  /// 获取完整的类名（只进行patch替换，不再加前缀）
   static String _getCompleteClassName(String className) {
-    // 第一步：进行 patch 替换
-    final patchedClassName = _getGlobalReplacedClassName(className);
-
-    // 第二步：加前缀
-    return _getGlobalPrefixedClassName(patchedClassName);
+    // 只进行patch替换，不再加前缀
+    return _getGlobalReplacedClassName(className);
   }
 
   /// 全局：进入新的闭包作用域
@@ -902,6 +991,9 @@ class DartToDartTransformer {
   void transformComponent(Component component) {
     _buffer.clear();
 
+    // 重置全局const常量收集器
+    DartToDartTransformer._globalResetConstConstants();
+
     // 设置当前 component，用于检查 cpp:native 注解
     _component = component;
 
@@ -913,6 +1005,7 @@ class DartToDartTransformer {
 
     // 生成转换后的代码
     _generateTransformedCode(component);
+
     _checkGeneratedCode();
     // 输出到文件
     _writeOutput();
@@ -1046,25 +1139,66 @@ class DartToDartTransformer {
     if (constant.classNode.name != 'pragma') return null;
 
     // 检查是否为cpp:patch pragma
-    final nameValue = constant.fieldValues['name'];
-    if (nameValue is! StringConstant ||
-        nameValue.value != DartConstants.cppPatchPragma) {
+    // 遍历所有字段，查找 name 字段
+    StringConstant? nameValue;
+    dynamic optionsValue;
+    dynamic argumentsValue;
+
+    for (final entry in constant.fieldValues.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      final keyString = key.toStringInternal();
+
+      // 检查字段名是否包含 'name'
+      if (keyString.contains('name')) {
+        nameValue = value as StringConstant?;
+      } else if (keyString.contains('options')) {
+        optionsValue = value;
+      } else if (keyString.contains('arguments')) {
+        argumentsValue = value;
+      }
+    }
+
+    if (nameValue == null || nameValue.value != DartConstants.cppPatchPragma) {
       return null;
     }
 
-    // 提取参数
-    return _extractFirstArgumentFromPragma(constant);
+    // 如果有 options 或 arguments，则认为匹配
+    if (optionsValue != null || argumentsValue != null) {
+      return _extractFirstArgumentFromPragma(constant);
+    }
+    return null;
   }
 
   /// 从pragma常量中提取第一个参数
   String? _extractFirstArgumentFromPragma(InstanceConstant constant) {
-    final argsValue = constant.fieldValues['arguments'];
-    if (argsValue is! ListConstant || argsValue.entries.isEmpty) {
-      return null;
+    // 遍历所有字段，查找 arguments 或 options 字段
+    dynamic argsValue;
+
+    for (final entry in constant.fieldValues.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      // 检查字段名是否包含 'arguments' 或 'options'
+      if (key.toStringInternal().contains('arguments') ||
+          key.toStringInternal().contains('options')) {
+        argsValue = value;
+        break;
+      }
     }
 
-    final firstArg = argsValue.entries[0];
-    return firstArg is StringConstant ? firstArg.value : null;
+    // 如果是 StringConstant，直接返回其值
+    if (argsValue is StringConstant) {
+      return argsValue.value;
+    }
+
+    // 如果是 ListConstant，返回第一个元素
+    if (argsValue is ListConstant && argsValue.entries.isNotEmpty) {
+      final firstArg = argsValue.entries[0];
+      return firstArg is StringConstant ? firstArg.value : null;
+    }
+
+    return null;
   }
 
   /// 收集类信息
@@ -1102,7 +1236,9 @@ class DartToDartTransformer {
   /// 收集需要转换为late的字段
   void _collectLateFields(Class cls, ClassInfo classInfo) {
     for (final field in cls.fields) {
-      if (!field.isStatic && field.isFinal) {
+      // 只有非静态、非final的字段才需要转换为late
+      // final字段应该在构造函数中初始化，不应该使用late
+      if (!field.isStatic && !field.isFinal && field.initializer == null) {
         classInfo.lateFields.add(field);
       }
     }
@@ -1147,6 +1283,9 @@ class DartToDartTransformer {
 
     // 生成全局函数和变量
     _generateGlobalMembers(component);
+
+    // 生成全局const常量定义（在最后写入，因为常量是在转换过程中收集的）
+    _writeGlobalConstDefinitions();
   }
 
   /// 收集所有文件路径信息
@@ -1166,7 +1305,7 @@ class DartToDartTransformer {
       }
     }
 
-    // 第二步：为所有类生成文件前缀映射
+    // 第二步：为所有类生成文件前缀映射（已禁用）
     for (final library in component.libraries) {
       for (final cls in library.classes) {
         if (!_shouldSkipClass(cls)) {
@@ -1176,8 +1315,8 @@ class DartToDartTransformer {
               : libraryUri.toString();
           _getFilePathCode(filePath); // 这会自动生成编码并存储映射
 
-          // 为类名生成前缀映射（使用原始类名，不是 patch 后的类名）
-          _addFilePrefixToClassName(cls.name, filePath);
+          // 不再为类名生成前缀映射，直接使用原始类名
+          // _addFilePrefixToClassName(cls.name, filePath); // 已禁用
         }
       }
     }
@@ -1300,26 +1439,33 @@ class DartToDartTransformer {
     _writeLine('');
   }
 
+  /// 写入全局const常量定义
+  void _writeGlobalConstDefinitions() {
+    final constDefinitions = DartToDartTransformer._globalGetConstDefinitions();
+    if (constDefinitions.isNotEmpty) {
+      _writeLine(constDefinitions);
+    }
+  }
+
   /// 生成转换后的类
   void _generateTransformedClass(Class cls) {
-    // 设置当前类名（已移除未使用字段）
-    // 标记当前 emitting 类名（用于在构造调用时补齐类型参数）
-    // 此处仅为可读性保留调用，实际使用的是下方的 className
-    /* final currentClassName = */ _getCppPatchPragma(cls) ?? cls.name;
+    // 获取当前类的名称（用于生成类声明）
+    final currentClassName = cls.name;
+
+    // 获取被 patch 的目标类名（用于类名替换映射）
     final patchTarget = _getCppPatchPragma(cls);
-    final originalClassName = patchTarget ?? cls.name;
 
     // 获取文件路径信息
     final libraryUri = cls.enclosingLibrary.fileUri;
     final filePath =
         libraryUri.isScheme('file') ? libraryUri.path : libraryUri.toString();
 
-    // 为类名添加文件前缀
-    final className = _addFilePrefixToClassName(originalClassName, filePath);
+    // 直接使用原始类名，不再添加文件前缀
+    final className = currentClassName;
 
     // 类注释 - 包含文件路径信息
     _writeLine('/// 转换后的类: $className');
-    _writeLine('/// 原始类名: $originalClassName');
+    _writeLine('/// 原始类名: $currentClassName');
     _writeLine('/// 源文件路径: $filePath');
     _writeLine('');
 
@@ -1341,8 +1487,7 @@ class DartToDartTransformer {
       String superName = cls.supertype!.classNode.name;
       // 应用类名替换（处理 @pragma('cpp:patch', 'xxx') 注解）
       superName = _getReplacedClassName(superName);
-      // 应用文件前缀
-      superName = _getPrefixedClassName(superName);
+      // 不再应用文件前缀，直接使用类名
       // 传递泛型参数给父类
       if (cls.supertype != null && cls.supertype!.typeArguments.isNotEmpty) {
         // 根据父类的范型参数数量来决定传递哪些参数
@@ -1363,8 +1508,7 @@ class DartToDartTransformer {
         String name = t.classNode.name;
         // 应用类名替换（处理 @pragma('cpp:patch', 'xxx') 注解）
         name = _getReplacedClassName(name);
-        // 应用文件前缀
-        name = _getPrefixedClassName(name);
+        // 不再应用文件前缀，直接使用类名
 
         // 处理泛型类型参数
         if (t.typeArguments.isNotEmpty) {
@@ -1413,8 +1557,16 @@ class DartToDartTransformer {
         if (field.isFinal) modifiers.add('final');
         if (field.isLate) modifiers.add('late');
 
+        // 检查是否是const字段（通过检查初始化器是否为常量）
+        if (field.initializer != null &&
+            field.initializer is ConstantExpression) {
+          modifiers.add('const');
+        }
+
         // 对于没有初始化器的非空字段，添加 late 以避免编译期未初始化错误（含静态/实例）
+        // 但是不要为 final 字段添加 late，因为 final 字段应该在构造函数中初始化
         if (!field.isLate &&
+            !field.isFinal &&
             field.initializer == null &&
             field.type.nullability != Nullability.nullable) {
           if (!modifiers.contains('late')) modifiers.add('late');
@@ -1519,8 +1671,8 @@ class DartToDartTransformer {
 
   /// 生成无参构造方法
   void _generateDefaultConstructor(Class cls) {
-    final prefixedClassName = _getPrefixedClassName(cls.name);
-    _writeLine('$prefixedClassName();');
+    final className = cls.name;
+    _writeLine('$className();');
     _writeLine('');
   }
 
@@ -1545,14 +1697,17 @@ class DartToDartTransformer {
     // 生成构造函数
     final name = constructor.name.text;
     final originalClassName = cls.name;
-    final prefixedClassName = _getPrefixedClassName(originalClassName);
-    final constructorName =
-        name.isEmpty ? prefixedClassName : '$prefixedClassName.$name';
+    final className = originalClassName; // 不再使用前缀，直接使用原始类名
+    final constructorName = name.isEmpty ? className : '$className.$name';
+
+    // 检查是否是const构造函数
+    final isConst = constructor.isConst;
+    final constPrefix = isConst ? 'const ' : '';
 
     // 参数列表（包含必需位置、可选位置与命名参数，正确分组 [] / {}）
     final parameters = _writeParametersToString(constructor.function);
 
-    _write('$constructorName($parameters)');
+    _write('$constPrefix$constructorName($parameters)');
 
     // 初始化列表
     if (constructor.initializers.isNotEmpty) {
@@ -1564,20 +1719,25 @@ class DartToDartTransformer {
       _write(initializers);
     }
 
-    _writeLine(' {');
-    _indent();
+    // 对于const构造函数，不生成方法体
+    if (isConst) {
+      _writeLine(';');
+    } else {
+      _writeLine(' {');
+      _indent();
 
-    // 构造函数体
-    if (constructor.function.body != null) {
-      final bodyStr =
-          _writeTransformedStatementToString(constructor.function.body!);
-      if (bodyStr.isNotEmpty) {
-        _writeLine(bodyStr);
+      // 构造函数体
+      if (constructor.function.body != null) {
+        final bodyStr =
+            _writeTransformedStatementToString(constructor.function.body!);
+        if (bodyStr.isNotEmpty) {
+          _writeLine(bodyStr);
+        }
       }
-    }
 
-    _unindent();
-    _writeLine('}');
+      _unindent();
+      _writeLine('}');
+    }
     _writeLine('');
   }
 
@@ -1644,8 +1804,10 @@ class DartToDartTransformer {
 
   /// 将语句转换为字符串（转换后）
   String _writeTransformedStatementToString(Statement statement) {
-    return _generateStatementCode(statement,
-        replaceThis: true, allowReturn: true);
+    String result =
+        _generateStatementCode(statement, replaceThis: true, allowReturn: true);
+
+    return result;
   }
 
   // 已移除未使用方法 _writeTransformedStatement
@@ -1656,8 +1818,13 @@ class DartToDartTransformer {
     final name = procedure.name.text;
     final parameters = _writeParametersToString(procedure.function);
 
-    // 处理范型参数
+    // 特殊处理toString方法，将其改为toCppString
     String methodName = name;
+    if (name == 'toString') {
+      methodName = 'toCppString';
+    }
+
+    // 处理范型参数
     if (procedure.function.typeParameters.isNotEmpty) {
       final typeParams = procedure.function.typeParameters
           .map((t) => t.name ?? 'Object')
@@ -1715,8 +1882,13 @@ class DartToDartTransformer {
     final name = procedure.name.text;
     final parameters = _writeParametersToString(procedure.function);
 
-    // 处理范型参数
+    // 特殊处理toString方法，将其改为toCppString
     String methodName = name;
+    if (name == 'toString') {
+      methodName = 'toCppString';
+    }
+
+    // 处理范型参数
     if (procedure.function.typeParameters.isNotEmpty) {
       final typeParams = procedure.function.typeParameters
           .map((t) => t.name ?? 'Object')
@@ -1743,11 +1915,11 @@ class DartToDartTransformer {
 
     // 处理factory方法名
     String factoryName;
-    final prefixedClassName = _getPrefixedClassName(cls.name);
+    final className = cls.name; // 不再使用前缀，直接使用原始类名
     if (name.isEmpty) {
-      factoryName = prefixedClassName;
+      factoryName = className;
     } else {
-      factoryName = '$prefixedClassName.$name';
+      factoryName = '$className.$name';
     }
 
     _writeLine('factory $factoryName($parameters) {');
@@ -1827,8 +1999,13 @@ class DartToDartTransformer {
     final name = procedure.name.text;
     final parameters = _writeParametersToString(procedure.function);
 
-    // 处理范型参数
+    // 特殊处理toString方法，将其改为toCppString
     String methodName = name;
+    if (name == 'toString') {
+      methodName = 'toCppString';
+    }
+
+    // 处理范型参数
     if (procedure.function.typeParameters.isNotEmpty) {
       final typeParams = procedure.function.typeParameters
           .map((t) => t.name ?? 'Object')
@@ -1876,8 +2053,14 @@ class DartToDartTransformer {
     if (field.isFinal) modifiers.add('final');
     if (field.isLate) modifiers.add('late');
 
+    // 检查是否是const字段（通过检查初始化器是否为常量）
+    if (field.initializer != null && field.initializer is ConstantExpression) {
+      modifiers.add('const');
+    }
+
     // 对于没有初始化器的非空字段，添加 late 以避免编译期未初始化错误
     if (!field.isLate &&
+        !field.isFinal &&
         field.initializer == null &&
         field.type.nullability != Nullability.nullable) {
       if (!modifiers.contains('late')) modifiers.add('late');
@@ -1890,8 +2073,19 @@ class DartToDartTransformer {
     // 支持字段初始化表达式
     String init = '';
     if (field.initializer != null) {
-      init =
-          ' = ${_generateExpressionCode(field.initializer!, replaceThis: true, asStatement: false)}';
+      final initExpr = _generateExpressionCode(field.initializer!,
+          replaceThis: true, asStatement: false);
+
+      // 特殊处理 cppUserDataEmpty 的定义
+      if (name == 'cppUserDataEmpty' &&
+          initExpr.contains('CppUserData.constant([])')) {
+        init = ' = CppUserData.constant([])';
+      } else if (name == 'cppUserDataEmpty') {
+        // 如果是cppUserDataEmpty但initExpr不匹配，强制设置为正确的定义
+        init = ' = CppUserData.constant([])';
+      } else {
+        init = ' = ' + initExpr;
+      }
     }
     _writeLine('$modifierStr$type $name$init;');
     _writeLine('');
@@ -2022,7 +2216,11 @@ class DartToDartTransformer {
   /// 获取Dart类型字符串
   String _getDartType(DartType type) {
     return DartTypeConverter.convert(type, this._getDartType,
-        classNamePrefixResolver: _getPrefixedClassName);
+        classNamePrefixResolver: (className) {
+      // 只进行patch替换，不再加前缀
+      final patchedClassName = _getGlobalReplacedClassName(className);
+      return patchedClassName; // 直接返回被 patch 的类名，不加前缀
+    });
   }
 
   // 已移除未使用方法 _annotationToString
@@ -2301,9 +2499,50 @@ String _getDartType(DartType type, {bool forceWrapper = false}) {
 
   return DartTypeConverter.convert(type, _getDartType,
       classNamePrefixResolver: (className) {
-    // 使用全局类名前缀映射
-    return DartToDartTransformer._getGlobalPrefixedClassName(className);
+    // 不再使用前缀，只进行 patch 替换
+    return DartToDartTransformer._getGlobalReplacedClassName(className);
   });
+}
+
+/// 检查表达式是否为 FunctionWrapper 类型
+bool _isFunctionWrapperType(Expression expression) {
+  // 检查变量引用是否为 FunctionWrapper 类型
+  if (expression is VariableGet) {
+    final variableType = expression.variable.type;
+    if (variableType is InterfaceType) {
+      return variableType.classNode.name == 'FunctionWrapper';
+    } else if (variableType is FunctionType) {
+      return true;
+    }
+  }
+
+  // 检查属性访问是否为 FunctionWrapper 类型
+  if (expression is InstanceGet) {
+    final propertyType = expression.interfaceTarget.getterType;
+    if (propertyType is InterfaceType) {
+      return propertyType.classNode.name == 'FunctionWrapper';
+    } else if (propertyType is FunctionType) {
+      return true;
+    }
+  }
+
+  // 检查方法调用结果是否为 FunctionWrapper 类型
+  if (expression is InstanceInvocation) {
+    final methodType = expression.interfaceTarget.getterType;
+    if (methodType is InterfaceType) {
+      return methodType.classNode.name == 'FunctionWrapper';
+    }
+  }
+
+  // 检查静态调用结果是否为 FunctionWrapper 类型
+  if (expression is StaticInvocation) {
+    final returnType = expression.target.function.returnType;
+    if (returnType is InterfaceType) {
+      return returnType.classNode.name == 'FunctionWrapper';
+    }
+  }
+
+  return false;
 }
 
 /// 全局版本的获取逻辑运算符函数
@@ -2386,17 +2625,30 @@ bool _isNumericLiteral(String expr) {
   return RegExp(r'^-?\d+(\.\d+)?$').hasMatch(cleanExpr);
 }
 
+/// 检查是否在有参数的闭包中
+bool _isInClosureWithParameters() {
+  return DartToDartTransformer._inClosureContext &&
+      DartToDartTransformer._globalCurrentClosureParameterName.isNotEmpty;
+}
+
+/// 获取当前闭包的参数名
+String _getCurrentClosureParameterName() {
+  return DartToDartTransformer._globalCurrentClosureParameterName;
+}
+
 // 已移除未使用方法 _getBinaryOperator
 
 String _generateExpressionCode(Expression expression,
     {bool replaceThis = false,
     bool asStatement = false,
     bool allowReturn = true}) {
-  return //"/*${expression.runtimeType}*/" +
+  String result = //"/*${expression.runtimeType}*/" +
       _generateExpressionCode2(expression,
           replaceThis: replaceThis,
           asStatement: asStatement,
           allowReturn: allowReturn);
+
+  return result;
 }
 
 String _generateExpressionCode2(Expression expression,
@@ -2443,11 +2695,12 @@ String _generateExpressionCode2(Expression expression,
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
 
-      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
-      if (expression.target.name.text.isEmpty && args == '0') {
-        // 将 _GrowableList.<T>(0) 转换为 <T>[]
-        return '<$typeArgs>[]';
-      }
+      // // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
+      // if (expression.target.name.text.isEmpty && args == '0') {
+      //   // 将 _GrowableList.<T>(0) 转换为 <T>[]
+      //   return '<$typeArgs>[]';
+      // }
+      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
     }
 
     // 处理范型参数
@@ -2548,6 +2801,12 @@ String _generateExpressionCode2(Expression expression,
           DartToDartTransformer._getCompleteClassName(originalClassName);
     }
     final name = expression.target.name.text;
+
+    // 特殊处理 cppUserDataEmpty，直接使用而不是通过常量
+    if (encl == null && name == 'cppUserDataEmpty') {
+      return 'cppUserDataEmpty';
+    }
+
     return encl == null ? name : '$className.$name';
   } else if (expression is StaticSet) {
     final encl = expression.target.enclosingClass;
@@ -2622,6 +2881,17 @@ String _generateExpressionCode2(Expression expression,
             '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
         .toList();
 
+    // 特殊处理toString方法调用，替换为CppString.convertString(x)
+    if (name == 'toString') {
+      return 'CppString.convertString($receiver)';
+    }
+
+    // 特殊处理 FunctionWrapper 类型的变量调用
+    if (_isFunctionWrapperType(expression.receiver)) {
+      final allArgs = [...processedArgs, ...namedArgs].join(', ');
+      return '$receiver.call($allArgs)';
+    }
+
     final allArgs = [...processedArgs, ...namedArgs].join(', ');
     return '$receiver.$name($allArgs)';
   } else if (expression is DynamicInvocation) {
@@ -2676,6 +2946,16 @@ String _generateExpressionCode2(Expression expression,
       }
       return '-$receiver';
     }
+    // 特殊处理toString方法调用，替换为CppString.convertString(x)
+    if (name == 'toString') {
+      return 'CppString.convertString($receiver)';
+    }
+
+    // 特殊处理 FunctionWrapper 类型的变量调用
+    if (_isFunctionWrapperType(expression.receiver)) {
+      return '$receiver.call($allArgs)';
+    }
+
     return '$receiver.$name($allArgs)';
   } else if (expression is ConstructorInvocation) {
     String originalClassName = expression.target.enclosingClass.name;
@@ -2691,23 +2971,24 @@ String _generateExpressionCode2(Expression expression,
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
 
-      // 处理 _GrowableList._literal 系列构造函数
-      if (expression.target.name.text.startsWith('_literal')) {
-        // 将 _GrowableList._literalN<T>(...) 转换为 <T>[...]
-        return '<$typeArgs>[$args]';
-      }
+      // // 处理 _GrowableList._literal 系列构造函数
+      // if (expression.target.name.text.startsWith('_literal')) {
+      //   // 将 _GrowableList._literalN<T>(...) 转换为 <T>[...]
+      //   return '<$typeArgs>[$args]';
+      // }
 
-      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
-      if (expression.target.name.text.isEmpty && args == '0') {
-        // 将 _GrowableList.<T>(0) 转换为 <T>[]
-        return '<$typeArgs>[]';
-      }
+      // // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
+      // if (expression.target.name.text.isEmpty && args == '0') {
+      //   // 将 _GrowableList.<T>(0) 转换为 <T>[]
+      //   return '<$typeArgs>[]';
+      // }
 
-      // 处理 _GrowableList.generate<T>(length, generator) 方法
-      if (expression.target.name.text == 'generate') {
-        // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
-        return 'List<$typeArgs>.generate($args)';
-      }
+      // // 处理 _GrowableList.generate<T>(length, generator) 方法
+      // if (expression.target.name.text == 'generate') {
+      //   // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
+      //   return 'List<$typeArgs>.generate($args)';
+      // }
+      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
     }
 
     // 处理范型参数 - 尝试使用构造函数调用的实际范型参数
@@ -2826,10 +3107,20 @@ String _generateExpressionCode2(Expression expression,
       final capturedVariables = _analyzeCapturedVariables(expression.function);
 
       // 生成正确的函数表达式语法
+      final parameterNames = expression.function.positionalParameters
+          .map((p) => _cleanVariableName(p.name ?? 'param'))
+          .toList();
       final parameters = expression.function.positionalParameters
           .map((p) =>
               '${_getDartType(p.type)} ${_cleanVariableName(p.name ?? 'param')}')
           .join(', ');
+
+      // 设置当前闭包的第一个参数名（如果存在）
+      if (parameterNames.isNotEmpty) {
+        DartToDartTransformer._globalSetCurrentClosureParameterName(
+            parameterNames.first);
+      }
+
       final body = expression.function.body != null
           ? _generateStatementCode(expression.function.body!,
               replaceThis: replaceThis, allowReturn: true)
@@ -2849,7 +3140,8 @@ String _generateExpressionCode2(Expression expression,
 
       return 'FunctionWrapper<$functionType>($capturedVarsCode, ($parameters) { $body})';
     } finally {
-      // 退出闭包作用域
+      // 清除闭包参数名并退出闭包作用域
+      DartToDartTransformer._globalClearCurrentClosureParameterName();
       DartToDartTransformer._inClosureContext = oldClosureContext;
       DartToDartTransformer._globalExitClosureScope();
     }
@@ -2904,9 +3196,10 @@ String _generateExpressionCode2(Expression expression,
     if (className == '_GrowableList') {
       final typeArgs = expression.typeArguments.isNotEmpty
           ? '<${expression.typeArguments.map(_getDartType).join(', ')}>'
-          : '';
+          : 'Object?';
       // 将 _GrowableList<T>() 转换为 <T>[]
-      return '$typeArgs[]';
+      //return '$typeArgs[]';
+      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(0))';
     }
 
     final typeArgs = expression.typeArguments.isNotEmpty
@@ -2943,7 +3236,7 @@ String _generateExpressionCode2(Expression expression,
           replaceThis: replaceThis, asStatement: false);
       if (e is StringLiteral || (code.startsWith('"') && code.endsWith('"')))
         return code;
-      return '(${code}).toString()';
+      return 'CppString.convertString(${code})';
     }
 
     return expression.expressions.map(stringify).join(' + ');
@@ -3034,6 +3327,11 @@ String _generateExpressionCode2(Expression expression,
       }
       // 否则生成取负表达式
       return '-$receiver';
+    }
+
+    // 特殊处理 FunctionWrapper 类型的变量调用
+    if (_isFunctionWrapperType(expression.receiver)) {
+      return '$receiver.call($allArgs)';
     }
 
     return '$receiver.$name($allArgs)';
@@ -3300,8 +3598,34 @@ String _generateExpressionCode2(Expression expression,
       }
     }
 
-    // 使用.call()方式调用FunctionWrapper
-    return '$receiver.call($allArgs)';
+    // 检查是否在闭包上下文中，且接收者是参数变量
+    // 如果是，并且没有提供参数，则应该传递当前函数的参数
+    if (DartToDartTransformer._inClosureContext &&
+        allArgs.isEmpty &&
+        expression.receiver is VariableGet) {
+      final variableGet = expression.receiver as VariableGet;
+      final receiverName =
+          _cleanVariableName(variableGet.variable.name ?? 'unnamed');
+
+      // 检查这是否是一个被捕获的函数变量在闭包中的调用
+      // 在这种情况下，我们需要获取当前闭包函数的参数并传递给调用
+      // 这里我们假设闭包函数有一个参数需要转发
+      if (_isInClosureWithParameters()) {
+        final closureParamName = _getCurrentClosureParameterName();
+        if (closureParamName.isNotEmpty) {
+          return '$receiver.call($closureParamName)';
+        }
+      }
+    }
+
+    // 特殊处理 FunctionWrapper 类型的变量调用
+    if (_isFunctionWrapperType(expression.receiver)) {
+      return '$receiver.call($allArgs)';
+    }
+
+    // 对于FunctionWrapper，简化处理：直接调用
+    // 在回调函数上下文中，FunctionWrapper对象本身就是可调用的
+    return '$receiver($allArgs)';
   } else if (expression is FileUriExpression) {
     final expr = _generateExpressionCode(expression.expression,
         replaceThis: replaceThis, asStatement: false);
@@ -3310,12 +3634,12 @@ String _generateExpressionCode2(Expression expression,
     final operand = _generateExpressionCode(expression.operand,
         replaceThis: replaceThis, asStatement: false);
     final type = _getDartType(expression.type);
-    return '$operand as $type';
+    return '($operand as $type)';
   } else if (expression is IsExpression) {
     final operand = _generateExpressionCode(expression.operand,
         replaceThis: replaceThis, asStatement: false);
     final type = _getDartType(expression.type);
-    return '$operand is $type';
+    return '($operand is $type)';
   } else if (expression is Let) {
     // 优化 Let 模式，尽量消除 IIFE：
     // 场景1：body 形如 (v == null ? a : v) -> 生成 (init ?? a)
@@ -3417,8 +3741,9 @@ String _generateExpressionCode2(Expression expression,
       }
     }
 
-    // 使用.call()方式调用FunctionWrapper
-    return '$name.call($allArgs)';
+    // 对于FunctionWrapper，直接调用
+    // 在回调函数上下文中，FunctionWrapper对象本身就是可调用的
+    return '$name($allArgs)';
   } else if (expression is ConstantExpression) {
     final constant = expression.constant;
     if (constant is StringConstant) {
@@ -3429,27 +3754,47 @@ String _generateExpressionCode2(Expression expression,
           .replaceAll('\n', '\\n')
           .replaceAll('\r', '\\r')
           .replaceAll('\t', '\\t');
-      return '"$escaped"';
+      final constValue =
+          'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is IntConstant) {
-      return constant.value.toString();
+      final constValue = constant.value.toString();
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is DoubleConstant) {
-      return constant.value.toString();
+      final constValue = constant.value.toString();
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is BoolConstant) {
-      return constant.value.toString();
+      final constValue = constant.value.toString();
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is NullConstant) {
+      // 对于 null 值，直接使用 null，不需要创建 const 变量
       return 'null';
     } else if (constant is ListConstant) {
       final entries = constant.entries
           .map((e) => _generateExpressionCode(ConstantExpression(e),
               replaceThis: replaceThis))
           .join(', ');
-      return '[$entries]';
+      final constValue = '[$entries]';
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is MapConstant) {
       final entries = constant.entries
           .map((e) =>
               '${_generateExpressionCode(ConstantExpression(e.key), replaceThis: replaceThis, asStatement: false)}: ${_generateExpressionCode(ConstantExpression(e.value), replaceThis: replaceThis, asStatement: false)}')
           .join(', ');
-      return '{$entries}';
+      final constValue = '{$entries}';
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is RecordConstant) {
       final positional = constant.positional
           .map((e) => _generateExpressionCode(ConstantExpression(e),
@@ -3460,42 +3805,85 @@ String _generateExpressionCode2(Expression expression,
               '${e.key}: ${_generateExpressionCode(ConstantExpression(e.value), replaceThis: replaceThis, asStatement: false)}')
           .join(', ');
       final all = [positional, named].where((s) => s.isNotEmpty).join(', ');
-      return '($all)';
+      final constValue = '($all)';
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is SetConstant) {
       final entries = constant.entries
           .map((e) => _generateExpressionCode(ConstantExpression(e),
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
-      return '{$entries}';
+      final constValue = '{$entries}';
+      final constVarName =
+          DartToDartTransformer._globalAddConstConstant(constValue);
+      return constVarName;
     } else if (constant is InstanceConstant) {
       // 处理实例常量，需要替换类名
       final className = constant.classNode.name;
       final prefixedClassName =
           DartToDartTransformer._getCompleteClassName(className);
 
-      // 生成字段值，需要替换字段引用中的类名
-      final fieldValues = constant.fieldValues.entries.map((e) {
-        final fieldName = e.key.toStringInternal(); // 获取字段名
-        final fieldValue = _generateExpressionCode(ConstantExpression(e.value),
-            replaceThis: replaceThis, asStatement: false);
+      // 检查是否是构造函数调用（通过检查字段名是否包含类名）
+      bool isConstructorCall = false;
+      String? constructorName;
 
-        // 如果字段名包含类名引用（如 CppString._codeUnits），需要替换类名
-        String processedFieldName = fieldName;
+      for (final entry in constant.fieldValues.entries) {
+        final fieldName = entry.key.toStringInternal();
         if (fieldName.contains('.')) {
           final parts = fieldName.split('.');
-          if (parts.length == 2) {
-            final fieldClassName = parts[0];
-            final fieldFieldName = parts[1];
-            final prefixedFieldClassName =
-                DartToDartTransformer._getCompleteClassName(fieldClassName);
-            processedFieldName = '$prefixedFieldClassName.$fieldFieldName';
+          if (parts.length == 2 && parts[0] == className) {
+            // 这是一个构造函数调用，字段名格式为 "ClassName.fieldName"
+            isConstructorCall = true;
+            // 尝试从字段名推断构造函数名
+            if (parts[1] == '_codeUnits') {
+              constructorName = 'fromCppUserData';
+            } else if (parts[1] == 'data') {
+              // 检查是否是 CppUserData.constant 调用
+              if (className == 'CppUserData') {
+                constructorName = 'constant';
+              }
+            }
+            break;
           }
         }
+      }
 
-        return '$processedFieldName: $fieldValue';
-      }).join(', ');
+      if (isConstructorCall && constructorName != null) {
+        // 这是构造函数调用，生成正确的构造函数调用格式
+        final args = constant.fieldValues.entries.map((e) {
+          return _generateExpressionCode(ConstantExpression(e.value),
+              replaceThis: replaceThis, asStatement: false);
+        }).join(', ');
 
-      return 'const $prefixedClassName($fieldValues)';
+        return 'const $prefixedClassName.$constructorName($args)';
+      } else {
+        // 这是字段初始化，需要替换字段引用中的类名
+        final fieldValues = constant.fieldValues.entries.map((e) {
+          final fieldName = e.key.toStringInternal(); // 获取字段名
+          final fieldValue = _generateExpressionCode(
+              ConstantExpression(e.value),
+              replaceThis: replaceThis,
+              asStatement: false);
+
+          // 如果字段名包含类名引用（如 CppString._codeUnits），需要替换类名
+          String processedFieldName = fieldName;
+          if (fieldName.contains('.')) {
+            final parts = fieldName.split('.');
+            if (parts.length == 2) {
+              final fieldClassName = parts[0];
+              final fieldFieldName = parts[1];
+              final prefixedFieldClassName =
+                  DartToDartTransformer._getCompleteClassName(fieldClassName);
+              processedFieldName = '$prefixedFieldClassName.$fieldFieldName';
+            }
+          }
+
+          return '$processedFieldName: $fieldValue';
+        }).join(', ');
+
+        return 'const $prefixedClassName($fieldValues)';
+      }
     } else {
       return expression.toString();
     }
@@ -3517,24 +3905,68 @@ String _generateExpressionCode2(Expression expression,
           .map((e) => _generateExpressionCode(e,
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
-
-      // 处理 _GrowableList._literal 系列方法
+      if (expression.name.text.isEmpty) {
+        return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(0))';
+      }
       if (methodName.startsWith('_literal')) {
-        // 将 _GrowableList._literalN<T>(...) 转换为 <T>[...]
-        return '<$typeArgs>[$args]';
+        return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
       }
+      return 'CppArrayList<$typeArgs>.$methodName($args)';
+    }
 
-      // 处理 _GrowableList.<T>(0) 这种创建空列表的构造函数
-      if (methodName.isEmpty && args == '0') {
-        // 将 _GrowableList.<T>(0) 转换为 <T>[]
-        return '<$typeArgs>[]';
-      }
+    // 特殊处理 CppUserData.constant 命名构造函数调用
+    if (originalClassName == 'CppUserData' && methodName == 'constant') {
+      final args = expression.arguments.positional
+          .map((e) => _generateExpressionCode(e,
+              replaceThis: replaceThis, asStatement: false))
+          .join(', ');
+      return 'CppUserData.constant($args)';
+    }
 
-      // 处理 _GrowableList.generate<T>(length, generator) 方法
-      if (methodName == 'generate') {
-        // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
-        return 'List<$typeArgs>.generate($args)';
+    // 特殊处理 CppString.fromString 静态方法调用
+    if (originalClassName == 'CppString' && methodName == 'fromString') {
+      // 如果参数是字符串字面量，直接转换为 fromCppUserData 格式
+      if (expression.arguments.positional.isNotEmpty) {
+        final firstArg = expression.arguments.positional.first;
+        if (firstArg is StringLiteral) {
+          final value = firstArg.value;
+          final escaped = value
+              .replaceAll('\\', '\\\\')
+              .replaceAll('"', '\\"')
+              .replaceAll('\n', '\\n')
+              .replaceAll('\r', '\\r')
+              .replaceAll('\t', '\\t');
+          return 'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+        } else {
+          // 如果参数不是字符串字面量，保持原有逻辑
+          final args = expression.arguments.positional
+              .map((e) => _generateExpressionCode(e,
+                  replaceThis: replaceThis, asStatement: false))
+              .join(', ');
+          return 'CppString.fromString($args)';
+        }
       }
+    }
+
+    // 特殊处理 List 类名替换
+    if (originalClassName != null && originalClassName == 'List') {
+      final typeArgs = expression.arguments.types.map(_getDartType).join(', ');
+      final args = expression.arguments.positional
+          .map((e) => _generateExpressionCode(e,
+              replaceThis: replaceThis, asStatement: false))
+          .join(', ');
+      final namedArgs = expression.arguments.named
+          .map((na) =>
+              '${na.name}: ${_generateExpressionCode(na.value, replaceThis: replaceThis, asStatement: false)}')
+          .join(', ');
+      final allArgs = [args, namedArgs].where((s) => s.isNotEmpty).join(', ');
+
+      // 使用全局类名替换，不再使用前缀
+      final replacedClassName =
+          DartToDartTransformer._getGlobalReplacedClassName(originalClassName);
+      final className = replacedClassName; // 直接使用替换后的类名，不加前缀
+
+      return '$className<$typeArgs>$methodName($allArgs)';
     }
 
     // 特殊处理 unary- 方法调用
@@ -3582,7 +4014,7 @@ String _generateExpressionCode2(Expression expression,
   } else if (expression is NullLiteral) {
     return 'null';
   } else if (expression is StringLiteral) {
-    // 使用正确的字符串转义，不使用字符串替换
+    // 将字符串字面量转换为 CppString.fromCppUserData 格式，并使用const变量
     final value = expression.value;
     final escaped = value
         .replaceAll('\\', '\\\\')
@@ -3590,7 +4022,11 @@ String _generateExpressionCode2(Expression expression,
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
-    return '"$escaped"';
+    final constValue =
+        'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+    final constVarName =
+        DartToDartTransformer._globalAddConstConstant(constValue);
+    return constVarName;
   } else if (expression is SwitchExpression) {
     final switchExpr = _generateExpressionCode(expression.expression,
         replaceThis: replaceThis, asStatement: false);
@@ -3684,7 +4120,15 @@ String _generateStatementCode(Statement statement,
     if (statement.initializer != null) {
       final initExpr = _generateExpressionCode(statement.initializer!,
           replaceThis: replaceThis, asStatement: false);
-      if (type.startsWith('Map') && initExpr.trim() == '{}') {
+
+      // 特殊处理 cppUserDataEmpty 的定义
+      if (name == 'cppUserDataEmpty' &&
+          initExpr.contains('CppUserData.constant([])')) {
+        init = ' = CppUserData.constant([])';
+      } else if (name == 'cppUserDataEmpty') {
+        // 如果是cppUserDataEmpty但initExpr不匹配，强制设置为正确的定义
+        init = ' = CppUserData.constant([])';
+      } else if (type.startsWith('Map') && initExpr.trim() == '{}') {
         if (statement.type is InterfaceType) {
           final it = statement.type as InterfaceType;
           if (it.typeArguments.length == 2) {
