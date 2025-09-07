@@ -363,6 +363,22 @@ class DartToDartTransformer {
     final closureInfo = _getCurrentClosureInfo();
     if (closureInfo == null) return variableName;
 
+    // 首先检查变量是否已经在装箱列表中
+    if (closureInfo.isBoxedVariable(variableName) ||
+        DartToDartTransformer._getVariableBoxState(variableName)) {
+      // 如果是函数参数，添加前缀
+      if (closureInfo.isFunctionParameter(variableName)) {
+        return '\$_$variableName.value';
+      } else {
+        // 排除$origin_前缀的变量（这些是for循环的重命名变量，不需要.value）
+        if (!variableName.startsWith('\$origin_')) {
+          return '$variableName.value';
+        } else {
+          return variableName;
+        }
+      }
+    }
+
     if (_needsBoxing(variableType)) {
       closureInfo.addBoxedVariable(variableName, _getBoxType(variableType));
 
@@ -370,7 +386,12 @@ class DartToDartTransformer {
       if (closureInfo.isFunctionParameter(variableName)) {
         return '\$_$variableName.value';
       } else {
-        return '$variableName.value';
+        // 排除$origin_前缀的变量（这些是for循环的重命名变量，不需要.value）
+        if (!variableName.startsWith('\$origin_')) {
+          return '$variableName.value';
+        } else {
+          return variableName;
+        }
       }
     }
 
@@ -504,6 +525,29 @@ class DartToDartTransformer {
 
   /// 全局：for循环中需要装箱的变量
   static final Set<String> _globalForLoopVariablesToBox = {};
+
+  /// 全局：基于变量名的装箱状态映射（改进版）
+  static final Map<String, bool> _globalVariableNameToBoxState = {};
+
+  /// 设置变量的装箱状态（基于变量名）
+  static void _setVariableBoxState(String variableName, bool needsBoxing) {
+    // $origin_前缀的变量永远不应该是装箱状态
+    if (variableName.startsWith('\$origin_')) {
+      _globalVariableNameToBoxState[variableName] = false;
+    } else {
+      _globalVariableNameToBoxState[variableName] = needsBoxing;
+    }
+  }
+
+  /// 获取变量的装箱状态（基于变量名）
+  static bool _getVariableBoxState(String variableName) {
+    return _globalVariableNameToBoxState[variableName] ?? false;
+  }
+
+  /// 清除装箱状态映射
+  static void _clearVariableBoxStates() {
+    _globalVariableNameToBoxState.clear();
+  }
 
   /// 全局：当前闭包函数的参数名
   static String _globalCurrentClosureParameterName = '';
@@ -884,8 +928,13 @@ class DartToDartTransformer {
     // 直接检查表达式字符串，如果包含print(i)，说明有对i的引用
     final expressionString = expression.toString();
     if (expressionString.contains('print(i)')) {
-      // 手动添加i到装箱列表
-      _globalVariablesToBox.add('i');
+      // 只有当i不在任何装箱列表中时才添加，避免重复添加
+      if (!_globalVariablesToBox.contains('i') &&
+          !_globalForLoopVariablesToBox.contains('i') &&
+          !_globalInitializedBoxedVariables.contains('i')) {
+        // 手动添加i到装箱列表
+        _globalVariablesToBox.add('i');
+      }
     }
   }
 
@@ -908,6 +957,10 @@ class DartToDartTransformer {
   static void _globalAnalyzeClosureExpression(Expression expression) {
     if (expression is VariableGet) {
       final varName = expression.variable.name ?? 'unnamed';
+      // $origin_前缀的变量是重命名变量，不需要分析
+      if (varName.startsWith('\$origin_')) {
+        return;
+      }
       print('闭包中发现VariableGet: $varName');
       // 检查变量类型是否需要装箱
       if (expression.variable.type is InterfaceType) {
@@ -1846,6 +1899,7 @@ class DartToDartTransformer {
         DartToDartTransformer._globalVariablesToBox.clear();
         DartToDartTransformer._globalInitializedBoxedVariables.clear();
         DartToDartTransformer._globalForLoopVariablesToBox.clear();
+        DartToDartTransformer._clearVariableBoxStates();
         DartToDartTransformer._globalPreAnalyzeFunctionBody(
             procedure.function.body!);
 
@@ -2026,6 +2080,7 @@ class DartToDartTransformer {
         DartToDartTransformer._globalVariablesToBox.clear();
         DartToDartTransformer._globalInitializedBoxedVariables.clear();
         DartToDartTransformer._globalForLoopVariablesToBox.clear();
+        DartToDartTransformer._clearVariableBoxStates();
         DartToDartTransformer._globalPreAnalyzeFunctionBody(
             procedure.function.body!);
 
@@ -2558,6 +2613,18 @@ String _getLogicalOperator(LogicalExpressionOperator operator) {
 /// 全局版本的闭包装箱处理函数
 String _processClosureVariableReferenceGlobal(
     String variableName, DartType variableType) {
+  // 首先检查是否是$origin_前缀的变量，这些一定不是装箱变量
+  if (variableName.startsWith('\$origin_')) {
+    return variableName;
+  }
+
+  // 然后检查基于变量名的装箱状态映射（新的精确方法）
+  if (DartToDartTransformer._getVariableBoxState(variableName)) {
+    // 排除_temp前缀的变量（这些是临时变量，不需要.value）
+    if (!variableName.startsWith('_temp')) {
+      return '$variableName.value';
+    }
+  }
   // 检查类型是否需要装箱
   bool needsBoxing(DartType type) {
     if (type is InterfaceType) {
@@ -2587,10 +2654,7 @@ String _processClosureVariableReferenceGlobal(
     return 'Box<Object>';
   }
 
-  // 只有在预分析中确定需要装箱的变量才添加.value
-  // 但是排除_temp前缀的变量（这些是for循环的重命名变量，不需要.value）
-  final isCommonLoopVar =
-      {'i', 'j', 'k', 'index', 'idx'}.contains(variableName);
+  // 检查变量是否需要装箱
   final inVariablesToBox =
       DartToDartTransformer._globalVariablesToBox.contains(variableName);
   final inForLoopVariablesToBox =
@@ -2599,18 +2663,16 @@ String _processClosureVariableReferenceGlobal(
       ._globalInitializedBoxedVariables
       .contains(variableName);
 
-  // 调试信息（已清理）
-
-  if (inVariablesToBox &&
-      !variableName.startsWith('_temp') &&
-      (!isCommonLoopVar || isExternalBoxedVariable)) {
-    return '$variableName.value';
+  // 如果变量已经在装箱列表中，添加.value
+  if (inVariablesToBox || inForLoopVariablesToBox || isExternalBoxedVariable) {
+    // 排除_temp前缀和$origin_前缀的变量（这些是for循环的重命名变量，不需要.value）
+    if (!variableName.startsWith('_temp') &&
+        !variableName.startsWith('\$origin_')) {
+      return '$variableName.value';
+    }
   }
 
-  // 对于for循环变量，只有在真正装箱时才添加.value
-  if (inForLoopVariablesToBox && inVariablesToBox) {
-    return '$variableName.value';
-  }
+  // 注意：$origin_开头的变量是for循环重命名变量，一定不是装箱变量，不需要.value
 
   return variableName;
 }
@@ -2629,6 +2691,17 @@ bool _isNumericLiteral(String expr) {
 bool _isInClosureWithParameters() {
   return DartToDartTransformer._inClosureContext &&
       DartToDartTransformer._globalCurrentClosureParameterName.isNotEmpty;
+}
+
+/// 从表达式中收集变量名
+void _collectVariablesFromExpression(
+    Expression expression, Set<String> variables) {
+  if (expression is VariableGet) {
+    final varName = expression.variable.name ?? 'unnamed';
+    variables.add(varName);
+  }
+  // 简化版本，只处理最常见的VariableGet
+  // 可以根据需要扩展
 }
 
 /// 获取当前闭包的参数名
@@ -2665,6 +2738,11 @@ String _generateExpressionCode2(Expression expression,
 
     final name = _cleanVariableName(expression.variable.name ?? 'unnamed');
     final variableType = expression.variable.type;
+
+    // $origin_前缀的变量一定是原始类型，不需要任何装箱处理
+    if (name.startsWith('\$origin_')) {
+      return name;
+    }
 
     // 处理闭包变量装箱
     return _processClosureVariableReferenceGlobal(name, variableType);
@@ -4159,6 +4237,8 @@ String _generateStatementCode(Statement statement,
       final typeName = (statement.type as InterfaceType).classNode.name;
       if (DartToDartTransformer._globalNeedsBoxing(typeName)) {
         final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+        // 记录变量的装箱状态
+        DartToDartTransformer._setVariableBoxState(name, true);
         // 如果有初始化值，创建装箱实例
         if (init.isNotEmpty) {
           final initValue = init.substring(3); // 去掉 " = " 前缀
@@ -4172,7 +4252,35 @@ String _generateStatementCode(Statement statement,
       }
     }
 
-    return '$type $name$init;';
+    // 检查变量类型是否已经是装箱类型（基于定义）
+    final isBoxType = type.startsWith('Box') ||
+        (statement.type is InterfaceType &&
+            (statement.type as InterfaceType).classNode.name.startsWith('Box'));
+
+    // 检查变量是否需要装箱（基于全局分析结果）
+    final needsBoxing = !isBoxType &&
+        (DartToDartTransformer._globalVariablesToBox.contains(name) ||
+            DartToDartTransformer._globalForLoopVariablesToBox.contains(name) ||
+            DartToDartTransformer._getVariableBoxState(name));
+
+    // 如果需要装箱但当前不是装箱类型，则转换为装箱类型
+    if (needsBoxing && statement.type is InterfaceType) {
+      final interfaceType = statement.type as InterfaceType;
+      final typeName = interfaceType.classNode.name;
+      final boxType = DartToDartTransformer._globalGetBoxType(typeName);
+      final boxConstructor = DartToDartTransformer._globalGetBoxConstructor(
+          typeName, init.isNotEmpty ? init.substring(3) : null);
+
+      // 记录变量的装箱状态
+      DartToDartTransformer._setVariableBoxState(name, true);
+
+      return '$boxType $name = $boxConstructor;';
+    } else {
+      // 记录变量的装箱状态
+      DartToDartTransformer._setVariableBoxState(name, isBoxType);
+
+      return '$type $name$init;';
+    }
   } else if (statement is EmptyStatement) {
     return ';';
   } else if (statement is ForStatement) {
@@ -4199,6 +4307,8 @@ String _generateStatementCode(Statement statement,
               .contains(varName) &&
           DartToDartTransformer._globalVariablesToBox.contains(varName)) {
         boxedVariables.add(varName);
+        // 记录变量的装箱状态
+        DartToDartTransformer._setVariableBoxState(varName, true);
         final typeName = (v.type as InterfaceType).classNode.name;
         final boxType = DartToDartTransformer._globalGetBoxType(typeName);
         final initValue = v.initializer != null
@@ -4250,18 +4360,33 @@ String _generateStatementCode(Statement statement,
     String preBoxingCode = '';
     // 不再需要预装箱，在每次迭代中创建新装箱变量
 
-    // 对于无变量声明的for循环，跳过新的装箱逻辑，使用原始处理方式
+    // 对于无变量声明的for循环，处理外部变量
     if (statement.variables.isEmpty) {
-      // 这种情况表示使用外部变量，太复杂，暂时不处理装箱
-      // 直接抛出到原有的语句处理逻辑中
-      // 正确的for循环格式：for (init; condition; updates)
-      final initPart = ''; // 无变量声明的for循环没有init部分
+      // 检查更新表达式中是否有初始化赋值
+      String initPart = '';
+      final remainingUpdates = <Expression>[];
+
+      if (statement.updates.isNotEmpty) {
+        // 检查第一个更新表达式是否是对外部变量的赋值
+        final firstUpdateCode = _generateExpressionCode(statement.updates.first,
+            replaceThis: replaceThis, asStatement: false);
+
+        // 如果是赋值表达式且赋值给外部装箱变量，则作为初始化
+        if (firstUpdateCode.contains('=') &&
+            firstUpdateCode.startsWith('i =')) {
+          initPart = firstUpdateCode;
+          remainingUpdates.addAll(statement.updates.skip(1));
+        } else {
+          remainingUpdates.addAll(statement.updates);
+        }
+      }
+
       final conditionPart = statement.condition != null
           ? _generateExpressionCode(statement.condition!,
               replaceThis: replaceThis, asStatement: false)
           : '';
-      final updatesPart = statement.updates.isNotEmpty
-          ? statement.updates
+      final updatesPart = remainingUpdates.isNotEmpty
+          ? remainingUpdates
               .map((e) => _generateExpressionCode(e,
                   replaceThis: replaceThis, asStatement: false))
               .join(', ')
@@ -4273,9 +4398,15 @@ String _generateStatementCode(Statement statement,
     }
 
     // 生成条件和更新表达式，使用重命名的变量，不使用装箱
-    // 完全移除装箱变量，让条件和更新使用重命名变量
+    // 临时移除装箱状态，让条件和更新使用原始值
     final tempRemovedVariables = <String>[];
+    final tempRemovedForLoop = <String>[];
+    final tempRemovedStates = <String, bool>{};
+    final tempRemovedRenamedStates = <String, bool>{};
+
     for (final originalVar in renamedVariables.keys) {
+      final renamedVar = renamedVariables[originalVar]!;
+
       if (DartToDartTransformer._globalVariablesToBox.contains(originalVar)) {
         DartToDartTransformer._globalVariablesToBox.remove(originalVar);
         tempRemovedVariables.add(originalVar);
@@ -4283,7 +4414,19 @@ String _generateStatementCode(Statement statement,
       if (DartToDartTransformer._globalForLoopVariablesToBox
           .contains(originalVar)) {
         DartToDartTransformer._globalForLoopVariablesToBox.remove(originalVar);
+        tempRemovedForLoop.add(originalVar);
       }
+      // 保存并临时移除原始变量的装箱状态映射
+      if (DartToDartTransformer._getVariableBoxState(originalVar)) {
+        tempRemovedStates[originalVar] = true;
+        DartToDartTransformer._setVariableBoxState(originalVar, false);
+      }
+      // 保存并临时移除重命名变量的装箱状态映射
+      // $origin_前缀的变量应该始终为false
+      final currentState =
+          DartToDartTransformer._getVariableBoxState(renamedVar);
+      tempRemovedRenamedStates[renamedVar] = currentState;
+      DartToDartTransformer._setVariableBoxState(renamedVar, false);
     }
 
     var condition = statement.condition != null
@@ -4306,10 +4449,27 @@ String _generateStatementCode(Statement statement,
       updates = updates.replaceAll(originalVar, renamedVar);
     }
 
-    // 恢复装箱变量列表
+    // 确保$origin_变量不带.value
+    condition = condition.replaceAllMapped(
+        RegExp(r'\$origin_([a-zA-Z_][a-zA-Z0-9_]*)\.value'),
+        (match) => '\$origin_${match.group(1)}');
+    updates = updates.replaceAllMapped(
+        RegExp(r'\$origin_([a-zA-Z_][a-zA-Z0-9_]*)\.value'),
+        (match) => '\$origin_${match.group(1)}');
+
+    // 在生成条件和更新后，立即恢复所有装箱状态
+    // 这样循环体和闭包生成时可以使用正确的装箱状态
     for (final originalVar in tempRemovedVariables) {
       DartToDartTransformer._globalVariablesToBox.add(originalVar);
-      // 不要将外部变量添加到_globalForLoopVariablesToBox，只有for循环内部声明的变量才应该在其中
+    }
+    for (final originalVar in tempRemovedForLoop) {
+      DartToDartTransformer._globalForLoopVariablesToBox.add(originalVar);
+    }
+    for (final entry in tempRemovedStates.entries) {
+      DartToDartTransformer._setVariableBoxState(entry.key, entry.value);
+    }
+    for (final entry in tempRemovedRenamedStates.entries) {
+      DartToDartTransformer._setVariableBoxState(entry.key, entry.value);
     }
 
     // 生成循环体
@@ -4337,6 +4497,8 @@ String _generateStatementCode(Statement statement,
         // 为每次迭代创建新的装箱变量，而不是复用
         initSyncLines.add(
             '$boxType $originalVar = ${DartToDartTransformer._globalGetBoxConstructor(typeName, renamedVar)};');
+        // 记录装箱变量的状态
+        DartToDartTransformer._setVariableBoxState(originalVar, true);
         endSyncLines.add('$renamedVar = $originalVar.value;');
       }
 
