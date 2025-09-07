@@ -562,6 +562,76 @@ class DartToDartTransformer {
     _globalCurrentClosureParameterName = '';
   }
 
+  /// 全局：extension 方法映射
+  static final Map<String, Map<String, String>> _globalExtensionMethods = {};
+
+  /// key: extensionName, value: {methodName: extendedType}
+
+  /// 注册 extension 方法
+  static void _registerExtensionMethod(
+      String extensionName, String methodName, String extendedType) {
+    if (!_globalExtensionMethods.containsKey(extensionName)) {
+      _globalExtensionMethods[extensionName] = {};
+    }
+    _globalExtensionMethods[extensionName]![methodName] = extendedType;
+  }
+
+  /// 检查方法是否为 extension 方法
+  static String? _getExtensionType(String methodName, String receiverType) {
+    for (final extensionEntry in _globalExtensionMethods.entries) {
+      final methods = extensionEntry.value;
+      if (methods.containsKey(methodName)) {
+        final extendedType = methods[methodName]!;
+        // 检查接收者类型是否匹配扩展类型
+        if (receiverType == extendedType ||
+            _isTypeCompatible(receiverType, extendedType)) {
+          return extensionEntry.key; // 返回 extension 名称
+        }
+      }
+    }
+    return null;
+  }
+
+  /// 检查类型兼容性
+  static bool _isTypeCompatible(String receiverType, String extendedType) {
+    // 简化版本：检查是否是子类型关系
+    // 在实际实现中可能需要更复杂的类型检查
+    return receiverType == extendedType ||
+        receiverType == 'dynamic' ||
+        extendedType == 'Object';
+  }
+
+  /// 获取接收者类型
+  String _getReceiverType(Expression receiver) {
+    if (receiver is VariableGet) {
+      final varType = receiver.variable.type;
+      if (varType is InterfaceType) {
+        return varType.classNode.name;
+      }
+    } else if (receiver is ThisExpression) {
+      return 'this'; // 或者根据上下文确定具体类型
+    } else if (receiver is PropertyGet) {
+      // 递归获取属性所有者的类型
+      return _getReceiverType(receiver.receiver);
+    }
+    return 'dynamic'; // 默认类型
+  }
+
+  static String _getReceiverTypeStatic(Expression receiver) {
+    if (receiver is VariableGet) {
+      final varType = receiver.variable.type;
+      if (varType is InterfaceType) {
+        return varType.classNode.name;
+      }
+    } else if (receiver is ThisExpression) {
+      return 'this'; // 或者根据上下文确定具体类型
+    } else if (receiver is PropertyGet) {
+      // 递归获取属性所有者的类型
+      return _getReceiverTypeStatic(receiver.receiver);
+    }
+    return 'dynamic'; // 默认类型
+  }
+
   /// 全局：const常量收集器
   static final Map<String, String> _globalConstConstants = {};
 
@@ -1434,7 +1504,7 @@ class DartToDartTransformer {
       "import 'dart:math';",
       "import 'dart:typed_data';",
       "import 'lib/demo/box.dart';",
-      "import 'lib/demo/function_wrapper.dart';",
+      "import 'lib/demo/function.dart';",
     ];
 
     for (final import in imports) {
@@ -2045,6 +2115,96 @@ class DartToDartTransformer {
       }
       _generateGlobalVariable(field);
     }
+
+    // 处理 extension
+    for (final extension in library.extensions) {
+      if (!hasGlobalMembers) {
+        _writeLine('/// 全局函数和变量');
+        _writeLine('/// 源文件路径: $filePath');
+        _writeLine('');
+        hasGlobalMembers = true;
+      }
+      _generateExtension(extension);
+    }
+  }
+
+  /// 生成 extension
+  void _generateExtension(Extension extension) {
+    final extensionName = extension.name ?? 'AnonymousExtension';
+    final extendedType = _getDartType(extension.onType);
+
+    // 不再需要单独的注释，因为原始方法实现已经包含了足够的信息
+
+    // 处理 extension 中的方法
+    for (final member in extension.memberDescriptors) {
+      final methodName = member.name.text;
+      final functionName = '${extensionName}_$methodName'
+          .replaceAll('|', '_')
+          .replaceAll('#', '_');
+
+      // 注册 extension 方法
+      DartToDartTransformer._registerExtensionMethod(
+          extensionName, methodName, extendedType);
+
+      // 注意：不再生成多余的全局函数包装器，因为原始的 extension 方法实现已经足够
+      // _generateExtensionMethodAsGlobalFunction(
+      //     extension, member, functionName, extendedType);
+
+      // 生成 getter 函数（用于属性访问）
+      if (member.kind == ExtensionMemberKind.Getter) {
+        _generateExtensionGetterWrapper(
+            extensionName, methodName, extendedType);
+      }
+    }
+  }
+
+  /// 将 extension 方法转换为全局函数
+  void _generateExtensionMethodAsGlobalFunction(
+      Extension extension,
+      ExtensionMemberDescriptor member,
+      String functionName,
+      String extendedType) {
+    final extensionName = extension.name ?? 'AnonymousExtension';
+    final methodName = member.name.text;
+
+    // 参数列表：添加 receiver 参数
+    final params = <String>[];
+    params.add('$extendedType _this');
+
+    final paramList = params.join(', ');
+
+    // 生成函数签名
+    _writeLine('dynamic $functionName($paramList) {');
+
+    // 调用原始的 extension 方法实现
+    final originalFunctionName = '${extensionName}|$methodName';
+    _writeLine('  return $originalFunctionName(_this);');
+
+    _writeLine('}');
+    _writeLine('');
+  }
+
+  /// 生成 extension getter 的包装器
+  void _generateExtensionGetterWrapper(
+      String extensionName, String methodName, String extendedType) {
+    final functionName = '${extensionName}_$methodName'
+        .replaceAll('|', '_')
+        .replaceAll('#', '_');
+
+    // 替换 extensionName 和 methodName 中的特殊字符
+    final cleanExtensionName =
+        extensionName.replaceAll('|', '_').replaceAll('#', '_');
+    final cleanMethodName =
+        methodName.replaceAll('|', '_').replaceAll('#', '_');
+
+    final returnType = 'FunctionWrapper<dynamic Function()>'; // 简化类型
+
+    _writeLine(
+        '$returnType ${cleanExtensionName}_get_${cleanMethodName}($extendedType _this) {');
+    _writeLine(
+        '  return FunctionWrapper<dynamic Function()>([], () { return $functionName(_this); });');
+    _writeLine('}');
+    _writeLine('');
   }
 
   /// 生成全局函数
@@ -2340,13 +2500,33 @@ class DartToDartTransformer {
   /// 将生成的代码写入指定的输出文件。如果写入失败，会打印错误信息但不会抛出异常。
   void _writeOutput() {
     try {
+      // 后处理：替换函数名中的特殊字符
+      var processedCode = _postProcessFunctionNames(_buffer.toString());
+
       final outputFile = File(DartConstants.defaultOutputPath);
-      outputFile.writeAsStringSync(_buffer.toString());
+      outputFile.writeAsStringSync(processedCode);
       print('代码已成功写入: ${DartConstants.defaultOutputPath}');
     } catch (e) {
       print('警告：无法写入输出文件 ${DartConstants.defaultOutputPath}: $e');
       // 继续执行，不中断程序
     }
+  }
+
+  /// 后处理函数名，将特殊字符替换为下划线
+  String _postProcessFunctionNames(String code) {
+    // 使用正则表达式替换函数名中的特殊字符
+    // 处理多种情况：word|word, word#word, word|word#word 等
+    var processedCode = code;
+
+    // 替换 | 字符
+    processedCode = processedCode.replaceAllMapped(RegExp(r'(\w+)\|(\w+)'),
+        (match) => '${match.group(1)!}_${match.group(2)!}');
+
+    // 替换 # 字符
+    processedCode = processedCode.replaceAllMapped(RegExp(r'(\w+)#(\w+)'),
+        (match) => '${match.group(1)!}_${match.group(2)!}');
+
+    return processedCode;
   }
 
   /// 获取生成的代码
@@ -3412,6 +3592,20 @@ String _generateExpressionCode2(Expression expression,
       return '$receiver.call($allArgs)';
     }
 
+    // 检查是否是 extension 方法调用
+    final receiverType =
+        DartToDartTransformer._getReceiverTypeStatic(expression.receiver);
+    final extensionName =
+        DartToDartTransformer._getExtensionType(name, receiverType);
+    if (extensionName != null) {
+      // 是 extension 方法，转换为全局函数调用
+      final cleanExtensionName =
+          extensionName.replaceAll('|', '_').replaceAll('#', '_');
+      final cleanMethodName = name.replaceAll('|', '_').replaceAll('#', '_');
+      final functionName = '${cleanExtensionName}_${cleanMethodName}';
+      return '$functionName($receiver, $allArgs)';
+    }
+
     return '$receiver.$name($allArgs)';
   } else if (expression is PropertyGet) {
     final receiverRaw = _generateExpressionCode(expression.receiver,
@@ -3427,6 +3621,20 @@ String _generateExpressionCode2(Expression expression,
       }
       // 否则生成取负表达式
       return '-$receiver';
+    }
+
+    // 检查是否是 extension getter 调用
+    final receiverType =
+        DartToDartTransformer._getReceiverTypeStatic(expression.receiver);
+    final extensionName =
+        DartToDartTransformer._getExtensionType(name, receiverType);
+    if (extensionName != null) {
+      // 是 extension getter，转换为全局函数调用
+      final cleanExtensionName =
+          extensionName.replaceAll('|', '_').replaceAll('#', '_');
+      final cleanMethodName = name.replaceAll('|', '_').replaceAll('#', '_');
+      final getterName = '${cleanExtensionName}_get_${cleanMethodName}';
+      return '$getterName($receiver)';
     }
 
     return '$receiver.$name';

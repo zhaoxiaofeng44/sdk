@@ -17,3 +17,15 @@ extension ObjectExt on Object {
     throw "Cannot convert to CppString";
   }
 }
+
+// 测试 extension 方法调用
+void testExtensionCall(Object obj) {
+  var result = obj.toCppString();
+  print(result);
+}
+
+// 测试 extension getter 调用
+void testExtensionGetter(Object obj) {
+  var getter = obj.toCppString;
+  print(getter);
+}
