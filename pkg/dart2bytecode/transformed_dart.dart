@@ -72,8 +72,8 @@ abstract class CppIterable<E> extends CppAny {
         result = it.current;
       }
       return (() {
-        final E? temp_3250 = result;
-        return temp_3250 == null ? (temp_3250 as E) : temp_3250;
+        final E? temp_3325 = result;
+        return temp_3325 == null ? (temp_3325 as E) : temp_3325;
       })();
     }
   }
@@ -191,8 +191,8 @@ abstract class CppIterable<E> extends CppAny {
       }
       if (found)
         return (() {
-          final E? temp_3258 = result;
-          return temp_3258 == null ? (temp_3258 as E) : temp_3258;
+          final E? temp_3333 = result;
+          return temp_3333 == null ? (temp_3333 as E) : temp_3333;
         })();
       if (!(orElse == null)) return orElse.call();
       throw CppStateError(const_0);
@@ -214,8 +214,8 @@ abstract class CppIterable<E> extends CppAny {
       }
       if (found)
         return (() {
-          final E? temp_3266 = result;
-          return temp_3266 == null ? (temp_3266 as E) : temp_3266;
+          final E? temp_3341 = result;
+          return temp_3341 == null ? (temp_3341 as E) : temp_3341;
         })();
       if (!(orElse == null)) return orElse.call();
       throw CppStateError(const_0);
@@ -382,8 +382,8 @@ class CppMappedIterator<S, T> extends CppIterator<T> {
 
   T get current {
     return (() {
-      final T? temp_3274 = this._current;
-      return temp_3274 == null ? (temp_3274 as T) : temp_3274;
+      final T? temp_3349 = this._current;
+      return temp_3349 == null ? (temp_3349 as T) : temp_3349;
     })();
   }
 
@@ -391,8 +391,8 @@ class CppMappedIterator<S, T> extends CppIterator<T> {
     {
       if (this._iterator.moveNext()) {
         this._current = (() {
-          final S temp_6861_3570 = this._iterator.current;
-          return this._f.call(temp_6861_3570);
+          final S temp_6861_3582 = this._iterator.current;
+          return this._f.call(temp_6861_3582);
         })();
         return true;
       }
@@ -455,8 +455,8 @@ class CppWhereIterator<E> extends CppIterator<E> {
     {
       while (this._iterator.moveNext()) {
         if ((() {
-          final E temp_7669_3656 = this._iterator.current;
-          return this._test.call(temp_7669_3656);
+          final E temp_7669_3668 = this._iterator.current;
+          return this._test.call(temp_7669_3668);
         })()) {
           return true;
         }
@@ -584,8 +584,8 @@ class CppExpandIterator<S, T> extends CppIterator<T> {
           return false;
         }
         this._currentIterator = (() {
-          final S temp_9458_3837 = this._iterator.current;
-          return this._f.call(temp_9458_3837);
+          final S temp_9458_3849 = this._iterator.current;
+          return this._f.call(temp_9458_3849);
         })()
             .iterator;
       }
@@ -704,8 +704,8 @@ class CppTakeWhileIterator<E> extends CppIterator<E> {
       if (this._finished) return false;
       if (this._iterator.moveNext()) {
         if ((() {
-          final E temp_11073_4018 = this._iterator.current;
-          return this._test.call(temp_11073_4018);
+          final E temp_11073_4030 = this._iterator.current;
+          return this._test.call(temp_11073_4030);
         })()) {
           return true;
         }
@@ -827,8 +827,8 @@ class CppSkipWhileIterator<E> extends CppIterator<E> {
       if (!(this._skipped)) {
         while (this._iterator.moveNext()) {
           if (!((() {
-            final E temp_12783_4220 = this._iterator.current;
-            return this._test.call(temp_12783_4220);
+            final E temp_12783_4232 = this._iterator.current;
+            return this._test.call(temp_12783_4232);
           })())) {
             this._skipped = true;
             return true;
@@ -1066,8 +1066,8 @@ class _CppGenerateIterator<E> extends CppIterator<E> {
 
   E get current {
     return (() {
-      final E? temp_3282 = this._current;
-      return temp_3282 == null ? (temp_3282 as E) : temp_3282;
+      final E? temp_3357 = this._current;
+      return temp_3357 == null ? (temp_3357 as E) : temp_3357;
     })();
   }
 
@@ -1075,14 +1075,14 @@ class _CppGenerateIterator<E> extends CppIterator<E> {
     {
       if ((this._index < this._count)) {
         this._current = (() {
-          final int temp_16027_4527 = (() {
-            final int temp_16027_4495 = this._index;
+          final int temp_16027_4539 = (() {
+            final int temp_16027_4507 = this._index;
             return (() {
-              final int temp_16021_4500 = this._index = (temp_16027_4495 + 1);
-              return temp_16027_4495;
+              final int temp_16021_4512 = this._index = (temp_16027_4507 + 1);
+              return temp_16027_4507;
             })();
           })();
-          return this._generator.call(temp_16027_4527);
+          return this._generator.call(temp_16027_4539);
         })();
         return true;
       }
@@ -1308,16 +1308,16 @@ class CppStringBuffer {
       CppIterator<dynamic?> iterator = objects.iterator;
       if (iterator.moveNext()) {
         this._parts.add(CppStringBuffer._convertStringToUserData((() {
-          final dynamic? temp_3298 = iterator.current;
-          return temp_3298 == null ? (temp_3298 as Object) : temp_3298;
+          final dynamic? temp_3373 = iterator.current;
+          return temp_3373 == null ? (temp_3373 as Object) : temp_3373;
         })()));
         while (iterator.moveNext()) {
           if (!(separator == null) && separator.isNotEmpty) {
             this._parts.add(separator._codeUnits);
           }
           this._parts.add(CppStringBuffer._convertStringToUserData((() {
-            final dynamic? temp_3306 = iterator.current;
-            return temp_3306 == null ? (temp_3306 as Object) : temp_3306;
+            final dynamic? temp_3381 = iterator.current;
+            return temp_3381 == null ? (temp_3381 as Object) : temp_3381;
           })()));
         }
       }
@@ -2089,8 +2089,8 @@ class _CppStringAllMatchesIterator extends CppAny
 
   CppStringMatch get current {
     return (() {
-      final CppStringMatch? temp_3314 = this._current;
-      return temp_3314 == null ? (temp_3314 as CppStringMatch) : temp_3314;
+      final CppStringMatch? temp_3389 = this._current;
+      return temp_3389 == null ? (temp_3389 as CppStringMatch) : temp_3389;
     })();
   }
 }
@@ -2317,10 +2317,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
         CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
         for (; _sync_for_iterator.moveNext();) {
           CppApi.cppSetPointerArrayItem(array, (() {
-            final int temp_5346_7999 = i;
+            final int temp_5346_8074 = i;
             return (() {
-              final int temp_5346_8003 = i = (temp_5346_7999 + 1);
-              return temp_5346_7999;
+              final int temp_5346_8078 = i = (temp_5346_8074 + 1);
+              return temp_5346_8074;
             })();
           })(), _sync_for_iterator.current);
         }
@@ -2357,10 +2357,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
         CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
         for (; _sync_for_iterator.moveNext();) {
           CppApi.cppSetPointerArrayItem(array, (() {
-            final int temp_6337_8103 = i;
+            final int temp_6337_8178 = i;
             return (() {
-              final int temp_6337_8107 = i = (temp_6337_8103 + 1);
-              return temp_6337_8103;
+              final int temp_6337_8182 = i = (temp_6337_8178 + 1);
+              return temp_6337_8178;
             })();
           })(), (_sync_for_iterator.current as E));
         }
@@ -2400,10 +2400,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     {
       this.ensureCapacity((this._length + 1));
       CppApi.cppSetPointerArrayItem(this._array, (() {
-        final int temp_7465_8262 = this._length;
+        final int temp_7465_8337 = this._length;
         return (() {
-          final int temp_7458_8267 = this._length = (temp_7465_8262 + 1);
-          return temp_7465_8262;
+          final int temp_7458_8342 = this._length = (temp_7465_8337 + 1);
+          return temp_7465_8337;
         })();
       })(), value);
     }
@@ -2480,8 +2480,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     {
       for (int i = start; (i < end); i = (i + 1)) {
         CppApi.cppSetPointerArrayItem(this._array, i, (() {
-          final E? temp_3322 = fillValue;
-          return temp_3322 == null ? (temp_3322 as E) : temp_3322;
+          final E? temp_3397 = fillValue;
+          return temp_3397 == null ? (temp_3397 as E) : temp_3397;
         })());
       }
     }
@@ -3597,19 +3597,19 @@ class CppArrayMap<K, V> extends CppAny implements CppMap<K, V> {
         for (; _sync_for_iterator.moveNext();) {
           dynamic? element = _sync_for_iterator.current;
           dynamic? k = ((() {
-                final FunctionWrapper<K Function(dynamic?)>? temp_33078_1667 =
+                final FunctionWrapper<K Function(dynamic?)>? temp_33078_1742 =
                     key;
-                return temp_33078_1667 == null
+                return temp_33078_1742 == null
                     ? null
-                    : temp_33078_1667.call(element);
+                    : temp_33078_1742.call(element);
               })()) ??
               (element);
           dynamic? v = ((() {
-                final FunctionWrapper<V Function(dynamic?)>? temp_33125_1677 =
+                final FunctionWrapper<V Function(dynamic?)>? temp_33125_1752 =
                     value;
-                return temp_33125_1677 == null
+                return temp_33125_1752 == null
                     ? null
-                    : temp_33125_1677.call(element);
+                    : temp_33125_1752.call(element);
               })()) ??
               (element);
           map[(k as K)] = (v as V);
@@ -3650,12 +3650,12 @@ class CppArrayMap<K, V> extends CppAny implements CppMap<K, V> {
     {
       other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) {
         return (() {
-          final K temp_34552_1914 = k;
+          final K temp_34552_1989 = k;
           return (() {
-            final V temp_34558_1916 = v;
+            final V temp_34558_1991 = v;
             return (() {
-              this[temp_34552_1914] = temp_34558_1916;
-              temp_34558_1916;
+              this[temp_34552_1989] = temp_34558_1991;
+              temp_34558_1991;
             })();
           })();
         })();

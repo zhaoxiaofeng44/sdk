@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dart2bytecode/demo/object.dart';
 
 import 'string.dart';
@@ -66,5 +68,22 @@ class CppApi {
 
   static CppUserData cppCharCodes(Object? value) {
     return CppUserData.constant(value.toString().codeUnits);
+  }
+
+  static CppUserData cppCreateAsyncTask() {
+    CppUserData userData = CppUserData();
+    userData.data.length = 3;
+    userData.data[0] = Completer();
+    userData.data[1] = false;
+    userData.data[2] = null;
+    return userData;
+  }
+
+  static Future<void> cppAwaitAsyncTask(CppUserData taskData) {
+    return (CppApi.cppGetPointerArrayItem(taskData, 0) as Completer).future;
+  }
+
+  static Object? cppGetAsyncTaskResult(CppUserData taskData) {
+    return taskData.data[2];
   }
 }
