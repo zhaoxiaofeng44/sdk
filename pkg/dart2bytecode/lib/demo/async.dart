@@ -26,11 +26,11 @@
 // // class NativeAsyncTask<T> implements AsyncTask<T> {
 // //   CppUserData _taskData;
 
-// //   NativeAsyncTask() : _taskData = CppApi.cppCreateAsyncTask();
+// //   NativeAsyncTask() : _taskData = native_cppCreateAsyncTask();
 // //   @override
-// //   bool get isDone => CppApi.cppGetPointerArrayItem(_taskData, 1) as bool;
+// //   bool get isDone => native_cppGetPointerArrayItem(_taskData, 1) as bool;
 // //   @override
-// //   T get result => CppApi.cppGetPointerArrayItem(_taskData, 2) as T;
+// //   T get result => native_cppGetPointerArrayItem(_taskData, 2) as T;
 // //   @override
 // //   void start() {
 // //     AsyncQueue.instance.runAsync(this);
@@ -38,7 +38,7 @@
 
 // //   @override
 // //   void complete() {
-// //     CppApi.cppCompleteAsyncTask(_taskData);
+// //     native_cppCompleteAsyncTask(_taskData);
 // //   }
 
 // //   @override
@@ -47,8 +47,8 @@
 // //   }
 // // }
 // Future<T> _createAsyncTaskFuture<T>(CppUserData userData) async {
-//   await CppApi.cppAwaitAsyncTask(userData);
-//   return CppApi.cppGetAsyncTaskResult(userData) as T;
+//   await native_cppAwaitAsyncTask(userData);
+//   return native_cppGetAsyncTaskResult(userData) as T;
 // }
 
 // class AsyncTaskFuture<T> implements Future<T> {

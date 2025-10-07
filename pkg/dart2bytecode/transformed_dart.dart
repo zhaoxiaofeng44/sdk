@@ -20,6 +20,7 @@ final Void = null;
 /// AC -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/string.dart
 /// AD -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/collection.dart
 /// AE -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/error.dart
+/// AF -> /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/box.dart
 
 /// 转换后的类: CppIterator
 /// 原始类名: CppIterator
@@ -72,7 +73,7 @@ const CppIterable() : super()  ;
   while (it.moveNext()) {
   result = it.current;
 }
-  return (() { final E? temp_3325 = result; return temp_3325 == null ? (temp_3325 as E) : temp_3325; })();
+  return (() { final E? temp_3764 = result; return temp_3764 == null ? (temp_3764 as E) : temp_3764; })();
 }
   }
   
@@ -184,7 +185,7 @@ const CppIterable() : super()  ;
   found = true;
 }
 }
-  if (found) return (() { final E? temp_3333 = result; return temp_3333 == null ? (temp_3333 as E) : temp_3333; })();
+  if (found) return (() { final E? temp_3772 = result; return temp_3772 == null ? (temp_3772 as E) : temp_3772; })();
   if (!(orElse == null)) return orElse.call();
   throw CppStateError(const_0);
 }
@@ -202,7 +203,7 @@ const CppIterable() : super()  ;
   found = true;
 }
 }
-  if (found) return (() { final E? temp_3341 = result; return temp_3341 == null ? (temp_3341 as E) : temp_3341; })();
+  if (found) return (() { final E? temp_3780 = result; return temp_3780 == null ? (temp_3780 as E) : temp_3780; })();
   if (!(orElse == null)) return orElse.call();
   throw CppStateError(const_0);
 }
@@ -282,13 +283,13 @@ const CppIterable() : super()  ;
   
   CppList<E> toList({bool growable = const_4}) {
     {
-  return CppList<E>.from((this as CppIterable<dynamic?>), growable: growable);
+  return CppList<E>.from(this, growable: growable);
 }
   }
   
   CppSet<E> toSet() {
     {
-  return CppSet<E>.from((this as CppIterable<dynamic?>));
+  return CppSet<E>.from(this);
 }
   }
   
@@ -356,13 +357,13 @@ CppMappedIterator(CppIterator<S> _iterator, FunctionWrapper<T Function(S)> _f) :
   }
   
   T get current {
-    return (() { final T? temp_3349 = this._current; return temp_3349 == null ? (temp_3349 as T) : temp_3349; })();
+    return (() { final T? temp_3788 = this._current; return temp_3788 == null ? (temp_3788 as T) : temp_3788; })();
   }
   
   bool moveNext() {
     {
   if (this._iterator.moveNext()) {
-  this._current = (() { final S temp_6861_3582 = this._iterator.current; return this._f.call(temp_6861_3582); })();
+  this._current = (() { final S temp_6813_3730 = this._iterator.current; return this._f.call(temp_6813_3730); })();
   return true;
 }
   return false;
@@ -417,7 +418,7 @@ CppWhereIterator(CppIterator<E> _iterator, FunctionWrapper<bool Function(E)> _te
   bool moveNext() {
     {
   while (this._iterator.moveNext()) {
-  if ((() { final E temp_7669_3668 = this._iterator.current; return this._test.call(temp_7669_3668); })()) {
+  if ((() { final E temp_7621_3816 = this._iterator.current; return this._test.call(temp_7621_3816); })()) {
   return true;
 }
 }
@@ -534,7 +535,7 @@ CppExpandIterator(CppIterator<S> _iterator, FunctionWrapper<CppIterable<T> Funct
   if (!(this._iterator.moveNext())) {
   return false;
 }
-  this._currentIterator = (() { final S temp_9458_3849 = this._iterator.current; return this._f.call(temp_9458_3849); })().iterator;
+  this._currentIterator = (() { final S temp_9410_3997 = this._iterator.current; return this._f.call(temp_9410_3997); })().iterator;
 }
 }
   }
@@ -639,7 +640,7 @@ CppTakeWhileIterator(CppIterator<E> _iterator, FunctionWrapper<bool Function(E)>
     {
   if (this._finished) return false;
   if (this._iterator.moveNext()) {
-  if ((() { final E temp_11073_4030 = this._iterator.current; return this._test.call(temp_11073_4030); })()) {
+  if ((() { final E temp_11025_4178 = this._iterator.current; return this._test.call(temp_11025_4178); })()) {
   return true;
 }
   this._finished = true;
@@ -749,7 +750,7 @@ CppSkipWhileIterator(CppIterator<E> _iterator, FunctionWrapper<bool Function(E)>
     {
   if (!(this._skipped)) {
   while (this._iterator.moveNext()) {
-  if (!((() { final E temp_12783_4232 = this._iterator.current; return this._test.call(temp_12783_4232); })())) {
+  if (!((() { final E temp_12735_4380 = this._iterator.current; return this._test.call(temp_12735_4380); })())) {
   this._skipped = true;
   return true;
 }
@@ -973,13 +974,13 @@ _CppGenerateIterator(int _count, FunctionWrapper<E Function(int)> _generator) : 
   }
   
   E get current {
-    return (() { final E? temp_3357 = this._current; return temp_3357 == null ? (temp_3357 as E) : temp_3357; })();
+    return (() { final E? temp_3796 = this._current; return temp_3796 == null ? (temp_3796 as E) : temp_3796; })();
   }
   
   bool moveNext() {
     {
   if ((this._index < this._count)) {
-  this._current = (() { final int temp_16027_4539 = (() { final int temp_16027_4507 = this._index; return (() { final int temp_16021_4512 = this._index = (temp_16027_4507 + 1); return temp_16027_4507; })(); })(); return this._generator.call(temp_16027_4539); })();
+  this._current = (() { final int temp_15979_4687 = (() { final int temp_15979_4655 = this._index; return (() { final int temp_15973_4660 = this._index = (temp_15979_4655 + 1); return temp_15979_4655; })(); })(); return this._generator.call(temp_15979_4687); })();
   return true;
 }
   return false;
@@ -1069,7 +1070,7 @@ const CppAny() : super()  ;
 
 class CppStringPool {
   static final CppStringPool _instance = CppStringPool._internal();
-  final CppList<CppUserData> _pool = CppList<CppUserData>.from((CppArrayList<CppUserData>.fromCppArray(CppApi.cppArrayConst(1, const CppUserData.constant(const_3))) as CppIterable<dynamic?>));
+  final CppList<CppUserData> _pool = CppList<CppUserData>.from((CppArrayList<CppUserData>.fromCppArray(native_cppArrayConst(1, const CppUserData.constant(const_3))) as CppIterable<dynamic?>));
 CppStringPool._internal() : super()   {
     ;
   }
@@ -1089,9 +1090,9 @@ CppStringPool._internal() : super()   {
 }
 }
 }
-  CppUserData userData = CppApi.cppCreatePointerArray(codeUnits.length);
+  CppUserData userData = native_cppCreatePointerArray(codeUnits.length);
   for (int i = 0; (i < codeUnits.length); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(userData, i, codeUnits[i]);
+  native_cppSetPointerArrayItem(userData, i, codeUnits[i]);
 }
   this._pool.add(userData);
   return userData;
@@ -1110,10 +1111,10 @@ CppStringPool._internal() : super()   {
   
   bool _compareUserData(CppUserData userData, CppList<int> codeUnits) {
     {
-  int length = CppApi.cppGetPointerArrayLength(userData);
+  int length = native_cppGetPointerArrayLength(userData);
   if (!(length == codeUnits.length)) return false;
   for (int i = 0; (i < length); i = (i + 1)) {
-  if (!(CppApi.cppGetPointerArrayItem(userData, i) == codeUnits[i])) {
+  if (!(native_cppGetPointerArrayItem(userData, i) == codeUnits[i])) {
   return false;
 }
 }
@@ -1134,7 +1135,7 @@ CppStringPool._internal() : super()   {
   CppIterator<CppUserData> _sync_for_iterator = this._pool.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   CppUserData userData = _sync_for_iterator.current;
-  totalMemory = (totalMemory + CppApi.cppGetPointerArrayLength(userData));
+  totalMemory = (totalMemory + native_cppGetPointerArrayLength(userData));
 }
 }
   return CppStringPoolStats(totalStrings: this._pool.length, totalMemory: totalMemory);
@@ -1168,7 +1169,7 @@ CppStringPoolStats({required int totalStrings, required int totalMemory}) : tota
 
 class CppStringBuffer {
   final CppList<CppUserData> _parts;
-CppStringBuffer([Object content = const_11]) : _parts = CppList<CppUserData>.from((CppArrayList<CppUserData>.fromCppArray(CppApi.cppArrayConst(1, CppStringBuffer._convertStringToUserData(content))) as CppIterable<dynamic?>)), super()   {
+CppStringBuffer([Object content = const_11]) : _parts = CppList<CppUserData>.from((CppArrayList<CppUserData>.fromCppArray(native_cppArrayConst(1, CppStringBuffer._convertStringToUserData(content))) as CppIterable<dynamic?>)), super()   {
     ;
   }
   
@@ -1183,12 +1184,12 @@ CppStringBuffer([Object content = const_11]) : _parts = CppList<CppUserData>.fro
     {
   CppIterator<dynamic?> iterator = objects.iterator;
   if (iterator.moveNext()) {
-  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3373 = iterator.current; return temp_3373 == null ? (temp_3373 as Object) : temp_3373; })()));
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3812 = iterator.current; return temp_3812 == null ? (temp_3812 as Object) : temp_3812; })()));
   while (iterator.moveNext()) {
   if (!(separator == null) && separator.isNotEmpty) {
   this._parts.add(separator._codeUnits);
 }
-  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3381 = iterator.current; return temp_3381 == null ? (temp_3381 as Object) : temp_3381; })()));
+  this._parts.add(CppStringBuffer._convertStringToUserData((() { final dynamic? temp_3820 = iterator.current; return temp_3820 == null ? (temp_3820 as Object) : temp_3820; })()));
 }
 }
 }
@@ -1222,9 +1223,9 @@ CppStringBuffer([Object content = const_11]) : _parts = CppList<CppUserData>.fro
   CppIterator<CppUserData> _sync_for_iterator = this._parts.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   CppUserData part = _sync_for_iterator.current;
-  int length = CppApi.cppGetPointerArrayLength(part);
+  int length = native_cppGetPointerArrayLength(part);
   for (int i = 0; (i < length); i = (i + 1)) {
-  codeUnits.add((CppApi.cppGetPointerArrayItem(part, i) as int));
+  codeUnits.add(asInt(native_cppGetPointerArrayItem(part, i)));
 }
 }
 }
@@ -1239,7 +1240,7 @@ CppStringBuffer([Object content = const_11]) : _parts = CppList<CppUserData>.fro
   CppIterator<CppUserData> _sync_for_iterator = this._parts.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   CppUserData part = _sync_for_iterator.current;
-  totalLength = (totalLength + CppApi.cppGetPointerArrayLength(part));
+  totalLength = (totalLength + native_cppGetPointerArrayLength(part));
 }
 }
   return totalLength;
@@ -1300,7 +1301,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
     {
   CppList<int> codeUnits = CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  codeUnits.add((CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int));
+  codeUnits.add(asInt(native_cppGetPointerArrayItem(this._codeUnits, i)));
 }
   return CppString.fromCharCodes((codeUnits as CppIterable<int>));
 }
@@ -1312,7 +1313,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   int otherLength = other.length;
   if (!(thisLength == otherLength)) return false;
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  if (!(CppApi.cppGetPointerArrayItem(this._codeUnits, i) == CppApi.cppGetPointerArrayItem(other._codeUnits, i))) {
+  if (!(native_cppGetPointerArrayItem(this._codeUnits, i) == native_cppGetPointerArrayItem(other._codeUnits, i))) {
   return false;
 }
 }
@@ -1321,7 +1322,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   }
   
   int get length {
-    return CppApi.cppGetPointerArrayLength(this._codeUnits);
+    return native_cppGetPointerArrayLength(this._codeUnits);
   }
   
   bool get isEmpty {
@@ -1336,7 +1337,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
     {
   int hash = 0;
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  hash = (((hash * 31) + (CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int)) & 2147483647);
+  hash = (((hash * 31) + asInt(native_cppGetPointerArrayItem(this._codeUnits, i))) & 2147483647);
 }
   return hash;
 }
@@ -1347,7 +1348,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   if ((index < 0) || (index >= this.length)) {
   throw CppIndexError(index, this, const_13);
 }
-  return (CppApi.cppGetPointerArrayItem(this._codeUnits, index) as int);
+  return asInt(native_cppGetPointerArrayItem(this._codeUnits, index));
 }
   }
   
@@ -1356,7 +1357,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   int thisLength = this.length;
   CppList<int> units = CppList<int>.empty(growable: true);
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  units.add((CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int));
+  units.add(asInt(native_cppGetPointerArrayItem(this._codeUnits, i)));
 }
   return units;
 }
@@ -1372,8 +1373,8 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   int otherLength = other.length;
   int minLength = (thisLength < otherLength) ? thisLength : otherLength;
   for (int i = 0; (i < minLength); i = (i + 1)) {
-  int thisCodeUnit = (CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int);
-  int otherCodeUnit = (CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int);
+  int thisCodeUnit = asInt(native_cppGetPointerArrayItem(this._codeUnits, i));
+  int otherCodeUnit = asInt(native_cppGetPointerArrayItem(other._codeUnits, i));
   if (!(thisCodeUnit == otherCodeUnit)) {
   return (thisCodeUnit - otherCodeUnit);
 }
@@ -1387,7 +1388,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   if ((index < 0) || (index >= this.length)) return false;
   if (((index + pattern.length) > this.length)) return false;
   for (int i = 0; (i < pattern.length); i = (i + 1)) {
-  if (!((CppApi.cppGetPointerArrayItem(this._codeUnits, (index + i)) as int) == (CppApi.cppGetPointerArrayItem(pattern._codeUnits, i) as int))) {
+  if (!(asInt(native_cppGetPointerArrayItem(this._codeUnits, (index + i))) == asInt(native_cppGetPointerArrayItem(pattern._codeUnits, i)))) {
   return false;
 }
 }
@@ -1400,7 +1401,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   if ((other.length > this.length)) return false;
   int startIndex = (this.length - other.length);
   for (int i = 0; (i < other.length); i = (i + 1)) {
-  if (!((CppApi.cppGetPointerArrayItem(this._codeUnits, (startIndex + i)) as int) == (CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int))) {
+  if (!(asInt(native_cppGetPointerArrayItem(this._codeUnits, (startIndex + i))) == asInt(native_cppGetPointerArrayItem(other._codeUnits, i)))) {
   return false;
 }
 }
@@ -1416,7 +1417,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   for (int i = start; (i <= (this.length - pattern.length)); i = (i + 1)) {
   bool match = true;
   label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
-  if (!((CppApi.cppGetPointerArrayItem(this._codeUnits, (i + j)) as int) == (CppApi.cppGetPointerArrayItem(pattern._codeUnits, j) as int))) {
+  if (!(asInt(native_cppGetPointerArrayItem(this._codeUnits, (i + j))) == asInt(native_cppGetPointerArrayItem(pattern._codeUnits, j)))) {
   match = false;
   break;
 }
@@ -1436,7 +1437,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   for (int i = start; (i >= 0); i = (i - 1)) {
   bool match = true;
   label: for (int j = 0; (j < pattern.length); j = (j + 1)) {
-  if (!((CppApi.cppGetPointerArrayItem(this._codeUnits, (i + j)) as int) == (CppApi.cppGetPointerArrayItem(pattern._codeUnits, j) as int))) {
+  if (!(asInt(native_cppGetPointerArrayItem(this._codeUnits, (i + j))) == asInt(native_cppGetPointerArrayItem(pattern._codeUnits, j)))) {
   match = false;
   break;
 }
@@ -1462,7 +1463,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   int newLength = (end - start);
   CppList<int> newCodeUnits = CppList<int>.empty(growable: true);
   for (int i = 0; (i < newLength); i = (i + 1)) {
-  int codeUnit = (CppApi.cppGetPointerArrayItem(this._codeUnits, (start + i)) as int);
+  int codeUnit = asInt(native_cppGetPointerArrayItem(this._codeUnits, (start + i)));
   newCodeUnits.add(codeUnit);
 }
   return CppString.fromCodeUnits(newCodeUnits);
@@ -1473,10 +1474,10 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
     {
   int start = 0;
   int end = this.length;
-  while ((start < end) && this._isWhitespace((CppApi.cppGetPointerArrayItem(this._codeUnits, start) as int))) {
+  while ((start < end) && this._isWhitespace(asInt(native_cppGetPointerArrayItem(this._codeUnits, start)))) {
   start = (start + 1);
 }
-  while ((end > start) && this._isWhitespace((CppApi.cppGetPointerArrayItem(this._codeUnits, (end - 1)) as int))) {
+  while ((end > start) && this._isWhitespace(asInt(native_cppGetPointerArrayItem(this._codeUnits, (end - 1))))) {
   end = (end - 1);
 }
   return this.substring(start, end);
@@ -1486,7 +1487,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   CppString trimLeft() {
     {
   int start = 0;
-  while ((start < this.length) && this._isWhitespace((CppApi.cppGetPointerArrayItem(this._codeUnits, start) as int))) {
+  while ((start < this.length) && this._isWhitespace(asInt(native_cppGetPointerArrayItem(this._codeUnits, start)))) {
   start = (start + 1);
 }
   return this.substring(start);
@@ -1496,7 +1497,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   CppString trimRight() {
     {
   int end = this.length;
-  while ((end > 0) && this._isWhitespace((CppApi.cppGetPointerArrayItem(this._codeUnits, (end - 1)) as int))) {
+  while ((end > 0) && this._isWhitespace(asInt(native_cppGetPointerArrayItem(this._codeUnits, (end - 1))))) {
   end = (end - 1);
 }
   return this.substring(0, end);
@@ -1597,7 +1598,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
     {
   CppList<int> resultCodeUnits = CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  int codeUnit = (CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int);
+  int codeUnit = asInt(native_cppGetPointerArrayItem(this._codeUnits, i));
   if ((codeUnit >= 65) && (codeUnit <= 90)) {
   codeUnit = (codeUnit + 32);
 }
@@ -1611,7 +1612,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
     {
   CppList<int> resultCodeUnits = CppList<int>.empty(growable: true);
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  int codeUnit = (CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int);
+  int codeUnit = asInt(native_cppGetPointerArrayItem(this._codeUnits, i));
   if ((codeUnit >= 97) && (codeUnit <= 122)) {
   codeUnit = (codeUnit - 32);
 }
@@ -1637,7 +1638,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
 }
   if (((start + this.length) > string.length)) return null;
   for (int i = 0; (i < this.length); i = (i + 1)) {
-  if (!((CppApi.cppGetPointerArrayItem(string._codeUnits, (start + i)) as int) == (CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int))) {
+  if (!(asInt(native_cppGetPointerArrayItem(string._codeUnits, (start + i))) == asInt(native_cppGetPointerArrayItem(this._codeUnits, i)))) {
   return null;
 }
 }
@@ -1678,7 +1679,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   if ((obj is CppString)) {
   return obj;
 }
-  return CppString.fromCppUserData(CppApi.cppToString(obj));
+  return CppString.fromCppUserData(native_cppToString(obj));
 }
   }
   
@@ -1702,11 +1703,11 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   for (int i = 0; (i < stringList.length); i = (i + 1)) {
   CppString str = stringList[i];
   for (int j = 0; (j < str.length); j = (j + 1)) {
-  newCodeUnits.add((CppApi.cppGetPointerArrayItem(str._codeUnits, j) as int));
+  newCodeUnits.add(asInt(native_cppGetPointerArrayItem(str._codeUnits, j)));
 }
   if ((i < (stringList.length - 1))) {
   for (int j = 0; (j < separator.length); j = (j + 1)) {
-  newCodeUnits.add((CppApi.cppGetPointerArrayItem(separator._codeUnits, j) as int));
+  newCodeUnits.add(asInt(native_cppGetPointerArrayItem(separator._codeUnits, j)));
 }
 }
 }
@@ -1720,7 +1721,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   if ((index < 0) || (index >= thisLength)) {
   throw CppIndexError(index, this, const_13);
 }
-  int codeUnit = (CppApi.cppGetPointerArrayItem(this._codeUnits, index) as int);
+  int codeUnit = asInt(native_cppGetPointerArrayItem(this._codeUnits, index));
   return CppString.fromCharCode(codeUnit);
 }
   }
@@ -1742,10 +1743,10 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   CppList<int> newCodeUnits = CppList<int>.empty(growable: true);
   ;
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  newCodeUnits.add((CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int));
+  newCodeUnits.add(asInt(native_cppGetPointerArrayItem(this._codeUnits, i)));
 }
   for (int i = 0; (i < otherLength); i = (i + 1)) {
-  newCodeUnits.add((CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int));
+  newCodeUnits.add(asInt(native_cppGetPointerArrayItem(other._codeUnits, i)));
 }
   return CppString.fromCodeUnits(newCodeUnits);
 }
@@ -1759,7 +1760,7 @@ CppString.fromCharCodes(CppIterable<int> charCodes, [int start = const_12, int? 
   CppList<int> newCodeUnits = CppList<int>.empty(growable: true);
   for (int repeat = 0; (repeat < times); repeat = (repeat + 1)) {
   for (int i = 0; (i < thisLength); i = (i + 1)) {
-  newCodeUnits.add((CppApi.cppGetPointerArrayItem(this._codeUnits, i) as int));
+  newCodeUnits.add(asInt(native_cppGetPointerArrayItem(this._codeUnits, i)));
 }
 }
   return CppString.fromCodeUnits(newCodeUnits);
@@ -1874,7 +1875,7 @@ _CppStringAllMatchesIterator(CppString _input, CppString _pattern, int _index) :
   }
   
   CppStringMatch get current {
-    return (() { final CppStringMatch? temp_3389 = this._current; return temp_3389 == null ? (temp_3389 as CppStringMatch) : temp_3389; })();
+    return (() { final CppStringMatch? temp_3828 = this._current; return temp_3828 == null ? (temp_3828 as CppStringMatch) : temp_3828; })();
   }
   
 }
@@ -2047,11 +2048,11 @@ abstract class CppList<E> extends CppIterable<E> {
 class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   late int _length;
   late CppUserData _array;
-CppArrayList.fromCppArray(CppUserData array) : _length = CppApi.cppGetPointerArrayLength(array), _array = array, super()   {
+CppArrayList.fromCppArray(CppUserData array) : _length = native_cppGetPointerArrayLength(array), _array = array, super()   {
     ;
   }
   
-CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCreatePointerArray(length), super()   {
+CppArrayList(int length, int capacity) : _length = length, _array = native_cppCreatePointerArray(length), super()   {
     ;
   }
   
@@ -2063,9 +2064,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   factory CppArrayList.filled(int length, E fill, {bool growable = const_15}) {
     {
-  CppUserData array = CppApi.cppCreatePointerArray(length);
+  CppUserData array = native_cppCreatePointerArray(length);
   for (int i = 0; (i < length); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(array, i, fill);
+  native_cppSetPointerArrayItem(array, i, native_cppBox(fill));
 }
   return CppArrayList<E>.fromCppArray(array);
 }
@@ -2074,12 +2075,12 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   factory CppArrayList.from(CppIterable<dynamic?> elements, {bool growable = const_4}) {
     {
   int length = elements.length;
-  CppUserData array = growable ? CppApi.cppCreatePointerArray(length) : CppApi.cppCreatePointerArray(CppArrayList._getSuggestCapacity(length));
+  CppUserData array = growable ? native_cppCreatePointerArray(length) : native_cppCreatePointerArray(CppArrayList._getSuggestCapacity(length));
   int i = 0;
   {
   CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_5346_8074 = i; return (() { final int temp_5346_8078 = i = (temp_5346_8074 + 1); return temp_5346_8074; })(); })(), _sync_for_iterator.current);
+  native_cppSetPointerArrayItem(array, (() { final int temp_5374_8398 = i; return (() { final int temp_5374_8402 = i = (temp_5374_8398 + 1); return temp_5374_8398; })(); })(), native_cppBox(_sync_for_iterator.current));
 }
 }
   return CppArrayList<E>.fromCppArray(array);
@@ -2092,9 +2093,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   factory CppArrayList.generate(int length, FunctionWrapper<E Function(int)> generator, {bool growable = const_4}) {
     {
-  CppUserData array = growable ? CppApi.cppCreatePointerArray(length) : CppApi.cppCreatePointerArray(CppArrayList._getSuggestCapacity(length));
+  CppUserData array = growable ? native_cppCreatePointerArray(length) : native_cppCreatePointerArray(CppArrayList._getSuggestCapacity(length));
   for (int i = 0; (i < length); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(array, i, generator.call(i));
+  native_cppSetPointerArrayItem(array, i, native_cppBox(generator.call(i)));
 }
   return CppArrayList<E>.fromCppArray(array);
 }
@@ -2103,12 +2104,12 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   factory CppArrayList.unmodifiable(CppIterable<dynamic?> elements) {
     {
   int length = elements.length;
-  CppUserData array = CppApi.cppCreatePointerArray(length);
+  CppUserData array = native_cppCreatePointerArray(length);
   int i = 0;
   {
   CppIterator<dynamic?> _sync_for_iterator = elements.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
-  CppApi.cppSetPointerArrayItem(array, (() { final int temp_6337_8178 = i; return (() { final int temp_6337_8182 = i = (temp_6337_8178 + 1); return temp_6337_8178; })(); })(), (_sync_for_iterator.current as E));
+  native_cppSetPointerArrayItem(array, (() { final int temp_6395_8504 = i; return (() { final int temp_6395_8508 = i = (temp_6395_8504 + 1); return temp_6395_8504; })(); })(), native_cppBox(_sync_for_iterator.current));
 }
 }
   return CppArrayList<E>.fromCppArray(array);
@@ -2121,10 +2122,10 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   void ensureCapacity(int newLen) {
     {
-  if ((newLen > CppApi.cppGetPointerArrayLength(this._array))) {
-  CppUserData newArray = CppApi.cppCreatePointerArray(CppArrayList._getSuggestCapacity(newLen));
-  for (int i = 0; (i < CppApi.cppGetPointerArrayLength(this._array)); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(newArray, i, CppApi.cppGetPointerArrayItem(this._array, i));
+  if ((newLen > native_cppGetPointerArrayLength(this._array))) {
+  CppUserData newArray = native_cppCreatePointerArray(CppArrayList._getSuggestCapacity(newLen));
+  for (int i = 0; (i < native_cppGetPointerArrayLength(this._array)); i = (i + 1)) {
+  native_cppSetPointerArrayItem(newArray, i, native_cppGetPointerArrayItem(this._array, i));
 }
   this._array = newArray;
 }
@@ -2141,7 +2142,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   void add(E value) {
     {
   this.ensureCapacity((this._length + 1));
-  CppApi.cppSetPointerArrayItem(this._array, (() { final int temp_7465_8337 = this._length; return (() { final int temp_7458_8342 = this._length = (temp_7465_8337 + 1); return temp_7465_8337; })(); })(), value);
+  native_cppSetPointerArrayItem(this._array, (() { final int temp_7569_8669 = this._length; return (() { final int temp_7562_8674 = this._length = (temp_7569_8669 + 1); return temp_7569_8669; })(); })(), native_cppBox(value));
 }
   }
   
@@ -2159,7 +2160,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   bool any(FunctionWrapper<bool Function(E)> test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) return true;
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) return true;
 }
   return false;
 }
@@ -2169,7 +2170,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   CppArrayMap<int, E> map = CppArrayMap<int, E>();
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  map[i] = (CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  map[i] = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i));
 }
   return map;
 }
@@ -2190,20 +2191,20 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   bool contains(Object? element) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return true;
+  if (native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)) == element) return true;
 }
   return false;
 }
   }
   
   E elementAt(int index) {
-    return (CppApi.cppGetPointerArrayItem(this._array, index) as E);
+    return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, index));
   }
   
   bool every(FunctionWrapper<bool Function(E)> test) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (!(test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E)))) return false;
+  if (!(test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i))))) return false;
 }
   return true;
 }
@@ -2212,7 +2213,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   void fillRange(int start, int end, [E? fillValue = null]) {
     {
   for (int i = start; (i < end); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, i, (() { final E? temp_3397 = fillValue; return temp_3397 == null ? (temp_3397 as E) : temp_3397; })());
+  native_cppSetPointerArrayItem(this._array, i, native_cppBox(fillValue));
 }
 }
   }
@@ -2220,8 +2221,8 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E firstWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) {
-  return (CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) {
+  return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i));
 }
 }
   if (!(orElse == null)) return orElse.call();
@@ -2233,7 +2234,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   T value = initialValue;
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  value = combine.call(value, (CppApi.cppGetPointerArrayItem(this._array, i) as E));
+  value = combine.call(value, native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)));
 }
   return value;
 }
@@ -2242,21 +2243,21 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   void forEach(FunctionWrapper<void Function(E)> action) {
     {
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  action.call((CppApi.cppGetPointerArrayItem(this._array, i) as E));
+  action.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)));
 }
 }
   }
   
   CppIterable<E> getRange(int start, int end) {
     {
-  return CppArrayList<E>.from(CppIterable.generate<dynamic?>((end - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));})));
+  return CppArrayList<E>.from(CppIterable.generate<dynamic?>((end - start), FunctionWrapper<E Function(int)>([], (int i) { return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, (start + i)));})));
 }
   }
   
   int indexOf(E element, [int start = const_12]) {
     {
   for (int i = start; (i < this._length); i = (i + 1)) {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
+  if (native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)) == element) return i;
 }
   return -1;
 }
@@ -2265,7 +2266,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   int indexWhere(FunctionWrapper<bool Function(E)> test, [int start = const_12]) {
     {
   for (int i = start; (i < this._length); i = (i + 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) return i;
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) return i;
 }
   return -1;
 }
@@ -2276,9 +2277,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   if ((index < 0) || (index > this._length)) throw CppIndexError(index, this);
   this.ensureCapacity((this._length + 1));
   for (int i = this._length; (i > index); i = (i - 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, (i - 1)));
+  native_cppSetPointerArrayItem(this._array, i, native_cppGetPointerArrayItem(this._array, (i - 1)));
 }
-  CppApi.cppSetPointerArrayItem(this._array, index, element);
+  native_cppSetPointerArrayItem(this._array, index, native_cppBox(element));
   this._length = (this._length + 1);
 }
   }
@@ -2291,10 +2292,10 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   if (insertLength == 0) return;
   this.ensureCapacity((this._length + insertLength));
   for (int i = (this._length - 1); (i >= index); i = (i - 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, (i + insertLength), CppApi.cppGetPointerArrayItem(this._array, i));
+  native_cppSetPointerArrayItem(this._array, (i + insertLength), native_cppGetPointerArrayItem(this._array, i));
 }
   for (int i = 0; (i < insertLength); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, (index + i), elements[i]);
+  native_cppSetPointerArrayItem(this._array, (index + i), native_cppBox(elements[i]));
 }
   this._length = (this._length + insertLength);
 }
@@ -2303,28 +2304,28 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E get first {
     {
   if (this._length == 0) throw CppStateError(const_0);
-  return (CppApi.cppGetPointerArrayItem(this._array, 0) as E);
+  return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, 0));
 }
   }
   
   set first(E value) {
     {
   if (this._length == 0) throw CppStateError(const_0);
-  CppApi.cppSetPointerArrayItem(this._array, 0, value);
+  native_cppSetPointerArrayItem(this._array, 0, native_cppBox(value));
 }
   }
   
   E get last {
     {
   if (this._length == 0) throw CppStateError(const_0);
-  return (CppApi.cppGetPointerArrayItem(this._array, (this._length - 1)) as E);
+  return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, (this._length - 1)));
 }
   }
   
   set last(E value) {
     {
   if (this._length == 0) throw CppStateError(const_0);
-  CppApi.cppSetPointerArrayItem(this._array, (this._length - 1), value);
+  native_cppSetPointerArrayItem(this._array, (this._length - 1), native_cppBox(value));
 }
   }
   
@@ -2332,7 +2333,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   if (this._length == 0) throw CppStateError(const_0);
   if ((this._length > 1)) throw CppStateError(const_1);
-  return (CppApi.cppGetPointerArrayItem(this._array, 0) as E);
+  return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, 0));
 }
   }
   
@@ -2352,7 +2353,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   int startIndex = (start) ?? ((this._length - 1));
   for (int i = startIndex; (i >= 0); i = (i - 1)) {
-  if (CppApi.cppGetPointerArrayItem(this._array, i) == element) return i;
+  if (native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)) == element) return i;
 }
   return -1;
 }
@@ -2362,7 +2363,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   int startIndex = (start) ?? ((this._length - 1));
   for (int i = startIndex; (i >= 0); i = (i - 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) return i;
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) return i;
 }
   return -1;
 }
@@ -2371,8 +2372,8 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E lastWhere(FunctionWrapper<bool Function(E)> test, {FunctionWrapper<E Function()>? orElse = null}) {
     {
   for (int i = (this._length - 1); (i >= 0); i = (i - 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) {
-  return (CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) {
+  return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i));
 }
 }
   if (!(orElse == null)) return orElse.call();
@@ -2383,9 +2384,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E reduce(FunctionWrapper<E Function(E, E)> combine) {
     {
   if (this._length == 0) throw CppStateError(const_0);
-  E value = (CppApi.cppGetPointerArrayItem(this._array, 0) as E);
+  E value = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, 0));
   for (int i = 1; (i < this._length); i = (i + 1)) {
-  value = combine.call(value, (CppApi.cppGetPointerArrayItem(this._array, i) as E));
+  value = combine.call(value, native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)));
 }
   return value;
 }
@@ -2405,9 +2406,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E removeAt(int index) {
     {
   if ((index < 0) || (index >= this._length)) throw CppIndexError(index, this);
-  Object? element = CppApi.cppGetPointerArrayItem(this._array, index);
+  E element = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, index));
   for (int i = index; (i < (this._length - 1)); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, (i + 1)));
+  native_cppSetPointerArrayItem(this._array, i, native_cppGetPointerArrayItem(this._array, (i + 1)));
 }
   this._length = (this._length - 1);
   return (element as E);
@@ -2428,7 +2429,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
 }
   int length = (end - start);
   for (int i = start; (i < (this._length - length)); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, (i + length)));
+  native_cppSetPointerArrayItem(this._array, i, native_cppGetPointerArrayItem(this._array, (i + length)));
 }
   this._length = (this._length - length);
 }
@@ -2438,9 +2439,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
-  if (!(test.call((CppApi.cppGetPointerArrayItem(this._array, readIndex) as E)))) {
+  if (!(test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, readIndex))))) {
   if (!(writeIndex == readIndex)) {
-  CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
+  native_cppSetPointerArrayItem(this._array, writeIndex, native_cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = (writeIndex + 1);
 }
@@ -2462,11 +2463,11 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
 }
   if (!(replacementLength == rangeLength)) {
   for (int i = (this._length - 1); (i >= end); i = (i - 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, ((i + replacementLength) - rangeLength), CppApi.cppGetPointerArrayItem(this._array, i));
+  native_cppSetPointerArrayItem(this._array, ((i + replacementLength) - rangeLength), native_cppGetPointerArrayItem(this._array, i));
 }
 }
   for (int i = 0; (i < replacementLength); i = (i + 1)) {
-  CppApi.cppSetPointerArrayItem(this._array, (start + i), replacementList[i]);
+  native_cppSetPointerArrayItem(this._array, (start + i), native_cppBox(replacementList[i]));
 }
   this._length = (this._length + (replacementLength - rangeLength));
 }
@@ -2476,9 +2477,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
     {
   int writeIndex = 0;
   for (int readIndex = 0; (readIndex < this._length); readIndex = (readIndex + 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, readIndex) as E))) {
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, readIndex)))) {
   if (!(writeIndex == readIndex)) {
-  CppApi.cppSetPointerArrayItem(this._array, writeIndex, CppApi.cppGetPointerArrayItem(this._array, readIndex));
+  native_cppSetPointerArrayItem(this._array, writeIndex, native_cppGetPointerArrayItem(this._array, readIndex));
 }
   writeIndex = (writeIndex + 1);
 }
@@ -2498,7 +2499,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   if ((i >= this._length)) {
   this.add(element);
 } else {
-  CppApi.cppSetPointerArrayItem(this._array, i, element);
+  native_cppSetPointerArrayItem(this._array, i, native_cppBox(element));
 }
   i = (i + 1);
 }
@@ -2517,7 +2518,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
 }
   label: for (int i = start; (i < end); i = (i + 1)) {
   if (!(iterator.moveNext())) break;
-  CppApi.cppSetPointerArrayItem(this._array, i, iterator.current);
+  native_cppSetPointerArrayItem(this._array, i, native_cppBox(iterator.current));
 }
 }
   }
@@ -2527,9 +2528,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   random == null ? random = Random() : null;
   for (int i = (this._length - 1); (i > 0); i = (i - 1)) {
   int j = random.nextInt((i + 1));
-  Object? temp = CppApi.cppGetPointerArrayItem(this._array, i);
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, j));
-  CppApi.cppSetPointerArrayItem(this._array, j, temp);
+  Object? temp = native_cppGetPointerArrayItem(this._array, i);
+  native_cppSetPointerArrayItem(this._array, i, native_cppGetPointerArrayItem(this._array, j));
+  native_cppSetPointerArrayItem(this._array, j, temp);
 }
 }
   }
@@ -2553,10 +2554,10 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   int _partition(int low, int high, FunctionWrapper<int Function(E, E)>? compare) {
     {
-  E pivot = (CppApi.cppGetPointerArrayItem(this._array, high) as E);
+  E pivot = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, high));
   int i = (low - 1);
   for (int j = low; (j < high); j = (j + 1)) {
-  E current = (CppApi.cppGetPointerArrayItem(this._array, j) as E);
+  E current = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, j));
   bool shouldSwap;
   if (!(compare == null)) {
   shouldSwap = (compare.call(current, pivot) <= 0);
@@ -2575,9 +2576,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   void _swap(int i, int j) {
     {
-  E temp = (CppApi.cppGetPointerArrayItem(this._array, i) as E);
-  CppApi.cppSetPointerArrayItem(this._array, i, CppApi.cppGetPointerArrayItem(this._array, j));
-  CppApi.cppSetPointerArrayItem(this._array, j, temp);
+  E temp = (native_cppGetPointerArrayItem(this._array, i) as E);
+  native_cppSetPointerArrayItem(this._array, i, native_cppGetPointerArrayItem(this._array, j));
+  native_cppSetPointerArrayItem(this._array, j, temp);
 }
   }
   
@@ -2587,7 +2588,7 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   if ((start < 0) || (start > this._length) || (endIndex < start) || (endIndex > this._length)) {
   throw CppRangeError.range(start, 0, this._length);
 }
-  return CppArrayList<E>.from(CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return CppApi.cppGetPointerArrayItem(this._array, (start + i));})));
+  return CppArrayList<E>.from(CppIterable.generate<dynamic?>((endIndex - start), FunctionWrapper<Object? Function(int)>([], (int i) { return native_cppGetPointerArrayItem(this._array, (start + i));})));
 }
   }
   
@@ -2608,9 +2609,9 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   E? result;
   bool found = false;
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  if (test.call((CppApi.cppGetPointerArrayItem(this._array, i) as E))) {
+  if (test.call(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)))) {
   if (found) throw CppStateError(const_1);
-  result = (CppApi.cppGetPointerArrayItem(this._array, i) as E);
+  result = native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i));
   found = true;
 }
 }
@@ -2622,12 +2623,12 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   
   CppString toCppString() {
     {
-  if (this._length == 0) return CppString.fromCppUserData(CppApi.cppCharCodes("[]"));
+  if (this._length == 0) return CppString.fromCppUserData(native_cppCharCodes("[]"));
   CppStringBuffer buffer = CppStringBuffer(const_16);
-  buffer.write(CppApi.cppGetPointerArrayItem(this._array, 0));
+  buffer.write(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, 0)));
   for (int i = 1; (i < this._length); i = (i + 1)) {
   buffer.write(const_17);
-  buffer.write(CppApi.cppGetPointerArrayItem(this._array, i));
+  buffer.write(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)));
 }
   buffer.write(const_18);
   return buffer.toCppString();
@@ -2667,18 +2668,18 @@ CppArrayList(int length, int capacity) : _length = length, _array = CppApi.cppCr
   }
   
   E operator [](int index) {
-    return (CppApi.cppGetPointerArrayItem(this._array, index) as E);
+    return native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, index));
   }
   
   void operator []=(int index, E value) {
-    CppApi.cppSetPointerArrayItem(this._array, index, value);
+    native_cppSetPointerArrayItem(this._array, index, native_cppBox(value));
   }
   
   CppList<E> operator +(CppList<E> other) {
     {
   CppArrayList<E> result = CppArrayList<E>(0, (this._length + other.length));
   for (int i = 0; (i < this._length); i = (i + 1)) {
-  result.add((CppApi.cppGetPointerArrayItem(this._array, i) as E));
+  result.add(native_cppUnbox<E>(native_cppGetPointerArrayItem(this._array, i)));
 }
   {
   CppIterator<E> _sync_for_iterator = other.iterator;
@@ -3041,7 +3042,7 @@ CppArraySet([int capacity = const_19]) : _list = CppArrayList<E>(0, capacity), s
   
   CppString toCppString() {
     {
-  if (this._list.isEmpty) return CppString.fromCppUserData(CppApi.cppCharCodes("{}"));
+  if (this._list.isEmpty) return CppString.fromCppUserData(native_cppCharCodes("{}"));
   CppStringBuffer buffer = CppStringBuffer(const_20);
   CppIterator<E> iterator = this._list.iterator;
   if (iterator.moveNext()) {
@@ -3241,8 +3242,8 @@ CppArrayMap([int capacity = const_19]) : _list = CppArrayList<CppMapEntry<K, V>>
   CppIterator<dynamic?> _sync_for_iterator = iterable.iterator;
   for (; _sync_for_iterator.moveNext(); ) {
   dynamic? element = _sync_for_iterator.current;
-  dynamic? k = ((() { final FunctionWrapper<K Function(dynamic?)>? temp_33078_1742 = key; return temp_33078_1742 == null ? null : temp_33078_1742.call(element); })()) ?? (element);
-  dynamic? v = ((() { final FunctionWrapper<V Function(dynamic?)>? temp_33125_1752 = value; return temp_33125_1752 == null ? null : temp_33125_1752.call(element); })()) ?? (element);
+  dynamic? k = ((() { final FunctionWrapper<K Function(dynamic?)>? temp_33995_2126 = key; return temp_33995_2126 == null ? null : temp_33995_2126.call(element); })()) ?? (element);
+  dynamic? v = ((() { final FunctionWrapper<V Function(dynamic?)>? temp_34042_2136 = value; return temp_34042_2136 == null ? null : temp_34042_2136.call(element); })()) ?? (element);
   map[(k as K)] = (v as V);
 }
 }
@@ -3278,7 +3279,7 @@ CppArrayMap([int capacity = const_19]) : _list = CppArrayList<CppMapEntry<K, V>>
   
   void addAll(CppMap<K, V> other) {
     {
-  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_34552_1989 = k; return (() { final V temp_34558_1991 = v; return (() { this[temp_34552_1989] = temp_34558_1991; temp_34558_1991; })(); })(); })();}));
+  other.forEach(FunctionWrapper<void Function(K, V)>([], (K k, V v) { return (() { final K temp_35469_2373 = k; return (() { final V temp_35475_2375 = v; return (() { this[temp_35469_2373] = temp_35475_2375; temp_35475_2375; })(); })(); })();}));
 }
   }
   
@@ -3455,7 +3456,7 @@ CppArrayMap([int capacity = const_19]) : _list = CppArrayList<CppMapEntry<K, V>>
   
   CppString toCppString() {
     {
-  if (this._list.isEmpty) return CppString.fromCppUserData(CppApi.cppCharCodes("{}"));
+  if (this._list.isEmpty) return CppString.fromCppUserData(native_cppCharCodes("{}"));
   CppStringBuffer buffer = CppStringBuffer(const_20);
   CppIterator<CppMapEntry<K, V>> iterator = this._list.iterator;
   if (iterator.moveNext()) {
@@ -3533,7 +3534,7 @@ CppStackTrace() : super()   {
   }
   
   CppString toCppString() {
-    return CppString.fromCppUserData(CppApi.getCurrentStackTrace());
+    return CppString.fromCppUserData(native_getCurrentStackTrace());
   }
   
 }
@@ -3609,6 +3610,70 @@ CppIndexError.withLength(int invalidValue, int length, {CppAny? indexable = null
   
 }
 
+/// 转换后的类: BoxInt
+/// 原始类名: BoxInt
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/box.dart
+
+class BoxInt extends CppAny {
+  late int value;
+BoxInt([int value = const_12]) : value = value, super()   {
+    ;
+  }
+  
+  int unbox() {
+    return this.value;
+  }
+  
+}
+
+/// 转换后的类: BoxDouble
+/// 原始类名: BoxDouble
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/box.dart
+
+class BoxDouble extends CppAny {
+  late double value;
+BoxDouble([double value = const_23]) : value = value, super()   {
+    ;
+  }
+  
+  double unbox() {
+    return this.value;
+  }
+  
+}
+
+/// 转换后的类: BoxBool
+/// 原始类名: BoxBool
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/box.dart
+
+class BoxBool extends CppAny {
+  late bool value;
+BoxBool([bool value = const_15]) : value = value, super()   {
+    ;
+  }
+  
+  bool unbox() {
+    return this.value;
+  }
+  
+}
+
+/// 转换后的类: BoxString
+/// 原始类名: BoxString
+/// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/box.dart
+
+class BoxString extends CppAny {
+  late CppString value;
+BoxString([CppString value = const_11]) : value = value, super()   {
+    ;
+  }
+  
+  CppString unbox() {
+    return this.value;
+  }
+  
+}
+
 /// 全局函数和变量
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/hello.dart
 
@@ -3640,32 +3705,44 @@ void testCollectionMethods() {
   list.removeAt(1);
   assert(list.length == 3);
   assert(list[1] == 3);
-  print(const_23);
+  print(const_24);
+}
+}
+
+dynamic? testDynamic(int aaa) {
+  {
+  return BoxInt((aaa + 5));
 }
 }
 
 void testIterableMethods() {
   {
-  CppList<int> iterableList = CppArrayList<int>.fromCppArray(CppApi.cppArrayConst(5, 1, 2, 3, 4, 5));
+  int ttt = asInt(testDynamic(1));
+  print(ttt);
+  dynamic? ttt2 = testDynamic(1);
+  int ggg = asInt(ttt2);
+  print(ggg);
+  CppUserData list44 = native_cppArrayConst(5, 1, 2, 3, 4, 5);
+  CppList<int> iterableList = CppArrayList<int>.fromCppArray(list44);
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);
   assert(iterableList.length == 5);
   assert(iterableList.any(FunctionWrapper<bool Function(int)>([], (int element) { return (element > 3);})));
   assert(!(iterableList.every(FunctionWrapper<bool Function(int)>([], (int element) { return (element < 3);}))));
   CppIterable<int> mappedList = iterableList.map(FunctionWrapper<int Function(int)>([], (int e) { return (e * 2);}));
-  assert(CppString.convertString(mappedList.toList()) == CppString.convertString(CppArrayList<int>.fromCppArray(CppApi.cppArrayConst(5, 2, 4, 6, 8, 10))));
+  assert(CppString.convertString(mappedList.toList()) == CppString.convertString(CppArrayList<int>.fromCppArray(native_cppArrayConst(5, 2, 4, 6, 8, 10))));
   CppIterable<int> filteredList = iterableList.where(FunctionWrapper<bool Function(int)>([], (int e) { return (e % 2) == 0;}));
-  assert(CppString.convertString(filteredList.toList()) == CppString.convertString(CppArrayList<int>.fromCppArray(CppApi.cppArrayConst(2, 2, 4))));
-  print(const_24);
+  assert(CppString.convertString(filteredList.toList()) == CppString.convertString(CppArrayList<int>.fromCppArray(native_cppArrayConst(2, 2, 4))));
+  print(const_25);
   CppStringBuffer buffer = CppStringBuffer();
-  buffer.write(const_25);
   buffer.write(const_26);
+  buffer.write(const_27);
   print(CppString.convertString(buffer));
   CppError error = CppError();
   CppString.convertString(error);
-  CppStringBuffer buffer2 = CppStringBuffer(const_27);
-  buffer2.write(const_25);
+  CppStringBuffer buffer2 = CppStringBuffer(const_28);
   buffer2.write(const_26);
+  buffer2.write(const_27);
   print(CppString.convertString(buffer2));
   CppList<int> list = CppArrayList<int>.generate(10, FunctionWrapper<int Function(int)>([], (int index) { return index;}));
   list.add(11);
@@ -3676,10 +3753,10 @@ void testIterableMethods() {
   FunctionWrapper<Object? Function()> ff = FunctionWrapper<Object? Function()>([g1, g2], () { {
   g1.value = (g1.value + 1);
   g2.value = (g2.value + 1);
-  print(((CppString.convertString(g1.value) + const_28) + CppString.convertString(g2.value)));
+  print(((CppString.convertString(g1.value) + const_29) + CppString.convertString(g2.value)));
 }});
   ff.call();
-  CppList<dynamic?> list2 = CppArrayList<dynamic?>.fromCppArray(CppApi.cppArrayConst(0));
+  CppList<dynamic?> list2 = CppArrayList<dynamic?>.fromCppArray(native_cppArrayConst(0));
   for (int $origin_i = 0; ($origin_i < 10); $origin_i = ($origin_i + 1)) {
 BoxInt i = BoxInt($origin_i);
 list2.add(FunctionWrapper<Object? Function()>([i], () { {
@@ -3689,7 +3766,7 @@ $origin_i = i.value;
 }
   list2.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}));
   {
-  CppList<dynamic?> list3 = CppArrayList<dynamic?>.fromCppArray(CppApi.cppArrayConst(0));
+  CppList<dynamic?> list3 = CppArrayList<dynamic?>.fromCppArray(native_cppArrayConst(0));
   BoxInt i = BoxInt(0);
   for (i = BoxInt(0); (i.value < 10); i.value = (i.value + 1)) {
   list3.add(FunctionWrapper<Object? Function()>([i], () { {
@@ -3699,7 +3776,7 @@ $origin_i = i.value;
   list3.forEach(FunctionWrapper<void Function(dynamic?)>([], (dynamic? f) { return f.call();}));
 }
   {
-  CppList<dynamic?> list4 = CppArrayList<dynamic?>.fromCppArray(CppApi.cppArrayConst(0));
+  CppList<dynamic?> list4 = CppArrayList<dynamic?>.fromCppArray(native_cppArrayConst(0));
   for (int $origin_i = 0; ($origin_i < 3); $origin_i = ($origin_i + 1)) {
 BoxInt i = BoxInt($origin_i);
 list4.add(FunctionWrapper<Object? Function()>([i], () { {
@@ -3715,6 +3792,34 @@ $origin_i = i.value;
 /// 全局函数和变量
 /// 源文件路径: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/lib/demo/api.dart
 
+CppUserData native_cppCreatePointerArray(int length);
+
+int native_cppGetPointerArrayLength(CppUserData array);
+
+Object? native_cppGetPointerArrayItem(CppUserData array, int index);
+
+void native_cppSetPointerArrayItem(CppUserData array, int index, Object? value);
+
+void native_print(Object? object);
+
+CppUserData native_getCurrentStackTrace();
+
+CppUserData native_cppToString(Object? object);
+
+CppUserData native_cppArrayConst(int length, [Object? v1 = null, Object? v2 = null, Object? v3 = null, Object? v4 = null, Object? v5 = null, Object? v6 = null, Object? v7 = null, Object? v8 = null, Object? v9 = null, Object? v10 = null]);
+
+CppUserData native_cppCharCodes(Object? value);
+
+CppUserData native_cppCreateAsyncTask();
+
+Future<void> native_cppAwaitAsyncTask(CppUserData taskData);
+
+Object? native_cppGetAsyncTaskResult(CppUserData taskData);
+
+CppAny native_cppBox(Object? value);
+
+T native_cppUnbox<T>(Object? value);
+
 const CppUserData cppUserDataEmpty = CppUserData.constant([]);
 
 /// 全局函数和变量
@@ -3725,7 +3830,7 @@ CppString ObjectExt_toCppString(Object _this) {
   if ((_this is CppAny)) {
   return (_this as CppAny).toCppString();
 }
-  throw const_29;
+  throw const_30;
 }
 }
 
@@ -3733,51 +3838,84 @@ FunctionWrapper<CppString Function()> ObjectExt_get_toCppString(Object _this) {
   return FunctionWrapper<CppString Function()>([], () { return ObjectExt_toCppString(_this);});
 }
 
-void testExtensionCall(Object obj) {
-  {
-  CppString result = ObjectExt_toCppString(obj);
-  print(result);
-}
-}
-
-void testExtensionGetter(Object obj) {
-  {
-  FunctionWrapper<CppString Function()> getter = ObjectExt_get_toCppString(obj);
-  print(getter);
-}
-}
-
 /// 全局const常量定义
 /// 自动生成的const常量，用于替换重复的const值
-const const_0 = CppString.fromCppUserData(CppUserData.constant([78, 111, 32, 101, 108, 101, 109, 101, 110, 116]));
-const const_1 = CppString.fromCppUserData(CppUserData.constant([84, 111, 111, 32, 109, 97, 110, 121, 32, 101, 108, 101, 109, 101, 110, 116, 115]));
-const const_2 = CppString.fromCppUserData(CppUserData.constant([73, 110, 100, 101, 120, 32, 99, 97, 110, 110, 111, 116, 32, 98, 101, 32, 110, 101, 103, 97, 116, 105, 118, 101]));
+const const_0 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_1 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_2 = CppString.fromCppUserData(CppUserData.constant([]));
 const const_3 = [];
 const const_4 = true;
-const const_5 = CppString.fromCppUserData(CppUserData.constant([67, 112, 112, 83, 116, 114, 105, 110, 103, 80, 111, 111, 108, 83, 116, 97, 116, 115, 123, 92, 110]));
-const const_6 = CppString.fromCppUserData(CppUserData.constant([32, 32, 19981, 21516, 23383, 31526, 20018, 25968, 58, 32]));
-const const_7 = CppString.fromCppUserData(CppUserData.constant([92, 110]));
-const const_8 = CppString.fromCppUserData(CppUserData.constant([32, 32, 24635, 20869, 23384, 20351, 29992, 58, 32]));
-const const_9 = CppString.fromCppUserData(CppUserData.constant([32, 23383, 31526, 92, 110]));
-const const_10 = CppString.fromCppUserData(CppUserData.constant([125]));
+const const_5 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_6 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_7 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_8 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_9 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_10 = CppString.fromCppUserData(CppUserData.constant([]));
 const const_11 = CppString.fromCppUserData(CppUserData.constant([]));
 const const_12 = 0;
-const const_13 = CppString.fromCppUserData(CppUserData.constant([105, 110, 100, 101, 120]));
-const const_14 = CppString.fromCppUserData(CppUserData.constant([115, 116, 97, 114, 116]));
+const const_13 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_14 = CppString.fromCppUserData(CppUserData.constant([]));
 const const_15 = false;
-const const_16 = CppString.fromCppUserData(CppUserData.constant([91]));
-const const_17 = CppString.fromCppUserData(CppUserData.constant([44, 32]));
-const const_18 = CppString.fromCppUserData(CppUserData.constant([93]));
+const const_16 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_17 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_18 = CppString.fromCppUserData(CppUserData.constant([]));
 const const_19 = 4;
-const const_20 = CppString.fromCppUserData(CppUserData.constant([123]));
-const const_21 = CppString.fromCppUserData(CppUserData.constant([75, 101, 121, 32, 110, 111, 116, 32, 102, 111, 117, 110, 100]));
-const const_22 = CppString.fromCppUserData(CppUserData.constant([58, 32]));
-const const_23 = CppString.fromCppUserData(CppUserData.constant([67, 112, 112, 76, 105, 115, 116, 32, 26041, 27861, 27979, 35797, 36890, 36807, 65281]));
-const const_24 = CppString.fromCppUserData(CppUserData.constant([67, 112, 112, 73, 116, 101, 114, 97, 98, 108, 101, 32, 26041, 27861, 27979, 35797, 36890, 36807, 65281]));
-const const_25 = CppString.fromCppUserData(CppUserData.constant([72, 101, 108, 108, 111]));
-const const_26 = CppString.fromCppUserData(CppUserData.constant([87, 111, 114, 108, 100]));
-const const_27 = CppString.fromCppUserData(CppUserData.constant([120, 120]));
-const const_28 = CppString.fromCppUserData(CppUserData.constant([32]));
-const const_29 = CppString.fromCppUserData(CppUserData.constant([67, 97, 110, 110, 111, 116, 32, 99, 111, 110, 118, 101, 114, 116, 32, 116, 111, 32, 67, 112, 112, 83, 116, 114, 105, 110, 103]));
+const const_20 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_21 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_22 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_23 = 0.0;
+const const_24 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_25 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_26 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_27 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_28 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_29 = CppString.fromCppUserData(CppUserData.constant([]));
+const const_30 = CppString.fromCppUserData(CppUserData.constant([]));
 
+
+/// 全局拆箱方法
+/// 用于将装箱类型转换回基本类型
+/// 支持在as表达式中自动替换调用
+
+int asInt(dynamic value) {
+  if (value is BoxInt) {
+    return value.value;
+  } else if (value is int) {
+    return value;
+  } else {
+    throw TypeError();
+  }
+}
+
+double asDouble(dynamic value) {
+  if (value is BoxDouble) {
+    return value.value;
+  } else if (value is double) {
+    return value;
+  } else if (value is int) {
+    return value.toDouble();
+  } else {
+    throw TypeError();
+  }
+}
+
+bool asBool(dynamic value) {
+  if (value is BoxBool) {
+    return value.value;
+  } else if (value is bool) {
+    return value;
+  } else {
+    throw TypeError();
+  }
+}
+
+String asString(dynamic value) {
+  if (value is BoxString) {
+    return value.value;
+  } else if (value is String) {
+    return value;
+  } else {
+    throw TypeError();
+  }
+}
 

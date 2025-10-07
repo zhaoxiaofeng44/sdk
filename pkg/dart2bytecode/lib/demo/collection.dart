@@ -208,12 +208,12 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
 
   @pragma('wasm:entry-point')
   CppArrayList.fromCppArray(CppUserData array)
-      : _length = CppApi.cppGetPointerArrayLength(array),
+      : _length = native_cppGetPointerArrayLength(array),
         _array = array;
 
   CppArrayList(int length, int capacity)
       : _length = length,
-        _array = CppApi.cppCreatePointerArray(length);
+        _array = native_cppCreatePointerArray(length);
 
   // 标准List工厂方法
   factory CppArrayList.empty({bool growable = false}) {
@@ -221,9 +221,9 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   }
 
   factory CppArrayList.filled(int length, E fill, {bool growable = false}) {
-    var array = CppApi.cppCreatePointerArray(length);
+    var array = native_cppCreatePointerArray(length);
     for (int i = 0; i < length; i++) {
-      CppApi.cppSetPointerArrayItem(array, i, fill);
+      native_cppSetPointerArrayItem(array, i, native_cppBox(fill));
     }
     return CppArrayList.fromCppArray(array);
   }
@@ -231,13 +231,14 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   factory CppArrayList.from(CppIterable elements, {bool growable = true}) {
     var length = elements.length;
     var array = growable
-        ? CppApi.cppCreatePointerArray(length)
-        : CppApi.cppCreatePointerArray(_getSuggestCapacity(length));
+        ? native_cppCreatePointerArray(length)
+        : native_cppCreatePointerArray(_getSuggestCapacity(length));
     int i = 0;
     {
       CppIterator<dynamic> _sync_for_iterator = elements.iterator;
       for (; _sync_for_iterator.moveNext();) {
-        CppApi.cppSetPointerArrayItem(array, i++, _sync_for_iterator.current);
+        native_cppSetPointerArrayItem(
+            array, i++, native_cppBox(_sync_for_iterator.current));
       }
     }
     return CppArrayList.fromCppArray(array);
@@ -252,23 +253,23 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     bool growable = true,
   }) {
     var array = growable
-        ? CppApi.cppCreatePointerArray(length)
-        : CppApi.cppCreatePointerArray(_getSuggestCapacity(length));
+        ? native_cppCreatePointerArray(length)
+        : native_cppCreatePointerArray(_getSuggestCapacity(length));
     for (int i = 0; i < length; i++) {
-      CppApi.cppSetPointerArrayItem(array, i, generator(i));
+      native_cppSetPointerArrayItem(array, i, native_cppBox(generator(i)));
     }
     return CppArrayList.fromCppArray(array);
   }
 
   factory CppArrayList.unmodifiable(CppIterable elements) {
     var length = elements.length;
-    var array = CppApi.cppCreatePointerArray(length);
+    var array = native_cppCreatePointerArray(length);
     int i = 0;
     {
       CppIterator<dynamic> _sync_for_iterator = elements.iterator;
       for (; _sync_for_iterator.moveNext();) {
-        CppApi.cppSetPointerArrayItem(
-            array, i++, _sync_for_iterator.current as E);
+        native_cppSetPointerArrayItem(
+            array, i++, native_cppBox(_sync_for_iterator.current));
       }
     }
     return CppArrayList.fromCppArray(array);
@@ -285,11 +286,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   int get length => _length;
 
   void ensureCapacity(int newLen) {
-    if (newLen > CppApi.cppGetPointerArrayLength(_array)) {
-      var newArray = CppApi.cppCreatePointerArray(_getSuggestCapacity(newLen));
-      for (int i = 0; i < CppApi.cppGetPointerArrayLength(_array); i++) {
-        CppApi.cppSetPointerArrayItem(
-            newArray, i, CppApi.cppGetPointerArrayItem(_array, i));
+    if (newLen > native_cppGetPointerArrayLength(_array)) {
+      var newArray = native_cppCreatePointerArray(_getSuggestCapacity(newLen));
+      for (int i = 0; i < native_cppGetPointerArrayLength(_array); i++) {
+        native_cppSetPointerArrayItem(
+            newArray, i, native_cppGetPointerArrayItem(_array, i));
       }
       _array = newArray;
     }
@@ -302,16 +303,17 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   }
 
   @override
-  E operator [](int index) => CppApi.cppGetPointerArrayItem(_array, index) as E;
+  E operator [](int index) =>
+      native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, index));
 
   @override
   void operator []=(int index, E value) =>
-      CppApi.cppSetPointerArrayItem(_array, index, value);
+      native_cppSetPointerArrayItem(_array, index, native_cppBox(value));
 
   @override
   void add(E value) {
     ensureCapacity(_length + 1);
-    CppApi.cppSetPointerArrayItem(_array, _length++, value);
+    native_cppSetPointerArrayItem(_array, _length++, native_cppBox(value));
   }
 
   @override
@@ -327,7 +329,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   bool any(bool Function(E element) test) {
     for (int i = 0; i < _length; i++) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) return true;
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i))))
+        return true;
     }
     return false;
   }
@@ -336,7 +339,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   CppMap<int, E> asMap() {
     var map = CppArrayMap<int, E>();
     for (int i = 0; i < _length; i++) {
-      map[i] = CppApi.cppGetPointerArrayItem(_array, i) as E;
+      map[i] = native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i));
     }
     return map;
   }
@@ -378,18 +381,21 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   bool contains(Object? element) {
     for (int i = 0; i < _length; i++) {
-      if (CppApi.cppGetPointerArrayItem(_array, i) == element) return true;
+      if (native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)) ==
+          element) return true;
     }
     return false;
   }
 
   @override
-  E elementAt(int index) => CppApi.cppGetPointerArrayItem(_array, index) as E;
+  E elementAt(int index) =>
+      native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, index));
 
   @override
   bool every(bool Function(E element) test) {
     for (int i = 0; i < _length; i++) {
-      if (!test(CppApi.cppGetPointerArrayItem(_array, i) as E)) return false;
+      if (!test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i))))
+        return false;
     }
     return true;
   }
@@ -397,15 +403,15 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   void fillRange(int start, int end, [E? fillValue]) {
     for (int i = start; i < end; i++) {
-      CppApi.cppSetPointerArrayItem(_array, i, fillValue as E);
+      native_cppSetPointerArrayItem(_array, i, native_cppBox(fillValue));
     }
   }
 
   @override
   E firstWhere(bool Function(E element) test, {E Function()? orElse}) {
     for (int i = 0; i < _length; i++) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) {
-        return CppApi.cppGetPointerArrayItem(_array, i) as E;
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)))) {
+        return native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i));
       }
     }
     if (orElse != null) return orElse();
@@ -416,7 +422,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   T fold<T>(T initialValue, T Function(T previousValue, E element) combine) {
     var value = initialValue;
     for (int i = 0; i < _length; i++) {
-      value = combine(value, CppApi.cppGetPointerArrayItem(_array, i) as E);
+      value = combine(
+          value, native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)));
     }
     return value;
   }
@@ -424,20 +431,23 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   void forEach(void Function(E element) action) {
     for (int i = 0; i < _length; i++) {
-      action(CppApi.cppGetPointerArrayItem(_array, i) as E);
+      action(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)));
     }
   }
 
   @override
   CppIterable<E> getRange(int start, int end) {
     return CppArrayList.from(CppIterable.generate(
-        end - start, (i) => CppApi.cppGetPointerArrayItem(_array, start + i)));
+        end - start,
+        (i) => native_cppUnbox<E>(
+            native_cppGetPointerArrayItem(_array, start + i))));
   }
 
   @override
   int indexOf(E element, [int start = 0]) {
     for (int i = start; i < _length; i++) {
-      if (CppApi.cppGetPointerArrayItem(_array, i) == element) return i;
+      if (native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)) ==
+          element) return i;
     }
     return -1;
   }
@@ -445,7 +455,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   int indexWhere(bool Function(E element) test, [int start = 0]) {
     for (int i = start; i < _length; i++) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) return i;
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i))))
+        return i;
     }
     return -1;
   }
@@ -455,10 +466,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     if (index < 0 || index > _length) throw RangeError.index(index, this);
     ensureCapacity(_length + 1);
     for (int i = _length; i > index; i--) {
-      CppApi.cppSetPointerArrayItem(
-          _array, i, CppApi.cppGetPointerArrayItem(_array, i - 1));
+      native_cppSetPointerArrayItem(
+          _array, i, native_cppGetPointerArrayItem(_array, i - 1));
     }
-    CppApi.cppSetPointerArrayItem(_array, index, element);
+    native_cppSetPointerArrayItem(_array, index, native_cppBox(element));
     _length++;
   }
 
@@ -472,12 +483,13 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     ensureCapacity(_length + insertLength);
 
     for (int i = _length - 1; i >= index; i--) {
-      CppApi.cppSetPointerArrayItem(
-          _array, i + insertLength, CppApi.cppGetPointerArrayItem(_array, i));
+      native_cppSetPointerArrayItem(
+          _array, i + insertLength, native_cppGetPointerArrayItem(_array, i));
     }
 
     for (int i = 0; i < insertLength; i++) {
-      CppApi.cppSetPointerArrayItem(_array, index + i, elements[i]);
+      native_cppSetPointerArrayItem(
+          _array, index + i, native_cppBox(elements[i]));
     }
     _length += insertLength;
   }
@@ -485,32 +497,33 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   E get first {
     if (_length == 0) throw StateError('No element');
-    return CppApi.cppGetPointerArrayItem(_array, 0) as E;
+    return native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, 0));
   }
 
   @override
   set first(E value) {
     if (_length == 0) throw StateError('No element');
-    CppApi.cppSetPointerArrayItem(_array, 0, value);
+    native_cppSetPointerArrayItem(_array, 0, native_cppBox(value));
   }
 
   @override
   E get last {
     if (_length == 0) throw StateError('No element');
-    return CppApi.cppGetPointerArrayItem(_array, _length - 1) as E;
+    return native_cppUnbox<E>(
+        native_cppGetPointerArrayItem(_array, _length - 1));
   }
 
   @override
   set last(E value) {
     if (_length == 0) throw StateError('No element');
-    CppApi.cppSetPointerArrayItem(_array, _length - 1, value);
+    native_cppSetPointerArrayItem(_array, _length - 1, native_cppBox(value));
   }
 
   @override
   E get single {
     if (_length == 0) throw StateError('No element');
     if (_length > 1) throw StateError('Too many elements');
-    return CppApi.cppGetPointerArrayItem(_array, 0) as E;
+    return native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, 0));
   }
 
   @override
@@ -526,7 +539,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   int lastIndexOf(E element, [int? start]) {
     var startIndex = start ?? _length - 1;
     for (int i = startIndex; i >= 0; i--) {
-      if (CppApi.cppGetPointerArrayItem(_array, i) == element) return i;
+      if (native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)) ==
+          element) return i;
     }
     return -1;
   }
@@ -535,7 +549,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   int lastIndexWhere(bool Function(E element) test, [int? start]) {
     var startIndex = start ?? _length - 1;
     for (int i = startIndex; i >= 0; i--) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) return i;
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i))))
+        return i;
     }
     return -1;
   }
@@ -543,8 +558,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   E lastWhere(bool Function(E element) test, {E Function()? orElse}) {
     for (int i = _length - 1; i >= 0; i--) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) {
-        return CppApi.cppGetPointerArrayItem(_array, i) as E;
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)))) {
+        return native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i));
       }
     }
     if (orElse != null) return orElse();
@@ -554,9 +569,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   E reduce(E Function(E value, E element) combine) {
     if (_length == 0) throw StateError('No element');
-    var value = CppApi.cppGetPointerArrayItem(_array, 0) as E;
+    var value = native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, 0));
     for (int i = 1; i < _length; i++) {
-      value = combine(value, CppApi.cppGetPointerArrayItem(_array, i) as E);
+      value = combine(
+          value, native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)));
     }
     return value;
   }
@@ -574,10 +590,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   @override
   E removeAt(int index) {
     if (index < 0 || index >= _length) throw RangeError.index(index, this);
-    var element = CppApi.cppGetPointerArrayItem(_array, index);
+    var element =
+        native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, index));
     for (int i = index; i < _length - 1; i++) {
-      CppApi.cppSetPointerArrayItem(
-          _array, i, CppApi.cppGetPointerArrayItem(_array, i + 1));
+      native_cppSetPointerArrayItem(
+          _array, i, native_cppGetPointerArrayItem(_array, i + 1));
     }
     _length--;
     return element as E;
@@ -596,8 +613,8 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     }
     var length = end - start;
     for (int i = start; i < _length - length; i++) {
-      CppApi.cppSetPointerArrayItem(
-          _array, i, CppApi.cppGetPointerArrayItem(_array, i + length));
+      native_cppSetPointerArrayItem(
+          _array, i, native_cppGetPointerArrayItem(_array, i + length));
     }
     _length -= length;
   }
@@ -606,10 +623,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   void removeWhere(bool Function(E element) test) {
     var writeIndex = 0;
     for (int readIndex = 0; readIndex < _length; readIndex++) {
-      if (!test(CppApi.cppGetPointerArrayItem(_array, readIndex) as E)) {
+      if (!test(native_cppUnbox<E>(
+          native_cppGetPointerArrayItem(_array, readIndex)))) {
         if (writeIndex != readIndex) {
-          CppApi.cppSetPointerArrayItem(_array, writeIndex,
-              CppApi.cppGetPointerArrayItem(_array, readIndex));
+          native_cppSetPointerArrayItem(_array, writeIndex,
+              native_cppGetPointerArrayItem(_array, readIndex));
         }
         writeIndex++;
       }
@@ -632,15 +650,16 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
 
     if (replacementLength != rangeLength) {
       for (int i = _length - 1; i >= end; i--) {
-        CppApi.cppSetPointerArrayItem(
+        native_cppSetPointerArrayItem(
             _array,
             i + replacementLength - rangeLength,
-            CppApi.cppGetPointerArrayItem(_array, i));
+            native_cppGetPointerArrayItem(_array, i));
       }
     }
 
     for (int i = 0; i < replacementLength; i++) {
-      CppApi.cppSetPointerArrayItem(_array, start + i, replacementList[i]);
+      native_cppSetPointerArrayItem(
+          _array, start + i, native_cppBox(replacementList[i]));
     }
 
     _length += replacementLength - rangeLength;
@@ -650,10 +669,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   void retainWhere(bool Function(E element) test) {
     var writeIndex = 0;
     for (int readIndex = 0; readIndex < _length; readIndex++) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, readIndex) as E)) {
+      if (test(native_cppUnbox<E>(
+          native_cppGetPointerArrayItem(_array, readIndex)))) {
         if (writeIndex != readIndex) {
-          CppApi.cppSetPointerArrayItem(_array, writeIndex,
-              CppApi.cppGetPointerArrayItem(_array, readIndex));
+          native_cppSetPointerArrayItem(_array, writeIndex,
+              native_cppGetPointerArrayItem(_array, readIndex));
         }
         writeIndex++;
       }
@@ -672,7 +692,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
         if (i >= _length) {
           add(element);
         } else {
-          CppApi.cppSetPointerArrayItem(_array, i, element);
+          native_cppSetPointerArrayItem(_array, i, native_cppBox(element));
         }
         i++;
       }
@@ -691,7 +711,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     }
     for (int i = start; i < end; i++) {
       if (!iterator.moveNext()) break;
-      CppApi.cppSetPointerArrayItem(_array, i, iterator.current);
+      native_cppSetPointerArrayItem(_array, i, native_cppBox(iterator.current));
     }
   }
 
@@ -700,10 +720,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     random ??= Random();
     for (int i = _length - 1; i > 0; i--) {
       var j = random.nextInt(i + 1);
-      var temp = CppApi.cppGetPointerArrayItem(_array, i);
-      CppApi.cppSetPointerArrayItem(
-          _array, i, CppApi.cppGetPointerArrayItem(_array, j));
-      CppApi.cppSetPointerArrayItem(_array, j, temp);
+      var temp = native_cppGetPointerArrayItem(_array, i);
+      native_cppSetPointerArrayItem(
+          _array, i, native_cppGetPointerArrayItem(_array, j));
+      native_cppSetPointerArrayItem(_array, j, temp);
     }
   }
 
@@ -724,11 +744,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   }
 
   int _partition(int low, int high, int Function(E a, E b)? compare) {
-    E pivot = CppApi.cppGetPointerArrayItem(_array, high) as E;
+    E pivot = native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, high));
     int i = low - 1;
 
     for (int j = low; j < high; j++) {
-      E current = CppApi.cppGetPointerArrayItem(_array, j) as E;
+      E current = native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, j));
       bool shouldSwap;
 
       if (compare != null) {
@@ -749,10 +769,10 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   }
 
   void _swap(int i, int j) {
-    E temp = CppApi.cppGetPointerArrayItem(_array, i) as E;
-    CppApi.cppSetPointerArrayItem(
-        _array, i, CppApi.cppGetPointerArrayItem(_array, j));
-    CppApi.cppSetPointerArrayItem(_array, j, temp);
+    E temp = native_cppGetPointerArrayItem(_array, i) as E;
+    native_cppSetPointerArrayItem(
+        _array, i, native_cppGetPointerArrayItem(_array, j));
+    native_cppSetPointerArrayItem(_array, j, temp);
   }
 
   @override
@@ -765,7 +785,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
       throw RangeError.range(start, 0, _length);
     }
     return CppArrayList.from(CppIterable.generate(endIndex - start,
-        (i) => CppApi.cppGetPointerArrayItem(_array, start + i)));
+        (i) => native_cppGetPointerArrayItem(_array, start + i)));
   }
 
   @override
@@ -783,9 +803,9 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
     E? result;
     bool found = false;
     for (int i = 0; i < _length; i++) {
-      if (test(CppApi.cppGetPointerArrayItem(_array, i) as E)) {
+      if (test(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)))) {
         if (found) throw StateError('Too many elements');
-        result = CppApi.cppGetPointerArrayItem(_array, i) as E;
+        result = native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i));
         found = true;
       }
     }
@@ -798,7 +818,7 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   CppList<E> operator +(CppList<E> other) {
     var result = CppArrayList<E>(0, _length + other.length);
     for (int i = 0; i < _length; i++) {
-      result.add(CppApi.cppGetPointerArrayItem(_array, i) as E);
+      result.add(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)));
     }
     {
       CppIterator<E> _sync_for_iterator = other.iterator;
@@ -813,10 +833,11 @@ class CppArrayList<E> extends CppIterable<E> implements CppList<E> {
   CppString toCppString() {
     if (_length == 0) return CppString.fromString("[]");
     var buffer = CppStringBuffer("[");
-    buffer.write(CppApi.cppGetPointerArrayItem(_array, 0));
+    buffer.write(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, 0)));
     for (int i = 1; i < _length; i++) {
       buffer.write(", ");
-      buffer.write(CppApi.cppGetPointerArrayItem(_array, i));
+      buffer
+          .write(native_cppUnbox<E>(native_cppGetPointerArrayItem(_array, i)));
     }
     buffer.write("]");
     return buffer.toCppString();

@@ -203,6 +203,8 @@ Future<int> runCompiler(ArgResults options) async {
   }
 
   transformDartToDart(component!);
+
+  // 生成 C++ 代码并写入文件
   // final BytecodeOptions bytecodeOptions =
   //     BytecodeOptions(enableAsserts: enableAsserts)
   //       ..parseCommandLineFlags(options['bytecode-options']);

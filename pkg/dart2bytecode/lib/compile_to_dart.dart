@@ -57,6 +57,12 @@ class DartConstants {
   static const String toStringMethodName = 'toString';
   static const String toCppStringMethodName = 'toCppString';
 
+  // 拆箱方法名常量
+  static const String asIntMethodName = 'asInt';
+  static const String asDoubleMethodName = 'asDouble';
+  static const String asBoolMethodName = 'asBool';
+  static const String asStringMethodName = 'asString';
+
   // Cpp相关常量
   static const String cppUserDataEmpty = 'cppUserDataEmpty';
   static const String cppStringFromString = 'fromString';
@@ -312,6 +318,9 @@ class GlobalStateManager {
   final Map<String, String> constantDefinitions = {};
   int constantCounter = 0;
 
+  // 函数返回类型跟踪（用于自动装箱）
+  DartType? currentFunctionReturnType;
+
   /// 重置所有状态
   void reset() {
     _clearAllMaps();
@@ -334,6 +343,7 @@ class GlobalStateManager {
     inClosureContext = false;
     currentClosureParameterName = '';
     constantCounter = 0;
+    currentFunctionReturnType = null;
   }
 
   /// 闭包作用域管理
@@ -642,8 +652,7 @@ class StatementProcessor {
   /// 处理return语句
   void _processReturnStatement(ReturnStatement stmt) {
     if (stmt.expression != null) {
-      final exprCode =
-          _transformer._expressionProcessor.processExpression(stmt.expression!);
+      final exprCode = _transformer._processReturnExpression(stmt.expression!);
       _transformer._writeLine('return $exprCode;');
     } else {
       _transformer._writeLine('return;');
@@ -1108,7 +1117,7 @@ class DartToDartTransformer {
           entry.key.contains('cppUserDataEmpty')) {
         continue;
       }
-      if (value.startsWith('CppString.fromCppUserData(CppApi.cppCharCodes("')) {
+      if (value.startsWith('CppString.fromCppUserData(native_cppCharCodes("')) {
         // 对于字符串常量，改为使用CppUserData.constant格式
         final codeUnitsStr = _convertStringToCodeUnits(value);
         buffer.writeln(
@@ -1124,7 +1133,7 @@ class DartToDartTransformer {
 
   /// 辅助方法：将字符串常量转换为codeUnits数组格式
   static String _convertStringToCodeUnits(String cppStringExpr) {
-    // 从 CppString.fromCppUserData(CppApi.cppCharCodes("...")) 提取字符串内容
+    // 从 CppString.fromCppUserData(native_cppCharCodes("...")) 提取字符串内容
     final regex = RegExp(
         r'CppString\.fromCppUserData\(CppApi\.cppCharCodes\("([^"]*)"\)\)');
 
@@ -1504,7 +1513,7 @@ class DartToDartTransformer {
     return _hasPragmaAnnotation(cls, DartConstants.cppNativePragma);
   }
 
-  /// 通用的pragma注解检查方法
+  /// 通用的pragma注解检查方法（类）
   bool _hasPragmaAnnotation(Class cls, String pragmaName) {
     for (final annotation in cls.annotations) {
       if (_isPragmaAnnotationMatch(annotation, pragmaName)) {
@@ -1512,6 +1521,22 @@ class DartToDartTransformer {
       }
     }
     return false;
+  }
+
+  /// 通用的pragma注解检查方法（函数/方法）
+  bool _hasProcedurePragmaAnnotation(Procedure procedure, String pragmaName) {
+    for (final annotation in procedure.annotations) {
+      if (_isPragmaAnnotationMatch(annotation, pragmaName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 检查函数/方法是否有 @pragma('cpp:native', xxx) 注解
+  bool _hasCppNativeProcedurePragma(Procedure procedure) {
+    return _hasProcedurePragmaAnnotation(
+        procedure, DartConstants.cppNativePragma);
   }
 
   /// 检查单个注解是否匹配指定的pragma
@@ -1748,6 +1773,9 @@ class DartToDartTransformer {
   void _generateCodeFooter() {
     // 生成全局const常量定义（在最后写入，因为常量是在转换过程中收集的）
     _writeGlobalConstDefinitions();
+
+    // 生成全局拆箱方法
+    _writeGlobalUnboxingMethods();
   }
 
   // ========== 信息收集辅助方法 ==========
@@ -1928,6 +1956,64 @@ class DartToDartTransformer {
     if (constDefinitions.isNotEmpty) {
       _writeLine(constDefinitions);
     }
+  }
+
+  /// 写入全局拆箱方法
+  void _writeGlobalUnboxingMethods() {
+    _writeLine('/// 全局拆箱方法');
+    _writeLine('/// 用于将装箱类型转换回基本类型');
+    _writeLine('/// 支持在as表达式中自动替换调用');
+    _writeLine('');
+
+    // 生成asInt方法
+    _writeLine('int ${DartConstants.asIntMethodName}(dynamic value) {');
+    _writeLine('  if (value is BoxInt) {');
+    _writeLine('    return value.${DartConstants.valuePropertyName};');
+    _writeLine('  } else if (value is int) {');
+    _writeLine('    return value;');
+    _writeLine('  } else {');
+    _writeLine('    throw TypeError();');
+    _writeLine('  }');
+    _writeLine('}');
+    _writeLine('');
+
+    // 生成asDouble方法
+    _writeLine('double ${DartConstants.asDoubleMethodName}(dynamic value) {');
+    _writeLine('  if (value is BoxDouble) {');
+    _writeLine('    return value.${DartConstants.valuePropertyName};');
+    _writeLine('  } else if (value is double) {');
+    _writeLine('    return value;');
+    _writeLine('  } else if (value is int) {');
+    _writeLine('    return value.toDouble();');
+    _writeLine('  } else {');
+    _writeLine('    throw TypeError();');
+    _writeLine('  }');
+    _writeLine('}');
+    _writeLine('');
+
+    // 生成asBool方法
+    _writeLine('bool ${DartConstants.asBoolMethodName}(dynamic value) {');
+    _writeLine('  if (value is BoxBool) {');
+    _writeLine('    return value.${DartConstants.valuePropertyName};');
+    _writeLine('  } else if (value is bool) {');
+    _writeLine('    return value;');
+    _writeLine('  } else {');
+    _writeLine('    throw TypeError();');
+    _writeLine('  }');
+    _writeLine('}');
+    _writeLine('');
+
+    // 生成asString方法
+    _writeLine('String ${DartConstants.asStringMethodName}(dynamic value) {');
+    _writeLine('  if (value is BoxString) {');
+    _writeLine('    return value.${DartConstants.valuePropertyName};');
+    _writeLine('  } else if (value is String) {');
+    _writeLine('    return value;');
+    _writeLine('  } else {');
+    _writeLine('    throw TypeError();');
+    _writeLine('  }');
+    _writeLine('}');
+    _writeLine('');
   }
 
   // ========== 表达式处理方法组 ==========
@@ -2273,9 +2359,11 @@ class DartToDartTransformer {
       _writeLine('${staticPrefix}set $name($paramType $paramName) {');
       _indent();
       _currentFunctionReturnType = procedure.function.returnType;
+      _globalState.currentFunctionReturnType = procedure.function.returnType;
       final bodyStr =
           _writeTransformedStatementToString(procedure.function.body!);
       _currentFunctionReturnType = null;
+      _globalState.currentFunctionReturnType = null;
       _writeLine(_normalizeBody(bodyStr, isVoid: true));
       _unindent();
       _writeLine('}');
@@ -2319,42 +2407,51 @@ class DartToDartTransformer {
       _writeLine('$returnType $methodName($parameters);');
       _writeLine('');
     } else {
-      // 具体方法有方法体
-      _writeLine('$returnType $methodName($parameters) {');
-      _indent();
+      // 检查是否有cpp:native注解
+      if (_hasCppNativeProcedurePragma(procedure)) {
+        // native函数，不生成函数体，直接声明
+        _writeLine('$returnType $methodName($parameters);');
+      } else {
+        // 具体方法有方法体
+        _writeLine('$returnType $methodName($parameters) {');
+        _indent();
 
-      if (procedure.function.body != null) {
-        // 预分析函数体，找出需要装箱的变量
-        DartToDartTransformer._globalVariablesToBox.clear();
-        DartToDartTransformer._globalInitializedBoxedVariables.clear();
-        DartToDartTransformer._globalForLoopVariablesToBox.clear();
-        DartToDartTransformer._clearVariableBoxStates();
-        DartToDartTransformer._globalPreAnalyzeFunctionBody(
-            procedure.function.body!);
+        if (procedure.function.body != null) {
+          // 预分析函数体，找出需要装箱的变量
+          DartToDartTransformer._globalVariablesToBox.clear();
+          DartToDartTransformer._globalInitializedBoxedVariables.clear();
+          DartToDartTransformer._globalForLoopVariablesToBox.clear();
+          DartToDartTransformer._clearVariableBoxStates();
+          DartToDartTransformer._globalPreAnalyzeFunctionBody(
+              procedure.function.body!);
 
-        // 调试输出
-        if (DartToDartTransformer._globalVariablesToBox.isNotEmpty) {
-          print('发现需要装箱的变量: ${DartToDartTransformer._globalVariablesToBox}');
-        }
-
-        // 检查是否需要闭包装箱
-        final closureInfo = _getCurrentClosureInfo();
-        if (closureInfo != null && closureInfo.boxedVariables.isNotEmpty) {
-          // 生成装箱代码
-          final boxingCode = _generateClosureBoxingCode(closureInfo);
-          if (boxingCode.isNotEmpty) {
-            _writeLine(boxingCode);
+          // 调试输出
+          if (DartToDartTransformer._globalVariablesToBox.isNotEmpty) {
+            print('发现需要装箱的变量: ${DartToDartTransformer._globalVariablesToBox}');
           }
+
+          // 检查是否需要闭包装箱
+          final closureInfo = _getCurrentClosureInfo();
+          if (closureInfo != null && closureInfo.boxedVariables.isNotEmpty) {
+            // 生成装箱代码
+            final boxingCode = _generateClosureBoxingCode(closureInfo);
+            if (boxingCode.isNotEmpty) {
+              _writeLine(boxingCode);
+            }
+          }
+          _currentFunctionReturnType = procedure.function.returnType;
+          _globalState.currentFunctionReturnType =
+              procedure.function.returnType;
+          final bodyStr =
+              _writeTransformedStatementToString(procedure.function.body!);
+          _currentFunctionReturnType = null;
+          _globalState.currentFunctionReturnType = null;
+          _writeLine(
+              _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
         }
-        _currentFunctionReturnType = procedure.function.returnType;
-        final bodyStr =
-            _writeTransformedStatementToString(procedure.function.body!);
-        _currentFunctionReturnType = null;
-        _writeLine(
-            _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
+        _unindent();
+        _writeLine('}');
       }
-      _unindent();
-      _writeLine('}');
       _writeLine('');
     }
   }
@@ -2376,15 +2473,24 @@ class DartToDartTransformer {
       methodName += '<$typeParams>';
     }
 
-    _writeLine('static $returnType $methodName($parameters) {');
-    _indent();
-    _currentFunctionReturnType = procedure.function.returnType;
-    final bodyStr =
-        _writeTransformedStatementToString(procedure.function.body!);
-    _currentFunctionReturnType = null;
-    _writeLine(_normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
-    _unindent();
-    _writeLine('}');
+    // 检查是否有cpp:native注解
+    if (_hasCppNativeProcedurePragma(procedure)) {
+      // native静态函数，不生成函数体，直接声明
+      _writeLine('static $returnType $methodName($parameters);');
+    } else {
+      // 具体静态方法有方法体
+      _writeLine('static $returnType $methodName($parameters) {');
+      _indent();
+      _currentFunctionReturnType = procedure.function.returnType;
+      _globalState.currentFunctionReturnType = procedure.function.returnType;
+      final bodyStr =
+          _writeTransformedStatementToString(procedure.function.body!);
+      _currentFunctionReturnType = null;
+      _globalState.currentFunctionReturnType = null;
+      _writeLine(_normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
+      _unindent();
+      _writeLine('}');
+    }
     _writeLine('');
   }
 
@@ -2552,6 +2658,10 @@ class DartToDartTransformer {
       // 抽象函数没有方法体
       _writeLine('$returnType $methodName($parameters);');
       _writeLine('');
+    } else if (_hasCppNativeProcedurePragma(procedure)) {
+      // native全局函数，不生成函数体，直接声明
+      _writeLine('$returnType $methodName($parameters);');
+      _writeLine('');
     } else {
       // 具体函数有方法体
       _writeLine('$returnType $methodName($parameters) {');
@@ -2571,9 +2681,11 @@ class DartToDartTransformer {
               '在全局函数 $name 中发现需要装箱的变量: ${DartToDartTransformer._globalVariablesToBox}');
         }
         _currentFunctionReturnType = procedure.function.returnType;
+        _globalState.currentFunctionReturnType = procedure.function.returnType;
         final bodyStr =
             _writeTransformedStatementToString(procedure.function.body!);
         _currentFunctionReturnType = null;
+        _globalState.currentFunctionReturnType = null;
         _writeLine(
             _normalizeBody(bodyStr, isVoid: returnType.trim() == 'void'));
       }
@@ -2790,6 +2902,169 @@ class DartToDartTransformer {
   String _expressionToString(Expression expression) {
     return _generateExpressionCode(expression,
         replaceThis: true, asStatement: false);
+  }
+
+  /// 处理返回表达式，支持dynamic类型的自动装箱
+  String _processReturnExpression(Expression expression) {
+    // 检查当前函数的返回类型是否为dynamic
+    if (_currentFunctionReturnType != null &&
+        _currentFunctionReturnType is DynamicType) {
+      // 检查返回表达式的实际类型
+      final actualType = _getExpressionType(expression);
+      if (actualType != null &&
+          DartConstants.boxableTypes.contains(actualType)) {
+        // 需要装箱
+        final boxType = DartConstants.boxTypeMap[actualType];
+        if (boxType != null) {
+          final exprCode = _expressionProcessor.processExpression(expression);
+          return '$boxType($exprCode)';
+        }
+      }
+    }
+
+    // 默认处理
+    return _expressionProcessor.processExpression(expression);
+  }
+
+  /// 获取表达式的实际类型
+  String? _getExpressionType(Expression expression) {
+    if (expression is IntLiteral) {
+      return 'int';
+    } else if (expression is DoubleLiteral) {
+      return 'double';
+    } else if (expression is BoolLiteral) {
+      return 'bool';
+    } else if (expression is StringLiteral) {
+      return 'String';
+    } else if (expression is VariableGet) {
+      // 尝试从变量类型推断
+      final varType = expression.variable.type;
+      if (varType is InterfaceType) {
+        final typeName = varType.classNode.name;
+        if (DartConstants.boxableTypes.contains(typeName)) {
+          return typeName;
+        }
+      }
+    } else if (expression is MethodInvocation) {
+      // 尝试推断方法调用的返回类型
+      return _inferMethodInvocationReturnType(expression);
+    } else if (expression is StaticInvocation) {
+      // 尝试推断静态调用的返回类型
+      return _inferStaticInvocationReturnType(expression);
+    } else if (expression is ConstructorInvocation) {
+      // 构造函数调用返回构造的类型
+      final className = expression.target.enclosingClass.name;
+      return DartConstants.boxableTypes.contains(className) ? className : null;
+    } else if (expression is InstanceInvocation) {
+      // 实例调用 - 尝试推断运算符的返回类型
+      return _inferInstanceInvocationReturnType(expression);
+    } else if (expression is ConditionalExpression) {
+      // 三元表达式 - 检查两个分支的类型
+      final thenType = _getExpressionType(expression.then);
+      final elseType = _getExpressionType(expression.otherwise);
+      if (thenType == elseType && thenType != null) {
+        return thenType;
+      }
+    } else if (expression is LogicalExpression) {
+      // 逻辑表达式通常返回bool
+      return 'bool';
+    } else if (expression is Let) {
+      // Let表达式的类型由body决定
+      return _getExpressionType(expression.body);
+    }
+
+    return null;
+  }
+
+  /// 推断方法调用的返回类型
+  String? _inferMethodInvocationReturnType(MethodInvocation expression) {
+    final methodName = expression.name.text;
+    final receiver = expression.receiver;
+
+    // 数值运算符
+    if (methodName == '+' || methodName == '-' || methodName == '*') {
+      final receiverType = _getExpressionType(receiver);
+      if (receiverType == 'int') {
+        // 检查操作数类型
+        if (expression.arguments.positional.isNotEmpty) {
+          final argType =
+              _getExpressionType(expression.arguments.positional.first);
+          if (argType == 'int') return 'int';
+          if (argType == 'double') return 'double';
+        }
+        return 'int'; // 默认假设int运算返回int
+      }
+      if (receiverType == 'double') return 'double';
+    }
+
+    // 比较运算符
+    if (methodName == '==' ||
+        methodName == '!=' ||
+        methodName == '<' ||
+        methodName == '>' ||
+        methodName == '<=' ||
+        methodName == '>=') {
+      return 'bool';
+    }
+
+    // toString方法
+    if (methodName == 'toString') {
+      return 'String';
+    }
+
+    return null;
+  }
+
+  /// 推断静态调用的返回类型
+  String? _inferStaticInvocationReturnType(StaticInvocation expression) {
+    final target = expression.target;
+    final returnType = target.function.returnType;
+
+    if (returnType is InterfaceType) {
+      final typeName = returnType.classNode.name;
+      if (DartConstants.boxableTypes.contains(typeName)) {
+        return typeName;
+      }
+    }
+
+    return null;
+  }
+
+  /// 推断实例调用的返回类型（主要是运算符）
+  String? _inferInstanceInvocationReturnType(InstanceInvocation expression) {
+    final methodName = expression.name.text;
+    final receiver = expression.receiver;
+
+    // 数值运算符
+    if (methodName == '+' ||
+        methodName == '-' ||
+        methodName == '*' ||
+        methodName == '/') {
+      final receiverType = _getExpressionType(receiver);
+      if (receiverType == 'int') {
+        // 检查操作数类型
+        if (expression.arguments.positional.isNotEmpty) {
+          final argType =
+              _getExpressionType(expression.arguments.positional.first);
+          if (argType == 'int') return 'int';
+          if (argType == 'double') return 'double';
+        }
+        return 'int'; // 默认假设int运算返回int
+      }
+      if (receiverType == 'double') return 'double';
+    }
+
+    // 比较运算符
+    if (methodName == '==' ||
+        methodName == '!=' ||
+        methodName == '<' ||
+        methodName == '>' ||
+        methodName == '<=' ||
+        methodName == '>=') {
+      return 'bool';
+    }
+
+    return null;
   }
 
   // 已移除未使用方法 _expressionToStringForOperator
@@ -3205,6 +3480,209 @@ String _getCurrentClosureParameterName() {
   return DartToDartTransformer._globalCurrentClosureParameterName;
 }
 
+/// 全局：检查是否需要为返回值自动装箱
+bool _shouldAutoBoxReturnValue(Expression expression) {
+  // 检查当前函数返回类型是否为dynamic
+  final currentReturnType =
+      DartToDartTransformer._globalState.currentFunctionReturnType;
+
+  if (currentReturnType != null && currentReturnType is DynamicType) {
+    // 返回类型是dynamic，检查实际表达式类型是否需要装箱
+    return _isBoxableExpression(expression);
+  }
+  return false;
+}
+
+/// 全局：为返回表达式自动装箱
+String _autoBoxReturnExpression(Expression expression) {
+  final actualType = _getGlobalExpressionType(expression);
+  if (actualType != null && DartConstants.boxableTypes.contains(actualType)) {
+    final boxType = DartConstants.boxTypeMap[actualType];
+    if (boxType != null) {
+      final exprCode = _generateExpressionCode(expression,
+          replaceThis: true, asStatement: false);
+      return '$boxType($exprCode)';
+    }
+  }
+
+  // 默认处理
+  return _generateExpressionCode(expression,
+      replaceThis: true, asStatement: false, allowReturn: false);
+}
+
+/// 全局：检查表达式是否为可装箱的基本类型
+bool _isBoxableExpression(Expression expression) {
+  return _getGlobalExpressionType(expression) != null;
+}
+
+/// 全局：获取表达式的实际类型
+String? _getGlobalExpressionType(Expression expression) {
+  if (expression is IntLiteral) {
+    return 'int';
+  } else if (expression is DoubleLiteral) {
+    return 'double';
+  } else if (expression is BoolLiteral) {
+    return 'bool';
+  } else if (expression is StringLiteral) {
+    return 'String';
+  } else if (expression is VariableGet) {
+    // 尝试从变量类型推断
+    final varType = expression.variable.type;
+    if (varType is InterfaceType) {
+      final typeName = varType.classNode.name;
+      if (DartConstants.boxableTypes.contains(typeName)) {
+        return typeName;
+      }
+    }
+  } else if (expression is MethodInvocation) {
+    // 尝试推断方法调用的返回类型
+    return _inferGlobalMethodInvocationReturnType(expression);
+  } else if (expression is StaticInvocation) {
+    // 尝试推断静态调用的返回类型
+    return _inferGlobalStaticInvocationReturnType(expression);
+  } else if (expression is ConstructorInvocation) {
+    // 构造函数调用返回构造的类型
+    final className = expression.target.enclosingClass.name;
+    return DartConstants.boxableTypes.contains(className) ? className : null;
+  } else if (expression is InstanceInvocation) {
+    // 实例调用 - 尝试推断运算符的返回类型
+    return _inferGlobalInstanceInvocationReturnType(expression);
+  } else if (expression is ConditionalExpression) {
+    // 三元表达式 - 检查两个分支的类型
+    final thenType = _getGlobalExpressionType(expression.then);
+    final elseType = _getGlobalExpressionType(expression.otherwise);
+    if (thenType == elseType && thenType != null) {
+      return thenType;
+    }
+  } else if (expression is LogicalExpression) {
+    // 逻辑表达式通常返回bool
+    return 'bool';
+  } else if (expression is Let) {
+    // Let表达式的类型由body决定
+    return _getGlobalExpressionType(expression.body);
+  }
+
+  return null;
+}
+
+/// 全局：推断方法调用的返回类型
+String? _inferGlobalMethodInvocationReturnType(MethodInvocation expression) {
+  final methodName = expression.name.text;
+  final receiver = expression.receiver;
+
+  // 数值运算符
+  if (methodName == '+' || methodName == '-' || methodName == '*') {
+    final receiverType = _getGlobalExpressionType(receiver);
+    if (receiverType == 'int') {
+      // 检查操作数类型
+      if (expression.arguments.positional.isNotEmpty) {
+        final argType =
+            _getGlobalExpressionType(expression.arguments.positional.first);
+        if (argType == 'int') return 'int';
+        if (argType == 'double') return 'double';
+      }
+      return 'int'; // 默认假设int运算返回int
+    }
+    if (receiverType == 'double') return 'double';
+  }
+
+  // 比较运算符
+  if (methodName == '==' ||
+      methodName == '!=' ||
+      methodName == '<' ||
+      methodName == '>' ||
+      methodName == '<=' ||
+      methodName == '>=') {
+    return 'bool';
+  }
+
+  // toString方法
+  if (methodName == 'toString') {
+    return 'String';
+  }
+
+  return null;
+}
+
+/// 全局：推断静态调用的返回类型
+String? _inferGlobalStaticInvocationReturnType(StaticInvocation expression) {
+  final target = expression.target;
+  final returnType = target.function.returnType;
+
+  if (returnType is InterfaceType) {
+    final typeName = returnType.classNode.name;
+    if (DartConstants.boxableTypes.contains(typeName)) {
+      return typeName;
+    }
+  }
+
+  return null;
+}
+
+/// 全局：推断实例调用的返回类型（主要是运算符）
+String? _inferGlobalInstanceInvocationReturnType(
+    InstanceInvocation expression) {
+  final methodName = expression.name.text;
+  final receiver = expression.receiver;
+
+  // 数值运算符
+  if (methodName == '+' ||
+      methodName == '-' ||
+      methodName == '*' ||
+      methodName == '/') {
+    final receiverType = _getGlobalExpressionType(receiver);
+    if (receiverType == 'int') {
+      // 检查操作数类型
+      if (expression.arguments.positional.isNotEmpty) {
+        final argType =
+            _getGlobalExpressionType(expression.arguments.positional.first);
+        if (argType == 'int') return 'int';
+        if (argType == 'double') return 'double';
+      }
+      return 'int'; // 默认假设int运算返回int
+    }
+    if (receiverType == 'double') return 'double';
+  }
+
+  // 比较运算符
+  if (methodName == '==' ||
+      methodName == '!=' ||
+      methodName == '<' ||
+      methodName == '>' ||
+      methodName == '<=' ||
+      methodName == '>=') {
+    return 'bool';
+  }
+
+  return null;
+}
+
+/// 全局：检查是否应该使用拆箱方法
+bool _shouldUseUnboxingMethod(String type) {
+  // 移除可空修饰符进行检查
+  final cleanType = type.replaceAll('?', '');
+  return DartConstants.boxableTypes.contains(cleanType);
+}
+
+/// 全局：获取拆箱方法名
+String? _getUnboxingMethodName(String type) {
+  // 移除可空修饰符进行检查
+  final cleanType = type.replaceAll('?', '');
+
+  switch (cleanType) {
+    case 'int':
+      return DartConstants.asIntMethodName;
+    case 'double':
+      return DartConstants.asDoubleMethodName;
+    case 'bool':
+      return DartConstants.asBoolMethodName;
+    case 'String':
+      return DartConstants.asStringMethodName;
+    default:
+      return null;
+  }
+}
+
 // 已移除未使用方法 _getBinaryOperator
 
 String _generateExpressionCode(Expression expression,
@@ -3271,7 +3749,7 @@ String _generateExpressionCodeImpl(Expression expression,
       //   // 将 _GrowableList.<T>(0) 转换为 <T>[]
       //   return '<$typeArgs>[]';
       // }
-      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
+      return 'CppArrayList<$typeArgs>.fromCppArray(native_cppArrayConst(${expression.arguments.positional.length}, $args))';
     }
 
     // 处理范型参数
@@ -3559,7 +4037,7 @@ String _generateExpressionCodeImpl(Expression expression,
       //   // 将 _GrowableList.generate<T>(length, generator) 转换为 List<T>.generate(length, generator)
       //   return 'List<$typeArgs>.generate($args)';
       // }
-      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
+      return 'CppArrayList<$typeArgs>.fromCppArray(native_cppArrayConst(${expression.arguments.positional.length}, $args))';
     }
 
     // 处理范型参数 - 尝试使用构造函数调用的实际范型参数
@@ -3770,7 +4248,7 @@ String _generateExpressionCodeImpl(Expression expression,
           : 'Object?';
       // 将 _GrowableList<T>() 转换为 <T>[]
       //return '$typeArgs[]';
-      return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(0))';
+      return 'CppArrayList<$typeArgs>.fromCppArray(native_cppArrayConst(0))';
     }
 
     final typeArgs = expression.typeArguments.isNotEmpty
@@ -4228,6 +4706,15 @@ String _generateExpressionCodeImpl(Expression expression,
     final operand = _generateExpressionCode(expression.operand,
         replaceThis: replaceThis, asStatement: false);
     final type = _getDartType(expression.type);
+
+    // 检查是否是转换为基本类型，如果是则使用拆箱方法
+    if (_shouldUseUnboxingMethod(type)) {
+      final unboxingMethod = _getUnboxingMethodName(type);
+      if (unboxingMethod != null) {
+        return '$unboxingMethod($operand)';
+      }
+    }
+
     return '($operand as $type)';
   } else if (expression is IsExpression) {
     final operand = _generateExpressionCode(expression.operand,
@@ -4349,7 +4836,7 @@ String _generateExpressionCodeImpl(Expression expression,
           .replaceAll('\r', '\\r')
           .replaceAll('\t', '\\t');
       final constValue =
-          'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+          'CppString.fromCppUserData(native_cppCharCodes("$escaped"))';
       final constVarName =
           DartToDartTransformer._globalAddConstantDefinition(constValue);
       return constVarName;
@@ -4500,10 +4987,10 @@ String _generateExpressionCodeImpl(Expression expression,
               replaceThis: replaceThis, asStatement: false))
           .join(', ');
       if (expression.name.text.isEmpty) {
-        return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(0))';
+        return 'CppArrayList<$typeArgs>.fromCppArray(native_cppArrayConst(0))';
       }
       if (methodName.startsWith('_literal')) {
-        return 'CppArrayList<$typeArgs>.fromCppArray(CppApi.cppArrayConst(${expression.arguments.positional.length}, $args))';
+        return 'CppArrayList<$typeArgs>.fromCppArray(native_cppArrayConst(${expression.arguments.positional.length}, $args))';
       }
       return 'CppArrayList<$typeArgs>.$methodName($args)';
     }
@@ -4530,7 +5017,7 @@ String _generateExpressionCodeImpl(Expression expression,
               .replaceAll('\n', '\\n')
               .replaceAll('\r', '\\r')
               .replaceAll('\t', '\\t');
-          return 'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+          return 'CppString.fromCppUserData(native_cppCharCodes("$escaped"))';
         } else {
           // 如果参数不是字符串字面量，保持原有逻辑
           final args = expression.arguments.positional
@@ -4617,7 +5104,7 @@ String _generateExpressionCodeImpl(Expression expression,
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
     final constValue =
-        'CppString.fromCppUserData(CppApi.cppCharCodes("$escaped"))';
+        'CppString.fromCppUserData(native_cppCharCodes("$escaped"))';
     final constVarName =
         DartToDartTransformer._globalAddConstantDefinition(constValue);
     return constVarName;
@@ -4657,8 +5144,15 @@ String _generateStatementCode(Statement statement,
     //   }
     // }
     if (statement.expression != null) {
-      final expr = _generateExpressionCode(statement.expression!,
-          replaceThis: replaceThis, asStatement: false, allowReturn: false);
+      // 检查是否需要自动装箱（dynamic返回类型且实际返回基本类型）
+      String expr;
+      if (_shouldAutoBoxReturnValue(statement.expression!)) {
+        expr = _autoBoxReturnExpression(statement.expression!);
+      } else {
+        expr = _generateExpressionCode(statement.expression!,
+            replaceThis: replaceThis, asStatement: false, allowReturn: false);
+      }
+
       // 避免重复的 return 关键字
       if (expr.startsWith('return ')) {
         return expr;

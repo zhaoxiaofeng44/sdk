@@ -233,12 +233,12 @@ abstract class CppIterable<E> extends CppAny {
 
   /// 转换为CppList
   CppList<E> toList({bool growable = true}) {
-    return CppList<E>.from(this as CppIterable<dynamic>, growable: growable);
+    return CppList<E>.from(this, growable: growable);
   }
 
   /// 转换为CppSet
   CppSet<E> toSet() {
-    return CppSet<E>.from(this as CppIterable<dynamic>);
+    return CppSet<E>.from(this);
   }
 
   /// 类型转换

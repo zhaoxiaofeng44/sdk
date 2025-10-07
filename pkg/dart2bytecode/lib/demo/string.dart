@@ -33,9 +33,9 @@ class CppStringPool {
     }
 
     // 创建新的CppUserData
-    final userData = CppApi.cppCreatePointerArray(codeUnits.length);
+    final userData = native_cppCreatePointerArray(codeUnits.length);
     for (int i = 0; i < codeUnits.length; i++) {
-      CppApi.cppSetPointerArrayItem(userData, i, codeUnits[i]);
+      native_cppSetPointerArrayItem(userData, i, codeUnits[i]);
     }
 
     _pool.add(userData);
@@ -53,11 +53,11 @@ class CppStringPool {
 
   /// 比较CppUserData与代码单元列表是否相同
   bool _compareUserData(CppUserData userData, CppList<int> codeUnits) {
-    final length = CppApi.cppGetPointerArrayLength(userData);
+    final length = native_cppGetPointerArrayLength(userData);
     if (length != codeUnits.length) return false;
 
     for (int i = 0; i < length; i++) {
-      if (CppApi.cppGetPointerArrayItem(userData, i) != codeUnits[i]) {
+      if (native_cppGetPointerArrayItem(userData, i) != codeUnits[i]) {
         return false;
       }
     }
@@ -76,7 +76,7 @@ class CppStringPool {
       CppIterator<CppUserData> _sync_for_iterator = _pool.iterator;
       for (; _sync_for_iterator.moveNext();) {
         final userData = _sync_for_iterator.current;
-        totalMemory += CppApi.cppGetPointerArrayLength(userData);
+        totalMemory += native_cppGetPointerArrayLength(userData);
       }
     }
 
@@ -171,9 +171,9 @@ class CppStringBuffer {
       CppIterator<CppUserData> _sync_for_iterator = _parts.iterator;
       for (; _sync_for_iterator.moveNext();) {
         final part = _sync_for_iterator.current;
-        final length = CppApi.cppGetPointerArrayLength(part);
+        final length = native_cppGetPointerArrayLength(part);
         for (int i = 0; i < length; i++) {
-          codeUnits.add(CppApi.cppGetPointerArrayItem(part, i) as int);
+          codeUnits.add(native_cppGetPointerArrayItem(part, i) as int);
         }
       }
     }
@@ -186,7 +186,7 @@ class CppStringBuffer {
       CppIterator<CppUserData> _sync_for_iterator = _parts.iterator;
       for (; _sync_for_iterator.moveNext();) {
         final part = _sync_for_iterator.current;
-        totalLength += CppApi.cppGetPointerArrayLength(part);
+        totalLength += native_cppGetPointerArrayLength(part);
       }
     }
     return totalLength;
@@ -216,7 +216,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     if (obj is CppString) {
       return obj;
     }
-    return CppString.fromCppUserData(CppApi.cppToString(obj));
+    return CppString.fromCppUserData(native_cppToString(obj));
   }
 
   /// 构造函数 - 从代码单元数组创建CppString
@@ -242,7 +242,7 @@ class CppString extends CppAny implements Comparable<CppString> {
   String _toExternalString() {
     final codeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
-      codeUnits.add(CppApi.cppGetPointerArrayItem(_codeUnits, i) as int);
+      codeUnits.add(native_cppGetPointerArrayItem(_codeUnits, i) as int);
     }
     return String.fromCharCodes(codeUnits as Iterable<int>);
   }
@@ -253,8 +253,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     final otherLength = other.length;
     if (thisLength != otherLength) return false;
     for (int i = 0; i < thisLength; i++) {
-      if (CppApi.cppGetPointerArrayItem(_codeUnits, i) !=
-          CppApi.cppGetPointerArrayItem(other._codeUnits, i)) {
+      if (native_cppGetPointerArrayItem(_codeUnits, i) !=
+          native_cppGetPointerArrayItem(other._codeUnits, i)) {
         return false;
       }
     }
@@ -270,11 +270,11 @@ class CppString extends CppAny implements Comparable<CppString> {
     if (index < 0 || index >= thisLength) {
       throw RangeError.index(index, this, 'index');
     }
-    final codeUnit = CppApi.cppGetPointerArrayItem(_codeUnits, index) as int;
+    final codeUnit = native_cppGetPointerArrayItem(_codeUnits, index) as int;
     return CppString.fromCharCode(codeUnit);
   }
 
-  int get length => CppApi.cppGetPointerArrayLength(_codeUnits);
+  int get length => native_cppGetPointerArrayLength(_codeUnits);
 
   bool get isEmpty => length == 0;
 
@@ -285,7 +285,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     int hash = 0;
     for (int i = 0; i < length; i++) {
       hash =
-          (hash * 31 + (CppApi.cppGetPointerArrayItem(_codeUnits, i) as int)) &
+          (hash * 31 + (native_cppGetPointerArrayItem(_codeUnits, i) as int)) &
               0x7FFFFFFF;
     }
     return hash;
@@ -306,11 +306,11 @@ class CppString extends CppAny implements Comparable<CppString> {
     final newCodeUnits = CppList<int>.empty(growable: true);
     ;
     for (int i = 0; i < thisLength; i++) {
-      newCodeUnits.add(CppApi.cppGetPointerArrayItem(_codeUnits, i) as int);
+      newCodeUnits.add(native_cppGetPointerArrayItem(_codeUnits, i) as int);
     }
     for (int i = 0; i < otherLength; i++) {
       newCodeUnits
-          .add(CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int);
+          .add(native_cppGetPointerArrayItem(other._codeUnits, i) as int);
     }
     return CppString.fromCodeUnits(newCodeUnits);
   }
@@ -324,7 +324,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     final newCodeUnits = CppList<int>.empty(growable: true);
     for (int repeat = 0; repeat < times; repeat++) {
       for (int i = 0; i < thisLength; i++) {
-        newCodeUnits.add(CppApi.cppGetPointerArrayItem(_codeUnits, i) as int);
+        newCodeUnits.add(native_cppGetPointerArrayItem(_codeUnits, i) as int);
       }
     }
     return CppString.fromCodeUnits(newCodeUnits);
@@ -338,14 +338,14 @@ class CppString extends CppAny implements Comparable<CppString> {
     if (index < 0 || index >= length) {
       throw RangeError.index(index, this, 'index');
     }
-    return CppApi.cppGetPointerArrayItem(_codeUnits, index) as int;
+    return native_cppGetPointerArrayItem(_codeUnits, index) as int;
   }
 
   CppList<int> get codeUnits {
     final thisLength = length;
     final units = CppList<int>.empty(growable: true);
     for (int i = 0; i < thisLength; i++) {
-      units.add(CppApi.cppGetPointerArrayItem(_codeUnits, i) as int);
+      units.add(native_cppGetPointerArrayItem(_codeUnits, i) as int);
     }
     return units;
   }
@@ -361,9 +361,9 @@ class CppString extends CppAny implements Comparable<CppString> {
     final otherLength = other.length;
     int minLength = thisLength < otherLength ? thisLength : otherLength;
     for (int i = 0; i < minLength; i++) {
-      int thisCodeUnit = CppApi.cppGetPointerArrayItem(_codeUnits, i) as int;
+      int thisCodeUnit = native_cppGetPointerArrayItem(_codeUnits, i) as int;
       int otherCodeUnit =
-          CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int;
+          native_cppGetPointerArrayItem(other._codeUnits, i) as int;
       if (thisCodeUnit != otherCodeUnit) {
         return thisCodeUnit - otherCodeUnit;
       }
@@ -380,8 +380,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     if (index + pattern.length > length) return false;
 
     for (int i = 0; i < pattern.length; i++) {
-      if (CppApi.cppGetPointerArrayItem(_codeUnits, index + i) as int !=
-          CppApi.cppGetPointerArrayItem(pattern._codeUnits, i) as int) {
+      if (native_cppGetPointerArrayItem(_codeUnits, index + i) as int !=
+          native_cppGetPointerArrayItem(pattern._codeUnits, i) as int) {
         return false;
       }
     }
@@ -393,8 +393,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     int startIndex = length - other.length;
 
     for (int i = 0; i < other.length; i++) {
-      if (CppApi.cppGetPointerArrayItem(_codeUnits, startIndex + i) as int !=
-          CppApi.cppGetPointerArrayItem(other._codeUnits, i) as int) {
+      if (native_cppGetPointerArrayItem(_codeUnits, startIndex + i) as int !=
+          native_cppGetPointerArrayItem(other._codeUnits, i) as int) {
         return false;
       }
     }
@@ -409,8 +409,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     for (int i = start; i <= length - pattern.length; i++) {
       bool match = true;
       for (int j = 0; j < pattern.length; j++) {
-        if (CppApi.cppGetPointerArrayItem(_codeUnits, i + j) as int !=
-            CppApi.cppGetPointerArrayItem(pattern._codeUnits, j) as int) {
+        if (native_cppGetPointerArrayItem(_codeUnits, i + j) as int !=
+            native_cppGetPointerArrayItem(pattern._codeUnits, j) as int) {
           match = false;
           break;
         }
@@ -429,8 +429,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     for (int i = start; i >= 0; i--) {
       bool match = true;
       for (int j = 0; j < pattern.length; j++) {
-        if (CppApi.cppGetPointerArrayItem(_codeUnits, i + j) as int !=
-            CppApi.cppGetPointerArrayItem(pattern._codeUnits, j) as int) {
+        if (native_cppGetPointerArrayItem(_codeUnits, i + j) as int !=
+            native_cppGetPointerArrayItem(pattern._codeUnits, j) as int) {
           match = false;
           break;
         }
@@ -459,7 +459,7 @@ class CppString extends CppAny implements Comparable<CppString> {
 
     for (int i = 0; i < newLength; i++) {
       final codeUnit =
-          CppApi.cppGetPointerArrayItem(_codeUnits, start + i) as int;
+          native_cppGetPointerArrayItem(_codeUnits, start + i) as int;
       newCodeUnits.add(codeUnit);
     }
 
@@ -477,14 +477,14 @@ class CppString extends CppAny implements Comparable<CppString> {
     // 从左边开始找到第一个非空白字符
     while (start < end &&
         _isWhitespace(
-            CppApi.cppGetPointerArrayItem(_codeUnits, start) as int)) {
+            native_cppGetPointerArrayItem(_codeUnits, start) as int)) {
       start++;
     }
 
     // 从右边开始找到最后一个非空白字符
     while (end > start &&
         _isWhitespace(
-            CppApi.cppGetPointerArrayItem(_codeUnits, end - 1) as int)) {
+            native_cppGetPointerArrayItem(_codeUnits, end - 1) as int)) {
       end--;
     }
 
@@ -497,7 +497,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     // 从左边开始找到第一个非空白字符
     while (start < length &&
         _isWhitespace(
-            CppApi.cppGetPointerArrayItem(_codeUnits, start) as int)) {
+            native_cppGetPointerArrayItem(_codeUnits, start) as int)) {
       start++;
     }
 
@@ -510,7 +510,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     // 从右边开始找到最后一个非空白字符
     while (end > 0 &&
         _isWhitespace(
-            CppApi.cppGetPointerArrayItem(_codeUnits, end - 1) as int)) {
+            native_cppGetPointerArrayItem(_codeUnits, end - 1) as int)) {
       end--;
     }
 
@@ -641,7 +641,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     // 先计算结果字符串，然后使用池化创建
     final resultCodeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
-      int codeUnit = CppApi.cppGetPointerArrayItem(_codeUnits, i) as int;
+      int codeUnit = native_cppGetPointerArrayItem(_codeUnits, i) as int;
       // 简单的ASCII大写转小写
       if (codeUnit >= 65 && codeUnit <= 90) {
         // A-Z
@@ -657,7 +657,7 @@ class CppString extends CppAny implements Comparable<CppString> {
     // 先计算结果字符串，然后使用池化创建
     final resultCodeUnits = CppList<int>.empty(growable: true);
     for (int i = 0; i < length; i++) {
-      int codeUnit = CppApi.cppGetPointerArrayItem(_codeUnits, i) as int;
+      int codeUnit = native_cppGetPointerArrayItem(_codeUnits, i) as int;
       // 简单的ASCII小写转大写
       if (codeUnit >= 97 && codeUnit <= 122) {
         // a-z
@@ -686,8 +686,8 @@ class CppString extends CppAny implements Comparable<CppString> {
     }
     if (start + length > string.length) return null;
     for (int i = 0; i < length; i++) {
-      if (CppApi.cppGetPointerArrayItem(string._codeUnits, start + i) as int !=
-          CppApi.cppGetPointerArrayItem(_codeUnits, i) as int) {
+      if (native_cppGetPointerArrayItem(string._codeUnits, start + i) as int !=
+          native_cppGetPointerArrayItem(_codeUnits, i) as int) {
         return null;
       }
     }
@@ -749,13 +749,13 @@ class CppString extends CppAny implements Comparable<CppString> {
       final str = stringList[i];
       for (int j = 0; j < str.length; j++) {
         newCodeUnits
-            .add(CppApi.cppGetPointerArrayItem(str._codeUnits, j) as int);
+            .add(native_cppGetPointerArrayItem(str._codeUnits, j) as int);
       }
 
       if (i < stringList.length - 1) {
         for (int j = 0; j < separator.length; j++) {
           newCodeUnits.add(
-              CppApi.cppGetPointerArrayItem(separator._codeUnits, j) as int);
+              native_cppGetPointerArrayItem(separator._codeUnits, j) as int);
         }
       }
     }

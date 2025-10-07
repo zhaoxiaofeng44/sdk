@@ -44,11 +44,21 @@ void testCollectionMethods() {
   print('CppList 方法测试通过！');
 }
 
+dynamic testDynamic(int aaa) {
+  return aaa + 5;
+}
+
 @pragma('wasm:entry-point')
 void testIterableMethods() {
+  int ttt = testDynamic(1);
+  print(ttt);
+
+  dynamic ttt2 = testDynamic(1);
+  int ggg = ttt2;
+  print(ggg);
   // 测试 CppIterable
-  CppList<int> iterableList =
-      CppArrayList.fromCppArray(CppApi.cppArrayConst(5, 1, 2, 3, 4, 5));
+  var list44 = native_cppArrayConst(5, 1, 2, 3, 4, 5);
+  CppList<int> iterableList = CppArrayList.fromCppArray(list44);
 
   assert(iterableList.first == 1);
   assert(iterableList.last == 5);

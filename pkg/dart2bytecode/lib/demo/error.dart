@@ -10,7 +10,7 @@ class CppStackTrace extends CppAny {
   static CppStackTrace get current => _current;
 
   CppString toCppString() =>
-      CppString.fromCppUserData(CppApi.getCurrentStackTrace());
+      CppString.fromCppUserData(native_getCurrentStackTrace());
 }
 
 @pragma('cpp:patch', 'Error')
