@@ -54,17 +54,26 @@ class Bool;
 class Shape;
 
 class Any {
+ protected:
+  int ref_count;
+
  public:
   int type_id;
 
-  Any() {}
-  Any(const Any& other) : type_id(other.type_id) {}
-  Any& operator=(const Any& other) {
-    if (this != &other) {
-      type_id = other.type_id;
+  Any() : ref_count(1) {}  // 初始引用计数为1
+  Any(const Any&) = delete;  // 禁止拷贝构造
+  Any& operator=(const Any&) = delete;  // 禁止赋值
+
+  // 引用计数管理
+  void increment() { ref_count++; }
+  void decrement() {
+    ref_count--;
+    if (ref_count <= 0) {
+      delete this;
     }
-    return *this;
   }
+
+  int getRefCount() const { return ref_count; }
 
   // 虚的 toString 方法，由子类实现
   virtual String toString() const;
@@ -301,35 +310,7 @@ class String : public Any {
 };
 
 
-class Object : public Any {
- protected:
-  int ref_count;
-
- public:
-  Object() : ref_count(1) {}  // 初始引用计数为1
-
-  Object(const Object& other) : Any(other), ref_count(1) {}  // 拷贝构造时引用计数为1
-
-  Object& operator=(const Object& other) {
-    if (this != &other) {
-      Any::operator=(other);
-      // 引用计数保持为1，因为这是新的赋值
-      ref_count = 1;
-    }
-    return *this;
-  }
-
-  // 引用计数管理
-  void increment() { ref_count++; }
-  void decrement() {
-    ref_count--;
-    if (ref_count <= 0) {
-      delete this;
-    }
-  }
-
-  int getRefCount() const { return ref_count; }
-};
+class Object : public Any {};
 
 // ============================================================================
 // CppUserData 类 - 使用引用计数包装
@@ -517,18 +498,18 @@ private:
     List(std::initializer_list<T> init);
 
 public:
-  // 静态工厂方法
-  static ObjectPtr<List<T>> create() {
-    return ObjectPtr<List<T>>(new List<T>());
-  }
-
-  static ObjectPtr<List<T>> create(const List<T>& other) {
-    return ObjectPtr<List<T>>(new List<T>(other));
-  }
-
-  static ObjectPtr<List<T>> create(std::initializer_list<T> init) {
-    return ObjectPtr<List<T>>(new List<T>(init));
-  }
+    // 静态工厂方法
+    static ObjectPtr<List<T>> create() {
+        return ObjectPtr<List<T>>(new List<T>());
+    }
+    
+    static ObjectPtr<List<T>> create(const List<T>& other) {
+        return ObjectPtr<List<T>>(new List<T>(other));
+    }
+    
+    static ObjectPtr<List<T>> create(std::initializer_list<T> init) {
+        return ObjectPtr<List<T>>(new List<T>(init));
+    }
 
     // 析构函数
     virtual ~List() {}
@@ -590,18 +571,18 @@ private:
     Set(std::initializer_list<T> init);
 
 public:
-  // 静态工厂方法
-  static ObjectPtr<Set<T>> create() {
-    return ObjectPtr<Set<T>>(new Set<T>());
-  }
-
-  static ObjectPtr<Set<T>> create(const Set<T>& other) {
-    return ObjectPtr<Set<T>>(new Set<T>(other));
-  }
-
-  static ObjectPtr<Set<T>> create(std::initializer_list<T> init) {
-    return ObjectPtr<Set<T>>(new Set<T>(init));
-  }
+    // 静态工厂方法
+    static ObjectPtr<Set<T>> create() {
+        return ObjectPtr<Set<T>>(new Set<T>());
+    }
+    
+    static ObjectPtr<Set<T>> create(const Set<T>& other) {
+        return ObjectPtr<Set<T>>(new Set<T>(other));
+    }
+    
+    static ObjectPtr<Set<T>> create(std::initializer_list<T> init) {
+        return ObjectPtr<Set<T>>(new Set<T>(init));
+    }
 
     // 析构函数
     virtual ~Set() {}
@@ -706,43 +687,56 @@ public:
 // ============================================================================
 
 template <typename T>
-class ObjectPtr {
+class ObjectPtr : public Any {
  private:
   T* ptr;
 
-  // 允许其他ObjectPtr类型访问私有成员，用于多态转换
-  template<typename U>
-  friend class ObjectPtr;
-
  public:
   // 构造函数
-  ObjectPtr() : ptr(nullptr) {}
+  ObjectPtr() : ptr(nullptr) {
+    type_id = 5;
+  }
 
   ObjectPtr(T* p) : ptr(p) {
-    increment_if_object();
+    type_id = 5;
+    if (ptr) {
+      ptr->increment();
+    }
   }
 
   ObjectPtr(const ObjectPtr& other) : ptr(other.ptr) {
-    increment_if_object();
+    type_id = 5;
+    if (ptr) {
+      ptr->increment();
+    }
   }
 
   // 多态转换构造函数（允许派生类到基类的转换）
   template<typename U>
   ObjectPtr(const ObjectPtr<U>& other, typename std::enable_if<std::is_base_of<T, U>::value, int>::type* = nullptr) : ptr(other.ptr) {
-    increment_if_object();
+    type_id = 5;
+    if (ptr) {
+      ptr->increment();
+    }
   }
 
   // 析构函数
-  ~ObjectPtr() {
-    decrement_if_object();
+  virtual ~ObjectPtr() {
+    if (ptr) {
+      ptr->decrement();
+    }
   }
 
   // 赋值运算符
   ObjectPtr& operator=(const ObjectPtr& other) {
     if (this != &other) {
-      decrement_if_object();
+      if (ptr) {
+        ptr->decrement();
+      }
       ptr = other.ptr;
-      increment_if_object();
+      if (ptr) {
+        ptr->increment();
+      }
     }
     return *this;
   }
@@ -764,8 +758,8 @@ class ObjectPtr {
   }
 
   // 判断是否为空
-  bool isNull() const { return ptr == nullptr; }
-  bool isNotNull() const { return ptr != nullptr; }
+  Bool isNull() const { return Bool(ptr == nullptr); }
+  Bool isNotNull() const { return Bool(ptr != nullptr); }
 
   // 获取值
   T* get() { return ptr; }
@@ -773,62 +767,188 @@ class ObjectPtr {
 
   // 设置值
   void set(T* p) {
-    decrement_if_object();
+    if (ptr) {
+      ptr->decrement();
+    }
     ptr = p;
-    increment_if_object();
-  }
-
-  // 类型转换
-  operator bool() const { return ptr != nullptr; }
-
-  // 比较操作符
-  bool operator==(const ObjectPtr& other) const {
-    return ptr == other.ptr;
-  }
-  bool operator!=(const ObjectPtr& other) const {
-    return ptr != other.ptr;
-  }
-
- private:
-  // 引用计数辅助函数 - 使用模板特化
-  void increment_if_object() {
-    increment_if_object_impl(std::is_base_of<Object, T>());
-  }
-
-  void decrement_if_object() {
-    decrement_if_object_impl(std::is_base_of<Object, T>());
-  }
-
-  // 对于继承自Object的类型，执行引用计数
-  void increment_if_object_impl(std::true_type) {
     if (ptr) {
-      static_cast<Object*>(ptr)->increment();
+      ptr->increment();
     }
   }
 
-  void decrement_if_object_impl(std::true_type) {
-    if (ptr) {
-      static_cast<Object*>(ptr)->decrement();
-    }
+  // Dart 方法实现
+  String toString() const {
+    if (isNull().value) return String("null");
+    return String("ObjectPtr");
+  }
+  Bool operator==(const ObjectPtr& other) const {
+    return Bool(ptr == other.ptr);
+  }
+  Bool operator!=(const ObjectPtr& other) const {
+    return Bool(ptr != other.ptr);
   }
 
-  // 对于不继承自Object的类型，不执行引用计数
-  void increment_if_object_impl(std::false_type) {
-    // 什么都不做
-  }
-
-  void decrement_if_object_impl(std::false_type) {
-    // 什么都不做
-  }
-
+  // 显式类型转换方法
+  bool toBool() const { return ptr != nullptr; }
 };
 
-class ObjectTestA : public Object {
+// ============================================================================
+// 模板实现（必须在头文件中）
+// ============================================================================
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr() : ref_ptr(nullptr) {
+  type_id = 5;
+}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(T* p) {
+  type_id = 5;
+  if (p) {
+    ref_ptr = new PolymorphicRefCounted(p);
+  } else {
+    ref_ptr = nullptr;
+  }
+}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(const ObjectPtr& other) : ref_ptr(other.ref_ptr) {
+  type_id = 5;
+  if (ref_ptr) {
+    ref_ptr->increment();
+  }
+}
+
+template <typename T>
+template <typename U>
+ObjectPtr<T>::ObjectPtr(const ObjectPtr<U>& other, typename std::enable_if<std::is_base_of<T, U>::value, int>::type*) {
+  type_id = 5;
+  // 多态转换：使用PolymorphicRefCounted来共享引用计数
+  if (other.isNotNull().value) {
+    // 获取派生类指针并转换为基类指针
+    U* derived_ptr = const_cast<U*>(other.operator->());
+    T* base_ptr = static_cast<T*>(derived_ptr);
+
+    // 创建PolymorphicRefCounted来管理引用计数
+    ref_ptr = new PolymorphicRefCounted(base_ptr);
+  } else {
+    ref_ptr = nullptr;
+  }
+}
+
+template <typename T>
+ObjectPtr<T>::~ObjectPtr() {
+  if (ref_ptr) {
+    ref_ptr->decrement();
+  }
+}
+
+template <typename T>
+ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr& other) {
+  if (this != &other) {
+    if (ref_ptr) {
+      ref_ptr->decrement();
+    }
+    ref_ptr = other.ref_ptr;
+    if (ref_ptr) {
+      ref_ptr->increment();
+    }
+  }
+  return *this;
+}
+
+template <typename T>
+T* ObjectPtr<T>::operator->() {
+  if (!ref_ptr) return nullptr;
+  // 作为运行库，所有ObjectPtr都使用PolymorphicRefCounted，直接转换
+  PolymorphicRefCounted* poly_ref = static_cast<PolymorphicRefCounted*>(ref_ptr);
+  return static_cast<T*>(poly_ref->getPtr());
+}
+
+template <typename T>
+const T* ObjectPtr<T>::operator->() const {
+  if (!ref_ptr) return nullptr;
+  // 作为运行库，所有ObjectPtr都使用PolymorphicRefCounted，直接转换
+  PolymorphicRefCounted* poly_ref = static_cast<PolymorphicRefCounted*>(ref_ptr);
+  return static_cast<const T*>(poly_ref->getPtr());
+}
+
+template <typename T>
+T& ObjectPtr<T>::operator*() {
+  T* ptr = operator->();
+  if (!ptr) {
+    throw std::runtime_error("Dereferencing null ObjectPtr");
+  }
+  return *ptr;
+}
+
+template <typename T>
+const T& ObjectPtr<T>::operator*() const {
+  const T* ptr = operator->();
+  if (!ptr) {
+    throw std::runtime_error("Dereferencing null ObjectPtr");
+  }
+  return *ptr;
+}
+
+template <typename T>
+Bool ObjectPtr<T>::isNull() const {
+  return Bool(ref_ptr == nullptr);
+}
+
+template <typename T>
+Bool ObjectPtr<T>::isNotNull() const {
+  return Bool(ref_ptr != nullptr);
+}
+
+template <typename T>
+T* ObjectPtr<T>::get() {
+  return operator->();
+}
+
+template <typename T>
+const T* ObjectPtr<T>::get() const {
+  return operator->();
+}
+
+template <typename T>
+void ObjectPtr<T>::set(T* p) {
+  if (ref_ptr) {
+    ref_ptr->decrement();
+  }
+  if (p) {
+    ref_ptr = new PolymorphicRefCounted(p);
+  } else {
+    ref_ptr = nullptr;
+  }
+}
+
+template <typename T>
+String ObjectPtr<T>::toString() const {
+  if (isNull().value) return String("null");
+  return String("Object");
+}
+
+template <typename T>
+Bool ObjectPtr<T>::operator==(const ObjectPtr& other) const {
+  // 比较两个ObjectPtr是否指向同一个对象
+  return Bool(ref_ptr == other.ref_ptr);
+}
+
+template <typename T>
+Bool ObjectPtr<T>::operator!=(const ObjectPtr& other) const {
+  return Bool(!(*this == other).value);
+}
+
+template <typename T>
+bool ObjectPtr<T>::toBool() const {
+  return isNotNull().value;
+}
+
+class ObjectTestA {
  public:
   Int value;
-  ObjectTestA(const Int& value) : value(value) {
-    type_id = 10;
-  }
+  ObjectTestA(const Int& value) : value(value) {}
 
   // 相等比较运算符
   bool operator==(const ObjectTestA& other) const {
@@ -840,7 +960,7 @@ class ObjectTestA : public Object {
   }
 };
 
-class ObjectTest : public Object {
+class ObjectTest {
  public:
   Int value;
   String name;
@@ -862,7 +982,7 @@ class ObjectTest : public Object {
            String(", name: ") + name.toString() +
            String(", is_valid: ") + (is_valid.value ? String("true") : String("false")) +
            String(", score: ") + score.toString() +
-           String(", object_test_a: ") + (*object_test_a).toString() + String(")"));
+           String(", object_test_a: ") + object_test_a.toString() + String(")"));
   }
 };
 
