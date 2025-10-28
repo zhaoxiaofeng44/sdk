@@ -1,0 +1,332 @@
+#include "../pkg/dart2bytecode/base/object.h"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+
+// 工具宏定义
+#define dart_print(value) \
+    do { \
+        std::cout << (value).toString().getValue() << std::endl; \
+    } while(0)
+
+#define dart_int(value) Int(value)
+#define dart_double(value) Double(value)
+#define dart_bool(value) Bool(value)
+#define dart_string(value) String(value)
+
+// 集合类型辅助函数
+template<typename T>
+List<T> dart_list_from_values(std::initializer_list<T> values) {
+    List<T> result = List<T>::create();
+    for (const auto& value : values) {
+        result.add(value);
+    }
+    return result;
+}
+
+template<typename T>
+Set<T> dart_set_from_values(std::initializer_list<T> values) {
+    Set<T> result = Set<T>::create();
+    for (const auto& value : values) {
+        result.add(value);
+    }
+    return result;
+}
+
+// ============================================================================
+
+class Student : public Object {
+public:
+    String name;
+    Int age;
+    List<String> subjects;
+    Map<String, Int> grades;
+  
+    Student(String name, Int age) : name(name), age(age) {
+    subjects = List<String>::create();
+    grades = Map<String, Int>::create();
+    }
+  
+  /// 添加科目
+    void addSubject(String subject) {
+    subjects.add(subject);
+    grades[subject] = 0;
+    }
+  
+  /// 设置成绩
+    void setGrade(String subject, Int grade) {
+    if (subjects.contains(subject)) {
+    grades[subject] = grade;
+    }
+    }
+  
+  /// 获取平均分
+    Double getAverageGrade() {
+    if (grades.empty()) return 0.0;
+  
+    Int total = 0;
+    for (const auto& subject : subjects) {
+    total += (grades[subject].hasValue() ? grades[subject] : dart_int(0));
+    }
+  
+    return total / subjects.length;
+    }
+  
+  /// 获取学生信息
+    String getInfo() {
+    String info = dart_string("Student: $name, Age: ") + age.toString() + dart_string("");
+    if (subjects!.empty()) {
+    info += dart_string("\nSubjects: ") + (subjects.join(", ")).toString() + dart_string("");
+    info += dart_string("\nAverage Grade: ") + (getAverageGrade().toStringAsFixed(2)).toString() + dart_string("");
+    }
+    return info;
+    }
+};
+
+// ============================================================================
+// 类: MathUtils
+// ============================================================================
+
+class MathUtils : public Object {
+public:
+  /// 计算阶乘
+    static Int factorial(Int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+    }
+  
+  /// 判断是否为质数
+    static Bool isPrime(Int n) {
+    if (n < 2) return false;
+    for (Int i = 2; i * i <= n; i++) {
+    if (n % i == 0) return false;
+    }
+    return true;
+    }
+  
+  /// 生成斐波那契数列
+    static List<Int> fibonacci(Int count) {
+    if (count <= 0) return [];
+    if (count == 1) return [0];
+    if (count == 2) return [0, 1];
+  
+    auto result = [0, 1];
+    for (Int i = 2; i < count; i++) {
+    result.add(result[i-1] + result[i-2]);
+    }
+    return result;
+    }
+};
+
+// ============================================================================
+// 函数: fetchUserData
+// ============================================================================
+
+Future<String> fetchUserData(String userId) async { {
+    // 模拟网络延迟
+    await Future.delayed(Duration(milliseconds: dart_int(100)));
+    return dart_string("User data for " + userId.toString() + ": Map<Any, Any>::create() /* TODO: 解析Map字面量: {name: dart_string("User" + userId.toString() + ""), active: dart_bool(true)} */");
+}
+
+// ============================================================================
+// 函数: demonstrateCollections
+// ============================================================================
+
+void demonstrateCollections() { {
+    dart_print(dart_string("=== 集合操作示例 ==="));
+    
+    // 列表操作
+    auto numbers = dart_list_from_values(dart_set_from_values({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)}));
+    auto evenNumbers = numbers.where([](const auto& n) { return n % dart_int(2; }) == dart_int(0)).toList();
+    auto doubled = numbers.map([](const auto& n) { return n * dart_int(2; })).toList();
+    
+    dart_print(dart_string("原始数字: " + numbers.toString() + ""));
+    dart_print(dart_string("偶数: " + evenNumbers.toString() + ""));
+    dart_print(dart_string("翻倍: " + doubled.toString() + ""));
+    
+    // Set操作
+    auto fruits = dart_set_from_values({dart_string("apple"), dart_string("banana"), dart_string("cherry"), dart_string("apple")});
+    dart_print(dart_string("水果集合: " + fruits.toString() + ""));
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("水果数量: ") + (fruits.length).toString() + dart_string("")); {
+    
+    // Map操作
+    auto studentGrades = {
+    dart_string("Alice"): dart_int(95),
+    dart_string("Bob"): dart_int(87),
+    dart_string("Charlie"): dart_int(92),
+    dart_string("Diana"): dart_int(88)
+    };
+    
+    dart_print(dart_string("学生成绩:"));
+// ============================================================================
+// 函数: forEach
+// ============================================================================
+
+studentGrades.forEach((name, grade) { {
+    dart_print(dart_string("  " + name.toString() + ": " + grade.toString() + ""));
+    });
+    
+    auto highGrades = studentGrades.values.where([](const auto& grade) { return grade >= dart_int(90; }));
+    dart_print(dart_string("高分成绩: " + highGrades.toString() + ""));
+    }
+    
+    /// 字符串操作示例
+// ============================================================================
+// 函数: demonstrateStrings
+// ============================================================================
+
+void demonstrateStrings() { {
+    dart_print(dart_string("=== 字符串操作示例 ==="));
+    
+    String name = dart_string("Dart");
+    Double version = dart_double(3.dart_int(0));
+    String message = dart_string("Hello, " + name.toString() + " " + version.toString() + "!");
+    String multiline = dart_string("")'
+    这是一个
+    多行字符串
+    示例
+    dart_string("")';
+    
+    dart_print(dart_string("消息: " + message.toString() + ""));
+    dart_print(dart_string("多行字符串: " + multiline.toString() + ""));
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("大写: ") + (message.toUpperCase()).toString() + dart_string("")); {
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("小写: ") + (message.toLowerCase()).toString() + dart_string("")); {
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("长度: ") + (message.length).toString() + dart_string("")); {
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("是否包含Dart: ") + (message.contains("Dart")).toString() + dart_string("")); {
+}
+
+// ============================================================================
+// 函数: demonstrateControlFlow
+// ============================================================================
+
+void demonstrateControlFlow() { {
+    dart_print(dart_string("=== 控制流示例 ==="));
+    
+    // if-else
+    Int score = dart_int(85);
+    String grade = dart_string("");
+    if (score >= dart_int(90)) {
+    grade = dart_string("A");
+    } else if (score >= dart_int(80)) {
+    grade = dart_string("B");
+    } else if (score >= dart_int(70)) {
+    grade = dart_string("C");
+    } else {
+    grade = dart_string("F");
+    }
+    dart_print(dart_string("分数: " + score.toString() + ", 等级: " + grade.toString() + ""));
+    
+    // switch
+    String day = dart_string("Monday");
+// ============================================================================
+// 函数: switch
+// ============================================================================
+
+switch (day) { {
+    case dart_string("Monday"):
+    dart_print(dart_string("周一，新的开始！"));
+    break;
+    case dart_string("Friday"):
+    dart_print(dart_string("周五，快到周末了！"));
+    break;
+    default:
+    dart_print(dart_string("普通的一天"));
+    break;
+}
+
+// ============================================================================
+// 函数: while
+// ============================================================================
+
+while (countdown > 0) { {
+    dart_print(dart_string("  " + countdown.toString() + ""));
+    countdown--;
+}
+
+// ============================================================================
+// 函数: main
+// ============================================================================
+
+void main() async { {
+    dart_print(dart_string("=== 高级 Dart 到 C++ 转换示例 ==="));
+    dart_print(dart_string(""));
+    
+    // 1. 类和对象示例
+    dart_print(dart_string("dart_int(1). 类和对象示例:"));
+    auto student = Student(dart_string("Alice"), dart_int(20));
+    student.addSubject(dart_string("Math"));
+    student.addSubject(dart_string("Physics"));
+    student.addSubject(dart_string("Chemistry"));
+    
+    student.setGrade(dart_string("Math"), dart_int(95));
+    student.setGrade(dart_string("Physics"), dart_int(88));
+    student.setGrade(dart_string("Chemistry"), dart_int(92));
+    
+    dart_print(student.getInfo());
+    dart_print(dart_string(""));
+    
+    // 2. 静态方法示例
+    dart_print(dart_string("dart_int(2). 静态方法示例:"));
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("5的阶乘: ") + (MathUtils.factorial(5)).toString() + dart_string("")); {
+// ============================================================================
+// 函数: print
+// ============================================================================
+
+print(dart_string("17是质数: ") + (MathUtils.isPrime(17)).toString() + dart_string("")); {
+    
+    auto fibSequence = MathUtils.fibonacci(dart_int(10));
+    dart_print(dart_string("斐波那契数列(dart_int(10)项): " + fibSequence.toString() + ""));
+    dart_print(dart_string(""));
+    
+    // 3. 集合操作
+    demonstrateCollections();
+    dart_print(dart_string(""));
+    
+    // 4. 字符串操作
+    demonstrateStrings();
+    dart_print(dart_string(""));
+    
+    // 5. 控制流
+    demonstrateControlFlow();
+    dart_print(dart_string(""));
+    
+    // 6. 异步操作示例
+    dart_print(dart_string("dart_int(6). 异步操作示例:"));
+    try {
+    auto userData = await fetchUserData(dart_string("dart_int(12345)"));
+    dart_print(dart_string("获取到用户数据: " + userData.toString() + ""));
+// ============================================================================
+// 函数: catch
+// ============================================================================
+
+} catch (e) { {
+    dart_print(dart_string("获取用户数据失败: " + e.toString() + ""));
+}
+

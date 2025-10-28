@@ -308,9 +308,7 @@ public:
     })
 DART_MIXIN_END
 
-// 初始化静态成员
-template<typename T>
-DartInterface* SingletonMixin::instance_ = NULL;
+// 注意：静态成员需要在使用时定义，不在头文件中初始化
 
 // ============================================================================
 // 8. 便利宏和工具

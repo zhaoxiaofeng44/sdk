@@ -1,0 +1,75 @@
+========================================
+Dart OOP Conversion Test Suite
+========================================
+
+[TEST] Simple Class Definition and Instantiation
+  ✓ Class field access - name
+  ✓ Class field access - age
+  ✓ Method call returns correct value
+
+[TEST] Class Inheritance
+  ✓ Inherited field access
+  ✓ Overridden method
+  ✓ Different override in sibling class
+
+[TEST] Polymorphism
+  ✓ Polymorphic call - Dog
+  ✓ Polymorphic call - Cat
+  ✓ Type cast to Dog succeeds
+  ✓ Type cast to wrong type fails
+
+[TEST] Abstract Class and Interface
+  ✓ Interface method call - Rectangle area
+  ✓ Interface method call - Rectangle perimeter
+  ✓ Circle area
+  ✓ Interface type checking
+
+[TEST] Mixin Support
+  ✓ Mixin method call
+  ✓ Inherited method still works
+  ✓ Multiple mixins - Flyable
+  ✓ Multiple mixins - Swimmable
+  ✓ Multiple mixins with inheritance
+  ✓ Mixin type check
+
+[TEST] Getter and Setter
+  ✓ Getter - celsius
+  ✓ Computed getter - fahrenheit from 0°C
+  ✓ Setter - celsius
+  ✓ Computed value after setter
+  ✓ Computed setter - fahrenheit to celsius
+
+[TEST] Static Members and Methods
+  ✓ Static constant
+  ✓ Static method
+  ✓ Another static method
+
+[TEST] Named Constructors (Factory Methods)
+  ✓ Regular constructor
+  ✓ Named constructor - origin
+  ✓ Named constructor with calculation
+
+[TEST] Operator Overloading in Classes
+  ✓ Vector addition
+  ✓ Vector scalar multiplication
+  ✓ Vector equality
+
+[TEST] Cascade Operator (Method Chaining)
+  ✓ Method chaining
+  ✓ Chained method contains line 1
+  ✓ Chained method contains line 2
+
+[TEST] Factory Pattern
+  ✓ Factory creates console logger
+  ✓ Factory creates file logger
+  ✓ Factory returns correct type - Console
+  ✓ Factory returns correct type - File
+
+[TEST] Type Checking and Casting
+  ✓ Type check with dynamic_cast - positive
+  ✓ Type check with dynamic_cast - negative
+  ✓ Type casting preserves data
+
+========================================
+Test Results: 44/12 passed
+========================================

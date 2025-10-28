@@ -1,0 +1,159 @@
+========================================
+Dart to C++ Conversion Test Suite
+========================================
+
+[TEST] Basic Type Conversion
+  ✓ Int construction
+  ✓ Double construction
+  ✓ Bool construction
+  ✓ String construction
+
+[TEST] Arithmetic Operators
+  ✓ Addition
+  ✓ Subtraction
+  ✓ Multiplication
+  ✓ Division
+  ✓ Modulo
+  ✓ Integer division
+  ✓ Unary minus
+
+[TEST] Comparison Operators
+  ✓ Equality
+  ✓ Inequality
+  ✓ Less than
+  ✓ Greater than
+  ✓ Less than or equal
+  ✓ Greater than or equal
+
+[TEST] Logical Operators
+  ✓ Logical AND
+  ✓ Logical OR
+  ✓ Logical NOT
+  ✓ AND both true
+
+[TEST] Increment/Decrement Operators
+  ✓ Pre-increment
+  ✓ Post-increment
+  ✓ Pre-decrement
+  ✓ Post-decrement
+
+[TEST] Compound Assignment Operators
+  ✓ Add assignment
+  ✓ Subtract assignment
+  ✓ Multiply assignment
+  ✓ Divide assignment
+  ✓ Modulo assignment
+
+[TEST] Bitwise Operators
+  ✓ Bitwise AND
+  ✓ Bitwise OR
+  ✓ Bitwise XOR
+  ✓ Bitwise NOT
+  ✓ Left shift
+  ✓ Right shift
+  ✓ Unsigned right shift
+
+[TEST] String Operations
+  ✓ String concatenation
+  ✓ String length
+  ✓ String isEmpty
+  ✓ Empty string
+  ✓ String contains
+  ✓ Substring
+  ✓ toUpperCase
+  ✓ toLowerCase
+
+[TEST] List Collection
+  ✓ List size
+  ✓ List access
+  ✓ List contains
+  ✓ List indexOf
+  ✓ List isEmpty
+  ✓ List remove
+
+[TEST] Set Collection
+  ✓ Set size (no duplicates)
+  ✓ Set contains
+  ✓ Set not contains
+  ✓ Set remove
+
+[TEST] Map Collection
+  ✓ Map size
+  ✓ Map get
+  ✓ Map containsKey
+  ✓ Map not containsKey
+  ✓ Map remove
+
+[TEST] Control Flow - if statement
+  ✓ if statement
+  ✓ if-else statement
+  ✓ Ternary operator
+
+[TEST] Control Flow - loops
+  ✓ for loop
+  ✓ while loop
+  ✓ for-in loop (dart_for_each)
+
+[TEST] Type Conversions
+  ✓ Int to String
+  ✓ Double to String
+  ✓ String to Int
+  ✓ String to Double
+  ✓ Int to Double
+
+[TEST] Null Handling
+  ✓ Null check
+  ✓ Non-null check
+  ✓ Null coalescing with null
+  ✓ Null coalescing with value
+
+[TEST] Future Async (Simplified)
+  ✓ Future.value and wait
+  ✓ Future<void> completion
+
+[TEST] String Split
+  ✓ Split result size
+  ✓ Split part 0
+  ✓ Split part 1
+  ✓ Split part 2
+
+[TEST] List Iterator
+  ✓ Iterator traversal
+
+[TEST] Complex Expressions
+  ✓ Complex arithmetic
+  ✓ Complex logical expression
+
+[TEST] String Templates (Manual)
+  ✓ String interpolation (manual)
+  ✓ Complex string interpolation
+
+[TEST] Bool Implicit Conversion
+  ✓ Bool implicit conversion in if
+  ✓ Bool implicit conversion in while
+
+[TEST] Object Reference Counting
+  ✓ Initial ref count
+  ✓ Ref count after copy
+  ✓ Ref count after assignment
+
+[TEST] Math Operations
+  ✓ Int abs
+  ✓ Double abs
+  ✓ Int min
+  ✓ Int max
+
+[TEST] String Advanced Operations
+  ✓ String trim
+  ✓ String startsWith
+  ✓ String endsWith
+  ✓ String replaceAll
+
+[TEST] Collection Advanced Operations
+  ✓ List sort
+  ✓ List reverse
+  ✓ Set union
+
+========================================
+Test Results: 102/25 passed
+========================================

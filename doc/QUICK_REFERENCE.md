@@ -1,412 +1,409 @@
-# 快速参考手册
+# Dart to C++ Quick Reference Guide
 
-## 基础类型 API
+快速参考指南 - 常用语法转换速查表
 
-### Int
-```cpp
-Int a(10);
-Int b = a + Int(20);        // 加法
-Int c = a * b;              // 乘法
-bool eq = (a == b);         // 比较
-Int abs = a.abs();          // 绝对值
-String str = a.toString();  // 转字符串
-double d = a.toDouble();    // 转浮点
+---
+
+## 基本类型
+
+```dart
+// Dart
+var x = 5;
+int y = 10;
+double pi = 3.14;
+bool flag = true;
+String name = "Dart";
 ```
 
-### Double
 ```cpp
-Double x(3.14);
-Double y = x * Double(2.0);
-Double z = x.floor();       // 向下取整
-Double w = x.ceil();        // 向上取整
-Double r = x.round();       // 四舍五入
+// C++
+auto x = Int(5);
+Int y = Int(10);
+Double pi = Double(3.14);
+Bool flag = Bool(true);
+String name = String("Dart");
 ```
 
-### Bool
-```cpp
-Bool t(true);
-Bool f = !t;                // 非
-Bool and = t && Bool(false); // 与
-Bool or = t || Bool(false);  // 或
+---
+
+## 运算符
+
+### 算术
+
+```dart
+a + b, a - b, a * b, a / b, a % b, a ~/ b
 ```
 
-### String
 ```cpp
-String s("Hello");
-String s2 = s + String(" World");  // 连接
-int len = s.get_length();          // 长度
-char c = s[0];                     // 索引
-String upper = s.toUpperCase();    // 大写
-String lower = s.toLowerCase();    // 小写
-String sub = s.substring(0, 3);    // 子串
-bool has = s.contains(String("ll")); // 包含
+a + b, a - b, a * b, a / b, a % b, a.integerDivision(b)
 ```
 
-## 泛型容器 API
+### 比较
 
-### List<T>
-```cpp
-List<Int> list;
-list.add(Int(1));              // 添加
-Int val = list.get(0);         // 获取
-list.set(0, Int(2));           // 设置
-int len = list.get_length();   // 长度
-bool empty = list.get_isEmpty(); // 是否为空
-list.removeAt(0);              // 删除
-list.clear();                  // 清空
-bool has = list.contains(Int(1)); // 包含
-int idx = list.indexOf(Int(1));   // 查找索引
+```dart
+a == b, a != b, a < b, a <= b, a > b, a >= b
 ```
 
-### Map<K,V>
 ```cpp
-Map<String, Int> map;
-map.set(String("key"), Int(42));    // 设置
-Int val = map.get(String("key"));   // 获取
-bool has = map.containsKey(String("key")); // 检查键
-map.remove(String("key"));          // 删除
-map.clear();                        // 清空
-int len = map.get_length();         // 大小
+a == b, a != b, a < b, a <= b, a > b, a >= b
 ```
 
-### Pair<T1,T2>
-```cpp
-Pair<Int, String> p(Int(1), String("one"));
-Int first = p.get_first();
-String second = p.get_second();
-p.set_first(Int(2));
+### 逻辑
+
+```dart
+a && b, a || b, !a
 ```
 
-### Optional<T>
 ```cpp
-Optional<Int> opt1(Int(42));        // 有值
-Optional<Int> opt2;                 // 无值
-bool has = opt1.hasValue();         // 检查
-Int val = opt1.get();               // 获取
-Int def = opt2.getOrDefault(Int(0)); // 默认值
+a && b, a || b, !a
 ```
 
-## 继承和多态
+---
 
-### 定义类
-```cpp
-class MyClass : public BaseClass {
-private:
-    Int value_;
-public:
-    MyClass(int v) : BaseClass(), value_(v) {}
-    
-    // 重写虚函数
-    String getName() const override {
-        return String("MyClass");
-    }
-    
-    // 新方法
-    Int getValue() const { return value_; }
-};
+## 字符串
+
+```dart
+// Dart
+"Hello, " + name
+name.length
+name.isEmpty
+name.toLowerCase()
+name.toUpperCase()
+name.trim()
+name.contains("lo")
+name.substring(0, 2)
 ```
 
-### 多态使用
 ```cpp
-BaseClass* obj = new MyClass(42);
-String name = obj->getName();  // 调用 MyClass 的实现
-delete obj;
+// C++
+String("Hello, ") + name
+name.get_length()
+name.get_isEmpty()
+name.toLowerCase()
+name.toUpperCase()
+name.trim()
+name.contains(String("lo"))
+name.substring(Int(0), Int(2))
 ```
 
-## 抽象类和接口
+---
 
-### 定义抽象类
-```cpp
-class Interface : public Object {
-public:
-    virtual ~Interface() {}
-    virtual void method() const = 0;  // 纯虚函数
-};
+## 集合
+
+### List
+
+```dart
+// Dart
+List<int> list = [];
+list.add(1);
+list[0]
+list.length
+list.isEmpty
 ```
 
-### 实现接口
 ```cpp
-class Concrete : public Interface {
-public:
-    void method() const override {
-        // 实现
-    }
-};
+// C++
+ObjectPtr<List<Int>> list = List<Int>::create();
+list->add(Int(1));
+(*list)[Int(0)]
+list->size()
+list->isEmpty()
 ```
 
-## 异常处理
+### Set
 
-### 抛出异常
-```cpp
-throw ArgumentException(String("Error message"));
+```dart
+// Dart
+Set<int> set = {};
+set.add(1);
+set.contains(1)
 ```
 
-### 捕获异常
 ```cpp
-try {
-    // 可能抛出异常的代码
-} catch (const ArgumentException& e) {
-    // 处理特定异常
-    String msg = e.get_message();
-} catch (const Exception& e) {
-    // 处理通用异常
-}
+// C++
+ObjectPtr<Set<Int>> set = Set<Int>::create();
+set->add(Int(1));
+set->contains(Int(1))
 ```
 
-## 函数对象
+### Map
 
-### Lambda 函数
-```cpp
-Function<Int, Int, Int> add([](Int a, Int b) {
-    return a + b;
-});
-Int result = add(Int(10), Int(20));
+```dart
+// Dart
+Map<String, int> map = {};
+map["key"] = 1;
+map["key"]
+map.containsKey("key")
 ```
 
-### 带捕获的 Lambda
 ```cpp
-Int multiplier(5);
-Function<Int, Int> multiply([multiplier](Int x) {
-    return x * multiplier;
-});
-Int result = multiply(Int(7));  // 35
+// C++
+ObjectPtr<Map<String, Int>> map = Map<String, Int>::create();
+(*map)[String("key")] = Int(1);
+(*map)[String("key")]
+map->containsKey(String("key"))
 ```
 
-## Math 工具
+---
 
-### 静态方法
-```cpp
-Int max = Math::max(Int(10), Int(20));
-Int min = Math::min(Int(10), Int(20));
-Double sqrt = Math::sqrt(Double(16.0));
-Double pow = Math::pow(Double(2.0), Double(3.0));
-```
+## 控制流
 
-### 常量
-```cpp
-Double pi = Math::PI;   // 3.14159...
-Double e = Math::E;     // 2.71828...
-```
+### if语句
 
-## 智能指针
-
-### ObjectPtr<T>
-```cpp
-ObjectPtr<Dog> dog(new Dog(String("Max"), 5, String("Husky")));
-String name = dog->get_name();    // 使用 ->
-Dog& ref = *dog;                  // 使用 *
-bool null = dog.isNull();         // 检查空
-Dog* ptr = dog.get();             // 获取原始指针
-// 自动释放内存，无需手动 delete
-```
-
-## 常见模式
-
-### 模式1：集合遍历
-```cpp
-List<String> items;
-for (int i = 0; i < items.get_length(); i++) {
-    String item = items.get(i);
-    // 处理 item
-}
-```
-
-### 模式2：多态列表
-```cpp
-List<ObjectPtr<Animal>> animals;
-animals.add(ObjectPtr<Animal>(new Dog(...)));
-animals.add(ObjectPtr<Animal>(new Cat(...)));
-
-for (int i = 0; i < animals.get_length(); i++) {
-    ObjectPtr<Animal> animal = animals.get(i);
-    std::cout << animal->makeSound().toString();
-}
-```
-
-### 模式3：键值对映射
-```cpp
-Map<String, Int> scores;
-scores.set(String("Alice"), Int(95));
-scores.set(String("Bob"), Int(87));
-
-if (scores.containsKey(String("Alice"))) {
-    Int score = scores.get(String("Alice"));
-}
-```
-
-### 模式4：可选值处理
-```cpp
-Optional<String> maybeValue = someFunction();
-if (maybeValue.hasValue()) {
-    String value = maybeValue.get();
-    // 使用 value
+```dart
+// Dart
+if (condition) {
+  // ...
 } else {
-    // 处理无值情况
+  // ...
 }
 ```
 
-### 模式5：错误处理
 ```cpp
-try {
-    // 可能失败的操作
-    if (invalid) {
-        throw ArgumentException(String("Invalid input"));
-    }
-} catch (const Exception& e) {
-    std::cerr << e.toString() << std::endl;
+// C++
+if (condition) {
+  // ...
+} else {
+  // ...
 }
 ```
 
-## 类型转换
+### 三元运算符
 
-### 基础类型转换
-```cpp
-Int i(42);
-double d = i.toDouble();
-String s = i.toString();
-bool b = i;  // 隐式转换
-
-Double x(3.14);
-int num = x.toInt();
-String str = x.toString();
+```dart
+condition ? a : b
 ```
 
-### 对象类型转换
 ```cpp
-// 向上转型（安全）
-Dog* dog = new Dog(...);
-Animal* animal = dog;
+condition ? a : b
+```
 
-// 向下转型（需要检查）
-Animal* animal = getAnimal();
-Dog* dog = dynamic_cast<Dog*>(animal);
-if (dog != nullptr) {
-    // 使用 dog
+### for循环
+
+```dart
+// Dart
+for (int i = 0; i < 10; i++) {
+  // ...
 }
 ```
 
-## 编译命令
-
-### 单文件编译
-```bash
-g++ -std=c++11 -I pkg/dart2bytecode/base \
-    pkg/dart2bytecode/base/object.cpp \
-    pkg/dart2bytecode/base/object_extended.cpp \
-    your_code.cpp -o program
-```
-
-### 使用 Makefile
-```bash
-cd pkg/dart2bytecode/base
-make clean
-make test-advanced
-```
-
-## 常用头文件
-
 ```cpp
-// 基础类型
-#include "object.h"
-
-// 扩展类型
-#include "object_extended.h"
-
-// 标准库（如需要）
-#include <iostream>
-#include <vector>
-#include <string>
-```
-
-## 调试技巧
-
-### 打印调试
-```cpp
-std::cout << "Value: " << value.toString() << std::endl;
-std::cout << "Size: " << list.get_length() << std::endl;
-```
-
-### 断言检查
-```cpp
-assert(value > Int(0));
-assert(!list.get_isEmpty());
-```
-
-### 异常调试
-```cpp
-try {
-    // 代码
-} catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+// C++
+for (Int i(0); i < Int(10); ++i) {
+  // ...
 }
 ```
 
-## 性能提示
+### for-in循环
 
-1. **使用引用避免拷贝**
-```cpp
-void process(const String& s) {  // 引用参数
-    // 避免拷贝
+```dart
+// Dart
+for (var item in list) {
+  print(item);
 }
 ```
 
-2. **预分配容器大小**
 ```cpp
-// 如果知道大小，可以预先分配
-// (当前实现使用 std::vector 会自动优化)
+// C++
+dart_for_each(Int, item, list)
+  dart_print(item);
+dart_end_for
 ```
 
-3. **字符串池自动优化**
-```cpp
-String s1("same");
-String s2("same");
-// s1 和 s2 共享同一字符串，比较是 O(1)
-bool eq = (s1 == s2);  // 快速
+### while循环
+
+```dart
+// Dart
+while (condition) {
+  // ...
+}
 ```
 
-4. **智能指针管理**
 ```cpp
-// 使用 ObjectPtr 避免内存泄漏
-ObjectPtr<Dog> dog(new Dog(...));
-// 自动释放，无需 delete
-```
-
-## 完整示例
-
-```cpp
-#include "object.h"
-#include "object_extended.h"
-#include <iostream>
-
-int main() {
-    // 创建学生成绩管理系统
-    Map<String, List<Int>> studentScores;
-    
-    // 添加学生成绩
-    List<Int> aliceScores;
-    aliceScores.add(Int(95));
-    aliceScores.add(Int(87));
-    aliceScores.add(Int(92));
-    studentScores.set(String("Alice"), aliceScores);
-    
-    // 计算平均分
-    List<Int> scores = studentScores.get(String("Alice"));
-    Int sum(0);
-    for (int i = 0; i < scores.get_length(); i++) {
-        sum = sum + scores.get(i);
-    }
-    Double average(sum.toDouble() / scores.get_length());
-    
-    std::cout << "Alice's average: " 
-              << average.toString() << std::endl;
-    
-    return 0;
+// C++
+while (condition) {
+  // ...
 }
 ```
 
 ---
 
-更多详细信息请查看：
-- **doc/advanced_features.md** - 完整 API 文档
-- **doc/EXTENDED_README.md** - 使用指南
-- **doc/扩展总结.md** - 快速概览
+## 类型转换
 
+```dart
+// Dart
+x.toString()
+int.parse("123")
+double.parse("3.14")
+x.toDouble()
+```
+
+```cpp
+// C++
+x.toString()
+dart_parse_int(String("123"))
+dart_parse_double(String("3.14"))
+x.toDouble()
+```
+
+---
+
+## 空值处理
+
+```dart
+// Dart
+int? nullable = null;
+nullable = 5;
+nullable ?? 10
+nullable?.method()
+```
+
+```cpp
+// C++
+ObjectPtr<Int> nullable;
+nullable = ObjectPtr<Int>(new Int(5));
+dart_null_coalesce(nullable, Int(10))
+if (nullable) nullable->method()
+```
+
+---
+
+## 常用宏
+
+```cpp
+// 类型构造
+dart_int(5)          // Int(5)
+dart_double(3.14)    // Double(3.14)
+dart_bool(true)      // Bool(true)
+dart_string("hi")    // String("hi")
+
+// 集合创建
+dart_list_int()      // List<Int>::create()
+dart_set_int()       // Set<Int>::create()
+dart_map_string_int() // Map<String, Int>::create()
+
+// 打印
+dart_print(x)        // std::cout << x.toString() << std::endl
+
+// 断言
+dart_assert(condition, "message")
+
+// for-in循环
+dart_for_each(Type, var, collection)
+  // body
+dart_end_for
+```
+
+---
+
+## 完整示例
+
+### Dart代码
+
+```dart
+void main() {
+  var x = 5;
+  var y = 10;
+  var sum = x + y;
+  
+  List<int> numbers = [1, 2, 3];
+  for (var num in numbers) {
+    print(num * 2);
+  }
+  
+  String greeting = "Hello, " + "World";
+  print(greeting.toUpperCase());
+}
+```
+
+### C++代码
+
+```cpp
+#include "pkg/dart2bytecode/base/object.h"
+#include "pkg/dart2bytecode/base/object_extensions_simple.h"
+#include "pkg/dart2bytecode/base/dart_syntax_simple.h"
+
+void main() {
+  auto x = Int(5);
+  auto y = Int(10);
+  auto sum = x + y;
+  
+  ObjectPtr<List<Int>> numbers = List<Int>::create();
+  numbers->add(Int(1));
+  numbers->add(Int(2));
+  numbers->add(Int(3));
+  
+  dart_for_each(Int, num, numbers)
+    dart_print(num * Int(2));
+  dart_end_for
+  
+  String greeting = String("Hello, ") + String("World");
+  dart_print(greeting.toUpperCase());
+}
+```
+
+---
+
+## 常见错误
+
+### ❌ 错误1: 忘记包装字面量
+
+```cpp
+Int x = Int(5);
+Int y = x + 10;  // ❌ 错误
+```
+
+### ✅ 正确:
+
+```cpp
+Int x = Int(5);
+Int y = x + Int(10);  // ✅ 正确
+```
+
+### ❌ 错误2: 集合方法使用错误运算符
+
+```cpp
+ObjectPtr<List<Int>> list = List<Int>::create();
+list.add(Int(1));  // ❌ 错误 (应该用 ->)
+```
+
+### ✅ 正确:
+
+```cpp
+ObjectPtr<List<Int>> list = List<Int>::create();
+list->add(Int(1));  // ✅ 正确
+```
+
+### ❌ 错误3: for-in缺少结束标记
+
+```cpp
+dart_for_each(Int, num, numbers)
+  dart_print(num);
+// ❌ 缺少 dart_end_for
+```
+
+### ✅ 正确:
+
+```cpp
+dart_for_each(Int, num, numbers)
+  dart_print(num);
+dart_end_for  // ✅ 正确
+```
+
+---
+
+## 需要记住的规则
+
+1. **所有字面量必须包装**: 5 → Int(5)
+2. **集合用指针访问**: list->add() 不是 list.add()
+3. **for-in必须配对**: dart_for_each ... dart_end_for
+4. **整除用方法**: ~/ → integerDivision()
+5. **可空用指针**: int? → ObjectPtr<Int>
+
+---
+
+## 更多信息
+
+- 完整语法映射: `doc/dart_to_cpp_syntax_mapping.md`
+- 最佳实践: `doc/conversion_best_practices.md`
+- 测试示例: `test/dart_to_cpp_conversion_tests.cpp`

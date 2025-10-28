@@ -1,546 +1,282 @@
-#ifndef _DART_ASYNC_H_
-#define _DART_ASYNC_H_
+#ifndef DART_ASYNC_H
+#define DART_ASYNC_H
 
 #include "object.h"
-#include <future>
-#include <thread>
-#include <functional>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
-#include <memory>
-#include <exception>
+#include <iostream>
+#include <string>
+#include <cstdlib>
+#include <ctime>
 
 // ============================================================================
-// Dart 异步编程系统 - Future、async/await 完整实现
+// Dart 异步编程支持 - Future, async/await 模拟
 // ============================================================================
 
-// 前置声明
-template<typename T> class Future;
-template<typename T> class Completer;
-class AsyncScheduler;
-
-// ============================================================================
-// 1. 异步任务调度器
-// ============================================================================
-
-class AsyncScheduler {
-private:
-    static AsyncScheduler* instance_;
-    std::queue<std::function<void()>> tasks_;
-    std::mutex mutex_;
-    std::condition_variable cv_;
-    std::vector<std::thread> workers_;
-    bool running_;
-    
-    AsyncScheduler() : running_(true) {
-        // 创建工作线程池
-        size_t thread_count = std::thread::hardware_concurrency();
-        if (thread_count == 0) thread_count = 4;
-        
-        for (size_t i = 0; i < thread_count; ++i) {
-            workers_.emplace_back([this]() {
-                workerLoop();
-            });
-        }
-    }
-    
-    void workerLoop() {
-        while (running_) {
-            std::function<void()> task;
-            {
-                std::unique_lock<std::mutex> lock(mutex_);
-                cv_.wait(lock, [this]() {
-                    return !tasks_.empty() || !running_;
-                });
-                
-                if (!running_) break;
-                
-                task = tasks_.front();
-                tasks_.pop();
-            }
-            
-            try {
-                task();
-            } catch (...) {
-                // 捕获异常，防止线程崩溃
-            }
-        }
-    }
-    
+/// Duration 类 - 时间间隔
+class Duration : public Any {
 public:
-    static AsyncScheduler* getInstance() {
-        if (instance_ == NULL) {
-            instance_ = new AsyncScheduler();
-        }
-        return instance_;
-    }
+    int microseconds;
     
-    template<typename F>
-    void schedule(F&& task) {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            tasks_.emplace(std::forward<F>(task));
-        }
-        cv_.notify_one();
-    }
+    Duration(int ms = 0) : microseconds(ms * 1000) {}
     
-    ~AsyncScheduler() {
-        running_ = false;
-        cv_.notify_all();
-        for (auto& worker : workers_) {
-            if (worker.joinable()) {
-                worker.join();
-            }
-        }
+    static Duration seconds(int s) { return Duration(s * 1000); }
+    static Duration milliseconds(int ms) { return Duration(ms); }
+    static Duration minutes(int m) { return Duration(m * 60 * 1000); }
+    
+    int inMilliseconds() const { return microseconds / 1000; }
+    int inSeconds() const { return microseconds / 1000000; }
+    
+    String toString() const {
+        char buffer[64];
+        sprintf(buffer, "Duration(%dms)", inMilliseconds());
+        return String(buffer);
     }
 };
 
-// 静态成员定义
-AsyncScheduler* AsyncScheduler::instance_ = NULL;
-
-// ============================================================================
-// 2. Future<T> 核心实现
-// ============================================================================
-
+/// Future 类模板 - 异步结果容器
 template<typename T>
-class Future {
+class Future : public Any {
 private:
     std::shared_ptr<std::future<T>> future_;
-    std::shared_ptr<std::promise<T>> promise_;
     
 public:
-    // 构造函数
-    Future() : promise_(std::make_shared<std::promise<T>>()) {
-        future_ = std::make_shared<std::future<T>>(promise_->get_future());
-    }
+    Future(std::future<T>&& fut) 
+        : future_(std::make_shared<std::future<T>>(std::move(fut))) {}
     
-    explicit Future(std::shared_ptr<std::future<T>> future) : future_(future) {}
-    
-    // 工厂方法
-    static Future<T> value(const T& val) {
-        Future<T> future;
-        future.complete(val);
-        return future;
-    }
-    
-    static Future<T> error(const String& error_message) {
-        Future<T> future;
-        future.completeError(error_message);
-        return future;
-    }
-    
-    template<typename F>
-    static Future<T> delayed(Double seconds, F computation) {
-        Future<T> future;
-        
-        AsyncScheduler::getInstance()->schedule([future, seconds, computation]() mutable {
-            // 模拟延迟
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(static_cast<int>(seconds.toDouble() * 1000))
-            );
-            
-            try {
-                T result = computation();
-                future.complete(result);
-            } catch (...) {
-                future.completeError(String("Computation failed"));
-            }
-        });
-        
-        return future;
-    }
-    
-    // 基础方法
-    Bool isCompleted() const {
-        return Bool(future_->wait_for(std::chrono::seconds(0)) == std::future_status::ready);
-    }
-    
-    T get() const {
+    /// 等待结果
+    T wait() {
         return future_->get();
     }
     
-    // then 方法 - 链式调用
-    template<typename F>
-    auto then(F callback) -> Future<decltype(callback(std::declval<T>()))> {
-        typedef decltype(callback(std::declval<T>())) ReturnType;
-        Future<ReturnType> result;
-        
-        AsyncScheduler::getInstance()->schedule([this, callback, result]() mutable {
-            try {
-                T value = future_->get();
-                ReturnType new_value = callback(value);
-                result.complete(new_value);
-            } catch (...) {
-                result.completeError(String("Then callback failed"));
-            }
-        });
-        
-        return result;
+    /// 检查是否完成
+    Bool isCompleted() {
+        return Bool(future_->wait_for(std::chrono::seconds(0)) == std::future_status::ready);
     }
     
-    // catchError 方法 - 错误处理
-    template<typename F>
-    Future<T> catchError(F error_handler) {
-        Future<T> result;
+    /// 延迟创建
+    static Future<T> delayed(Duration duration, std::function<T()> computation = nullptr) {
+        std::promise<T> promise;
+        auto future = promise.get_future();
         
-        AsyncScheduler::getInstance()->schedule([this, error_handler, result]() mutable {
-            try {
-                T value = future_->get();
-                result.complete(value);
-            } catch (...) {
-                try {
-                    T recovery_value = error_handler(String("Error occurred"));
-                    result.complete(recovery_value);
-                } catch (...) {
-                    result.completeError(String("Error handler failed"));
+        std::thread([duration, computation, promise = std::move(promise)]() mutable {
+            std::this_thread::sleep_for(std::chrono::milliseconds(duration.inMilliseconds()));
+            if (computation) {
+                promise.set_value(computation());
+            } else {
+                if constexpr (std::is_same_v<T, void>) {
+                    promise.set_value();
+                } else {
+                    promise.set_value(T{});
                 }
             }
-        });
+        }).detach();
         
-        return result;
+        return Future<T>(std::move(future));
     }
     
-    // whenComplete 方法 - 完成时回调
-    template<typename F>
-    Future<T> whenComplete(F callback) {
-        Future<T> result;
+    /// 立即返回值
+    static Future<T> value(T val) {
+        std::promise<T> promise;
+        auto future = promise.get_future();
+        promise.set_value(val);
+        return Future<T>(std::move(future));
+    }
+    
+    String toString() const override {
+        return String("Future<" + typeid(T).name() + ">");
+    }
+};
+
+/// Future<void> 特化
+template<>
+class Future<void> : public Any {
+private:
+    std::shared_ptr<std::future<void>> future_;
+    
+public:
+    Future(std::future<void>&& fut) 
+        : future_(std::make_shared<std::future<void>>(std::move(fut))) {}
+    
+    void wait() {
+        future_->get();
+    }
+    
+    Bool isCompleted() {
+        return Bool(future_->wait_for(std::chrono::seconds(0)) == std::future_status::ready);
+    }
+    
+    static Future<void> delayed(Duration duration) {
+        std::promise<void> promise;
+        auto future = promise.get_future();
         
-        AsyncScheduler::getInstance()->schedule([this, callback, result]() mutable {
-            try {
-                T value = future_->get();
-                callback();
-                result.complete(value);
-            } catch (...) {
-                callback();
-                result.completeError(String("Original future failed"));
-            }
-        });
+        std::thread([duration, promise = std::move(promise)]() mutable {
+            std::this_thread::sleep_for(std::chrono::milliseconds(duration.inMilliseconds()));
+            promise.set_value();
+        }).detach();
         
-        return result;
+        return Future<void>(std::move(future));
     }
     
-    // 等待方法
-    void wait() const {
-        future_->wait();
+    static Future<void> value() {
+        std::promise<void> promise;
+        auto future = promise.get_future();
+        promise.set_value();
+        return Future<void>(std::move(future));
     }
     
-    template<typename F>
-    void listen(F callback) {
-        AsyncScheduler::getInstance()->schedule([this, callback]() {
-            try {
-                T value = future_->get();
-                callback(value);
-            } catch (...) {
-                // 处理异常的回调可以在这里添加
-            }
-        });
+    String toString() const override {
+        return String("Future<void>");
     }
-    
-    // 内部方法 - 完成 Future
-    void complete(const T& value) {
-        if (promise_) {
-            promise_->set_value(value);
-        }
-    }
-    
-    void completeError(const String& error) {
-        if (promise_) {
-            promise_->set_exception(
-                std::make_exception_ptr(std::runtime_error(error.getValue()))
-            );
-        }
+};
+
+/// Stream 类模板 - 异步数据流
+template<typename T>
+class Stream : public Any {
+public:
+    String toString() const override {
+        return String("Stream<" + typeid(T).name() + ">");
     }
 };
 
 // ============================================================================
-// 3. Completer<T> 实现
+// 异步函数宏定义
 // ============================================================================
 
+/// 定义异步函数
+#define DART_ASYNC_FUNCTION(ReturnType, FunctionName, Parameters) \
+    Future<ReturnType> FunctionName Parameters
+
+/// 异步函数开始标记
+#define DART_ASYNC_BEGIN \
+    return Future<decltype([&]() -> auto {
+
+/// 异步函数结束标记  
+#define DART_ASYNC_END \
+    }())>::value([&]() -> auto {
+
+/// await 操作
+#define DART_AWAIT(future_expr) \
+    (future_expr).wait()
+
+// ============================================================================
+// 工具函数
+// ============================================================================
+
+/// 创建延迟Future
 template<typename T>
-class Completer {
+Future<T> dart_delayed_future(Duration duration, T value) {
+    return Future<T>::delayed(duration, [value]() { return value; });
+}
+
+/// 创建延迟Future<void>
+inline Future<void> dart_delayed_void(Duration duration) {
+    return Future<void>::delayed(duration);
+}
+
+/// 创建立即完成的Future
+template<typename T>
+Future<T> dart_completed_future(T value) {
+    return Future<T>::value(value);
+}
+
+/// 创建立即完成的Future<void>
+inline Future<void> dart_completed_void() {
+    return Future<void>::value();
+}
+
+// ============================================================================
+// 异步工具类
+// ============================================================================
+
+/// Completer - 手动控制Future完成
+template<typename T>
+class Completer : public Any {
 private:
+    std::promise<T> promise_;
     Future<T> future_;
     Bool completed_;
     
 public:
-    Completer() : completed_(false) {}
+    Completer() : future_(promise_.get_future()), completed_(false) {}
     
-    Future<T> getFuture() {
-        return future_;
-    }
+    /// 获取Future
+    Future<T>& future() { return future_; }
     
-    void complete(const T& value) {
-        if (!completed_.toBool()) {
-            future_.complete(value);
+    /// 完成Future
+    void complete(T value) {
+        if (!completed_.value) {
+            promise_.set_value(value);
             completed_ = Bool(true);
         }
     }
     
-    void completeError(const String& error) {
-        if (!completed_.toBool()) {
-            future_.completeError(error);
+    /// 检查是否已完成
+    Bool isCompleted() const { return completed_; }
+    
+    String toString() const override {
+        return String("Completer<" + typeid(T).name() + ">");
+    }
+};
+
+/// Completer<void> 特化
+template<>
+class Completer<void> : public Any {
+private:
+    std::promise<void> promise_;
+    Future<void> future_;
+    Bool completed_;
+    
+public:
+    Completer() : future_(promise_.get_future()), completed_(false) {}
+    
+    Future<void>& future() { return future_; }
+    
+    void complete() {
+        if (!completed_.value) {
+            promise_.set_value();
             completed_ = Bool(true);
         }
     }
     
-    Bool isCompleted() const {
-        return completed_;
+    Bool isCompleted() const { return completed_; }
+    
+    String toString() const override {
+        return String("Completer<void>");
     }
 };
 
 // ============================================================================
-// 4. 特化的 Future 类型
+// 便利宏
 // ============================================================================
 
-typedef Future<Int> FutureInt;
-typedef Future<Double> FutureDouble;
-typedef Future<Bool> FutureBool;
-typedef Future<String> FutureString;
-typedef Future<Any> FutureAny;
-typedef Future<Void> FutureVoid;
-
-// ============================================================================
-// 5. async/await 语法糖宏
-// ============================================================================
-
-// async 函数声明宏
-#define DART_ASYNC_FUNCTION(return_type, function_name, params) \
-    Future<return_type> function_name params
-
-// async 函数体开始
-#define DART_ASYNC_BEGIN \
-    return Future<return_type>::delayed(Double(0.0), [=]() -> return_type {
-
-// async 函数体结束  
-#define DART_ASYNC_END \
-    });
-
-// await 宏 - 同步等待异步结果
-#define DART_AWAIT(future_expr) \
-    (future_expr).get()
-
-// 异步延迟执行
-#define DART_DELAY(seconds) \
-    std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((seconds).toDouble() * 1000)))
-
-// ============================================================================
-// 6. 工具函数和宏
-// ============================================================================
-
-// 异步执行宏
-#define DART_RUN_ASYNC(body) \
-    AsyncScheduler::getInstance()->schedule([=]() { body });
-
-// 创建已完成的 Future
-template<typename T>
-Future<T> dart_future_value(const T& value) {
-    return Future<T>::value(value);
-}
-
-// 创建错误 Future
-template<typename T>
-Future<T> dart_future_error(const String& error) {
-    return Future<T>::error(error);
-}
-
-// 创建延迟 Future
-template<typename T, typename F>
-Future<T> dart_future_delayed(Double seconds, F computation) {
-    return Future<T>::delayed(seconds, computation);
-}
-
-// 等待多个 Future（简化版本）
-template<typename T>
-Future<T> dart_future_wait_first(const Future<T>& future1, const Future<T>& future2) {
-    Future<T> result;
-    
-    AsyncScheduler::getInstance()->schedule([future1, result]() mutable {
-        try {
-            T value = future1.get();
-            result.complete(value);
-        } catch (...) {
-            result.completeError(String("First future failed"));
-        }
-    });
-    
-    AsyncScheduler::getInstance()->schedule([future2, result]() mutable {
-        try {
-            T value = future2.get();
-            if (!result.isCompleted().toBool()) {
-                result.complete(value);
-            }
-        } catch (...) {
-            if (!result.isCompleted().toBool()) {
-                result.completeError(String("Second future failed"));
-            }
-        }
-    });
-    
-    return result;
-}
-
-// ============================================================================
-// 7. Stream<T> 基础实现
-// ============================================================================
-
-template<typename T>
-class Stream {
-private:
-    std::queue<T> buffer_;
-    std::mutex mutex_;
-    std::vector<std::function<void(T)>> listeners_;
-    Bool closed_;
-    
-public:
-    Stream() : closed_(false) {}
-    
-    void add(const T& value) {
-        if (!closed_.toBool()) {
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                buffer_.push(value);
-            }
-            
-            // 通知所有监听器
-            for (auto& listener : listeners_) {
-                AsyncScheduler::getInstance()->schedule([listener, value]() {
-                    listener(value);
-                });
-            }
-        }
+/// 简单的异步函数定义
+#define DART_SIMPLE_ASYNC(ReturnType, FunctionName, Parameters, Body) \
+    Future<ReturnType> FunctionName Parameters { \
+        std::promise<ReturnType> promise; \
+        auto future = promise.get_future(); \
+        std::thread([promise = std::move(promise)]() mutable { \
+            try { \
+                Body \
+            } catch (...) { \
+                promise.set_exception(std::current_exception()); \
+            } \
+        }).detach(); \
+        return Future<ReturnType>(std::move(future)); \
     }
-    
-    template<typename F>
-    void listen(F callback) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        listeners_.push_back(callback);
+
+/// 简单的异步void函数定义
+#define DART_SIMPLE_ASYNC_VOID(FunctionName, Parameters, Body) \
+    Future<void> FunctionName Parameters { \
+        std::promise<void> promise; \
+        auto future = promise.get_future(); \
+        std::thread([promise = std::move(promise)]() mutable { \
+            try { \
+                Body \
+                promise.set_value(); \
+            } catch (...) { \
+                promise.set_exception(std::current_exception()); \
+            } \
+        }).detach(); \
+        return Future<void>(std::move(future)); \
     }
-    
-    void close() {
-        closed_ = Bool(true);
-    }
-    
-    Bool isClosed() const {
-        return closed_;
-    }
-    
-    static Stream<T> fromIterable(const std::vector<T>& items) {
-        Stream<T> stream;
-        
-        AsyncScheduler::getInstance()->schedule([stream, items]() mutable {
-            for (const auto& item : items) {
-                stream.add(item);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            stream.close();
-        });
-        
-        return stream;
-    }
-};
 
-// Stream 特化类型
-typedef Stream<Int> StreamInt;
-typedef Stream<Double> StreamDouble;
-typedef Stream<Bool> StreamBool;
-typedef Stream<String> StreamString;
-
-// ============================================================================
-// 8. 异步工具宏
-// ============================================================================
-
-// 打印异步调试信息
-#define DART_ASYNC_PRINT(message) \
-    AsyncScheduler::getInstance()->schedule([=]() { \
-        std::cout << "[ASYNC] " << (message).toString().getValue() << std::endl; \
-    });
-
-// 异步断言
-#define DART_ASYNC_ASSERT(condition, message) \
-    AsyncScheduler::getInstance()->schedule([=]() { \
-        if (!(condition)) { \
-            std::cerr << "[ASYNC ERROR] " << (message).toString().getValue() << std::endl; \
-        } \
-    });
-
-// 计时器
-class Timer {
-private:
-    std::thread timer_thread_;
-    Bool cancelled_;
-    
-public:
-    template<typename F>
-    Timer(Double seconds, F callback) : cancelled_(false) {
-        timer_thread_ = std::thread([seconds, callback, this]() {
-            auto duration = std::chrono::milliseconds(
-                static_cast<int>(seconds.toDouble() * 1000)
-            );
-            std::this_thread::sleep_for(duration);
-            
-            if (!cancelled_.toBool()) {
-                callback();
-            }
-        });
-    }
-    
-    void cancel() {
-        cancelled_ = Bool(true);
-    }
-    
-    ~Timer() {
-        cancel();
-        if (timer_thread_.joinable()) {
-            timer_thread_.join();
-        }
-    }
-};
-
-// 定时器宏
-#define DART_TIMER(seconds, callback) \
-    Timer(seconds, callback)
-
-// 周期性定时器（简化实现）
-template<typename F>
-void dart_periodic_timer(Double period_seconds, F callback, Int max_count = Int(10)) {
-    AsyncScheduler::getInstance()->schedule([period_seconds, callback, max_count]() {
-        for (int i = 0; i < max_count.toInt(); ++i) {
-            callback();
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(static_cast<int>(period_seconds.toDouble() * 1000))
-            );
-        }
-    });
-}
-
-// ============================================================================
-// 9. 异步初始化和清理
-// ============================================================================
-
-// 初始化异步系统
-inline void dart_async_init() {
-    AsyncScheduler::getInstance(); // 确保调度器已创建
-}
-
-// 清理异步系统
-inline void dart_async_cleanup() {
-    // 调度器析构函数会自动清理
-}
-
-// RAII 异步系统管理
-class AsyncSystemManager {
-public:
-    AsyncSystemManager() {
-        dart_async_init();
-    }
-    
-    ~AsyncSystemManager() {
-        dart_async_cleanup();
-    }
-};
-
-// 全局异步系统管理器
-static AsyncSystemManager _async_system_manager;
-
-#endif // _DART_ASYNC_H_
+#endif // DART_ASYNC_H

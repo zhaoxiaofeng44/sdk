@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:io' as io show exitCode;
+import 'dart:io';
 
 import 'package:args/args.dart' show ArgParser, ArgResults;
 import 'package:front_end/src/api_unstable/vm.dart'
@@ -34,6 +35,7 @@ import 'package:vm/kernel_front_end.dart'
 import 'bytecode_serialization.dart' show BytecodeSizeStatistics;
 import 'bytecode_generator.dart' show generateBytecode;
 import 'compile_to_dart.dart';
+import 'dart_to_cpp_compiler.dart';
 import 'options.dart' show BytecodeOptions;
 
 final ArgParser _argParser = ArgParser(allowTrailingOptions: true)
@@ -203,6 +205,13 @@ Future<int> runCompiler(ArgResults options) async {
   }
 
   transformDartToDart(component!);
+  String cppCode = transformDartToCpp(component);
+  print(cppCode);
+
+  final outputFile = File(DartConstants.defaultOutputPath + ".cpp");
+  outputFile.writeAsStringSync(cppCode);
+
+  // 生成 C++ 代码并写入文件
 
   // 生成 C++ 代码并写入文件
   // final BytecodeOptions bytecodeOptions =
