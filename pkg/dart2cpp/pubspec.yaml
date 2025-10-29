@@ -1,0 +1,21 @@
+name: dart2cpp
+description: Dart to C++ compiler and runtime library
+version: 2.0.0
+
+environment:
+  sdk: '>=2.12.0 <4.0.0'
+
+dependencies:
+  args: ^2.0.0
+  path: ^1.8.0
+  meta: ^1.7.0
+  kernel: any
+  front_end: any
+  vm: any
+
+dev_dependencies:
+  test: ^1.16.0
+
+executables:
+  dart2cpp: dart2cpp
+
