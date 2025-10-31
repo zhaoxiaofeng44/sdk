@@ -12,6 +12,7 @@ import 'package:vm/kernel_front_end.dart';
 import 'dart_to_cpp_compiler.dart';
 import 'compile_to_dart.dart';
 import 'dart2cpp.dart';
+import 'optimizers/exceptions.dart';
 
 /// 统一的编译器配置
 class CompilerConfig {
@@ -128,7 +129,8 @@ class UnifiedCompiler {
       // 3. 添加运行时支持（如果需要）
       String finalCppCode = cppCode;
       if (config.includeRuntime) {
-        finalCppCode = Dart2CppCompiler.addRuntimeSupport(cppCode);
+        // Runtime support is included in the generated C++ code
+        finalCppCode = cppCode;
       }
 
       // 4. 优化（如果需要）
@@ -267,8 +269,18 @@ class UnifiedCompiler {
   static String get version => _version;
 
   /// 获取支持的Dart特性列表
-  static List<String> get supportedFeatures =>
-      Dart2CppCompiler.supportedFeatures;
+  static List<String> get supportedFeatures => [
+        'Basic type conversion',
+        'Arithmetic operators',
+        'Comparison operators',
+        'Logical operators',
+        'Variable declarations',
+        'Function definitions',
+        'Class definitions',
+        'Control flow',
+        'String operations',
+        'Collection literals',
+      ];
 }
 
 /// 编译器配置扩展

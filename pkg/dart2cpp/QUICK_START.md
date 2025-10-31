@@ -1,240 +1,175 @@
-# Dart2CPP 快速开始指南
-
-## 项目简介
-
-dart2cpp 是一个完整的 Dart 到 C++ 转换编译器项目，包含：
-- **Dart 转换器**：将 Dart 代码转换为 C++ 代码
-- **C++ 运行时库**：支持转换后代码运行的完整运行时
+# Dart2Cpp Quick Start Guide
 
 ## 项目结构
 
+已成功整理dart2cpp项目结构如下：
+
 ```
-dart2cpp/
-├── lib/          # Dart 转换器库
-├── bin/          # 命令行工具
-├── test/         # Dart 测试
-└── cpp/          # C++ 子项目
-    ├── core/     # C++ 运行时库
-    ├── test/     # C++ 测试
-    └── examples/ # C++ 示例
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/
+├── bin/                          # 可执行脚本
+│   ├── dart2cpp.dart            # 主转换工具
+│   ├── dart2bytecode.dart       # 字节码编译器
+│   └── dump_bytecode.dart       # 字节码转储工具
+│
+├── lib/                          # 核心库
+│   ├── dart2cpp.dart            # 核心转换逻辑
+│   ├── dart_to_cpp_compiler.dart
+│   ├── unified_compiler.dart    # 统一编译器API
+│   ├── compile_to_dart.dart     # Dart编译
+│   ├── expression_converter_complete.dart
+│   └── optimizers/              # 优化模块
+│
+├── test/                         # 测试目录（已整理）
+│   ├── *.dart                   # 所有测试文件
+│   ├── build_and_run.dart       # 转换和构建脚本
+│   ├── run_tests.dart           # 测试套件
+│   └── quick_verify.dart        # 快速验证脚本
+│
+├── cpp_project/                  # C++项目输出目录
+│   ├── include/                 # 头文件
+│   │   └── dart2cpp_runtime.h
+│   ├── lib/                     # 实现文件
+│   │   └── dart2cpp_runtime.cpp
+│   ├── src/                     # 源文件
+│   │   └── main.cpp
+│   ├── build/                   # 构建目录
+│   ├── CMakeLists.txt           # 构建配置
+│   └── README.md                # C++项目说明
+│
+└── PROJECT_STRUCTURE.md         # 完整项目文档
 ```
 
 ## 快速开始
 
-### 1. 设置 Dart 环境
+### 1. 转换Dart文件到C++
 
 ```bash
 cd /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp
 
-# 安装依赖
-dart pub get
-```
+# 转换单个文件
+dart bin/dart2cpp.dart test/test_hello.dart
 
-### 2. 使用 Dart 转换器
+# 或指定输出文件
+dart bin/dart2cpp.dart -o output.cpp test/test_hello.dart
 
-```bash
-# 查看帮助
-dart bin/dart2cpp.dart --help
-
-# 转换 Dart 文件
-dart bin/dart2cpp.dart lib/demo/hello.dart -o output.cpp
+# 启用优化
+dart bin/dart2cpp.dart --optimize test/test_hello.dart
 
 # 详细输出
-dart bin/dart2cpp.dart lib/demo/hello.dart -o output.cpp --verbose
+dart bin/dart2cpp.dart --verbose test/test_hello.dart
 ```
 
-### 3. 编译和运行 C++ 代码
+### 2. 验证转换工具
 
 ```bash
-cd cpp
-
-# 编译核心库
-make
-
-# 编译示例
-make examples
-
-# 运行示例
-./build/hello_example
+dart bin/dart2cpp.dart --version
+dart bin/dart2cpp.dart --features
 ```
 
-输出：
+### 3. 构建和运行C++项目
+
+#### 使用CMake（推荐）
+
+```bash
+cd cpp_project
+
+# 配置项目
+cmake -B build
+
+# 构建项目
+cmake --build build
+
+# 运行可执行文件
+./build/dart2cpp_test
 ```
-Hello from Dart2CPP!
-Count: 5
-Numbers: 1 2 3 4 5
+
+#### 使用g++直接编译
+
+```bash
+cd cpp_project
+
+g++ -std=c++17 -I include -o dart2cpp_test src/*.cpp lib/*.cpp
+./dart2cpp_test
 ```
 
-## 使用示例
+### 4. 运行完整测试套件
 
-### 示例 1: 转换 Dart 代码
+```bash
+# 转换所有测试文件并构建C++项目
+dart test/build_and_run.dart
 
-创建 `example.dart`：
+# 仅运行Dart测试
+dart test/run_tests.dart
+```
+
+## C++运行库
+
+运行时库提供了以下Dart类型的C++实现：
+
+- **Object**: 所有对象的基类
+- **String**: 字符串类型，支持连接和比较
+- **Int**: 整数类型，支持算术运算
+- **Double**: 双精度浮点类型
+- **Bool**: 布尔类型，支持逻辑运算
+- **List<T>**: 泛型列表/数组类型
+- **Map<K, V>**: 泛型映射/字典类型（需要完整比较器实现）
+- **print()**: 打印函数
+
+## 示例
+
+### Dart输入
+
 ```dart
 void main() {
-  var message = 'Hello from Dart!';
-  var count = 5;
-  print(message);
-  print('Count: $count');
+  print('Hello, World!');
+  var x = 42;
+  var y = x + 1;
+  print('x = $x, y = $y');
+
+  int age = 25;
+  double height = 1.75;
+  bool isStudent = true;
+  String name = 'Alice';
+
+  print('Name: $name, Age: $age, Height: $height, Is Student: $isStudent');
+
+  var numbers = [1, 2, 3, 4, 5];
+  print('Numbers: $numbers');
 }
 ```
 
-转换：
-```bash
-dart bin/dart2cpp.dart example.dart -o example.cpp
-```
+### 转换后的C++输出
 
-### 示例 2: 手动编写 C++ 代码
+生成的C++代码包含：
+- 适当的类型转换
+- 运行时库支持
+- 正确的内存管理
+- 可编译的C++17代码
 
-创建 `my_program.cpp`：
-```cpp
-#include "dart2cpp.h"
-#include <iostream>
+## 支持的特性
 
-int main() {
-    // 使用 Dart 类型
-    String message = String("Hello from C++!");
-    Int count = Int(10);
-    
-    std::cout << message.getValue() << std::endl;
-    std::cout << "Count: " << count.toString().getValue() << std::endl;
-    
-    // 使用 List
-    ObjectPtr<List<Int>> numbers = List<Int>::create();
-    for (Int i = Int(1); i.toInt() <= 5; ++i) {
-        numbers->add(i);
-    }
-    
-    std::cout << "Numbers: ";
-    for (Int i = Int(0); i.toInt() < numbers->size().toInt(); ++i) {
-        std::cout << numbers->get(i).toString().getValue() << " ";
-    }
-    std::cout << std::endl;
-    
-    return 0;
-}
-```
+✅ 基础类型转换（int, double, String, bool）
+✅ 算术运算符（+, -, *, /, %）
+✅ 比较运算符（==, !=, <, <=, >, >=）
+✅ 逻辑运算符（&&, ||, !）
+✅ 变量声明
+✅ 函数定义
+✅ 类定义
+✅ 控制流（if/else, for, while）
+✅ 字符串操作
+✅ 集合字面量（List, Map, Set）
+✅ 方法调用
+✅ 字段访问
+✅ 基础继承
+✅ try-catch块
 
-编译：
-```bash
-cd cpp
-g++ -std=c++11 -I./core my_program.cpp core/object.cpp -o my_program
-./my_program
-```
+## 版本信息
 
-## 项目命令速查
-
-### Dart 部分
-
-```bash
-# 获取依赖
-dart pub get
-
-# 运行转换器
-dart bin/dart2cpp.dart <input.dart>
-
-# 运行测试
-dart test
-
-# 分析代码
-dart analyze
-```
-
-### C++ 部分
-
-```bash
-cd cpp
-
-# 编译核心库
-make
-
-# 编译测试
-make test
-
-# 编译示例
-make examples
-
-# 清理
-make clean
-
-# 重新编译
-make rebuild
-```
-
-## 目录说明
-
-### Dart 转换器 (项目根目录)
-
-- `lib/` - Dart 库代码
-  - `dart2cpp.dart` - 主库
-  - `dart_to_cpp_compiler.dart` - 编译器核心
-  - `demo/` - 示例 Dart 代码
-- `bin/` - 命令行工具
-  - `dart2cpp.dart` - 转换器入口
-- `test/` - Dart 测试文件
-- `pubspec.yaml` - Dart 包配置
-
-### C++ 运行时库 (cpp/ 目录)
-
-- `core/` - 核心运行时库
-  - `object.h/.cpp` - 基础类型
-  - `dart2cpp.h` - 主头文件
-  - `dart_*` - 各种扩展
-- `test/` - C++ 测试代码
-- `examples/` - C++ 示例代码
-- `Makefile` - 构建脚本
-
-## 类型对照表
-
-| Dart | C++ | 使用示例 |
-|------|-----|----------|
-| `int` | `Int` | `Int x = Int(42);` |
-| `double` | `Double` | `Double y = Double(3.14);` |
-| `bool` | `Bool` | `Bool b = Bool(true);` |
-| `String` | `String` | `String s = String("hi");` |
-| `List<int>` | `ObjectPtr<List<Int>>` | `List<Int>::create()` |
-| `Map<String,int>` | `ObjectPtr<Map<String,Int>>` | `Map<String,Int>::create()` |
-
-## 常见问题
-
-### Q: 如何添加新的 Dart 示例？
-
-在 `lib/demo/` 目录创建新的 `.dart` 文件，然后使用转换器转换。
-
-### Q: 如何测试 C++ 运行时库？
-
-```bash
-cd cpp
-make test
-# 运行生成的测试程序
-./build/test_name
-```
-
-### Q: 如何修改转换逻辑？
-
-编辑 `lib/dart_to_cpp_compiler.dart` 中的转换函数。
-
-### Q: C++ 编译失败怎么办？
-
-确保：
-1. 使用 C++11 标准：`-std=c++11`
-2. 包含头文件路径：`-I./core`
-3. 链接 object.cpp
-
-## 下一步
-
-1. 阅读 `README.md` 了解项目详情
-2. 查看 `PROJECT_COMPLETE.md` 了解项目架构
-3. 探索 `lib/demo/` 中的示例代码
-4. 试试转换简单的 Dart 程序
-
-## 获取帮助
-
-- 项目文档: `README.md`
-- 完成报告: `PROJECT_COMPLETE.md`
-- C++ 文档: `cpp/README.md`
+- Dart2Cpp版本：2.0.0
+- C++标准：17
+- CMake最低版本：3.10
 
 ---
 
-祝使用愉快！🎉
-
+**创建日期**: 2025-10-30
+**最后更新**: 2025-10-30

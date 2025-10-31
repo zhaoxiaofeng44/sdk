@@ -6,6 +6,11 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <future>
+#include <thread>
+#include <chrono>
+#include <memory>
+#include <functional>
 
 // ============================================================================
 // Dart 异步编程支持 - Future, async/await 模拟

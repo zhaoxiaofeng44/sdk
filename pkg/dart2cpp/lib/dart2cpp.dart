@@ -100,12 +100,12 @@ Options:
 ${_argParser.usage}
 ''';
 
-Future<void> main(List<String> arguments) async {
-  arguments = [
-    "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
-    "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/test_dart2bytecode.dart"
-  ];
+/// Entry point for running the compiler programmatically
+/// This function is for library usage and should not be called directly
+/// Use bin/dart2cpp.dart for command-line usage
+Future<int> runCompilerWithArguments(List<String> arguments) async {
   io.exitCode = await runCompiler(_argParser.parse(arguments));
+  return io.exitCode;
 }
 
 /// Run bytecode compiler tool with given [options]
