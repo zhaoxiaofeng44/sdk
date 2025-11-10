@@ -1,6 +1,4 @@
-#include "../pkg/dart2bytecode/base/object.h"
-#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"
-#include "../pkg/dart2bytecode/base/dart_async.h"
+#include "../core/object.h"
 #include <iostream>
 
 // 工具宏定义
@@ -13,17 +11,6 @@
 #define dart_double(value) Double(value)
 #define dart_bool(value) Bool(value)
 #define dart_string(value) String(value)
-
-// 集合类型辅助函数
-template<typename T>
-List<T> dart_list_from_values(std::initializer_list<T> values) {
-    return List<T>::createFromValues(values);
-}
-
-template<typename T>
-Set<T> dart_set_from_values(std::initializer_list<T> values) {
-    return Set<T>::createFromValues(values);
-}
 
 // ============================================================================
 // 类: Student

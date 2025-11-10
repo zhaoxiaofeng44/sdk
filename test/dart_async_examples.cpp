@@ -1,5 +1,5 @@
-#include "../pkg/dart2bytecode/base/object.h"
-#include "../pkg/dart2bytecode/base/dart_async.h"
+#include "./core/object.h"
+#include "./core/dart_async.h"
 #include <iostream>
 #include <chrono>
 

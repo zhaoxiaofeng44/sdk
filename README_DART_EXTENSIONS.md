@@ -67,7 +67,7 @@ cd test
 ./build_examples.sh
 
 # 或手动编译
-g++ -I. dart_syntax_examples.cpp ../pkg/dart2bytecode/base/object.cpp -o example
+g++ -I. dart_syntax_examples.cpp ./core/object.cpp -o example
 ./example
 ```
 

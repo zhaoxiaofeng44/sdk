@@ -91,13 +91,16 @@ class ConversionException extends Dart2CppException {
   final int? columnNumber;
 
   const ConversionException(
-    super.message, {
-    super.details,
-    super.suggestions,
-    super.codeLocation,
+    String message, {
+    String? details,
+    List<String>? suggestions,
+    String? codeLocation,
     this.lineNumber,
     this.columnNumber,
-  });
+  }) : super(message,
+            details: details,
+            suggestions: suggestions,
+            codeLocation: codeLocation);
 
   @override
   String toString() {
@@ -106,9 +109,9 @@ class ConversionException extends Dart2CppException {
         : codeLocation;
 
     return '❌ $message\n'
-           '${location != null ? '📍 位置: $location\n' : ''}'
-           '${details != null ? '\n详情:\n$details\n' : ''}'
-           '${suggestions != null && suggestions!.isNotEmpty ? '\n建议:\n${suggestions!.map((s) => '  • $s').join('\n')}\n' : ''}';
+        '${location != null ? '📍 位置: $location\n' : ''}'
+        '${details != null ? '\n详情:\n$details\n' : ''}'
+        '${suggestions != null && suggestions!.isNotEmpty ? '\n建议:\n${suggestions!.map((s) => '  • $s').join('\n')}\n' : ''}';
   }
 }
 
@@ -119,18 +122,21 @@ class OptimizationException extends Dart2CppException {
 
   const OptimizationException(
     this.optimizationName,
-    super.message, {
-    super.details,
-    super.suggestions,
-    super.codeLocation,
+    String message, {
+    String? details,
+    List<String>? suggestions,
+    String? codeLocation,
     this.originalError,
-  });
+  }) : super(message,
+            details: details,
+            suggestions: suggestions,
+            codeLocation: codeLocation);
 
   @override
   String toString() {
     return '⚠️ 优化失败 ($optimizationName)\n'
-           '${super.toString()}'
-           '${originalError != null ? '\n原始错误: $originalError' : ''}';
+        '${super.toString()}'
+        '${originalError != null ? '\n原始错误: $originalError' : ''}';
   }
 }
 
@@ -140,11 +146,14 @@ class TypeAnalysisException extends Dart2CppException {
 
   const TypeAnalysisException(
     this.typeName,
-    super.message, {
-    super.details,
-    super.suggestions,
-    super.codeLocation,
-  });
+    String message, {
+    String? details,
+    List<String>? suggestions,
+    String? codeLocation,
+  }) : super(message,
+            details: details,
+            suggestions: suggestions,
+            codeLocation: codeLocation);
 }
 
 /// 转换验证器

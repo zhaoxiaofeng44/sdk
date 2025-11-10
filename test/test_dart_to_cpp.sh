@@ -75,7 +75,7 @@ echo "🔄 正在执行转换..."
 
 # 由于完整的Kernel编译可能遇到依赖问题，我们创建一个简化的转换测试
 cat > "$OUTPUT_CPP" << 'EOF'
-#include "../pkg/dart2bytecode/base/object.h"
+#include "./core/object.h"
 #include <iostream>
 
 // 工具宏定义

@@ -153,9 +153,9 @@ chmod +x test_dart_to_cpp.sh
 ## 生成的 C++ 代码结构
 
 ```cpp
-#include "../pkg/dart2bytecode/base/object.h"
-#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"
-#include "../pkg/dart2bytecode/base/dart_async.h"
+#include "./core/object.h"
+#include "./core/dart_oop_extensions.h"
+#include "./core/dart_async.h"
 #include <iostream>
 
 // 工具宏定义
@@ -199,7 +199,7 @@ int main() {
 # 或手动编译
 g++ -std=c++17 -Wall -Wextra -O2 \
     output.cpp \
-    ../pkg/dart2bytecode/base/object.cpp \
+    ./core/object.cpp \
     -o output
 ```
 

@@ -75,10 +75,9 @@ class SimpleDartToCppConverter {
 
   /// 生成C++头文件
   void _generateCppHeaders() {
-    _output.writeln('#include "../pkg/dart2bytecode/base/object.h"');
-    _output
-        .writeln('#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"');
-    _output.writeln('#include "../pkg/dart2bytecode/base/dart_async.h"');
+    _output.writeln('#include "./core/object.h"');
+    _output.writeln('#include "./core/dart_oop_extensions.h"');
+    _output.writeln('#include "./core/dart_async.h"');
     _output.writeln('#include <iostream>');
     _output.writeln('');
   }

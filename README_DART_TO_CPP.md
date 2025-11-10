@@ -165,7 +165,7 @@ void main() {
 
 **输出 (C++)**
 ```cpp
-#include "../pkg/dart2bytecode/base/object.h"
+#include "./core/object.h"
 #include <iostream>
 
 #define dart_print(value) std::cout << (value).toString().getValue() << std::endl

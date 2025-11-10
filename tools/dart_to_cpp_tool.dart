@@ -161,13 +161,12 @@ String _generateCppFromDart(String dartCode, String template) {
   final buffer = StringBuffer();
 
   // 生成头文件
-  buffer.writeln('#include "../pkg/dart2bytecode/base/object.h"');
+  buffer.writeln('#include "./core/object.h"');
   if (template == 'oop' || template == 'full') {
-    buffer
-        .writeln('#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"');
+    buffer.writeln('#include "./core/dart_oop_extensions.h"');
   }
   if (template == 'async' || template == 'full') {
-    buffer.writeln('#include "../pkg/dart2bytecode/base/dart_async_simple.h"');
+    buffer.writeln('#include "./core/dart_async_simple.h"');
   }
   buffer.writeln('#include <iostream>');
   buffer.writeln('');
@@ -227,7 +226,7 @@ echo ""
 echo "正在编译 $cppFile ..."
 \$CXX \$CXXFLAGS \\
     "$cppFile" \\
-    "../pkg/dart2bytecode/base/object.cpp" \\
+    "./core/object.cpp" \\
     -o "$execName"
 
 if [ \$? -eq 0 ]; then

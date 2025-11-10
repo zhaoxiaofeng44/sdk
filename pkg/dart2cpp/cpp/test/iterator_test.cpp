@@ -1,4 +1,4 @@
-#include "../pkg/dart2bytecode/base/object.h"
+#include "../core/object.h"
 #include <iostream>
 
 // 测试List迭代器

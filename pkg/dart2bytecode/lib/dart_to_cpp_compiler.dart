@@ -64,9 +64,9 @@ class CppConstants {
 
   // 标准头文件
   static const List<String> standardIncludes = [
-    '#include "../pkg/dart2bytecode/base/object.h"',
-    '#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"',
-    '#include "../pkg/dart2bytecode/base/dart_async.h"',
+    '#include "./core/object.h"',
+    '#include "./core/dart_oop_extensions.h"',
+    '#include "./core/dart_async.h"',
     '#include <iostream>',
   ];
 

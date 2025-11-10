@@ -1,0 +1,10 @@
+🔄 开始转换 Dart 到 C++...
+📊 转换统计:
+   总库数: 21
+   跳过基础库: 20
+   处理业务库: 1
+   转换类数: 1
+   转换函数数: 2
+✅ 转换完成！
+📁 输出文件: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/demo/library_filter_test.dart.cpp
+📊 代码大小: 3104 字符

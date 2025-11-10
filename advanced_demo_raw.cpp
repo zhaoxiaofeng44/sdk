@@ -1,6 +1,6 @@
-#include "../pkg/dart2bytecode/base/object.h"
-#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"
-#include "../pkg/dart2bytecode/base/dart_async.h"
+#include "./core/object.h"
+#include "./core/dart_oop_extensions.h"
+#include "./core/dart_async.h"
 #include <iostream>
 
 // 工具宏定义

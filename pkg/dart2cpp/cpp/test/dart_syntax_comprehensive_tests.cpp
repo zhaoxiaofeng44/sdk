@@ -1,6 +1,6 @@
-#include "../pkg/dart2bytecode/base/object.h"
-#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"
-#include "../pkg/dart2bytecode/base/dart_async_simple.h"
+#include "../core/object.h"
+#include "../core/dart_oop_extensions.h"
+#include "../core/dart_async_simple.h"
 #include <iostream>
 #include <cassert>
 

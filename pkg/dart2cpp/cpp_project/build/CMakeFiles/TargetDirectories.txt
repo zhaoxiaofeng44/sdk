@@ -1,3 +1,0 @@
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp_project/build/CMakeFiles/dart2cpp_test.dir
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp_project/build/CMakeFiles/edit_cache.dir
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp_project/build/CMakeFiles/rebuild_cache.dir

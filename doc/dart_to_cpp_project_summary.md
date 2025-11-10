@@ -118,7 +118,7 @@ void main() {
 
 #### 转换后的 C++ 代码
 ```cpp
-#include "../pkg/dart2bytecode/base/object.h"
+#include "./core/object.h"
 #include <iostream>
 
 #define dart_print(value) std::cout << (value).toString().getValue() << std::endl

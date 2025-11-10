@@ -1,4 +1,4 @@
-#include "../pkg/dart2bytecode/base/object.h"
+#include "../core/object.h"
 #include <cassert>
 #include <iostream>
 #include <typeinfo>

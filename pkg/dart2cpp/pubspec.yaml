@@ -3,12 +3,13 @@ description: Dart to C++ compiler and runtime library
 version: 2.0.0
 
 environment:
-  sdk: '>=2.12.0 <4.0.0'
+  sdk: '>=2.17.0 <4.0.0'
 
 dependencies:
   args: ^2.0.0
   path: ^1.8.0
   meta: ^1.7.0
+ 
 
 dev_dependencies:
   test: ^1.16.0
@@ -16,3 +17,21 @@ dev_dependencies:
 executables:
   dart2cpp: dart2cpp
 
+
+dependency_overrides:
+  _fe_analyzer_shared: 
+    path: ../_fe_analyzer_shared
+  _js_interop_checks: 
+    path: ../_js_interop_checks
+  args: any
+  build_integration: 
+    path: ../build_integration
+  collection: any
+  front_end: 
+    path: ../front_end
+  kernel: 
+    path: ../kernel
+  vm: 
+    path: ../vm
+  wasm_builder: 
+    path: ../wasm_builder

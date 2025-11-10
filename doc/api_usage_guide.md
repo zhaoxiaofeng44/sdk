@@ -384,7 +384,7 @@ if (native_cppIsInt(value)) {
 
 - [API 参考文档](api_documentation.md)
 - [示例代码](../test_api/api_test.dart)
-- [源代码](../pkg/dart2bytecode/base/api.h)
+- [源代码](./core/api.h)
 
 ## 联系和支持
 

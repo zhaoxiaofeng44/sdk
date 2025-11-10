@@ -113,7 +113,7 @@
 - **说明**: 通过头文件组织代码
 
 ### ✅ 22. 导入机制（Import / Using）
-- **实现位置**: `#include "../pkg/dart2bytecode/base/object.h"`
+- **实现位置**: `#include "./core/object.h"`
 - **测试函数**: 所有测试函数
 - **说明**: 使用C++的include机制
 

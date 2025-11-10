@@ -78,7 +78,7 @@ cp "$FIXED_CPP" "$FINAL_CPP"
 
 # 添加必要的包含和修复
 cat > temp_header.cpp << 'EOF'
-#include "../pkg/dart2bytecode/base/object.h"
+#include "./core/object.h"
 #include <iostream>
 #include <string>
 #include <vector>

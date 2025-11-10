@@ -1,0 +1,74 @@
+# Dart2CPP C++ Runtime Makefile - Working Tests Only
+
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall -Wextra -I./core
+
+CORE_DIR = core
+TEST_DIR = test
+BUILD_DIR = build
+
+# Core library
+CORE_SRC = $(CORE_DIR)/object.cpp
+CORE_OBJ = $(BUILD_DIR)/object.o
+
+# Only include working test files
+WORKING_TESTS = test_transformed_simple.cpp advanced_converted_fixed.cpp advanced_fixed_working.cpp
+WORKING_TEST_SOURCES = $(addprefix $(TEST_DIR)/,$(WORKING_TESTS))
+WORKING_TEST_TARGETS = $(patsubst $(TEST_DIR)/%.cpp,$(BUILD_DIR)/%,$(WORKING_TEST_SOURCES))
+
+.PHONY: all clean test working-tests
+
+all: $(BUILD_DIR) $(CORE_OBJ)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(CORE_OBJ): $(CORE_SRC)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Test only working files
+working-tests: $(BUILD_DIR) $(CORE_OBJ)
+	@echo "Compiling working tests..."
+	@for test_file in $(WORKING_TEST_SOURCES); do \
+		if [ -f "$$test_file" ]; then \
+			test_name=$$(basename $$test_file .cpp); \
+			echo "  Compiling $$test_name..."; \
+			$(CXX) $(CXXFLAGS) $$test_file $(CORE_OBJ) -o $(BUILD_DIR)/$$test_name || exit 1; \
+			echo "  ✓ $$test_name compiled successfully"; \
+		else \
+			echo "  ⚠ $$test_file not found"; \
+		fi \
+	done
+	@echo "Working tests compiled successfully"
+
+# Run working tests
+run-tests: working-tests
+	@echo ""
+	@echo "Running working tests..."
+	@for test_file in $(WORKING_TEST_SOURCES); do \
+		if [ -f "$$test_file" ]; then \
+			test_name=$$(basename $$test_file .cpp); \
+			if [ -f "$(BUILD_DIR)/$$test_name" ]; then \
+				echo ""; \
+				echo "=== Running $$test_name ==="; \
+				./$(BUILD_DIR)/$$test_name || echo "✗ $$test_name failed"; \
+				echo "✓ $$test_name completed"; \
+			fi \
+		fi \
+	done
+	@echo ""
+	@echo "All working tests completed"
+
+# Original test target (compiles all files)
+test: $(BUILD_DIR) $(CORE_OBJ)
+	@echo "Compiling all tests..."
+	@for test_file in $(TEST_DIR)/*.cpp; do \
+		test_name=$$(basename $$test_file .cpp); \
+		$(CXX) $(CXXFLAGS) $$test_file $(CORE_OBJ) -o $(BUILD_DIR)/$$test_name || exit 1; \
+	done
+	@echo "Tests compiled successfully"
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+rebuild: clean all

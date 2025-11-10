@@ -1,6 +1,6 @@
 
 // 简单测试：验证基础类型不使用引用计数
-#include "../pkg/dart2bytecode/base/object.h"
+#include "./core/object.h"
 #include <iostream>
 
 int main() {

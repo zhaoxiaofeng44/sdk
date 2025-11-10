@@ -1,4 +1,4 @@
-#include "../pkg/dart2bytecode/base/object.h"
+#include "../core/object.h"
 #include <iostream>
 
 // 简单的自定义类 - 必须通过ObjectPtr使用

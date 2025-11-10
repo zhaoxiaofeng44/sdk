@@ -102,7 +102,6 @@ void main(List<String> arguments) async {
           includeRuntime: includeRuntime,
           optimize: optimize,
           verbose: verbose,
-          generateDartOutput: false,
         ),
       );
 

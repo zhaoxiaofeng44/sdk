@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -Wall -I..
 LDFLAGS =
 
 TARGET = oop_comprehensive_test
-SOURCES = oop_comprehensive_test_base.cpp ../pkg/dart2bytecode/base/object.cpp
+SOURCES = oop_comprehensive_test_base.cpp ./core/object.cpp
 
 all: $(TARGET)
 
@@ -20,7 +20,7 @@ run: $(TARGET)
 
 # 迭代器测试
 iterator_test: iterator_test.cpp
-	$(CXX) $(CXXFLAGS) -o iterator_test iterator_test.cpp ../pkg/dart2bytecode/base/object.cpp
+	$(CXX) $(CXXFLAGS) -o iterator_test iterator_test.cpp ./core/object.cpp
 
 run_iterator: iterator_test
 	./iterator_test
@@ -30,7 +30,7 @@ clean_iterator:
 
 # 自定义类测试
 custom_class_test: custom_class_test.cpp
-	$(CXX) $(CXXFLAGS) -o custom_class_test custom_class_test.cpp ../pkg/dart2bytecode/base/object.cpp
+	$(CXX) $(CXXFLAGS) -o custom_class_test custom_class_test.cpp ./core/object.cpp
 
 run_custom: custom_class_test
 	./custom_class_test
@@ -40,7 +40,7 @@ clean_custom:
 
 # 简单自定义类测试
 simple_custom_class_test: simple_custom_class_test.cpp
-	$(CXX) $(CXXFLAGS) -o simple_custom_class_test simple_custom_class_test.cpp ../pkg/dart2bytecode/base/object.cpp
+	$(CXX) $(CXXFLAGS) -o simple_custom_class_test simple_custom_class_test.cpp ./core/object.cpp
 
 run_simple_custom: simple_custom_class_test
 	./simple_custom_class_test
@@ -50,7 +50,7 @@ clean_simple_custom:
 
 # 最佳实践测试
 best_practices_test: best_practices_test.cpp
-	$(CXX) $(CXXFLAGS) -o best_practices_test best_practices_test.cpp ../pkg/dart2bytecode/base/object.cpp
+	$(CXX) $(CXXFLAGS) -o best_practices_test best_practices_test.cpp ./core/object.cpp
 
 run_best_practices: best_practices_test
 	./best_practices_test
@@ -60,7 +60,7 @@ clean_best_practices:
 
 # ObjectPtr容器测试
 objectptr_containers_test: objectptr_containers_test.cpp
-	$(CXX) $(CXXFLAGS) -o objectptr_containers_test objectptr_containers_test.cpp ../pkg/dart2bytecode/base/object.cpp
+	$(CXX) $(CXXFLAGS) -o objectptr_containers_test objectptr_containers_test.cpp ./core/object.cpp
 
 run_objectptr_containers: objectptr_containers_test
 	./objectptr_containers_test

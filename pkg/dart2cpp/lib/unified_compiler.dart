@@ -10,8 +10,6 @@ import 'package:front_end/src/api_unstable/vm.dart';
 import 'package:vm/kernel_front_end.dart';
 
 import 'dart_to_cpp_compiler.dart';
-import 'compile_to_dart.dart';
-import 'dart2cpp.dart';
 import 'optimizers/exceptions.dart';
 
 /// 统一的编译器配置
@@ -19,26 +17,20 @@ class CompilerConfig {
   final bool includeRuntime;
   final bool optimize;
   final bool verbose;
-  final bool generateDartOutput;
   final String? outputPath;
-  final String? dartOutputPath;
 
   const CompilerConfig({
     this.includeRuntime = true,
     this.optimize = false,
     this.verbose = false,
-    this.generateDartOutput = false,
     this.outputPath,
-    this.dartOutputPath,
   });
 }
 
 /// 编译结果
 class CompilationResult {
   final String cppCode;
-  final String? dartCode;
   final String outputPath;
-  final String? dartOutputPath;
   final int codeSize;
   final Duration compilationTime;
   final List<String> warnings;
@@ -46,9 +38,7 @@ class CompilationResult {
 
   const CompilationResult({
     required this.cppCode,
-    this.dartCode,
     required this.outputPath,
-    this.dartOutputPath,
     required this.codeSize,
     required this.compilationTime,
     this.warnings = const [],
@@ -63,9 +53,6 @@ class CompilationResult {
       print('  • C++ 代码大小: $codeSize 字符');
       print('  • 编译时间: ${compilationTime.inMilliseconds}ms');
       print('  • 输出文件: $outputPath');
-      if (dartOutputPath != null) {
-        print('  • Dart输出文件: $dartOutputPath');
-      }
       if (warnings.isNotEmpty) {
         print('  • 警告数量: ${warnings.length}');
       }
@@ -93,14 +80,11 @@ class UnifiedCompiler {
     final dartSource = await inputFile.readAsString();
     final outputPath =
         config.outputPath ?? inputPath.replaceAll('.dart', '.cpp');
-    final dartOutputPath = config.dartOutputPath ??
-        inputPath.replaceAll('.dart', '_transformed.dart');
 
     return await compileSource(
       dartSource,
       config: config.copyWith(
         outputPath: outputPath,
-        dartOutputPath: dartOutputPath,
       ),
     );
   }
@@ -138,21 +122,9 @@ class UnifiedCompiler {
         finalCppCode = _optimizeCode(finalCppCode);
       }
 
-      // 5. 生成Dart转换版本（如果需要）
-      String? dartCode;
-      if (config.generateDartOutput) {
-        transformDartToDart(component);
-        dartCode = '// Dart转换版本已生成';
-      }
-
-      // 6. 写入文件
+      // 5. 写入文件
       if (config.outputPath != null) {
         await File(config.outputPath!).writeAsString(finalCppCode);
-      }
-
-      if (config.dartOutputPath != null && config.generateDartOutput) {
-        // Dart转换版本已经写入到默认路径
-        warnings.add('Dart转换版本已生成到: ${DartConstants.defaultOutputPath}');
       }
 
       stopwatch.stop();
@@ -163,9 +135,7 @@ class UnifiedCompiler {
 
       return CompilationResult(
         cppCode: finalCppCode,
-        dartCode: dartCode,
         outputPath: config.outputPath ?? 'memory',
-        dartOutputPath: config.dartOutputPath,
         codeSize: finalCppCode.length,
         compilationTime: stopwatch.elapsed,
         warnings: warnings,
@@ -289,17 +259,13 @@ extension CompilerConfigExtension on CompilerConfig {
     bool? includeRuntime,
     bool? optimize,
     bool? verbose,
-    bool? generateDartOutput,
     String? outputPath,
-    String? dartOutputPath,
   }) {
     return CompilerConfig(
       includeRuntime: includeRuntime ?? this.includeRuntime,
       optimize: optimize ?? this.optimize,
       verbose: verbose ?? this.verbose,
-      generateDartOutput: generateDartOutput ?? this.generateDartOutput,
       outputPath: outputPath ?? this.outputPath,
-      dartOutputPath: dartOutputPath ?? this.dartOutputPath,
     );
   }
 }

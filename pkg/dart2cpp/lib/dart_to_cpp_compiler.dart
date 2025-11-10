@@ -64,9 +64,9 @@ class CppConstants {
 
   // 标准头文件
   static const List<String> standardIncludes = [
-    '#include "../pkg/dart2bytecode/base/object.h"',
-    '#include "../pkg/dart2bytecode/base/dart_oop_extensions.h"',
-    '#include "../pkg/dart2bytecode/base/dart_async.h"',
+    '#include "./core/object.h"',
+    '#include "./core/dart_oop_extensions.h"',
+    '#include "./core/dart_async.h"',
     '#include <iostream>',
   ];
 
@@ -935,6 +935,31 @@ class DartToCppTransformer {
   late final CppExpressionConverter expressionConverter;
   late final CppStatementConverter statementConverter;
 
+  /// 需要跳过的基础库前缀列表
+  static const List<String> skipLibraryPrefixes = [
+    'dart.',
+    'dart:',
+    'package:flutter',
+    'package:meta',
+    'package:collection',
+    'package:async',
+    'package:typed_data',
+    'package:convert',
+    'package:io',
+    'package:isolate',
+    'package:math',
+    'package:mirrors',
+    'package:developer',
+    'package:ffi',
+    'package:js',
+    'package:html',
+    'package:indexed_db',
+    'package:svg',
+    'package:web_audio',
+    'package:web_gl',
+    'package:web_sql',
+  ];
+
   DartToCppTransformer() {
     expressionConverter = CppExpressionConverter(this);
     statementConverter = CppStatementConverter(this);
@@ -952,24 +977,63 @@ class DartToCppTransformer {
     _writeUtilityMacros();
     _writeLine('');
 
-    // 处理类定义
+    // 统计过滤信息
+    int totalLibraries = component.libraries.length;
+    int skippedLibraries = 0;
+    int processedClasses = 0;
+    int processedProcedures = 0;
+
+    // 处理类定义 - 只处理非基础库的类
     for (final library in component.libraries) {
+      if (_shouldSkipLibrary(library)) {
+        skippedLibraries++;
+        continue;
+      }
+
       for (final cls in library.classes) {
         _transformClass(cls);
+        processedClasses++;
       }
     }
 
-    // 处理全局函数
+    // 处理全局函数 - 只处理非基础库的函数
     for (final library in component.libraries) {
+      if (_shouldSkipLibrary(library)) {
+        continue;
+      }
+
       for (final procedure in library.procedures) {
         _transformProcedure(procedure);
+        processedProcedures++;
       }
     }
 
     // 写入主函数
     _writeMainFunction(component);
 
+    // 输出过滤统计信息
+    print('📊 转换统计:');
+    print('   总库数: $totalLibraries');
+    print('   跳过基础库: $skippedLibraries');
+    print('   处理业务库: ${totalLibraries - skippedLibraries}');
+    print('   转换类数: $processedClasses');
+    print('   转换函数数: $processedProcedures');
+
     return _buffer.toString();
+  }
+
+  /// 检查是否应该跳过某个库
+  bool _shouldSkipLibrary(Library library) {
+    final libraryUri = library.importUri.toString();
+
+    // 检查是否匹配跳过的前缀
+    for (final prefix in skipLibraryPrefixes) {
+      if (libraryUri.startsWith(prefix)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   void _writeHeaders() {
