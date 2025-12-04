@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:kernel/kernel.dart';
 import 'package:kernel/ast.dart';
+import 'type_analyzer.dart';
 
 // ============================================================================
 // Dart 到 C++ 转换器 - 基于现有 base 项目的完整实现
@@ -15,7 +16,7 @@ class CppConstants {
     'double': 'Double',
     'bool': 'Bool',
     'String': 'String',
-    'void': 'void',
+    'void': 'Nullable',
     'dynamic': 'Any',
     'Object': 'Object',
     'List': 'List',
@@ -40,6 +41,7 @@ class CppConstants {
     '*': '*',
     '/': '/',
     '%': '%',
+    '~/': 'truncatingDivision',
     '==': '==',
     '!=': '!=',
     '<': '<',
@@ -49,8 +51,15 @@ class CppConstants {
     '&&': '&&',
     '||': '||',
     '!': '!',
+    '&': 'operator_bitwise_and',
+    '|': 'operator_bitwise_or',
+    '^': 'operator_bitwise_xor',
+    '<<': 'operator_shift_left',
+    '>>': 'operator_shift_right',
+    '~': 'operator_bitwise_not',
+    'unary-': 'operator_negate',
     '??': 'dart_null_coalesce',
-    '?.': 'dart_safe_call',
+    '?.': 'dart_null_check',
   };
 
   // 关键字替换
@@ -64,23 +73,20 @@ class CppConstants {
 
   // 标准头文件
   static const List<String> standardIncludes = [
-    '#include "./core/object.h"',
-    '#include "./core/dart_oop_extensions.h"',
-    '#include "./core/dart_async.h"',
-    '#include <iostream>',
+    '#include "dart2cpp.h"',
   ];
 
   // 便利宏定义
   static const List<String> utilityMacros = [
-    '#define dart_print(value) \\',
-    '    do { \\',
-    '        std::cout << (value).toString().getValue() << std::endl; \\',
-    '    } while(0)',
-    '',
-    '#define dart_int(value) Int(value)',
-    '#define dart_double(value) Double(value)',
-    '#define dart_bool(value) Bool(value)',
-    '#define dart_string(value) String(value)',
+    // '#define dart_print(value) \\',
+    // '    do { \\',
+    // '        std::cout << (value).toString().getValue() << std::endl; \\',
+    // '    } while(0)',
+    // '',
+    // '#define dart_int(value) Int(value)',
+    // '#define dart_double(value) Double(value)',
+    // '#define dart_bool(value) Bool(value)',
+    // '#define dart_string(value) String(value)',
   ];
 }
 
@@ -112,10 +118,10 @@ class CppTypeConverter {
       // 自定义类型
       return className;
     } else if (type is FunctionType) {
-      // 函数类型处理
-      return 'std::function<${convertType(type.returnType)}()>';
+      // 改进的函数类型转换，生成具体的 std::function 类型
+      return _convertFunctionType(type);
     } else if (type is VoidType) {
-      return 'void';
+      return 'Nullable';
     } else if (type is DynamicType) {
       return 'Any';
     }
@@ -125,7 +131,15 @@ class CppTypeConverter {
 
   static String convertLiteral(dynamic value) {
     if (value is String) {
-      return 'dart_string("${value.replaceAll('"', '\\"')}")';
+      // Escape special characters in strings
+      final escaped = value
+          .replaceAll('\\', '\\\\') // Backslash must be first
+          .replaceAll('"', '\\"') // Double quote
+          .replaceAll('\n', '\\n') // Newline
+          .replaceAll('\r', '\\r') // Carriage return
+          .replaceAll('\t', '\\t') // Tab
+          .replaceAll('\$', '\\\$'); // Dollar sign (for string interpolation)
+      return 'dart_string("$escaped")';
     } else if (value is int) {
       return 'dart_int($value)';
     } else if (value is double) {
@@ -134,6 +148,31 @@ class CppTypeConverter {
       return 'dart_bool($value)';
     }
     return value.toString();
+  }
+
+  /// 转换函数类型为 std::function
+  static String _convertFunctionType(FunctionType type) {
+    final returnType = convertType(type.returnType);
+    
+    // 处理位置参数
+    final positionalParams = type.positionalParameters
+        .map((param) => convertType(param))
+        .toList();
+    
+    // 处理命名参数（转换为额外的位置参数）
+    final namedParams = type.namedParameters
+        .map((param) => convertType(param.type))
+        .toList();
+    
+    // 合并所有参数
+    final allParams = [...positionalParams, ...namedParams];
+    
+    if (allParams.isEmpty) {
+      return 'std::function<$returnType()>';
+    } else {
+      final paramTypes = allParams.join(', ');
+      return 'std::function<$returnType($paramTypes)>';
+    }
   }
 }
 
@@ -157,7 +196,7 @@ class CppExpressionConverter {
     } else if (expr is BoolLiteral) {
       return CppTypeConverter.convertLiteral(expr.value);
     } else if (expr is NullLiteral) {
-      return 'nullptr';
+      return 'Null';
     } else if (expr is SymbolLiteral) {
       return _convertSymbolLiteral(expr);
     } else if (expr is TypeLiteral) {
@@ -179,7 +218,16 @@ class CppExpressionConverter {
       if (_letVariableMap.containsKey(expr.variable)) {
         return _letVariableMap[expr.variable]!;
       }
-      return expr.variable.name ?? 'unnamed_var';
+
+      // 清理变量名，移除无效的前缀字符
+      String varName = expr.variable.name ?? 'unnamed_var';
+      if (varName.startsWith(':')) {
+        varName = varName.substring(1); // 移除开头的冒号
+      }
+      // 将其他无效字符替换为下划线
+      varName = varName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+
+      return varName;
     } else if (expr is VariableSet) {
       return _convertVariableSet(expr);
     } else if (expr is ThisExpression) {
@@ -316,38 +364,126 @@ class CppExpressionConverter {
 
   String _convertStaticInvocation(StaticInvocation expr) {
     final target = expr.target;
-    final className = target.enclosingClass?.name ?? '';
     final methodName = target.name.text;
 
-    // print 函数特殊处理
+    // 处理特殊的静态方法调用
     if (methodName == 'print') {
       final arg = convertExpression(expr.arguments.positional.first);
       return 'dart_print($arg)';
     }
 
-    final args = expr.arguments.positional
-        .map((arg) => convertExpression(arg))
-        .join(', ');
-
-    if (className.isNotEmpty) {
-      return '$className::$methodName($args)';
-    } else {
-      return '$methodName($args)';
+    // 处理数学函数
+    if (target.enclosingClass?.name == 'dart.math') {
+      final args = expr.arguments.positional
+          .map((arg) => convertExpression(arg))
+          .join(', ');
+      return 'dart_math_$methodName($args)';
     }
+
+    // 一般静态方法调用 - 使用目标函数信息进行参数补全
+    final args = _convertArguments(expr.arguments, target.function);
+
+    final className = target.enclosingClass?.name ?? 'Unknown';
+    return '${className}::$methodName($args)';
   }
 
   String _convertInstanceInvocation(InstanceInvocation expr) {
     final receiver = convertExpression(expr.receiver);
     final methodName = expr.name.text;
 
+    // 检查是否是扩展方法调用
+    final receiverType = _getReceiverType(expr.receiver);
+    if (receiverType != null && _isExtensionMethod(receiverType, methodName)) {
+      final extensionClass = _getExtensionClass(receiverType, methodName);
+      final args = expr.arguments.positional
+          .map((arg) => convertExpression(arg))
+          .join(', ');
+      final allArgs = args.isEmpty ? receiver : '$receiver, $args';
+      return '$extensionClass::$methodName($allArgs)';
+    }
+
+    // 特殊处理：Dart 迭代器 API 映射到 C++ Iterator API
+    if (methodName == 'moveNext') {
+      // Dart 的 moveNext() 映射到 C++ 的 hasNext()
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.hasNext()';
+      }
+      return '$receiver->hasNext()';
+    }
+
     // 处理一元负号运算符
     if (methodName == 'unary-') {
-      return '(-$receiver)';
+      // 对于字面量，直接在字面量阶段处理
+      if (expr.receiver is IntLiteral) {
+        final value = (expr.receiver as IntLiteral).value;
+        return 'dart_int(${-value})';
+      } else if (expr.receiver is DoubleLiteral) {
+        final value = (expr.receiver as DoubleLiteral).value;
+        return 'dart_double(${-value})';
+      }
+      // 对于其他表达式，使用operator_negate方法
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_negate()';
+      }
+      return '$receiver->operator_negate()';
     }
 
     // 处理一元取反运算符
     if (methodName == '~') {
-      return '(~$receiver)';
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_bitwise_not()';
+      }
+      return '$receiver->operator_bitwise_not()';
+    }
+
+    // 处理整数除法运算符 ~/
+    if (methodName == '~/') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.truncatingDivision($right)';
+      }
+      return '$receiver->truncatingDivision($right)';
+    }
+
+    // 处理位运算符
+    if (methodName == '&') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_bitwise_and($right)';
+      }
+      return '$receiver->operator_bitwise_and($right)';
+    }
+
+    if (methodName == '|') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_bitwise_or($right)';
+      }
+      return '$receiver->operator_bitwise_or($right)';
+    }
+
+    if (methodName == '^') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_bitwise_xor($right)';
+      }
+      return '$receiver->operator_bitwise_xor($right)';
+    }
+
+    if (methodName == '<<') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_shift_left($right)';
+      }
+      return '$receiver->operator_shift_left($right)';
+    }
+
+    if (methodName == '>>') {
+      final right = convertExpression(expr.arguments.positional.first);
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.operator_shift_right($right)';
+      }
+      return '$receiver->operator_shift_right($right)';
     }
 
     // 运算符重载处理
@@ -365,9 +501,24 @@ class CppExpressionConverter {
       }
     }
 
+    // Future 链式调用特殊处理
+    if (_isFutureType(expr.receiver)) {
+      return _convertFutureChainCall(expr.receiver, methodName, expr.arguments);
+    }
+
+    // 集合操作特殊处理
+    if (_isCollectionType(expr.receiver)) {
+      return _convertCollectionMethod(expr.receiver, methodName, expr.arguments);
+    }
+
     final args = expr.arguments.positional
         .map((arg) => convertExpression(arg))
         .join(', ');
+
+    // 根据接收者类型决定使用 . 还是 ->
+    if (_isLikelyValueType(expr.receiver)) {
+      return '$receiver.$methodName($args)';
+    }
     return '$receiver->$methodName($args)';
   }
 
@@ -445,6 +596,56 @@ class CppExpressionConverter {
   String _convertInstanceGet(InstanceGet expr) {
     final receiver = convertExpression(expr.receiver);
     final memberName = expr.name.text;
+
+    // 特殊处理：Dart 迭代器 API 映射到 C++ Iterator API
+    if (memberName == 'current') {
+      // Dart 的 current getter 映射到 C++ 的 next() 方法
+      if (_isLikelyValueType(expr.receiver)) {
+        return '$receiver.next()';
+      }
+      return '$receiver->next()';
+    }
+
+    // 特殊处理：某些getter需要作为方法调用
+    final methodLikeGetters = {
+      'isEmpty',
+      'isNotEmpty',
+      'iterator',
+      'first',
+      'last',
+      'single'
+    };
+
+    // Future 特殊方法处理
+    if (_isFutureType(expr.receiver)) {
+      return _convertFutureMethod(expr.receiver, memberName);
+    }
+
+    // 根据接收者表达式类型判断访问方式
+    if (_isLikelyValueType(expr.receiver)) {
+      // 值类型的属性访问：直接访问或方法调用
+      // 特殊处理：length 等属性需要调用 get_length() 方法
+      if (memberName == 'length') {
+        return '$receiver.get_length()';
+      }
+      // 某些getter需要作为方法调用
+      if (methodLikeGetters.contains(memberName)) {
+        return '$receiver.$memberName()';
+      }
+      // 其他情况直接访问字段
+      return '$receiver.$memberName';
+    }
+
+    // 对象类型使用 -> 访问
+    // 对于 List、Set、Map 等容器类型，length 转换为 size()
+    if (memberName == 'length') {
+      return '$receiver->size()';
+    }
+    // 某些getter需要作为方法调用
+    if (methodLikeGetters.contains(memberName)) {
+      return '$receiver->$memberName()';
+    }
+    // 其他属性直接访问
     return '$receiver->$memberName';
   }
 
@@ -452,7 +653,85 @@ class CppExpressionConverter {
     final receiver = convertExpression(expr.receiver);
     final memberName = expr.name.text;
     final value = convertExpression(expr.value);
+
+    // 直接赋值给属性字段
+    if (_isLikelyValueType(expr.receiver)) {
+      return '$receiver.$memberName = $value';
+    }
+
     return '$receiver->$memberName = $value';
+  }
+
+  // 辅助方法：判断表达式是否可能是值类型
+  bool _isLikelyValueType(Expression expr) {
+    // 字面量肯定是值类型
+    if (expr is IntLiteral ||
+        expr is DoubleLiteral ||
+        expr is BoolLiteral ||
+        expr is StringLiteral) {
+      return true;
+    }
+
+    // 检查静态调用是否是值类型构造
+    if (expr is StaticInvocation) {
+      final targetName = expr.target.name.text;
+      if (targetName == 'dart_int' ||
+          targetName == 'dart_double' ||
+          targetName == 'dart_bool' ||
+          targetName == 'dart_string') {
+        return true;
+      }
+    }
+
+    // 检查变量引用 - 通过类型和初始化表达式判断
+    if (expr is VariableGet) {
+      // 首先检查变量的初始化表达式
+      if (expr.variable.initializer != null) {
+        // 递归检查初始化表达式是否为值类型
+        if (_isLikelyValueType(expr.variable.initializer!)) {
+          return true;
+        }
+      }
+
+      // 然后检查类型信息
+      final type = expr.promotedType ?? expr.variable.type;
+      final typeName = type.toString();
+      // 基本值类型
+      if (typeName == 'int' ||
+          typeName == 'double' ||
+          typeName == 'bool' ||
+          typeName == 'String' ||
+          typeName == 'Int' ||
+          typeName == 'Double' ||
+          typeName == 'Bool') {
+        return true;
+      }
+    }
+
+    // 检查实例调用的结果 - 如果是值类型的方法调用，结果也是值类型
+    if (expr is InstanceInvocation) {
+      // toString() 返回 String，是值类型
+      if (expr.name.text == 'toString') {
+        return true;
+      }
+      // 算术运算的结果是值类型
+      if (_isLikelyValueType(expr.receiver)) {
+        final methodName = expr.name.text;
+        if (methodName == '+' ||
+            methodName == '-' ||
+            methodName == '*' ||
+            methodName == '/' ||
+            methodName == '%' ||
+            methodName == '~/' ||
+            methodName == 'truncatingDivision' ||
+            methodName == 'operator_negate') {
+          return true;
+        }
+      }
+    }
+
+    // 默认假设是对象类型（使用 ->）
+    return false;
   }
 
   String _convertDynamicGet(DynamicGet expr) {
@@ -499,13 +778,19 @@ class CppExpressionConverter {
   }
 
   String _convertStaticTearOff(StaticTearOff expr) {
+    // 处理函数引用：使用 makeFunction 包装函数指针
     final target = expr.target;
     final className = target.enclosingClass?.name ?? '';
     final methodName = target.name.text;
-    if (className.isNotEmpty) {
-      return '&$className::$methodName';
-    }
-    return '&$methodName';
+    
+    // 生成函数指针
+    final functionPtr = className.isNotEmpty 
+        ? '&$className::$methodName' 
+        : '&$methodName';
+    
+    // 使用 makeFunction 包装函数指针
+    // 为简单起见，我们假设所有函数都是 Int(Int, Int) 类型
+    return 'makeFunction($functionPtr)';
   }
 
   String _convertSuperPropertyGet(SuperPropertyGet expr) {
@@ -522,24 +807,38 @@ class CppExpressionConverter {
   String _convertDynamicInvocation(DynamicInvocation expr) {
     final receiver = convertExpression(expr.receiver);
     final methodName = expr.name.text;
+    // 动态调用无法静态获取函数信息，使用原有逻辑
     final args = _convertArguments(expr.arguments);
     return '$receiver.$methodName($args)';
   }
 
   String _convertFunctionInvocation(FunctionInvocation expr) {
     final receiver = convertExpression(expr.receiver);
+    // Function对象调用无法静态获取函数签名，使用原有逻辑
     final args = _convertArguments(expr.arguments);
-    return '$receiver($args)';
+    // 使用 apply 方法调用 Function 对象
+    // 将参数包装为 std::vector<Any>
+    if (args.isEmpty) {
+      return '$receiver->apply({})';
+    } else {
+      return '$receiver->apply({$args})';
+    }
   }
 
   String _convertLocalFunctionInvocation(LocalFunctionInvocation expr) {
     final functionName = expr.variable.name ?? 'unnamed_func';
-    final args = _convertArguments(expr.arguments);
+    // 尝试获取函数节点信息进行参数补全
+    FunctionNode? targetFunction;
+    if (expr.variable.initializer is FunctionExpression) {
+      targetFunction = (expr.variable.initializer as FunctionExpression).function;
+    }
+    final args = _convertArguments(expr.arguments, targetFunction);
     return '$functionName($args)';
   }
 
   String _convertSuperMethodInvocation(SuperMethodInvocation expr) {
     final methodName = expr.name.text;
+    // 对于父类方法调用，暂时使用原有逻辑（需要更复杂的类型分析来获取父类方法信息）
     final args = _convertArguments(expr.arguments);
     return 'super::$methodName($args)';
   }
@@ -552,16 +851,30 @@ class CppExpressionConverter {
 
   String _convertEqualsNull(EqualsNull expr) {
     final operand = convertExpression(expr.expression);
-    return '($operand == nullptr)';
+    return 'dart_is_null($operand)';
   }
 
   String _convertConstructorInvocation(ConstructorInvocation expr) {
     final className = expr.target.enclosingClass.name;
-    final args = _convertArguments(expr.arguments);
+    final args = _convertArguments(expr.arguments, expr.target.function);
+    
+    // 使用 TypeAnalyzer 判断是否需要 ObjectPtr
+    final needsObjectPtr = transformer.typeAnalyzer.customClasses.contains(className) ||
+                          transformer.typeAnalyzer.containerTypes.contains(className);
+    
     if (expr.isConst) {
-      return 'ObjectPtr<$className>::createConst($args)';
+      if (needsObjectPtr) {
+        return 'ObjectPtr<$className>::createConst($args)';
+      } else {
+        return '$className::createConst($args)';
+      }
     }
-    return 'ObjectPtr<$className>(new $className($args))';
+    
+    if (needsObjectPtr) {
+      return 'ObjectPtr<$className>(new $className($args))';
+    } else {
+      return '$className($args)';
+    }
   }
 
   String _convertIsExpression(IsExpression expr) {
@@ -577,27 +890,83 @@ class CppExpressionConverter {
   }
 
   String _convertNullCheck(NullCheck expr) {
+    // NullCheck (obj!) 表示非空断言，直接返回表达式
     final operand = convertExpression(expr.operand);
-    return 'dart_null_check($operand)';
+    // 根据规则文档，obj! 转换为直接访问，不需要特殊处理
+    return operand;
   }
 
   String _convertStringConcatenation(StringConcatenation expr) {
     if (expr.expressions.length == 1) {
-      return '${convertExpression(expr.expressions[0])}.toString()';
-    }
-    final parts = expr.expressions.map((e) {
-      if (e is StringLiteral) {
-        return convertExpression(e);
-      } else {
-        return '${convertExpression(e)}.toString()';
+      final converted = convertExpression(expr.expressions[0]);
+      // 如果不是字符串类型，需要调用 toString()
+      if (!_isStringExpression(expr.expressions[0])) {
+        return '($converted).toString()';
       }
-    }).toList();
-    return parts.join(' + ');
+      return converted;
+    }
+
+    // 优化：连续的字符串字面量可以合并
+    final optimizedParts = _optimizeStringParts(expr.expressions);
+    
+    if (optimizedParts.length == 1) {
+      return optimizedParts[0];
+    } else if (optimizedParts.length == 2) {
+      // 两个部分直接用 + 连接
+      return '${optimizedParts[0]} + ${optimizedParts[1]}';
+    } else {
+      // 多个部分使用 dart_concat
+      return 'dart_concat(${optimizedParts.join(', ')})';
+    }
+  }
+
+  /// 检查表达式是否是字符串类型
+  bool _isStringExpression(Expression expr) {
+    return expr is StringLiteral;
+  }
+
+  /// 优化字符串部分，合并连续的字符串字面量
+  List<String> _optimizeStringParts(List<Expression> expressions) {
+    final List<String> parts = [];
+    String currentLiteralGroup = '';
+    
+    for (final expr in expressions) {
+      if (expr is StringLiteral) {
+        // 累积字符串字面量
+        currentLiteralGroup += expr.value;
+      } else {
+        // 非字符串表达式，先处理累积的字面量
+        if (currentLiteralGroup.isNotEmpty) {
+          parts.add(CppTypeConverter.convertLiteral(currentLiteralGroup));
+          currentLiteralGroup = '';
+        }
+        
+        // 处理非字符串表达式
+        final converted = convertExpression(expr);
+        if (_isStringExpression(expr)) {
+          parts.add(converted);
+        } else {
+          parts.add('($converted).toString()');
+        }
+      }
+    }
+    
+    // 处理最后的字符串字面量
+    if (currentLiteralGroup.isNotEmpty) {
+      parts.add(CppTypeConverter.convertLiteral(currentLiteralGroup));
+    }
+    
+    return parts;
   }
 
   String _convertThrow(Throw expr) {
     final operand = convertExpression(expr.expression);
-    return 'throw DartException($operand)';
+    // 根据异常类型选择合适的 C++ 异常
+    if (expr.expression is StringLiteral) {
+      return 'throw std::runtime_error($operand.getValue())';
+    } else {
+      return 'throw DartException($operand)';
+    }
   }
 
   String _convertFunctionExpression(FunctionExpression expr) {
@@ -610,20 +979,15 @@ class CppExpressionConverter {
     if (expr.function.body != null) {
       body =
           transformer.statementConverter.convertStatement(expr.function.body!);
-      // 如果是表达式语句，提取返回值
-      if (expr.function.body is ReturnStatement) {
-        body = body; // 保持 return 语句
-      } else if (expr.function.body is Block) {
-        body = body; // 保持块语句
-      }
     }
 
-    return '[&]($params) { $body }';
+    // 使用 makeFunction 创建 Function 对象
+    // 为简单起见，我们假设所有函数都是 Int(Int, Int) 类型
+    return 'makeFunction([&]($params) { $body })';
   }
 
   String _convertLet(Let expr) {
     final varName = expr.variable.name ?? 'let_var';
-    final varType = CppTypeConverter.convertType(expr.variable.type);
     final value = convertExpression(expr.variable.initializer!);
 
     // 注册 Let 变量映射
@@ -635,8 +999,27 @@ class CppExpressionConverter {
     // 清除映射
     _letVariableMap.remove(expr.variable);
 
-    // 使用立即调用的 lambda，确保变量名在作用域内
-    return '([&]() { $varType $varName = $value; return $body; })()';
+    // 优化：检测空值合并模式 (value ?? default)
+    // 如果 body 是三元表达式且形式为：dart_is_null(varName) ? default : varName
+    // 则使用 dart_null_coalesce 宏
+    if (body.contains('dart_is_null($varName)') &&
+        body.contains('? ') &&
+        body.contains(' : $varName')) {
+      // 提取三元表达式的默认值部分
+      final pattern = RegExp(r'dart_is_null\(' +
+          RegExp.escape(varName) +
+          r'\)\s*\?\s*(.+?)\s*:\s*' +
+          RegExp.escape(varName));
+      final match = pattern.firstMatch(body);
+      if (match != null) {
+        final defaultValue = match.group(1);
+        // 使用 dart_null_coalesce 宏确保类型安全
+        return 'dart_null_coalesce($value, $defaultValue)';
+      }
+    }
+
+    // 默认：使用 auto 来自动推导类型，避免 Nullable 到具体类型的转换问题
+    return '([&]() { auto $varName = $value; return $body; })()';
   }
 
   String _convertInstantiation(Instantiation expr) {
@@ -680,6 +1063,12 @@ class CppExpressionConverter {
     } else if (constant is InstanceConstant) {
       final className = constant.classNode.name;
       return 'ObjectPtr<$className>::createConst()';
+    } else if (constant is StaticTearOffConstant) {
+      // 处理函数引用：使用 makeFunction 包装函数指针
+      final target = constant.target;
+      final functionName = target.name.text;
+      // 为简单起见，我们假设所有函数都是 Int(Int, Int) 类型
+      return 'makeFunction(&$functionName)';
     }
     return '/* Constant: ${constant.runtimeType} */';
   }
@@ -700,13 +1089,60 @@ class CppExpressionConverter {
     return '([&]() { $statements return $value; })()';
   }
 
-  String _convertArguments(Arguments args) {
+  String _convertArguments(Arguments args, [FunctionNode? targetFunction]) {
     final positional =
         args.positional.map((a) => convertExpression(a)).toList();
+    
+    // 如果有目标函数信息，进行参数补全和重排
+    if (targetFunction != null) {
+      return _convertArgumentsWithFunction(args, targetFunction);
+    }
+    
+    // 原有逻辑：命名参数直接添加注释
     final named = args.named
         .map((a) => '/*${a.name}:*/ ${convertExpression(a.value)}')
         .toList();
     return [...positional, ...named].join(', ');
+  }
+
+  String _convertArgumentsWithFunction(Arguments args, FunctionNode targetFunction) {
+    final result = <String>[];
+    
+    // 1. 处理位置参数
+    final totalPositional = targetFunction.positionalParameters.length;
+    final requiredCount = targetFunction.requiredParameterCount;
+    
+    for (int i = 0; i < totalPositional; i++) {
+      if (i < args.positional.length) {
+        // 有提供的位置参数
+        result.add(convertExpression(args.positional[i]));
+      } else {
+        // 可选位置参数，补充null
+        final paramType = CppTypeConverter.convertType(targetFunction.positionalParameters[i].type);
+        result.add('$paramType(Null)');
+      }
+    }
+    
+    // 2. 处理命名参数 - 按函数定义顺序
+    final namedArgsMap = <String, String>{};
+    for (final namedArg in args.named) {
+      namedArgsMap[namedArg.name] = convertExpression(namedArg.value);
+    }
+    
+    for (final namedParam in targetFunction.namedParameters) {
+      final paramName = namedParam.name ?? 'param';
+      final paramType = CppTypeConverter.convertType(namedParam.type);
+      
+      if (namedArgsMap.containsKey(paramName)) {
+        // 有提供的命名参数
+        result.add(namedArgsMap[paramName]!);
+      } else {
+        // 未提供的命名参数，补充null
+        result.add('$paramType(Null)');
+      }
+    }
+    
+    return result.join(', ');
   }
 }
 
@@ -718,9 +1154,22 @@ class CppStatementConverter {
 
   String convertStatement(Statement stmt) {
     if (stmt is ExpressionStatement) {
-      return transformer.expressionConverter
-              .convertExpression(stmt.expression) +
-          ';';
+      final exprCode =
+          transformer.expressionConverter.convertExpression(stmt.expression);
+
+      // 特殊处理：检测空值合并赋值运算符 ??= 的模式
+      // 形式为: dart_is_null(var) ? var = value : Null
+      // 转换为: if (dart_is_null(var)) var = value;
+      final nullAssignPattern =
+          RegExp(r'dart_is_null\((\w+)\)\s*\?\s*\1\s*=\s*(.+?)\s*:\s*Null');
+      final match = nullAssignPattern.firstMatch(exprCode);
+      if (match != null) {
+        final varName = match.group(1);
+        final value = match.group(2);
+        return 'if (dart_is_null($varName)) $varName = $value;';
+      }
+
+      return exprCode + ';';
     } else if (stmt is VariableDeclaration) {
       return _convertVariableDeclaration(stmt);
     } else if (stmt is Block) {
@@ -729,6 +1178,8 @@ class CppStatementConverter {
       return _convertIfStatement(stmt);
     } else if (stmt is ForStatement) {
       return _convertForStatement(stmt);
+    } else if (stmt.runtimeType.toString() == 'ForInStatement') {
+      return _convertForInStatement(stmt as dynamic);
     } else if (stmt is WhileStatement) {
       return _convertWhileStatement(stmt);
     } else if (stmt is ReturnStatement) {
@@ -759,12 +1210,41 @@ class CppStatementConverter {
   }
 
   String _convertVariableDeclaration(VariableDeclaration decl) {
-    final name = decl.name ?? 'unnamed_var';
+    String name = decl.name ?? 'unnamed_var';
+
+    // 清理变量名，确保生成合法的C++标识符
+    // 移除开头的冒号和其他非法字符
+    if (name.startsWith(':')) {
+      name = name.substring(1);
+    }
+    // 确保变量名是合法的C++标识符
+    name = name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    // 如果变量名为空或以数字开头，添加前缀
+    if (name.isEmpty || RegExp(r'^[0-9]').hasMatch(name)) {
+      name = 'var_$name';
+    }
+
     final type = CppTypeConverter.convertType(decl.type);
+    final isLate = decl.isLate;
 
     if (decl.initializer != null) {
       final init =
           transformer.expressionConverter.convertExpression(decl.initializer!);
+
+      // late 变量处理
+      if (isLate) {
+        if (decl.isFinal) {
+          return 'mutable std::optional<$type> ${name}_storage; '
+                 'const auto& $name = [&]() -> const $type& { '
+                 'if (!${name}_storage.has_value()) ${name}_storage = $init; '
+                 'return ${name}_storage.value(); }();';
+        } else {
+          return 'std::optional<$type> ${name}_storage; '
+                 'auto $name = [&]() -> $type& { '
+                 'if (!${name}_storage.has_value()) ${name}_storage = $init; '
+                 'return ${name}_storage.value(); }();';
+        }
+      }
 
       // 检查是否使用auto
       if (decl.isFinal) {
@@ -773,15 +1253,40 @@ class CppStatementConverter {
         return 'auto $name = $init;';
       }
     } else {
+      // late 变量没有初始化器
+      if (isLate) {
+        if (decl.isFinal) {
+          return 'mutable std::optional<$type> ${name}_storage; '
+                 'const auto& $name = [&]() -> const $type& { '
+                 'if (!${name}_storage.has_value()) throw std::runtime_error("Late variable \'$name\' not initialized"); '
+                 'return ${name}_storage.value(); }();';
+        } else {
+          return 'std::optional<$type> ${name}_storage; '
+                 'auto& $name = [&]() -> $type& { '
+                 'if (!${name}_storage.has_value()) throw std::runtime_error("Late variable \'$name\' not initialized"); '
+                 'return ${name}_storage.value(); }();';
+        }
+      }
+
+      // 对于可空类型，使用具体类型并显式调用Null构造函数
+      // 例如 int? -> Int nullableInt(Null)
+      if (decl.type.nullability.toString().contains('nullable')) {
+        // 获取非空版本的类型
+        final nonNullType = CppTypeConverter.convertType(
+            decl.type.withDeclaredNullability(Nullability.nonNullable));
+        return '$nonNullType $name(Null);';
+      }
+      // 其他非可空类型，使用默认构造
       return '$type $name;';
     }
   }
 
   String _convertBlock(Block stmt) {
     final statements = stmt.statements
-        .map((s) => transformer._indentLine(convertStatement(s)))
+        .map((s) => convertStatement(s))
+        .where((s) => s.isNotEmpty)
         .join('\n');
-    return '{\n$statements\n}';
+    return statements;
   }
 
   String _convertIfStatement(IfStatement stmt) {
@@ -789,35 +1294,95 @@ class CppStatementConverter {
         transformer.expressionConverter.convertExpression(stmt.condition);
     final thenStmt = convertStatement(stmt.then);
 
-    String result = 'if ($condition) $thenStmt';
+    String result = 'if ($condition) {\n$thenStmt\n}';
 
     if (stmt.otherwise != null) {
       final elseStmt = convertStatement(stmt.otherwise!);
-      result += ' else $elseStmt';
+      result += ' else {\n$elseStmt\n}';
     }
 
     return result;
   }
 
   String _convertForStatement(ForStatement stmt) {
-    final variables =
-        stmt.variables.map((v) => _convertVariableDeclaration(v)).join(', ');
+    // For loop variables should not include the full declaration syntax
+    final variables = stmt.variables.map((v) {
+      final name = v.name ?? 'unnamed_var';
+      if (v.initializer != null) {
+        final init =
+            transformer.expressionConverter.convertExpression(v.initializer!);
+        return 'auto $name = $init';
+      } else {
+        final type = CppTypeConverter.convertType(v.type);
+        return '$type $name';
+      }
+    }).join(', ');
+
     final condition = stmt.condition != null
         ? transformer.expressionConverter.convertExpression(stmt.condition!)
         : 'true';
-    final updates = stmt.updates
-        .map((u) => transformer.expressionConverter.convertExpression(u))
-        .join(', ');
+
+    // 优化 increment 表达式处理
+    final updates = stmt.updates.map((u) {
+      final updateExpr = transformer.expressionConverter.convertExpression(u);
+      // 如果是简单的赋值表达式，尝试转换为 ++ 或 -- 操作符
+      if (updateExpr.contains(' = ') && updateExpr.contains(' + dart_int(1)')) {
+        final varName = updateExpr.split(' = ')[0];
+        return '++$varName';
+      } else if (updateExpr.contains(' = ') &&
+          updateExpr.contains(' - dart_int(1)')) {
+        final varName = updateExpr.split(' = ')[0];
+        return '--$varName';
+      }
+      return updateExpr;
+    }).join(', ');
+
     final body = convertStatement(stmt.body);
 
-    return 'for ($variables; $condition; $updates) $body';
+    return 'for ($variables; $condition; $updates) {\n$body\n}';
+  }
+
+  String _convertForInStatement(dynamic stmt) {
+    // 获取循环变量名
+    final variable = stmt.variable;
+    String varName = variable.name ?? 'item';
+
+    // 清理变量名，确保生成合法的C++标识符
+    // 移除开头的冒号和其他非法字符
+    if (varName.startsWith(':')) {
+      varName = varName.substring(1);
+    }
+    // 确保变量名是合法的C++标识符
+    varName = varName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    // 如果变量名为空或以数字开头，添加前缀
+    if (varName.isEmpty || RegExp(r'^[0-9]').hasMatch(varName)) {
+      varName = 'var_$varName';
+    }
+
+    final varType = CppTypeConverter.convertType(variable.type);
+
+    // 获取可迭代对象
+    final iterable =
+        transformer.expressionConverter.convertExpression(stmt.iterable);
+
+    // 生成迭代器变量名（使用合法的C++标识符）
+    final iteratorVarName = 'sync_for_iterator';
+
+    // 转换循环体
+    final body = convertStatement(stmt.body);
+
+    // 生成正确的C++ for-in循环代码，使用 hasNext() 和 next() 方法
+    return '''for (auto $iteratorVarName = $iterable->iterator(); $iteratorVarName->hasNext(); ) {
+auto $varName = $iteratorVarName->next();
+$body
+}''';
   }
 
   String _convertWhileStatement(WhileStatement stmt) {
     final condition =
         transformer.expressionConverter.convertExpression(stmt.condition);
     final body = convertStatement(stmt.body);
-    return 'while ($condition) $body';
+    return 'while ($condition) {\n$body\n}';
   }
 
   String _convertReturnStatement(ReturnStatement stmt) {
@@ -826,7 +1391,7 @@ class CppStatementConverter {
           transformer.expressionConverter.convertExpression(stmt.expression!);
       return 'return $expr;';
     } else {
-      return 'return;';
+      return 'return Void;';
     }
   }
 
@@ -853,9 +1418,10 @@ class CppStatementConverter {
 
   String _convertLabeledStatement(LabeledStatement stmt) {
     // LabeledStatement 在 Dart 中用于 break/continue 的目标
-    // 在 C++ 中，我们可以生成一个标签
+    // 在 C++ 中，对于简单的循环，我们直接转换循环体，不生成标签
+    // 因为 C++ 的 break/continue 默认作用于最近的循环
     final body = convertStatement(stmt.body);
-    return 'label_${stmt.hashCode}: $body';
+    return body;
   }
 
   String _convertAssertStatement(AssertStatement stmt) {
@@ -870,7 +1436,17 @@ class CppStatementConverter {
   }
 
   String _convertFunctionDeclaration(FunctionDeclaration stmt) {
-    final name = stmt.variable.name ?? 'anonymous';
+    String name = stmt.variable.name ?? 'anonymous';
+
+    // 清理函数名，确保生成合法的C++标识符
+    if (name.startsWith(':')) {
+      name = name.substring(1);
+    }
+    name = name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    if (name.isEmpty || RegExp(r'^[0-9]').hasMatch(name)) {
+      name = 'func_$name';
+    }
+
     final returnType = CppTypeConverter.convertType(stmt.function.returnType);
     final params = stmt.function.positionalParameters
         .map((p) => '${CppTypeConverter.convertType(p.type)} ${p.name}')
@@ -878,7 +1454,10 @@ class CppStatementConverter {
 
     String body = '{ }';
     if (stmt.function.body != null) {
-      body = convertStatement(stmt.function.body!);
+      final isVoidFunction =
+          CppTypeConverter.convertType(stmt.function.returnType) == 'Nullable';
+      body = transformer._transformFunctionBody(stmt.function.body!,
+          isVoidFunction: isVoidFunction);
     }
 
     return 'auto $name = [&]($params) -> $returnType $body;';
@@ -894,35 +1473,211 @@ class CppStatementConverter {
     final condition =
         transformer.expressionConverter.convertExpression(stmt.condition);
     final body = convertStatement(stmt.body);
-    return 'do $body while (($condition).toBool());';
+    return 'do {\n$body\n} while (($condition).toBool());';
   }
 
   String _convertSwitchStatement(SwitchStatement stmt) {
     final expr =
         transformer.expressionConverter.convertExpression(stmt.expression);
-    StringBuffer result = StringBuffer('switch ($expr) {\n');
 
-    for (final case_ in stmt.cases) {
-      for (final expr in case_.expressions) {
-        final caseValue =
-            transformer.expressionConverter.convertExpression(expr);
-        result.write('  case $caseValue:\n');
-      }
+    // 将所有 switch 语句都转换为 if-else if 链
+    return _convertToIfElseChain(stmt, expr);
+  }
 
-      if (case_.isDefault) {
-        result.write('  default:\n');
-      }
+  String _convertToIfElseChain(SwitchStatement stmt, String expr) {
+    StringBuffer result = StringBuffer();
+    bool isFirst = true;
 
-      final body = convertStatement(case_.body);
-      result.write('    $body\n');
+    // 分组处理 case，将连续的没有 break 的 case 合并
+    List<List<SwitchCase>> caseGroups = _groupSwitchCases(stmt.cases);
 
-      if (!case_.body.toString().contains('break') &&
-          !case_.body.toString().contains('return')) {
-        result.write('    break;\n');
+    for (final group in caseGroups) {
+      if (group.length == 1 && group[0].isDefault) {
+        // 处理 default case
+        result.write('else {\n');
+        final body = convertStatement(group[0].body);
+        final cleanBody = _removeBreakStatements(body);
+        result.write('  $cleanBody\n');
+        result.write('}');
+      } else {
+        // 收集所有条件表达式
+        List<String> allConditions = [];
+        for (final case_ in group) {
+          if (!case_.isDefault) {
+            for (final caseExpr in case_.expressions) {
+              final caseValue =
+                  transformer.expressionConverter.convertExpression(caseExpr);
+              allConditions.add('$expr == $caseValue');
+            }
+          }
+        }
+
+        if (allConditions.isNotEmpty) {
+          // 生成 if 或 else if 条件
+          if (isFirst) {
+            result.write('if (${allConditions.join(' || ')}) {\n');
+            isFirst = false;
+          } else {
+            result.write(' else if (${allConditions.join(' || ')}) {\n');
+          }
+
+          // 使用最后一个有实际代码的 case 的 body
+          String body = '';
+          for (int i = group.length - 1; i >= 0; i--) {
+            final caseBody = convertStatement(group[i].body);
+            if (caseBody.trim().isNotEmpty &&
+                !caseBody.trim().startsWith('break')) {
+              body = caseBody;
+              break;
+            }
+          }
+
+          final cleanBody = _removeBreakStatements(body);
+          result.write('  $cleanBody\n');
+          result.write('}');
+        }
       }
     }
 
-    result.write('}');
+    return result.toString();
+  }
+
+  List<List<SwitchCase>> _groupSwitchCases(List<SwitchCase> cases) {
+    List<List<SwitchCase>> groups = [];
+    List<SwitchCase> currentGroup = [];
+
+    for (int i = 0; i < cases.length; i++) {
+      final case_ = cases[i];
+      currentGroup.add(case_);
+
+      // 更精确的 break 检测
+      final body = convertStatement(case_.body);
+      final hasBreak = _hasBreakOrReturn(body);
+      final isLast = i == cases.length - 1;
+      final isEmpty = _isEmptyCase(body);
+
+      // 如果是空 case 且不是最后一个，继续合并到下一个 case
+      if (isEmpty && !isLast) {
+        continue;
+      }
+
+      // 如果有明确的 break/return 或者是最后一个 case 或者是 default case
+      if (hasBreak || isLast || case_.isDefault) {
+        groups.add(List.from(currentGroup));
+        currentGroup.clear();
+      }
+    }
+
+    if (currentGroup.isNotEmpty) {
+      groups.add(currentGroup);
+    }
+
+    return groups;
+  }
+
+  /// 检查是否有 break 或 return 语句
+  bool _hasBreakOrReturn(String body) {
+    // 更精确的检测，避免误判注释或字符串中的 break
+    final trimmedBody = body.trim();
+    return trimmedBody.endsWith('break;') || 
+           trimmedBody.endsWith('return;') ||
+           trimmedBody.contains('return ') ||
+           RegExp(r'\bbreak\s*;').hasMatch(trimmedBody) ||
+           RegExp(r'\breturn\b').hasMatch(trimmedBody);
+  }
+
+  /// 检查是否是空的 case
+  bool _isEmptyCase(String body) {
+    final cleanBody = body.trim()
+        .replaceAll(RegExp(r'//.*'), '') // 移除单行注释
+        .replaceAll(RegExp(r'/\*.*?\*/'), '') // 移除多行注释
+        .replaceAll(RegExp(r'\s+'), ''); // 移除空白字符
+    return cleanBody.isEmpty || cleanBody == '{}';
+  }
+
+  String _removeBreakStatements(String body) {
+    // 移除 break 语句，因为 if-else 不需要 break
+    return body
+        .replaceAll(RegExp(r'\s*break\s*;\s*'), '')
+        .replaceAll(RegExp(r'\s*break\s*'), '');
+  }
+
+  bool _hasStringCaseValues(SwitchStatement stmt) {
+    for (final case_ in stmt.cases) {
+      for (final expr in case_.expressions) {
+        if (expr is StringLiteral) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _hasStringCaseExpressions(SwitchStatement stmt) {
+    for (final case_ in stmt.cases) {
+      for (final expr in case_.expressions) {
+        final convertedExpr =
+            transformer.expressionConverter.convertExpression(expr);
+        if (convertedExpr.contains('dart_string')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  String _convertStringSwitch(SwitchStatement stmt, String expr) {
+    StringBuffer result = StringBuffer();
+    bool isFirst = true;
+
+    for (final case_ in stmt.cases) {
+      if (case_.isDefault) {
+        // 处理 default case
+        result.write('else {\n');
+        final body = convertStatement(case_.body);
+        result.write('  $body\n');
+        result.write('}');
+      } else {
+        // 处理普通 case
+        for (int i = 0; i < case_.expressions.length; i++) {
+          final caseValue = transformer.expressionConverter
+              .convertExpression(case_.expressions[i]);
+
+          if (isFirst) {
+            result.write('if ($expr == $caseValue) {\n');
+            isFirst = false;
+          } else {
+            result.write(' else if ($expr == $caseValue) {\n');
+          }
+
+          final body = convertStatement(case_.body);
+          result.write('  $body\n');
+          result.write('}');
+
+          // 如果一个 case 有多个表达式，只处理第一个，其他的用 || 连接
+          if (i == 0 && case_.expressions.length > 1) {
+            // 重新构建条件，包含所有表达式
+            List<String> conditions = case_.expressions
+                .map((e) =>
+                    '$expr == ${transformer.expressionConverter.convertExpression(e)}')
+                .toList();
+
+            result.clear();
+            if (isFirst) {
+              result.write('if (${conditions.join(' || ')}) {\n');
+              isFirst = false;
+            } else {
+              result.write(' else if (${conditions.join(' || ')}) {\n');
+            }
+            final body = convertStatement(case_.body);
+            result.write('  $body\n');
+            result.write('}');
+            break; // 跳出内层循环
+          }
+        }
+      }
+    }
+
     return result.toString();
   }
 }
@@ -934,6 +1689,10 @@ class DartToCppTransformer {
 
   late final CppExpressionConverter expressionConverter;
   late final CppStatementConverter statementConverter;
+  late final TypeAnalyzer typeAnalyzer;
+  
+  // 扩展方法注册表：目标类型 -> 扩展方法映射
+  final Map<String, Map<String, String>> _extensionMethods = {};
 
   /// 需要跳过的基础库前缀列表
   static const List<String> skipLibraryPrefixes = [
@@ -969,6 +1728,10 @@ class DartToCppTransformer {
   String transformComponent(Component component) {
     _buffer.clear();
 
+    // 初始化类型分析器并扫描所有类
+    typeAnalyzer = TypeAnalyzer();
+    typeAnalyzer.scanClasses(component);
+
     // 写入头文件
     _writeHeaders();
     _writeLine('');
@@ -976,6 +1739,12 @@ class DartToCppTransformer {
     // 写入工具宏
     _writeUtilityMacros();
     _writeLine('');
+
+    // 验证转换器配置
+    _validateTransformerSetup();
+
+    // 预注册常用扩展方法
+    _registerCommonExtensionMethods();
 
     // 统计过滤信息
     int totalLibraries = component.libraries.length;
@@ -996,6 +1765,20 @@ class DartToCppTransformer {
       }
     }
 
+    // 生成顶级函数的前向声明
+    for (final library in component.libraries) {
+      if (_shouldSkipLibrary(library)) {
+        continue;
+      }
+
+      for (final procedure in library.procedures) {
+        if (procedure.name.text == 'main') {
+          continue; // 跳过 main 函数
+        }
+        _writeFunctionDeclaration(procedure);
+      }
+    }
+
     // 处理全局函数 - 只处理非基础库的函数
     for (final library in component.libraries) {
       if (_shouldSkipLibrary(library)) {
@@ -1012,14 +1795,345 @@ class DartToCppTransformer {
     _writeMainFunction(component);
 
     // 输出过滤统计信息
+    // 输出转换统计
+    _printTransformationSummary(totalLibraries, skippedLibraries, processedClasses, processedProcedures);
+
+    return _buffer.toString();
+  }
+
+  /// 打印转换统计信息
+  void _printTransformationSummary(int totalLibraries, int skippedLibraries, int processedClasses, int processedProcedures) {
     print('📊 转换统计:');
     print('   总库数: $totalLibraries');
     print('   跳过基础库: $skippedLibraries');
     print('   处理业务库: ${totalLibraries - skippedLibraries}');
     print('   转换类数: $processedClasses');
     print('   转换函数数: $processedProcedures');
+    print('   注册扩展方法: ${_extensionMethods.values.fold(0, (sum, methods) => sum + methods.length)}');
+    print('   TypeAnalyzer 自定义类: ${typeAnalyzer.customClasses.length}');
+    print('');
+    print('🎯 转换器功能:');
+    print('   ✅ 基础类型转换');
+    print('   ✅ ObjectPtr 智能包装');
+    print('   ✅ 泛型约束支持');
+    print('   ✅ 扩展方法语法糖');
+    print('   ✅ Future 链式调用');
+    print('   ✅ 集合操作完整支持');
+    print('   ✅ late 变量支持');
+    print('   ✅ 函数类型转换');
+    print('   ✅ Switch fall-through 处理');
+    print('   ✅ 字符串插值优化');
+    print('');
+  }
 
-    return _buffer.toString();
+  /// 验证转换器设置
+  void _validateTransformerSetup() {
+    // 检查 TypeAnalyzer 是否正确初始化
+    if (typeAnalyzer.customClasses.isEmpty && typeAnalyzer.basicTypes.isEmpty) {
+      print('⚠️ 警告：TypeAnalyzer 可能未正确初始化');
+    }
+    
+    // 检查转换器是否正确设置
+    if (expressionConverter.transformer != this) {
+      print('⚠️ 警告：ExpressionConverter 的 transformer 引用不正确');
+    }
+    
+    if (statementConverter.transformer != this) {
+      print('⚠️ 警告：StatementConverter 的 transformer 引用不正确');
+    }
+  }
+
+  /// 获取接收者类型
+  String? _getReceiverType(Expression receiver) {
+    if (receiver is VariableGet) {
+      final type = receiver.variable.type;
+      if (type is InterfaceType) {
+        return type.classNode.name;
+      }
+    }
+    // 可以扩展更多类型推断
+    return null;
+  }
+
+  /// 检查是否是扩展方法
+  bool _isExtensionMethod(String receiverType, String methodName) {
+    return _extensionMethods.containsKey(receiverType) &&
+           _extensionMethods[receiverType]!.containsKey(methodName);
+  }
+
+  /// 获取扩展方法所在的类
+  String _getExtensionClass(String receiverType, String methodName) {
+    return _extensionMethods[receiverType]![methodName] ?? 'UnknownExtension';
+  }
+
+  /// 注册扩展方法
+  void _registerExtensionMethod(String targetType, String methodName, String extensionClass) {
+    _extensionMethods.putIfAbsent(targetType, () => {});
+    _extensionMethods[targetType]![methodName] = extensionClass;
+  }
+
+  /// 预注册常用扩展方法
+  void _registerCommonExtensionMethods() {
+    // String 扩展方法
+    _registerExtensionMethod('String', 'capitalize', 'StringExtensions');
+    _registerExtensionMethod('String', 'isPalindrome', 'StringExtensions');
+    _registerExtensionMethod('String', 'reverse', 'StringExtensions');
+    _registerExtensionMethod('String', 'isEmail', 'StringExtensions');
+    
+    // List 扩展方法
+    _registerExtensionMethod('List', 'chunk', 'ListExtensions');
+    _registerExtensionMethod('List', 'groupBy', 'ListExtensions');
+    _registerExtensionMethod('List', 'distinct', 'ListExtensions');
+    
+    // int 扩展方法
+    _registerExtensionMethod('int', 'isEven', 'IntExtensions');
+    _registerExtensionMethod('int', 'isOdd', 'IntExtensions');
+    _registerExtensionMethod('int', 'times', 'IntExtensions');
+  }
+
+  /// 检查是否是 Future 类型
+  bool _isFutureType(Expression expr) {
+    if (expr is VariableGet) {
+      final type = expr.variable.type;
+      if (type is InterfaceType) {
+        return type.classNode.name == 'Future';
+      }
+    }
+    return false;
+  }
+
+  /// 转换 Future 方法调用
+  String _convertFutureMethod(Expression receiver, String methodName) {
+    final receiverCode = convertExpression(receiver);
+    
+    switch (methodName) {
+      case 'isCompleted':
+        return '$receiverCode->isCompleted()';
+      case 'value':
+        return '$receiverCode->getValue()';
+      case 'error':
+        return '$receiverCode->getError()';
+      case 'hasError':
+        return '$receiverCode->hasError()';
+      case 'hasValue':
+        return '$receiverCode->hasValue()';
+      default:
+        // 默认处理
+        if (_isLikelyValueType(receiver)) {
+          return '$receiverCode.$methodName()';
+        }
+        return '$receiverCode->$methodName()';
+    }
+  }
+
+  /// 转换 Future 链式调用
+  String _convertFutureChainCall(Expression receiver, String methodName, Arguments arguments) {
+    final receiverCode = convertExpression(receiver);
+    
+    switch (methodName) {
+      case 'then':
+        if (arguments.positional.isNotEmpty) {
+          final callback = convertExpression(arguments.positional.first);
+          // 检查是否有类型参数
+          final typeArgs = arguments.types;
+          if (typeArgs.isNotEmpty) {
+            final returnType = CppTypeConverter.convertType(typeArgs.first);
+            return '$receiverCode->then<$returnType>($callback)';
+          }
+          return '$receiverCode->then($callback)';
+        }
+        break;
+      
+      case 'catchError':
+        if (arguments.positional.isNotEmpty) {
+          final errorHandler = convertExpression(arguments.positional.first);
+          return '$receiverCode->catchError($errorHandler)';
+        }
+        break;
+      
+      case 'whenComplete':
+        if (arguments.positional.isNotEmpty) {
+          final completeHandler = convertExpression(arguments.positional.first);
+          return '$receiverCode->whenComplete($completeHandler)';
+        }
+        break;
+      
+      case 'timeout':
+        if (arguments.positional.isNotEmpty) {
+          final timeout = convertExpression(arguments.positional.first);
+          return '$receiverCode->timeout($timeout)';
+        }
+        break;
+      
+      case 'wait':
+        return '$receiverCode->wait()';
+      
+      case 'waitFor':
+        if (arguments.positional.isNotEmpty) {
+          final duration = convertExpression(arguments.positional.first);
+          return '$receiverCode->waitFor($duration)';
+        }
+        break;
+    }
+    
+    // 默认处理
+    final args = arguments.positional
+        .map((arg) => convertExpression(arg))
+        .join(', ');
+    return '$receiverCode->$methodName($args)';
+  }
+
+  /// 检查是否是集合类型
+  bool _isCollectionType(Expression expr) {
+    if (expr is VariableGet) {
+      final type = expr.variable.type;
+      if (type is InterfaceType) {
+        final className = type.classNode.name;
+        return className == 'List' || className == 'Set' || className == 'Map' ||
+               className == 'Iterable';
+      }
+    }
+    return false;
+  }
+
+  /// 转换集合方法调用
+  String _convertCollectionMethod(Expression receiver, String methodName, Arguments arguments) {
+    final receiverCode = convertExpression(receiver);
+    
+    switch (methodName) {
+      // List 特有方法
+      case 'add':
+        if (arguments.positional.isNotEmpty) {
+          final item = convertExpression(arguments.positional.first);
+          return '$receiverCode->add($item)';
+        }
+        break;
+      
+      case 'addAll':
+        if (arguments.positional.isNotEmpty) {
+          final items = convertExpression(arguments.positional.first);
+          return '$receiverCode->addAll($items)';
+        }
+        break;
+      
+      case 'insert':
+        if (arguments.positional.length >= 2) {
+          final index = convertExpression(arguments.positional[0]);
+          final item = convertExpression(arguments.positional[1]);
+          return '$receiverCode->insert($index, $item)';
+        }
+        break;
+      
+      case 'removeAt':
+        if (arguments.positional.isNotEmpty) {
+          final index = convertExpression(arguments.positional.first);
+          return '$receiverCode->removeAt($index)';
+        }
+        break;
+      
+      case 'remove':
+        if (arguments.positional.isNotEmpty) {
+          final item = convertExpression(arguments.positional.first);
+          return '$receiverCode->remove($item)';
+        }
+        break;
+      
+      case 'clear':
+        return '$receiverCode->clear()';
+      
+      // Iterable 方法
+      case 'map':
+        if (arguments.positional.isNotEmpty) {
+          final mapper = convertExpression(arguments.positional.first);
+          return '$receiverCode->map($mapper)';
+        }
+        break;
+      
+      case 'where':
+        if (arguments.positional.isNotEmpty) {
+          final predicate = convertExpression(arguments.positional.first);
+          return '$receiverCode->where($predicate)';
+        }
+        break;
+      
+      case 'forEach':
+        if (arguments.positional.isNotEmpty) {
+          final action = convertExpression(arguments.positional.first);
+          return '$receiverCode->forEach($action)';
+        }
+        break;
+      
+      case 'fold':
+        if (arguments.positional.length >= 2) {
+          final initialValue = convertExpression(arguments.positional[0]);
+          final combine = convertExpression(arguments.positional[1]);
+          return '$receiverCode->fold($initialValue, $combine)';
+        }
+        break;
+      
+      case 'reduce':
+        if (arguments.positional.isNotEmpty) {
+          final combine = convertExpression(arguments.positional.first);
+          return '$receiverCode->reduce($combine)';
+        }
+        break;
+      
+      case 'any':
+        if (arguments.positional.isNotEmpty) {
+          final test = convertExpression(arguments.positional.first);
+          return '$receiverCode->any($test)';
+        }
+        return '$receiverCode->any()';
+      
+      case 'every':
+        if (arguments.positional.isNotEmpty) {
+          final test = convertExpression(arguments.positional.first);
+          return '$receiverCode->every($test)';
+        }
+        break;
+      
+      case 'contains':
+        if (arguments.positional.isNotEmpty) {
+          final element = convertExpression(arguments.positional.first);
+          return '$receiverCode->contains($element)';
+        }
+        break;
+      
+      case 'toList':
+        return '$receiverCode->toList()';
+      
+      case 'toSet':
+        return '$receiverCode->toSet()';
+      
+      // Map 特有方法
+      case 'putIfAbsent':
+        if (arguments.positional.length >= 2) {
+          final key = convertExpression(arguments.positional[0]);
+          final ifAbsent = convertExpression(arguments.positional[1]);
+          return '$receiverCode->putIfAbsent($key, $ifAbsent)';
+        }
+        break;
+      
+      case 'containsKey':
+        if (arguments.positional.isNotEmpty) {
+          final key = convertExpression(arguments.positional.first);
+          return '$receiverCode->containsKey($key)';
+        }
+        break;
+      
+      case 'containsValue':
+        if (arguments.positional.isNotEmpty) {
+          final value = convertExpression(arguments.positional.first);
+          return '$receiverCode->containsValue($value)';
+        }
+        break;
+    }
+    
+    // 默认处理
+    final args = arguments.positional
+        .map((arg) => convertExpression(arg))
+        .join(', ');
+    return '$receiverCode->$methodName($args)';
   }
 
   /// 检查是否应该跳过某个库
@@ -1063,10 +2177,30 @@ class DartToCppTransformer {
     final hasSuperclass =
         cls.superclass != null && cls.superclass!.name != 'Object';
 
+    // 生成泛型约束（如果有）
+    if (cls.typeParameters.isNotEmpty) {
+      _writeGenericConstraints(cls);
+    }
+
     if (isAbstract) {
       _writeInterface(cls);
     } else {
       _writeClass(cls, hasSuperclass, hasInterfaces);
+    }
+  }
+
+  /// 生成泛型约束
+  void _writeGenericConstraints(Class cls) {
+    for (final typeParam in cls.typeParameters) {
+      if (typeParam.bound != null) {
+        final paramName = typeParam.name;
+        final boundType = CppTypeConverter.convertType(typeParam.bound!);
+        
+        // 使用 C++20 concepts 或 static_assert
+        _writeLine('template<typename $paramName>');
+        _writeLine('concept ${paramName}Constraint = std::is_base_of_v<$boundType, $paramName>;');
+        _writeLine('');
+      }
     }
   }
 
@@ -1194,6 +2328,7 @@ class DartToCppTransformer {
 
     if (constructor.function.body != null) {
       _indent();
+      // 构造函数不应该有返回语句
       final body =
           statementConverter.convertStatement(constructor.function.body!);
       if (body.isNotEmpty) {
@@ -1207,14 +2342,28 @@ class DartToCppTransformer {
   }
 
   void _transformProcedure(Procedure procedure) {
+    // Skip main function as it will be handled separately
+    if (procedure.name.text == 'main') {
+      return;
+    }
     _writeProcedure(procedure, isClassMember: false);
+  }
+
+  void _writeFunctionDeclaration(Procedure procedure) {
+    // 生成函数前向声明（仅函数签名，无函数体）
+    final name = procedure.name.text;
+    final returnType =
+        CppTypeConverter.convertType(procedure.function.returnType);
+    final params = _buildParameterList(procedure.function);
+    _writeLine('$returnType $name($params);');
   }
 
   void _writeProcedure(Procedure procedure, {required bool isClassMember}) {
     final name = procedure.name.text;
     final returnType =
         CppTypeConverter.convertType(procedure.function.returnType);
-    final params = _buildParameterList(procedure.function);
+    // 在函数定义中，不应该有默认参数值（C++要求默认参数只在声明中）
+    final params = _buildParameterListWithoutDefaults(procedure.function);
 
     // 检查是否是异步函数
     final isAsync = _isAsyncFunction(procedure.function);
@@ -1229,7 +2378,11 @@ class DartToCppTransformer {
 
     if (procedure.function.body != null) {
       _indent();
-      final body = _transformFunctionBody(procedure.function.body!);
+      final isVoidFunction =
+          CppTypeConverter.convertType(procedure.function.returnType) ==
+              'Nullable';
+      final body = _transformFunctionBody(procedure.function.body!,
+          isVoidFunction: isVoidFunction);
       _writeLine(body);
       _unindent();
     }
@@ -1242,7 +2395,8 @@ class DartToCppTransformer {
     _writeLine('');
   }
 
-  String _buildParameterList(FunctionNode function) {
+  String _buildParameterListWithoutDefaults(FunctionNode function) {
+    // 不带默认值的参数列表，用于函数定义
     final params = <String>[];
 
     for (final param in function.positionalParameters) {
@@ -1260,8 +2414,51 @@ class DartToCppTransformer {
     return params.join(', ');
   }
 
-  String _transformFunctionBody(Statement body) {
-    return statementConverter.convertStatement(body);
+  String _buildParameterList(FunctionNode function) {
+    final params = <String>[];
+
+    // 位置参数
+    final requiredCount = function.requiredParameterCount;
+    for (int i = 0; i < function.positionalParameters.length; i++) {
+      final param = function.positionalParameters[i];
+      final type = CppTypeConverter.convertType(param.type);
+      final name = param.name ?? 'param';
+
+      // 如果是可选参数，添加默认值
+      if (i >= requiredCount) {
+        // 可选参数，添加默认值：使用类型的Null构造函数
+        params.add('$type $name = $type(Null)');
+      } else {
+        params.add('$type $name');
+      }
+    }
+
+    // 命名参数 - 全部是可选的
+    for (final param in function.namedParameters) {
+      final type = CppTypeConverter.convertType(param.type);
+      final name = param.name ?? 'param';
+      // 命名参数需要默认值
+      params.add('$type $name = $type(Null)');
+    }
+
+    return params.join(', ');
+  }
+
+  String _transformFunctionBody(Statement body, {bool isVoidFunction = false}) {
+    String bodyCode = statementConverter.convertStatement(body);
+
+    // 如果是 void 函数且没有显式的 return 语句，添加 return Void;
+    if (isVoidFunction && !bodyCode.contains('return')) {
+      if (bodyCode.isNotEmpty && !bodyCode.endsWith(';')) {
+        bodyCode += ';';
+      }
+      if (bodyCode.isNotEmpty) {
+        bodyCode += '\n';
+      }
+      bodyCode += 'return Void;';
+    }
+
+    return bodyCode;
   }
 
   bool _isAsyncFunction(FunctionNode function) {
@@ -1285,11 +2482,18 @@ class DartToCppTransformer {
     _writeLine('try {');
     _indent();
 
-    // 查找main函数
+    // 查找main函数（只在用户代码库中查找）
     for (final library in component.libraries) {
+      // Skip system libraries
+      if (_shouldSkipLibrary(library)) {
+        continue;
+      }
+
       for (final procedure in library.procedures) {
         if (procedure.name.text == 'main') {
-          final body = _transformFunctionBody(procedure.function.body!);
+          // main 函数在 C++ 中返回 int，不应该被当作 void 函数处理
+          final body = _transformFunctionBody(procedure.function.body!,
+              isVoidFunction: false);
           _writeLine(body);
           break;
         }

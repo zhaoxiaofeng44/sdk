@@ -1,0 +1,1079 @@
+// ============================================================================
+// C++ 面向对象编程测试用例
+// 测试类定义、继承、多态、接口、Mixin、泛型等面向对象特性
+// ============================================================================
+
+#include "../core/object.h"
+#include "../core/object_extensions.h"
+#include "../core/dart_macros.h"
+#include <iostream>
+#include <cassert>
+#include <memory>
+#include <vector>
+#include <typeinfo>
+
+// 简单的测试框架
+#define TEST(name) \
+    void test_##name(); \
+    void test_##name()
+
+#define ASSERT_EQ(expected, actual) \
+    do { \
+        if ((expected) != (actual)) { \
+            std::cerr << "ASSERTION FAILED: " << #expected << " != " << #actual \
+                      << " (expected: " << (expected) << ", actual: " << (actual) << ")" \
+                      << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::abort(); \
+        } \
+    } while(0)
+
+#define ASSERT_TRUE(condition) \
+    do { \
+        if (!(condition)) { \
+            std::cerr << "ASSERTION FAILED: " << #condition << " is false" \
+                      << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::abort(); \
+        } \
+    } while(0)
+
+#define ASSERT_FALSE(condition) \
+    do { \
+        if (condition) { \
+            std::cerr << "ASSERTION FAILED: " << #condition << " is true" \
+                      << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::abort(); \
+        } \
+    } while(0)
+
+#define ASSERT_NEAR(expected, actual, tolerance) \
+    do { \
+        if (std::abs((expected) - (actual)) > (tolerance)) { \
+            std::cerr << "ASSERTION FAILED: " << #expected << " != " << #actual \
+                      << " within tolerance " << (tolerance) \
+                      << " (expected: " << (expected) << ", actual: " << (actual) << ")" \
+                      << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+            std::abort(); \
+        } \
+    } while(0)
+
+#define RUN_TEST(name) \
+    do { \
+        std::cout << "Running test_" << #name << "..." << std::endl; \
+        test_##name(); \
+        std::cout << "✓ test_" << #name << " passed" << std::endl; \
+    } while(0)
+
+// ============================================================================
+// 基础类定义和测试
+// ============================================================================
+
+// 简单的 Person 类
+class Person {
+protected:
+    String name;
+    Int age;
+
+public:
+    Person(const String& n, const Int& a) : name(n), age(a) {}
+    
+    virtual ~Person() = default;
+    
+    String getName() const { return name; }
+    Int getAge() const { return age; }
+    
+    void setName(const String& n) { name = n; }
+    void setAge(const Int& a) { age = a; }
+    
+    virtual String toString() const {
+        return dart_string(name.getValue() + " (" + std::to_string(age.value) + " years old)");
+    }
+    
+    virtual String getRole() const {
+        return dart_string("Person");
+    }
+    
+    // 比较操作
+    Bool equals(const Person& other) const {
+        return dart_bool(name.getValue() == other.name.getValue() && age.value == other.age.value);
+    }
+    
+    // 年龄比较
+    Bool isOlderThan(const Person& other) const {
+        return dart_bool(age.value > other.age.value);
+    }
+};
+
+TEST(basic_class_operations) {
+    Person person(dart_string("Alice"), dart_int(25));
+    
+    // 测试基本属性访问
+    ASSERT_EQ("Alice", person.getName().getValue());
+    ASSERT_EQ(25, person.getAge().value);
+    
+    // 测试属性修改
+    person.setName(dart_string("Alice Smith"));
+    person.setAge(dart_int(26));
+    
+    ASSERT_EQ("Alice Smith", person.getName().getValue());
+    ASSERT_EQ(26, person.getAge().value);
+    
+    // 测试 toString 方法
+    String str = person.toString();
+    ASSERT_TRUE(str.getValue().find("Alice Smith") != std::string::npos);
+    ASSERT_TRUE(str.getValue().find("26") != std::string::npos);
+}
+
+TEST(object_comparison) {
+    Person person1(dart_string("John"), dart_int(30));
+    Person person2(dart_string("John"), dart_int(30));
+    Person person3(dart_string("Jane"), dart_int(25));
+    
+    // 测试相等性比较
+    ASSERT_TRUE(person1.equals(person2).value);
+    ASSERT_FALSE(person1.equals(person3).value);
+    
+    // 测试年龄比较
+    ASSERT_TRUE(person1.isOlderThan(person3).value);
+    ASSERT_FALSE(person3.isOlderThan(person1).value);
+    ASSERT_FALSE(person1.isOlderThan(person2).value);
+}
+
+// ============================================================================
+// 继承测试
+// ============================================================================
+
+// Student 类继承自 Person
+class Student : public Person {
+private:
+    String studentId;
+    Double gpa;
+
+public:
+    Student(const String& name, const Int& age, const String& id, const Double& g) 
+        : Person(name, age), studentId(id), gpa(g) {}
+    
+    String getStudentId() const { return studentId; }
+    Double getGpa() const { return gpa; }
+    
+    void setGpa(const Double& g) { gpa = g; }
+    
+    // 重写父类方法
+    String getRole() const override {
+        return dart_string("Student");
+    }
+    
+    String toString() const override {
+        return dart_string("Student: " + name.getValue() + " (ID: " + studentId.getValue() + 
+                          ", GPA: " + std::to_string(gpa.value) + ")");
+    }
+    
+    // 学生特有方法
+    Bool isHonorStudent() const {
+        return dart_bool(gpa.value >= 3.5);
+    }
+    
+    String getGradeLevel() const {
+        if (age.value < 18) return dart_string("High School");
+        else if (age.value < 22) return dart_string("Undergraduate");
+        else return dart_string("Graduate");
+    }
+};
+
+// Teacher 类继承自 Person
+class Teacher : public Person {
+private:
+    String subject;
+    Int yearsExperience;
+
+public:
+    Teacher(const String& name, const Int& age, const String& subj, const Int& exp)
+        : Person(name, age), subject(subj), yearsExperience(exp) {}
+    
+    String getSubject() const { return subject; }
+    Int getYearsExperience() const { return yearsExperience; }
+    
+    void setSubject(const String& subj) { subject = subj; }
+    void setYearsExperience(const Int& exp) { yearsExperience = exp; }
+    
+    // 重写父类方法
+    String getRole() const override {
+        return dart_string("Teacher");
+    }
+    
+    String toString() const override {
+        return dart_string("Teacher: " + name.getValue() + " (Subject: " + subject.getValue() + 
+                          ", Experience: " + std::to_string(yearsExperience.value) + " years)");
+    }
+    
+    // 教师特有方法
+    Bool isSeniorTeacher() const {
+        return dart_bool(yearsExperience.value >= 10);
+    }
+    
+    Bool canTeach(const String& requestedSubject) const {
+        return dart_bool(subject.getValue() == requestedSubject.getValue());
+    }
+};
+
+TEST(inheritance_basic) {
+    Student student(dart_string("Bob"), dart_int(20), dart_string("S12345"), dart_double(3.8));
+    Teacher teacher(dart_string("Dr. Smith"), dart_int(45), dart_string("Mathematics"), dart_int(15));
+    
+    // 测试继承的属性和方法
+    ASSERT_EQ("Bob", student.getName().getValue());
+    ASSERT_EQ(20, student.getAge().value);
+    ASSERT_EQ("S12345", student.getStudentId().getValue());
+    ASSERT_NEAR(3.8, student.getGpa().value, 0.001);
+    
+    ASSERT_EQ("Dr. Smith", teacher.getName().getValue());
+    ASSERT_EQ("Mathematics", teacher.getSubject().getValue());
+    ASSERT_EQ(15, teacher.getYearsExperience().value);
+}
+
+TEST(method_overriding) {
+    Student student(dart_string("Alice"), dart_int(19), dart_string("S67890"), dart_double(3.9));
+    Teacher teacher(dart_string("Prof. Johnson"), dart_int(50), dart_string("Physics"), dart_int(20));
+    Person person(dart_string("John"), dart_int(35));
+    
+    // 测试方法重写
+    ASSERT_EQ("Student", student.getRole().getValue());
+    ASSERT_EQ("Teacher", teacher.getRole().getValue());
+    ASSERT_EQ("Person", person.getRole().getValue());
+    
+    // 测试 toString 重写
+    String studentStr = student.toString();
+    String teacherStr = teacher.toString();
+    String personStr = person.toString();
+    
+    ASSERT_TRUE(studentStr.getValue().find("Student:") != std::string::npos);
+    ASSERT_TRUE(teacherStr.getValue().find("Teacher:") != std::string::npos);
+    ASSERT_TRUE(personStr.getValue().find("Alice") == std::string::npos); // Person 的 toString 不包含 "Student:"
+}
+
+TEST(specialized_methods) {
+    Student honorStudent(dart_string("Emma"), dart_int(21), dart_string("S11111"), dart_double(3.7));
+    Student regularStudent(dart_string("Tom"), dart_int(19), dart_string("S22222"), dart_double(3.2));
+    Teacher seniorTeacher(dart_string("Dr. Brown"), dart_int(55), dart_string("Chemistry"), dart_int(25));
+    Teacher juniorTeacher(dart_string("Ms. White"), dart_int(28), dart_string("Biology"), dart_int(3));
+    
+    // 测试学生特有方法
+    ASSERT_TRUE(honorStudent.isHonorStudent().value);
+    ASSERT_FALSE(regularStudent.isHonorStudent().value);
+    
+    ASSERT_EQ("Undergraduate", honorStudent.getGradeLevel().getValue());
+    ASSERT_EQ("Undergraduate", regularStudent.getGradeLevel().getValue());
+    
+    // 测试教师特有方法
+    ASSERT_TRUE(seniorTeacher.isSeniorTeacher().value);
+    ASSERT_FALSE(juniorTeacher.isSeniorTeacher().value);
+    
+    ASSERT_TRUE(seniorTeacher.canTeach(dart_string("Chemistry")).value);
+    ASSERT_FALSE(seniorTeacher.canTeach(dart_string("Biology")).value);
+}
+
+// ============================================================================
+// 多态测试
+// ============================================================================
+
+TEST(polymorphism_basic) {
+    // 创建不同类型的对象
+    std::vector<std::unique_ptr<Person>> people;
+    people.push_back(std::unique_ptr<Person>(new Person(dart_string("John"), dart_int(30))));
+    people.push_back(std::unique_ptr<Person>(new Student(dart_string("Alice"), dart_int(20), dart_string("S123"), dart_double(3.5))));
+    people.push_back(std::unique_ptr<Person>(new Teacher(dart_string("Dr. Smith"), dart_int(45), dart_string("Math"), dart_int(10))));
+    
+    // 测试多态行为
+    ASSERT_EQ("Person", people[0]->getRole().getValue());
+    ASSERT_EQ("Student", people[1]->getRole().getValue());
+    ASSERT_EQ("Teacher", people[2]->getRole().getValue());
+    
+    // 测试虚函数调用
+    for (const auto& person : people) {
+        String str = person->toString();
+        ASSERT_FALSE(str.getValue().empty());
+        
+        String role = person->getRole();
+        ASSERT_FALSE(role.getValue().empty());
+    }
+}
+
+TEST(polymorphism_dynamic_cast) {
+    std::unique_ptr<Person> person = std::unique_ptr<Person>(new Student(
+        dart_string("Bob"), dart_int(22), dart_string("S456"), dart_double(3.8)));
+    
+    // 测试动态类型转换
+    Student* student = dynamic_cast<Student*>(person.get());
+    ASSERT_TRUE(student != nullptr);
+    
+    if (student) {
+        ASSERT_EQ("S456", student->getStudentId().getValue());
+        ASSERT_NEAR(3.8, student->getGpa().value, 0.001);
+        ASSERT_TRUE(student->isHonorStudent().value);
+    }
+    
+    // 测试错误的类型转换
+    Teacher* teacher = dynamic_cast<Teacher*>(person.get());
+    ASSERT_TRUE(teacher == nullptr);
+}
+
+// ============================================================================
+// 抽象类和接口模拟
+// ============================================================================
+
+// 抽象基类 Shape
+class Shape {
+protected:
+    String color;
+
+public:
+    Shape(const String& c) : color(c) {}
+    virtual ~Shape() = default;
+    
+    String getColor() const { return color; }
+    void setColor(const String& c) { color = c; }
+    
+    // 纯虚函数（抽象方法）
+    virtual Double getArea() const = 0;
+    virtual Double getPerimeter() const = 0;
+    virtual String getShapeType() const = 0;
+    
+    // 具体方法
+    virtual String describe() const {
+        return dart_string(getShapeType().getValue() + " with color " + color.getValue());
+    }
+};
+
+// 具体类 Rectangle
+class Rectangle : public Shape {
+private:
+    Double width;
+    Double height;
+
+public:
+    Rectangle(const String& color, const Double& w, const Double& h) 
+        : Shape(color), width(w), height(h) {}
+    
+    Double getWidth() const { return width; }
+    Double getHeight() const { return height; }
+    
+    void setWidth(const Double& w) { width = w; }
+    void setHeight(const Double& h) { height = h; }
+    
+    // 实现抽象方法
+    Double getArea() const override {
+        return width * height;
+    }
+    
+    Double getPerimeter() const override {
+        return dart_double(2.0) * (width + height);
+    }
+    
+    String getShapeType() const override {
+        return dart_string("Rectangle");
+    }
+    
+    Bool isSquare() const {
+        return dart_bool(std::abs(width.value - height.value) < 0.001);
+    }
+};
+
+// 具体类 Circle
+class Circle : public Shape {
+private:
+    Double radius;
+    static constexpr double PI = 3.14159265359;
+
+public:
+    Circle(const String& color, const Double& r) : Shape(color), radius(r) {}
+    
+    Double getRadius() const { return radius; }
+    void setRadius(const Double& r) { radius = r; }
+    
+    // 实现抽象方法
+    Double getArea() const override {
+        return dart_double(PI * radius.value * radius.value);
+    }
+    
+    Double getPerimeter() const override {
+        return dart_double(2.0 * PI * radius.value);
+    }
+    
+    String getShapeType() const override {
+        return dart_string("Circle");
+    }
+    
+    Double getDiameter() const {
+        return dart_double(2.0) * radius;
+    }
+};
+
+TEST(abstract_class_implementation) {
+    Rectangle rect(dart_string("red"), dart_double(5.0), dart_double(3.0));
+    Circle circle(dart_string("blue"), dart_double(4.0));
+    
+    // 测试矩形
+    ASSERT_NEAR(15.0, rect.getArea().value, 0.001); // 5 * 3 = 15
+    ASSERT_NEAR(16.0, rect.getPerimeter().value, 0.001); // 2 * (5 + 3) = 16
+    ASSERT_EQ("Rectangle", rect.getShapeType().getValue());
+    ASSERT_FALSE(rect.isSquare().value);
+    
+    // 测试正方形
+    Rectangle square(dart_string("green"), dart_double(4.0), dart_double(4.0));
+    ASSERT_TRUE(square.isSquare().value);
+    ASSERT_NEAR(16.0, square.getArea().value, 0.001);
+    
+    // 测试圆形
+    ASSERT_NEAR(50.265, circle.getArea().value, 0.001); // π * 4^2 ≈ 50.265
+    ASSERT_NEAR(25.133, circle.getPerimeter().value, 0.001); // 2 * π * 4 ≈ 25.133
+    ASSERT_EQ("Circle", circle.getShapeType().getValue());
+    ASSERT_NEAR(8.0, circle.getDiameter().value, 0.001);
+}
+
+TEST(abstract_polymorphism) {
+    std::vector<std::unique_ptr<Shape>> shapes;
+    shapes.push_back(std::unique_ptr<Shape>(new Rectangle(dart_string("red"), dart_double(6.0), dart_double(4.0))));
+    shapes.push_back(std::unique_ptr<Shape>(new Circle(dart_string("blue"), dart_double(3.0))));
+    shapes.push_back(std::unique_ptr<Shape>(new Rectangle(dart_string("green"), dart_double(2.0), dart_double(2.0))));
+    
+    Double totalArea = dart_double(0.0);
+    
+    for (const auto& shape : shapes) {
+        totalArea = totalArea + shape->getArea();
+        
+        String description = shape->describe();
+        ASSERT_FALSE(description.getValue().empty());
+        ASSERT_TRUE(description.getValue().find("color") != std::string::npos);
+    }
+    
+    // 验证总面积计算
+    // Rectangle: 6*4=24, Circle: π*3^2≈28.274, Square: 2*2=4
+    // Total ≈ 56.274
+    ASSERT_NEAR(56.274, totalArea.value, 0.001);
+}
+
+// ============================================================================
+// 接口模拟（使用纯虚类）
+// ============================================================================
+
+// 接口：Drawable
+class Drawable {
+public:
+    virtual ~Drawable() = default;
+    virtual void draw() const = 0;
+    virtual String getDrawingInfo() const = 0;
+};
+
+// 接口：Movable
+class Movable {
+public:
+    virtual ~Movable() = default;
+    virtual void move(const Double& deltaX, const Double& deltaY) = 0;
+    virtual String getPosition() const = 0;
+};
+
+// 实现多个接口的类
+class DrawableRectangle : public Rectangle, public Drawable, public Movable {
+private:
+    Double x, y; // 位置
+
+public:
+    DrawableRectangle(const String& color, const Double& w, const Double& h, 
+                     const Double& posX, const Double& posY)
+        : Rectangle(color, w, h), x(posX), y(posY) {}
+    
+    // 实现 Drawable 接口
+    void draw() const override {
+        std::cout << "Drawing " << getShapeType().getValue() 
+                  << " at (" << x.value << ", " << y.value << ")" << std::endl;
+    }
+    
+    String getDrawingInfo() const override {
+        return dart_string("Rectangle[" + std::to_string(getWidth().value) + "x" + 
+                          std::to_string(getHeight().value) + "] at (" + 
+                          std::to_string(x.value) + "," + std::to_string(y.value) + ")");
+    }
+    
+    // 实现 Movable 接口
+    void move(const Double& deltaX, const Double& deltaY) override {
+        x = x + deltaX;
+        y = y + deltaY;
+    }
+    
+    String getPosition() const override {
+        return dart_string("(" + std::to_string(x.value) + ", " + std::to_string(y.value) + ")");
+    }
+    
+    Double getX() const { return x; }
+    Double getY() const { return y; }
+};
+
+TEST(interface_implementation) {
+    DrawableRectangle drawRect(dart_string("purple"), dart_double(10.0), dart_double(5.0), 
+                              dart_double(0.0), dart_double(0.0));
+    
+    // 测试 Shape 功能
+    ASSERT_NEAR(50.0, drawRect.getArea().value, 0.001);
+    ASSERT_EQ("Rectangle", drawRect.getShapeType().getValue());
+    
+    // 测试 Movable 功能
+    ASSERT_EQ("(0, 0)", drawRect.getPosition().getValue());
+    drawRect.move(dart_double(3.0), dart_double(4.0));
+    ASSERT_EQ("(3, 4)", drawRect.getPosition().getValue());
+    
+    // 测试 Drawable 功能
+    String drawingInfo = drawRect.getDrawingInfo();
+    ASSERT_TRUE(drawingInfo.getValue().find("Rectangle") != std::string::npos);
+    ASSERT_TRUE(drawingInfo.getValue().find("10") != std::string::npos);
+    ASSERT_TRUE(drawingInfo.getValue().find("5") != std::string::npos);
+}
+
+TEST(multiple_interface_polymorphism) {
+    DrawableRectangle drawRect(dart_string("orange"), dart_double(8.0), dart_double(6.0), 
+                              dart_double(1.0), dart_double(2.0));
+    
+    // 通过不同接口指针访问同一对象
+    Shape* shape = &drawRect;
+    Drawable* drawable = &drawRect;
+    Movable* movable = &drawRect;
+    
+    // 测试通过 Shape 接口
+    ASSERT_NEAR(48.0, shape->getArea().value, 0.001);
+    ASSERT_EQ("Rectangle", shape->getShapeType().getValue());
+    
+    // 测试通过 Movable 接口
+    ASSERT_EQ("(1, 2)", movable->getPosition().getValue());
+    movable->move(dart_double(2.0), dart_double(3.0));
+    ASSERT_EQ("(3, 5)", movable->getPosition().getValue());
+    
+    // 测试通过 Drawable 接口
+    String info = drawable->getDrawingInfo();
+    ASSERT_TRUE(info.getValue().find("Rectangle") != std::string::npos);
+}
+
+// ============================================================================
+// 泛型类模拟
+// ============================================================================
+
+template<typename T>
+class Container {
+private:
+    std::vector<T> items;
+
+public:
+    void add(const T& item) {
+        items.push_back(item);
+    }
+    
+    T get(int index) const {
+        if (index >= 0 && index < static_cast<int>(items.size())) {
+            return items[index];
+        }
+        throw std::out_of_range("Index out of range");
+    }
+    
+    Int size() const {
+        return dart_int(static_cast<int>(items.size()));
+    }
+    
+    Bool isEmpty() const {
+        return dart_bool(items.empty());
+    }
+    
+    void clear() {
+        items.clear();
+    }
+    
+    Bool contains(const T& item) const {
+        return dart_bool(std::find(items.begin(), items.end(), item) != items.end());
+    }
+    
+    void remove(const T& item) {
+        auto it = std::find(items.begin(), items.end(), item);
+        if (it != items.end()) {
+            items.erase(it);
+        }
+    }
+};
+
+TEST(generic_container) {
+    // 测试 Int 容器
+    Container<Int> intContainer;
+    intContainer.add(dart_int(10));
+    intContainer.add(dart_int(20));
+    intContainer.add(dart_int(30));
+    
+    ASSERT_EQ(3, intContainer.size().value);
+    ASSERT_EQ(10, intContainer.get(0).value);
+    ASSERT_EQ(20, intContainer.get(1).value);
+    ASSERT_EQ(30, intContainer.get(2).value);
+    
+    ASSERT_TRUE(intContainer.contains(dart_int(20)).value);
+    ASSERT_FALSE(intContainer.contains(dart_int(99)).value);
+    
+    // 测试 String 容器
+    Container<String> stringContainer;
+    stringContainer.add(dart_string("hello"));
+    stringContainer.add(dart_string("world"));
+    
+    ASSERT_EQ(2, stringContainer.size().value);
+    ASSERT_EQ("hello", stringContainer.get(0).getValue());
+    ASSERT_EQ("world", stringContainer.get(1).getValue());
+    
+    stringContainer.remove(dart_string("hello"));
+    ASSERT_EQ(1, stringContainer.size().value);
+    ASSERT_EQ("world", stringContainer.get(0).getValue());
+}
+
+// ============================================================================
+// 设计模式示例
+// ============================================================================
+
+// 单例模式
+class Logger {
+private:
+    static Logger* instance;
+    std::vector<String> logs;
+    
+    Logger() = default; // 私有构造函数
+
+public:
+    static Logger* getInstance() {
+        if (instance == nullptr) {
+            instance = new Logger();
+        }
+        return instance;
+    }
+    
+    void log(const String& message) {
+        logs.push_back(message);
+    }
+    
+    Int getLogCount() const {
+        return dart_int(static_cast<int>(logs.size()));
+    }
+    
+    String getLog(int index) const {
+        if (index >= 0 && index < static_cast<int>(logs.size())) {
+            return logs[index];
+        }
+        return dart_string("");
+    }
+    
+    void clearLogs() {
+        logs.clear();
+    }
+};
+
+Logger* Logger::instance = nullptr;
+
+// 工厂模式
+class ShapeFactory {
+public:
+    static std::unique_ptr<Shape> createShape(const String& type, const String& color) {
+        if (type.getValue() == "rectangle") {
+            return std::unique_ptr<Shape>(new Rectangle(color, dart_double(1.0), dart_double(1.0)));
+        } else if (type.getValue() == "circle") {
+            return std::unique_ptr<Shape>(new Circle(color, dart_double(1.0)));
+        }
+        return nullptr;
+    }
+};
+
+TEST(design_patterns) {
+    // 测试单例模式
+    Logger* logger1 = Logger::getInstance();
+    Logger* logger2 = Logger::getInstance();
+    
+    ASSERT_TRUE(logger1 == logger2); // 同一个实例
+    
+    logger1->log(dart_string("First message"));
+    logger2->log(dart_string("Second message"));
+    
+    ASSERT_EQ(2, logger1->getLogCount().value);
+    ASSERT_EQ("First message", logger1->getLog(0).getValue());
+    ASSERT_EQ("Second message", logger2->getLog(1).getValue());
+    
+    // 测试工厂模式
+    auto rect = ShapeFactory::createShape(dart_string("rectangle"), dart_string("red"));
+    auto circle = ShapeFactory::createShape(dart_string("circle"), dart_string("blue"));
+    auto invalid = ShapeFactory::createShape(dart_string("triangle"), dart_string("green"));
+    
+    ASSERT_TRUE(rect != nullptr);
+    ASSERT_TRUE(circle != nullptr);
+    ASSERT_TRUE(invalid == nullptr);
+    
+    ASSERT_EQ("Rectangle", rect->getShapeType().getValue());
+    ASSERT_EQ("Circle", circle->getShapeType().getValue());
+    ASSERT_EQ("red", rect->getColor().getValue());
+    ASSERT_EQ("blue", circle->getColor().getValue());
+}
+
+// ============================================================================
+// Mixin 测试（使用 dart_oop_extensions.h 中定义的 Mixin）
+// ============================================================================
+
+#include "../core/dart_oop_extensions.h"
+
+// 使用 TimestampMixin 的类
+class Document : public TimestampMixin {
+private:
+    String title;
+    String content;
+
+public:
+    Document(const String& t, const String& c) : title(t), content(c) {
+        onCreate();
+    }
+    
+    String getTitle() const { return title; }
+    String getContent() const { return content; }
+    
+    void setContent(const String& c) {
+        content = c;
+        touch(); // 更新时间戳
+    }
+    
+    String toString() {
+        return dart_string("Document: " + title.getValue() + " (created: " + 
+                          std::to_string(getCreatedAt().value) + ", updated: " + 
+                          std::to_string(getUpdatedAt().value) + ")");
+    }
+};
+
+// 使用多个 Mixin 的类
+class User : public IdentifiableMixin, public NameableMixin, public TimestampMixin {
+private:
+    String email;
+
+public:
+    User(const Int& id, const String& name, const String& e) : email(e) {
+        setId(id);
+        setName(name);
+        onCreate();
+    }
+    
+    String getEmail() const { return email; }
+    void setEmail(const String& e) { 
+        email = e; 
+        touch();
+    }
+    
+    String toString() {
+        return dart_string("User " + getIdString().getValue() + ": " + 
+                          getName().getValue() + " <" + email.getValue() + ">");
+    }
+};
+
+TEST(mixin_timestamp) {
+    Document doc(dart_string("Test Document"), dart_string("Initial content"));
+    
+    // 测试创建时间戳
+    Double createdAt1 = doc.getCreatedAt();
+    Double updatedAt1 = doc.getUpdatedAt();
+    
+    ASSERT_TRUE(createdAt1.value > 0);
+    ASSERT_EQ(createdAt1.value, updatedAt1.value); // 初始时相等
+    
+    // 修改内容，更新时间戳
+    doc.setContent(dart_string("Updated content"));
+    
+    Double updatedAt2 = doc.getUpdatedAt();
+    ASSERT_TRUE(updatedAt2.value > updatedAt1.value); // 更新时间应该增加
+    ASSERT_EQ(createdAt1.value, doc.getCreatedAt().value); // 创建时间不变
+}
+
+TEST(mixin_identifiable) {
+    User user(dart_int(101), dart_string("Alice"), dart_string("alice@example.com"));
+    
+    // 测试 IdentifiableMixin
+    ASSERT_EQ(101, user.getId().value);
+    ASSERT_EQ("ID:101", user.getIdString().getValue());
+    
+    user.setId(dart_int(202));
+    ASSERT_EQ(202, user.getId().value);
+    ASSERT_EQ("ID:202", user.getIdString().getValue());
+}
+
+TEST(mixin_nameable) {
+    User user(dart_int(1), dart_string("Bob"), dart_string("bob@example.com"));
+    
+    // 测试 NameableMixin
+    ASSERT_EQ("Bob", user.getName().getValue());
+    ASSERT_EQ("[Bob]", user.getDisplayName().getValue());
+    
+    user.setName(dart_string("Robert"));
+    ASSERT_EQ("Robert", user.getName().getValue());
+    ASSERT_EQ("[Robert]", user.getDisplayName().getValue());
+}
+
+TEST(multiple_mixins) {
+    User user(dart_int(42), dart_string("Charlie"), dart_string("charlie@example.com"));
+    
+    // 测试所有 Mixin 功能
+    ASSERT_EQ(42, user.getId().value);
+    ASSERT_EQ("Charlie", user.getName().getValue());
+    ASSERT_EQ("charlie@example.com", user.getEmail().getValue());
+    
+    Double createdAt = user.getCreatedAt();
+    ASSERT_TRUE(createdAt.value > 0);
+    
+    // 修改邮箱，触发时间戳更新
+    user.setEmail(dart_string("charlie.new@example.com"));
+    
+    Double updatedAt = user.getUpdatedAt();
+    ASSERT_TRUE(updatedAt.value > createdAt.value);
+    
+    // 测试 toString
+    String str = user.toString();
+    ASSERT_TRUE(str.getValue().find("User") != std::string::npos);
+    ASSERT_TRUE(str.getValue().find("42") != std::string::npos);
+    ASSERT_TRUE(str.getValue().find("Charlie") != std::string::npos);
+}
+
+// ============================================================================
+// 接口实现测试（使用 dart_oop_extensions.h 中定义的接口）
+// ============================================================================
+
+// 实现 Comparable 接口的类
+class ComparableInt : public Comparable {
+private:
+    Int value;
+
+public:
+    ComparableInt(const Int& v) : value(v) {}
+    
+    Int getValue() const { return value; }
+    
+    Int compareTo(const void* other) override {
+        const ComparableInt* otherInt = static_cast<const ComparableInt*>(other);
+        if (value.value < otherInt->value.value) return dart_int(-1);
+        if (value.value > otherInt->value.value) return dart_int(1);
+        return dart_int(0);
+    }
+};
+
+// 实现 Serializable 接口的类
+class SerializableUser : public Serializable {
+private:
+    String name;
+    Int age;
+
+public:
+    SerializableUser(const String& n, const Int& a) : name(n), age(a) {}
+    
+    String getName() const { return name; }
+    Int getAge() const { return age; }
+    
+    String serialize() override {
+        return dart_string("{\"name\":\"" + name.getValue() + 
+                          "\",\"age\":" + std::to_string(age.value) + "}");
+    }
+    
+    Bool deserialize(const String& data) override {
+        // 简化的反序列化实现
+        std::string str = data.getValue();
+        if (str.find("name") != std::string::npos && str.find("age") != std::string::npos) {
+            return dart_bool(true);
+        }
+        return dart_bool(false);
+    }
+};
+
+TEST(interface_comparable) {
+    ComparableInt a(dart_int(10));
+    ComparableInt b(dart_int(20));
+    ComparableInt c(dart_int(10));
+    
+    // 测试比较
+    ASSERT_EQ(-1, a.compareTo(&b).value); // a < b
+    ASSERT_EQ(1, b.compareTo(&a).value);  // b > a
+    ASSERT_EQ(0, a.compareTo(&c).value);  // a == c
+}
+
+TEST(interface_serializable) {
+    SerializableUser user(dart_string("David"), dart_int(28));
+    
+    // 测试序列化
+    String json = user.serialize();
+    ASSERT_TRUE(json.getValue().find("David") != std::string::npos);
+    ASSERT_TRUE(json.getValue().find("28") != std::string::npos);
+    ASSERT_TRUE(json.getValue().find("name") != std::string::npos);
+    ASSERT_TRUE(json.getValue().find("age") != std::string::npos);
+    
+    // 测试反序列化
+    Bool result = user.deserialize(json);
+    ASSERT_TRUE(result.value);
+    
+    Bool invalidResult = user.deserialize(dart_string("invalid json"));
+    ASSERT_FALSE(invalidResult.value);
+}
+
+// ============================================================================
+// 复杂的多重继承测试
+// ============================================================================
+
+// 组合接口、Mixin 和普通继承的复杂类
+class Product : public IdentifiableMixin, public NameableMixin, 
+                public TimestampMixin, public Serializable {
+private:
+    Double price;
+    Int quantity;
+
+public:
+    Product(const Int& id, const String& name, const Double& p, const Int& q) 
+        : price(p), quantity(q) {
+        setId(id);
+        setName(name);
+        onCreate();
+    }
+    
+    Double getPrice() const { return price; }
+    Int getQuantity() const { return quantity; }
+    
+    void setPrice(const Double& p) {
+        price = p;
+        touch();
+    }
+    
+    void setQuantity(const Int& q) {
+        quantity = q;
+        touch();
+    }
+    
+    Double getTotalValue() const {
+        return dart_double(price.value * quantity.value);
+    }
+    
+    // 实现 Serializable 接口
+    String serialize() override {
+        return dart_string("{\"id\":" + std::to_string(getId().value) + 
+                          ",\"name\":\"" + getName().getValue() + 
+                          "\",\"price\":" + std::to_string(price.value) + 
+                          ",\"quantity\":" + std::to_string(quantity.value) + "}");
+    }
+    
+    Bool deserialize(const String& data) override {
+        return dart_bool(data.getValue().find("id") != std::string::npos);
+    }
+    
+    String toString() {
+        return dart_string("Product " + getIdString().getValue() + ": " + 
+                          getName().getValue() + " ($" + std::to_string(price.value) + 
+                          " x " + std::to_string(quantity.value) + ")");
+    }
+};
+
+TEST(complex_multiple_inheritance) {
+    Product product(dart_int(1001), dart_string("Laptop"), dart_double(999.99), dart_int(5));
+    
+    // 测试 IdentifiableMixin
+    ASSERT_EQ(1001, product.getId().value);
+    ASSERT_EQ("ID:1001", product.getIdString().getValue());
+    
+    // 测试 NameableMixin
+    ASSERT_EQ("Laptop", product.getName().getValue());
+    ASSERT_EQ("[Laptop]", product.getDisplayName().getValue());
+    
+    // 测试 TimestampMixin
+    Double createdAt = product.getCreatedAt();
+    ASSERT_TRUE(createdAt.value > 0);
+    
+    // 测试产品特有功能
+    ASSERT_NEAR(999.99, product.getPrice().value, 0.01);
+    ASSERT_EQ(5, product.getQuantity().value);
+    ASSERT_NEAR(4999.95, product.getTotalValue().value, 0.01);
+    
+    // 修改价格，触发时间戳更新
+    product.setPrice(dart_double(899.99));
+    Double updatedAt = product.getUpdatedAt();
+    ASSERT_TRUE(updatedAt.value > createdAt.value);
+    
+    // 测试 Serializable 接口
+    String json = product.serialize();
+    ASSERT_TRUE(json.getValue().find("1001") != std::string::npos);
+    ASSERT_TRUE(json.getValue().find("Laptop") != std::string::npos);
+    ASSERT_TRUE(json.getValue().find("899.99") != std::string::npos);
+    
+    Bool deserializeResult = product.deserialize(json);
+    ASSERT_TRUE(deserializeResult.value);
+}
+
+TEST(multiple_inheritance_polymorphism) {
+    Product product(dart_int(2001), dart_string("Phone"), dart_double(699.99), dart_int(10));
+    
+    // 通过不同接口访问同一对象
+    IdentifiableMixin* identifiable = &product;
+    NameableMixin* nameable = &product;
+    TimestampMixin* timestamped = &product;
+    Serializable* serializable = &product;
+    
+    // 测试通过不同接口访问
+    ASSERT_EQ(2001, identifiable->getId().value);
+    ASSERT_EQ("Phone", nameable->getName().getValue());
+    ASSERT_TRUE(timestamped->getCreatedAt().value > 0);
+    
+    String json = serializable->serialize();
+    ASSERT_TRUE(json.getValue().find("Phone") != std::string::npos);
+}
+
+// ============================================================================
+// 主函数
+// ============================================================================
+
+int main() {
+    std::cout << "=== C++ 面向对象编程测试 ===" << std::endl;
+    
+    // 基础类测试
+    std::cout << "\n--- 基础类操作测试 ---" << std::endl;
+    RUN_TEST(basic_class_operations);
+    RUN_TEST(object_comparison);
+    
+    // 继承测试
+    std::cout << "\n--- 继承测试 ---" << std::endl;
+    RUN_TEST(inheritance_basic);
+    RUN_TEST(method_overriding);
+    RUN_TEST(specialized_methods);
+    
+    // 多态测试
+    std::cout << "\n--- 多态测试 ---" << std::endl;
+    RUN_TEST(polymorphism_basic);
+    RUN_TEST(polymorphism_dynamic_cast);
+    
+    // 抽象类测试
+    std::cout << "\n--- 抽象类测试 ---" << std::endl;
+    RUN_TEST(abstract_class_implementation);
+    RUN_TEST(abstract_polymorphism);
+    
+    // 接口测试
+    std::cout << "\n--- 接口实现测试 ---" << std::endl;
+    RUN_TEST(interface_implementation);
+    RUN_TEST(multiple_interface_polymorphism);
+    
+    // 泛型测试
+    std::cout << "\n--- 泛型容器测试 ---" << std::endl;
+    RUN_TEST(generic_container);
+    
+    // 设计模式测试
+    std::cout << "\n--- 设计模式测试 ---" << std::endl;
+    RUN_TEST(design_patterns);
+    
+    // Mixin 测试
+    std::cout << "\n--- Mixin 测试 ---" << std::endl;
+    RUN_TEST(mixin_timestamp);
+    RUN_TEST(mixin_identifiable);
+    RUN_TEST(mixin_nameable);
+    RUN_TEST(multiple_mixins);
+    
+    // 接口实现测试
+    std::cout << "\n--- 接口实现测试（Comparable, Serializable）---" << std::endl;
+    RUN_TEST(interface_comparable);
+    RUN_TEST(interface_serializable);
+    
+    // 复杂多重继承测试
+    std::cout << "\n--- 复杂多重继承测试 ---" << std::endl;
+    RUN_TEST(complex_multiple_inheritance);
+    RUN_TEST(multiple_inheritance_polymorphism);
+    
+    std::cout << "\n=== 所有面向对象测试通过! ===" << std::endl;
+    return 0;
+}

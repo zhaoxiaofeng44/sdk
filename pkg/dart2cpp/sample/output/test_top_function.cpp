@@ -1,0 +1,23 @@
+#include "dart2cpp.h"
+
+// 工具宏定义
+
+Int add(Int a, Int b);
+Int add(Int a, Int b) {
+  return (a + b);
+}
+
+// ============================================================================
+// 主函数
+// ============================================================================
+
+int main() {
+  try {
+    auto result = add(dart_int(5), dart_int(3));
+dart_print(dart_concat(dart_string("Result: "), result));
+    return 0;
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
+}

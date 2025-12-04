@@ -1,0 +1,22 @@
+Dart2CPP C++ 测试报告
+======================
+生成时间: Thu Nov 20 16:05:57 CST 2025
+
+测试环境:
+  操作系统: Darwin
+  编译器: Apple clang version 14.0.0 (clang-1400.0.29.102)
+  Make版本: GNU Make 3.81
+
+测试文件:
+  - basic_types_test.cpp    (基础数据类型测试)
+  - operators_test.cpp      (运算符重载测试)
+  - macros_test.cpp         (宏和工具测试)
+  - comprehensive_test.cpp  (综合测试)
+  - collections_test.cpp    (集合类型测试)
+  - oop_test.cpp            (面向对象编程测试)
+  - string_test.cpp         (字符串处理测试)
+
+构建配置:
+  编译标志: -std=c++11 -Wall -Wextra -O2
+  包含路径: ../core
+

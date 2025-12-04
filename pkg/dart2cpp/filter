@@ -1,0 +1,788 @@
+QUICK_START.md:53:dart bin/dart2cpp.dart -o output.cpp test/test_hello.dart
+QUICK_START.md:56:dart bin/dart2cpp.dart --optimize test/test_hello.dart
+QUICK_START.md:59:dart bin/dart2cpp.dart --verbose test/test_hello.dart
+QUICK_START.md:65:dart bin/dart2cpp.dart --version
+QUICK_START.md:66:dart bin/dart2cpp.dart --features
+QUICK_START.md:77:cmake -B build
+QUICK_START.md:80:cmake --build build
+QUICK_START.md:91:g++ -std=c++17 -I include -o dart2cpp_test src/*.cpp lib/*.cpp
+QUICK_START.md:109:- **Object**: 所有对象的基类
+QUICK_START.md:110:- **String**: 字符串类型，支持连接和比较
+QUICK_FIX_GUIDE.md:10:**文件**: [lib/dart_to_cpp_compiler.dart:67-69](lib/dart_to_cpp_compiler.dart#L67-L69)
+QUICK_FIX_GUIDE.md:32:**同时更新测试运行器**: [test/run_comprehensive_tests.dart:211-218](test/run_comprehensive_tests.dart#L211-L218)
+QUICK_FIX_GUIDE.md:37:  '-std=c++17',
+QUICK_FIX_GUIDE.md:38:  '-I../cpp/core',  // ✅ 确保这个路径正确
+QUICK_FIX_GUIDE.md:41:  '-o',
+QUICK_FIX_GUIDE.md:46:---
+QUICK_FIX_GUIDE.md:68:---
+QUICK_FIX_GUIDE.md:77:grep -r "ForStatement" *.dart
+QUICK_FIX_GUIDE.md:78:grep -r "for.*loop" *.dart
+QUICK_FIX_GUIDE.md:82:- `CppStatementConverter` 类
+FIXES_APPLIED.md:3:**修复日期**: 2025-11-10
+FIXES_APPLIED.md:10:---
+FIXES_APPLIED.md:18:**文件**: [lib/dart_to_cpp_compiler.dart:67-69](lib/dart_to_cpp_compiler.dart#L67-L69)
+FIXES_APPLIED.md:40:**效果**: 生成的 C++ 代码现在可以通过 `-I../cpp/core` 编译选项找到头文件
+FIXES_APPLIED.md:42:---
+FIXES_APPLIED.md:66:---
+FIXES_APPLIED.md:72:**文件**: [lib/dart_to_cpp_compiler.dart:802-824](lib/dart_to_cpp_compiler.dart#L802-L824)
+FIXES_APPLIED.md:125:---
+FIXES_APPLIED.md:131:**文件**: [lib/dart_to_cpp_compiler.dart:1219-1225](lib/dart_to_cpp_compiler.dart#L1219-L1225)
+FIXES_APPLIED.md:155:---
+TEST_SUITE_DOCUMENTATION.md:13:1. **comprehensive_syntax_test.dart** - Tests all basic Dart syntax features
+TEST_SUITE_DOCUMENTATION.md:14:2. **advanced_features_test.dart** - Tests advanced Dart language features
+TEST_SUITE_DOCUMENTATION.md:15:3. **edge_cases_test.dart** - Tests edge cases and boundary conditions
+TEST_SUITE_DOCUMENTATION.md:16:4. **run_comprehensive_tests.dart** - Test runner script
+TEST_SUITE_DOCUMENTATION.md:25:- ✅ Positive integers
+TEST_SUITE_DOCUMENTATION.md:26:- ✅ Negative integers
+TEST_SUITE_DOCUMENTATION.md:27:- ✅ Zero
+TEST_SUITE_DOCUMENTATION.md:28:- ✅ Large integers
+TEST_SUITE_DOCUMENTATION.md:29:- ✅ Integer literals (decimal, hexadecimal, binary)
+TEST_SUITE_DOCUMENTATION.md:32:- ✅ Positive doubles
+COMPREHENSIVE_TEST_SUMMARY.md:1:# Dart2CPP Comprehensive Test Suite - Summary Report
+COMPREHENSIVE_TEST_SUMMARY.md:7:**Date**: 2025-11-10
+COMPREHENSIVE_TEST_SUMMARY.md:16:|-----------|---------|------------|--------|
+COMPREHENSIVE_TEST_SUMMARY.md:24:- **Total Test Groups**: 35
+COMPREHENSIVE_TEST_SUMMARY.md:25:- **Total Test Cases**: 258+
+COMPREHENSIVE_TEST_SUMMARY.md:26:- **Coverage**: 100% of supported features
+COMPREHENSIVE_TEST_SUMMARY.md:27:- **Lines of Test Code**: ~3,500+
+COMPREHENSIVE_TEST_SUMMARY.md:34:- ✅ Integer types (positive, negative, zero)
+COMPREHENSIVE_TEST_SUMMARY.md:35:- ✅ Double types (positive, negative, scientific notation)
+COMPREHENSIVE_TEST_SUMMARY.md:36:- ✅ Boolean types (true, false)
+OPTIMIZATION_RECOMMENDATIONS.md:10:- ✅ Comprehensive C++ runtime library with smart pointers
+OPTIMIZATION_RECOMMENDATIONS.md:11:- ✅ Good separation between transpiler logic and runtime
+OPTIMIZATION_RECOMMENDATIONS.md:12:- ✅ Extensive test coverage for basic features
+OPTIMIZATION_RECOMMENDATIONS.md:13:- ✅ Well-documented supported features
+OPTIMIZATION_RECOMMENDATIONS.md:14:- ✅ Working demo files
+OPTIMIZATION_RECOMMENDATIONS.md:17:- ⚠️ Code organization could be more modular
+OPTIMIZATION_RECOMMENDATIONS.md:18:- ⚠️ Some duplicate code in test files
+OPTIMIZATION_RECOMMENDATIONS.md:19:- ⚠️ Limited error handling in transpiler
+OPTIMIZATION_RECOMMENDATIONS.md:20:- ⚠️ Performance optimizations needed
+OPTIMIZATION_RECOMMENDATIONS.md:21:- ⚠️ Documentation could be more comprehensive
+analysis_options.yaml:4:  strong-mode:
+analysis_options.yaml:5:    implicit-casts: false
+analysis_options.yaml:6:    implicit-dynamic: false
+analysis_options.yaml:13:    - always_declare_return_types
+analysis_options.yaml:14:    - avoid_empty_else
+analysis_options.yaml:15:    - avoid_print: false
+analysis_options.yaml:16:    - prefer_const_constructors
+analysis_options.yaml:17:    - prefer_final_fields
+analysis_options.yaml:18:    - unnecessary_this
+lib/type_analyzer.dart:1:/// 独立的类型分析器 - 提供准确的类型推断和ObjectPtr包装决策
+lib/unified_compiler.dart:177:            '/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill')
+lib/expression_converter_complete.dart:8:/// 完整的表达式转换器 - 支持所有 Dart 表达式类型
+lib/expression_converter_complete.dart:14:  /// 转换表达式 - 主入口
+lib/expression_converter_complete.dart:304:    return '$receiver->$memberName';
+lib/expression_converter_complete.dart:311:    return '$receiver->$memberName = $value';
+lib/expression_converter_complete.dart:330:    return '&$receiver->$memberName'; // 获取成员函数指针
+lib/expression_converter_complete.dart:414:    return '$receiver->$methodName($args)';
+lib/dart_to_cpp_compiler.dart:7:// Dart 到 C++ 转换器 - 基于现有 base 项目的完整实现
+lib/dart_to_cpp_compiler.dart:39:    '-': '-',
+lib/dart_to_cpp_compiler.dart:145:/// 表达式转换器 - 支持所有 Dart 表达式类型
+lib/dart_to_cpp_compiler.dart:149:  // 跟踪 Let 变量的映射：原始变量 -> Let 变量名
+lib/dart_to_cpp_compiler.dart:349:    if (methodName == 'unary-') {
+lib/dart_to_cpp_compiler.dart:353:        return 'dart_int(${-value})';
+lib/dart_to_cpp_compiler.dart:356:        return 'dart_double(${-value})';
+lib/dart_to_cpp_compiler.dart:362:      return '$receiver->operator_negate()';
+lib/dart_to_cpp_compiler.dart:370:      return '$receiver->operator_bitwise_not()';
+lib/dart_to_cpp_compiler.dart:379:      return '$receiver->truncatingDivision($right)';
+lib/declarations.dart:3:// BSD-style license that can be found in the LICENSE file.
+lib/declarations.dart:48:    BytecodeSizeStatistics.librariesSize += (writer.offset - start);
+lib/declarations.dart:139:    BytecodeSizeStatistics.classesSize += (writer.offset - start);
+lib/declarations.dart:146:        ? reader.readPackedUInt30() - 1
+lib/declarations.dart:149:        ? reader.readPackedUInt30() - 1
+lib/declarations.dart:187:      sb.write(', mixin-application');
+lib/declarations.dart:190:      sb.write(', has-pragma');
+lib/declarations.dart:193:      sb.write(', pos = $position, end-pos = $endPosition');
+lib/declarations.dart:197:      sb.write('    type-params $typeParameters (args: $numTypeArguments)\n');
+lib/declarations.dart:257:    sb.write('source: import-uri $importUri');
+cpp/test_individual.sh:10:g++ -std=c++11 -Wall -Wextra -I./core -c core/object.cpp -o build/object.o
+cpp/test_individual.sh:11:if [ $? -eq 0 ]; then
+cpp/test_individual.sh:30:    if [ -f "test/$test_file" ]; then
+cpp/test_individual.sh:32:        g++ -std=c++11 -Wall -Wextra -I./core test/$test_file build/object.o -o build/$(basename $test_file .cpp) 2>&1
+cpp/test_individual.sh:33:        if [ $? -eq 0 ]; then
+lib/dart2cpp.dart:3:// BSD-style license that can be found in the LICENSE file.
+lib/dart2cpp.dart:63:      "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
+lib/dart2cpp.dart:68:    if (arguments.length == 1 && !arguments[0].startsWith('--')) {
+lib/dart2cpp.dart:70:        "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
+lib/dart2cpp.dart:126:    print('Failed to create front-end target.');
+lib/dart2cpp.dart:151:/// 统一的转换入口点 - 使用真实的Component进行转换
+lib/exceptions.dart:3:// BSD-style license that can be found in the LICENSE file.
+lib/exceptions.dart:14:  int endPC = -1;
+lib/exceptions.dart:15:  int handlerPC = -1;
+lib/exceptions.dart:44:    final outerTryIndex = reader.readPackedUInt30() - 1;
+lib/exceptions.dart:58:  String toString() => 'try-index $tryIndex, outer $outerTryIndex, '
+lib/exceptions.dart:60:      '${needsStackTrace ? 'needs-stack-trace, ' : ''}'
+lib/exceptions.dart:79:    for (int i = blocks.length - 1; i >= 0; --i) {
+lib/exceptions.dart:85:    return -1;
+QUICK_START_TESTING.md:1:# Dart2CPP Testing - Quick Start Guide
+QUICK_START_TESTING.md:11:- ✅ Dart SDK installed (version 2.12 or later)
+QUICK_START_TESTING.md:12:- ✅ G++ compiler with C++17 support
+QUICK_START_TESTING.md:13:- ✅ Make or CMake (optional, for building C++ runtime)
+QUICK_START_TESTING.md:19:dart --version
+QUICK_START_TESTING.md:22:g++ --version
+QUICK_START_TESTING.md:25:g++ -std=c++17 --version
+QUICK_START_TESTING.md:56:  Int: 42, -10, 0
+QUICK_START_TESTING.md:57:  Double: 3.14159, -2.5, 1500.0
+QUICK_START_TESTING.md:71:dart bin/dart2cpp.dart test/comprehensive_syntax_test.dart -o test/comprehensive_syntax_test.cpp
+sample/convert_simple.sh:19:if ! command -v dart &> /dev/null; then
+sample/convert_simple.sh:25:if [ ! -f "$DART2CPP_BIN" ]; then
+sample/convert_simple.sh:31:if [ ! -d "$DART_DIR" ]; then
+sample/convert_simple.sh:42:if [ -d "$CPP_DIR" ]; then
+sample/convert_simple.sh:43:    rm -rf "$CPP_DIR"
+sample/convert_simple.sh:45:mkdir -p "$CPP_DIR"
+sample/convert_simple.sh:56:    if [ -f "$dart_file" ]; then
+sample/convert_simple.sh:66:        if dart "$DART2CPP_BIN" --output "$cpp_file" --optimize "$dart_file" 2>/dev/null; then
+sample/convert_simple.sh:67:            echo "  ✅ 成功: ${filename}.dart -> ${filename}.cpp"
+sample/convert_simple.sh:83:CXXFLAGS = -std=c++17 -Wall -I../../cpp/core -Wno-unused-parameter -Wno-deprecated-copy-with-user-provided-copy
+sample/convert_all.sh:6:set -e  # 遇到错误立即退出
+sample/convert_all.sh:24:    echo -e "${BLUE}[INFO]${NC} $1"
+sample/convert_all.sh:28:    echo -e "${GREEN}[SUCCESS]${NC} $1"
+sample/convert_all.sh:32:    echo -e "${YELLOW}[WARNING]${NC} $1"
+sample/convert_all.sh:36:    echo -e "${RED}[ERROR]${NC} $1"
+sample/convert_all.sh:44:    if ! command -v dart &> /dev/null; then
+sample/convert_all.sh:50:    if [ ! -f "$DART2CPP_BIN" ]; then
+sample/convert_all.sh:56:    if [ ! -d "$DART_DIR" ]; then
+sample/convert_all.sh:68:    if [ -d "$CPP_DIR" ]; then
+sample/convert_all.sh:69:        rm -rf "$CPP_DIR"
+lib/generics.dart:3:// BSD-style license that can be found in the LICENSE file.
+lib/generics.dart:35:    final superTypeArg = superTypeArgs[superTypeArgs.length - overlap + i];
+lib/generics.dart:63:  for (; overlap > 0; --overlap) {
+lib/generics.dart:227:/// [receiver] can omit argument type checks needed due to generic-covariant
+lib/generics.dart:237:    // Unchecked call makes sense only if there are generic-covariant parameters.
+lib/optimizers/inline_optimizer.dart:111:        // 简单表达式（1-2个操作符）
+lib/optimizers/inline_optimizer.dart:116:            optimizationNote: '1-2个操作符，可以完全内联',
+lib/optimizers/inline_optimizer.dart:170:        optimizationNote: '只有1-2个语句',
+lib/optimizers/inline_optimizer.dart:260:      return expr.expressions.length - 1;
+lib/optimizers/inline_optimizer.dart:273:    double score = 100 - (stmtCount * 10) - (paramCount * 5);
+lib/optimizers/optimizer_manager.dart:299:    print('    - 字符串操作: ${(_stringOptimizedCount * 2).toInt()}x');
+lib/optimizers/optimizer_manager.dart:300:    print('    - 函数调用: ${(_inlinedCount * 1.5).toInt()}x');
+lib/optimizers/optimizer_manager.dart:301:    print('    - 内存使用: -${(_tempObjectsReduced * 10).toInt()}%');
+sample/cpp/basic_syntax.cpp:10:    auto negativeInt = dart_int(-10);
+sample/cpp/basic_syntax.cpp:14:    auto negativeDouble = dart_double(-2.5);
+sample/cpp/basic_syntax.cpp:20:    auto multiLine = dart_string("    This is a\n    multi-line string\n  ");
+sample/cpp/basic_syntax.cpp:52:    dart_print(dart_concat(dart_string("  non-null: "), nonNull));
+sample/cpp/basic_syntax.cpp:65:    dart_print(dart_concat(dart_string("    "), a, dart_string(" - "), b, dart_string(" = "), (a - b)));
+sample/cpp/basic_syntax.cpp:70:    dart_print(dart_concat(dart_string("    -"), a, dart_string(" = "), a.operator_negate()));
+sample/cpp/basic_syntax.cpp:97:    c = (c - dart_int(1));
+sample/cpp/basic_syntax.cpp:98:    dart_print(dart_concat(dart_string("  赋值运算: c -= 1 结果: "), c));
+sample/cpp/basic_syntax.cpp:115:    dart_print(dart_string("  if-else 测试:"));
+sample/cpp/basic_syntax.cpp:126:    dart_print(dart_string("  switch-case 测试:"));
+sample/cpp/constants.cpp:26:    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
+sample/cpp/constants.cpp:30:    return dart_is<Point>(other) && (this->x == other->x) && (this->y == other->y);
+sample/cpp/constants.cpp:34:    return Object::hash(this->x, this->y);
+sample/cpp/constants.cpp:38:    return dart_concat(dart_string("Point("), this->x, dart_string(", "), this->y, dart_string(")"));
+sample/cpp/constants.cpp:55: - 'Color' is from 'temp_dart_source.dart'.
+sample/cpp/constants.cpp:62: - 'Color' is from 'temp_dart_source.dart'.
+sample/cpp/constants.cpp:69: - 'Color' is from 'temp_dart_source.dart'.
+sample/cpp/constants.cpp:75:    return dart_concat(dart_string("Color(0x"), this->value->toRadixString(dart_int(16))->padLeft(dart_int(6), dart_string("0")), dart_string(")"));
+sample/cpp/constants.cpp:92:    return (this->bottomRight->x - this->topLeft->x);
+sample/cpp/constants.cpp:96:    return (this->bottomRight->y - this->topLeft->y);
+sample/cpp/type_conversion.cpp:133:    dart_print(dart_concat(dart_string("    Animal as Dog: "), dog->name));
+sample/cpp/type_conversion.cpp:138:    dart_print(dart_concat(dart_string("    不应该执行到这里: "), wrongDog->name));
+sample/cpp/type_conversion.cpp:208:    auto :sync-for-iterator = mixedList->iterator;
+sample/cpp/type_conversion.cpp:209:    for (; :sync-for-iterator->moveNext(); ) {
+sample/cpp/type_conversion.cpp:210:    auto item = :sync-for-iterator->current;
+sample/cpp/type_conversion.cpp:286:    auto set = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+sample/cpp/type_conversion.cpp:287:    auto listToSet = list->toSet();
+sample/cpp/type_conversion.cpp:288:    auto setToList = set->toList();
+sample/cpp/type_conversion.cpp:321:    auto cityName1 = ([&]() { Person let_var = person; return (let_var == nullptr) ? nullptr : ([&]() { Address let_var = let_var->address; return (let_var == nullptr) ? nullptr : ([&]() { City let_var = let_var->city; return (let_var == nullptr) ? nullptr : let_var->name; })(); })(); })();
+sample/cpp/type_conversion.cpp:324:    auto cityName2 = ([&]() { Person let_var = person; return (let_var == nullptr) ? nullptr : ([&]() { Address let_var = let_var->address; return (let_var == nullptr) ? nullptr : ([&]() { City let_var = let_var->city; return (let_var == nullptr) ? nullptr : let_var->name; })(); })(); })();
+sample/cpp/advanced_features.cpp:18:      dart_print(dart_concat(dart_string("    我是"), this->name, dart_string("，今年"), this->age, dart_string("岁")));
+sample/cpp/advanced_features.cpp:37:      this->_buffer->write(text);
+sample/cpp/advanced_features.cpp:43:    return this->_buffer->toString();
+sample/cpp/advanced_features.cpp:60:      this->value = (this->value + n);
+sample/cpp/advanced_features.cpp:67:      this->value = (this->value - n);
+sample/cpp/advanced_features.cpp:74:      this->value = (this->value * n);
+sample/cpp/advanced_features.cpp:81:      this->value = (this->value / n);
+sample/cpp/advanced_features.cpp:100:    return ObjectPtr<Vector>(new Vector((this->x + other->x), (this->y + other->y)));
+sample/cpp/advanced_features.cpp:103:  Vector -(Vector other) {
+sample/cpp/advanced_features.cpp:104:    return ObjectPtr<Vector>(new Vector((this->x - other->x), (this->y - other->y)));
+sample/cpp/test.cpp:24:      return (this->a + this->b);
+sample/cpp/async_programming.cpp:15:    DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50))))->then([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); })->catchError([&](Any error) { return dart_print(dart_concat(dart_string("  catchError: "), error)); }));
+sample/cpp/async_programming.cpp:21:    completer->complete(dart_string("Completer完成"));
+sample/cpp/async_programming.cpp:23:    auto result4 = DART_AWAIT(completer->future);
+sample/cpp/async_programming.cpp:66:    auto chainResult = DART_AWAIT(Future::value(dart_int(5))->then([&](Int value) { return (value * dart_int(2)); })->then([&](Int value) { return dart_concat(dart_string("Result: "), value); })->then([&](String text) { return text->toUpperCase(); }));
+sample/cpp/async_programming.cpp:89:    auto recoveredValue = DART_AWAIT(riskyOperation(dart_bool(true))->catchError([&](Any error) { {
+sample/cpp/async_programming.cpp:95:    auto result = DART_AWAIT(slowOperation()->timeout(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(100)))));
+sample/cpp/async_programming.cpp:120:    auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/cpp/async_programming.cpp:124:    auto periodicStream = Stream::periodic(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(100))), [&](Int count) { return count; })->take(dart_int(3));
+sample/cpp/async_programming.cpp:127:    auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/cpp/async_programming.cpp:134:    auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/cpp/exception_handling.cpp:17:    return dart_concat(dart_string("InvalidEmailException: "), this->message);
+sample/cpp/exception_handling.cpp:36:    return dart_concat(dart_string("ValidationException: "), this->message);
+sample/cpp/exception_handling.cpp:54:    return dart_concat(dart_string("InsufficientFundsException: "), this->message);
+sample/cpp/exception_handling.cpp:72:    return dart_concat(dart_string("NetworkException: "), this->message);
+sample/cpp/exception_handling.cpp:95:    return dart_concat(dart_string("ConnectionException: "), this->message);
+sample/cpp/exception_handling.cpp:111:    return dart_concat(dart_string("QueryException: "), this->message);
+sample/cpp/exception_handling.cpp:128:    return dart_concat(dart_string("ChainedException: "), this->message);
+sample/cpp/exception_handling.cpp:160:      if ((this->balance < amount)) {
+sample/cpp/exception_handling.cpp:161:      throw DartException(ObjectPtr<InsufficientFundsException>(new InsufficientFundsException(dart_string("余额不足"), this->balance, amount)));
+sample/cpp/exception_handling.cpp:163:      this->balance = (this->balance - amount);
+sample/cpp/edge_cases.cpp:48:    auto minInt = dart_int(-9223372036854775808);
+sample/cpp/edge_cases.cpp:51:    auto minusOne = dart_int(-1);
+sample/cpp/edge_cases.cpp:59:    auto negativeZero = dart_double(-0.0);
+sample/cpp/edge_cases.cpp:60:    auto verySmall = dart_double(1e-7);
+sample/cpp/edge_cases.cpp:63:    auto negativeInfinity = dart_double(-Infinity);
+sample/cpp/edge_cases.cpp:73:    dart_print(dart_concat(dart_string("    infinity是无穷: "), infinity->isInfinite));
+sample/cpp/edge_cases.cpp:74:    dart_print(dart_concat(dart_string("    nan是NaN: "), nan->isNaN));
+sample/cpp/edge_cases.cpp:75:    dart_print(dart_concat(dart_string("    infinity是有限: "), infinity->isFinite));
+sample/cpp/edge_cases.cpp:80:    dart_print(dart_concat(dart_string("    5 - 0 = "), (dart_int(5) - dart_int(0))));
+sample/cpp/edge_cases.cpp:81:    dart_print(dart_concat(dart_string("    0 - 5 = "), (dart_int(0) - dart_int(5))));
+sample/cpp/collections.cpp:18:    dart_print(dart_concat(dart_string("    第一个数字: "), numbers->[](dart_int(0))));
+sample/cpp/collections.cpp:19:    dart_print(dart_concat(dart_string("    最后一个水果: "), fruits->[]((fruits->length - dart_int(1)))));
+sample/cpp/collections.cpp:20:    dart_print(dart_concat(dart_string("    使用 first: "), numbers->first));
+sample/cpp/collections.cpp:21:    dart_print(dart_concat(dart_string("    使用 last: "), numbers->last));
+sample/cpp/collections.cpp:22:    numbers->[]=(dart_int(0), dart_int(10));
+sample/cpp/collections.cpp:24:    numbers->add(dart_int(6));
+sample/cpp/collections.cpp:25:    numbers->addAll(dart_literal(dart_int(7), dart_int(8), dart_int(9)));
+sample/cpp/collections.cpp:27:    numbers->insert(dart_int(1), dart_int(15));
+sample/cpp/collections.cpp:28:    numbers->insertAll(dart_int(2), dart_literal(dart_int(11), dart_int(12)));
+sample/cpp/collections.cpp:30:    numbers->remove(dart_int(15));
+sample/cpp/object_oriented.cpp:22:      dart_print(dart_concat(dart_string("    你好，我是"), this->name, dart_string("，今年"), this->age, dart_string("岁")));
+sample/cpp/object_oriented.cpp:28:      this->age = (this->age + dart_int(1));
+sample/cpp/object_oriented.cpp:55:      this->_balance = (this->_balance + amount);
+sample/cpp/object_oriented.cpp:56:      dart_print(dart_concat(dart_string("    存款 \$"), amount, dart_string("，余额: \$"), this->_balance));
+sample/cpp/object_oriented.cpp:62:      if ((this->_balance >= amount)) {
+sample/cpp/object_oriented.cpp:63:      this->_balance = (this->_balance - amount);
+sample/cpp/object_oriented.cpp:64:      dart_print(dart_concat(dart_string("    取款 \$"), amount, dart_string("，余额: \$"), this->_balance));
+sample/cpp/object_oriented.cpp:74:    return this->_balance;
+sample/cpp/object_oriented.cpp:92:    return this->_width;
+sample/cpp/object_oriented.cpp:97:      if ((value > dart_int(0))) this->_width = value;
+lib/optimizers/string_optimizer.dart:62:        tempObjectCount: parts.length - 1,
+lib/optimizers/string_optimizer.dart:102:        codeParts.add('$bufferVar->append(String("${_escapeString(part.value)}"))');
+lib/optimizers/string_optimizer.dart:105:        codeParts.add('$bufferVar->append(($exprCode).toString())');
+lib/optimizers/string_optimizer.dart:111:    codeParts.add('String $resultVar = $bufferVar->build()');
+lib/optimizers/string_optimizer.dart:119:      tempObjectCount: parts.length - 1,
+lib/optimizers/string_optimizer.dart:182:          match.start == 0 ? 0 : match.start - 1, match.start);
+lib/optimizers/string_optimizer.dart:183:      codeParts.add('$bufferVar->append(String("${_escapeString(beforeMatch)}"))');
+lib/optimizers/string_optimizer.dart:188:        codeParts.add('$bufferVar->append(($argCode).toString())');
+lib/optimizers/string_optimizer.dart:196:      codeParts.add('$bufferVar->append(String("${_escapeString(afterFormat)}"))');
+lib/optimizers/string_optimizer.dart:201:    codeParts.add('String $resultVar = $bufferVar->build()');
+lib/optimizers/dead_code_eliminator.dart:220:      for (int i = statementsToRemove.length - 1; i >= 0; i--) {
+lib/optimizers/dead_code_eliminator.dart:282:      'operator-',
+lib/optimizers/constant_folder.dart:161:      final result = -operand.value;
+lib/optimizers/constant_folder.dart:171:      final result = -operand.value;
+lib/optimizers/constant_folder.dart:201:      case '-':
+lib/optimizers/constant_folder.dart:202:        return left - right;
+lib/optimizers/constant_folder.dart:231:      case '-':
+lib/optimizers/constant_folder.dart:232:        return left - right;
+sample/cpp/generics.cpp:17:    return this->_value;
+sample/cpp/generics.cpp:21:    return this->_value = value;
+sample/cpp/generics.cpp:25:    return dart_concat(dart_string("Box<"), Type::of<TypeParameterType(Box.T%)>(), dart_string(">("), this->_value, dart_string(")"));
+sample/cpp/generics.cpp:43:      auto temp = this->first;
+sample/cpp/generics.cpp:44:      this->first = dart_cast<Any>(this->second);
+sample/cpp/generics.cpp:45:      this->second = dart_cast<Any>(temp);
+sample/cpp/generics.cpp:62:      this->setValue(dart_cast<Any>((this->_value + value)));
+sample/cpp/generics.cpp:68:      this->setValue(dart_cast<Any>((this->_value * value)));
+sample/cpp/generics.cpp:105:    return dart_cast<Any>((a - b));
+sample/cpp/generics.cpp:132:    return (a->compareTo(b) > dart_int(0)) ? a : b;
+sample/cpp/Makefile:4:CXXFLAGS = -std=c++17 -Wall -I../../cpp/core -Wno-unused-parameter -Wno-deprecated-copy-with-user-provided-copy
+sample/cpp/Makefile:13:	$(CXX) $(CXXFLAGS) -o $@ $< ../../cpp/core/object.cpp
+sample/cpp/Makefile:16:	rm -f *.out
+cpp/TEST_REPORT.md:10:- **语法错误**: 修复了大量 Dart 到 C++ 转换过程中产生的语法错误
+cpp/TEST_REPORT.md:11:- **类型系统**: 正确使用了 ObjectPtr 智能指针系统
+cpp/TEST_REPORT.md:12:- **方法调用**: 修复了方法名不匹配的问题（如 `length()` vs `get_length()`）
+cpp/TEST_REPORT.md:13:- **包含路径**: 修复了错误的头文件包含路径
+cpp/TEST_REPORT.md:18:- **问题**: 错误的包含路径 `"pkg/dart2bytecode/base/object.h"`
+cpp/TEST_REPORT.md:19:- **修复**: 更改为 `"../core/object.h"`
+cpp/TEST_REPORT.md:20:- **状态**: ✅ 编译成功，运行正常
+cpp/TEST_REPORT.md:23:- **问题**: 
+cpp/TEST_REPORT.md:24:  - 错误的构造函数语法 `Student(this.name, this.age)`
+cpp/TEST_REPORT.md:25:  - 错误的集合类型使用
+sample/dart/async_programming.dart:4:/// - Future 基础操作
+sample/dart/async_programming.dart:5:/// - async/await 语法
+sample/dart/async_programming.dart:6:/// - Stream 流处理
+sample/dart/async_programming.dart:7:/// - 异步异常处理
+sample/dart/async_programming.dart:8:/// - 定时器和延迟
+sample/dart/async_programming.dart:123:  // Future.wait - 等待所有完成
+sample/dart/async_programming.dart:133:  // Future.any - 等待任意一个完成
+sample/dart/async_programming.dart:151:  // Future.forEach - 串行处理
+sample/dart/async_programming.dart:171:  // try-catch 处理异步错误
+sample/dart/async_programming.dart:398:  return '$step1 -> $step2 -> $step3';
+sample/dart/edge_cases.dart:4:/// - 数值边界
+sample/dart/edge_cases.dart:5:/// - 字符串边界
+sample/dart/edge_cases.dart:6:/// - 集合边界
+sample/dart/edge_cases.dart:7:/// - 空值处理
+sample/dart/edge_cases.dart:8:/// - 除零和溢出
+sample/dart/edge_cases.dart:41:  int minInt = -9223372036854775808; // 64位最小值
+sample/dart/edge_cases.dart:44:  int minusOne = -1;
+sample/dart/edge_cases.dart:55:  double negativeZero = -0.0;
+sample/dart/edge_cases.dart:81:  print('    5 - 0 = ${5 - 0}');
+sample/dart/edge_cases.dart:82:  print('    0 - 5 = ${0 - 5}');
+sample/dart/basic_syntax.cpp:9:auto negativeInt = dart_int(-10);
+sample/dart/basic_syntax.cpp:13:auto negativeDouble = dart_double(-2.5);
+sample/dart/basic_syntax.cpp:19:auto multiLine = dart_string("    This is a\n    multi-line string\n  ");
+sample/dart/basic_syntax.cpp:50:dart_print(dart_concat(dart_string("  non-null: "), nonNull));
+sample/dart/basic_syntax.cpp:61:dart_print(dart_concat(dart_string("    "), a, dart_string(" - "), b, dart_string(" = "), (a - b)));
+sample/dart/basic_syntax.cpp:66:dart_print(dart_concat(dart_string("    -"), a, dart_string(" = "), a.operator_negate()));
+sample/dart/basic_syntax.cpp:93:c = (c - dart_int(1));
+sample/dart/basic_syntax.cpp:94:dart_print(dart_concat(dart_string("  赋值运算: c -= 1 结果: "), c));
+sample/dart/basic_syntax.cpp:109:dart_print(dart_string("  if-else 测试:"));
+sample/dart/basic_syntax.cpp:112:dart_print(dart_string("  switch-case 测试:"));
+sample/dart/constants.dart:4:/// - const 常量
+sample/dart/constants.dart:5:/// - final 常量
+sample/dart/constants.dart:6:/// - 静态常量
+sample/dart/constants.dart:7:/// - 编译时常量
+sample/dart/constants.dart:8:/// - 常量构造函数
+sample/dart/constants.dart:375:  double get width => bottomRight.x - topLeft.x;
+sample/dart/constants.dart:376:  double get height => bottomRight.y - topLeft.y;
+sample/dart/constants.dart:410:  static const double PLANCK_CONSTANT = 6.62607015e-34; // J⋅s
+sample/dart/constants.dart:445:    '.cpp': 'text/x-c++src',
+sample/dart/constants.dart:446:    '.h': 'text/x-chdr',
+sample/dart/type_conversion.dart:4:/// - as 表达式
+sample/dart/type_conversion.dart:5:/// - is 类型检查
+sample/dart/type_conversion.dart:6:/// - 类型转换方法
+sample/dart/type_conversion.dart:7:/// - 空安全转换
+sample/dart/type_conversion.dart:8:/// - 动态类型处理
+sample/dart/type_conversion.dart:71:    int wrongInt = value2 as int; // String -> int
+sample/dart/type_conversion.dart:78:    String wrongString = value1 as String; // int -> String
+sample/dart/collections.dart:4:/// - List 操作
+sample/dart/collections.dart:5:/// - Set 操作
+sample/dart/collections.dart:6:/// - Map 操作
+sample/dart/collections.dart:7:/// - 集合方法和迭代
+sample/dart/collections.dart:8:/// - 集合字面量
+sample/dart/collections.dart:53:  print('    最后一个水果: ${fruits[fruits.length - 1]}');
+sample/dart/collections.dart:248:  // map - 转换每个元素
+sample/dart/collections.dart:255:  // where - 过滤元素
+sample/dart/collections.dart:262:  // reduce - 归约操作
+sample/dart/collections.dart:269:  // fold - 折叠操作
+cpp/examples/comprehensive_test.cpp:33:    test_start("基础类型 - int");
+cpp/examples/comprehensive_test.cpp:37:    test_start("基础类型 - double");
+cpp/examples/comprehensive_test.cpp:41:    test_start("基础类型 - bool");
+cpp/examples/comprehensive_test.cpp:46:    test_start("基础类型 - String");
+cpp/examples/comprehensive_test.cpp:55:    test_start("算术运算 - 加法");
+cpp/examples/comprehensive_test.cpp:61:    test_start("算术运算 - 减法");
+cpp/examples/comprehensive_test.cpp:62:    Int diff = a - b;
+cpp/examples/comprehensive_test.cpp:65:    test_start("算术运算 - 乘法");
+cpp/examples/comprehensive_test.cpp:69:    test_start("算术运算 - 除法");
+cpp/examples/comprehensive_test.cpp:73:    test_start("算术运算 - 取模");
+sample/dart/cpp/object_oriented.cpp:20:    dart_print(dart_concat(dart_string("    你好，我是"), this->name, dart_string("，今年"), this->age, dart_string("岁")));
+sample/dart/cpp/object_oriented.cpp:25:    this->age = (this->age + dart_int(1));
+sample/dart/cpp/object_oriented.cpp:51:    this->_balance = (this->_balance + amount);
+sample/dart/cpp/object_oriented.cpp:52:dart_print(dart_concat(dart_string("    存款 \$"), amount, dart_string("，余额: \$"), this->_balance));
+sample/dart/cpp/object_oriented.cpp:57:    if ((this->_balance >= amount)) this->_balance = (this->_balance - amount);
+sample/dart/cpp/object_oriented.cpp:58:dart_print(dart_concat(dart_string("    取款 \$"), amount, dart_string("，余额: \$"), this->_balance));
+sample/dart/cpp/object_oriented.cpp:64:    return this->_balance;
+sample/dart/cpp/object_oriented.cpp:83:    return this->_width;
+sample/dart/cpp/object_oriented.cpp:87:    if ((value > dart_int(0))) this->_width = value;
+sample/dart/cpp/object_oriented.cpp:92:    return this->_height;
+sample/dart/cpp/exception_handling.cpp:18:    return dart_concat(dart_string("InvalidEmailException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:38:    return dart_concat(dart_string("ValidationException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:57:    return dart_concat(dart_string("InsufficientFundsException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:76:    return dart_concat(dart_string("NetworkException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:100:    return dart_concat(dart_string("ConnectionException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:117:    return dart_concat(dart_string("QueryException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:135:    return dart_concat(dart_string("ChainedException: "), this->message);
+sample/dart/cpp/exception_handling.cpp:168:    if ((this->balance < amount)) throw DartException(ObjectPtr<InsufficientFundsException>(new InsufficientFundsException(dart_string("余额不足"), this->balance, amount)));
+sample/dart/cpp/exception_handling.cpp:169:this->balance = (this->balance - amount);
+sample/dart/cpp/exception_handling.cpp:189:    if (!(this->_isOpen)) throw DartException(ObjectPtr<StateError>(new StateError(dart_string("文件已关闭"))));
+cpp/examples/hello_example.cpp:17:        numbers->add(i);
+cpp/examples/hello_example.cpp:21:    for (Int i = Int(0); i.toInt() < numbers->size().toInt(); ++i) {
+cpp/examples/hello_example.cpp:22:        std::cout << numbers->get(i).toString().getValue() << " ";
+sample/dart/object_oriented.dart:4:/// - 类和对象
+sample/dart/object_oriented.dart:5:/// - 继承和多态
+sample/dart/object_oriented.dart:6:/// - 接口和抽象类
+sample/dart/object_oriented.dart:7:/// - 混入(Mixins)
+sample/dart/object_oriented.dart:8:/// - 枚举
+sample/dart/object_oriented.dart:9:/// - 构造函数
+sample/dart/object_oriented.dart:132:  smartphone.call('123-456-7890');
+sample/dart/object_oriented.dart:293:      _balance -= amount;
+sample/dart/object_oriented.dart:612:    return (s * (s - a) * (s - b) * (s - c)).abs().sqrt();
+sample/dart/object_oriented.dart:704:    while ((x - prev).abs() > 0.0001) {
+sample/dart/exception_handling.dart:4:/// - 基本异常捕获
+sample/dart/exception_handling.dart:5:/// - 自定义异常
+sample/dart/exception_handling.dart:6:/// - 异常链和重新抛出
+sample/dart/exception_handling.dart:7:/// - finally 块
+sample/dart/exception_handling.dart:8:/// - 异步异常处理
+sample/dart/exception_handling.dart:81:    validateAge(-5);
+sample/dart/exception_handling.dart:133:    validateEmail('invalid-email');
+sample/dart/exception_handling.dart:141:    processUser(User('', -1, ''));
+sample/dart/exception_handling.dart:174:      print('  连接异常 - 主机: ${e.host}');
+sample/dart/exception_handling.dart:176:      print('  查询异常 - SQL: ${e.sql}');
+sample/dart/cpp/basic_syntax.cpp:9:  auto negativeInt = dart_int(-10);
+sample/dart/cpp/basic_syntax.cpp:13:  auto negativeDouble = dart_double(-2.5);
+sample/dart/cpp/basic_syntax.cpp:19:  auto multiLine = dart_string("    This is a\n    multi-line string\n  ");
+sample/dart/cpp/basic_syntax.cpp:65:  dart_print(dart_concat(dart_string("  non-null: "), nonNull));
+sample/dart/cpp/basic_syntax.cpp:77:  dart_print(dart_concat(dart_string("    "), a, dart_string(" - "), b,
+sample/dart/cpp/basic_syntax.cpp:78:                         dart_string(" = "), (a - b)));
+sample/dart/cpp/basic_syntax.cpp:87:  dart_print(dart_concat(dart_string("    -"), a, dart_string(" = "),
+sample/dart/cpp/basic_syntax.cpp:129:  c = (c - dart_int(1));
+sample/dart/cpp/basic_syntax.cpp:130:  dart_print(dart_concat(dart_string("  赋值运算: c -= 1 结果: "), c));
+sample/dart/cpp/basic_syntax.cpp:149:  dart_print(dart_string("  if-else 测试:"));
+sample/dart/cpp/async_programming.cpp:14:DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50))))->then([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); })->catchError([&](Any error) { return dart_print(dart_concat(dart_string("  catchError: "), error)); }));
+sample/dart/cpp/async_programming.cpp:19:Timer::(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50))), [&]() { completer->complete(dart_string("Completer完成")); });
+sample/dart/cpp/async_programming.cpp:20:auto result4 = DART_AWAIT(completer->future);
+sample/dart/cpp/async_programming.cpp:59:auto chainResult = DART_AWAIT(Future::value(dart_int(5))->then([&](Int value) { return (value * dart_int(2)); })->then([&](Int value) { return dart_concat(dart_string("Result: "), value); })->then([&](String text) { return text->toUpperCase(); }));
+sample/dart/cpp/async_programming.cpp:76:auto recoveredValue = DART_AWAIT(riskyOperation(dart_bool(true))->catchError([&](Any error) { dart_print(dart_concat(dart_string("  Future.catchError: "), error));
+sample/dart/cpp/async_programming.cpp:79:try auto result = DART_AWAIT(slowOperation()->timeout(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(100)))));
+sample/dart/cpp/async_programming.cpp:96:auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/dart/cpp/async_programming.cpp:99:auto periodicStream = Stream::periodic(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(100))), [&](Int count) { return count; })->take(dart_int(3));
+sample/dart/cpp/async_programming.cpp:101:auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/dart/cpp/async_programming.cpp:106:auto :for-iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(:stream));
+sample/dart/basic_syntax.dart:4:/// - 变量声明和数据类型
+sample/dart/basic_syntax.dart:5:/// - 运算符
+sample/dart/basic_syntax.dart:6:/// - 控制流语句
+sample/dart/basic_syntax.dart:7:/// - 字符串操作
+sample/dart/basic_syntax.dart:8:/// - 基本函数
+sample/dart/basic_syntax.dart:41:  int negativeInt = -10;
+sample/dart/basic_syntax.dart:47:  double negativeDouble = -2.5;
+sample/dart/basic_syntax.dart:59:    multi-line string
+sample/dart/basic_syntax.dart:108:  print('  non-null: $nonNull');
+sample/dart/basic_syntax.dart:121:  print('    ${a} - ${b} = ${a - b}');
+sample/dart/null_safety_test.cpp:46:auto cityName = ([&]() { Person let_var = person; return dart_is_null(let_var) ? Null : ([&]() { Address let_var = let_var->address; return dart_is_null(let_var) ? Null : let_var->city; })(); })();
+cpp/Makefile.working:1:# Dart2CPP C++ Runtime Makefile - Working Tests Only
+cpp/Makefile.working:4:CXXFLAGS = -std=c++11 -Wall -Wextra -I./core
+cpp/Makefile.working:19:.PHONY: all clean test working-tests
+cpp/Makefile.working:24:	mkdir -p $(BUILD_DIR)
+cpp/Makefile.working:27:	$(CXX) $(CXXFLAGS) -c $< -o $@
+cpp/Makefile.working:30:working-tests: $(BUILD_DIR) $(CORE_OBJ)
+cpp/Makefile.working:33:		if [ -f "$$test_file" ]; then \
+cpp/Makefile.working:36:			$(CXX) $(CXXFLAGS) $$test_file $(CORE_OBJ) -o $(BUILD_DIR)/$$test_name || exit 1; \
+cpp/Makefile.working:45:run-tests: working-tests
+cpp/Makefile.working:49:		if [ -f "$$test_file" ]; then \
+sample/dart/advanced_features.dart:4:/// - 闭包和高阶函数
+sample/dart/advanced_features.dart:5:/// - 级联操作符
+sample/dart/advanced_features.dart:6:/// - 扩展方法
+sample/dart/advanced_features.dart:7:/// - 操作符重载
+sample/dart/advanced_features.dart:8:/// - 元数据注解
+sample/dart/advanced_features.dart:231:  print('    v1 - v2: ${v1 - v2}');
+sample/dart/advanced_features.dart:244:  print('    c1 - c2: ${c1 - c2}');
+sample/dart/advanced_features.dart:375:    value -= n;
+sample/dart/advanced_features.dart:397:  Vector operator -(Vector other) => Vector(x - other.x, y - other.y);
+sample/dart/advanced_features.dart:422:  Complex operator -(Complex other) =>
+cpp/README.md:59:g++ -std=c++11 -I./core your_program.cpp core/object.cpp -o your_program
+cpp/README.md:64:- `Int` - 整数
+cpp/README.md:65:- `Double` - 浮点数
+cpp/README.md:66:- `Bool` - 布尔值
+cpp/README.md:67:- `String` - 字符串
+cpp/README.md:68:- `List<T>` - 列表
+cpp/README.md:69:- `Set<T>` - 集合
+cpp/README.md:70:- `Map<K,V>` - 映射
+cpp/README.md:71:- `ObjectPtr<T>` - 智能指针
+cpp/README.md:83:    numbers->add(Int(1));
+sample/dart/generics.dart:4:/// - 泛型类
+sample/dart/generics.dart:5:/// - 泛型方法
+sample/dart/generics.dart:6:/// - 类型约束
+sample/dart/generics.dart:7:/// - 协变和逆变
+sample/dart/generics.dart:8:/// - 泛型集合
+sample/dart/generics.dart:59:  print('    键值对: ${pair.first} -> ${pair.second}');
+sample/dart/generics.dart:62:  print('    交换后: ${pair.first} -> ${pair.second}');
+sample/dart/generics.dart:336:  print('    无效年龄: ${ageValidator.validate(-5)}');
+sample/dart/generics.dart:393:  T subtract(T a, T b) => (a - b) as T;
+cpp/dart_cpp_syntax_comparison.md:7:1. [基本数据类型](#1-基本数据类型)
+cpp/dart_cpp_syntax_comparison.md:8:2. [空值安全](#2-空值安全)
+cpp/dart_cpp_syntax_comparison.md:9:3. [字符串操作](#3-字符串操作)
+cpp/dart_cpp_syntax_comparison.md:10:4. [运算符](#4-运算符)
+cpp/dart_cpp_syntax_comparison.md:11:5. [控制流语句](#5-控制流语句)
+cpp/dart_cpp_syntax_comparison.md:12:6. [循环语句](#6-循环语句)
+cpp/dart_cpp_syntax_comparison.md:13:7. [函数定义与调用](#7-函数定义与调用)
+cpp/dart_cpp_syntax_comparison.md:14:8. [类和对象](#8-类和对象)
+cpp/dart_cpp_syntax_comparison.md:15:9. [继承和多态](#9-继承和多态)
+cpp/dart_cpp_syntax_comparison.md:16:10. [接口实现](#10-接口实现)
+cpp/SOLUTION_SUMMARY.md:15:- **问题**: 错误的包含路径
+cpp/SOLUTION_SUMMARY.md:16:- **修复**: 更正为 `#include "../core/object.h"`
+cpp/SOLUTION_SUMMARY.md:17:- **状态**: 编译和运行成功
+cpp/SOLUTION_SUMMARY.md:20:- **问题**: 多种语法错误（构造函数、集合操作、方法调用等）
+cpp/SOLUTION_SUMMARY.md:21:- **修复**: 完全重写，使用正确的 C++ 语法和 ObjectPtr 系统
+cpp/SOLUTION_SUMMARY.md:22:- **状态**: 编译和运行成功
+cpp/SOLUTION_SUMMARY.md:30:make -f Makefile.working working-tests
+cpp/SOLUTION_SUMMARY.md:33:make -f Makefile.working run-tests
+cpp/SOLUTION_SUMMARY.md:91:make -f Makefile.working clean
+cpp/SOLUTION_SUMMARY.md:92:make -f Makefile.working run-tests
+README.md:50:- ✅ Dart 代码解析和分析
+README.md:51:- ✅ Dart 到 C++ 的代码转换
+README.md:52:- ✅ 类型系统映射
+README.md:53:- ✅ 表达式转换
+README.md:54:- ✅ 声明转换
+README.md:55:- ✅ 泛型支持
+README.md:56:- ✅ 异步转换
+README.md:60:- ✅ 完整的类型系统 (Int, Double, Bool, String)
+README.md:61:- ✅ 容器类型 (List, Set, Map)
+README.md:62:- ✅ 智能指针 (ObjectPtr)
+cpp/test_summary.sh:10:mkdir -p build
+cpp/test_summary.sh:14:g++ -std=c++11 -Wall -Wextra -I./core -c core/object.cpp -o build/object.o 2>/dev/null
+cpp/test_summary.sh:15:if [ $? -eq 0 ]; then
+cpp/test_summary.sh:32:g++ -std=c++11 -Wall -Wextra -I./core test/test_transformed_simple.cpp build/object.o -o build/test_transformed_simple 2>/dev/null
+cpp/test_summary.sh:33:if [ $? -eq 0 ]; then
+cpp/test_summary.sh:36:    if [ $? -eq 0 ]; then
+cpp/test_summary.sh:49:g++ -std=c++11 -Wall -Wextra -I./core test/advanced_converted_fixed.cpp build/object.o -o build/advanced_converted_fixed 2>/dev/null
+cpp/test_summary.sh:50:if [ $? -eq 0 ]; then
+cpp/test_summary.sh:53:    if [ $? -eq 0 ]; then
+cpp/test_summary.sh:66:if [ -f "test/enhanced_test_output_fixed.cpp" ]; then
+cpp/Makefile:4:CXXFLAGS = -std=c++17 -Wall -Wextra -I./core
+cpp/Makefile:15:# Test files - only include working tests to avoid compilation errors
+cpp/Makefile:27:.PHONY: all clean test test-all run-tests examples
+cpp/Makefile:32:	mkdir -p $(BUILD_DIR)
+cpp/Makefile:35:	$(CXX) $(CXXFLAGS) -c $< -o $@
+cpp/Makefile:41:		$(CXX) $(CXXFLAGS) $$example_file $(CORE_OBJ) -o $(BUILD_DIR)/$$example_name || exit 1; \
+cpp/Makefile:49:		if [ -f "$$test_file" ]; then \
+cpp/Makefile:52:			$(CXX) $(CXXFLAGS) "$$test_file" $(CORE_OBJ) -o $(BUILD_DIR)/$$test_name || exit 1; \
+cpp/Makefile:61:test-all: $(BUILD_DIR) $(CORE_OBJ)
+cpp/Makefile:68:		if $(CXX) $(CXXFLAGS) "$$test_file" $(CORE_OBJ) -o $(BUILD_DIR)/$$test_name 2>/dev/null; then \
+cpp/core/dart_macros.h:44:// for-in 循环 (C++ 无对应语法，必须使用宏)
+cpp/core/dart_macros.h:46:  for (Int _i(0); _i < (container)->size(); ++_i) {                            \
+cpp/core/dart_macros.h:47:    item_type item_name = (container)->get(_i);
+cpp/core/dart_macros.h:62:// 模板函数版本的 dart_is_null - 支持 ObjectPtr 类型和值类型
+cpp/core/dart_macros.h:66:        // ObjectPtr 类型：使用 -> 调用 isNull()
+cpp/core/dart_macros.h:67:        return obj->isNull();
+cpp/core/dart_macros.h:77:    // 指针类型：检查 nullptr 或调用 ptr->isNull()
+cpp/core/dart_macros.h:78:    return (ptr == nullptr) || ptr->isNull();
+cpp/core/dart_macros.h:120:// dart_cast 函数 - 类型转换
+cpp/core/dart_macros.h:139:// 递归终止函数 - 基础情况
+cpp/core/dart_async.h:16:// Dart 异步编程支持 - Future, async/await 模拟
+cpp/core/dart_async.h:19:/// Duration 类 - 时间间隔
+cpp/core/dart_async.h:40:/// Future 类模板 - 异步结果容器
+cpp/core/dart_async.h:52:        return future_->get();
+cpp/core/dart_async.h:57:        return Bool(future_->wait_for(std::chrono::seconds(0)) == std::future_status::ready);
+cpp/core/dart_async.h:101:        future_->get();
+cpp/core/dart_async.h:105:        return Bool(future_->wait_for(std::chrono::seconds(0)) == std::future_status::ready);
+cpp/core/dart_async.h:132:/// Stream 类模板 - 异步数据流
+cpp/core/dart_async.h:151:    return Future<decltype([&]() -> auto {
+cpp/core/dart_async.h:155:    }())>::value([&]() -> auto {
+cpp/core/dart_helpers.h:77:        std::uniform_int_distribution<> dis(0, max.toInt() - 1);
+cpp/core/dart_helpers.h:108:        tm.tm_year = year - 1900;
+cpp/core/dart_helpers.h:109:        tm.tm_mon = month - 1;
+cpp/core/dart_helpers.h:124:        return Int(tm->tm_year + 1900);
+cpp/core/dart_helpers.h:130:        return Int(tm->tm_mon + 1);
+cpp/core/dart_helpers.h:136:        return Int(tm->tm_mday);
+cpp/core/dart_helpers.h:142:        return Int(tm->tm_hour);
+cpp/core/dart_helpers.h:148:        return Int(tm->tm_min);
+cpp/core/dart_helpers.h:154:        return Int(tm->tm_sec);
+cpp/core/dart_helpers.h:161:        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", tm);
+cpp/core/object.h:130:  Int operator-(const Int& other) const;
+cpp/core/object.h:137:  Double operator-(const Double& other) const;
+cpp/core/object.h:209:  Double operator-(const Double& other) const;
+cpp/core/object.h:277:  // 类型转换运算符 - 允许直接用作条件判断
+cpp/core/object.h:334:  Int lastIndexOf(const String& pattern, const Int& start = Int(-1)) const;
+cpp/core/object.h:393:    ref_count--;
+cpp/core/object.h:403:// CppUserData 类 - 使用引用计数包装
+cpp/core/object.h:407:// CppUserData 类 - 使用引用计数包装
+cpp/core/object.h:551:    return current_->first;
+cpp/core/object.h:559:    return current_->second;
+cpp/core/object_extensions.h:28:inline Int& operator--(Int& val) {
+cpp/core/object_extensions.h:29:    val.value--;
+cpp/core/object_extensions.h:33:inline Int operator--(Int& val, int) {
+cpp/core/object_extensions.h:35:    val.value--;
+cpp/core/object_extensions.h:50:inline Int& operator-=(Int& left, const Int& right) {
+cpp/core/object_extensions.h:51:    left.value -= right.value;
+cpp/core/object_extensions.h:88:inline Double& operator--(Double& val) {
+cpp/core/object_extensions.h:89:    val.value--;
+cpp/core/object_extensions.h:93:inline Double operator--(Double& val, int) {
+cpp/core/object_extensions.h:95:    val.value--;
+cpp/core/dart_oop_extensions.h:7:// Dart 面向对象扩展 - 简化版本
+cpp/core/dart_oop_extensions.h:15:// 常用接口定义 - 直接使用C++风格
+cpp/core/dart_oop_extensions.h:50:// 常用 Mixin 定义 - 直接使用C++风格
+cpp/test/operators_test.cpp:49:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/operators_test.cpp:75:    ASSERT_EQ(11, (a - b).value);
+cpp/test/operators_test.cpp:84:    ASSERT_EQ(-15, a.operator_unary_minus().value);
+cpp/test/operators_test.cpp:93:    ASSERT_NEAR(8.0, (x - y).value, 0.001);
+cpp/test/operators_test.cpp:99:    ASSERT_EQ(-10.5, x.operator_unary_minus().value);
+cpp/test/operators_test.cpp:224:    ASSERT_EQ(-13, a.operator_bitwise_not().value); // ~12 = -13
+cpp/test/operators_test.cpp:281:    value -= Int(3);
+cpp/test/operators_test.cpp:303:    value -= Double(1.5);
+cpp/test/operators_test.cpp:331:    Int preDec = --counter;
+cpp/test/operators_test.cpp:336:    Int postDec = counter--;
+cpp/core/dart2cpp.h:5:// Dart2CPP Runtime Library - 简化版本
+cpp/core/dart2cpp.h:56:    numbers->add(x);
+cpp/core/dart2cpp.h:57:    numbers->add(sum);
+cpp/test/collections_test.cpp:59:    // 使用 ObjectPtr 包装 List - 正确的用法
+cpp/test/collections_test.cpp:63:    ASSERT_TRUE(list->isEmpty().value);
+cpp/test/collections_test.cpp:64:    ASSERT_EQ(0, list->size().value);
+cpp/test/collections_test.cpp:67:    list->add(dart_int(1));
+cpp/test/collections_test.cpp:68:    list->add(dart_int(2));
+cpp/test/collections_test.cpp:69:    list->add(dart_int(3));
+cpp/test/collections_test.cpp:71:    ASSERT_FALSE(list->isEmpty().value);
+cpp/test/collections_test.cpp:72:    ASSERT_EQ(3, list->size().value);
+cpp/test/collections_test.cpp:75:    ASSERT_EQ(1, list->get(dart_int(0)).value);
+cpp/test/collections_test.cpp:76:    ASSERT_EQ(2, list->get(dart_int(1)).value);
+cpp/test/run_tests.sh:8:set -e  # 遇到错误时退出
+cpp/test/run_tests.sh:19:    echo -e "${BLUE}[INFO]${NC} $1"
+cpp/test/run_tests.sh:23:    echo -e "${GREEN}[SUCCESS]${NC} $1"
+cpp/test/run_tests.sh:27:    echo -e "${YELLOW}[WARNING]${NC} $1"
+cpp/test/run_tests.sh:31:    echo -e "${RED}[ERROR]${NC} $1"
+cpp/test/run_tests.sh:38:    if ! command -v g++ &> /dev/null; then
+cpp/test/run_tests.sh:43:    if ! command -v make &> /dev/null; then
+cpp/test/run_tests.sh:54:    if [ -d "build" ]; then
+cpp/test/run_tests.sh:55:        rm -rf build
+cpp/test/run_tests.sh:79:    if [ -f "$test_executable" ]; then
+cpp/test/oop_test.cpp:52:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/oop_test.cpp:99:        return dart_bool(name.getValue() == other->name.getValue() && age.value == other->age.value);
+cpp/test/oop_test.cpp:104:        return dart_bool(age.value > other->age.value);
+cpp/test/oop_test.cpp:114:    ASSERT_EQ("Alice", person->getName().getValue());
+cpp/test/oop_test.cpp:115:    ASSERT_EQ(25, person->getAge().value);
+cpp/test/oop_test.cpp:118:    person->setName(dart_string("Alice Smith"));
+cpp/test/oop_test.cpp:119:    person->setAge(dart_int(26));
+cpp/test/oop_test.cpp:121:    ASSERT_EQ("Alice Smith", person->getName().getValue());
+cpp/test/oop_test.cpp:122:    ASSERT_EQ(26, person->getAge().value);
+cpp/test/oop_test.cpp:125:    String str = person->toString();
+cpp/core/object.cpp:21:    instance_->pool_.push_back("");
+cpp/core/object.cpp:22:    instance_->index_map_[""] = 0;
+cpp/core/object.cpp:30:    return it->second;  // 已存在，返回索引
+cpp/core/object.cpp:93:  return Int(value - other.value);
+cpp/core/object.cpp:114:Int Int::operator-(const Int& other) const {
+cpp/core/object.cpp:189:  return Int(-value);
+cpp/core/object.cpp:211:  if (value < other.value) return Int(-1);
+cpp/core/object.cpp:229:  if (value < 0) return Int(-1);
+cpp/core/object.cpp:268:  return Int(-value);
+cpp/core/object.cpp:276:Double Int::operator-(const Double& other) const {
+cpp/test/comprehensive_test.cpp:51:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/comprehensive_test.cpp:73:    // 计算: (15 + 4) * 2 - 8 / 2 + 3^2
+cpp/test/comprehensive_test.cpp:93:    // 最终结果: 38 - 4 + 9 = 43
+cpp/test/comprehensive_test.cpp:94:    Int result = step1 - step2 + step3;
+cpp/test/comprehensive_test.cpp:248:        Int next = fibonacci[i-1] + fibonacci[i-2];
+cpp/test/comprehensive_test.cpp:304:    Int near_overflow = max_int - one;
+cpp/test/comprehensive_test.cpp:305:    ASSERT_EQ(INT_MAX - 1, near_overflow.value);
+cpp/test/comprehensive_test.cpp:335:    Int expected = dart_int((iterations - 1) * iterations / 2);
+cpp/test/comprehensive_test.cpp:371:        static Int subtract(const Int& a, const Int& b) { return a - b; }
+cpp/test/comprehensive_test.cpp:454:    std::cout << "\n--- 复杂数学运算测试 ---" << std::endl;
+cpp/test/async_test.cpp:51:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/async_test.cpp:133:    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+cpp/test/async_test.cpp:167:    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+cpp/test/async_test.cpp:307:    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+cpp/test/async_test.cpp:481:    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+cpp/test/async_test.cpp:508:    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+cpp/test/async_test.cpp:521:    std::cout << "--- Duration 测试 ---" << std::endl;
+cpp/test/async_test.cpp:527:    std::cout << "--- Future 基础测试 ---" << std::endl;
+cpp/test/async_test.cpp:535:    std::cout << "--- Completer 测试 ---" << std::endl;
+cpp/test/async_test.cpp:541:    std::cout << "--- 异步函数模拟测试 ---" << std::endl;
+cpp/test/README.md:21:- **Int 类型**: 构造、算术运算、比较运算、位运算、属性方法
+cpp/test/README.md:22:- **Double 类型**: 构造、算术运算、比较运算、舍入方法
+cpp/test/README.md:23:- **Bool 类型**: 构造、逻辑运算、比较运算
+cpp/test/README.md:24:- **扩展操作符**: 自增自减、复合赋值操作符
+cpp/test/README.md:25:- **异常处理**: 除零异常等边界情况
+cpp/test/README.md:28:- **算术运算符**: +, -, *, /, %, 一元运算符
+cpp/test/README.md:29:- **比较运算符**: ==, !=, <, >, <=, >=
+cpp/test/README.md:30:- **逻辑运算符**: &&, ||, !
+cpp/test/README.md:31:- **位运算符**: &, |, ^, ~, <<, >>, >>>
+cpp/test/README.md:32:- **赋值运算符**: +=, -=, *=, /=, %=
+cpp/test/oop_test.cpp.backup:50:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/oop_test.cpp.backup:286:    ASSERT_EQ("Person", people[0]->getRole().getValue());
+cpp/test/oop_test.cpp.backup:287:    ASSERT_EQ("Student", people[1]->getRole().getValue());
+cpp/test/oop_test.cpp.backup:288:    ASSERT_EQ("Teacher", people[2]->getRole().getValue());
+cpp/test/oop_test.cpp.backup:292:        String str = person->toString();
+cpp/test/oop_test.cpp.backup:295:        String role = person->getRole();
+cpp/test/oop_test.cpp.backup:309:        ASSERT_EQ("S456", student->getStudentId().getValue());
+cpp/test/oop_test.cpp.backup:310:        ASSERT_NEAR(3.8, student->getGpa().value, 0.001);
+cpp/test/oop_test.cpp.backup:311:        ASSERT_TRUE(student->isHonorStudent().value);
+cpp/test/oop_test.cpp.backup:376:        return dart_bool(std::abs(width.value - height.value) < 0.001);
+cpp/test/null_safety_test.cpp:34:    // value?.toString() - value 不为空，应该返回 value.toString()
+cpp/test/null_safety_test.cpp:39:    // null_value?.toString() - null_value 为空，应该返回 Null
+cpp/test/null_safety_test.cpp:46:    obj1->child = ObjectPtr<TestClass>(new TestClass(String("child1")));
+cpp/test/null_safety_test.cpp:47:    obj1->child->child = ObjectPtr<TestClass>(new TestClass(String("grandchild")));
+cpp/test/null_safety_test.cpp:49:    // obj1?.child?.name - 所有对象都不为空
+cpp/test/null_safety_test.cpp:50:    auto result3 = dart_null_check(obj1, dart_null_check(obj1->child, obj1->child->name));
+cpp/test/null_safety_test.cpp:57:    obj2->child = ObjectPtr<TestClass>(); // child 为空
+cpp/test/null_safety_test.cpp:59:    // obj2?.child?.name - child 为空，应该返回 Null
+cpp/test/null_safety_test.cpp:60:    auto result4 = dart_null_check(obj2, dart_null_check(obj2->child, obj2->child->name));
+cpp/test/null_safety_test.cpp:67:    // obj3?.child?.name - obj3 为空，应该返回 Null
+cpp/test/chain_test.cpp:32:        value -= n;
+cpp/test/chain_test.cpp:50:    // 使用新的 dart_chain 宏进行链式调用 - 不需要 _() 包装
+cpp/test/chain_test.cpp:58:    assert(counter.value == 27); // (10 + 5) * 2 - 3 = 27
+cpp/test/chain_test.cpp:114:    assert(counter.value == 120); // 100 + 50 - 30 = 120
+cpp/test/test_report.txt:7:  编译器: Apple clang version 14.0.0 (clang-1400.0.29.102)
+cpp/test/test_report.txt:11:  - basic_types_test.cpp    (基础数据类型测试)
+cpp/test/test_report.txt:12:  - operators_test.cpp      (运算符重载测试)
+cpp/test/test_report.txt:13:  - macros_test.cpp         (宏和工具测试)
+cpp/test/test_report.txt:14:  - comprehensive_test.cpp  (综合测试)
+cpp/test/test_report.txt:15:  - collections_test.cpp    (集合类型测试)
+cpp/test/test_report.txt:16:  - oop_test.cpp            (面向对象编程测试)
+cpp/test/test_report.txt:17:  - string_test.cpp         (字符串处理测试)
+cpp/test/test_report.txt:20:  编译标志: -std=c++11 -Wall -Wextra -O2
+cpp/test/Makefile:7:CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -I../core
+cpp/test/Makefile:28:	mkdir -p $(BUILD_DIR)
+cpp/test/Makefile:32:	$(CXX) $(CXXFLAGS) -c $< -o $@
+cpp/test/Makefile:36:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:39:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:42:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:45:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:48:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:51:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/Makefile:54:	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+cpp/test/basic_types_test.cpp:49:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/basic_types_test.cpp:93:    ASSERT_EQ(11, (a - b).value);
+cpp/test/basic_types_test.cpp:102:    ASSERT_EQ(-15, a.operator_unary_minus().value);
+cpp/test/basic_types_test.cpp:134:    ASSERT_EQ(-13, a.operator_bitwise_not().value); // ~12 = -13
+cpp/test/basic_types_test.cpp:146:    Int negative(-17);
+cpp/test/basic_types_test.cpp:153:    ASSERT_EQ(-1, negative.get_sign().value);
+cpp/test/basic_types_test.cpp:174:    Int b(-25);
+cpp/test/basic_types_test.cpp:183:    ASSERT_EQ(-1, a.compareTo(Int(20)).value);
+cpp/test/basic_types_test.cpp:225:    ASSERT_NEAR(8.0, (x - y).value, 0.001);
+cpp/test/basic_types_test.cpp:231:    ASSERT_EQ(-10.5, x.operator_unary_minus().value);
+cpp/test/macros_test.cpp:49:        if (std::abs((expected) - (actual)) > (tolerance)) { \
+cpp/test/macros_test.cpp:112:    ASSERT_EQ(0, int_list->size().value);
+cpp/test/macros_test.cpp:116:    ASSERT_EQ(0, string_list->size().value);
+cpp/test/macros_test.cpp:120:    ASSERT_EQ(0, double_list->size().value);
+cpp/test/macros_test.cpp:125:    ASSERT_EQ(0, int_set->size().value);
+cpp/test/macros_test.cpp:129:    ASSERT_EQ(0, string_set->size().value);
+cpp/test/macros_test.cpp:133:    ASSERT_EQ(0, double_set->size().value);
+cpp/test/macros_test.cpp:138:    ASSERT_EQ(0, string_int_map->size().value);
+cpp/test/macros_test.cpp:142:    ASSERT_EQ(0, int_string_map->size().value);
+cpp/test/macros_test.cpp:148:    list->add(dart_int(1));
+PROJECT_STRUCTURE.md:10:│   ├── dart2cpp.dart            # Main command-line tool
+PROJECT_STRUCTURE.md:60:- **Individual tests**: `test_*.dart` - Moved from root directory
+PROJECT_STRUCTURE.md:61:- **Test runners**: `build_and_run.dart`, `run_tests.dart`
+PROJECT_STRUCTURE.md:62:- **Verification**: `verify_optimization.dart`
+PROJECT_STRUCTURE.md:68:- **Runtime Library**: Complete C++ runtime in `include/` and `lib/`
+PROJECT_STRUCTURE.md:69:- **Source Files**: Converted `.cpp` files placed in `src/`
+PROJECT_STRUCTURE.md:70:- **Build System**: CMakeLists.txt for building with CMake or g++
+PROJECT_STRUCTURE.md:71:- **Documentation**: README.md with build instructions
+PROJECT_STRUCTURE.md:75:- **bin/dart2cpp.dart**: Command-line tool for converting Dart to C++
+PROJECT_STRUCTURE.md:76:  - Usage: `dart bin/dart2cpp.dart [options] input.dart`
+TEST_RESULTS_SUMMARY.md:3:**测试日期**: 2025-11-10
+TEST_RESULTS_SUMMARY.md:14:|---------|------|------|
+TEST_RESULTS_SUMMARY.md:20:---
+TEST_RESULTS_SUMMARY.md:29:- ✅ Dart执行: 成功
+TEST_RESULTS_SUMMARY.md:30:- ✅ 转换到C++: 成功 (生成了 comprehensive_syntax_test.cpp)
+TEST_RESULTS_SUMMARY.md:31:- ❌ C++编译: 失败
+TEST_RESULTS_SUMMARY.md:32:  - **错误**: 找不到头文件 `./core/object.h`
+TEST_RESULTS_SUMMARY.md:33:  - **原因**: 生成的C++代码使用了相对路径 `./core/object.h`，但实际路径应该是 `../cpp/core/object.h`
+TEST_RESULTS_SUMMARY.md:36:- ❌ Dart执行: 失败
+TEST_RESULTS_SUMMARY.md:37:  - **错误**: `'Person' isn't a type` 和 `Method not found: 'Person'`
+SUPPORTED_FEATURES.md:5:**测试日期**: 2024-10-28  
+SUPPORTED_FEATURES.md:11:---
+SUPPORTED_FEATURES.md:16:- ✅ 整数字面量: `Int(42)`
+SUPPORTED_FEATURES.md:17:- ✅ 正数和负数: `Int(-10)`
+SUPPORTED_FEATURES.md:18:- ✅ 零值: `Int(0)`
+SUPPORTED_FEATURES.md:19:- ✅ 大数值支持
+SUPPORTED_FEATURES.md:24:- ✅ 浮点数字面量: `Double(3.14)`
+SUPPORTED_FEATURES.md:25:- ✅ 科学计数法支持
+SUPPORTED_FEATURES.md:26:- ✅ 特殊值: NaN, Infinity
+SUPPORTED_FEATURES.md:27:- ✅ 精度保持
+ISSUES_FOUND.md:6:**位置**: [lib/dart_to_cpp_compiler.dart:67-69](lib/dart_to_cpp_compiler.dart#L67-L69)
+ISSUES_FOUND.md:37:// 然后在编译时使用: g++ -I../cpp/core ...
+ISSUES_FOUND.md:50:---
+ISSUES_FOUND.md:72:- 查找处理ForStatement的代码
+ISSUES_FOUND.md:73:- 可能在 `CppStatementConverter` 或类似的类中
+ISSUES_FOUND.md:75:---
+ISSUES_FOUND.md:105:- 只生成一个 `int main()` 函数
+ISSUES_FOUND.md:106:- 移除 `void main()` 版本
+ISSUES_FOUND.md:107:- 确保用户代码只出现一次
+ISSUES_FOUND.md:109:---
+bin/dart2cpp.dart:11:  'Arithmetic operators (+, -, *, /, %)',
+bin/dart2cpp.dart:23:  'try-catch blocks',
+bin/dart2cpp.dart:31:    ..addFlag('no-runtime',
+bin/dart2cpp.dart:82:    final includeRuntime = !(results['no-runtime'] as bool);
+bin/dart2cpp.dart:146:  print('  dart2cpp -o output.cpp hello.dart');
+bin/dart2cpp.dart:147:  print('  dart2cpp --optimize --verbose hello.dart');
+bin/dart2cpp.dart:148:  print('  dart2cpp --no-runtime hello.dart');
+bin/dart2cpp.dart:150:  print('For more information, visit: https://github.com/dart-lang/dart2cpp');
+cpp/test/string_test.cpp:45:                      << " - condition was true" << std::endl; \
+cpp/test/string_test.cpp:52:        double diff = std::abs((expected) - (actual)); \
+cpp/test/string_test.cpp:55:                      << " - difference " << diff << " exceeds tolerance " << (tolerance) \
+cpp/test/string_test.cpp:209:                text_val.substr(text_val.length() - suffix1_val.length()) == suffix1_val);
+cpp/test/string_test.cpp:211:                 text_val.substr(text_val.length() - suffix2_val.length()) == suffix2_val);
+cpp/test/string_test.cpp:250:        return str.substr(start, end - start + 1);
+cpp/test/string_test.cpp:270:        return std::string(width - str.length(), padChar) + str;
+cpp/test/string_test.cpp:276:        return str + std::string(width - str.length(), padChar);
+cpp/test/string_test.cpp:360:    String joined_empty = dart_string(join(empty_list, "-"));
+cpp/test/string_test.cpp:415:    String phone_text = dart_string("Call us at 123-456-7890 or 987-654-3210");
+w+s*=:1:COMPREHENSIVE_TEST_SUMMARY.md:1:# Dart2CPP Comprehensive Test Suite - Summary Report
+w+s*=:2:COMPREHENSIVE_TEST_SUMMARY.md:7:**Date**: 2025-11-10
+w+s*=:3:COMPREHENSIVE_TEST_SUMMARY.md:16:|-----------|---------|------------|--------|
+w+s*=:4:COMPREHENSIVE_TEST_SUMMARY.md:24:- **Total Test Groups**: 35
+w+s*=:5:COMPREHENSIVE_TEST_SUMMARY.md:25:- **Total Test Cases**: 258+
+w+s*=:6:COMPREHENSIVE_TEST_SUMMARY.md:26:- **Coverage**: 100% of supported features
+w+s*=:7:COMPREHENSIVE_TEST_SUMMARY.md:27:- **Lines of Test Code**: ~3,500+
+w+s*=:8:COMPREHENSIVE_TEST_SUMMARY.md:34:- ✅ Integer types (positive, negative, zero)
+w+s*=:9:COMPREHENSIVE_TEST_SUMMARY.md:35:- ✅ Double types (positive, negative, scientific notation)
+w+s*=:10:COMPREHENSIVE_TEST_SUMMARY.md:36:- ✅ Boolean types (true, false)

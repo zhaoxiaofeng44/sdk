@@ -1,0 +1,58 @@
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:1:
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1614:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:11:3: error: unknown type name 'Address'
+  Address address = Null;
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:23:17: error: no viable conversion from 'Nullable' to 'String'
+  String city = Null;
+                ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:95:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const String &' for 1st argument
+  String(const String& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:97:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const char *' for 1st argument
+  String(const char* v);  // 接受字符串字面量 - 实现在cpp文件中
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:98:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const std::string &' (aka 'const basic_string<char, char_traits<char>, allocator<char>> &') for 1st argument
+  String(const std::string& v);  // 接受 std::string - 实现在cpp文件中
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:96:12: note: explicit constructor is not a candidate
+  explicit String(int index);    // 显式构造，避免隐式转换
+           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:99:12: note: explicit constructor is not a candidate
+  explicit String(const Any& any);  // 显式构造，避免与其他构造函数冲突
+           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:100:12: note: explicit constructor is not a candidate
+  explicit String(const Nullable&);  // 显式NULL构造函数
+           ^
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:1:
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:40:
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:92:20: error: no member named 'isNull' in 'String'
+        return obj.isNull();
+               ~~~ ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:40:15: note: in instantiation of function template specialization 'dart_is_null<String>' requested here
+auto result = dart_is_null(nullableString) ? dart_string("default value") : nullableString;
+              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:43:15: error: no matching function for call to 'dart_is_null'
+auto length = dart_is_null(maybeString) ? Null : maybeString;
+              ^~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:86:16: note: candidate template ignored: substitution failure [with T = String]
+constexpr bool dart_is_null(const T& obj) {
+               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:43:41: error: incompatible operand types ('Nullable' and 'String')
+auto length = dart_is_null(maybeString) ? Null : maybeString;
+                                        ^ ~~~~   ~~~~~~~~~~~
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:1:
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:40:
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:92:20: error: no member named 'isNull' in 'Person'
+        return obj.isNull();
+               ~~~ ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:17: note: in instantiation of function template specialization 'dart_is_null<Person>' requested here
+auto cityName = dart_is_null(person) ? Null : dart_is_null(let_var->address) ? Null : person;
+                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:60: error: use of undeclared identifier 'let_var'
+auto cityName = dart_is_null(person) ? Null : dart_is_null(let_var->address) ? Null : person;
+                                                           ^
+1 warning and 7 errors generated.

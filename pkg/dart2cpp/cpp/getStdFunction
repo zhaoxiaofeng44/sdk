@@ -1,0 +1,6 @@
+core/object.cpp:1064:    if (callback && !callback->isNull().toBool()) {
+core/object.cpp:1065:      callback->getStdFunction()(item);
+core/object.cpp:1190:    if (callback && !callback->isNull().toBool()) {
+core/object.cpp:1191:      callback->getStdFunction()(item);
+core/object.cpp:1330:    if (callback && !callback->isNull().toBool()) {
+core/object.cpp:1331:      callback->getStdFunction()(pair.first, pair.second);

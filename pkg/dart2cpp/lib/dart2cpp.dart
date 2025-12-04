@@ -61,7 +61,7 @@ Future<void> main(List<String> arguments) async {
   if (arguments.isEmpty) {
     arguments = [
       "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
-      "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/demo/async_demo.dart"
+      "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/basic_syntax.dart"
     ];
   } else {
     // 如果只提供了输入文件，自动添加platform参数

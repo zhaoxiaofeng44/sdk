@@ -193,7 +193,7 @@ class CompleteExpressionConverter {
   }
 
   String _convertNullLiteral(NullLiteral node) {
-    return 'nullptr';
+    return 'Null';
   }
 
   String _convertSymbolLiteral(SymbolLiteral node) {
@@ -546,15 +546,12 @@ class CompleteExpressionConverter {
       return '${convertExpression(node.expressions[0])}.toString()';
     }
 
+    // 使用 dart_concat 函数进行字符串拼接
     final parts = node.expressions.map((expr) {
-      if (expr is StringLiteral) {
-        return convertExpression(expr);
-      } else {
-        return '${convertExpression(expr)}.toString()';
-      }
+      return convertExpression(expr);
     }).toList();
 
-    return parts.join(' + ');
+    return 'dart_concat(${parts.join(', ')})';
   }
 
   // ============================================================================

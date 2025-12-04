@@ -1,7 +1,8 @@
 #ifndef _DART_HELPERS_H_
 #define _DART_HELPERS_H_
 
-#include "object.h"
+#include "dart_object.h"
+#include "dart_string.h"
 #include <chrono>
 #include <random>
 #include <algorithm>
@@ -182,18 +183,37 @@ public:
         type_id = 13;
     }
     
-    static ObjectPtr<Duration> fromSeconds(int seconds) {
+    // 静态创建方法
+    static ObjectPtr<Duration> milliseconds(int ms) {
+        return ObjectPtr<Duration>(new Duration(ms));
+    }
+    
+    static ObjectPtr<Duration> seconds(int seconds) {
         return ObjectPtr<Duration>(new Duration(seconds * 1000));
     }
     
-    static ObjectPtr<Duration> fromMinutes(int minutes) {
+    static ObjectPtr<Duration> minutes(int minutes) {
         return ObjectPtr<Duration>(new Duration(minutes * 60 * 1000));
     }
     
-    static ObjectPtr<Duration> fromHours(int hours) {
+    static ObjectPtr<Duration> hours(int hours) {
         return ObjectPtr<Duration>(new Duration(hours * 60 * 60 * 1000));
     }
     
+    // 别名方法
+    static ObjectPtr<Duration> fromSeconds(int s) {
+        return seconds(s);
+    }
+    
+    static ObjectPtr<Duration> fromMinutes(int m) {
+        return minutes(m);
+    }
+    
+    static ObjectPtr<Duration> fromHours(int h) {
+        return hours(h);
+    }
+    
+    // 实例方法 - getter形式
     Int get_inMilliseconds() const {
         return Int(static_cast<int>(duration_.count()));
     }
@@ -208,6 +228,61 @@ public:
     
     Int get_inHours() const {
         return Int(static_cast<int>(duration_.count() / (1000 * 60 * 60)));
+    }
+    
+    // 实例方法 - 方法调用形式
+    Int inMilliseconds() const {
+        return get_inMilliseconds();
+    }
+    
+    Int inSeconds() const {
+        return get_inSeconds();
+    }
+    
+    Int inMinutes() const {
+        return get_inMinutes();
+    }
+    
+    Int inHours() const {
+        return get_inHours();
+    }
+    
+    // 算术运算符
+    Duration operator+(const Duration& other) const {
+        return Duration(static_cast<int>(duration_.count() + other.duration_.count()));
+    }
+    
+    Duration operator-(const Duration& other) const {
+        return Duration(static_cast<int>(duration_.count() - other.duration_.count()));
+    }
+    
+    Duration operator*(const Int& multiplier) const {
+        return Duration(static_cast<int>(duration_.count() * multiplier.getValue()));
+    }
+    
+    // 比较运算符
+    Bool operator>(const Duration& other) const {
+        return Bool(duration_.count() > other.duration_.count());
+    }
+    
+    Bool operator<(const Duration& other) const {
+        return Bool(duration_.count() < other.duration_.count());
+    }
+    
+    Bool operator==(const Duration& other) const {
+        return Bool(duration_.count() == other.duration_.count());
+    }
+    
+    Bool operator!=(const Duration& other) const {
+        return Bool(duration_.count() != other.duration_.count());
+    }
+    
+    Bool operator>=(const Duration& other) const {
+        return Bool(duration_.count() >= other.duration_.count());
+    }
+    
+    Bool operator<=(const Duration& other) const {
+        return Bool(duration_.count() <= other.duration_.count());
     }
     
     String toString() const override {
@@ -273,7 +348,7 @@ public:
     }
     
     String toString() const override {
-        return String("Stopwatch(elapsed: " + 
+        return dart_string("Stopwatch(elapsed: " + 
                      std::to_string(get_elapsedMilliseconds().toInt()) + "ms)");
     }
 };
@@ -285,15 +360,18 @@ public:
 namespace CollectionUtils {
     // 列表排序
     template<typename T>
-    void sort(ObjectPtr<List<T>> list, std::function<Bool(const T&, const T&)> compare = nullptr) {
-        if (compare == nullptr) {
+    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& compare = nullptr) {
+        bool is_null = (compare == nullptr);
+        bool compare_is_null = !is_null && (compare->isNull().toBool());
+        if (is_null || compare_is_null) {
             list->sort();
         } else {
             // 自定义比较排序的实现
             std::vector<T> temp_vec = *list;
             std::sort(temp_vec.begin(), temp_vec.end(), 
                      [&compare](const T& a, const T& b) {
-                         return compare(a, b).toBool();
+                         Any result = (*compare)(a, b);
+                         return static_cast<Bool>(result).toBool();
                      });
             
             list->clear();
@@ -305,17 +383,17 @@ namespace CollectionUtils {
     
     // 列表求和
     template<typename T>
-    T sum(ObjectPtr<List<T>> list) {
+    T sum(const ObjectPtr<List<T>>& list) {
         T result{};
         auto it = list->iterator();
-        while (it.hasNext()) {
-            result = result + it.next();
+        while (it->hasNext()) {
+            result = result + it->next();
         }
         return result;
     }
     
     // 列表平均值
-    Double average(ObjectPtr<List<Int>> list) {
+    Double average(const ObjectPtr<List<Int>>& list) {
         if (list->isEmpty().toBool()) {
             return Double(0);
         }
@@ -323,7 +401,7 @@ namespace CollectionUtils {
         return Double(total.toInt()) / Double(list->size().toInt());
     }
     
-    Double average(ObjectPtr<List<Double>> list) {
+    Double average(const ObjectPtr<List<Double>>& list) {
         if (list->isEmpty().toBool()) {
             return Double(0);
         }
