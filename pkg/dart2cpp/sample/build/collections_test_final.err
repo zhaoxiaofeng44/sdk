@@ -1,0 +1,139 @@
+In file included from dart/collections.cpp:1:
+In file included from ../cpp/core/dart2cpp.h:25:
+../cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../cpp/core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+dart/collections.cpp:55:60: error: member reference type 'String' is not a pointer; did you mean to use '.'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                          ~^~
+                                                           .
+dart/collections.cpp:55:62: error: no member named 'size' in 'String'
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                          ~  ^
+dart/collections.cpp:55:81: error: member reference type 'String' is not a pointer; did you mean to use '.'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                                               ~^~
+                                                                                .
+dart/collections.cpp:55:83: error: no member named 'size' in 'String'
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                                               ~  ^
+dart/collections.cpp:55:8: error: too many arguments to function call, expected 0, have 1; did you mean 'CollectionUtils::sort'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+       ^~~~
+       CollectionUtils::sort
+../cpp/core/dart_helpers.h:363:10: note: 'CollectionUtils::sort' declared here
+    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& compare = nullptr) {
+         ^
+dart/collections.cpp:61:60: error: use of class template 'Set' requires template arguments
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                           ^
+../cpp/core/dart_object.h:881:7: note: template is declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:61:69: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                                    ^
+../cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+../cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+../cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+../cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+dart/collections.cpp:61:6: error: variable has incomplete type 'void'
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+     ^
+dart/collections.cpp:62:59: error: use of class template 'Set' requires template arguments
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                          ^
+../cpp/core/dart_object.h:881:7: note: template is declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:62:68: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                                   ^
+../cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+../cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+../cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+../cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+dart/collections.cpp:62:6: error: variable has incomplete type 'void'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+     ^
+dart/collections.cpp:63:61: error: use of class template 'Set' requires template arguments
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                            ^
+../cpp/core/dart_object.h:881:7: note: template is declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:63:70: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                                     ^
+../cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+../cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+../cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+../cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+dart/collections.cpp:63:6: error: variable has incomplete type 'void'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+     ^
+dart/collections.cpp:79:65: error: use of class template 'Set' requires template arguments
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                ^
+../cpp/core/dart_object.h:881:7: note: template is declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:79:74: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                         ^
+../cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+../cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+../cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+../cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+dart/collections.cpp:79:6: error: variable has incomplete type 'void'
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+     ^
+dart/collections.cpp:83:1: warning: 'auto' storage class specifier is not permitted in C++11, and will not be supported in future releases [-Wauto-storage-class]
+auto union = numbers->union(otherNumbers);
+^~~~~
+dart/collections.cpp:83:6: error: declaration of anonymous union must be a definition
+auto union = numbers->union(otherNumbers);
+     ^
+dart/collections.cpp:83:1: warning: declaration does not declare anything [-Wmissing-declarations]
+auto union = numbers->union(otherNumbers);
+^~~~
+dart/collections.cpp:84:43: error: declaration of anonymous union must be a definition
+dart_print(dart_string("    并集: ") + (union).toString());
+                                        ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+3 warnings and 20 errors generated.

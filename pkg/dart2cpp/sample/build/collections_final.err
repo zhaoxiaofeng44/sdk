@@ -1,0 +1,89 @@
+In file included from dart/collections.cpp:1:
+In file included from ../cpp/core/dart2cpp.h:25:
+../cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../cpp/core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+dart/collections.cpp:55:60: error: member reference type 'String' is not a pointer; did you mean to use '.'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                          ~^~
+                                                           .
+dart/collections.cpp:55:62: error: no member named 'size' in 'String'
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                          ~  ^
+dart/collections.cpp:55:81: error: member reference type 'String' is not a pointer; did you mean to use '.'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                                               ~^~
+                                                                                .
+dart/collections.cpp:55:83: error: no member named 'size' in 'String'
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+                                                                               ~  ^
+dart/collections.cpp:55:8: error: too many arguments to function call, expected 0, have 1; did you mean 'CollectionUtils::sort'?
+words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
+       ^~~~
+       CollectionUtils::sort
+../cpp/core/dart_helpers.h:363:10: note: 'CollectionUtils::sort' declared here
+    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& compare = nullptr) {
+         ^
+dart/collections.cpp:61:60: error: use of undeclared identifier '_Set'; did you mean 'Set'?
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                           ^~~~
+                                                           Set
+../cpp/core/dart_object.h:881:7: note: 'Set' declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:61:60: error: use of undeclared identifier '_Set'
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                           ^
+dart/collections.cpp:61:70: error: unknown type name '_Set'
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                                     ^
+dart/collections.cpp:61:6: error: variable has incomplete type 'void'
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+     ^
+dart/collections.cpp:62:59: error: use of undeclared identifier '_Set'; did you mean 'Set'?
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                          ^~~~
+                                                          Set
+../cpp/core/dart_object.h:881:7: note: 'Set' declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:62:59: error: use of undeclared identifier '_Set'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                          ^
+dart/collections.cpp:62:69: error: unknown type name '_Set'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                                    ^
+dart/collections.cpp:62:6: error: variable has incomplete type 'void'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+     ^
+dart/collections.cpp:63:61: error: use of undeclared identifier '_Set'; did you mean 'Set'?
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); return unnamed_var; })();
+                                                            ^~~~
+                                                            Set
+../cpp/core/dart_object.h:881:7: note: 'Set' declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:63:61: error: use of undeclared identifier '_Set'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); return unnamed_var; })();
+                                                            ^
+dart/collections.cpp:63:71: error: unknown type name '_Set'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); return unnamed_var; })();
+                                                                      ^
+dart/collections.cpp:63:6: error: variable has incomplete type 'void'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); return unnamed_var; })();
+     ^
+dart/collections.cpp:79:65: error: use of undeclared identifier '_Set'; did you mean 'Set'?
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                ^~~~
+                                                                Set
+../cpp/core/dart_object.h:881:7: note: 'Set' declared here
+class Set : public Object {
+      ^
+dart/collections.cpp:79:65: error: use of undeclared identifier '_Set'
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<_Set>(new _Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+1 warning and 20 errors generated.

@@ -6,7 +6,7 @@
 // 类: InvalidEmailException
 // ============================================================================
 
-class InvalidEmailException : DART_IMPLEMENTS(Exception) {
+class InvalidEmailException : implements Exception {
 public:
   String message;
   String email;
@@ -14,7 +14,7 @@ public:
   }
   
   String toString() {
-    return dart_concat(dart_string("InvalidEmailException: "), this->message);
+    return dart_string("InvalidEmailException: ") + (this->message).toString();
   }
   
 };
@@ -23,7 +23,7 @@ public:
 // 类: ValidationException
 // ============================================================================
 
-class ValidationException : DART_IMPLEMENTS(Exception) {
+class ValidationException : implements Exception {
 public:
   String message;
   String field;
@@ -33,7 +33,7 @@ public:
   }
   
   String toString() {
-    return dart_concat(dart_string("ValidationException: "), this->message);
+    return dart_string("ValidationException: ") + (this->message).toString();
   }
   
 };
@@ -42,7 +42,7 @@ public:
 // 类: InsufficientFundsException
 // ============================================================================
 
-class InsufficientFundsException : DART_IMPLEMENTS(Exception) {
+class InsufficientFundsException : implements Exception {
 public:
   String message;
   Double currentBalance;
@@ -51,7 +51,7 @@ public:
   }
   
   String toString() {
-    return dart_concat(dart_string("InsufficientFundsException: "), this->message);
+    return dart_string("InsufficientFundsException: ") + (this->message).toString();
   }
   
 };
@@ -60,7 +60,7 @@ public:
 // 类: NetworkException
 // ============================================================================
 
-class NetworkException : DART_IMPLEMENTS(Exception) {
+class NetworkException : implements Exception {
 public:
   String message;
   Int statusCode;
@@ -69,7 +69,7 @@ public:
   }
   
   String toString() {
-    return dart_concat(dart_string("NetworkException: "), this->message);
+    return dart_string("NetworkException: ") + (this->message).toString();
   }
   
 };
@@ -85,14 +85,14 @@ DART_INTERFACE_END
 // 类: ConnectionException
 // ============================================================================
 
-class ConnectionException : public DatabaseException {
+class ConnectionException : extends DatabaseException {
 public:
   String host;
   ConnectionException(String message, String host) : host(host), DatabaseException(message) {
   }
   
   String toString() {
-    return dart_concat(dart_string("ConnectionException: "), this->message);
+    return dart_string("ConnectionException: ") + (this->message).toString();
   }
   
 };
@@ -101,14 +101,14 @@ public:
 // 类: QueryException
 // ============================================================================
 
-class QueryException : public DatabaseException {
+class QueryException : extends DatabaseException {
 public:
   String sql;
   QueryException(String message, String sql) : sql(sql), DatabaseException(message) {
   }
   
   String toString() {
-    return dart_concat(dart_string("QueryException: "), this->message);
+    return dart_string("QueryException: ") + (this->message).toString();
   }
   
 };
@@ -117,15 +117,15 @@ public:
 // 类: ChainedException
 // ============================================================================
 
-class ChainedException : DART_IMPLEMENTS(Exception) {
+class ChainedException : implements Exception {
 public:
   String message;
-  Exception innerException;
-  ChainedException(String message, Exception innerException) : message(message), innerException(innerException) {
+  ObjectPtr<Exception> innerException;
+  ChainedException(String message, ObjectPtr<Exception> innerException) : message(message), innerException(innerException) {
   }
   
   String toString() {
-    return dart_concat(dart_string("ChainedException: "), this->message);
+    return dart_string("ChainedException: ") + (this->message).toString();
   }
   
 };
@@ -181,18 +181,45 @@ private:
     if (!(this->_isOpen)) {
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("文件已关闭"))));
 }
-dart_print(dart_concat(dart_string("    写入文件 "), this->filename, dart_string(": "), content));
+dart_print(dart_concat(dart_string("    写入文件 "), (this->filename).toString(), dart_string(": "), (content).toString()));
 return Void;
   }
   
   Nullable close() {
     this->_isOpen = dart_bool(false);
-dart_print(dart_concat(dart_string("    关闭文件: "), this->filename));
+dart_print(dart_string("    关闭文件: ") + (this->filename).toString());
 return Void;
   }
   
 };
 
+Nullable testBasicExceptions();
+Nullable testBuiltInExceptions();
+Nullable testCustomExceptions();
+Nullable testExceptionChaining();
+Nullable testFinallyBlocks();
+Nullable testRethrowExceptions();
+ObjectPtr<Future<Nullable>> testAsyncExceptions();
+Nullable throwGenericException();
+Double divideByZero(Int a, Int b);
+Int accessInvalidIndex(ObjectPtr<List<Int>> list, Int index);
+Nullable throwWithStackTrace();
+Nullable validateAge(Int age);
+Nullable validateEmail(String email);
+Nullable processUser(ObjectPtr<User> user);
+Nullable simulateNetworkRequest();
+Nullable performDatabaseOperation();
+Nullable performComplexOperation();
+Nullable performMiddleOperation();
+Nullable performLowLevelOperation();
+Nullable performNormalOperation();
+Nullable performExceptionOperation();
+Nullable performOperationWithRethrow();
+Nullable performOperationWithModifiedRethrow();
+Nullable performConditionalRethrow(Bool shouldRethrow);
+ObjectPtr<Future<Nullable>> throwAsyncException();
+ObjectPtr<Future<Nullable>> asyncOperationChain();
+ObjectPtr<Stream<Int>> errorStream();
 Nullable testBasicExceptions() {
   dart_print(dart_string("\n📌 测试基本异常处理"));
 try throwGenericException(); catch (const std::exception& e) { /* catch block */ }
@@ -212,15 +239,15 @@ Nullable testBuiltInExceptions() {
 try validateAge(dart_int(-5)); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try auto numbers = dart_literal(dart_int(1), dart_int(2), dart_int(3));
-dart_print(numbers->[](dart_int(10))); catch (const std::exception& e) { /* catch block */ }
+dart_print(numbers->get(dart_int(10))); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-try auto emptyList = _GrowableList::(dart_int(0));
-emptyList->first; catch (const std::exception& e) { /* catch block */ }
+try auto emptyList = dart_literal(dart_int(0));
+emptyList->first(); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try auto fixedList = _List::filled(dart_int(3), dart_int(0));
 fixedList->add(dart_int(4)); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-try int::parse(dart_string("not_a_number")); catch (const std::exception& e) { /* catch block */ }
+try int::parse(dart_string("not_a_number"), Int(Null), std::function<Int(String)>(Null)); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try auto value = dart_string("string");
 auto number = dart_cast<Int>(value);
@@ -256,7 +283,7 @@ Nullable testFinallyBlocks() {
   dart_print(dart_string("\n📌 测试 finally 块"));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
-FileManager fileManager;
+ObjectPtr<ObjectPtr<FileManager>> fileManager(nullptr);
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ };
 return Void;
@@ -275,13 +302,13 @@ try performConditionalRethrow(dart_bool(false)); catch (const std::exception& e)
 return Void;
 }
 
-DART_ASYNC_FUNCTION(Future<Nullable>, testAsyncExceptions, ()) {
+DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, testAsyncExceptions, ()) {
     DART_ASYNC_BEGIN
   dart_print(dart_string("\n📌 测试异步异常处理"));
 try DART_AWAIT(throwAsyncException()); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-try auto result = DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50))), [&]() { return throw DartException(Exception::(dart_string("Future异常"))); }));
-dart_print(dart_concat(dart_string("  不应该执行到这里: "), result)); catch (const std::exception& e) { /* catch block */ }
+try auto result = DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), makeFunction([&]() { return throw DartException(Exception::(dart_string("Future异常"))); })));
+dart_print(dart_string("  不应该执行到这里: ") + (result).toString()); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try DART_AWAIT(asyncOperationChain()); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
@@ -299,16 +326,16 @@ return Void;
 
 Double divideByZero(Int a, Int b) {
   if ((b == dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), String(Null))));
 }
 return (a / b);
 }
 
-Int accessInvalidIndex(List<Int> list, Int index) {
+Int accessInvalidIndex(ObjectPtr<List<Int>> list, Int index) {
   if ((index < dart_int(0)) || (index >= list->size())) {
-throw DartException(ObjectPtr<RangeError>(new RangeError(dart_concat(dart_string("索引超出范围: "), index))));
+throw DartException(ObjectPtr<RangeError>(new RangeError(dart_string("索引超出范围: ") + (index).toString())));
 }
-return list->[](index);
+return list->get(index);
 }
 
 Nullable throwWithStackTrace() {
@@ -318,10 +345,10 @@ return Void;
 
 Nullable validateAge(Int age) {
   if ((age < dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), String(Null))));
 }
 if ((age > dart_int(150))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), String(Null))));
 };
 return Void;
 }
@@ -333,14 +360,14 @@ throw DartException(ObjectPtr<InvalidEmailException>(new InvalidEmailException(d
 return Void;
 }
 
-Nullable processUser(User user) {
-  if (user->name->isEmpty) {
+Nullable processUser(ObjectPtr<User> user) {
+  if (user->name->isEmpty()) {
 throw DartException(ObjectPtr<ValidationException>(new ValidationException(dart_string("姓名不能为空"), dart_string("name"), user->name, dart_int(1001))));
 }
 if ((user->age < dart_int(0))) {
 throw DartException(ObjectPtr<ValidationException>(new ValidationException(dart_string("年龄不能为负数"), dart_string("age"), user->age, dart_int(1002))));
 }
-if (user->email->isEmpty) {
+if (user->email->isEmpty()) {
 throw DartException(ObjectPtr<ValidationException>(new ValidationException(dart_string("邮箱不能为空"), dart_string("email"), user->email, dart_int(1003))));
 };
 return Void;
@@ -352,7 +379,7 @@ return Void;
 }
 
 Nullable performDatabaseOperation() {
-  auto random = (ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch % dart_int(2));
+  auto random = (ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch() % dart_int(2));
 if ((random == dart_int(0))) {
 throw DartException(ObjectPtr<ConnectionException>(new ConnectionException(dart_string("无法连接到数据库"), dart_string("localhost:5432"))));
 } else {
@@ -406,22 +433,22 @@ Nullable performConditionalRethrow(Bool shouldRethrow) {
 return Void;
 }
 
-DART_ASYNC_FUNCTION(Future<Nullable>, throwAsyncException, ()) {
+DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, throwAsyncException, ()) {
     DART_ASYNC_BEGIN
-  DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50)))));
+  DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null)));
 throw DartException(Exception::(dart_string("异步异常")));
     DART_ASYNC_END
 }
 
-DART_ASYNC_FUNCTION(Future<Nullable>, asyncOperationChain, ()) {
+DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, asyncOperationChain, ()) {
     DART_ASYNC_BEGIN
-  try DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(/*milliseconds:*/ dart_int(50)))));
+  try DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null)));
 throw DartException(Exception::(dart_string("异步链异常"))); catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
     DART_ASYNC_END
 }
 
-DART_ASYNC_FUNCTION(Stream<Int>, errorStream, ()) {
+DART_ASYNC_FUNCTION(ObjectPtr<Stream<Int>>, errorStream, ()) {
     DART_ASYNC_BEGIN
   co_yield dart_int(1);  // C++20 coroutine
 co_yield dart_int(2);  // C++20 coroutine

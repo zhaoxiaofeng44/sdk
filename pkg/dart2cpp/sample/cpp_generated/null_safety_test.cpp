@@ -8,7 +8,7 @@
 
 class Person {
 public:
-  Address address = Null;
+  ObjectPtr<Address> address = Null;
   Person() {
   }
   
@@ -32,19 +32,19 @@ public:
 
 int main() {
   try {
-    Int nullableInt;
+    Int nullableInt(Null);
 if (dart_is_null(nullableInt)) {
 dart_print(dart_string("nullableInt is null"));
 }
-String nullableString;
-auto result = dart_is_null(nullableString) ? dart_string("default value") : nullableString;
+String nullableString(Null);
+auto result = dart_null_coalesce(nullableString, dart_string("default value"));
 dart_print(result);
 auto maybeString = dart_string("hello");
-auto length = dart_is_null(maybeString) ? Null : maybeString;
+auto length = dart_null_coalesce(maybeString, Null);
 dart_print(length);
-Person person;
-auto cityName = dart_is_null(person) ? Null : dart_is_null(let_var->address) ? Null : person;
-dart_print(dart_is_null(cityName) ? dart_string("unknown city") : cityName);
+ObjectPtr<ObjectPtr<Person>> person(nullptr);
+auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
+dart_print(dart_null_coalesce(cityName, dart_string("unknown city")));
     return 0;
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;

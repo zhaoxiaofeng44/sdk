@@ -65,12 +65,12 @@ public:
   }
   
   Nullable add(T value) {
-    this->setValue(dart_cast<T>((this->_value + value)));
+    this->setValue(dart_cast<T>(this->_value->operator_add(value)));
 return Void;
   }
   
   Nullable multiply(T value) {
-    this->setValue(dart_cast<T>((this->_value * value)));
+    this->setValue(dart_cast<T>(this->_value->operator_mul(value)));
 return Void;
   }
   
@@ -370,7 +370,7 @@ public:
   
   Nullable insert(T value) {
     this->_root = this->_insertNode(this->_root, value);
-this->_size = (this->_size + dart_int(1));
+this->_size = this->_size->operator_add(dart_int(1));
 return Void;
   }
   

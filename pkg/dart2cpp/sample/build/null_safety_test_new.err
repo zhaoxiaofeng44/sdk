@@ -1,0 +1,44 @@
+dart/null_safety_test.cpp:11:32: error: no viable conversion from 'Nullable' to 'ObjectPtr<Address>'
+  ObjectPtr<Address> address = Null;
+                               ^~~~
+../cpp/core/dart_object.h:724:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'Address *' for 1st argument
+  ObjectPtr(T* ptr);
+  ^
+../cpp/core/dart_object.h:725:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const ObjectPtr<Address> &' for 1st argument
+  ObjectPtr(const ObjectPtr<T>& other);
+  ^
+../cpp/core/dart_object.h:726:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'ObjectPtr<Address> &&' for 1st argument
+  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  ^
+dart/null_safety_test.cpp:21:7: error: redefinition of 'Address'
+class Address {
+      ^
+../cpp/core/dart_object.h:1771:7: note: previous definition is here
+class Address : public Object {
+      ^
+dart/null_safety_test.cpp:43:15: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+auto length = dart_null_coalesce(maybeString, Null);
+              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../cpp/core/object_extensions.h:111:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+../cpp/core/dart_object.h:147:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+../cpp/core/dart_object.h:147:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+../cpp/core/dart_object.h:149:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+dart/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
+auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address(), Null); })();
+                                                                                                         ~~~~~~~~~^
+../cpp/core/object_extensions.h:111:56: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                       ^~~~
+dart/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
+auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address(), Null); })();
+                                                                                                         ~~~~~~~~~^
+../cpp/core/object_extensions.h:111:90: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                                         ^~~~
+5 errors generated.

@@ -53,22 +53,22 @@ public:
   }
   
   ObjectPtr<Calculator> add(Double n) {
-    this->value = (this->value + n);
+    this->value = this->value->operator_add(n);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   
   ObjectPtr<Calculator> subtract(Double n) {
-    this->value = (this->value - n);
+    this->value = this->value->operator_sub(n);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   
   ObjectPtr<Calculator> multiply(Double n) {
-    this->value = (this->value * n);
+    this->value = this->value->operator_mul(n);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   
   ObjectPtr<Calculator> divide(Double n) {
-    this->value = (this->value / n);
+    this->value = this->value->operator_div(n);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   
@@ -86,15 +86,15 @@ public:
   }
   
   ObjectPtr<Vector> operator_add(ObjectPtr<Vector> other) {
-    return ObjectPtr<Vector>(new Vector((this->x + other->x), (this->y + other->y)));
+    return ObjectPtr<Vector>(new Vector(this->x->operator_add(other->x), this->y->operator_add(other->y)));
   }
   
   ObjectPtr<Vector> operator_sub(ObjectPtr<Vector> other) {
-    return ObjectPtr<Vector>(new Vector((this->x - other->x), (this->y - other->y)));
+    return ObjectPtr<Vector>(new Vector(this->x->operator_sub(other->x), this->y->operator_sub(other->y)));
   }
   
   ObjectPtr<Vector> operator_mul(Double scalar) {
-    return ObjectPtr<Vector>(new Vector((this->x * scalar), (this->y * scalar)));
+    return ObjectPtr<Vector>(new Vector(this->x->operator_mul(scalar), this->y->operator_mul(scalar)));
   }
   
   Bool operator_equals(ObjectPtr<Object> other) {
@@ -106,7 +106,7 @@ public:
   }
   
   Double length() {
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
+    return MathExtension|sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   String toString() {
@@ -127,20 +127,20 @@ public:
   }
   
   ObjectPtr<Complex> operator_add(ObjectPtr<Complex> other) {
-    return ObjectPtr<Complex>(new Complex((this->real + other->real), (this->imaginary + other->imaginary)));
+    return ObjectPtr<Complex>(new Complex(this->real->operator_add(other->real), this->imaginary->operator_add(other->imaginary)));
   }
   
   ObjectPtr<Complex> operator_sub(ObjectPtr<Complex> other) {
-    return ObjectPtr<Complex>(new Complex((this->real - other->real), (this->imaginary - other->imaginary)));
+    return ObjectPtr<Complex>(new Complex(this->real->operator_sub(other->real), this->imaginary->operator_sub(other->imaginary)));
   }
   
   ObjectPtr<Complex> operator_mul(ObjectPtr<Complex> other) {
-    return ObjectPtr<Complex>(new Complex(((this->real * other->real) - (this->imaginary * other->imaginary)), ((this->real * other->imaginary) + (this->imaginary * other->real))));
+    return ObjectPtr<Complex>(new Complex(this->real->operator_mul(other->real)->operator_sub(this->imaginary->operator_mul(other->imaginary)), this->real->operator_mul(other->imaginary)->operator_add(this->imaginary->operator_mul(other->real))));
   }
   
   ObjectPtr<Complex> operator_div(ObjectPtr<Complex> other) {
-    auto denominator = ((other->real * other->real) + (other->imaginary * other->imaginary));
-return ObjectPtr<Complex>(new Complex((((this->real * other->real) + (this->imaginary * other->imaginary)) / denominator), (((this->imaginary * other->real) - (this->real * other->imaginary)) / denominator)));
+    auto denominator = other->real->operator_mul(other->real)->operator_add(other->imaginary->operator_mul(other->imaginary));
+return ObjectPtr<Complex>(new Complex(this->real->operator_mul(other->real)->operator_add(this->imaginary->operator_mul(other->imaginary))->operator_div(denominator), this->imaginary->operator_mul(other->real)->operator_sub(this->real->operator_mul(other->imaginary))->operator_div(denominator)));
   }
   
   String toString() {
@@ -161,10 +161,10 @@ public:
   
   ObjectPtr<Matrix> operator_add(ObjectPtr<Matrix> other) {
     auto result = dart_literal(dart_int(0));
-for (auto i = dart_int(0); (i < this->data->size()); ++i) {
+for (auto i = dart_int(0); i.operator_less(this->data->size()); i = i.operator_add(dart_int(1))) {
 auto row = dart_literal(dart_int(0));
-for (auto j = dart_int(0); (j < this->data->get(i)->size()); ++j) {
-row->add((this->data->get(i)->get(j) + other->data->get(i)->get(j)));
+for (auto j = dart_int(0); j.operator_less(this->data->get(i)->size()); j = j.operator_add(dart_int(1))) {
+row->add(this->data->get(i)->get(j)->operator_add(other->data->get(i)->get(j)));
 }
 result->add(row);
 }
@@ -185,7 +185,7 @@ return ObjectPtr<Matrix>(new Matrix(result));
 // 类: Point
 // ============================================================================
 
-class Point implements Comparable {
+class Point : implements Comparable {
 public:
   Double x;
   Double y;
@@ -193,8 +193,8 @@ public:
   }
   
   Int compareTo(ObjectPtr<Point> other) {
-    auto thisDistance = ((this->x * this->x) + (this->y * this->y));
-auto otherDistance = ((other->x * other->x) + (other->y * other->y));
+    auto thisDistance = this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y));
+auto otherDistance = other->x->operator_mul(other->x)->operator_add(other->y->operator_mul(other->y));
 return thisDistance->compareTo(otherDistance);
   }
   
@@ -356,28 +356,28 @@ Int fibonacci(Int n);
 ObjectPtr<Iterable> generateLazy(Int max);
 Nullable testClosuresAndHigherOrder() {
   dart_print(dart_string("\n📌 测试闭包和高阶函数"));
-auto makeAdder = [&](Int addBy) -> ObjectPtr<Function> return makeFunction([&](Int i) { return (i + addBy); });;
+auto makeAdder = [&](Int addBy) -> ObjectPtr<Function> return makeFunction([&](Int i) { return i->operator_add(addBy); });;
 auto add2 = makeAdder(dart_int(2));
 auto add5 = makeAdder(dart_int(5));
 dart_print(dart_string("  简单闭包:"));
 dart_print(dart_string("    add2(10): ") + (add2->apply(std::vector<Any>{dart_int(10)})).toString());
 dart_print(dart_string("    add5(10): ") + (add5->apply(std::vector<Any>{dart_int(10)})).toString());
 auto makeCounter = [&]() -> ObjectPtr<Function> auto count = dart_int(0);
-return makeFunction([&]() { count = (count + dart_int(1));
+return makeFunction([&]() { count = count.operator_add(dart_int(1));
 return count; });;
 auto counter = makeCounter();
 dart_print(dart_string("  计数器闭包:"));
 dart_print(dart_concat(dart_string("    计数: "), (counter->apply(std::vector<Any>{})).toString(), dart_string(", "), (counter->apply(std::vector<Any>{})).toString(), dart_string(", "), (counter->apply(std::vector<Any>{})).toString()));
 auto makeMultiplier = [&](Int factor) -> ObjectPtr<Function> auto callCount = dart_int(0);
-return makeFunction([&](Int value) { callCount = (callCount + dart_int(1));
+return makeFunction([&](Int value) { callCount = callCount.operator_add(dart_int(1));
 dart_print(dart_concat(dart_string("    调用第"), (callCount).toString(), dart_string("次")));
-return (value * factor); });;
+return value->operator_mul(factor); });;
 auto triple = makeMultiplier(dart_int(3));
 dart_print(dart_string("  多变量闭包:"));
 dart_print(dart_string("    triple(5): ") + (triple->apply(std::vector<Any>{dart_int(5)})).toString());
 dart_print(dart_string("    triple(7): ") + (triple->apply(std::vector<Any>{dart_int(7)})).toString());
 auto functions = dart_literal(dart_int(0));
-for (auto i = dart_int(0); (i < dart_int(3)); ++i) {
+for (auto i = dart_int(0); i.operator_less(dart_int(3)); i = i.operator_add(dart_int(1))) {
 auto captured = i;
 functions->add(makeFunction([&]() { return captured; }));
 }
@@ -391,13 +391,13 @@ Try correcting the operator to an existing operator, or defining a '*' operator.
                                       ^ */); }));
 dart_print(dart_string("  高阶函数:"));
 dart_print(dart_string("    applyTwice(5, x*2): ") + (result).toString());
-auto addOne = makeFunction([&](Int x) { return (x + dart_int(1)); });
-auto multiplyByTwo = makeFunction([&](Int x) { return (x * dart_int(2)); });
+auto addOne = makeFunction([&](Int x) { return x->operator_add(dart_int(1)); });
+auto multiplyByTwo = makeFunction([&](Int x) { return x->operator_mul(dart_int(2)); });
 auto composed = /* Invalid: temp_dart_source.dart:99:32: Error: A value of type 'dynamic Function(int)' can't be assigned to a variable of type 'int Function(int)'.
   int Function(int) composed = compose(multiplyByTwo, addOne);
                                ^ */;
 dart_print(dart_string("    函数组合 (x+1)*2 应用于5: ") + (composed->apply(std::vector<Any>{dart_int(5)})).toString());
-auto curriedAdd = curry(makeFunction([&](Int a, Int b) { return (a + b); }));
+auto curriedAdd = curry(makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
 auto add10 = curriedAdd->apply(std::vector<Any>{dart_int(10)});
 dart_print(dart_string("    柯里化加法: ") + (add10.call(dart_int(5))).toString());
 }
@@ -414,7 +414,7 @@ auto numbers = ([&]() { auto let_var = dart_literal(dart_int(0)); return ([&]() 
 dart_print(dart_string("  嵌套级联:"));
 dart_print(dart_string("    列表内容: ") + (numbers).toString());
 auto calculator = ([&]() { auto let_var = ObjectPtr<Calculator>(new Calculator()); return ([&]() { let_var->add(dart_double(10.0)); let_var->multiply(dart_double(2.0)); return let_var; })(); })();
-if ((calculator->value > dart_int(15))) {
+if (calculator->value->operator_greater(dart_int(15))) {
 ([&]() { auto let_var = calculator; return ([&]() { let_var->subtract(dart_double(5.0)); let_var->divide(dart_double(3.0)); return let_var; })(); })();
 }
 dart_print(dart_string("  条件级联:"));
@@ -454,7 +454,7 @@ dart_print(dart_string("  日期时间扩展:"));
 dart_print(dart_string("    是否为今天: ") + (DateTimeExtensions|isToday(now)).toString());
 dart_print(dart_string("    格式化: ") + (DateTimeExtensions|formatDate(now)).toString());
 dart_print(dart_string("    添加工作日: ") + (DateTimeExtensions|formatDate(DateTimeExtensions|addBusinessDays(now, dart_int(5)))).toString());
-auto result1 = LetExtension|let(dart_int(42), makeFunction([&](Int value) { return (value * dart_int(2)); }));
+auto result1 = LetExtension|let(dart_int(42), makeFunction([&](Int value) { return value->operator_mul(dart_int(2)); }));
 auto result2 = LetExtension|let(dart_string("hello"), makeFunction([&](String value) { return value->toUpperCase(); }));
 dart_print(dart_string("  泛型扩展:"));
 dart_print(dart_string("    let应用于数字: ") + (result1).toString());
@@ -468,9 +468,9 @@ auto v2 = ObjectPtr<Vector>(new Vector(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  向量操作符重载:"));
 dart_print(dart_string("    v1: ") + (v1).toString());
 dart_print(dart_string("    v2: ") + (v2).toString());
-dart_print(dart_string("    v1 + v2: ") + ((v1 + v2)).toString());
-dart_print(dart_string("    v1 - v2: ") + ((v1 - v2)).toString());
-dart_print(dart_string("    v1 * 2: ") + ((v1 * dart_double(2.0))).toString());
+dart_print(dart_string("    v1 + v2: ") + (v1->operator_add(v2)).toString());
+dart_print(dart_string("    v1 - v2: ") + (v1->operator_sub(v2)).toString());
+dart_print(dart_string("    v1 * 2: ") + (v1->operator_mul(dart_double(2.0))).toString());
 dart_print(dart_string("    v1 == v2: ") + ((v1 == v2)).toString());
 dart_print(dart_string("    v1长度: ") + (v1->size()).toString());
 auto c1 = ObjectPtr<Complex>(new Complex(dart_double(3.0), dart_double(4.0)));
@@ -478,22 +478,22 @@ auto c2 = ObjectPtr<Complex>(new Complex(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  复数操作符重载:"));
 dart_print(dart_string("    c1: ") + (c1).toString());
 dart_print(dart_string("    c2: ") + (c2).toString());
-dart_print(dart_string("    c1 + c2: ") + ((c1 + c2)).toString());
-dart_print(dart_string("    c1 - c2: ") + ((c1 - c2)).toString());
-dart_print(dart_string("    c1 * c2: ") + ((c1 * c2)).toString());
-dart_print(dart_string("    c1 / c2: ") + ((c1 / c2)).toString());
+dart_print(dart_string("    c1 + c2: ") + (c1->operator_add(c2)).toString());
+dart_print(dart_string("    c1 - c2: ") + (c1->operator_sub(c2)).toString());
+dart_print(dart_string("    c1 * c2: ") + (c1->operator_mul(c2)).toString());
+dart_print(dart_string("    c1 / c2: ") + (c1->operator_div(c2)).toString());
 auto m1 = ObjectPtr<Matrix>(new Matrix(dart_literal(dart_literal(dart_double(1.0), dart_double(2.0)), dart_literal(dart_double(3.0), dart_double(4.0)))));
 auto m2 = ObjectPtr<Matrix>(new Matrix(dart_literal(dart_literal(dart_double(5.0), dart_double(6.0)), dart_literal(dart_double(7.0), dart_double(8.0)))));
 dart_print(dart_string("  矩阵操作符重载:"));
 dart_print(dart_string("    m1: ") + (m1).toString());
 dart_print(dart_string("    m2: ") + (m2).toString());
-dart_print(dart_string("    m1 + m2: ") + ((m1 + m2)).toString());
+dart_print(dart_string("    m1 + m2: ") + (m1->operator_add(m2)).toString());
 dart_print(dart_string("    m1[0][1]: ") + (m1->get(dart_int(0))->get(dart_int(1))).toString());
 auto p1 = ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(2.0)));
 auto p2 = ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)));
 auto p3 = ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  点比较:"));
-dart_print(dart_string("    p1 < p2: ") + ((p1 < p2)).toString());
+dart_print(dart_string("    p1 < p2: ") + (p1->operator_less(p2)).toString());
 dart_print(dart_string("    p1 == p3: ") + ((p1 == p3)).toString());
 dart_print(dart_string("    p1.hashCode == p3.hashCode: ") + ((p1->hashCode() == p3->hashCode())).toString());
 return Void;
@@ -516,13 +516,13 @@ return Void;
 Nullable testFunctionalProgramming() {
   dart_print(dart_string("\n📌 测试函数式编程"));
 auto numbers = List<Int>::createFromValues({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)});
-auto result = numbers->where(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return (n * n); }))->where(makeFunction([&](Int n) { return (n > dart_int(10)); }))->toList();
+auto result = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return n->operator_mul(n); }))->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(10)); }))->toList();
 dart_print(dart_string("  函数式链式操作:"));
 dart_print(dart_string("    偶数平方大于10: ") + (result).toString());
-auto pipeline = pipe(dart_literal(makeFunction([&](ObjectPtr<List<Int>> list) { return list->where(makeFunction([&](Int n) { return (n > dart_int(5)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->map(makeFunction([&](Int n) { return (n * dart_int(2)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->toList(); })));
+auto pipeline = pipe(dart_literal(makeFunction([&](ObjectPtr<List<Int>> list) { return list->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(5)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->toList(); })));
 auto pipeResult = pipeline->apply(std::vector<Any>{numbers});
 dart_print(dart_string("    管道处理结果: ") + (pipeResult).toString());
-auto multiply = makeFunction([&](Int a, Int b) { return (a * b); });
+auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
 auto double = partial(multiply, dart_int(2));
 dart_print(dart_string("  部分应用:"));
 dart_print(dart_string("    double(5): ") + (double->apply(std::vector<Any>{dart_int(5)})).toString());
@@ -540,7 +540,7 @@ String StringExtensions|capitalize(String #this) {
   if (_this->isEmpty()) {
 return _this;
 }
-return (_this->get(dart_int(0))->toUpperCase() + _this->substring(dart_int(1)));
+return _this->get(dart_int(0))->toUpperCase()->operator_add(_this->substring(dart_int(1)));
 }
 
 std::function<String()> StringExtensions|get#capitalize(String #this) {
@@ -573,10 +573,10 @@ std::function<String()> StringExtensions|get#reverse(String #this) {
 }
 
 Int IntExtensions|factorial(Int #this) {
-  if ((_this <= dart_int(1))) {
+  if (_this->operator_less_equals(dart_int(1))) {
 return dart_int(1);
 }
-return (_this * IntExtensions|factorial((_this - dart_int(1))));
+return _this->operator_mul(IntExtensions|factorial(_this->operator_sub(dart_int(1))));
 }
 
 std::function<Int()> IntExtensions|get#factorial(Int #this) {
@@ -584,17 +584,17 @@ std::function<Int()> IntExtensions|get#factorial(Int #this) {
 }
 
 Bool IntExtensions|isPrime(Int #this) {
-  if ((_this <= dart_int(1))) {
+  if (_this->operator_less_equals(dart_int(1))) {
 return dart_bool(false);
 }
-if ((_this <= dart_int(3))) {
+if (_this->operator_less_equals(dart_int(3))) {
 return dart_bool(true);
 }
-if (((_this % dart_int(2)) == dart_int(0)) || ((_this % dart_int(3)) == dart_int(0))) {
+if ((_this->operator_mod(dart_int(2)) == dart_int(0)) || (_this->operator_mod(dart_int(3)) == dart_int(0))) {
 return dart_bool(false);
 }
-for (auto i = dart_int(5); (i * i)->operator_less_equals(_this); i = (i + dart_int(6))) {
-if (((_this % i) == dart_int(0)) || ((_this % (i + dart_int(2))) == dart_int(0))) {
+for (auto i = dart_int(5); i.operator_mul(i).operator_less_equals(_this); i = i.operator_add(dart_int(6))) {
+if ((_this->operator_mod(i) == dart_int(0)) || (_this->operator_mod(i.operator_add(dart_int(2))) == dart_int(0))) {
 return dart_bool(false);
 }
 }
@@ -606,7 +606,7 @@ std::function<Bool()> IntExtensions|get#isPrime(Int #this) {
 }
 
 Int IntExtensions|squared(Int #this) {
-  return (_this * _this);
+  return _this->operator_mul(_this);
 }
 
 std::function<Int()> IntExtensions|get#squared(Int #this) {
@@ -614,7 +614,7 @@ std::function<Int()> IntExtensions|get#squared(Int #this) {
 }
 
 T ListExtensions|secondOrNull(ObjectPtr<List<T>> #this) {
-  return (_this->size() >= dart_int(2)) ? _this->get(dart_int(1)) : Null;
+  return _this->size()->operator_greater_equals(dart_int(2)) ? _this->get(dart_int(1)) : Null;
 }
 
 std::function<T()> ListExtensions|get#secondOrNull(ObjectPtr<List<T>> #this) {
@@ -622,7 +622,7 @@ std::function<T()> ListExtensions|get#secondOrNull(ObjectPtr<List<T>> #this) {
 }
 
 T ListExtensions|secondLastOrNull(ObjectPtr<List<T>> #this) {
-  return (_this->size() >= dart_int(2)) ? _this->get((_this->size() - dart_int(2))) : Null;
+  return _this->size()->operator_greater_equals(dart_int(2)) ? _this->get(_this->size()->operator_sub(dart_int(2))) : Null;
 }
 
 std::function<T()> ListExtensions|get#secondLastOrNull(ObjectPtr<List<T>> #this) {
@@ -633,7 +633,7 @@ T ListExtensions|random(ObjectPtr<List<T>> #this) {
   if (_this->isEmpty()) {
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("Empty list"))));
 }
-return _this->get((ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch() % _this->size()));
+return _this->get(ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch()->operator_mod(_this->size()));
 }
 
 std::function<T()> ListExtensions|get#random(ObjectPtr<List<T>> #this) {
@@ -660,10 +660,10 @@ String DateTimeExtensions|formatDate(ObjectPtr<DateTime> #this) {
 ObjectPtr<DateTime> DateTimeExtensions|addBusinessDays(ObjectPtr<DateTime> #this, Int days) {
   auto result = _this;
 auto addedDays = dart_int(0);
-while ((addedDays < days)) {
+while (addedDays.operator_less(days)) {
 result = result->add(ObjectPtr<Duration>(new Duration(dart_int(1), Int(Null), Int(Null), Int(Null), Int(Null), Int(Null))));
-if ((result->weekday() < dart_int(6))) {
-addedDays = (addedDays + dart_int(1));
+if (result->weekday()->operator_less(dart_int(6))) {
+addedDays = addedDays.operator_add(dart_int(1));
 }
 }
 return result;
@@ -682,14 +682,14 @@ std::function<Any(std::function<Any(T)>)> LetExtension|get#let(T #this) {
 }
 
 Double MathExtension|sqrt(Double #this) {
-  if ((_this < dart_int(0))) {
+  if (_this->operator_less(dart_int(0))) {
 return dart_double(NaN);
 }
 auto x = _this;
 auto prev = dart_double(0.0);
-while (((x - prev)->abs() > dart_double(0.0001))) {
+while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
 prev = x;
-x = ((x + (_this / x)) / dart_int(2));
+x = x->operator_add(_this->operator_div(x))->operator_div(dart_int(2));
 }
 return x;
 }
@@ -736,14 +736,14 @@ return result; });
 }
 
 Int fibonacci(Int n) {
-  if ((n <= dart_int(1))) {
+  if (n->operator_less_equals(dart_int(1))) {
 return n;
 }
-return (fibonacci((n - dart_int(1))) + fibonacci((n - dart_int(2))));
+return fibonacci(n->operator_sub(dart_int(1)))->operator_add(fibonacci(n->operator_sub(dart_int(2))));
 }
 
 ObjectPtr<Iterable> generateLazy(Int max) {
-  for (auto i = dart_int(0); (i < max); ++i) {
+  for (auto i = dart_int(0); i.operator_less(max); i = i.operator_add(dart_int(1))) {
 co_yield i;  // C++20 coroutine
 }
 }

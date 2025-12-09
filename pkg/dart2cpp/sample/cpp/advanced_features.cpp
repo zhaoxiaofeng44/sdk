@@ -185,7 +185,7 @@ return ObjectPtr<Matrix>(new Matrix(result));
 // 类: Point
 // ============================================================================
 
-class Point implements Comparable {
+class Point : implements Comparable {
 public:
   Double x;
   Double y;
@@ -199,19 +199,19 @@ return thisDistance->compareTo(otherDistance);
   }
   
   Bool operator_less(ObjectPtr<Point> other) {
-    return this->compareTo(other)->operator_less(dart_int(0));
+    return (this->compareTo(other) < dart_int(0));
   }
   
   Bool operator_greater(ObjectPtr<Point> other) {
-    return this->compareTo(other)->operator_greater(dart_int(0));
+    return (this->compareTo(other) > dart_int(0));
   }
   
   Bool operator_less_equals(ObjectPtr<Point> other) {
-    return this->compareTo(other)->operator_less_equals(dart_int(0));
+    return (this->compareTo(other) <= dart_int(0));
   }
   
   Bool operator_greater_equals(ObjectPtr<Point> other) {
-    return this->compareTo(other)->operator_greater_equals(dart_int(0));
+    return (this->compareTo(other) >= dart_int(0));
   }
   
   Bool operator_equals(ObjectPtr<Object> other) {
