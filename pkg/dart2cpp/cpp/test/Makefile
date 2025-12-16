@@ -14,11 +14,11 @@ BUILD_DIR = build
 
 # 源文件 - 只包含实际存在的测试文件
 CORE_SOURCES = $(CORE_DIR)/dart_object.cpp $(CORE_DIR)/dart_string.cpp
-TEST_SOURCES = basic_types_test.cpp operators_test.cpp macros_test.cpp comprehensive_test.cpp collections_test.cpp oop_test.cpp async_test.cpp
+TEST_SOURCES = basic_types_test.cpp operators_test.cpp macros_test.cpp comprehensive_test.cpp collections_test.cpp oop_test.cpp async_test.cpp function_test.cpp
 
 # 目标文件
 CORE_OBJECTS = $(BUILD_DIR)/dart_object.o $(BUILD_DIR)/dart_string.o
-TEST_EXECUTABLES = $(BUILD_DIR)/basic_types_test $(BUILD_DIR)/operators_test $(BUILD_DIR)/macros_test $(BUILD_DIR)/comprehensive_test $(BUILD_DIR)/collections_test $(BUILD_DIR)/oop_test $(BUILD_DIR)/async_test
+TEST_EXECUTABLES = $(BUILD_DIR)/basic_types_test $(BUILD_DIR)/operators_test $(BUILD_DIR)/macros_test $(BUILD_DIR)/comprehensive_test $(BUILD_DIR)/collections_test $(BUILD_DIR)/oop_test $(BUILD_DIR)/async_test $(BUILD_DIR)/function_test
 
 # 默认目标
 all: $(BUILD_DIR) $(TEST_EXECUTABLES)
@@ -56,6 +56,9 @@ $(BUILD_DIR)/oop_test: oop_test.cpp $(CORE_OBJECTS)
 $(BUILD_DIR)/async_test: async_test.cpp $(CORE_OBJECTS)
 	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS) -pthread
 
+$(BUILD_DIR)/function_test: function_test.cpp $(CORE_OBJECTS)
+	$(CXX) $(CXXFLAGS) $< $(CORE_OBJECTS) -o $@ $(LDFLAGS)
+
 # 运行所有测试
 test: all
 	@echo "=== 运行所有测试 ==="
@@ -81,6 +84,9 @@ test: all
 	@echo "--- 异步编程测试 ---"
 	@$(BUILD_DIR)/async_test
 	@echo ""
+	@echo "--- Function 类型测试 ---"
+	@$(BUILD_DIR)/function_test
+	@echo ""
 	@echo "=== 所有测试完成! ==="
 
 # 运行单个测试
@@ -104,6 +110,9 @@ test-oop: $(BUILD_DIR)/oop_test
 
 test-async: $(BUILD_DIR)/async_test
 	@$(BUILD_DIR)/async_test
+
+test-function: $(BUILD_DIR)/function_test
+	@$(BUILD_DIR)/function_test
 
 # 清理构建文件
 clean:
@@ -141,6 +150,7 @@ help:
 	@echo "  test-collections    - 运行集合类型测试"
 	@echo "  test-oop            - 运行面向对象编程测试"
 	@echo "  test-async          - 运行异步编程测试"
+	@echo "  test-function       - 运行 Function 类型测试"
 	@echo "  clean               - 清理构建文件"
 	@echo "  rebuild             - 重新构建"
 	@echo "  debug               - 编译调试版本"
@@ -155,7 +165,7 @@ help:
 	@echo "  make clean          # 清理构建文件"
 
 # 声明伪目标
-.PHONY: all test test-basic test-operators test-macros test-comprehensive test-collections test-oop test-async clean rebuild debug release check help
+.PHONY: all test test-basic test-operators test-macros test-comprehensive test-collections test-oop test-async test-function clean rebuild debug release check help
 
 # 依赖关系
 $(TEST_EXECUTABLES): $(CORE_OBJECTS)

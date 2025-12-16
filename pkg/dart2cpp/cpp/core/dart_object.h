@@ -13,6 +13,7 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -20,6 +21,10 @@
 #include <utility>
 #include <vector>
 #include "dart_string.h"  // 包含ValueUnion定义
+#include <type_traits>
+#include <utility>
+#include <cstdint>
+
 
 
 // ============================================================================
@@ -34,6 +39,7 @@ class Object;
 class CppUserData;
 class Function;
 class String;
+class Duration;
 // 前向声明测试中使用的类
 class Shape;
 
@@ -83,6 +89,12 @@ class Any {
   
   // 从String类型构造 - 声明在这里，实现在cpp文件中
   Any(const String& s);
+  
+  // 从ObjectPtr类型构造 - 模板构造函数
+  template<typename T>
+  Any(const ObjectPtr<T>& obj) : type_id(100) { 
+    value.object_ptr = obj.get();
+  }
   
   // 赋值运算符
   Any& operator=(const Any& other) {
@@ -135,6 +147,21 @@ class Any {
 
   // 虚的 toString 方法，由子类实现
   virtual String toString() const;
+  
+  // 通用方法调用转发 - 用于dynamic类型的方法调用
+  template<typename... Args>
+  Any callMethod(const std::string& methodName, Args... args) const {
+    // 这是一个简化的实现，实际实现需要根据type_id进行动态分发
+    // 在这里我们只是返回一个默认的Any值
+    return Any();
+  }
+  
+  // 通用属性访问转发 - 用于dynamic类型的属性访问
+  Any getProperty(const std::string& propertyName) const {
+    // 这是一个简化的实现，实际实现需要根据type_id进行动态分发
+    // 在这里我们只是返回一个默认的Any值
+    return Any();
+  }
 
   virtual ~Any() {}
 };
@@ -250,11 +277,15 @@ class Int : public Any {
   int getValue() const { return value.int_value; }
 
   // 算术运算符函数
-  Int operator_plus(const Int& other) const;
-  Int operator_minus(const Int& other) const;
-  Int operator_multiply(const Int& other) const;
-  Int operator_divide(const Int& other) const;
-  Int operator_modulo(const Int& other) const;
+  Int operator_add(const Int& other) const;
+  Double operator_add(const Double& other) const;  // Int + Double = Double
+  Int operator_sub(const Int& other) const;
+  Double operator_sub(const Double& other) const;  // Int - Double = Double
+  Int operator_mul(const Int& other) const;
+  Double operator_mul(const Double& other) const;  // Int * Double = Double
+  Int operator_div(const Int& other) const;
+  Double operator_div(const Double& other) const;  // Int / Double = Double
+  Int operator_mod(const Int& other) const;
   Int integerDivision(const Int& other) const;
   Int truncatingDivision(const Int& other) const;  // ~/ 运算符的方法形式
 
@@ -265,14 +296,27 @@ class Int : public Any {
   Int operator/(const Int& other) const;
   Int operator%(const Int& other) const;
   
-  // 复合赋值运算符
+  // 复合赋值运算符函数
+  Int& operator_add_assign(const Int& other);
+  Int& operator_sub_assign(const Int& other);
+  Int& operator_mul_assign(const Int& other);
+  Int& operator_div_assign(const Int& other);
+  Int& operator_mod_assign(const Int& other);
+
+  // 标准复合赋值运算符
   Int& operator+=(const Int& other);
   Int& operator-=(const Int& other);
   Int& operator*=(const Int& other);
   Int& operator/=(const Int& other);
   Int& operator%=(const Int& other);
   
-  // 自增自减运算符
+  // 自增自减运算符函数
+  Int& operator_increment();           // 前置++
+  Int operator_post_increment();       // 后置++
+  Int& operator_decrement();           // 前置--
+  Int operator_post_decrement();       // 后置--
+
+  // 标准自增自减运算符
   Int& operator++();    // 前置++
   Int operator++(int);  // 后置++
   Int& operator--();    // 前置--
@@ -292,7 +336,23 @@ class Int : public Any {
   Int operator_shift_right(const Int& other) const;
   Int operator_bitwise_not() const;
 
+  // 标准位运算符
+  Int operator&(const Int& other) const;
+  Int operator|(const Int& other) const;
+  Int operator^(const Int& other) const;
+  Int operator<<(const Int& other) const;
+  Int operator>>(const Int& other) const;
+  Int operator~() const;
+
   // 比较运算符函数
+  Bool operator_equals(const Int& other) const;
+  Bool operator_not_equals(const Int& other) const;
+  Bool operator_less(const Int& other) const;
+  Bool operator_less_equals(const Int& other) const;
+  Bool operator_greater(const Int& other) const;
+  Bool operator_greater_equals(const Int& other) const;
+
+  // 标准比较运算符
   Bool operator==(const Int& other) const;
   Bool operator!=(const Int& other) const;
   Bool operator<(const Int& other) const;
@@ -300,9 +360,13 @@ class Int : public Any {
   Bool operator>(const Int& other) const;
   Bool operator>=(const Int& other) const;
 
-  // 一元运算符
+  // 一元运算符函数
   Int operator_unary_minus() const;
   Int operator_unary_plus() const;
+
+  // 标准一元运算符
+  Int operator-() const;
+  Int operator+() const;
 
   // Dart 方法实现
   Int abs() const;
@@ -326,6 +390,18 @@ class Int : public Any {
 
   // 一元负号运算符（方法调用形式）
   Int operator_negate() const;
+
+  // 箭头运算符重载，返回指向自身的指针
+  Int* operator->() { return this; }
+  const Int* operator->() const { return this; }
+
+  // 修复#6: parse 静态方法
+  static Int parse(const String& source);
+  static Int parse(const String& source, const Int& radix);
+  static Int tryParse(const String& source);
+
+  // 修复#11: toRadixString 方法
+  String toRadixString(const Int& radix) const;
 };
 
 // ============================================================================
@@ -351,11 +427,15 @@ class Double : public Any {
   double getValue() const { return value.double_value; }
 
   // 算术运算符函数
-  Double operator_plus(const Double& other) const;
-  Double operator_minus(const Double& other) const;
-  Double operator_multiply(const Double& other) const;
-  Double operator_divide(const Double& other) const;
-  Double operator_modulo(const Double& other) const;
+  Double operator_add(const Double& other) const;
+  Double operator_add(const Int& other) const;     // Double + Int = Double
+  Double operator_sub(const Double& other) const;
+  Double operator_sub(const Int& other) const;     // Double - Int = Double
+  Double operator_mul(const Double& other) const;
+  Double operator_mul(const Int& other) const;     // Double * Int = Double
+  Double operator_div(const Double& other) const;
+  Double operator_div(const Int& other) const;     // Double / Int = Double
+  Double operator_mod(const Double& other) const;
 
   // 标准算术运算符
   Double operator+(const Double& other) const;
@@ -364,20 +444,41 @@ class Double : public Any {
   Double operator/(const Double& other) const;
   Double operator%(const Double& other) const;
   
-  // 复合赋值运算符
+  // 复合赋值运算符函数
+  Double& operator_add_assign(const Double& other);
+  Double& operator_sub_assign(const Double& other);
+  Double& operator_mul_assign(const Double& other);
+  Double& operator_div_assign(const Double& other);
+  Double& operator_mod_assign(const Double& other);
+
+  // 标准复合赋值运算符
   Double& operator+=(const Double& other);
   Double& operator-=(const Double& other);
   Double& operator*=(const Double& other);
   Double& operator/=(const Double& other);
   Double& operator%=(const Double& other);
   
-  // 自增自减运算符
+  // 自增自减运算符函数
+  Double& operator_increment();           // 前置++
+  Double operator_post_increment();       // 后置++
+  Double& operator_decrement();           // 前置--
+  Double operator_post_decrement();       // 后置--
+
+  // 标准自增自减运算符
   Double& operator++();    // 前置++
   Double operator++(int);  // 后置++
   Double& operator--();    // 前置--
   Double operator--(int);  // 后置--
 
   // 比较运算符函数
+  Bool operator_equals(const Double& other) const;
+  Bool operator_not_equals(const Double& other) const;
+  Bool operator_less(const Double& other) const;
+  Bool operator_less_equals(const Double& other) const;
+  Bool operator_greater(const Double& other) const;
+  Bool operator_greater_equals(const Double& other) const;
+
+  // 标准比较运算符
   Bool operator==(const Double& other) const;
   Bool operator!=(const Double& other) const;
   Bool operator<(const Double& other) const;
@@ -385,10 +486,14 @@ class Double : public Any {
   Bool operator>(const Double& other) const;
   Bool operator>=(const Double& other) const;
 
-  // 一元运算符
+  // 一元运算符函数
   Double operator_unary_minus() const;
   Double operator_unary_plus() const;
   Double operator_negate() const;  // 方法调用形式的一元负号
+
+  // 标准一元运算符
+  Double operator-() const;
+  Double operator+() const;
 
   // Dart 方法实现
   Double abs() const;
@@ -411,6 +516,21 @@ class Double : public Any {
   // 显式类型转换方法
   double toDouble() const;
   Bool toBool() const;
+
+  // 箭头运算符重载，返回指向自身的指针
+  Double* operator->() { return this; }
+  const Double* operator->() const { return this; }
+
+  // 修复#6: parse 静态方法
+  static Double parse(const String& source);
+  static Double tryParse(const String& source);
+
+  // 修复#7: NaN 和 Infinity 静态常量
+  static const Double nan;
+  static const Double infinity;
+  static const Double negativeInfinity;
+  static const Double minPositive;
+  static const Double maxFinite;
 };
 
 // ============================================================================
@@ -435,11 +555,20 @@ class Bool : public Any {
   bool getValue() const { return value.bool_value; }
 
   // 逻辑运算符函数
+  Bool operator_and(const Bool& other) const;
+  Bool operator_or(const Bool& other) const;
+  Bool operator_not() const;
+
+  // 标准逻辑运算符
   Bool operator&&(const Bool& other) const;
   Bool operator||(const Bool& other) const;
   Bool operator!() const;
 
   // 比较运算符函数
+  Bool operator_equals(const Bool& other) const;
+  Bool operator_not_equals(const Bool& other) const;
+
+  // 标准比较运算符
   Bool operator==(const Bool& other) const;
   Bool operator!=(const Bool& other) const;
 
@@ -453,6 +582,10 @@ class Bool : public Any {
   // 显式类型转换方法
   bool toBool() const;
   Int toInt() const;
+
+  // 箭头运算符重载，返回指向自身的指针
+  Bool* operator->() { return this; }
+  const Bool* operator->() const { return this; }
 };
 
 // ============================================================================
@@ -472,6 +605,67 @@ class Object : public Any {
   void increment();
   void decrement();
   int getRefCount() const;
+
+  // 修复#9: Object::hash 静态方法
+  static Int hash(const Any& object);
+  static Int hashAll(const std::vector<Any>& objects);
+};
+
+// ============================================================================
+// Exception 基类 (修复#5)
+// ============================================================================
+
+class Exception : public Object {
+protected:
+  String message_;
+
+public:
+  Exception();
+  Exception(const String& message);
+  virtual ~Exception() = default;
+
+  // 获取异常信息
+  virtual String getMessage() const;
+  virtual String toString() const override;
+
+  // 静态创建方法
+  static ObjectPtr<Exception> create(const String& message);
+};
+
+// FormatException - 格式异常
+class FormatException : public Exception {
+public:
+  FormatException();
+  FormatException(const String& message);
+  String toString() const override;
+  static ObjectPtr<FormatException> create(const String& message);
+};
+
+// StateError - 状态错误
+class StateError : public Exception {
+public:
+  StateError();
+  StateError(const String& message);
+  String toString() const override;
+  static ObjectPtr<StateError> create(const String& message);
+};
+
+// ArgumentError - 参数错误
+class ArgumentError : public Exception {
+public:
+  ArgumentError();
+  ArgumentError(const String& message);
+  String toString() const override;
+  static ObjectPtr<ArgumentError> create(const String& message);
+};
+
+// RangeError - 范围错误
+class RangeError : public Exception {
+public:
+  RangeError();
+  RangeError(const String& message);
+  String toString() const override;
+  static ObjectPtr<RangeError> create(const String& message);
 };
 
 // ============================================================================
@@ -510,13 +704,6 @@ class CppUserData : public Any {
 // 内部有一个虚方法apply，接收std::vector<Any>并返回Any
 // 作为通用的函数扩展调用接口
 class Function : public Object {
-protected:
-  // 缓存参数类型信息
-  std::vector<int> param_types_;
-  int return_type_;
-  // 参数数量
-  size_t param_count_;
-
 public:
   Function();
   virtual ~Function();
@@ -528,128 +715,87 @@ public:
   // 辅助方法
   Bool isNull() const;
   String toString() const override;
-  
-  // 获取参数数量
-  Int getParameterCount() const;
-  
-  // 获取参数类型
-  std::vector<int> getParameterTypes() const;
-  
-  // 获取返回类型
-  Int getReturnType() const;
 };
 
-// Function模板子类 - 支持特定参数类型的函数
+// TypedFunction模板类 - 统一支持std::function和lambda对象
 // 继承自Function，实现apply方法
 // 限制参数类型以及返回值
-template<typename R, typename... Args>
+template<typename F, typename R, typename... Args>
 class TypedFunction : public Function {
+private:
+  F func_;
+  
+public:
+  // 构造函数 - 支持任意可调用对象
+  template<typename FuncType>
+  TypedFunction(FuncType&& func) : func_(std::forward<FuncType>(func)) {}
+  
+  // 实现apply方法 - 直接转换参数并调用，不做边界检查
+  Any apply(const std::vector<Any>& args) override {
+    return applyImpl(args, std::index_sequence_for<Args...>{});
+  }
+  
+  // 重载 operator() - 直接调用存储的函数对象
+  R operator()(Args... args) {
+    return func_(std::forward<Args>(args)...);
+  }
+  
+  // call 方法 - 效果和 operator() 一样，使用 ->call 调用函数
+  R call(Args... args) {
+    return func_(std::forward<Args>(args)...);
+  }
+  
+private:
+  // 使用索引序列展开参数并调用
+  template<std::size_t... I>
+  Any applyImpl(const std::vector<Any>& args, std::index_sequence<I...>) {
+    if constexpr (std::is_void_v<R>) {
+      func_(static_cast<Args>(args[I])...);
+      return Any();
+    } else {
+      return Any(func_(static_cast<Args>(args[I])...));
+    }
+  }
+};
+
+// 为了向后兼容，保留原始的TypedFunction特化版本（只接受std::function）
+template<typename R, typename... Args>
+class TypedFunction<std::function<R(Args...)>, R, Args...> : public Function {
 private:
   std::function<R(Args...)> func_;
   
 public:
   // 构造函数
-  TypedFunction(std::function<R(Args...)> func) : func_(std::move(func)) {
-    // 初始化参数类型信息
-    param_count_ = sizeof...(Args);
-    return_type_ = getTypeId<R>();
-    if constexpr (sizeof...(Args) > 0) {
-      param_types_ = {getTypeId<Args>()...};
-    }
-  }
+  TypedFunction(std::function<R(Args...)> func) : func_(std::move(func)) {}
   
   // 实现apply方法
   Any apply(const std::vector<Any>& args) override {
-    // 类型安全检查
-    if (args.size() != sizeof...(Args)) {
-      throw std::runtime_error("Argument count mismatch");
-    }
-    
-    // 调用实际函数并返回结果
-    return callImpl(args, std::index_sequence_for<Args...>{});
+    return applyImpl(args, std::index_sequence_for<Args...>{});
+  }
+  
+  // 重载 operator()
+  R operator()(Args... args) {
+    return func_(std::forward<Args>(args)...);
+  }
+  
+  // call 方法 - 效果和 operator() 一样，使用 ->call 调用函数
+  R call(Args... args) {
+    return func_(std::forward<Args>(args)...);
   }
   
 private:
-  // 递归展开参数调用
   template<std::size_t... I>
-  Any callImpl(const std::vector<Any>& args, std::index_sequence<I...>) {
-    if constexpr (std::is_same_v<R, void>) {
-      func_(convertFromAny<Args>(args[I])...);
-      return Any(); // 返回空Any
+  Any applyImpl(const std::vector<Any>& args, std::index_sequence<I...>) {
+    if constexpr (std::is_void_v<R>) {
+      func_(static_cast<Args>(args[I])...);
+      return Any();
     } else {
-      return convertToAny(func_(convertFromAny<Args>(args[I])...));
+      return Any(func_(static_cast<Args>(args[I])...));
     }
-  }
-  
-  // 获取类型ID的辅助方法
-  template<typename T>
-  int getTypeId() const {
-    if constexpr (std::is_same_v<T, Int>) return 1;
-    if constexpr (std::is_same_v<T, Double>) return 2;
-    if constexpr (std::is_same_v<T, Bool>) return 3;
-    if constexpr (std::is_same_v<T, String>) return 4;
-    if constexpr (std::is_same_v<T, void>) return 0;
-    return -1; // 未知类型
-  }
-  
-  // 转换为Any的辅助方法
-  template<typename T>
-  Any convertToAny(const T& value) const {
-    Any result;
-    if constexpr (std::is_same_v<T, Int>) {
-      result.type_id = 1;
-      result.value.int_value = value.value.int_value;
-    } else if constexpr (std::is_same_v<T, Double>) {
-      result.type_id = 2;
-      result.value.double_value = value.value.double_value;
-    } else if constexpr (std::is_same_v<T, Bool>) {
-      result.type_id = 3;
-      result.value.bool_value = value.value.bool_value;
-    } else if constexpr (std::is_same_v<T, String>) {
-      result.type_id = 4;
-      // 注意：这里需要深拷贝字符串
-      result.value.string_index = value.value.string_index;
-    } else if constexpr (std::is_same_v<T, void>) {
-      result.type_id = 0;
-    }
-    return result;
-  }
-  
-  // void特化
-  Any convertToAny() const {
-    Any result;
-    result.type_id = 0;
-    return result;
-  }
-  
-  // 从Any转换的辅助方法
-  template<typename T>
-  T convertFromAny(const Any& any) const {
-    if constexpr (std::is_same_v<T, Int>) {
-      return Int(any.toInt());
-    } else if constexpr (std::is_same_v<T, Double>) {
-      return Double(any.toDouble());
-    } else if constexpr (std::is_same_v<T, Bool>) {
-      return Bool(any.toBool());
-    } else if constexpr (std::is_same_v<T, String>) {
-      return String(any.toString());
-    }
-    // 对于其他类型，返回默认构造
-    return T{};
   }
 };
 
-// 静态工厂方法 - 创建TypedFunction实例
-template<typename F>
-ObjectPtr<Function> makeFunction(F&& func) {
-    if constexpr (std::is_function_v<std::remove_pointer_t<std::decay_t<F>>>) {
-        // 处理函数指针
-        return ObjectPtr<Function>(new TypedFunction<Int, Int, Int>(std::function<Int(Int, Int)>(std::forward<F>(func))));
-    } else {
-        // 处理 lambda 和 std::function
-        return ObjectPtr<Function>(new TypedFunction<Int, Int, Int>(std::function<Int(Int, Int)>(std::forward<F>(func))));
-    }
-}
+// makeFunction实现已移至文件末尾
 
 // ============================================================================
 // 容器类型声明
@@ -771,13 +917,66 @@ class ObjectPtr {
   // 静态创建方法
   template <typename... Args>
   static ObjectPtr<T> create(Args&&... args);
+
+  String toString() const;
 };
 
-// 静态工厂方法 - 创建TypedFunction实例
-ObjectPtr<Function> makeFunction(std::function<Int(Int, Int)> func);
-ObjectPtr<Function> makeFunction(Int (*func)(Int, Int));
+
+// Lambda类型推导辅助结构
+template<typename T>
+struct lambda_traits;
+
+// 特化：推导lambda的函数签名
 template<typename F>
-ObjectPtr<Function> makeFunction(F&& lambda);
+struct lambda_traits : lambda_traits<decltype(&F::operator())> {};
+
+// 特化：从成员函数指针提取签名
+template<typename C, typename R, typename... Args>
+struct lambda_traits<R(C::*)(Args...) const> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：非const lambda
+template<typename C, typename R, typename... Args>
+struct lambda_traits<R(C::*)(Args...)> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// makeFunction 模板函数 - 自动推导 lambda 的参数类型，返回具体的TypedFunction类型
+template<typename F>
+auto makeFunction(F&& lambda) {
+    // 推导lambda的返回类型和参数类型
+    using traits = lambda_traits<std::decay_t<F>>;
+    using return_type = typename traits::return_type;
+    using args_tuple = typename traits::args_tuple;
+    
+    // 使用辅助函数创建TypedFunction
+    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{});
+}
+
+// 辅助函数：从参数tuple创建TypedFunction
+template<typename F, typename... Args>
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
+    using traits = lambda_traits<std::decay_t<F>>;
+    using return_type = typename traits::return_type;
+    using TypedFuncType = TypedFunction<std::decay_t<F>, return_type, Args...>;
+    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::forward<F>(lambda)));
+}
+
+// makeFunction 函数指针重载 - 支持普通函数指针
+// 将函数指针转换为 std::function，然后创建 TypedFunction
+template<typename R, typename... Args>
+auto makeFunction(R (*func)(Args...)) {
+    // 将函数指针包装为 std::function
+    std::function<R(Args...)> stdFunc(func);
+    // 使用 std::function 特化版本的 TypedFunction
+    using TypedFuncType = TypedFunction<std::function<R(Args...)>, R, Args...>;
+    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::move(stdFunc)));
+}
 
 // ============================================================================
 // List 容器类型
@@ -802,6 +1001,10 @@ class List : public Object {
   const T& operator[](const Int& index) const;
   T get(const Int& index) const;
   void set(const Int& index, const T& value);
+  
+  // 索引运算符方法
+  T operator_index(const Int& index) const;
+  void operator_index_set(const Int& index, const T& value);
 
   // 容量相关
   Int size() const;
@@ -811,12 +1014,20 @@ class List : public Object {
 
   // 修改操作
   void add(const T& item);
+  void addAll(const ObjectPtr<List<T>>& items);  // 添加所有元素
   void insert(const Int& index, const T& item);
+  void insertAll(const Int& index, const ObjectPtr<List<T>>& items);  // 插入所有元素
   Bool remove(const T& item);
   Bool removeElement(const T& item);  // 别名
   T removeAt(const Int& index);
+  T removeLast();  // 移除最后一个元素
   void clear();
-  void sort();  // 排序方法
+  void sort();  // 排序方法（默认排序）
+  
+  // 排序方法（自定义比较函数）
+  // compare 函数返回值：< 0 表示 a < b，0 表示 a == b，> 0 表示 a > b
+  template<typename CompareFunc>
+  void sort(CompareFunc compare);
   void reverse();  // 原地反转
 
   // 查找操作
@@ -842,24 +1053,61 @@ class List : public Object {
   ObjectPtr<List<T>> reversed() const;
 
   // 函数式操作
-  template <typename R>
-  ObjectPtr<List<R>> map(const ObjectPtr<Function>& mapper) const;
+  template <typename R, typename MapperFunc>
+  ObjectPtr<List<R>> map(const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) const;
   
-  ObjectPtr<List<T>> where(const ObjectPtr<Function>& predicate) const;
+  template <typename PredicateFunc>
+  ObjectPtr<List<T>> where(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
   
-  T reduce(const ObjectPtr<Function>& combine) const;
+  template <typename CombineFunc>
+  T reduce(const ObjectPtr<TypedFunction<CombineFunc, T, T, T>>& combine) const;
   
-  template <typename R>
-  R fold(const R& initialValue, const ObjectPtr<Function>& combine) const;
+  template <typename R, typename CombineFunc>
+  R fold(const R& initialValue, const ObjectPtr<TypedFunction<CombineFunc, R, R, T>>& combine) const;
 
   // 静态创建方法
   static ObjectPtr<List<T>> create();
   static ObjectPtr<List<T>> create(const List<T>& other);
   static ObjectPtr<List<T>> create(std::initializer_list<T> init);
+  static ObjectPtr<List<T>> createFromValues(std::initializer_list<T> values);
+
+  // 修复#13: List.from 和 List.of 静态工厂方法
+  template<typename Iterable>
+  static ObjectPtr<List<T>> from(const ObjectPtr<Iterable>& source);
+  template<typename Iterable>
+  static ObjectPtr<List<T>> of(const ObjectPtr<Iterable>& source);
+  static ObjectPtr<List<T>> filled(const Int& length, const T& fill);
+  static ObjectPtr<List<T>> generate(const Int& length, std::function<T(Int)> generator);
 
   // Dart 方法实现
   String toString() const override;
 };
+
+// ============================================================================
+// List 模板方法实现
+// ============================================================================
+
+template <typename T>
+template <typename R, typename MapperFunc>
+ObjectPtr<List<R>> List<T>::map(const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) const {
+  auto result = ObjectPtr<List<R>>(new List<R>());
+  for (const auto& item : data_) {
+    result->add(mapper->call(item));
+  }
+  return result;
+}
+
+template <typename T>
+template <typename PredicateFunc>
+ObjectPtr<List<T>> List<T>::where(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+  auto result = ObjectPtr<List<T>>(new List<T>());
+  for (const auto& item : data_) {
+    if (predicate->call(item)->toBool()) {
+      result->add(item);
+    }
+  }
+  return result;
+}
 
 // ============================================================================
 // Set 容器类型
@@ -936,6 +1184,10 @@ class Map : public Object {
   const V& operator[](const K& key) const;
   V get(const K& key) const;
   void set(const K& key, const V& value);
+  
+  // 索引运算符方法
+  V operator_index(const K& key) const;
+  void operator_index_set(const K& key, const V& value);
 
   // 容量相关
   Int size() const;
@@ -963,9 +1215,107 @@ class Map : public Object {
   static ObjectPtr<Map<K, V>> create();
   static ObjectPtr<Map<K, V>> create(const Map<K, V>& other);
   static ObjectPtr<Map<K, V>> create(std::initializer_list<std::pair<K, V>> init);
+  static ObjectPtr<Map<K, V>> createFromEntries(std::initializer_list<std::pair<K, V>> entries);
 
   // Dart 方法实现
   String toString() const override;
+};
+
+// ============================================================================
+// StringBuffer 类 - 字符串构建器
+// ============================================================================
+
+class StringBuffer : public Object {
+private:
+  std::string buffer_;
+
+public:
+  StringBuffer();
+  StringBuffer(const String& initial);
+  virtual ~StringBuffer() = default;
+
+  // 核心方法
+  void write(const String& str);
+  void writeln(const String& str = String(""));
+  void writeAll(const std::vector<String>& objects, const String& separator = String(""));
+  void clear();
+  
+  // 查询方法
+  Int length() const;
+  Bool isEmpty() const;
+  Bool isNotEmpty() const;
+  
+  // 转换方法
+  String toString() const override;
+  
+  // 静态创建方法
+  static ObjectPtr<StringBuffer> create();
+  static ObjectPtr<StringBuffer> create(const String& initial);
+};
+
+// ============================================================================
+// RegExp 类 - 正则表达式
+// ============================================================================
+
+class RegExp : public Object {
+private:
+  std::string pattern_;
+  bool caseSensitive_;
+  bool multiLine_;
+  bool dotAll_;
+
+public:
+  RegExp(const String& pattern, bool caseSensitive = true, bool multiLine = false, bool dotAll = false);
+  virtual ~RegExp() = default;
+
+  // 核心方法
+  Bool hasMatch(const String& input);
+  String stringMatch(const String& input);
+  Int matchAsPrefix(const String& string, Int start = Int(0));
+  
+  // 属性
+  String pattern() const;
+  Bool isCaseSensitive() const;
+  Bool isMultiLine() const;
+  Bool isDotAll() const;
+  
+  String toString() const override;
+  
+  // 静态创建方法
+  static ObjectPtr<RegExp> create(const String& pattern);
+  static ObjectPtr<RegExp> create(const String& pattern, bool caseSensitive, bool multiLine = false, bool dotAll = false);
+};
+
+// ============================================================================
+// Timer 类 - 定时器
+// ============================================================================
+
+class Timer : public Object {
+private:
+  bool isActive_;
+  
+public:
+  Timer();
+  virtual ~Timer() = default;
+  
+  // 核心方法
+  void cancel();
+  Bool isActive() const;
+  
+  String toString() const override;
+  
+  // 静态工厂方法
+  template<typename CallbackFunc>
+  static ObjectPtr<Timer> periodic(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<CallbackFunc, void, ObjectPtr<Timer>>> callback);
+  
+  template<typename CallbackFunc>  
+  static void run(ObjectPtr<TypedFunction<CallbackFunc, void>> callback);
+  
+  // 延迟执行 - 支持延迟调用 (实现在cpp文件中)
+  template<typename CallbackFunc>
+  static ObjectPtr<Timer> delayed(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<CallbackFunc, void>> callback);
+  
+  static ObjectPtr<Timer> create();
 };
 
 // ============================================================================
@@ -1099,6 +1449,12 @@ T* ObjectPtr<T>::release() {
   return temp;
 }
 
+
+template<typename T>
+String ObjectPtr<T>::toString() const {
+  return ((T*)ptr_)->toString();
+}
+
 template<typename T>
 template<typename U>
 ObjectPtr<U> ObjectPtr<T>::cast() const {
@@ -1146,6 +1502,16 @@ T List<T>::get(const Int& index) const {
 
 template<typename T>
 void List<T>::set(const Int& index, const T& value) {
+  data_[index.toInt()] = value;
+}
+
+template<typename T>
+T List<T>::operator_index(const Int& index) const {
+  return data_[index.toInt()];
+}
+
+template<typename T>
+void List<T>::operator_index_set(const Int& index, const T& value) {
   data_[index.toInt()] = value;
 }
 
@@ -1209,6 +1575,25 @@ void List<T>::clear() {
 template<typename T>
 void List<T>::sort() {
   std::sort(data_.begin(), data_.end());
+}
+
+template<typename T>
+template<typename CompareFunc>
+void List<T>::sort(CompareFunc compare) {
+  // 将 Dart 风格的比较函数（返回 int）转换为 C++ 风格（返回 bool）
+  std::sort(data_.begin(), data_.end(), 
+    [&compare](const T& a, const T& b) {
+      // Dart 比较函数返回：< 0 (a < b), 0 (a == b), > 0 (a > b)
+      // C++ 需要：true (a < b), false (a >= b)
+      auto result = compare(a, b);
+      // 如果 result 是 Int 类型，需要转换为 int
+      if constexpr (std::is_same_v<decltype(result), Int>) {
+        return result.toInt() < 0;
+      } else {
+        return result < 0;
+      }
+    }
+  );
 }
 
 template<typename T>
@@ -1324,6 +1709,46 @@ ObjectPtr<List<T>> List<T>::create(const List<T>& other) {
 template<typename T>
 ObjectPtr<List<T>> List<T>::create(std::initializer_list<T> init) {
   return ObjectPtr<List<T>>(new List<T>(init));
+}
+
+template<typename T>
+ObjectPtr<List<T>> List<T>::createFromValues(std::initializer_list<T> values) {
+  return ObjectPtr<List<T>>(new List<T>(values));
+}
+
+// 修复#13: List.from 和 List.of 静态工厂方法实现
+template<typename T>
+template<typename Iterable>
+ObjectPtr<List<T>> List<T>::from(const ObjectPtr<Iterable>& source) {
+  auto result = ObjectPtr<List<T>>(new List<T>());
+  for (Int i = Int(0); i < source->size(); ++i) {
+    result->add(source->get(i));
+  }
+  return result;
+}
+
+template<typename T>
+template<typename Iterable>
+ObjectPtr<List<T>> List<T>::of(const ObjectPtr<Iterable>& source) {
+  return from(source);
+}
+
+template<typename T>
+ObjectPtr<List<T>> List<T>::filled(const Int& length, const T& fill) {
+  auto result = ObjectPtr<List<T>>(new List<T>());
+  for (int i = 0; i < length.toInt(); ++i) {
+    result->add(fill);
+  }
+  return result;
+}
+
+template<typename T>
+ObjectPtr<List<T>> List<T>::generate(const Int& length, std::function<T(Int)> generator) {
+  auto result = ObjectPtr<List<T>>(new List<T>());
+  for (int i = 0; i < length.toInt(); ++i) {
+    result->add(generator(Int(i)));
+  }
+  return result;
 }
 
 template<typename T>
@@ -1519,6 +1944,20 @@ void Map<K, V>::set(const K& key, const V& value) {
 }
 
 template<typename K, typename V>
+V Map<K, V>::operator_index(const K& key) const {
+  auto it = data_.find(key);
+  if (it != data_.end()) {
+    return it->second;
+  }
+  throw std::runtime_error("Key not found");
+}
+
+template<typename K, typename V>
+void Map<K, V>::operator_index_set(const K& key, const V& value) {
+  data_[key] = value;
+}
+
+template<typename K, typename V>
 Int Map<K, V>::size() const {
   return Int(static_cast<int>(data_.size()));
 }
@@ -1561,7 +2000,9 @@ Bool Map<K, V>::containsKey(const K& key) const {
 template<typename K, typename V>
 Bool Map<K, V>::containsValue(const V& value) const {
   for (const auto& pair : data_) {
-    // 需要比较运算符
+    if (pair.second == value) {
+      return Bool(true);
+    }
   }
   return Bool(false);
 }
@@ -1603,6 +2044,15 @@ ObjectPtr<Map<K, V>> Map<K, V>::create(const Map<K, V>& other) {
 template<typename K, typename V>
 ObjectPtr<Map<K, V>> Map<K, V>::create(std::initializer_list<std::pair<K, V>> init) {
   return ObjectPtr<Map<K, V>>(new Map<K, V>(init));
+}
+
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> Map<K, V>::createFromEntries(std::initializer_list<std::pair<K, V>> entries) {
+  auto map = ObjectPtr<Map<K, V>>(new Map<K, V>());
+  for (const auto& entry : entries) {
+    map->put(entry.first, entry.second);
+  }
+  return map;
 }
 
 template<typename K, typename V>
@@ -1651,5 +2101,34 @@ namespace std {
     }
   };
 }
+
+// ============================================================================
+// 缺失类型的基本实现
+// ============================================================================
+
+// Stream 类的基本实现
+template<typename T>
+class Stream : public Object {
+public:
+  Stream() {}
+  String toString() const override { return String("Stream"); }
+};
+
+// Address 类的基本实现  
+// class Address : public Object {
+// public:
+//   Address() {}
+//   String toString() const override { return String("Address"); }
+// };
+
+// Invocation 类的基本实现
+class Invocation : public Object {
+public:
+  Invocation() {}
+  String toString() const override { return String("Invocation"); }
+};
+
+// 无穷大常量
+const Double Infinity = Double(std::numeric_limits<double>::infinity());
 
 #endif // _DART_OBJECT_H_

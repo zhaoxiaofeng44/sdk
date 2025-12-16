@@ -139,6 +139,16 @@ String String::operator+(const Bool& other) const {
   return String(str1 + str2);
 }
 
+String String::operator_add(const String& other) const {
+  return operator_concat(other);
+}
+
+String String::operator_add(const Bool& other) const {
+  const std::string& str1 = StringPool::getInstance()->getString(value.string_index);
+  std::string str2 = other.getValue() ? "true" : "false";
+  return String(str1 + str2);
+}
+
 Bool String::operator==(const String& other) const {
   return Bool(value.string_index == other.value.string_index);
 }
@@ -213,6 +223,10 @@ Int String::length() const {
   return get_length();
 }
 
+Int String::size() const {
+  return get_length();
+}
+
 Bool String::get_isEmpty() const {
   const std::string& str = StringPool::getInstance()->getString(value.string_index);
   return Bool(str.empty());
@@ -229,6 +243,10 @@ Bool String::get_isNotEmpty() const {
 
 Bool String::isNotEmpty() const {
   return get_isNotEmpty();
+}
+
+Bool String::isNull() const {
+  return Bool(false);  // String 对象本身不为 null
 }
 
 Int String::compareTo(const String& other) const {
@@ -509,36 +527,65 @@ String String::replaceRange(const Int& start, const Int& end, const String& repl
   return String(result);
 }
 
-// 注意：以下方法的实现需要在包含 dart_object.h 后才能完整实现
-// 这些方法将在 dart_string_extensions.cpp 中提供完整实现
-
 ObjectPtr<List<String> > String::split(const String& separator) const {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  // 目前返回空指针以避免编译错误
-  return ObjectPtr<List<String> >();
+  const std::string& str = StringPool::getInstance()->getString(value.string_index);
+  const std::string& sep = StringPool::getInstance()->getString(separator.value.string_index);
+  
+  ObjectPtr<List<String> > result = List<String>::create();
+  
+  if (sep.empty()) {
+    // 如果分隔符为空，返回包含整个字符串的列表
+    result->add(*this);
+    return result;
+  }
+  
+  size_t start = 0;
+  size_t found = str.find(sep);
+  
+  while (found != std::string::npos) {
+    result->add(String(str.substr(start, found - start)));
+    start = found + sep.length();
+    found = str.find(sep, start);
+  }
+  
+  // 添加最后一部分
+  result->add(String(str.substr(start)));
+  
+  return result;
 }
 
 ObjectPtr<List<String> > String::splitMapJoin(const String& pattern) const {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  return ObjectPtr<List<String> >();
-}
-
-String String::replaceAllMapped(const String& from, const ObjectPtr<Function>& replace) const {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  return *this;
-}
-
-String String::replaceFirstMapped(const String& from, const ObjectPtr<Function>& replace) const {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  return *this;
+  // 简单实现：使用 pattern 作为分隔符进行分割
+  return split(pattern);
 }
 
 ObjectPtr<List<String> > String::splitChars() const {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  return ObjectPtr<List<String> >();
+  const std::string& str = StringPool::getInstance()->getString(value.string_index);
+  ObjectPtr<List<String> > result = List<String>::create();
+  
+  for (size_t i = 0; i < str.length(); ++i) {
+    result->add(String(std::string(1, str[i])));
+  }
+  
+  return result;
 }
 
 String String::join(const ObjectPtr<List<String> >& strings, const String& separator) {
-  // 这个方法的实现将在 dart_object.h 包含后提供
-  return String("");
+  if (strings.isNull().toBool() || strings->isEmpty().toBool()) {
+    return String("");
+  }
+  
+  const std::string& sep = StringPool::getInstance()->getString(separator.value.string_index);
+  std::string result;
+  
+  int size = strings->size().getValue();
+  for (int i = 0; i < size; ++i) {
+    if (i > 0) {
+      result += sep;
+    }
+    String str = strings->get(Int(i));
+    result += StringPool::getInstance()->getString(str.value.string_index);
+  }
+  
+  return String(result);
 }

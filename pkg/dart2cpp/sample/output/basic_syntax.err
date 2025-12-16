@@ -1,74 +1,58 @@
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1614:40: warning: unused parameter 'value' [-Wunused-parameter]
-Bool Map<K, V>::containsValue(const V& value) const {
-                                       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:18:6: warning: unused variable 'emptyString' [-Wunused-variable]
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:29:6: warning: unused variable 'emptyString' [-Wunused-variable]
 auto emptyString = dart_string("");
      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:209:12: error: use of undeclared identifier 'add'
-auto sum = add(dart_int(5), dart_int(3));
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:211:1: error: use of undeclared identifier 'greet'
-greet(dart_string("Alice"));
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:212:1: error: use of undeclared identifier 'greet'
-greet(dart_string("Bob"), dart_string("Mr."));
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:213:1: error: use of undeclared identifier 'createUser'
-createUser();
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:214:1: error: use of undeclared identifier 'createUser'
-createUser();
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:220:25: error: no matching member function for call to 'map'
-auto doubled = numbers->map([&](Int n) { return (n * dart_int(2)); })->toList();
-               ~~~~~~~~~^~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:898:22: note: candidate template ignored: couldn't infer template argument 'R'
-  ObjectPtr<List<R>> map(const ObjectPtr<Function>& mapper) const;
-                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:222:29: error: no viable conversion from '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:222:29)' to 'const ObjectPtr<Function>'
-auto evens = numbers->where([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); })->toList();
-                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:791:3: note: candidate constructor not viable: no known conversion from '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:222:29)' to 'Function *' for 1st argument
-  ObjectPtr(T* ptr);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:792:3: note: candidate constructor not viable: no known conversion from '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:222:29)' to 'const ObjectPtr<Function> &' for 1st argument
-  ObjectPtr(const ObjectPtr<T>& other);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:793:3: note: candidate constructor not viable: no known conversion from '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:222:29)' to 'ObjectPtr<Function> &&' for 1st argument
-  ObjectPtr(ObjectPtr<T>&& other) noexcept;
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:900:55: note: passing argument to parameter 'predicate' here
-  ObjectPtr<List<T>> where(const ObjectPtr<Function>& predicate) const;
-                                                      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:224:89: error: expected expression
-auto result = calculate(dart_int(10), dart_int(5), /* Constant: StaticTearOffConstant */);
-                                                                                        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:226:84: error: expected expression
-result = calculate(dart_int(10), dart_int(5), /* Constant: StaticTearOffConstant */);
-                                                                                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:253:10: error: no matching function for call to object of type 'std::function<Int ()>'
-  return operation(a, b);
-         ^~~~~~~~~
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:1044:9: note: candidate function not viable: requires 0 arguments, but 2 were provided
-    _Rp operator()(_ArgTypes...) const;
-        ^
 In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:40:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:429:29: error: no matching function for call to 'dart_concat'
-  return first.toString() + dart_concat(rest...);
-                            ^~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:198:12: note: in instantiation of function template specialization 'dart_concat<ObjectPtr<List<String>>>' requested here
-dart_print(dart_concat(dart_string("    分割: "), concat.split(dart_string(" "))));
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:422:15: note: candidate function not viable: no known conversion from 'const ObjectPtr<List<String>>' to 'const Any' for 1st argument
-inline String dart_concat(const Any& arg) {
-              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:428:15: note: candidate function template not viable: no known conversion from 'const ObjectPtr<List<String>>' to 'const Any' for 1st argument
-inline String dart_concat(const Any& first, const Args&... rest) {
-              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:417:15: note: candidate function not viable: requires 0 arguments, but 1 was provided
-inline String dart_concat() {
-              ^
-2 warnings and 11 errors generated.
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:35:
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:99:19: warning: unused function 'sqrt' [-Wunused-function]
+    static Double sqrt(const Double& value) {
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:103:19: warning: unused function 'abs' [-Wunused-function]
+    static Double abs(const Double& value) {
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:107:19: warning: unused function 'pow' [-Wunused-function]
+    static Double pow(const Double& base, const Double& exponent) {
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:111:19: warning: unused function 'sin' [-Wunused-function]
+    static Double sin(const Double& value) {
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:115:19: warning: unused function 'cos' [-Wunused-function]
+    static Double cos(const Double& value) {
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:119:19: warning: unused function 'tan' [-Wunused-function]
+    static Double tan(const Double& value) {
+                  ^
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/output/basic_syntax.cpp:1:
+In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:849:11: warning: unused type alias 'return_type' [-Wunused-local-typedef]
+    using return_type = typename traits::return_type;
+          ^
+8 warnings generated.
+duplicate symbol 'StringUtils::repeat(String const&, Int const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'StringUtils::parseInt(String const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'StringUtils::reverse(String const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'StringUtils::parseDouble(String const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'StringUtils::isNumeric(String const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'Math::PI' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'CollectionUtils::average(ObjectPtr<List<Int> > const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'CollectionUtils::average(ObjectPtr<List<Double> > const&)' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+duplicate symbol 'Math::E' in:
+    /var/folders/2w/b_zy0hyd7r13l0tkvw7hdrcc0000ks/T/basic_syntax-0feb4b.o
+    /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/build/dart_object.o
+ld: 9 duplicate symbols for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

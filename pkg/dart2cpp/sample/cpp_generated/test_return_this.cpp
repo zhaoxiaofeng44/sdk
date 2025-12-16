@@ -14,7 +14,7 @@ public:
   }
   
   ObjectPtr<Builder> add(String text) {
-    this->_value = (this->_value + text);
+    this->_value = this->_value->operator_add(text);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   

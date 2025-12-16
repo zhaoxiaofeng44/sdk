@@ -1,0 +1,292 @@
+mkdir -p build
+g++ -std=c++17 -Wall -Wextra -O2 -I../core -c ../core/dart_object.cpp -o build/dart_object.o
+In file included from ../core/dart_object.cpp:1:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+1 warning generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core -c ../core/dart_string.cpp -o build/dart_string.o
+In file included from ../core/dart_string.cpp:2:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+../core/dart_string.cpp:519:54: warning: unused parameter 'separator' [-Wunused-parameter]
+ObjectPtr<List<String> > String::split(const String& separator) const {
+                                                     ^
+../core/dart_string.cpp:525:61: warning: unused parameter 'pattern' [-Wunused-parameter]
+ObjectPtr<List<String> > String::splitMapJoin(const String& pattern) const {
+                                                            ^
+../core/dart_string.cpp:530:47: warning: unused parameter 'from' [-Wunused-parameter]
+String String::replaceAllMapped(const String& from, const ObjectPtr<Function>& replace) const {
+                                              ^
+../core/dart_string.cpp:530:80: warning: unused parameter 'replace' [-Wunused-parameter]
+String String::replaceAllMapped(const String& from, const ObjectPtr<Function>& replace) const {
+                                                                               ^
+../core/dart_string.cpp:535:49: warning: unused parameter 'from' [-Wunused-parameter]
+String String::replaceFirstMapped(const String& from, const ObjectPtr<Function>& replace) const {
+                                                ^
+../core/dart_string.cpp:535:82: warning: unused parameter 'replace' [-Wunused-parameter]
+String String::replaceFirstMapped(const String& from, const ObjectPtr<Function>& replace) const {
+                                                                                 ^
+../core/dart_string.cpp:545:53: warning: unused parameter 'strings' [-Wunused-parameter]
+String String::join(const ObjectPtr<List<String> >& strings, const String& separator) {
+                                                    ^
+../core/dart_string.cpp:545:76: warning: unused parameter 'separator' [-Wunused-parameter]
+String String::join(const ObjectPtr<List<String> >& strings, const String& separator) {
+                                                                           ^
+9 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core basic_types_test.cpp build/dart_object.o build/dart_string.o -o build/basic_types_test 
+In file included from basic_types_test.cpp:8:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from basic_types_test.cpp:8:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+2 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core operators_test.cpp build/dart_object.o build/dart_string.o -o build/operators_test 
+In file included from operators_test.cpp:8:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from operators_test.cpp:8:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+2 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core macros_test.cpp build/dart_object.o build/dart_string.o -o build/macros_test 
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<Int>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<Int>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+macros_test.cpp:106:20: note: in instantiation of member function 'Set<Int>::create' requested here
+    auto int_set = dart_set_int();
+                   ^
+../core/dart_macros.h:37:34: note: expanded from macro 'dart_set_int'
+#define dart_set_int() Set<Int>::create()
+                                 ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<String>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<String>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+macros_test.cpp:109:23: note: in instantiation of member function 'Set<String>::create' requested here
+    auto string_set = dart_set_string();
+                      ^
+../core/dart_macros.h:38:40: note: expanded from macro 'dart_set_string'
+#define dart_set_string() Set<String>::create()
+                                       ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<Double>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<Double>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+macros_test.cpp:112:23: note: in instantiation of member function 'Set<Double>::create' requested here
+    auto double_set = dart_set_double();
+                      ^
+../core/dart_macros.h:39:40: note: expanded from macro 'dart_set_double'
+#define dart_set_double() Set<Double>::create()
+                                       ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1835:20: warning: unused variable 'pair' [-Wunused-variable]
+  for (const auto& pair : data_) {
+                   ^
+../core/dart_object.h:1022:3: note: in instantiation of member function 'Map<String, Int>::toString' requested here
+  Map();
+  ^
+../core/dart_object.h:1817:35: note: in instantiation of member function 'Map<String, Int>::Map' requested here
+  return ObjectPtr<Map<K, V>>(new Map<K, V>());
+                                  ^
+macros_test.cpp:116:27: note: in instantiation of member function 'Map<String, Int>::create' requested here
+    auto string_int_map = dart_map_string_int();
+                          ^
+../core/dart_macros.h:42:49: note: expanded from macro 'dart_map_string_int'
+#define dart_map_string_int() Map<String, Int>::create()
+                                                ^
+In file included from macros_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1835:20: warning: unused variable 'pair' [-Wunused-variable]
+  for (const auto& pair : data_) {
+                   ^
+../core/dart_object.h:1022:3: note: in instantiation of member function 'Map<Int, String>::toString' requested here
+  Map();
+  ^
+../core/dart_object.h:1817:35: note: in instantiation of member function 'Map<Int, String>::Map' requested here
+  return ObjectPtr<Map<K, V>>(new Map<K, V>());
+                                  ^
+macros_test.cpp:119:27: note: in instantiation of member function 'Map<Int, String>::create' requested here
+    auto int_string_map = dart_map_int_string();
+                          ^
+../core/dart_macros.h:43:49: note: expanded from macro 'dart_map_int_string'
+#define dart_map_int_string() Map<Int, String>::create()
+                                                ^
+7 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core comprehensive_test.cpp build/dart_object.o build/dart_string.o -o build/comprehensive_test 
+In file included from comprehensive_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from comprehensive_test.cpp:6:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+In file included from comprehensive_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<Int>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<Int>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+comprehensive_test.cpp:296:20: note: in instantiation of member function 'Set<Int>::create' requested here
+    auto int_set = dart_set_int();
+                   ^
+../core/dart_macros.h:37:34: note: expanded from macro 'dart_set_int'
+#define dart_set_int() Set<Int>::create()
+                                 ^
+In file included from comprehensive_test.cpp:6:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1835:20: warning: unused variable 'pair' [-Wunused-variable]
+  for (const auto& pair : data_) {
+                   ^
+../core/dart_object.h:1022:3: note: in instantiation of member function 'Map<String, Int>::toString' requested here
+  Map();
+  ^
+../core/dart_object.h:1817:35: note: in instantiation of member function 'Map<String, Int>::Map' requested here
+  return ObjectPtr<Map<K, V>>(new Map<K, V>());
+                                  ^
+comprehensive_test.cpp:328:27: note: in instantiation of member function 'Map<String, Int>::create' requested here
+    auto string_int_map = dart_map_string_int();
+                          ^
+../core/dart_macros.h:42:49: note: expanded from macro 'dart_map_string_int'
+#define dart_map_string_int() Map<String, Int>::create()
+                                                ^
+4 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core collections_test.cpp build/dart_object.o build/dart_string.o -o build/collections_test 
+In file included from collections_test.cpp:7:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from collections_test.cpp:7:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+In file included from collections_test.cpp:7:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<Int>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<Int>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+collections_test.cpp:168:41: note: in instantiation of member function 'Set<Int>::create' requested here
+    ObjectPtr<Set<Int>> set = Set<Int>::create();
+                                        ^
+In file included from collections_test.cpp:7:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1674:20: warning: unused variable 'item' [-Wunused-variable]
+  for (const auto& item : data_) {
+                   ^
+../core/dart_object.h:970:3: note: in instantiation of member function 'Set<String>::toString' requested here
+  Set();
+  ^
+../core/dart_object.h:1656:32: note: in instantiation of member function 'Set<String>::Set' requested here
+  return ObjectPtr<Set<T>>(new Set<T>());
+                               ^
+collections_test.cpp:190:47: note: in instantiation of member function 'Set<String>::create' requested here
+    ObjectPtr<Set<String>> set = Set<String>::create();
+                                              ^
+4 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core oop_test.cpp build/dart_object.o build/dart_string.o -o build/oop_test 
+In file included from oop_test.cpp:8:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from oop_test.cpp:8:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+2 warnings generated.
+g++ -std=c++17 -Wall -Wextra -O2 -I../core async_test.cpp build/dart_object.o build/dart_string.o -o build/async_test  -pthread
+In file included from async_test.cpp:8:
+In file included from ./../core/dart2cpp.h:13:
+../core/dart_object.h:1784:40: warning: unused parameter 'value' [-Wunused-parameter]
+Bool Map<K, V>::containsValue(const V& value) const {
+                                       ^
+In file included from async_test.cpp:8:
+In file included from ./../core/dart2cpp.h:25:
+../core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
+#define interface class
+        ^
+../core/dart_macros.h:9:9: note: previous definition is here
+#define interface struct
+        ^
+async_test.cpp:255:95: warning: unused parameter 'e' [-Wunused-parameter]
+    ObjectPtr<Future<Int>> recoveredFuture = errorFuture->catchError([](const std::exception& e) {
+                                                                                              ^
+3 warnings generated.

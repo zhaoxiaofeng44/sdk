@@ -14,58 +14,15 @@
 // Int 类型扩展
 // ============================================================================
 
-// 为 Int 添加复合赋值操作符
-inline Int& operator+=(Int& left, const Int& right) {
-    left.value.int_value += right.value.int_value;
-    return left;
-}
-
-inline Int& operator-=(Int& left, const Int& right) {
-    left.value.int_value -= right.value.int_value;
-    return left;
-}
-
-inline Int& operator*=(Int& left, const Int& right) {
-    left.value.int_value *= right.value.int_value;
-    return left;
-}
-
-inline Int& operator/=(Int& left, const Int& right) {
-    if (right.value.int_value == 0) throw std::runtime_error("Division by zero");
-    left.value.int_value /= right.value.int_value;
-    return left;
-}
-
-inline Int& operator%=(Int& left, const Int& right) {
-    if (right.value.int_value == 0) throw std::runtime_error("Division by zero");
-    left.value.int_value %= right.value.int_value;
-    return left;
-}
+// 注意：复合赋值运算符（+=, -=, *=, /=, %=）已在 dart_object.h 中定义为成员函数
+// 这里不再重复定义，避免编译器歧义
 
 // ============================================================================
 // Double 类型扩展
 // ============================================================================
 
-// 为 Double 添加复合赋值操作符
-inline Double& operator+=(Double& left, const Double& right) {
-    left.value.double_value += right.value.double_value;
-    return left;
-}
-
-inline Double& operator-=(Double& left, const Double& right) {
-    left.value.double_value -= right.value.double_value;
-    return left;
-}
-
-inline Double& operator*=(Double& left, const Double& right) {
-    left.value.double_value *= right.value.double_value;
-    return left;
-}
-
-inline Double& operator/=(Double& left, const Double& right) {
-    left.value.double_value /= right.value.double_value;
-    return left;
-}
+// 注意：复合赋值运算符（+=, -=, *=, /=）已在 dart_object.h 中定义为成员函数
+// 这里不再重复定义，避免编译器歧义
 
 
 
@@ -106,6 +63,13 @@ constexpr bool dart_is_null(const T& obj) {
 
 // 空合并操作符 ?? 的宏实现
 // 用法: aa ?? bb 转换为 dart_null_coalesce(aa, bb)
+
+// Any类型成员访问宏 - 用于dynamic类型变量的成员访问
+#define DART_ANY_CALL(any_var, method) \
+    (any_var.callMethod(#method))
+
+#define DART_ANY_ACCESS(any_var, property) \
+    (any_var.getProperty(#property))
 // 如果 left 为 null，返回 right；否则返回 left
 // 使用decltype(right)来推导返回类型
 #define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
@@ -269,11 +233,12 @@ inline auto safe_call(const ObjectPtr<T>& obj, F&& func) -> decltype(func(*obj))
     return func(*obj);
 }
 
+// 修复#19: 展开操作符的不定参数方法实现
 // ============================================================================
 // List 扩展功能
 // ============================================================================
 
-// 为 List 添加扩展操作符 ... (展开操作符的模拟)
+// 为 List 添加扩展操作符 ... (展开操作符的模拟) - 两个参数版本
 template<typename T>
 ObjectPtr<List<T>> dart_spread(const ObjectPtr<List<T>>& list1, const ObjectPtr<List<T>>& list2) {
     ObjectPtr<List<T>> result = List<T>::create(*list1);
@@ -283,9 +248,126 @@ ObjectPtr<List<T>> dart_spread(const ObjectPtr<List<T>>& list1, const ObjectPtr<
     return result;
 }
 
-// List 的 where 方法（过滤）
+// dart_spread 可变参数版本 - 支持多个 List 展开
 template<typename T>
-ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& predicate) {
+void _spread_helper(ObjectPtr<List<T>>& /* result */) {
+    // 递归终止条件
+}
+
+template<typename T, typename... Lists>
+void _spread_helper(ObjectPtr<List<T>>& result, const ObjectPtr<List<T>>& first, const Lists&... rest) {
+    if (first) {
+        for (Int i(0); i.toInt() < first->size().toInt(); ++i) {
+            result->add(first->get(i));
+        }
+    }
+    _spread_helper(result, rest...);
+}
+
+template<typename T, typename... Lists>
+ObjectPtr<List<T>> dart_spread(const ObjectPtr<List<T>>& first, const ObjectPtr<List<T>>& second, const Lists&... rest) {
+    ObjectPtr<List<T>> result = List<T>::create();
+    _spread_helper(result, first, second, rest...);
+    return result;
+}
+
+// dart_spread_set - Set 展开操作符
+template<typename T>
+void _spread_set_helper(ObjectPtr<Set<T>>& /* result */) {
+    // 递归终止条件
+}
+
+template<typename T, typename... Sets>
+void _spread_set_helper(ObjectPtr<Set<T>>& result, const ObjectPtr<Set<T>>& first, const Sets&... rest) {
+    if (first) {
+        result->addAll(first);
+    }
+    _spread_set_helper(result, rest...);
+}
+
+template<typename T>
+ObjectPtr<Set<T>> dart_spread_set(const ObjectPtr<Set<T>>& first) {
+    ObjectPtr<Set<T>> result = Set<T>::create();
+    if (first) {
+        result->addAll(first);
+    }
+    return result;
+}
+
+template<typename T, typename... Sets>
+ObjectPtr<Set<T>> dart_spread_set(const ObjectPtr<Set<T>>& first, const Sets&... rest) {
+    ObjectPtr<Set<T>> result = Set<T>::create();
+    _spread_set_helper(result, first, rest...);
+    return result;
+}
+
+// dart_spread_map - Map 展开操作符
+template<typename K, typename V>
+void _spread_map_helper(ObjectPtr<Map<K, V>>& /* result */) {
+    // 递归终止条件
+}
+
+template<typename K, typename V, typename... Maps>
+void _spread_map_helper(ObjectPtr<Map<K, V>>& result, const ObjectPtr<Map<K, V>>& first, const Maps&... rest) {
+    if (first) {
+        result->addAll(first);
+    }
+    _spread_map_helper(result, rest...);
+}
+
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> dart_spread_map(const ObjectPtr<Map<K, V>>& first) {
+    ObjectPtr<Map<K, V>> result = Map<K, V>::create();
+    if (first) {
+        result->addAll(first);
+    }
+    return result;
+}
+
+template<typename K, typename V, typename... Maps>
+ObjectPtr<Map<K, V>> dart_spread_map(const ObjectPtr<Map<K, V>>& first, const Maps&... rest) {
+    ObjectPtr<Map<K, V>> result = Map<K, V>::create();
+    _spread_map_helper(result, first, rest...);
+    return result;
+}
+
+// dart_spread_with_elements - 展开并添加单个元素
+template<typename T>
+void _spread_or_add_helper(ObjectPtr<List<T>>& /* result */) {
+    // 递归终止条件
+}
+
+template<typename T>
+void _spread_or_add_helper(ObjectPtr<List<T>>& result, const ObjectPtr<List<T>>& list) {
+    if (list) {
+        for (Int i(0); i.toInt() < list->size().toInt(); ++i) {
+            result->add(list->get(i));
+        }
+    }
+}
+
+template<typename T>
+void _spread_or_add_helper(ObjectPtr<List<T>>& result, const T& element) {
+    result->add(element);
+}
+
+template<typename T, typename First, typename... Rest>
+void _spread_or_add_helper(ObjectPtr<List<T>>& result, const First& first, const Rest&... rest) {
+    _spread_or_add_helper(result, first);
+    _spread_or_add_helper(result, rest...);
+}
+
+// dart_list_with_spread - 创建列表并展开/添加元素
+template<typename T, typename... Args>
+ObjectPtr<List<T>> dart_list_with_spread(const Args&... args) {
+    ObjectPtr<List<T>> result = List<T>::create();
+    _spread_or_add_helper(result, args...);
+    return result;
+}
+
+// List 的 where 方法（过滤）
+template<typename T, typename PredicateFunc>
+ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) {
     ObjectPtr<List<T>> result = List<T>::create();
     
     for (int i = 0; i < list->size().toInt(); ++i) {
@@ -301,8 +383,8 @@ ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<Fu
 }
 
 // List 的 map 方法
-template<typename T, typename R>
-ObjectPtr<List<R>> dart_map(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& mapper) {
+template<typename T, typename R, typename MapperFunc>
+ObjectPtr<List<R>> dart_map(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) {
     ObjectPtr<List<R>> result = List<R>::create();
     auto it = list->iterator();
     while (it->hasNext()) {

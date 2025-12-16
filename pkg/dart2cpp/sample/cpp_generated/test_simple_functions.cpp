@@ -6,15 +6,15 @@ Int add(Int a, Int b);
 Int subtract(Int a, Int b);
 Int calculate(Int a, Int b, ObjectPtr<Function> operation);
 Int add(Int a, Int b) {
-  return (a + b);
+  return a->operator_add(b);
 }
 
 Int subtract(Int a, Int b) {
-  return (a - b);
+  return a->operator_sub(b);
 }
 
 Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
-  return dart_cast<Int>(operation->apply(std::vector<Any>{a, b}));
+  return dart_cast<Int>(operation->call(a, b));
 }
 
 // ============================================================================

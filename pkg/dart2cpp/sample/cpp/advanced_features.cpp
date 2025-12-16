@@ -106,7 +106,7 @@ public:
   }
   
   Double length() {
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
+    return MathExtension::sqrt(((this->x * this->x) + (this->y * this->y)));
   }
   
   String toString() {
@@ -344,8 +344,8 @@ ObjectPtr<DateTime> DateTimeExtensions|addBusinessDays(ObjectPtr<DateTime> #this
 std::function<ObjectPtr<DateTime>(Int)> DateTimeExtensions|get#addBusinessDays(ObjectPtr<DateTime> #this);
 R LetExtension|let(T #this, std::function<R(T)> block);
 std::function<Any(std::function<Any(T)>)> LetExtension|get#let(T #this);
-Double MathExtension|sqrt(Double #this);
-std::function<Double()> MathExtension|get#sqrt(Double #this);
+Double MathExtension::sqrt(Double #this);
+std::function<Double()> MathExtension::get#sqrt(Double #this);
 R applyTwice(T value, std::function<R(T)> func);
 std::function<Any(T)> compose(std::function<S(R)> f, std::function<R(T)> g);
 std::function<Any(T)> curry(std::function<R(T, U)> func);
@@ -681,7 +681,7 @@ std::function<Any(std::function<Any(T)>)> LetExtension|get#let(T #this) {
   return makeFunction([&](std::function<R(T)> block) { return LetExtension|let(_this, block); });
 }
 
-Double MathExtension|sqrt(Double #this) {
+Double MathExtension::sqrt(Double #this) {
   if ((_this < dart_int(0))) {
 return dart_double(NaN);
 }
@@ -694,8 +694,8 @@ x = ((x + (_this / x)) / dart_int(2));
 return x;
 }
 
-std::function<Double()> MathExtension|get#sqrt(Double #this) {
-  return makeFunction([&]() { return MathExtension|sqrt(_this); });
+std::function<Double()> MathExtension::get#sqrt(Double #this) {
+  return makeFunction([&]() { return MathExtension::sqrt(_this); });
 }
 
 R applyTwice(T value, std::function<R(T)> func) {

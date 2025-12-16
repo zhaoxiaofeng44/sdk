@@ -4,7 +4,7 @@
 
 Int add(Int a, Int b);
 Int add(Int a, Int b) {
-  return (a + b);
+  return a->operator_add(b);
 }
 
 // ============================================================================

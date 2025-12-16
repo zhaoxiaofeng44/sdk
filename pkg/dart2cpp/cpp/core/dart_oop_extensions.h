@@ -1,16 +1,15 @@
 #ifndef _DART_OOP_EXTENSIONS_H_
 #define _DART_OOP_EXTENSIONS_H_
 
+#include "dart_macros.h"
 #include "dart_object.h"
 #include "dart_string.h"
+
+
 
 // ============================================================================
 // Dart 面向对象扩展 - 简化版本
 // ============================================================================
-
-// 简洁的接口和mixin定义
-#define interface class
-#define mixin class
 
 // ============================================================================
 // 常用接口定义 - 直接使用C++风格

@@ -4,17 +4,17 @@
 
 Int add(Int a, Int b);
 Int subtract(Int a, Int b);
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation);
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation);
 Int add(Int a, Int b) {
-  return (a + b);
+  return a->operator_add(b);
 }
 
 Int subtract(Int a, Int b) {
-  return (a - b);
+  return a->operator_sub(b);
 }
 
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation) {
-  return operation->apply(std::vector<Any>{a, b});
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation) {
+  return operation->call(a, b);
 }
 
 // ============================================================================

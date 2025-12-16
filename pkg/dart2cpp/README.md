@@ -107,6 +107,19 @@ make examples
 ./build/hello_example
 ```
 
+### 5. 使用自动化脚本
+
+项目提供了便捷的自动化脚本，可以一键完成转换、编译和运行：
+
+```bash
+# 基础脚本 - 快速转换并运行
+./scripts/dart_to_cpp_run.sh input.dart
+
+# 高级脚本 - 更多选项
+./scripts/dart_to_cpp_run_advanced.sh input.dart -s -e -o ./output -n my_program
+```
+
+详见 [脚本使用说明](scripts/README.md)
 ## 使用示例
 
 ### 输入 Dart 代码

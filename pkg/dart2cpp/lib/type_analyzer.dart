@@ -34,14 +34,27 @@ class TypeAnalyzer {
   final Set<String> customClasses = {};
 
   /// 基本类型集合（不需要ObjectPtr包装）
-  final Set<String> basicTypes = {
-    'Int',
-    'Double',
-    'Bool',
-    'String',
-    'void',
+  static const Set<String> _basicTypes = {
+    'int', // Dart 原始类型
+    'double', // Dart 原始类型
+    'bool', // Dart 原始类型
+    'String', // Dart 和 C++ 共用
+    'Int', // C++ 包装类型
+    'Double', // C++ 包装类型
+    'Bool', // C++ 包装类型
+    'Nullable',
     'Any',
+    'void',
+    'Null',
   };
+
+  /// 获取基本类型集合
+  Set<String> get basicTypes => _basicTypes.toSet();
+
+  /// 静态方法检查是否是基本类型
+  static bool isBasicType(String className) {
+    return _basicTypes.contains(className);
+  }
 
   /// 容器类型集合（需要ObjectPtr包装）
   final Set<String> containerTypes = {
@@ -161,8 +174,8 @@ class TypeAnalyzer {
   /// 分析函数类型
   TypeAnalysisResult _analyzeFunctionType(FunctionType type) {
     final returnType = analyzeType(type.returnType);
-    final paramTypes = type.parameters
-        .map((p) => analyzeType(p.type))
+    final paramTypes = type.positionalParameters
+        .map((p) => analyzeType(p))
         .map((r) => r.wrappedTypeName)
         .join(', ');
 
@@ -182,7 +195,7 @@ class TypeAnalyzer {
     }
 
     final typeArgs = type.typeArguments
-        .map((arg) => {
+        .map((arg) {
               final result = analyzeType(arg);
               return result.wrappedTypeName;
             })
@@ -197,10 +210,10 @@ class TypeAnalyzer {
     return customClasses.contains(type.classNode.name);
   }
 
-  /// 检查类型是否是基本类型
-  bool isBasicType(DartType type) {
+  /// 检查DartType是否是基本类型
+  bool isBasicDartType(DartType type) {
     if (type is! InterfaceType) return false;
-    return basicTypes.contains(type.classNode.name);
+    return _basicTypes.contains(type.classNode.name);
   }
 
   /// 检查类型是否是容器类型

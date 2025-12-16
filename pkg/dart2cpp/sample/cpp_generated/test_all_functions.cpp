@@ -11,15 +11,15 @@ Nullable testAnonymousFunction();
 Nullable testFunctionAssignment();
 Nullable testFunctionList();
 Int add(Int a, Int b) {
-  return (a + b);
+  return a->operator_add(b);
 }
 
 Int subtract(Int a, Int b) {
-  return (a - b);
+  return a->operator_sub(b);
 }
 
 Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
-  return dart_cast<Int>(operation->apply(std::vector<Any>{a, b}));
+  return dart_cast<Int>(operation->call(a, b));
 }
 
 ObjectPtr<Function> getAddFunction() {
@@ -27,23 +27,24 @@ ObjectPtr<Function> getAddFunction() {
 }
 
 ObjectPtr<Function> createMultiplier(Int factor) {
-  return makeFunction([&](Int value) { return (value * factor); });
+  return makeFunction([&](Int value) { return value->operator_mul(factor); });
 }
 
 Nullable testAnonymousFunction() {
-  auto result = calculate(dart_int(10), dart_int(5), makeFunction([&](Int a, Int b) { return (a + b); }));
+  auto result = calculate(dart_int(10), dart_int(5), makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
 dart_print(dart_string("匿名函数结果: ") + (result).toString());
+return Void;
 }
 
 Nullable testFunctionAssignment() {
   operation = makeFunction(&add);
-auto result = operation->apply(std::vector<Any>{dart_int(10), dart_int(5)});
+Any result = operation->call(dart_int(10), dart_int(5));
 dart_print(dart_string("函数变量赋值结果: ") + (result).toString());
 return Void;
 }
 
 Nullable testFunctionList() {
-  auto result = operations->get(dart_int(0))->apply(std::vector<Any>{dart_int(10), dart_int(5)});
+  Any result = operations->operator_index(dart_int(0))->call(dart_int(10), dart_int(5));
 dart_print(dart_string("函数数组结果: ") + (result).toString());
 return Void;
 }
@@ -59,10 +60,10 @@ dart_print(dart_string("10 + 5 = ") + (result1).toString());
 auto result2 = calculate(dart_int(10), dart_int(5), multiply);
 dart_print(dart_string("10 * 5 = ") + (result2).toString());
 auto addFunc = getAddFunction();
-auto result3 = addFunc->apply(std::vector<Any>{dart_int(10), dart_int(5)});
+Any result3 = addFunc->call(dart_int(10), dart_int(5));
 dart_print(dart_string("函数引用结果: ") + (result3).toString());
 auto multiplier = createMultiplier(dart_int(3));
-auto result4 = multiplier->apply(std::vector<Any>{dart_int(5)});
+Any result4 = multiplier->call(dart_int(5));
 dart_print(dart_string("高阶函数结果: ") + (result4).toString());
 testAnonymousFunction();
 testFunctionAssignment();

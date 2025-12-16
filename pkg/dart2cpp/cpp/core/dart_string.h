@@ -53,6 +53,10 @@ template <typename T>
 class ObjectPtr;
 class Function;
 
+// TypedFunction 前向声明 - 用于 replaceAllMapped 和 replaceFirstMapped
+template<typename F, typename R, typename... Args>
+class TypedFunction;
+
 // ============================================================================
 // 全局字符串池
 // ============================================================================
@@ -109,10 +113,24 @@ class String  {
 
   // 算术运算符函数（字符串连接）
   String operator_concat(const String& other) const;
+  String operator_add(const String& other) const;
+  String operator_add(const Bool& other) const;  // String + Bool
+  
   String operator+(const String& other) const;
   String operator+(const Bool& other) const;  // String + Bool
 
   // 比较运算符函数
+  Bool operator_equals(const String& other) const;
+  Bool operator_equals(const char* other) const;
+  Bool operator_equals(const std::string& other) const;
+  Bool operator_not_equals(const String& other) const;
+  Bool operator_not_equals(const char* other) const;
+  Bool operator_not_equals(const std::string& other) const;
+  Bool operator_less(const String& other) const;
+  Bool operator_less_equals(const String& other) const;
+  Bool operator_greater(const String& other) const;
+  Bool operator_greater_equals(const String& other) const;
+
   Bool operator==(const String& other) const;
   Bool operator==(const char* other) const;
   Bool operator==(const std::string& other) const;
@@ -124,6 +142,9 @@ class String  {
   Bool operator>(const String& other) const;
   Bool operator>=(const String& other) const;
 
+  // 索引运算符函数
+  String operator_index(const Int& index) const;
+  
   // 索引运算符
   String operator[](const Int& index) const;
 
@@ -131,10 +152,12 @@ class String  {
   String toString() const;
   Int get_length() const;
   Int length() const;  // 方法调用形式的 length
+  Int size() const;    // size() 方法，等同于 length()
   Bool get_isEmpty() const;
   Bool isEmpty() const;  // 方法调用形式的 isEmpty
   Bool get_isNotEmpty() const;
   Bool isNotEmpty() const;  // 方法调用形式的 isNotEmpty
+  Bool isNull() const;  // 空值检查方法
   Int compareTo(const String& other) const;
 
   // 字符串操作方法
@@ -162,8 +185,10 @@ class String  {
   
   // 其他 Dart String 方法
   String replaceRange(const Int& start, const Int& end, const String& replacement) const;
-  String replaceAllMapped(const String& from, const ObjectPtr<Function>& replace) const;
-  String replaceFirstMapped(const String& from, const ObjectPtr<Function>& replace) const;
+  template<typename ReplaceFunc>
+  String replaceAllMapped(const String& from, const ObjectPtr<TypedFunction<ReplaceFunc, String, String>>& replace) const;
+  template<typename ReplaceFunc>
+  String replaceFirstMapped(const String& from, const ObjectPtr<TypedFunction<ReplaceFunc, String, String>>& replace) const;
   ObjectPtr<List<String> > splitChars() const;  // 分割为字符列表
   String repeat(const Int& times) const;
   
@@ -177,6 +202,10 @@ class String  {
   // 获取实际字符串值
   const std::string& getValue() const;
   Int getIndex() const;
+
+  // 箭头运算符重载，返回指向自身的指针
+  String* operator->() { return this; }
+  const String* operator->() const { return this; }
 };
 
 // ============================================================================

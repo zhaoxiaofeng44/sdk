@@ -8,8 +8,8 @@
 
 int main() {
   try {
-    auto multiply = makeFunction([&](Int a, Int b) { return (a * b); });
-auto result = multiply->apply(std::vector<Any>{dart_int(4), dart_int(5)});
+    auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
+auto result = multiply->call(dart_int(4), dart_int(5));
 dart_print(dart_string("Result: ") + (result).toString());
     return 0;
   } catch (const std::exception& e) {

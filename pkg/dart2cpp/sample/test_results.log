@@ -1,12 +1,4 @@
 转换成功: advanced_features.dart -> advanced_features.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:101:68: error: no member named 'x' in 'Object'
     return dart_is<ObjectPtr<Vector>>(other) && (this->x == other->x) && (this->y == other->y);
                                                             ~~~~~~~^
@@ -16,58 +8,40 @@ In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:105:20: error: no member named 'hash' in 'Object'
     return Object::hash(this->x, this->y, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
            ~~~~~~~~^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:109:26: error: no matching function for call to 'sqrt'
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
-                         ^~~~
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/math.h:433:15: note: candidate function not viable: no known conversion from 'Double' to 'double' for 1st argument
-extern double sqrt(double);
-              ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1048:46: note: candidate function not viable: no known conversion from 'Double' to 'float' for 1st argument
-inline _LIBCPP_INLINE_VISIBILITY float       sqrt(float __lcpp_x) _NOEXCEPT       {return ::sqrtf(__lcpp_x);}
-                                             ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1049:46: note: candidate function not viable: no known conversion from 'Double' to 'long double' for 1st argument
-inline _LIBCPP_INLINE_VISIBILITY long double sqrt(long double __lcpp_x) _NOEXCEPT {return ::sqrtl(__lcpp_x);}
-                                             ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1055:1: note: candidate template ignored: requirement 'std::is_integral<Double>::value' was not satisfied [with _A1 = Double]
-sqrt(_A1 __lcpp_x) _NOEXCEPT {return ::sqrt((double)__lcpp_x);}
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:109:12: error: use of undeclared identifier 'MathExtension'
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
-           ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:167:10: error: no viable conversion from 'Double' to 'const Int'
-row->add((this->data->get(i)->get(j) + other->data->get(i)->get(j)));
-         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:240:3: note: candidate constructor not viable: no known conversion from 'Double' to 'int' for 1st argument
+row->add(this->data->operator_index(i)->operator_index(j)->operator_add(other->data->operator_index(i)->operator_index(j)));
+         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:266:3: note: candidate constructor not viable: no known conversion from 'Double' to 'int' for 1st argument
   Int(int v);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:241:3: note: candidate constructor not viable: no known conversion from 'Double' to 'const Int &' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:267:3: note: candidate constructor not viable: no known conversion from 'Double' to 'const Int &' for 1st argument
   Int(const Int& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:242:12: note: explicit constructor is not a candidate
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:268:12: note: explicit constructor is not a candidate
   explicit Int(const Any& any);
            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:243:12: note: explicit constructor is not a candidate
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:269:12: note: explicit constructor is not a candidate
   explicit Int(const Nullable&);  // NULL 构造函数
            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:822:21: note: passing argument to parameter 'item' here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:936:21: note: passing argument to parameter 'item' here
   void add(const T& item);
                     ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:169:13: error: no viable conversion from 'ObjectPtr<List<Int>>' to 'const Int'
 result->add(row);
             ^~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:240:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'int' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:266:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'int' for 1st argument
   Int(int v);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:241:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'const Int &' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:267:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'const Int &' for 1st argument
   Int(const Int& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:242:12: note: explicit constructor is not a candidate
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:268:12: note: explicit constructor is not a candidate
   explicit Int(const Any& any);
            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:243:12: note: explicit constructor is not a candidate
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:269:12: note: explicit constructor is not a candidate
   explicit Int(const Nullable&);  // NULL 构造函数
            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:822:21: note: passing argument to parameter 'item' here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:936:21: note: passing argument to parameter 'item' here
   void add(const T& item);
                     ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:171:30: error: no matching constructor for initialization of 'Matrix'
@@ -82,91 +56,66 @@ class Matrix {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:159:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'ObjectPtr<List<ObjectPtr<List<Double>>>>' for 1st argument
   Matrix(ObjectPtr<List<ObjectPtr<List<Double>>>> data) : data(data) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:188:15: error: expected class name
-class Point : implements Comparable {
-              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:198:20: error: member reference type 'Double' is not a pointer; did you mean to use '.'?
-return thisDistance->compareTo(otherDistance);
-       ~~~~~~~~~~~~^~
-                   .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:202:34: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-    return this->compareTo(other)->operator_less(dart_int(0));
-           ~~~~~~~~~~~~~~~~~~~~~~^~
-                                 .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:202:36: error: no member named 'operator_less' in 'Int'; did you mean 'operator_plus'?
-    return this->compareTo(other)->operator_less(dart_int(0));
-                                   ^~~~~~~~~~~~~
-                                   operator_plus
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:254:7: note: 'operator_plus' declared here
-  Int operator_plus(const Int& other) const;
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:202:12: error: no viable conversion from returned value of type 'Int' to function return type 'Bool'
-    return this->compareTo(other)->operator_less(dart_int(0));
-           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:425:3: note: candidate constructor not viable: no known conversion from 'Int' to 'bool' for 1st argument
-  Bool(bool v);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:426:3: note: candidate constructor not viable: no known conversion from 'Int' to 'const Bool &' for 1st argument
-  Bool(const Bool& other);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:427:12: note: explicit constructor is not a candidate
-  explicit Bool(const Any& any);
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:428:12: note: explicit constructor is not a candidate
-  explicit Bool(const Nullable&);  // NULL 构造函数
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:206:34: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-    return this->compareTo(other)->operator_greater(dart_int(0));
-           ~~~~~~~~~~~~~~~~~~~~~~^~
-                                 .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:206:36: error: no member named 'operator_greater' in 'Int'; did you mean 'operator_divide'?
-    return this->compareTo(other)->operator_greater(dart_int(0));
-                                   ^~~~~~~~~~~~~~~~
-                                   operator_divide
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:257:7: note: 'operator_divide' declared here
-  Int operator_divide(const Int& other) const;
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:206:12: error: no viable conversion from returned value of type 'Int' to function return type 'Bool'
-    return this->compareTo(other)->operator_greater(dart_int(0));
-           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:425:3: note: candidate constructor not viable: no known conversion from 'Int' to 'bool' for 1st argument
-  Bool(bool v);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:426:3: note: candidate constructor not viable: no known conversion from 'Int' to 'const Bool &' for 1st argument
-  Bool(const Bool& other);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:427:12: note: explicit constructor is not a candidate
-  explicit Bool(const Any& any);
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:428:12: note: explicit constructor is not a candidate
-  explicit Bool(const Nullable&);  // NULL 构造函数
-           ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:210:34: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-    return this->compareTo(other)->operator_less_equals(dart_int(0));
-           ~~~~~~~~~~~~~~~~~~~~~~^~
-                                 .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:210:36: error: no member named 'operator_less_equals' in 'Int'
-    return this->compareTo(other)->operator_less_equals(dart_int(0));
-           ~~~~~~~~~~~~~~~~~~~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:214:34: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-    return this->compareTo(other)->operator_greater_equals(dart_int(0));
-           ~~~~~~~~~~~~~~~~~~~~~~^~
-                                 .
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:218:67: error: no member named 'x' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                           ~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:218:92: error: no member named 'y' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                                                    ~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:222:20: error: no member named 'hash' in 'Object'
+    return Object::hash(this->x, this->y, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+           ~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:273:82: error: expected unqualified-id
+    dart_print(dart_string("    验证密码: ") + (password->replaceAll(RegExp::(dart_string("."), Bool(Null), Bool(Null), Bool(Null), Bool(Null)), dart_string("*"))).toString());
+                                                                             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:319:24: error: expected ';' after top level declarator
+String StringExtensions|capitalize(String _this);
+                       ^
+                       ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:320:59: error: redefinition of 'StringExtensions' with a different type: 'ObjectPtr<TypedFunction<std::function<String ()>, String>>' vs 'String'
+ObjectPtr<TypedFunction<std::function<String()>, String>> StringExtensions|get_capitalize(String _this);
+                                                          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:319:8: note: previous definition is here
+String StringExtensions|capitalize(String _this);
+       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:320:75: error: expected ';' after top level declarator
+ObjectPtr<TypedFunction<std::function<String()>, String>> StringExtensions|get_capitalize(String _this);
+                                                                          ^
+                                                                          ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:321:6: error: redefinition of 'StringExtensions' with a different type: 'Bool' vs 'String'
+Bool StringExtensions|isPalindrome(String _this);
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:319:8: note: previous definition is here
+String StringExtensions|capitalize(String _this);
+       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:321:22: error: expected ';' after top level declarator
+Bool StringExtensions|isPalindrome(String _this);
+                     ^
+                     ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:322:55: error: redefinition of 'StringExtensions' with a different type: 'ObjectPtr<TypedFunction<std::function<Bool ()>, Bool>>' vs 'String'
+ObjectPtr<TypedFunction<std::function<Bool()>, Bool>> StringExtensions|get_isPalindrome(String _this);
+                                                      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:319:8: note: previous definition is here
+String StringExtensions|capitalize(String _this);
+       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:322:71: error: expected ';' after top level declarator
+ObjectPtr<TypedFunction<std::function<Bool()>, Bool>> StringExtensions|get_isPalindrome(String _this);
+                                                                      ^
+                                                                      ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:323:5: error: redefinition of 'StringExtensions' with a different type: 'Int' vs 'String'
+Int StringExtensions|wordCount(String _this);
+    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:319:8: note: previous definition is here
+String StringExtensions|capitalize(String _this);
+       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:323:21: error: expected ';' after top level declarator
+Int StringExtensions|wordCount(String _this);
+                    ^
+                    ;
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+20 errors generated.
 编译失败: advanced_features.cpp
 转换成功: async_programming.dart -> async_programming.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:20:50: error: unknown type name 'testFutureBasics'
 DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, testFutureBasics, ()) {
                                                  ^
@@ -194,57 +143,39 @@ class Future : public Object {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:26:62: error: no matching constructor for initialization of 'Duration'
 auto delayedFuture = Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(100), Int(Null))), makeFunction([&]() { return dart_string("延迟完成"); }));
                                                              ^        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:182:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:213:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
     Duration(int milliseconds) : duration_(milliseconds) {
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
 class Duration : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:12: error: 'Future' is not a class, namespace, or enumeration
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null))->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
+DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr)->then(makeFunction([&](Any __wc0_formal) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
            ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_async.h:35:7: note: 'Future' declared here
 class Future : public Object {
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:52: error: no matching constructor for initialization of 'Duration'
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null))->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
+DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr)->then(makeFunction([&](Any __wc0_formal) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
                                                    ^        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:182:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:213:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
     Duration(int milliseconds) : duration_(milliseconds) {
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
 class Duration : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:132: error: no matching conversion for functional-style cast from 'Nullable' to 'std::function<Any ()>'
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null))->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
-                                                                                                                                   ^~~~~~~~~~~~~~~~~~~~~~~~~
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:992:5: note: candidate constructor not viable: no known conversion from 'Nullable' to 'std::nullptr_t' for 1st argument
-    function(nullptr_t) _NOEXCEPT {}
-    ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:993:5: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const std::function<Any ()>' for 1st argument
-    function(const function&);
-    ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:994:5: note: candidate constructor not viable: no known conversion from 'Nullable' to 'std::function<Any ()>' for 1st argument
-    function(function&&) _NOEXCEPT;
-    ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:996:5: note: candidate template ignored: requirement '__callable<Nullable &, false>::value' was not satisfied [with _Fp = Nullable]
-    function(_Fp);
-    ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/function.h:990:5: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
-    function() _NOEXCEPT { }
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:199: error: expected expression
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null))->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
-                                                                                                                                                                                                      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:118:3: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:191: error: expected expression
+DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr)->then(makeFunction([&](Any __wc0_formal) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
+                                                                                                                                                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:82:3: note: expanded from macro 'dart_print'
   do {                                                                         \
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:307: error: expected expression
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), std::function<Any()>(Null))->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
-                                                                                                                                                                                                                                                                                                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:118:3: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:29:299: error: expected expression
+DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr)->then(makeFunction([&](Any __wc0_formal) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
+                                                                                                                                                                                                                                                                                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:82:3: note: expanded from macro 'dart_print'
   do {                                                                         \
   ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:30:19: error: 'Future' is not a class, namespace, or enumeration
@@ -256,7 +187,7 @@ class Future : public Object {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:33:18: error: 'Completer' is not a class, namespace, or enumeration
 auto completer = Completer::();
                  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_async.h:223:7: note: 'Completer' declared here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_async.h:238:7: note: 'Completer' declared here
 class Completer : public Object {
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:33:29: error: expected unqualified-id
@@ -268,13 +199,13 @@ Timer::(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Nu
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:34:33: error: no matching constructor for initialization of 'Duration'
 Timer::(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), makeFunction([&]() { completer->complete(dart_string("Completer完成")); }));
                                 ^        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:182:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:213:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
     Duration(int milliseconds) : duration_(milliseconds) {
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
 class Duration : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:37:22: error: 'Future' is not a class, namespace, or enumeration
 auto pendingFuture = Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(100), Int(Null))), makeFunction([&]() { return dart_int(123); }));
                      ^
@@ -284,256 +215,288 @@ class Future : public Object {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:37:62: error: no matching constructor for initialization of 'Duration'
 auto pendingFuture = Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(100), Int(Null))), makeFunction([&]() { return dart_int(123); }));
                                                              ^        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:182:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:213:5: note: candidate constructor not viable: requires single argument 'milliseconds', but 6 arguments were provided
     Duration(int milliseconds) : duration_(milliseconds) {
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 6 were provided
 class Duration : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:177:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:208:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 6 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp:41:5: error: use of undeclared identifier 'DART_ASYNC_END'
+    DART_ASYNC_END
+    ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+20 errors generated.
 编译失败: async_programming.cpp
 转换成功: basic_syntax.dart -> basic_syntax.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:39:66: error: no member named 'size' in 'String'
-dart_print(dart_string("  多行字符串长度: ") + (multiLine.size()).toString());
-                                                ~~~~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:196:48: error: no member named 'size' in 'String'
-dart_print(dart_string("    长度: ") + (str1.size()).toString());
-                                        ~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:25: error: no matching member function for call to 'map'
-auto doubled = numbers->map(makeFunction([&](Int n) { return (n * dart_int(2)); }))->toList();
-               ~~~~~~~~~^~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:858:22: note: candidate template ignored: couldn't infer template argument 'R'
-  ObjectPtr<List<R>> map(const ObjectPtr<Function>& mapper) const;
-                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:235:15: error: no matching function for call to 'calculate'
-auto result = calculate(dart_int(10), dart_int(5), makeFunction(&add));
-              ^~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:15:5: note: candidate function not viable: no known conversion from 'ObjectPtr<Function>' to 'std::function<Int (Int, Int)>' for 3rd argument
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation);
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:237:10: error: no matching function for call to 'calculate'
-result = calculate(dart_int(10), dart_int(5), makeFunction(&subtract));
-         ^~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:15:5: note: candidate function not viable: no known conversion from 'ObjectPtr<Function>' to 'std::function<Int (Int, Int)>' for 3rd argument
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation);
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:264:19: error: member reference type 'std::function<Int (Int, Int)>' is not a pointer; did you mean to use '.'?
-  return operation->apply(std::vector<Any>{a, b});
-         ~~~~~~~~~^~
-                  .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:264:21: error: no member named 'apply' in 'std::function<Int (Int, Int)>'
-  return operation->apply(std::vector<Any>{a, b});
-         ~~~~~~~~~  ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:783:28: error: no matching function for call to object of type '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:228:28)'
-                return Any(func_(Int(args[0]), Int(args[1])));
-                           ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:775:11: note: in instantiation of member function 'makeFunction((lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:228:28) &&)::LambdaFunction::apply' requested here
-    class LambdaFunction : public Function {
-          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:228:15: note: in instantiation of function template specialization 'makeFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:228:28)>' requested here
-auto square = makeFunction([&](Int x) { return (x * x); });
-              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:228:28: note: candidate function not viable: requires single argument 'x', but 2 arguments were provided
-auto square = makeFunction([&](Int x) { return (x * x); });
-                           ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:783:28: error: no matching function for call to object of type '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:42)'
-                return Any(func_(Int(args[0]), Int(args[1])));
-                           ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:775:11: note: in instantiation of member function 'makeFunction((lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:42) &&)::LambdaFunction::apply' requested here
-    class LambdaFunction : public Function {
-          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:29: note: in instantiation of function template specialization 'makeFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:42)>' requested here
-auto doubled = numbers->map(makeFunction([&](Int n) { return (n * dart_int(2)); }))->toList();
-                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:231:42: note: candidate function not viable: requires single argument 'n', but 2 arguments were provided
-auto doubled = numbers->map(makeFunction([&](Int n) { return (n * dart_int(2)); }))->toList();
-                                         ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:783:28: error: no matching function for call to object of type '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:233:42)'
-                return Any(func_(Int(args[0]), Int(args[1])));
-                           ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:775:11: note: in instantiation of member function 'makeFunction((lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:233:42) &&)::LambdaFunction::apply' requested here
-    class LambdaFunction : public Function {
-          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:233:29: note: in instantiation of function template specialization 'makeFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:233:42)>' requested here
-auto evens = numbers->where(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }))->toList();
-                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp:233:42: note: candidate function not viable: requires single argument 'n', but 2 arguments were provided
-auto evens = numbers->where(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }))->toList();
-                                         ^
-1 warning and 10 errors generated.
-编译失败: basic_syntax.cpp
+编译成功: basic_syntax.cpp -> basic_syntax
+🔥 基础语法测试开始
+
+📌 测试基本数据类型
+AnyAnyAnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  插值: The answer is 42
+  表达式: Sum: 45.1416
+  多行字符串长度: 38
+
+📌 测试变量声明
+AnyAnyAnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+  const: compile time constant, 3.14159, 100
+AnyAnyAnyAnyAnyAny
+  non-null: default
+
+📌 测试运算符
+  算术运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+  比较运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+  逻辑运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  位运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  赋值运算: c += 2 结果: 7
+  赋值运算: c -= 1 结果: 6
+  赋值运算: c *= 3 结果: 18
+  赋值运算: c ~/= 2 结果: 9
+  三元运算符: a is greater
+  空值合并: default value
+
+📌 测试控制流
+  if-else 测试:
+    成绩: 良好
+  switch-case 测试:
+    等级: 良好
+  for 循环测试:
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  for-in 循环测试:
+    水果: apple
+    水果: banana
+    水果: orange
+  while 循环测试:
+    计数: 0
+    计数: 1
+    计数: 2
+  do-while 循环测试:
+    数字: 0
+    数字: 1
+    数字: 2
+  break 和 continue 测试:
+    处理: 0
+    处理: 1
+
+📌 测试字符串操作
+  连接: Hello World
+  插值: The answer is 42
+  表达式插值: Sum: 30
+  字符串属性:
+    长度: 5
+    是否为空: true
+    是否不为空: true
+  字符串方法:
+    大写: HELLO
+    小写: world
+AnyAnyAny
+    子字符串: Hell
+    包含: true
+    开始于: true
+    结束于: true
+    索引: 2
+    替换: HeLLo
+    分割: [, ]
+  字符串比较:
+    相等: true
+    比较: -1
+  多行字符串行数: 4
+
+📌 测试函数
+  加法函数: add(5, 3) = 8
+AnyAnyAny
+AnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+  匿名函数: multiply(4, 5) = 20
+  箭头函数: square(6) = 36
+  高阶函数 map: [, , , , ]
+  高阶函数 where: [, ]
+  函数作为参数: calculate(10, 5, add) = 15
+  函数作为参数: calculate(10, 5, subtract) = 5
+✅ 基础语法测试完成
+运行成功: basic_syntax
 转换成功: collections.dart -> collections.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:55:60: error: member reference type 'String' is not a pointer; did you mean to use '.'?
-words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
-                                                          ~^~
-                                                           .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:55:62: error: no member named 'size' in 'String'
-words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
-                                                          ~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:55:81: error: member reference type 'String' is not a pointer; did you mean to use '.'?
-words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
-                                                                               ~^~
-                                                                                .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:55:83: error: no member named 'size' in 'String'
-words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
-                                                                               ~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:55:8: error: too many arguments to function call, expected 0, have 1; did you mean 'CollectionUtils::sort'?
-words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
-       ^~~~
-       CollectionUtils::sort
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:363:10: note: 'CollectionUtils::sort' declared here
-    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& compare = nullptr) {
-         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:61:60: error: use of class template 'Set' requires template arguments
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:62:60: error: use of class template 'Set' requires template arguments
 auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
                                                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: template is declared here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
 class Set : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:61:69: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:62:69: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
 auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
                                                                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
   Set();
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
   Set(const Set<T>& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
   Set(std::initializer_list<T> init);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
-class Set : public Object {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:61:6: error: variable has incomplete type 'void'
-auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
-     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:62:59: error: use of class template 'Set' requires template arguments
-auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
-                                                          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: template is declared here
-class Set : public Object {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:62:68: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
-auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
-                                                                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
-  Set();
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
-  Set(const Set<T>& other);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
-  Set(std::initializer_list<T> init);
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
 class Set : public Object {
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:62:6: error: variable has incomplete type 'void'
-auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+auto numbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:63:61: error: use of class template 'Set' requires template arguments
-auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
-                                                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: template is declared here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:63:59: error: use of class template 'Set' requires template arguments
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
 class Set : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:63:70: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
-auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
-                                                                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:63:68: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
+                                                                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
   Set();
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
   Set(const Set<T>& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
   Set(std::initializer_list<T> init);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
 class Set : public Object {
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:63:6: error: variable has incomplete type 'void'
-auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+auto colors = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("red")); unnamed_var->add(dart_string("green")); unnamed_var->add(dart_string("blue")); return unnamed_var; })();
      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:79:65: error: use of class template 'Set' requires template arguments
-auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
-                                                                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: template is declared here
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:64:61: error: use of class template 'Set' requires template arguments
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
 class Set : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:79:74: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
-auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
-                                                                         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:887:3: note: candidate template ignored: couldn't infer template argument 'T'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:64:70: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
   Set();
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:888:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
   Set(const Set<T>& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:889:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
   Set(std::initializer_list<T> init);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:881:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
 class Set : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:79:6: error: variable has incomplete type 'void'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:64:6: error: variable has incomplete type 'void'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:80:65: error: use of class template 'Set' requires template arguments
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:80:74: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
+                                                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:80:6: error: variable has incomplete type 'void'
 auto otherNumbers = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); unnamed_var->add(dart_int(6)); unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); unnamed_var->add(dart_int(10)); return unnamed_var; })();
      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:83:1: warning: 'auto' storage class specifier is not permitted in C++11, and will not be supported in future releases [-Wauto-storage-class]
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:84:1: warning: 'auto' storage class specifier is not permitted in C++11, and will not be supported in future releases [-Wauto-storage-class]
 auto union = numbers->union(otherNumbers);
 ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:83:6: error: declaration of anonymous union must be a definition
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:84:6: error: declaration of anonymous union must be a definition
 auto union = numbers->union(otherNumbers);
      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:83:1: warning: declaration does not declare anything [-Wmissing-declarations]
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:84:1: warning: declaration does not declare anything [-Wmissing-declarations]
 auto union = numbers->union(otherNumbers);
 ^~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:84:43: error: declaration of anonymous union must be a definition
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:85:43: error: declaration of anonymous union must be a definition
 dart_print(dart_string("    并集: ") + (union).toString());
                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:85:1: error: type name requires a specifier or qualifier
+dart_print(dart_string("    并集: ") + (union).toString());
+^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:24: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:92:63: error: use of class template 'Set' requires template arguments
+auto duplicates = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(4)); return unnamed_var; })();
+                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:92:72: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto duplicates = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(4)); return unnamed_var; })();
+                                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:92:6: error: variable has incomplete type 'void'
+auto duplicates = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(4)); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp:129:54: error: no member named 'entries' in 'Map<String, Int>'
+dart_print(dart_string("    键值对: ") + (scores->entries()).toString());
+                                          ~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-3 warnings and 20 errors generated.
+2 warnings and 20 errors generated.
 编译失败: collections.cpp
 转换成功: constants.dart -> constants.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:19:3: error: constructor cannot be redeclared
   Point() : x(dart_double(1.0)), y(dart_double(0.0)) {
   ^
@@ -546,24 +509,6 @@ In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:16:3: note: previous definition is here
   Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:26:26: error: no matching function for call to 'sqrt'
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
-                         ^~~~
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/math.h:433:15: note: candidate function not viable: no known conversion from 'Double' to 'double' for 1st argument
-extern double sqrt(double);
-              ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1048:46: note: candidate function not viable: no known conversion from 'Double' to 'float' for 1st argument
-inline _LIBCPP_INLINE_VISIBILITY float       sqrt(float __lcpp_x) _NOEXCEPT       {return ::sqrtf(__lcpp_x);}
-                                             ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1049:46: note: candidate function not viable: no known conversion from 'Double' to 'long double' for 1st argument
-inline _LIBCPP_INLINE_VISIBILITY long double sqrt(long double __lcpp_x) _NOEXCEPT {return ::sqrtl(__lcpp_x);}
-                                             ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/math.h:1055:1: note: candidate template ignored: requirement 'std::is_integral<Double>::value' was not satisfied [with _A1 = Double]
-sqrt(_A1 __lcpp_x) _NOEXCEPT {return ::sqrt((double)__lcpp_x);}
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:26:12: error: use of undeclared identifier 'MathExtension'
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
-           ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:30:67: error: no member named 'x' in 'Object'
     return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
                                                            ~~~~~~~^
@@ -574,28 +519,17 @@ sqrt(_A1 __lcpp_x) _NOEXCEPT {return ::sqrt((double)__lcpp_x);}
     return Object::hash(this->x, this->y, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
            ~~~~~~~~^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:54:5: error: non-void function 'red' should return a value [-Wreturn-type]
-    return /* Invalid: temp_dart_source.dart:360:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
     ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:61:5: error: non-void function 'green' should return a value [-Wreturn-type]
-    return /* Invalid: temp_dart_source.dart:361:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
     ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:68:5: error: non-void function 'blue' should return a value [-Wreturn-type]
-    return /* Invalid: temp_dart_source.dart:362:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:61: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-    return dart_concat(dart_string("Color(0x"), (this->value->toRadixString(dart_int(16))->padLeft(dart_int(6), dart_string("0"))).toString(), dart_string(")"));
-                                                 ~~~~~~~~~~~^~
-                                                            .
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:63: error: no member named 'toRadixString' in 'Int'
     return dart_concat(dart_string("Color(0x"), (this->value->toRadixString(dart_int(16))->padLeft(dart_int(6), dart_string("0"))).toString(), dart_string(")"));
-                                                 ~~~~~~~~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:125:48: error: member reference type 'Double' is not a pointer; did you mean to use '.'?
-    return (dart_int(2) * dart_double(3.14159))->operator_mul(this->radius);
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
-                                               .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:125:50: error: no member named 'operator_mul' in 'Double'
-    return (dart_int(2) * dart_double(3.14159))->operator_mul(this->radius);
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  ^
+                                                 ~~~~~~~~~~~~~^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:175:54: error: no member named 'createConst' in 'ObjectPtr<Duration>'
   ObjectPtr<Duration> TIMEOUT = ObjectPtr<Duration>::createConst();
                                 ~~~~~~~~~~~~~~~~~~~~~^
@@ -611,73 +545,59 @@ sqrt(_A1 __lcpp_x) _NOEXCEPT {return ::sqrt((double)__lcpp_x);}
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:218:60: error: no member named 'createConst' in 'List<String>'
   ObjectPtr<List<String>> AVAILABLE_THEMES = List<String>::createConst({dart_string("light"), dart_string("dark"), dart_string("high-contrast")});
                                              ~~~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:229:23: error: out-of-line declaration of 'sqrt' does not match any declaration in namespace 'MathExtension'
+Double MathExtension::sqrt(Double _this);
+                      ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:99:30: note: type of 1st parameter of member declaration does not match definition ('const Double &' vs 'Double')
+    inline Double sqrt(const Double& value) {
+                             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:230:74: error: out-of-line declaration of 'get_sqrt' does not match any declaration in namespace 'MathExtension'
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
+                                                                         ^~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:264:57: error: no member named 'createConst' in 'List<Int>'
+dart_print(dart_string("    constList: ") + (List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})).toString());
+                                             ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:265:66: error: no member named 'createConst' in 'List<String>'
+dart_print(dart_string("    constStringList: ") + (List<String>::createConst({dart_string("apple"), dart_string("banana"), dart_string("orange")})).toString());
+                                                   ~~~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:266:62: error: no member named 'createConst' in 'List<Bool>'
+dart_print(dart_string("    constBoolList: ") + (List<Bool>::createConst({dart_bool(true), dart_bool(false), dart_bool(true)})).toString());
+                                                 ~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+20 errors generated.
 编译失败: constants.cpp
 转换成功: edge_cases.dart -> edge_cases.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:21:7: error: redefinition of 'Address'
-class Address {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1779:7: note: previous definition is here
-class Address : public Object {
-      ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:53:25: warning: integer literal is too large to be represented in a signed integer type, interpreting as unsigned [-Wimplicitly-unsigned-literal]
 auto minInt = dart_int(-9223372036854775808);
                         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:68:37: error: invalid argument type 'const Double' to unary expression
-auto negativeInfinity = dart_double(-Infinity);
-                                    ^~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:23:35: note: expanded from macro 'dart_double'
-#define dart_double(value) Double(value)
-                                  ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:69:24: error: use of undeclared identifier 'NaN'
 auto nan = dart_double(NaN);
                        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:78:62: error: member reference type 'Double' is not a pointer; did you mean to use '.'?
-dart_print(dart_string("    infinity是无穷: ") + (infinity->isInfinite()).toString());
-                                                  ~~~~~~~~^~
-                                                          .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:78:64: error: no member named 'isInfinite' in 'Double'
 dart_print(dart_string("    infinity是无穷: ") + (infinity->isInfinite()).toString());
-                                                  ~~~~~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:80:62: error: member reference type 'Double' is not a pointer; did you mean to use '.'?
-dart_print(dart_string("    infinity是有限: ") + (infinity->isFinite()).toString());
-                                                  ~~~~~~~~^~
-                                                          .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+                                                  ~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:80:64: error: no member named 'isFinite' in 'Double'
 dart_print(dart_string("    infinity是有限: ") + (infinity->isFinite()).toString());
-                                                  ~~~~~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+                                                  ~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:81:65: error: no member named 'isFinite' in 'Double'
-dart_print(dart_string("    veryLarge是有限: ") + (veryLarge.isFinite()).toString());
-                                                   ~~~~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:91:55: error: member reference type 'Int' is not a pointer; did you mean to use '.'?
-dart_print(dart_string("    -(-5) = ") + (dart_int(-5)->operator_negate()).toString());
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                                                      .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:81:66: error: no member named 'isFinite' in 'Double'
+dart_print(dart_string("    veryLarge是有限: ") + (veryLarge->isFinite()).toString());
+                                                   ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:52:24: warning: implicit conversion from 'long' to 'int' changes value from 9223372036854775807 to -1 [-Wconstant-conversion]
@@ -692,97 +612,134 @@ auto minInt = dart_int(-9223372036854775808);
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:22:29: note: expanded from macro 'dart_int'
 #define dart_int(value) Int(value)
                         ~~~ ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:102:49: error: no member named 'size' in 'String'
-dart_print(dart_string("    长度: ") + (empty.size()).toString());
-                                        ~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:124:37: error: no member named 'operator_mul' in 'String'
+auto longString = dart_string("a")->operator_mul(dart_int(1000));
+                  ~~~~~~~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:182:55: error: no member named 'toSet' in 'List<Int>'
+dart_print(dart_string("    去重: ") + (duplicates->toSet()->toList()).toString());
+                                        ~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:108:50: error: no member named 'size' in 'String'
-dart_print(dart_string("    长度: ") + (single.size()).toString());
-                                        ~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:113:56: error: no member named 'size' in 'String'
-dart_print(dart_string("    空格长度: ") + (spaces.size()).toString());
-                                            ~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:114:57: error: no member named 'size' in 'String'
-dart_print(dart_string("    制表符长度: ") + (tabs.size()).toString());
-                                              ~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:115:61: error: no member named 'size' in 'String'
-dart_print(dart_string("    换行符长度: ") + (newlines.size()).toString());
-                                              ~~~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:122:112: error: no member named 'size' in 'String'
-dart_print(dart_concat(dart_string("    Unicode: "), (unicode).toString(), dart_string(" (长度: "), (unicode.size()).toString(), dart_string(")")));
-                                                                                                     ~~~~~~~ ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:124:37: error: invalid operands to binary expression ('String' and 'Int')
-auto longString = (dart_string("a") * dart_int(1000));
-                   ~~~~~~~~~~~~~~~~ ^ ~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:137:5: error: expected '{'
-try auto sub1 = str.substring(dart_int(0), dart_int(0));
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:138:103: error: expected expression
-dart_print(dart_concat(dart_string("    substring(0,0): \""), (sub1).toString(), dart_string("\""))); catch (const std::exception& e) { /* catch block */ }
-                                                                                                      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:141:66: error: use of undeclared identifier 'sub2'; did you mean 'sub1'?
-dart_print(dart_concat(dart_string("    substring(0,len): \""), (sub2).toString(), dart_string("\""))); catch (const std::exception& e) { /* catch block */ }
-                                                                 ^~~~
-                                                                 sub1
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:137:10: note: 'sub1' declared here
-try auto sub1 = str.substring(dart_int(0), dart_int(0));
-         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:204:61: error: use of class template 'Set' requires template arguments
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:204:70: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:204:6: error: variable has incomplete type 'void'
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:208:60: error: use of class template 'Set' requires template arguments
+auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:208:69: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+                                                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:208:6: error: variable has incomplete type 'void'
+auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:212:57: error: use of class template 'Set' requires template arguments
+auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+                                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:212:66: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+                                                                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:212:6: error: variable has incomplete type 'void'
+auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:213:57: error: use of class template 'Set' requires template arguments
+auto set2 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:213:66: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto set2 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+                                                                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:213:6: error: variable has incomplete type 'void'
+auto set2 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp:215:64: error: expected unqualified-id
+dart_print(dart_string("    非空与空的并集: ") + (set1->union(set2)).toString());
+                                                        ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-4 warnings and 20 errors generated.
+3 warnings and 20 errors generated.
 编译失败: edge_cases.cpp
 转换成功: exception_handling.dart -> exception_handling.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:9:31: error: expected class name
-class InvalidEmailException : implements Exception {
-                              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:26:29: error: expected class name
-class ValidationException : implements Exception {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:9:46: error: unknown class name 'Exception'; did you mean 'std::exception'?
+class InvalidEmailException : virtual public Exception {
+                                             ^~~~~~~~~
+                                             std::exception
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/exception:99:29: note: 'std::exception' declared here
+class _LIBCPP_EXCEPTION_ABI exception
                             ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:45:36: error: expected class name
-class InsufficientFundsException : implements Exception {
-                                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:63:26: error: expected class name
-class NetworkException : implements Exception {
-                         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:26:44: error: expected class name
+class ValidationException : virtual public Exception {
+                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:45:51: error: expected class name
+class InsufficientFundsException : virtual public Exception {
+                                                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:63:41: error: expected class name
+class NetworkException : virtual public Exception {
+                                        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:81:1: error: unknown type name 'DART_INTERFACE'
 DART_INTERFACE(DatabaseException)
 ^
@@ -790,43 +747,29 @@ DART_INTERFACE(DatabaseException)
 DART_INTERFACE(DatabaseException)
                                  ^
                                  ;
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:104:24: error: expected class name
-class QueryException : extends DatabaseException {
-                       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:104:31: error: expected class name
+class QueryException : public DatabaseException {
+                              ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:107:58: error: member initializer 'DatabaseException' does not name a non-static data member or base class
   QueryException(String message, String sql) : sql(sql), DatabaseException(message) {
                                                          ^~~~~~~~~~~~~~~~~~~~~~~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:111:53: error: no member named 'message' in 'QueryException'
     return dart_string("QueryException: ") + (this->message).toString();
                                               ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:120:26: error: expected class name
-class ChainedException : implements Exception {
-                         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:123:13: error: unknown type name 'Exception'; did you mean 'std::exception'?
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:120:41: error: expected class name
+class ChainedException : virtual public Exception {
+                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:123:13: error: use of undeclared identifier 'Exception'
   ObjectPtr<Exception> innerException;
-            ^~~~~~~~~
-            std::exception
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/exception:99:29: note: 'std::exception' declared here
-class _LIBCPP_EXCEPTION_ABI exception
-                            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:124:46: error: unknown type name 'Exception'; did you mean 'std::exception'?
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:124:46: error: use of undeclared identifier 'Exception'
   ChainedException(String message, ObjectPtr<Exception> innerException) : message(message), innerException(innerException) {
-                                             ^~~~~~~~~
-                                             std::exception
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/exception:99:29: note: 'std::exception' declared here
-class _LIBCPP_EXCEPTION_ABI exception
-                            ^
+                                             ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:160:7: error: use of undeclared identifier 'DartException'; did you mean 'QueryException'?
 throw DartException(ObjectPtr<InsufficientFundsException>(new InsufficientFundsException(dart_string("余额不足"), this->balance, amount)));
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:104:7: note: 'QueryException' declared here
-class QueryException : extends DatabaseException {
+class QueryException : public DatabaseException {
       ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:182:31: error: use of undeclared identifier 'StateError'
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("文件已关闭"))));
@@ -834,30 +777,34 @@ throw DartException(ObjectPtr<StateError>(new StateError(dart_string("文件已�
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:182:47: error: unknown type name 'StateError'
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("文件已关闭"))));
                                               ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:225:5: error: expected '{'
-try throwGenericException(); catch (const std::exception& e) { /* catch block */ }
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:225:30: error: expected expression
-try throwGenericException(); catch (const std::exception& e) { /* catch block */ }
-                             ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:227:46: error: expected expression
-try divideByZero(dart_int(10), dart_int(0)); catch (const std::exception& e) { /* catch block */ }
-                                             ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:229:91: error: expected expression
-try accessInvalidIndex(dart_literal(dart_int(1), dart_int(2), dart_int(3)), dart_int(5)); catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
-                                                                                          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:235:70: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:235:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:235:124: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:235:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:262:18: error: use of undeclared identifier '_List'
+auto fixedList = _List::filled(dart_int(3), dart_int(0));
+                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:267:6: error: definition or redeclaration of 'parse' cannot name the global scope
+int::parse(dart_string("not_a_number"), Int(Null), nullptr);
+   ~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:267:6: error: no member named 'parse' in the global namespace
+int::parse(dart_string("not_a_number"), Int(Null), nullptr);
+   ~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:345:50: error: unknown type name 'testAsyncExceptions'
+DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, testAsyncExceptions, ()) {
+                                                 ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+2 warnings and 20 errors generated.
 编译失败: exception_handling.cpp
 转换成功: generics.dart -> generics.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:27:46: error: use of undeclared identifier 'Type'
     return dart_concat(dart_string("Box<"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(">("), (this->_value).toString(), dart_string(")"));
                                              ^
@@ -874,34 +821,14 @@ class Box {
     return dart_concat(dart_string("Box<"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(">("), (this->_value).toString(), dart_string(")"));
                                                                                  ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:36:1: error: extraneous template parameter list in template specialization or out-of-line template definition
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
-^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:60:78: error: use of undeclared identifier 'num'; did you mean 'enum'?
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                             ^~~
-                                                                             enum
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:60:81: error: expected identifier or '{'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:60:55: error: too few template arguments for variable template 'is_base_of_v'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                      ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/type_traits:1705:43: note: template is declared here
-_LIBCPP_INLINE_VAR _LIBCPP_CONSTEXPR bool is_base_of_v
-                                          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:62:7: error: 'NumberContainer' cannot be defined in a type specifier
-class NumberContainer : extends Box {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:62:25: error: expected class name
-class NumberContainer : extends Box {
-                        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:77:2: error: expected ',' or '>' in template-parameter-list
-};
- ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:77:2: error: declaration does not declare anything
+template<typename T>
+^~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:62:32: error: expected class name
+class NumberContainer : public Box {
+                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:64:30: error: member initializer 'Box' does not name a non-static data member or base class
+  NumberContainer(T value) : Box(value) {
+                             ^~~~~~~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:90:13: error: use of class template 'Box' requires template arguments
   ObjectPtr<Box> create(T value) {
             ^
@@ -914,125 +841,115 @@ class Box {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:11:7: note: template is declared here
 class Box {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:100:78: error: use of undeclared identifier 'num'; did you mean 'enum'?
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                             ^~~
-                                                                             enum
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:100:81: error: expected identifier or '{'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:100:55: error: too few template arguments for variable template 'is_base_of_v'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                      ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/type_traits:1705:43: note: template is declared here
-_LIBCPP_INLINE_VAR _LIBCPP_CONSTEXPR bool is_base_of_v
-                                          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:102:7: error: 'NumberCalculator' cannot be defined in a type specifier
-class NumberCalculator {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:149:19: error: 'List' is not a class, namespace, or enumeration
+    auto sorted = List::from(items, Bool(Null));
+                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:906:7: note: 'List' declared here
+class List : public Object {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:127:2: error: expected ',' or '>' in template-parameter-list
-};
- ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:160:1: error: unknown type name 'DART_INTERFACE'
+DART_INTERFACE(Serializable)
+^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:160:29: error: expected ';' after top level declarator
+DART_INTERFACE(Serializable)
+                            ^
+                            ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:245:12: error: 'List' is not a class, namespace, or enumeration
+    return List::from(this->_items, Bool(Null));
+           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:906:7: note: 'List' declared here
+class List : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:324:1: error: extraneous template parameter list in template specialization or out-of-line template definition
+template<typename K>
+^~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:365:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _root = Null;
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:385:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:385:45: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
+                                            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:397:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _findNode(ObjectPtr<TreeNode> node, T value) {
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:397:43: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _findNode(ObjectPtr<TreeNode> node, T value) {
+                                          ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+20 errors generated.
 编译失败: generics.cpp
 转换成功: hello_test.dart -> hello_test.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/hello_test.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: hello_test.cpp -> hello_test
 Hello World
 运行成功: hello_test
 转换成功: minimal_test.dart -> minimal_test.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/minimal_test.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: minimal_test.cpp -> minimal_test
 Test nullable
 default
 运行成功: minimal_test
 转换成功: null_safety_test.dart -> null_safety_test.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:11:32: error: no viable conversion from 'Nullable' to 'ObjectPtr<Address>'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:11:13: error: use of undeclared identifier 'Address'
   ObjectPtr<Address> address = Null;
-                               ^~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:724:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'Address *' for 1st argument
-  ObjectPtr(T* ptr);
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:23:17: error: no viable conversion from 'Nullable' to 'String'
+  String city = Null;
+                ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:99:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const String &' for 1st argument
+  String(const String& other);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:725:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const ObjectPtr<Address> &' for 1st argument
-  ObjectPtr(const ObjectPtr<T>& other);
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:101:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const char *' for 1st argument
+  String(const char* v);  // 接受字符串字面量 - 实现在cpp文件中
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:726:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'ObjectPtr<Address> &&' for 1st argument
-  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:102:3: note: candidate constructor not viable: no known conversion from 'Nullable' to 'const std::string &' (aka 'const basic_string<char, char_traits<char>, allocator<char>> &') for 1st argument
+  String(const std::string& v);  // 接受 std::string - 实现在cpp文件中
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:21:7: error: redefinition of 'Address'
-class Address {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1779:7: note: previous definition is here
-class Address : public Object {
-      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:100:12: note: explicit constructor is not a candidate
+  explicit String(int index);    // 显式构造，避免隐式转换
+           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:103:12: note: explicit constructor is not a candidate
+  explicit String(const Any& any);  // 显式构造，避免与其他构造函数冲突
+           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:104:12: note: explicit constructor is not a candidate
+  explicit String(const Nullable&);  // 显式NULL构造函数
+           ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:43:15: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
 auto length = dart_null_coalesce(maybeString, Null);
               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:111:74: note: expanded from macro 'dart_null_coalesce'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
 #define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
                                                                          ^~~~~~~~~~~~~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:147:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
 class Nullable : public Any {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:147:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:149:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:175:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
   Nullable() { type_id = 0; }
   ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
 auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
                                                                                                          ~~~~~~~~~^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:111:56: note: expanded from macro 'dart_null_coalesce'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:75:56: note: expanded from macro 'dart_null_coalesce'
 #define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
                                                        ^~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
 auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
                                                                                                          ~~~~~~~~~^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:111:90: note: expanded from macro 'dart_null_coalesce'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:75:90: note: expanded from macro 'dart_null_coalesce'
 #define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
                                                                                          ^~~~
-1 warning and 5 errors generated.
+5 errors generated.
 编译失败: null_safety_test.cpp
 转换成功: object_oriented.dart -> object_oriented.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:50:48: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
 dart_print(dart_concat(dart_string("    存款 \$"), (amount).toString(), dart_string("，余额: \$"), (this->_balance).toString()));
                                              ^~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:50:99: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
@@ -1041,7 +958,7 @@ dart_print(dart_concat(dart_string("    存款 \$"), (amount).toString(), dart_s
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:57:48: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
@@ -1050,7 +967,7 @@ dart_print(dart_concat(dart_string("    取款 \$"), (amount).toString(), dart_s
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:57:99: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
@@ -1059,7 +976,7 @@ dart_print(dart_concat(dart_string("    取款 \$"), (amount).toString(), dart_s
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:60:57: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
@@ -1068,97 +985,16 @@ dart_print(dart_string("    余额不足，无法取款 \$") + (amount).toString
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:146:13: error: expected class name
-class Dog : extends Animal {
-            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:149:50: error: type 'Animal' is not a direct or virtual base of 'Dog'
-  Dog(String name, String breed) : breed(breed), Animal(name) {
-                                                 ^~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:153:56: error: no member named 'name' in 'Dog'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 汪汪叫")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:158:56: error: no member named 'name' in 'Dog'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 跑来跑去")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:163:73: error: no member named 'name' in 'Dog'
-    dart_print(dart_concat(dart_string("    这是一只狗: "), (this->name).toString(), dart_string("，品种: "), (this->breed).toString()));
-                                                             ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:168:56: error: no member named 'name' in 'Dog'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 去捡球")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:178:13: error: expected class name
-class Cat : extends Animal {
-            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:181:50: error: type 'Animal' is not a direct or virtual base of 'Cat'
-  Cat(String name, String breed) : breed(breed), Animal(name) {
-                                                 ^~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:185:56: error: no member named 'name' in 'Cat'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 喵喵叫")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:190:56: error: no member named 'name' in 'Cat'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 优雅地走动")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:195:73: error: no member named 'name' in 'Cat'
-    dart_print(dart_concat(dart_string("    这是一只猫: "), (this->name).toString(), dart_string("，品种: "), (this->breed).toString()));
-                                                             ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:200:56: error: no member named 'name' in 'Cat'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 爬树")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:210:18: error: expected class name
-class Employee : extends Person {
-                 ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:214:110: error: type 'Person' is not a direct or virtual base of 'Employee'
-  Employee(String name, Int age, String employeeId, Double salary) : employeeId(employeeId), salary(salary), Person(name, age) {
-                                                                                                             ^~~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:219:118: warning: unknown escape sequence '\$' [-Wunknown-escape-sequence]
 dart_print(dart_concat(dart_string("    我的员工ID是"), (this->employeeId).toString(), dart_string("，薪水是\$"), (this->salary).toString()));
                                                                                                             ^~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:25:47: note: expanded from macro 'dart_string'
 #define dart_string(value) String(std::string(value))
                                               ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
-    std::cout << (value).toString().getValue() << std::endl;                   \
-                  ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:224:56: error: no member named 'name' in 'Employee'
-    dart_print(dart_concat(dart_string("    "), (this->name).toString(), dart_string(" 正在工作")));
-                                                 ~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:119:19: note: expanded from macro 'dart_print'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
     std::cout << (value).toString().getValue() << std::endl;                   \
                   ^~~~~
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:234:1: error: unknown type name 'DART_INTERFACE'
@@ -1168,33 +1004,94 @@ DART_INTERFACE(Drivable)
 DART_INTERFACE(Drivable)
                         ^
                         ;
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:273:17: error: expected class name
-class Bicycle : implements Drivable {
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:273:32: error: expected class name
+class Bicycle : virtual public Drivable {
+                               ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:302:1: error: unknown type name 'DART_INTERFACE'
 DART_INTERFACE(Callable)
 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:302:25: error: expected ';' after top level declarator
+DART_INTERFACE(Callable)
+                        ^
+                        ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:357:1: error: unknown type name 'DART_INTERFACE'
+DART_INTERFACE(Singing)
+^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:357:24: error: expected ';' after top level declarator
+DART_INTERFACE(Singing)
+                       ^
+                       ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:402:25: error: unknown class name '_Musician'; did you mean 'Musician'?
+class Musician : public _Musician&Performer&Singing&Playing {
+                        ^~~~~~~~~
+                        Musician
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:402:7: note: 'Musician' declared here
+class Musician : public _Musician&Performer&Singing&Playing {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:402:25: error: base class has incomplete type
+class Musician : public _Musician&Performer&Singing&Playing {
+                 ~~~~~~~^~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:402:7: note: definition of 'Musician' is not complete until the closing '}'
+class Musician : public _Musician&Performer&Singing&Playing {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:404:36: error: expected '(' or '{'
+  Musician(String name) : _Musician&Performer&Singing&Playing(name) {
+                                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:413:23: error: unknown class name '_Dancer'; did you mean 'Dancer'?
+class Dancer : public _Dancer&Performer&Dancing {
+                      ^~~~~~~
+                      Dancer
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:413:7: note: 'Dancer' declared here
+class Dancer : public _Dancer&Performer&Dancing {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:413:23: error: base class has incomplete type
+class Dancer : public _Dancer&Performer&Dancing {
+               ~~~~~~~^~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:413:7: note: definition of 'Dancer' is not complete until the closing '}'
+class Dancer : public _Dancer&Performer&Dancing {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:415:32: error: expected '(' or '{'
+  Dancer(String name) : _Dancer&Performer&Dancing(name) {
+                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:424:23: error: unknown class name '_Artist'; did you mean 'Artist'?
+class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
+                      ^~~~~~~
+                      Artist
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:424:7: note: 'Artist' declared here
+class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:424:23: error: base class has incomplete type
+class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
+               ~~~~~~~^~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:424:7: note: definition of 'Artist' is not complete until the closing '}'
+class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:426:32: error: expected '(' or '{'
+  Artist(String name) : _Artist&Performer&Singing&Playing&Dancing&Painting(name) {
+                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:435:1: error: unknown type name 'DART_INTERFACE'
+DART_INTERFACE(Shape)
+^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:435:22: error: expected ';' after top level declarator
+DART_INTERFACE(Shape)
+                     ^
+                     ;
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:469:31: error: base class has incomplete type
+class RectangleShape : public Shape {
+                       ~~~~~~~^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:44:7: note: forward declaration of 'Shape'
+class Shape;
+      ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-7 warnings and 20 errors generated.
+6 warnings and 20 errors generated.
 编译失败: object_oriented.cpp
 转换成功: test.dart -> test.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:30:17: error: expected class name
-class MyTest2 : implements MyTest {
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:10:20: note: expanded from macro 'implements'
-#define implements : virtual public
-                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:32:3: error: constructor for 'MyTest2' must explicitly initialize the base class 'MyTest' which does not have a default constructor
+  MyTest2(Int a, Int b) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:9:7: note: 'MyTest' declared here
+class MyTest {
+      ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:33:11: error: no member named 'set_a' in 'MyTest2'
     this->set_a(a);
     ~~~~  ^
@@ -1237,70 +1134,82 @@ this->set_b(b);
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:63:79: error: unknown type name '_InvocationMirror'
     return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(0), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
                                                                               ^
-1 warning and 15 errors generated.
+15 errors generated.
 编译失败: test.cpp
 转换成功: test_all_functions.dart -> test_all_functions.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:36:1: warning: non-void function does not return a value [-Wreturn-type]
-}
-^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:39:3: error: use of undeclared identifier 'operation'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:22:36: error: no member named 'call' in 'Function'
+  return dart_cast<Int>(operation->call(a, b));
+                        ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:26:10: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to function return type 'ObjectPtr<Function>'
+  return makeFunction(&add);
+         ^~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:799:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to 'Function *' for 1st argument
+  ObjectPtr(T* ptr);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:800:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to 'const ObjectPtr<Function> &' for 1st argument
+  ObjectPtr(const ObjectPtr<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:801:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to 'ObjectPtr<Function> &&' for 1st argument
+  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:10: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23), Int, Int>>' to function return type 'ObjectPtr<Function>'
+  return makeFunction([&](Int value) { return value->operator_mul(factor); });
+         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:799:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23), Int, Int>>' to 'Function *' for 1st argument
+  ObjectPtr(T* ptr);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:800:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23), Int, Int>>' to 'const ObjectPtr<Function> &' for 1st argument
+  ObjectPtr(const ObjectPtr<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:801:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23), Int, Int>>' to 'ObjectPtr<Function> &&' for 1st argument
+  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:34:17: error: no matching function for call to 'calculate'
+  auto result = calculate(dart_int(10), dart_int(5), makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
+                ^~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:21:5: note: candidate function not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:34:67), Int, Int, Int>>' to 'ObjectPtr<Function>' for 3rd argument
+Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:40:3: error: use of undeclared identifier 'operation'
   operation = makeFunction(&add);
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:40:15: error: use of undeclared identifier 'operation'; did you mean 'operator'?
-auto result = operation->apply(std::vector<Any>{dart_int(10), dart_int(5)});
-              ^~~~~~~~~
-              operator
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:40:15: error: use of undeclared 'operator->'
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:46:17: error: use of undeclared identifier 'operations'; did you mean 'operator'?
-  auto result = operations->get(dart_int(0))->apply(std::vector<Any>{dart_int(10), dart_int(5)});
-                ^~~~~~~~~~
-                operator
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:46:17: error: use of undeclared 'operator->'
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:59:53: error: use of undeclared identifier 'multiply'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:41:14: error: use of undeclared identifier 'operation'; did you mean 'operator'?
+Any result = operation->call(dart_int(10), dart_int(5));
+             ^~~~~~~~~
+             operator
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:41:14: error: use of undeclared 'operator->'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:47:16: error: use of undeclared identifier 'operations'; did you mean 'operator'?
+  Any result = operations->operator_index(dart_int(0))->call(dart_int(10), dart_int(5));
+               ^~~~~~~~~~
+               operator
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:47:16: error: use of undeclared 'operator->'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:58:20: error: no matching function for call to 'calculate'
+    auto result1 = calculate(dart_int(10), dart_int(5), makeFunction(&add));
+                   ^~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:21:5: note: candidate function not viable: no known conversion from 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to 'ObjectPtr<Function>' for 3rd argument
+Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:60:53: error: use of undeclared identifier 'multiply'
 auto result2 = calculate(dart_int(10), dart_int(5), multiply);
                                                     ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:40:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:144:10: error: invalid target type 'Int' for dynamic_cast; target type must be a reference or pointer type to a defined class
-  return dynamic_cast<T>(value);
-         ^           ~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:22:10: note: in instantiation of function template specialization 'dart_cast<Int, Any>' requested here
-  return dart_cast<Int>(operation->apply(std::vector<Any>{a, b}));
-         ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:13:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:783:28: error: no matching function for call to object of type '(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23)'
-                return Any(func_(Int(args[0]), Int(args[1])));
-                           ^~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:775:11: note: in instantiation of member function 'makeFunction((lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23) &&)::LambdaFunction::apply' requested here
-    class LambdaFunction : public Function {
-          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:10: note: in instantiation of function template specialization 'makeFunction<(lambda at /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23)>' requested here
-  return makeFunction([&](Int value) { return (value * factor); });
-         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:30:23: note: candidate function not viable: requires single argument 'value', but 2 arguments were provided
-  return makeFunction([&](Int value) { return (value * factor); });
-                      ^
-2 warnings and 8 errors generated.
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:63:24: error: no member named 'call' in 'Function'
+Any result3 = addFunc->call(dart_int(10), dart_int(5));
+              ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:66:27: error: no member named 'call' in 'Function'
+Any result4 = multiplier->call(dart_int(5));
+              ~~~~~~~~~~~~^
+13 errors generated.
 编译失败: test_all_functions.cpp
+转换成功: test_arrow_operator.dart -> test_arrow_operator.cpp
+编译成功: test_arrow_operator.cpp -> test_arrow_operator
+x + y = 30
+x.abs() = 10
+d1 + d2 = 5.85
+d1.abs() = 3.14
+b1 && b2 = false
+b1.toString() = true
+运行成功: test_arrow_operator
 转换成功: test_comprehensive.dart -> test_comprehensive.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_comprehensive.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_comprehensive.cpp -> test_comprehensive
 === 综合测试 ===
 Add result: 30
@@ -1313,15 +1222,6 @@ AnyAnyAnyAnyAny
 \n✅ 所有测试通过！
 运行成功: test_comprehensive
 转换成功: test_forin.dart -> test_forin.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_forin.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_forin.cpp -> test_forin
 For-in test:
 apple
@@ -1330,199 +1230,163 @@ orange
 Done!
 运行成功: test_forin
 转换成功: test_function_param.dart -> test_function_param.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:17:19: error: member reference type 'std::function<Int (Int, Int)>' is not a pointer; did you mean to use '.'?
-  return operation->apply(std::vector<Any>{a, b});
-         ~~~~~~~~~^~
-                  .
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:17:21: error: no member named 'apply' in 'std::function<Int (Int, Int)>'
-  return operation->apply(std::vector<Any>{a, b});
-         ~~~~~~~~~  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:26:20: error: no matching function for call to 'calculate'
-    auto result1 = calculate(dart_int(10), dart_int(5), makeFunction(&add));
-                   ^~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:16:5: note: candidate function not viable: no known conversion from 'ObjectPtr<Function>' to 'std::function<Int (Int, Int)>' for 3rd argument
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation) {
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:28:16: error: no matching function for call to 'calculate'
-auto result2 = calculate(dart_int(10), dart_int(5), makeFunction(&subtract));
-               ^~~~~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp:16:5: note: candidate function not viable: no known conversion from 'ObjectPtr<Function>' to 'std::function<Int (Int, Int)>' for 3rd argument
-Int calculate(Int a, Int b, std::function<Int(Int, Int)> operation) {
-    ^
-1 warning and 4 errors generated.
-编译失败: test_function_param.cpp
+编译成功: test_function_param.cpp -> test_function_param
+10 + 5 = 15
+10 - 5 = 5
+运行成功: test_function_param
 转换成功: test_lambda.dart -> test_lambda.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_lambda.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_lambda.cpp -> test_lambda
-Result: Any
+Result: 20
 运行成功: test_lambda
 转换成功: test_null_assign.dart -> test_null_assign.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_null_assign.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_null_assign.cpp -> test_null_assign
 42
 运行成功: test_null_assign
 转换成功: test_return_this.dart -> test_return_this.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_return_this.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_return_this.cpp -> test_return_this
 Hello World
 运行成功: test_return_this
 转换成功: test_simple_functions.dart -> test_simple_functions.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:17:36: error: no member named 'call' in 'Function'
+  return dart_cast<Int>(operation->call(a, b));
+                        ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:26:20: error: no matching function for call to 'calculate'
+    auto result1 = calculate(dart_int(10), dart_int(5), makeFunction(&add));
+                   ^~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:16:5: note: candidate function not viable: no known conversion from 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to 'ObjectPtr<Function>' for 3rd argument
+Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+    ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:28:53: error: use of undeclared identifier 'multiply'
 auto result2 = calculate(dart_int(10), dart_int(5), multiply);
                                                     ^
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:40:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:144:10: error: invalid target type 'Int' for dynamic_cast; target type must be a reference or pointer type to a defined class
-  return dynamic_cast<T>(value);
-         ^           ~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp:17:10: note: in instantiation of function template specialization 'dart_cast<Int, Any>' requested here
-  return dart_cast<Int>(operation->apply(std::vector<Any>{a, b}));
-         ^
-1 warning and 2 errors generated.
+3 errors generated.
 编译失败: test_simple_functions.cpp
 转换成功: test_stringbuffer.dart -> test_stringbuffer.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_stringbuffer.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_stringbuffer.cpp -> test_stringbuffer
 Hello
 运行成功: test_stringbuffer
 转换成功: test_top_function.dart -> test_top_function.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_top_function.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-1 warning generated.
 编译成功: test_top_function.cpp -> test_top_function
 Result: 8
 运行成功: test_top_function
 转换成功: type_conversion.dart -> type_conversion.cpp
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:1:
-In file included from /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart2cpp.h:25:
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_oop_extensions.h:12:9: warning: 'interface' macro redefined [-Wmacro-redefined]
-#define interface class
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:9:9: note: previous definition is here
-#define interface struct
-        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:21:13: error: expected class name
-class Dog : extends Animal {
-            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:23:22: error: type 'Animal' is not a direct or virtual base of 'Dog'
-  Dog(String name) : Animal(name) {
-                     ^~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:32:13: error: expected class name
-class Cat : extends Animal {
-            ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_macros.h:8:17: note: expanded from macro 'extends'
-#define extends : public
-                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:34:22: error: type 'Animal' is not a direct or virtual base of 'Cat'
-  Cat(String name) : Animal(name) {
-                     ^~~~~~
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:55:7: error: redefinition of 'Address'
-class Address {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1779:7: note: previous definition is here
-class Address : public Object {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:81:78: error: use of undeclared identifier 'num'; did you mean 'enum'?
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                             ^~~
-                                                                             enum
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:81:81: error: expected identifier or '{'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                                                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:81:55: error: too few template arguments for variable template 'is_base_of_v'
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
-                                                      ^
-/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/type_traits:1705:43: note: template is declared here
-_LIBCPP_INLINE_VAR _LIBCPP_CONSTEXPR bool is_base_of_v
-                                          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:83:7: error: 'NumberProcessor' cannot be defined in a type specifier
-class NumberProcessor {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:92:2: error: expected ',' or '>' in template-parameter-list
-};
- ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:92:2: error: declaration does not declare anything
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:100:16: error: use of undeclared identifier 'T'
-ObjectPtr<List<T>> createList(T first, T second);
-               ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:100:31: error: unknown type name 'T'
-ObjectPtr<List<T>> createList(T first, T second);
-                              ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:100:40: error: unknown type name 'T'
-ObjectPtr<List<T>> createList(T first, T second);
-                                       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:106:36: error: no member named 'createFromEntries' in 'Map<String, String>'
-auto value4 = Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}});
-              ~~~~~~~~~~~~~~~~~~~~~^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:108:5: error: expected '{'
-try auto intValue = dart_cast<Int>(value1);
-    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:109:69: error: expected expression
-dart_print(dart_string("    42 as int: ") + (intValue).toString()); catch (const std::exception& e) { /* catch block */ }
-                                                                    ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:112:56: error: use of undeclared identifier 'stringValue'
-dart_print(dart_string("    \"hello\" as String: ") + (stringValue).toString()); catch (const std::exception& e) { /* catch block */ }
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:258:21: error: expected '(' for function-style cast or type construction
+auto parsedInt = int::parse(intString, Int(Null), nullptr);
+                 ~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:263:27: error: expected '(' for function-style cast or type construction
+auto parsedDouble = double::parse(doubleString);
+                    ~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:268:22: error: expected '(' for function-style cast or type construction
+auto invalidInt = int::parse(invalidString, Int(Null), nullptr);
+                  ~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:273:20: error: expected '(' for function-style cast or type construction
+auto safeInt1 = int::tryParse(intString, Int(Null));
+                ~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:274:20: error: expected '(' for function-style cast or type construction
+auto safeInt2 = int::tryParse(invalidString, Int(Null));
+                ~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:275:26: error: expected '(' for function-style cast or type construction
+auto safeDouble1 = double::tryParse(doubleString);
+                   ~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:276:26: error: expected '(' for function-style cast or type construction
+auto safeDouble2 = double::tryParse(invalidString);
+                   ~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:283:60: error: no member named 'toRadixString' in 'Int'
+dart_print(dart_string("    255转16进制: ") + (decimal->toRadixString(dart_int(16))).toString());
+                                               ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:284:59: error: no member named 'toRadixString' in 'Int'
+dart_print(dart_string("    255转8进制: ") + (decimal->toRadixString(dart_int(8))).toString());
+                                              ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:285:59: error: no member named 'toRadixString' in 'Int'
+dart_print(dart_string("    255转2进制: ") + (decimal->toRadixString(dart_int(2))).toString());
+                                              ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:287:19: error: expected '(' for function-style cast or type construction
+auto fromHex = int::parse(dart_string("FF"), dart_int(16), nullptr);
+               ~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:293:56: error: use of class template 'Set' requires template arguments
+auto set = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
                                                        ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:112:82: error: expected expression
-dart_print(dart_string("    \"hello\" as String: ") + (stringValue).toString()); catch (const std::exception& e) { /* catch block */ }
-                                                                                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: template is declared here
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:293:65: error: no viable constructor or deduction guide for deduction of template arguments of 'Set'
+auto set = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+                                                                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1034:3: note: candidate template ignored: couldn't infer template argument 'T'
+  Set();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1035:3: note: candidate function template not viable: requires single argument 'other', but no arguments were provided
+  Set(const Set<T>& other);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1036:3: note: candidate function template not viable: requires single argument 'init', but no arguments were provided
+  Set(std::initializer_list<T> init);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1028:7: note: candidate function template not viable: requires 1 argument, but 0 were provided
+class Set : public Object {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:293:6: error: variable has incomplete type 'void'
+auto set = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:294:24: error: no member named 'toSet' in 'List<Int>'
+auto listToSet = list->toSet();
+                 ~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:299:24: error: no member named 'codeUnits' in 'String'
+auto charCodes = text->codeUnits();
+                 ~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:300:26: error: no member named 'fromCharCodes' in 'String'
+auto fromCodes = String::fromCharCodes(charCodes, Int(Null), Int(Null));
+                 ~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:317:34: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string("    null ??= \"assigned\": ") + (testString).toString());
+                                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:319:42: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string("    \"assigned\" ??= \"not assigned\": ") + (testString).toString());
+                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:321:16: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+auto length1 = dart_null_coalesce(maybeString, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:175:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:324:16: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+auto length2 = dart_null_coalesce(maybeString, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:173:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:175:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
-1 warning and 20 errors generated.
+2 warnings and 20 errors generated.
 编译失败: type_conversion.cpp
+转换成功: type_inference_test.dart -> type_inference_test.cpp
+编译成功: type_inference_test.cpp -> type_inference_test
+=== 类型推断测试 ===
+int variable + double variable: not supported
+literal int + double variable = 8.14
+double variable + literal int = 13.14
+int variable + int literal = 30
+int literal + int literal = 40
+String concat: Hello World
+运行成功: type_inference_test

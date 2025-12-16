@@ -12,7 +12,7 @@ public:
   Int age;
   Int totalCount = dart_int(0);
   Person(String name, Int age) : name(name), age(age) {
-    Person::totalCount = (Person::totalCount + dart_int(1));
+    Person::totalCount = Person::totalCount->operator_add(dart_int(1));
   }
   
   Nullable introduce() {
@@ -21,7 +21,7 @@ return Void;
   }
   
   Nullable celebrateBirthday() {
-    this->age = (this->age + dart_int(1));
+    this->age = this->age->operator_add(dart_int(1));
 dart_print(dart_string("    🎉 生日快乐！"));
 return Void;
   }
@@ -46,14 +46,14 @@ private:
   }
   
   Nullable deposit(Double amount) {
-    this->_balance = (this->_balance + amount);
+    this->_balance = this->_balance->operator_add(amount);
 dart_print(dart_concat(dart_string("    存款 \$"), (amount).toString(), dart_string("，余额: \$"), (this->_balance).toString()));
 return Void;
   }
   
   Bool withdraw(Double amount) {
-    if ((this->_balance >= amount)) {
-this->_balance = (this->_balance - amount);
+    if (this->_balance->operator_greater_equals(amount)) {
+this->_balance = this->_balance->operator_sub(amount);
 dart_print(dart_concat(dart_string("    取款 \$"), (amount).toString(), dart_string("，余额: \$"), (this->_balance).toString()));
 return dart_bool(true);
 } else {
@@ -85,7 +85,7 @@ public:
   }
   
   Nullable width(Double value) {
-    if ((value > dart_int(0))) {
+    if (value->operator_greater(dart_int(0))) {
 this->_width = value;
 };
 return Void;
@@ -96,18 +96,18 @@ return Void;
   }
   
   Nullable height(Double value) {
-    if ((value > dart_int(0))) {
+    if (value->operator_greater(dart_int(0))) {
 this->_height = value;
 };
 return Void;
   }
   
   Double area() {
-    return (this->_width * this->_height);
+    return this->_width->operator_mul(this->_height);
   }
   
   Double perimeter() {
-    return (dart_int(2) * (this->_width + this->_height));
+    return dart_double(2.0)->operator_mul(this->_width->operator_add(this->_height));
   }
   
 };
@@ -143,7 +143,7 @@ return Void;
 // 类: Dog
 // ============================================================================
 
-class Dog : extends Animal {
+class Dog : public Animal {
 public:
   String breed;
   Dog(String name, String breed) : breed(breed), Animal(name) {
@@ -175,7 +175,7 @@ return Void;
 // 类: Cat
 // ============================================================================
 
-class Cat : extends Animal {
+class Cat : public Animal {
 public:
   String breed;
   Cat(String name, String breed) : breed(breed), Animal(name) {
@@ -207,7 +207,7 @@ return Void;
 // 类: Employee
 // ============================================================================
 
-class Employee : extends Person {
+class Employee : public Person {
 public:
   String employeeId;
   Double salary;
@@ -241,7 +241,7 @@ DART_INTERFACE_END
 // 类: Car
 // ============================================================================
 
-class Car : implements Drivable {
+class Car : virtual public Drivable {
 private:
   Bool _isRunning = dart_bool(false);
 public:
@@ -270,7 +270,7 @@ return Void;
 // 类: Bicycle
 // ============================================================================
 
-class Bicycle : implements Drivable {
+class Bicycle : virtual public Drivable {
 private:
   Bool _isMoving = dart_bool(false);
 public:
@@ -315,7 +315,7 @@ DART_INTERFACE_END
 // 类: Smartphone
 // ============================================================================
 
-class Smartphone : implements Drivable, implements Callable, implements Messageable {
+class Smartphone : virtual public Drivable, virtual public Callable, virtual public Messageable {
 private:
   Bool _isOn = dart_bool(false);
 public:
@@ -399,7 +399,7 @@ return Void;
 // 类: Musician
 // ============================================================================
 
-class Musician : extends _Musician&Performer&Singing&Playing {
+class Musician : public _Musician&Performer&Singing&Playing {
 public:
   Musician(String name) : _Musician&Performer&Singing&Playing(name) {
   }
@@ -410,7 +410,7 @@ public:
 // 类: Dancer
 // ============================================================================
 
-class Dancer : extends _Dancer&Performer&Dancing {
+class Dancer : public _Dancer&Performer&Dancing {
 public:
   Dancer(String name) : _Dancer&Performer&Dancing(name) {
   }
@@ -421,7 +421,7 @@ public:
 // 类: Artist
 // ============================================================================
 
-class Artist : extends _Artist&Performer&Singing&Playing&Dancing&Painting {
+class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
 public:
   Artist(String name) : _Artist&Performer&Singing&Playing&Dancing&Painting(name) {
   }
@@ -442,7 +442,7 @@ DART_INTERFACE_END
 // 类: Circle
 // ============================================================================
 
-class Circle : extends Shape {
+class Circle : public Shape {
 public:
   Double radius;
   Circle(Double radius) : radius(radius) {
@@ -453,11 +453,11 @@ public:
   }
   
   Double area() {
-    return ((dart_double(3.14159) * this->radius) * this->radius);
+    return dart_double(3.14159)->operator_mul(this->radius)->operator_mul(this->radius);
   }
   
   Double perimeter() {
-    return (dart_int(2) * dart_double(3.14159))->operator_mul(this->radius);
+    return dart_double(2.0)->operator_mul(dart_double(3.14159))->operator_mul(this->radius);
   }
   
 };
@@ -466,7 +466,7 @@ public:
 // 类: RectangleShape
 // ============================================================================
 
-class RectangleShape : extends Shape {
+class RectangleShape : public Shape {
 public:
   Double width;
   Double height;
@@ -478,11 +478,11 @@ public:
   }
   
   Double area() {
-    return (this->width * this->height);
+    return this->width->operator_mul(this->height);
   }
   
   Double perimeter() {
-    return (dart_int(2) * (this->width + this->height));
+    return dart_double(2.0)->operator_mul(this->width->operator_add(this->height));
   }
   
 };
@@ -491,7 +491,7 @@ public:
 // 类: Triangle
 // ============================================================================
 
-class Triangle : extends Shape {
+class Triangle : public Shape {
 public:
   Double a;
   Double b;
@@ -504,12 +504,12 @@ public:
   }
   
   Double area() {
-    auto s = (((this->a + this->b) + this->c) / dart_int(2));
-return MathExtension|sqrt((((s * (s - this->a)) * (s - this->b)) * (s - this->c))->abs());
+    auto s = this->a->operator_add(this->b)->operator_add(this->c)->operator_div(dart_double(2.0));
+return MathExtension::sqrt(s->operator_mul(s->operator_sub(this->a))->operator_mul(s->operator_sub(this->b))->operator_mul(s->operator_sub(this->c))->abs());
   }
   
   Double perimeter() {
-    return ((this->a + this->b) + this->c);
+    return this->a->operator_add(this->b)->operator_add(this->c);
   }
   
 };
@@ -518,7 +518,7 @@ return MathExtension|sqrt((((s * (s - this->a)) * (s - this->b)) * (s - this->c)
 // 类: Weekday
 // ============================================================================
 
-class Weekday : extends _Enum {
+class Weekday : public _Enum {
 public:
   ObjectPtr<Weekday> monday = ObjectPtr<Weekday>::createConst();
   ObjectPtr<Weekday> tuesday = ObjectPtr<Weekday>::createConst();
@@ -528,7 +528,7 @@ public:
   ObjectPtr<Weekday> saturday = ObjectPtr<Weekday>::createConst();
   ObjectPtr<Weekday> sunday = ObjectPtr<Weekday>::createConst();
   ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst()});
-  Weekday(Int #index, String #name) : _Enum(_index, _name) {
+  Weekday(Int _index, String _name) : _Enum(index, name) {
   }
   
   String _enumToString() {
@@ -536,7 +536,7 @@ public:
   }
   
   Bool isWeekday() {
-    return (this->index < dart_int(5));
+    return this->index->operator_less(dart_int(5));
   }
   
   Bool isWeekend() {
@@ -549,14 +549,14 @@ public:
 // 类: Color
 // ============================================================================
 
-class Color : extends _Enum {
+class Color : public _Enum {
 public:
   ObjectPtr<Color> red = ObjectPtr<Color>::createConst();
   ObjectPtr<Color> green = ObjectPtr<Color>::createConst();
   ObjectPtr<Color> blue = ObjectPtr<Color>::createConst();
   Int rgb;
   ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
-  Color(Int #index, String #name, Int rgb) : rgb(rgb), _Enum(_index, _name) {
+  Color(Int _index, String _name, Int rgb) : rgb(rgb), _Enum(index, name) {
   }
   
   String _enumToString() {
@@ -569,14 +569,14 @@ public:
 // 类: OrderStatus
 // ============================================================================
 
-class OrderStatus : extends _Enum {
+class OrderStatus : public _Enum {
 public:
   ObjectPtr<OrderStatus> pending = ObjectPtr<OrderStatus>::createConst();
   ObjectPtr<OrderStatus> processing = ObjectPtr<OrderStatus>::createConst();
   ObjectPtr<OrderStatus> shipped = ObjectPtr<OrderStatus>::createConst();
   ObjectPtr<OrderStatus> delivered = ObjectPtr<OrderStatus>::createConst();
   ObjectPtr<List<ObjectPtr<OrderStatus>>> values = List<ObjectPtr<OrderStatus>>::createConst({ObjectPtr<OrderStatus>::createConst(), ObjectPtr<OrderStatus>::createConst(), ObjectPtr<OrderStatus>::createConst(), ObjectPtr<OrderStatus>::createConst()});
-  OrderStatus(Int #index, String #name) : _Enum(_index, _name) {
+  OrderStatus(Int _index, String _name) : _Enum(index, name) {
   }
   
   String _enumToString() {
@@ -619,7 +619,7 @@ private:
   Logger(String name) : name(name) {
   }
   
-  ObjectPtr<Logger> (String name) {
+  ObjectPtr<Logger> unnamed(String name) {
     return Logger::_cache->putIfAbsent(name, makeFunction([&]() { return ObjectPtr<Logger>(new Logger(name)); }));
   }
   
@@ -700,8 +700,8 @@ Nullable testMixins();
 Nullable testAbstractClasses();
 Nullable testEnums();
 Nullable testConstructors();
-Double MathExtension|sqrt(Double #this);
-std::function<Double()> MathExtension|get#sqrt(Double #this);
+Double MathExtension::sqrt(Double _this);
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
 Nullable testBasicClasses() {
   dart_print(dart_string("\n📌 测试基本类和对象"));
 auto person = ObjectPtr<Person>(new Person(dart_string("Alice"), dart_int(25)));
@@ -813,22 +813,22 @@ return Void;
 Nullable testEnums() {
   dart_print(dart_string("\n📌 测试枚举"));
 auto today = ObjectPtr<Weekday>::createConst();
-dart_print(dart_string("  今天是: ") + (EnumName|get#name(today)).toString());
+dart_print(dart_string("  今天是: ") + (EnumName|get_name(today)).toString());
 dart_print(dart_string("  是工作日吗: ") + (today->isWeekday()).toString());
 dart_print(dart_string("  是周末吗: ") + (today->isWeekend()).toString());
 dart_print(dart_string("  所有星期:"));
 auto sync_for_iterator = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst()})->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 auto day = sync_for_iterator->next();
-dart_print(dart_concat(dart_string("    "), (EnumName|get#name(day)).toString(), dart_string(" (索引: "), (day->index).toString(), dart_string(")")));
+dart_print(dart_concat(dart_string("    "), (EnumName|get_name(day)).toString(), dart_string(" (索引: "), (day->index).toString(), dart_string(")")));
 }
 auto red = ObjectPtr<Color>::createConst();
 auto green = ObjectPtr<Color>::createConst();
 auto blue = ObjectPtr<Color>::createConst();
 dart_print(dart_string("  颜色测试:"));
-dart_print(dart_concat(dart_string("    "), (EnumName|get#name(red)).toString(), dart_string(": RGB = "), (red->rgb).toString()));
-dart_print(dart_concat(dart_string("    "), (EnumName|get#name(green)).toString(), dart_string(": RGB = "), (green->rgb).toString()));
-dart_print(dart_concat(dart_string("    "), (EnumName|get#name(blue)).toString(), dart_string(": RGB = "), (blue->rgb).toString()));
+dart_print(dart_concat(dart_string("    "), (EnumName|get_name(red)).toString(), dart_string(": RGB = "), (red->rgb).toString()));
+dart_print(dart_concat(dart_string("    "), (EnumName|get_name(green)).toString(), dart_string(": RGB = "), (green->rgb).toString()));
+dart_print(dart_concat(dart_string("    "), (EnumName|get_name(blue)).toString(), dart_string(": RGB = "), (blue->rgb).toString()));
 auto status = ObjectPtr<OrderStatus>::createConst();
 dart_print(dart_string("  订单状态测试:"));
 if (status == ObjectPtr<OrderStatus>::createConst()) {
@@ -863,21 +863,21 @@ dart_print(dart_concat(dart_string("  从列表: ("), (point3->x).toString(), da
 return Void;
 }
 
-Double MathExtension|sqrt(Double #this) {
-  if ((_this < dart_int(0))) {
+Double MathExtension_sqrt(Double this) {
+  if (this->operator_less(dart_int(0))) {
 return dart_double(0.0);
 }
-auto x = _this;
+auto x = this;
 auto prev = dart_double(0.0);
-while (((x - prev)->abs() > dart_double(0.0001))) {
+while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
 prev = x;
-x = ((x + (_this / x)) / dart_int(2));
+x = x->operator_add(this->operator_div(x))->operator_div(dart_double(2.0));
 }
 return x;
 }
 
-std::function<Double()> MathExtension|get#sqrt(Double #this) {
-  return makeFunction([&]() { return MathExtension|sqrt(_this); });
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension_get_sqrt(Double this) {
+  return makeFunction([&]() { return MathExtension::sqrt(this); });
 }
 
 // ============================================================================

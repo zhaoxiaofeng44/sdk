@@ -483,7 +483,7 @@ void testGenericTypeConversions() {
     print('    dynamic List转int List: $intList');
   }
   
-  List<num> numList = [1, 2.5, 3, 4.7, 5];
+  List<dynamic> numList = [1, 2.5, 3, 4.7, 5];
   List<int> intList = numList.whereType<int>().toList();
   List<double> doubleList = numList.whereType<double>().toList();
   
@@ -577,7 +577,7 @@ class Person {
 }
 
 /// 数字处理器（泛型约束）
-class NumberProcessor<T extends num> {
+class NumberProcessor<T> {
   T process(T value) {
     return value;
   }

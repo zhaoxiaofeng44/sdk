@@ -110,12 +110,46 @@ class UnifiedCompiler {
       final transformer = DartToCppTransformer();
       final cppCode = transformer.transformComponent(component);
 
-      // 3. 添加运行时支持（如果需要）
-      String finalCppCode = cppCode;
-      if (config.includeRuntime) {
-        // Runtime support is included in the generated C++ code
-        finalCppCode = cppCode;
+      // 2.5. 后处理：修复扩展方法语法和非法标识符
+      // - Extension| -> Extension:: (修复扩展方法命名空间语法)
+      // - # -> _ (修复非法的C++标识符，如 #this -> _this, get#sqrt -> get_sqrt)
+      if (config.verbose) {
+        print('🔧 开始后处理：修复扩展方法语法和非法标识符...');
       }
+
+      String processedCode = cppCode;
+      final originalLength = cppCode.length;
+
+      // 修复扩展方法命名空间语法
+      processedCode =
+          processedCode.replaceAll('MathExtension|', 'MathExtension::');
+      processedCode =
+          processedCode.replaceAll('StringExtension|', 'StringExtension::');
+      processedCode = processedCode.replaceAll(
+          'DartStringExtensions|', 'DartStringExtensions::');
+      processedCode = processedCode.replaceAll(
+          'CollectionExtension|', 'CollectionExtension::');
+      processedCode =
+          processedCode.replaceAll('ListExtension|', 'ListExtension::');
+      processedCode =
+          processedCode.replaceAll('IntExtension|', 'IntExtension::');
+      processedCode = processedCode.replaceAllMapped(
+          RegExp(r'(\w+Extension)\|'), (match) => '${match.group(1)}::');
+
+      // 修复非法的C++标识符：将 # 替换为 _（但保留 #include 等预处理指令）
+      // 只替换标识符中的 #，不替换 #include、#define 等预处理指令
+      processedCode = processedCode.replaceAllMapped(
+          RegExp(r'(?<!^)(?<!\n)#(\w+)'), // 匹配不在行首的 #标识符
+          (match) => '_${match.group(1)}');
+
+      if (config.verbose) {
+        print(
+            '✅ 后处理完成 (原始: $originalLength 字符, 处理后: ${processedCode.length} 字符)');
+      }
+
+      // 3. 添加运行时支持（如果需要）
+      // 运行时支持已经包含在生成的 C++ 代码中
+      String finalCppCode = processedCode;
 
       // 4. 优化（如果需要）
       if (config.optimize) {

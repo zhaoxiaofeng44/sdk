@@ -78,15 +78,15 @@ public:
     }
     
     /// then 操作 - 链式调用
-    template<typename R>
-    ObjectPtr<Future<R>> then(std::function<R(T)> callback) {
+    template<typename R, typename CallbackFunc>
+    ObjectPtr<Future<R>> then(ObjectPtr<TypedFunction<CallbackFunc, R, T>> callback) {
         ObjectPtr<Future<R>> resultFuture(new Future<R>());
         
         // 创建新线程执行then逻辑
         std::thread([this, callback, resultFuture]() {
             try {
                 T value = this->wait();
-                R result = callback(value);
+                R result = (*callback)(value);
                 resultFuture->_complete(result);
             } catch (...) {
                 resultFuture->_completeError(std::current_exception());
@@ -97,7 +97,8 @@ public:
     }
     
     /// catchError 操作 - 错误处理
-    ObjectPtr<Future<T>> catchError(std::function<T(const std::exception&)> errorHandler) {
+    template<typename ErrorHandlerFunc>
+    ObjectPtr<Future<T>> catchError(ObjectPtr<TypedFunction<ErrorHandlerFunc, T, const std::exception&>> errorHandler) {
         ObjectPtr<Future<T>> resultFuture(new Future<T>());
         
         std::thread([this, errorHandler, resultFuture]() {
@@ -106,7 +107,7 @@ public:
                 resultFuture->_complete(value);
             } catch (const std::exception& e) {
                 try {
-                    T recoveredValue = errorHandler(e);
+                    T recoveredValue = (*errorHandler)(e);
                     resultFuture->_complete(recoveredValue);
                 } catch (...) {
                     resultFuture->_completeError(std::current_exception());
@@ -120,14 +121,15 @@ public:
     }
     
     /// 延迟创建
-    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, std::function<T()> computation) {
+    template<typename ComputationFunc>
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
         ObjectPtr<Future<T>> future(new Future<T>());
         
         std::thread([future, duration, computation]() {
             int ms = duration->get_inMilliseconds().getValue();
             std::this_thread::sleep_for(std::chrono::milliseconds(ms));
             try {
-                T result = computation();
+                T result = (*computation)();
                 future->_complete(result);
             } catch (...) {
                 future->_completeError(std::current_exception());
@@ -141,6 +143,19 @@ public:
     static ObjectPtr<Future<T>> value(T val) {
         ObjectPtr<Future<T>> future(new Future<T>());
         future->_complete(val);
+        return future;
+    }
+    
+    /// 同步执行函数并返回Future
+    template<typename ComputationFunc>
+    static ObjectPtr<Future<T>> sync(ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+        ObjectPtr<Future<T>> future(new Future<T>());
+        try {
+            T result = (*computation)();
+            future->_complete(result);
+        } catch (...) {
+            future->_completeError(std::current_exception());
+        }
         return future;
     }
     
@@ -232,6 +247,11 @@ public:
     /// 创建Completer
     static ObjectPtr<Completer<T>> create() {
         return ObjectPtr<Completer<T>>(new Completer<T>());
+    }
+    
+    /// 默认构造函数的静态调用方式
+    static ObjectPtr<Completer<T>> make() {
+        return create();
     }
     
     /// 获取Future

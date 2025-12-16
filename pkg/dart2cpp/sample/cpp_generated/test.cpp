@@ -18,7 +18,7 @@ public:
   }
   
   Int getgg() {
-    return (this->a + this->b);
+    return this->a->operator_add(this->b);
   }
   
 };
@@ -27,7 +27,7 @@ public:
 // 类: MyTest2
 // ============================================================================
 
-class MyTest2 : implements MyTest {
+class MyTest2 : virtual public MyTest {
 public:
   MyTest2(Int a, Int b) {
     this->set_a(a);

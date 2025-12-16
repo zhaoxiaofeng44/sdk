@@ -23,7 +23,7 @@ public:
   }
   
   Double distance() {
-    return MathExtension|sqrt(((this->x * this->x) + (this->y * this->y)));
+    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   Bool operator_equals(ObjectPtr<Object> other) {
@@ -51,21 +51,21 @@ public:
   }
   
   ObjectPtr<Color> red() {
-    return /* Invalid: temp_dart_source.dart:360:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.red() = Color._(0xFF0000);
                               ^ */;
   }
   
   ObjectPtr<Color> green() {
-    return /* Invalid: temp_dart_source.dart:361:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.green() = Color._(0x00FF00);
                                 ^ */;
   }
   
   ObjectPtr<Color> blue() {
-    return /* Invalid: temp_dart_source.dart:362:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+    return /* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.blue() = Color._(0x0000FF);
                                ^ */;
@@ -89,15 +89,15 @@ public:
   }
   
   Double width() {
-    return (this->bottomRight->x - this->topLeft->x);
+    return this->bottomRight->x->operator_sub(this->topLeft->x);
   }
   
   Double height() {
-    return (this->bottomRight->y - this->topLeft->y);
+    return this->bottomRight->y->operator_sub(this->topLeft->y);
   }
   
   Double area() {
-    return (this->width() * this->height());
+    return this->width()->operator_mul(this->height());
   }
   
   String toString() {
@@ -118,11 +118,11 @@ public:
   }
   
   Double area() {
-    return ((dart_double(3.14159) * this->radius) * this->radius);
+    return dart_double(3.14159)->operator_mul(this->radius)->operator_mul(this->radius);
   }
   
   Double circumference() {
-    return (dart_int(2) * dart_double(3.14159))->operator_mul(this->radius);
+    return dart_double(2.0)->operator_mul(dart_double(3.14159))->operator_mul(this->radius);
   }
   
   String toString() {
@@ -226,8 +226,8 @@ Nullable testConstantCollections();
 Nullable testConstantConstructors();
 Nullable testStaticConstants();
 Nullable testCompileTimeExpressions();
-Double MathExtension|sqrt(Double #this);
-std::function<Double()> MathExtension|get#sqrt(Double #this);
+Double MathExtension::sqrt(Double _this);
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
 Nullable testBasicConstants() {
   dart_print(dart_string("\n📌 测试基本常量"));
 dart_print(dart_string("  const 常量:"));
@@ -296,28 +296,28 @@ dart_print(dart_string("  命名常量构造函数:"));
 dart_print(dart_string("    origin: ") + (ObjectPtr<Point>::createConst()).toString());
 dart_print(dart_string("    unitX: ") + (ObjectPtr<Point>::createConst()).toString());
 dart_print(dart_string("    unitY: ") + (ObjectPtr<Point>::createConst()).toString());
-auto red = /* Invalid: temp_dart_source.dart:360:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+auto red = /* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.red() = Color._(0xFF0000);
                               ^ */;
-auto green = /* Invalid: temp_dart_source.dart:361:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+auto green = /* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.green() = Color._(0x00FF00);
                                 ^ */;
-auto blue = /* Invalid: temp_dart_source.dart:362:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+auto blue = /* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.blue() = Color._(0x0000FF);
                                ^ */;
 dart_print(dart_string("  常量工厂构造函数:"));
-dart_print(dart_string("    red: ") + (/* Invalid: temp_dart_source.dart:360:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+dart_print(dart_string("    red: ") + (/* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.red() = Color._(0xFF0000);
                               ^ */).toString());
-dart_print(dart_string("    green: ") + (/* Invalid: temp_dart_source.dart:361:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+dart_print(dart_string("    green: ") + (/* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.green() = Color._(0x00FF00);
                                 ^ */).toString());
-dart_print(dart_string("    blue: ") + (/* Invalid: temp_dart_source.dart:362:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
+dart_print(dart_string("    blue: ") + (/* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
  - 'Color' is from 'temp_dart_source.dart'.
   const factory Color.blue() = Color._(0x0000FF);
                                ^ */).toString());
@@ -380,21 +380,21 @@ dart_print(dart_string("    area: 78.53975"));
 return Void;
 }
 
-Double MathExtension|sqrt(Double #this) {
-  if ((_this < dart_int(0))) {
+Double MathExtension_sqrt(Double this) {
+  if (this->operator_less(dart_int(0))) {
 return dart_double(NaN);
 }
-auto x = _this;
+auto x = this;
 auto prev = dart_double(0.0);
-while (((x - prev)->abs() > dart_double(0.0001))) {
+while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
 prev = x;
-x = ((x + (_this / x)) / dart_int(2));
+x = x->operator_add(this->operator_div(x))->operator_div(dart_double(2.0));
 }
 return x;
 }
 
-std::function<Double()> MathExtension|get#sqrt(Double #this) {
-  return makeFunction([&]() { return MathExtension|sqrt(_this); });
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension_get_sqrt(Double this) {
+  return makeFunction([&]() { return MathExtension::sqrt(this); });
 }
 
 // ============================================================================

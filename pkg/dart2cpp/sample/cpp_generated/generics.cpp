@@ -6,7 +6,7 @@
 // 类: Box
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class Box {
 private:
@@ -33,9 +33,9 @@ public:
 // 类: Pair
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
-template<typename U, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, U>>>
+template<typename U>
 
 class Pair {
 public:
@@ -57,20 +57,20 @@ return Void;
 // 类: NumberContainer
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
+template<typename T>
 
-class NumberContainer : extends Box {
+class NumberContainer : public Box {
 public:
   NumberContainer(T value) : Box(value) {
   }
   
   Nullable add(T value) {
-    this->setValue(dart_cast<T>((this->_value + value)));
+    this->setValue(dart_cast<T>(this->_value->operator_add(value)));
 return Void;
   }
   
   Nullable multiply(T value) {
-    this->setValue(dart_cast<T>((this->_value * value)));
+    this->setValue(dart_cast<T>(this->_value->operator_mul(value)));
 return Void;
   }
   
@@ -80,7 +80,7 @@ return Void;
 // 类: ContainerFactory
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class ContainerFactory {
 public:
@@ -97,7 +97,7 @@ public:
 // 类: NumberCalculator
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<num>, T>>>
+template<typename T>
 
 class NumberCalculator {
 public:
@@ -105,23 +105,23 @@ public:
   }
   
   T add(T a, T b) {
-    return dart_cast<T>((a + b));
+    return dart_cast<T>(a->operator_add(b));
   }
   
   T subtract(T a, T b) {
-    return dart_cast<T>((a - b));
+    return dart_cast<T>(a->operator_sub(b));
   }
   
   T multiply(T a, T b) {
-    return dart_cast<T>((a * b));
+    return dart_cast<T>(a->operator_mul(b));
   }
   
   T max(T a, T b) {
-    return (a > b) ? a : b;
+    return a->operator_greater(b) ? a : b;
   }
   
   T min(T a, T b) {
-    return (a < b) ? a : b;
+    return a->operator_less(b) ? a : b;
   }
   
 };
@@ -130,7 +130,7 @@ public:
 // 类: Comparator
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Comparable>, T>>>
+template<typename T>
 
 class Comparator {
 public:
@@ -165,7 +165,7 @@ DART_INTERFACE_END
 // 类: Serializer
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Serializable>, T>>>
+template<typename T>
 
 class Serializer {
 public:
@@ -182,7 +182,7 @@ public:
 // 类: CollectionProcessor
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Iterable>, T>>>
+template<typename T>
 
 class CollectionProcessor {
 public:
@@ -203,7 +203,7 @@ public:
 // 类: AdvancedProcessor
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Serializable>, T>>>
+template<typename T>
 
 class AdvancedProcessor {
 public:
@@ -220,7 +220,7 @@ public:
 // 类: GenericList
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class GenericList {
 private:
@@ -234,7 +234,7 @@ public:
   }
   
   T get(Int index) {
-    return this->_items->get(index);
+    return this->_items->operator_index(index);
   }
   
   Int size() {
@@ -251,7 +251,7 @@ public:
 // 类: GenericStack
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class GenericStack {
 private:
@@ -286,7 +286,7 @@ public:
 // 类: GenericQueue
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class GenericQueue {
 private:
@@ -321,9 +321,9 @@ public:
 // 类: GenericMap
 // ============================================================================
 
-template<typename K, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, K>>>
+template<typename K>
 
-template<typename V, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, V>>>
+template<typename V>
 
 class GenericMap {
 private:
@@ -333,11 +333,11 @@ public:
   }
   
   Nullable put(K key, V value) {
-    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->set(let_var, let_var); return let_var; })(); })(); })(); })();
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
   }
   
   V get(K key) {
-    return this->_items->get(key);
+    return this->_items->operator_index(key);
   }
   
   Int size() {
@@ -358,7 +358,7 @@ public:
 // 类: BinaryTree
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Comparable>, T>>>
+template<typename T>
 
 class BinaryTree {
 private:
@@ -370,7 +370,7 @@ public:
   
   Nullable insert(T value) {
     this->_root = this->_insertNode(this->_root, value);
-this->_size = (this->_size + dart_int(1));
+this->_size = this->_size->operator_add(dart_int(1));
 return Void;
   }
   
@@ -402,7 +402,7 @@ auto comparison = value->compareTo(node->value);
 if ((comparison == dart_int(0))) {
 return node;
 }
-if ((comparison < dart_int(0))) {
+if (comparison->operator_less(dart_int(0))) {
 return this->_findNode(node->left, value);
 }
 return this->_findNode(node->right, value);
@@ -414,7 +414,7 @@ return this->_findNode(node->right, value);
 // 类: TreeNode
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 class TreeNode {
 public:
@@ -446,7 +446,7 @@ public:
 // 类: Dog
 // ============================================================================
 
-class Dog : extends Animal {
+class Dog : public Animal {
 public:
   String breed;
   Dog(String name, String breed) : breed(breed), Animal(name) {
@@ -462,7 +462,7 @@ public:
 // 类: Cat
 // ============================================================================
 
-class Cat : extends Animal {
+class Cat : public Animal {
 public:
   String breed;
   Cat(String name, String breed) : breed(breed), Animal(name) {
@@ -478,7 +478,7 @@ public:
 // 类: AnimalProcessor
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Animal>, T>>>
+template<typename T>
 
 class AnimalProcessor {
 public:
@@ -496,7 +496,7 @@ return Void;
 // 类: Producer
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 DART_INTERFACE(Producer)
   DART_ABSTRACT_METHOD(T, produce, ())
@@ -506,7 +506,7 @@ DART_INTERFACE_END
 // 类: Consumer
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 DART_INTERFACE(Consumer)
   DART_ABSTRACT_METHOD(Nullable, consume, (T item))
@@ -516,7 +516,7 @@ DART_INTERFACE_END
 // 类: DogProducer
 // ============================================================================
 
-class DogProducer : implements Producer {
+class DogProducer : virtual public Producer {
 public:
   DogProducer() {
   }
@@ -531,7 +531,7 @@ public:
 // 类: AnimalConsumer
 // ============================================================================
 
-class AnimalConsumer : implements Consumer {
+class AnimalConsumer : virtual public Consumer {
 public:
   AnimalConsumer() {
   }
@@ -547,7 +547,7 @@ return Void;
 // 类: Person
 // ============================================================================
 
-class Person : implements Serializable {
+class Person : virtual public Serializable {
 public:
   String name;
   Int age;
@@ -564,14 +564,14 @@ public:
 // 类: Student
 // ============================================================================
 
-class Student : extends Person {
+class Student : public Person {
 public:
   String studentId;
   Student(String name, Int age, String studentId) : studentId(studentId), Person(name, age) {
   }
   
   ObjectPtr<Map<String, Any>> toJson() {
-    return ([&]() { const auto unnamed_var = LinkedHashMap::of(this->toJson()); unnamed_var->set(dart_string("studentId"), this->studentId); return unnamed_var; })();
+    return ([&]() { const auto unnamed_var = LinkedHashMap::of(this->toJson()); unnamed_var->operator_index_set(dart_string("studentId"), this->studentId); return unnamed_var; })();
   }
   
 };
@@ -580,7 +580,7 @@ public:
 // 类: Repository
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 DART_INTERFACE(Repository)
   DART_ABSTRACT_METHOD(Nullable, save, (T item))
@@ -592,7 +592,7 @@ DART_INTERFACE_END
 // 类: StringRepository
 // ============================================================================
 
-class StringRepository : implements Repository {
+class StringRepository : virtual public Repository {
 private:
   ObjectPtr<List<String>> _items = dart_literal(dart_int(0));
 public:
@@ -617,7 +617,7 @@ public:
 // 类: IntRepository
 // ============================================================================
 
-class IntRepository : implements Repository {
+class IntRepository : virtual public Repository {
 private:
   ObjectPtr<List<Int>> _items = dart_literal(dart_int(0));
 public:
@@ -643,9 +643,9 @@ return !(dart_is_null(intId)) && this->_items->contains(intId) ? intId : Null;
 // 类: Converter
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
-template<typename R, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, R>>>
+template<typename R>
 
 DART_INTERFACE(Converter)
   DART_ABSTRACT_METHOD(R, convert, (T input))
@@ -655,13 +655,13 @@ DART_INTERFACE_END
 // 类: StringToIntConverter
 // ============================================================================
 
-class StringToIntConverter : implements Converter {
+class StringToIntConverter : virtual public Converter {
 public:
   StringToIntConverter() {
   }
   
   Int convert(String input) {
-    return int::parse(input, Int(Null), std::function<Int(String)>(Null));
+    return int::parse(input, Int(Null), nullptr);
   }
   
 };
@@ -670,7 +670,7 @@ public:
 // 类: IntToStringConverter
 // ============================================================================
 
-class IntToStringConverter : implements Converter {
+class IntToStringConverter : virtual public Converter {
 public:
   IntToStringConverter() {
   }
@@ -685,7 +685,7 @@ public:
 // 类: Validator
 // ============================================================================
 
-template<typename T, typename = std::enable_if_t<std::is_base_of_v<ObjectPtr<Object>, T>>>
+template<typename T>
 
 DART_INTERFACE(Validator)
   DART_ABSTRACT_METHOD(Bool, validate, (T input))
@@ -695,7 +695,7 @@ DART_INTERFACE_END
 // 类: EmailValidator
 // ============================================================================
 
-class EmailValidator : implements Validator {
+class EmailValidator : virtual public Validator {
 public:
   EmailValidator() {
   }
@@ -710,13 +710,13 @@ public:
 // 类: AgeValidator
 // ============================================================================
 
-class AgeValidator : implements Validator {
+class AgeValidator : virtual public Validator {
 public:
   AgeValidator() {
   }
   
   Bool validate(Int input) {
-    return (input >= dart_int(0)) && (input <= dart_int(150));
+    return input->operator_greater_equals(dart_int(0)) && input->operator_less_equals(dart_int(150));
   }
   
 };
@@ -727,12 +727,19 @@ Nullable testTypeConstraints();
 Nullable testGenericCollections();
 Nullable testVariance();
 Nullable testGenericInterfaces();
+template<typename T>
 T identity(T value);
+template<typename T>
 ObjectPtr<Pair> swap(T a, T b);
+template<typename T>
 T getFirst(ObjectPtr<List<T>> list);
-ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, std::function<R(T)> mapper);
-ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, std::function<Bool(T)> predicate);
-T reduceList(ObjectPtr<List<T>> list, std::function<T(T, T)> reducer);
+template<typename T>
+template<typename R>
+ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper);
+template<typename T>
+ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<Bool(T)>, Bool, T>> predicate);
+template<typename T>
+T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<T(T, T)>, T, T, T>> reducer);
 Nullable processAnimals(ObjectPtr<List<ObjectPtr<Animal>>> animals);
 Nullable testGenericClasses() {
   dart_print(dart_string("\n📌 测试泛型类"));
@@ -799,13 +806,14 @@ dart_print(dart_string("    第一个数字: ") + (firstNumber).toString());
 dart_print(dart_string("    第一个字符串: ") + (firstString).toString());
 auto numberStrings = mapList(numbers, makeFunction([&](Int n) { return dart_string("Number: ") + (n).toString(); }));
 dart_print(dart_string("    转换结果: ") + (numberStrings->take(dart_int(3))->toList()).toString());
-auto evenNumbers = filterList(numbers, makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }));
+auto evenNumbers = filterList(numbers, makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
 dart_print(dart_string("    偶数过滤: ") + (evenNumbers).toString());
-auto sum = reduceList(numbers, makeFunction([&](Int a, Int b) { return (a + b); }));
-auto concatenated = reduceList(dart_literal(dart_string("a"), dart_string("b"), dart_string("c")), makeFunction([&](String a, String b) { return (a + b); }));
+auto sum = reduceList(numbers, makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
+auto concatenated = reduceList(dart_literal(dart_string("a"), dart_string("b"), dart_string("c")), makeFunction([&](String a, String b) { return a->operator_add(b); }));
 dart_print(dart_string("  泛型归约:"));
 dart_print(dart_string("    数字求和: ") + (sum).toString());
 dart_print(dart_string("    字符串连接: ") + (concatenated).toString());
+return Void;
 }
 
 Nullable testTypeConstraints() {
@@ -837,6 +845,7 @@ dart_print(dart_string("    列表大小: ") + (listProcessor->getSize(dart_lite
 dart_print(dart_string("    集合大小: ") + (setProcessor->getSize(([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("a")); unnamed_var->add(dart_string("b")); unnamed_var->add(dart_string("c")); return unnamed_var; })())).toString());
 auto advancedProcessor = ObjectPtr<AdvancedProcessor>(new AdvancedProcessor());
 dart_print(dart_string("    高级处理: ") + (advancedProcessor->process(person)).toString());
+return Void;
 }
 
 Nullable testGenericCollections() {
@@ -909,7 +918,7 @@ dart_print(dart_concat(dart_string("      "), (animal->name).toString(), dart_st
 auto animalHandler = makeFunction([&](ObjectPtr<Animal> animal) { dart_print(dart_string("      处理动物: ") + (animal->name).toString()); });
 auto dogHandler = makeFunction([&](ObjectPtr<Dog> dog) { dart_print(dart_concat(dart_string("      处理狗: "), (dog->name).toString(), dart_string(", 品种: "), (dog->breed).toString())); });
 dogHandler = animalHandler;
-dogHandler->apply(std::vector<Any>{ObjectPtr<Dog>(new Dog(dart_string("Covariant Dog"), dart_string("Labrador")))});
+dogHandler->call(ObjectPtr<Dog>(new Dog(dart_string("Covariant Dog"), dart_string("Labrador"))));
 auto processor = ObjectPtr<AnimalProcessor>(new AnimalProcessor());
 processor->process(ObjectPtr<Dog>(new Dog(dart_string("Generic Dog"), dart_string("Poodle"))));
 processAnimals(dart_literal(ObjectPtr<Dog>(new Dog(dart_string("Dog1"), dart_string("Beagle"))), ObjectPtr<Cat>(new Cat(dart_string("Cat1"), dart_string("Siamese")))));
@@ -948,27 +957,34 @@ dart_print(dart_string("    无效年龄: ") + (ageValidator->validate(dart_int(
 return Void;
 }
 
+template<typename T>
 T identity(T value) {
   return value;
 }
 
+template<typename T>
 ObjectPtr<Pair> swap(T a, T b) {
   return ObjectPtr<Pair>(new Pair(b, a));
 }
 
+template<typename T>
 T getFirst(ObjectPtr<List<T>> list) {
   return list->first();
 }
 
-ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, std::function<R(T)> mapper) {
+template<typename T>
+template<typename R>
+ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper) {
   return list->map(mapper)->toList();
 }
 
-ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, std::function<Bool(T)> predicate) {
+template<typename T>
+ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<Bool(T)>, Bool, T>> predicate) {
   return list->where(predicate)->toList();
 }
 
-T reduceList(ObjectPtr<List<T>> list, std::function<T(T, T)> reducer) {
+template<typename T>
+T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<T(T, T)>, T, T, T>> reducer) {
   return list->reduce(reducer);
 }
 

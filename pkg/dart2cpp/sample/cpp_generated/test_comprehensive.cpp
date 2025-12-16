@@ -5,7 +5,7 @@
 Int add(Int a, Int b);
 Nullable greet(String name, String title = String(Null));
 Int add(Int a, Int b) {
-  return (a + b);
+  return a->operator_add(b);
 }
 
 Nullable greet(String name, String title) {

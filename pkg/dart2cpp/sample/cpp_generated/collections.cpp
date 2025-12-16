@@ -20,11 +20,11 @@ dart_print(dart_string("    水果列表: ") + (fruits).toString());
 dart_print(dart_string("    混合列表: ") + (mixed).toString());
 dart_print(dart_string("    空列表: ") + (emptyList).toString());
 dart_print(dart_string("  List 访问:"));
-dart_print(dart_string("    第一个数字: ") + (numbers->get(dart_int(0))).toString());
-dart_print(dart_string("    最后一个水果: ") + (fruits->get((fruits->size() - dart_int(1)))).toString());
+dart_print(dart_string("    第一个数字: ") + (numbers->operator_index(dart_int(0))).toString());
+dart_print(dart_string("    最后一个水果: ") + (fruits->operator_index(fruits->size()->operator_sub(dart_int(1)))).toString());
 dart_print(dart_string("    使用 first: ") + (numbers->first()).toString());
 dart_print(dart_string("    使用 last: ") + (numbers->last()).toString());
-numbers->set(dart_int(0), dart_int(10));
+numbers->operator_index_set(dart_int(0), dart_int(10));
 dart_print(dart_string("  修改后的数字列表: ") + (numbers).toString());
 numbers->add(dart_int(6));
 numbers->addAll(dart_literal(dart_int(7), dart_int(8), dart_int(9)));
@@ -54,6 +54,7 @@ dart_print(dart_string("  排序后: ") + (unsorted).toString());
 auto words = dart_literal(dart_string("banana"), dart_string("apple"), dart_string("cherry"), dart_string("date"));
 words->sort(makeFunction([&](String a, String b) { return a->size()->compareTo(b->size()); }));
 dart_print(dart_string("  按长度排序: ") + (words).toString());
+return Void;
 }
 
 Nullable testSets() {
@@ -90,6 +91,7 @@ auto numberList = numbers->toList();
 dart_print(dart_string("    转为List: ") + (numberList).toString());
 auto duplicates = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(4)); return unnamed_var; })();
 dart_print(dart_string("  去重效果: ") + (duplicates).toString());
+return Void;
 }
 
 Nullable testMaps() {
@@ -102,18 +104,18 @@ dart_print(dart_string("    分数映射: ") + (scores).toString());
 dart_print(dart_string("    个人信息: ") + (person).toString());
 dart_print(dart_string("    索引映射: ") + (indexMap).toString());
 dart_print(dart_string("  Map 访问:"));
-dart_print(dart_string("    Alice的分数: ") + (scores->get(dart_string("Alice"))).toString());
-dart_print(dart_string("    姓名: ") + (person->get(dart_string("name"))).toString());
-dart_print(dart_string("    年龄: ") + (person->get(dart_string("age"))).toString());
-scores->set(dart_string("Alice"), dart_int(98));
-person->set(dart_string("age"), dart_int(31));
-dart_print(dart_string("  修改后Alice的分数: ") + (scores->get(dart_string("Alice"))).toString());
-dart_print(dart_string("  修改后年龄: ") + (person->get(dart_string("age"))).toString());
-scores->set(dart_string("David"), dart_int(89));
-scores->set(dart_string("Eve"), dart_int(94));
-person->set(dart_string("email"), dart_string("john@example.com"));
+dart_print(dart_string("    Alice的分数: ") + (scores->operator_index(dart_string("Alice"))).toString());
+dart_print(dart_string("    姓名: ") + (person->operator_index(dart_string("name"))).toString());
+dart_print(dart_string("    年龄: ") + (person->operator_index(dart_string("age"))).toString());
+scores->operator_index_set(dart_string("Alice"), dart_int(98));
+person->operator_index_set(dart_string("age"), dart_int(31));
+dart_print(dart_string("  修改后Alice的分数: ") + (scores->operator_index(dart_string("Alice"))).toString());
+dart_print(dart_string("  修改后年龄: ") + (person->operator_index(dart_string("age"))).toString());
+scores->operator_index_set(dart_string("David"), dart_int(89));
+scores->operator_index_set(dart_string("Eve"), dart_int(94));
+person->operator_index_set(dart_string("email"), dart_string("john@example.com"));
 dart_print(dart_string("  添加后的分数: ") + (scores).toString());
-dart_print(dart_string("  添加邮箱后: ") + (person->get(dart_string("email"))).toString());
+dart_print(dart_string("  添加邮箱后: ") + (person->operator_index(dart_string("email"))).toString());
 scores->remove(dart_string("Bob"));
 person->remove(dart_string("isStudent"));
 dart_print(dart_string("  删除Bob后: ") + (scores).toString());
@@ -127,55 +129,48 @@ dart_print(dart_string("    值集合: ") + (scores->values()).toString());
 dart_print(dart_string("    键值对: ") + (scores->entries()).toString());
 dart_print(dart_string("    长度: ") + (scores->size()).toString());
 dart_print(dart_string("    是否为空: ") + (scores->isEmpty()).toString());
-auto bonusScores = scores->map(makeFunction([&](String key, Int value) { return ObjectPtr<MapEntry>(new MapEntry(key, (value + dart_int(5)))); }));
+auto bonusScores = scores->map(makeFunction([&](String key, Int value) { return ObjectPtr<MapEntry>(new MapEntry(key, value->operator_add(dart_int(5)))); }));
 dart_print(dart_string("  加分后的分数: ") + (bonusScores).toString());
 dart_print(dart_string("  遍历分数:"));
 scores->forEach(makeFunction([&](String name, Int score) { dart_print(dart_concat(dart_string("    "), (name).toString(), dart_string(": "), (score).toString(), dart_string("分"))); }));
+return Void;
 }
 
 Nullable testCollectionMethods() {
   dart_print(dart_string("\n📌 测试集合操作方法"));
 auto numbers = List<Int>::createFromValues({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)});
-auto doubled = numbers->map(makeFunction([&](Int n) { return (n * dart_int(2)); }))->toList();
+auto doubled = numbers->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); }))->toList();
 auto strings = numbers->map(makeFunction([&](Int n) { return dart_string("Number: ") + (n).toString(); }))->toList();
 dart_print(dart_string("  map 转换:"));
 dart_print(dart_string("    翻倍: ") + (doubled).toString());
 dart_print(dart_concat(dart_string("    转字符串: "), (strings->take(dart_int(3))->toList()).toString(), dart_string("...")));
-auto evens = numbers->where(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }))->toList();
-auto greaterThan5 = numbers->where(makeFunction([&](Int n) { return (n > dart_int(5)); }))->toList();
+auto evens = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->toList();
+auto greaterThan5 = numbers->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(5)); }))->toList();
 dart_print(dart_string("  where 过滤:"));
 dart_print(dart_string("    偶数: ") + (evens).toString());
 dart_print(dart_string("    大于5: ") + (greaterThan5).toString());
-auto sum = numbers->reduce(makeFunction([&](Int a, Int b) { return (a + b); }));
-auto product = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4))->reduce(makeFunction([&](Int a, Int b) { return (a * b); }));
+auto sum = numbers->reduce(makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
+auto product = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4))->reduce(makeFunction([&](Int a, Int b) { return a->operator_mul(b); }));
 dart_print(dart_string("  reduce 归约:"));
 dart_print(dart_string("    求和: ") + (sum).toString());
 dart_print(dart_string("    求积: ") + (product).toString());
-auto sumWithInitial = numbers->fold(dart_int(0), makeFunction([&](ObjectPtr<Object> prev, Int element) { return /* Invalid: temp_dart_source.dart:270:64: Error: The operator '+' isn't defined for the class 'Object?'.
- - 'Object' is from 'dart:core'.
-Try correcting the operator to an existing operator, or defining a '+' operator.
-  var sumWithInitial = numbers.fold(0, (prev, element) => prev + element);
-                                                               ^ */; }));
-auto concatenated = dart_literal(dart_string("a"), dart_string("b"), dart_string("c"))->fold(dart_string(""), makeFunction([&](ObjectPtr<Object> prev, String element) { return /* Invalid: temp_dart_source.dart:271:71: Error: The operator '+' isn't defined for the class 'Object?'.
- - 'Object' is from 'dart:core'.
-Try correcting the operator to an existing operator, or defining a '+' operator.
-  var concatenated = ['a', 'b', 'c'].fold('', (prev, element) => prev + element);
-                                                                      ^ */; }));
+auto sumWithInitial = numbers->fold(dart_int(0), makeFunction([&](Int prev, Int element) { return prev->operator_add(element); }));
+auto concatenated = dart_literal(dart_string("a"), dart_string("b"), dart_string("c"))->fold(dart_string(""), makeFunction([&](String prev, String element) { return prev->operator_add(element); }));
 dart_print(dart_string("  fold 折叠:"));
 dart_print(dart_string("    带初值求和: ") + (sumWithInitial).toString());
 dart_print(dart_string("    字符串连接: ") + (concatenated).toString());
-auto hasEven = numbers->any(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }));
-auto hasNegative = numbers->any(makeFunction([&](Int n) { return (n < dart_int(0)); }));
+auto hasEven = numbers->any(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+auto hasNegative = numbers->any(makeFunction([&](Int n) { return n->operator_less(dart_int(0)); }));
 dart_print(dart_string("  any 检查:"));
 dart_print(dart_string("    有偶数: ") + (hasEven).toString());
 dart_print(dart_string("    有负数: ") + (hasNegative).toString());
-auto allPositive = numbers->every(makeFunction([&](Int n) { return (n > dart_int(0)); }));
-auto allEven = numbers->every(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }));
+auto allPositive = numbers->every(makeFunction([&](Int n) { return n->operator_greater(dart_int(0)); }));
+auto allEven = numbers->every(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
 dart_print(dart_string("  every 检查:"));
 dart_print(dart_string("    都是正数: ") + (allPositive).toString());
 dart_print(dart_string("    都是偶数: ") + (allEven).toString());
-auto firstEven = numbers->firstWhere(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }));
-auto lastOdd = numbers->lastWhere(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(1)); }));
+auto firstEven = numbers->firstWhere(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+auto lastOdd = numbers->lastWhere(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(1)); }));
 dart_print(dart_string("  查找元素:"));
 dart_print(dart_string("    第一个偶数: ") + (firstEven).toString());
 dart_print(dart_string("    最后一个奇数: ") + (lastOdd).toString());
@@ -186,11 +181,12 @@ dart_print(dart_string("  take/skip 操作:"));
 dart_print(dart_string("    前3个: ") + (firstThree).toString());
 dart_print(dart_concat(dart_string("    跳过前3个: "), (skipThree->take(dart_int(5))->toList()).toString(), dart_string("...")));
 dart_print(dart_string("    中间3个: ") + (middleThree).toString());
-auto expanded = dart_literal(dart_int(1), dart_int(2), dart_int(3))->expand(makeFunction([&](Int n) { return dart_literal(n, (n * dart_int(10))); }))->toList();
+auto expanded = dart_literal(dart_int(1), dart_int(2), dart_int(3))->expand(makeFunction([&](Int n) { return dart_literal(n, n->operator_mul(dart_int(10))); }))->toList();
 auto words = dart_literal(dart_string("hello"), dart_string("world"))->expand(makeFunction([&](String word) { return word->split(dart_string("")); }))->toList();
 dart_print(dart_string("  expand 展开:"));
 dart_print(dart_string("    数字展开: ") + (expanded).toString());
 dart_print(dart_string("    单词展开: ") + (words).toString());
+return Void;
 }
 
 Nullable testCollectionLiterals() {
@@ -230,8 +226,8 @@ auto conditionalList = ([&]() { const auto unnamed_var = dart_literal(dart_int(1
 unnamed_var->addAll(dart_literal(dart_int(4), dart_int(5), dart_int(6)));
 } unnamed_var->add(dart_int(7)); unnamed_var->add(dart_int(8)); unnamed_var->add(dart_int(9)); return unnamed_var; })();
 dart_print(dart_string("    条件展开: ") + (conditionalList).toString());
-auto repeated = ([&]() { const auto unnamed_var = dart_literal(dart_int(0)); for (auto i = dart_int(0); (i < dart_int(3)); ++i) {
-unnamed_var->add((i * dart_int(2)));
+auto repeated = ([&]() { const auto unnamed_var = dart_literal(dart_int(0)); for (auto i = dart_int(0); i->operator_less(dart_int(3)); i = i->operator_add(dart_int(1))) {
+unnamed_var->add(i->operator_mul(dart_int(2)));
 } return unnamed_var; })();
 dart_print(dart_string("    循环展开: ") + (repeated).toString());
 auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
@@ -242,6 +238,7 @@ auto map1 = Map<String, Int>::createFromEntries({{dart_string("a"), dart_int(1)}
 auto map2 = Map<String, Int>::createFromEntries({{dart_string("c"), dart_int(3)}, {dart_string("d"), dart_int(4)}});
 auto combinedMap = ([&]() { const auto unnamed_var = LinkedHashMap::of(map1); unnamed_var->addAll(map2); return unnamed_var; })();
 dart_print(dart_string("    合并映射: ") + (combinedMap).toString());
+return Void;
 }
 
 Nullable testIterations() {
@@ -272,7 +269,7 @@ dart_print(dart_string("    分数 (键):"));
 auto sync_for_iterator = scores->keys()->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 auto name = sync_for_iterator->next();
-dart_print(dart_concat(dart_string("      "), (name).toString(), dart_string(": "), (scores->get(name)).toString()));
+dart_print(dart_concat(dart_string("      "), (name).toString(), dart_string(": "), (scores->operator_index(name)).toString()));
 }
 dart_print(dart_string("  forEach 方法:"));
 dart_print(dart_string("    水果处理:"));
@@ -282,8 +279,8 @@ numbers->forEach(makeFunction([&](Int number) { return dart_print(dart_string(" 
 dart_print(dart_string("    分数处理:"));
 scores->forEach(makeFunction([&](String name, Int score) { return dart_print(dart_concat(dart_string("      "), (name).toString(), dart_string(" 得了 "), (score).toString(), dart_string(" 分"))); }));
 dart_print(dart_string("  索引迭代:"));
-for (auto i = dart_int(0); (i < fruits->size()); ++i) {
-dart_print(dart_concat(dart_string("    索引 "), (i).toString(), dart_string(": "), (fruits->get(i)).toString()));
+for (auto i = dart_int(0); i->operator_less(fruits->size()); i = i->operator_add(dart_int(1))) {
+dart_print(dart_concat(dart_string("    索引 "), (i).toString(), dart_string(": "), (fruits->operator_index(i)).toString()));
 }
 dart_print(dart_string("  asMap 索引:"));
 fruits->asMap()->forEach(makeFunction([&](Int index, String fruit) { dart_print(dart_concat(dart_string("    位置 "), (index).toString(), dart_string(": "), (fruit).toString())); }));
@@ -293,10 +290,11 @@ while (iterator->hasNext()) {
 dart_print(dart_string("    迭代器: ") + (iterator->next()).toString());
 }
 dart_print(dart_string("  链式操作:"));
-auto result = numbers->where(makeFunction([&](Int n) { return ((n % dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return (n * n); }))->toList();
+auto result = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return n->operator_mul(n); }))->toList();
 dart_print(dart_string("    偶数平方: ") + (result).toString());
-auto processed = fruits->where(makeFunction([&](String fruit) { return (fruit->size() > dart_int(5)); }))->map(makeFunction([&](String fruit) { return fruit->toUpperCase(); }))->toList();
+auto processed = fruits->where(makeFunction([&](String fruit) { return fruit->size()->operator_greater(dart_int(5)); }))->map(makeFunction([&](String fruit) { return fruit->toUpperCase(); }))->toList();
 dart_print(dart_string("    长水果名大写: ") + (processed).toString());
+return Void;
 }
 
 // ============================================================================

@@ -1,5 +1,6 @@
 #include "dart_object.h"
 #include "dart_string.h"
+#include "dart_helpers.h"
 #include <iomanip>
 #include "dart_macros.h"
 
@@ -81,46 +82,63 @@ Int& Int::operator=(const Nullable&) {
   return *this; 
 }
 
-Int Int::operator_plus(const Int& other) const {
+Int Int::operator_add(const Int& other) const {
   return Int(value.int_value + other.value.int_value);
 }
 
-Int Int::operator_minus(const Int& other) const {
+Double Int::operator_add(const Double& other) const {
+  return Double(static_cast<double>(value.int_value) + other.getValue());
+}
+
+Int Int::operator_sub(const Int& other) const {
   return Int(value.int_value - other.value.int_value);
 }
 
-Int Int::operator_multiply(const Int& other) const {
+Double Int::operator_sub(const Double& other) const {
+  return Double(static_cast<double>(value.int_value) - other.getValue());
+}
+
+Int Int::operator_mul(const Int& other) const {
   return Int(value.int_value * other.value.int_value);
 }
 
-Int Int::operator_divide(const Int& other) const {
-  if (other.value.int_value == 0) throw std::runtime_error("Division by zero");
+Double Int::operator_mul(const Double& other) const {
+  return Double(static_cast<double>(value.int_value) * other.getValue());
+}
+
+Int Int::operator_div(const Int& other) const {
   return Int(value.int_value / other.value.int_value);
 }
 
-Int Int::operator_modulo(const Int& other) const {
+Double Int::operator_div(const Double& other) const {
+  return Double(static_cast<double>(value.int_value) / other.getValue());
+}
+
+
+
+Int Int::operator_mod(const Int& other) const {
   if (other.value.int_value == 0) throw std::runtime_error("Division by zero");
   return Int(value.int_value % other.value.int_value);
 }
 
 Int Int::operator+(const Int& other) const {
-  return operator_plus(other);
+  return operator_add(other);
 }
 
 Int Int::operator-(const Int& other) const {
-  return operator_minus(other);
+  return operator_sub(other);
 }
 
 Int Int::operator*(const Int& other) const {
-  return operator_multiply(other);
+  return operator_mul(other);
 }
 
 Int Int::operator/(const Int& other) const {
-  return operator_divide(other);
+  return operator_div(other);
 }
 
 Int Int::operator%(const Int& other) const {
-  return operator_modulo(other);
+  return operator_mod(other);
 }
 
 Int Int::integerDivision(const Int& other) const {
@@ -156,28 +174,77 @@ Int Int::operator_bitwise_not() const {
   return Int(~value.int_value);
 }
 
-Bool Int::operator==(const Int& other) const {
+// 标准位运算符
+Int Int::operator&(const Int& other) const {
+  return operator_bitwise_and(other);
+}
+
+Int Int::operator|(const Int& other) const {
+  return operator_bitwise_or(other);
+}
+
+Int Int::operator^(const Int& other) const {
+  return operator_bitwise_xor(other);
+}
+
+Int Int::operator<<(const Int& other) const {
+  return operator_shift_left(other);
+}
+
+Int Int::operator>>(const Int& other) const {
+  return operator_shift_right(other);
+}
+
+Int Int::operator~() const {
+  return operator_bitwise_not();
+}
+
+Bool Int::operator_equals(const Int& other) const {
   return Bool(value.int_value == other.value.int_value);
 }
 
-Bool Int::operator!=(const Int& other) const {
+Bool Int::operator_not_equals(const Int& other) const {
   return Bool(value.int_value != other.value.int_value);
 }
 
-Bool Int::operator<(const Int& other) const {
+Bool Int::operator_less(const Int& other) const {
   return Bool(value.int_value < other.value.int_value);
 }
 
-Bool Int::operator<=(const Int& other) const {
+Bool Int::operator_less_equals(const Int& other) const {
   return Bool(value.int_value <= other.value.int_value);
 }
 
-Bool Int::operator>(const Int& other) const {
+Bool Int::operator_greater(const Int& other) const {
   return Bool(value.int_value > other.value.int_value);
 }
 
-Bool Int::operator>=(const Int& other) const {
+Bool Int::operator_greater_equals(const Int& other) const {
   return Bool(value.int_value >= other.value.int_value);
+}
+
+Bool Int::operator==(const Int& other) const {
+  return operator_equals(other);
+}
+
+Bool Int::operator!=(const Int& other) const {
+  return operator_not_equals(other);
+}
+
+Bool Int::operator<(const Int& other) const {
+  return operator_less(other);
+}
+
+Bool Int::operator<=(const Int& other) const {
+  return operator_less_equals(other);
+}
+
+Bool Int::operator>(const Int& other) const {
+  return operator_greater(other);
+}
+
+Bool Int::operator>=(const Int& other) const {
+  return operator_greater_equals(other);
 }
 
 Int Int::operator_unary_minus() const {
@@ -186,6 +253,15 @@ Int Int::operator_unary_minus() const {
 
 Int Int::operator_unary_plus() const {
   return Int(value.int_value);
+}
+
+// 标准一元运算符
+Int Int::operator-() const {
+  return operator_unary_minus();
+}
+
+Int Int::operator+() const {
+  return operator_unary_plus();
 }
 
 Int Int::abs() const {
@@ -278,55 +354,140 @@ Double Int::operator/(const Double& other) const {
   return Double(static_cast<double>(value.int_value) / other.value.double_value);
 }
 
-// 复合赋值运算符
-Int& Int::operator+=(const Int& other) {
+// 复合赋值运算符函数
+Int& Int::operator_add_assign(const Int& other) {
   value.int_value += other.value.int_value;
   return *this;
 }
 
-Int& Int::operator-=(const Int& other) {
+Int& Int::operator_sub_assign(const Int& other) {
   value.int_value -= other.value.int_value;
   return *this;
 }
 
-Int& Int::operator*=(const Int& other) {
+Int& Int::operator_mul_assign(const Int& other) {
   value.int_value *= other.value.int_value;
   return *this;
 }
 
-Int& Int::operator/=(const Int& other) {
+Int& Int::operator_div_assign(const Int& other) {
   if (other.value.int_value == 0) throw std::runtime_error("Division by zero");
   value.int_value /= other.value.int_value;
   return *this;
 }
 
-Int& Int::operator%=(const Int& other) {
+Int& Int::operator_mod_assign(const Int& other) {
   if (other.value.int_value == 0) throw std::runtime_error("Division by zero");
   value.int_value %= other.value.int_value;
   return *this;
 }
 
-// 自增自减运算符
-Int& Int::operator++() {
+// 标准复合赋值运算符
+Int& Int::operator+=(const Int& other) {
+  return operator_add_assign(other);
+}
+
+Int& Int::operator-=(const Int& other) {
+  return operator_sub_assign(other);
+}
+
+Int& Int::operator*=(const Int& other) {
+  return operator_mul_assign(other);
+}
+
+Int& Int::operator/=(const Int& other) {
+  return operator_div_assign(other);
+}
+
+Int& Int::operator%=(const Int& other) {
+  return operator_mod_assign(other);
+}
+
+// 自增自减运算符函数
+Int& Int::operator_increment() {
   ++value.int_value;
   return *this;
+}
+
+Int Int::operator_post_increment() {
+  Int temp(*this);
+  ++value.int_value;
+  return temp;
+}
+
+Int& Int::operator_decrement() {
+  --value.int_value;
+  return *this;
+}
+
+Int Int::operator_post_decrement() {
+  Int temp(*this);
+  --value.int_value;
+  return temp;
+}
+
+// 标准自增自减运算符
+Int& Int::operator++() {
+  return operator_increment();
 }
 
 Int Int::operator++(int) {
-  Int temp(*this);
-  ++value.int_value;
-  return temp;
+  return operator_post_increment();
 }
 
 Int& Int::operator--() {
-  --value.int_value;
-  return *this;
+  return operator_decrement();
 }
 
 Int Int::operator--(int) {
-  Int temp(*this);
-  --value.int_value;
-  return temp;
+  return operator_post_decrement();
+}
+
+// 修复#6: Int::parse 静态方法
+Int Int::parse(const String& source) {
+  try {
+    return Int(std::stoi(source.getValue()));
+  } catch (const std::exception&) {
+    throw std::runtime_error("FormatException: Invalid integer");
+  }
+}
+
+Int Int::parse(const String& source, const Int& radix) {
+  try {
+    return Int(std::stoi(source.getValue(), nullptr, radix.getValue()));
+  } catch (const std::exception&) {
+    throw std::runtime_error("FormatException: Invalid integer");
+  }
+}
+
+Int Int::tryParse(const String& source) {
+  try {
+    return Int(std::stoi(source.getValue()));
+  } catch (const std::exception&) {
+    return Int(0);  // 简化实现，返回0表示解析失败
+  }
+}
+
+// 修复#11: Int::toRadixString 方法
+String Int::toRadixString(const Int& radix) const {
+  int val = value.int_value;
+  int base = radix.getValue();
+  if (base < 2 || base > 36) {
+    throw std::runtime_error("RangeError: radix must be in range 2-36");
+  }
+  if (val == 0) return String("0");
+  
+  bool negative = val < 0;
+  if (negative) val = -val;
+  
+  std::string result;
+  const char* digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+  while (val > 0) {
+    result = digits[val % base] + result;
+    val /= base;
+  }
+  if (negative) result = "-" + result;
+  return String(result);
 }
 
 // ============================================================================
@@ -393,117 +554,195 @@ Double& Double::operator=(const Nullable&) {
   return *this; 
 }
 
-Double Double::operator_plus(const Double& other) const {
+Double Double::operator_add(const Double& other) const {
   return Double(value.double_value + other.value.double_value);
 }
 
-Double Double::operator_minus(const Double& other) const {
+Double Double::operator_add(const Int& other) const {
+  return Double(value.double_value + static_cast<double>(other.getValue()));
+}
+
+Double Double::operator_sub(const Double& other) const {
   return Double(value.double_value - other.value.double_value);
 }
 
-Double Double::operator_multiply(const Double& other) const {
+Double Double::operator_sub(const Int& other) const {
+  return Double(value.double_value - static_cast<double>(other.getValue()));
+}
+
+Double Double::operator_mul(const Double& other) const {
   return Double(value.double_value * other.value.double_value);
 }
 
-Double Double::operator_divide(const Double& other) const {
+Double Double::operator_mul(const Int& other) const {
+  return Double(value.double_value * static_cast<double>(other.getValue()));
+}
+
+Double Double::operator_div(const Double& other) const {
   return Double(value.double_value / other.value.double_value);
 }
 
-Double Double::operator_modulo(const Double& other) const {
+Double Double::operator_div(const Int& other) const {
+  return Double(value.double_value / static_cast<double>(other.getValue()));
+}
+
+Double Double::operator_mod(const Double& other) const {
   return Double(std::fmod(value.double_value, other.value.double_value));
 }
 
 Double Double::operator+(const Double& other) const {
-  return operator_plus(other);
+  return operator_add(other);
 }
 
 Double Double::operator-(const Double& other) const {
-  return operator_minus(other);
+  return operator_sub(other);
 }
 
 Double Double::operator*(const Double& other) const {
-  return operator_multiply(other);
+  return operator_mul(other);
 }
 
 Double Double::operator/(const Double& other) const {
-  return operator_divide(other);
+  return operator_div(other);
 }
 
 Double Double::operator%(const Double& other) const {
-  return operator_modulo(other);
+  return operator_mod(other);
 }
 
-// 复合赋值运算符
-Double& Double::operator+=(const Double& other) {
+// 复合赋值运算符函数
+Double& Double::operator_add_assign(const Double& other) {
   value.double_value += other.value.double_value;
   return *this;
 }
 
-Double& Double::operator-=(const Double& other) {
+Double& Double::operator_sub_assign(const Double& other) {
   value.double_value -= other.value.double_value;
   return *this;
 }
 
-Double& Double::operator*=(const Double& other) {
+Double& Double::operator_mul_assign(const Double& other) {
   value.double_value *= other.value.double_value;
   return *this;
 }
 
-Double& Double::operator/=(const Double& other) {
+Double& Double::operator_div_assign(const Double& other) {
   value.double_value /= other.value.double_value;
   return *this;
 }
 
-Double& Double::operator%=(const Double& other) {
+Double& Double::operator_mod_assign(const Double& other) {
   value.double_value = std::fmod(value.double_value, other.value.double_value);
   return *this;
 }
 
-// 自增自减运算符
-Double& Double::operator++() {
+// 标准复合赋值运算符
+Double& Double::operator+=(const Double& other) {
+  return operator_add_assign(other);
+}
+
+Double& Double::operator-=(const Double& other) {
+  return operator_sub_assign(other);
+}
+
+Double& Double::operator*=(const Double& other) {
+  return operator_mul_assign(other);
+}
+
+Double& Double::operator/=(const Double& other) {
+  return operator_div_assign(other);
+}
+
+Double& Double::operator%=(const Double& other) {
+  return operator_mod_assign(other);
+}
+
+// 自增自减运算符函数
+Double& Double::operator_increment() {
   ++value.double_value;
   return *this;
+}
+
+Double Double::operator_post_increment() {
+  Double temp(*this);
+  ++value.double_value;
+  return temp;
+}
+
+Double& Double::operator_decrement() {
+  --value.double_value;
+  return *this;
+}
+
+Double Double::operator_post_decrement() {
+  Double temp(*this);
+  --value.double_value;
+  return temp;
+}
+
+// 标准自增自减运算符
+Double& Double::operator++() {
+  return operator_increment();
 }
 
 Double Double::operator++(int) {
-  Double temp(*this);
-  ++value.double_value;
-  return temp;
+  return operator_post_increment();
 }
 
 Double& Double::operator--() {
-  --value.double_value;
-  return *this;
+  return operator_decrement();
 }
 
 Double Double::operator--(int) {
-  Double temp(*this);
-  --value.double_value;
-  return temp;
+  return operator_post_decrement();
 }
 
-Bool Double::operator==(const Double& other) const {
+Bool Double::operator_equals(const Double& other) const {
   return Bool(value.double_value == other.value.double_value);
 }
 
-Bool Double::operator!=(const Double& other) const {
+Bool Double::operator_not_equals(const Double& other) const {
   return Bool(value.double_value != other.value.double_value);
 }
 
-Bool Double::operator<(const Double& other) const {
+Bool Double::operator_less(const Double& other) const {
   return Bool(value.double_value < other.value.double_value);
 }
 
-Bool Double::operator<=(const Double& other) const {
+Bool Double::operator_less_equals(const Double& other) const {
   return Bool(value.double_value <= other.value.double_value);
 }
 
-Bool Double::operator>(const Double& other) const {
+Bool Double::operator_greater(const Double& other) const {
   return Bool(value.double_value > other.value.double_value);
 }
 
-Bool Double::operator>=(const Double& other) const {
+Bool Double::operator_greater_equals(const Double& other) const {
   return Bool(value.double_value >= other.value.double_value);
+}
+
+Bool Double::operator==(const Double& other) const {
+  return operator_equals(other);
+}
+
+Bool Double::operator!=(const Double& other) const {
+  return operator_not_equals(other);
+}
+
+Bool Double::operator<(const Double& other) const {
+  return operator_less(other);
+}
+
+Bool Double::operator<=(const Double& other) const {
+  return operator_less_equals(other);
+}
+
+Bool Double::operator>(const Double& other) const {
+  return operator_greater(other);
+}
+
+Bool Double::operator>=(const Double& other) const {
+  return operator_greater_equals(other);
 }
 
 Double Double::operator_unary_minus() const {
@@ -516,6 +755,15 @@ Double Double::operator_unary_plus() const {
 
 Double Double::operator_negate() const {
   return Double(-value.double_value);
+}
+
+// 标准一元运算符
+Double Double::operator-() const {
+  return operator_unary_minus();
+}
+
+Double Double::operator+() const {
+  return operator_unary_plus();
 }
 
 Double Double::abs() const {
@@ -590,6 +838,30 @@ Bool Double::toBool() const {
   return Bool(value.double_value != 0.0);
 }
 
+// 修复#6: Double::parse 静态方法
+Double Double::parse(const String& source) {
+  try {
+    return Double(std::stod(source.getValue()));
+  } catch (const std::exception&) {
+    throw std::runtime_error("FormatException: Invalid double");
+  }
+}
+
+Double Double::tryParse(const String& source) {
+  try {
+    return Double(std::stod(source.getValue()));
+  } catch (const std::exception&) {
+    return Double::nan;  // 解析失败返回NaN
+  }
+}
+
+// 修复#7: Double 静态常量定义
+const Double Double::nan = Double(std::nan(""));
+const Double Double::infinity = Double(std::numeric_limits<double>::infinity());
+const Double Double::negativeInfinity = Double(-std::numeric_limits<double>::infinity());
+const Double Double::minPositive = Double(std::numeric_limits<double>::min());
+const Double Double::maxFinite = Double(std::numeric_limits<double>::max());
+
 // ============================================================================
 // Bool 实现
 // ============================================================================
@@ -649,24 +921,44 @@ Bool& Bool::operator=(const Nullable&) {
   return *this; 
 }
 
-Bool Bool::operator&&(const Bool& other) const {
+Bool Bool::operator_and(const Bool& other) const {
   return Bool(value.bool_value && other.value.bool_value);
 }
 
-Bool Bool::operator||(const Bool& other) const {
+Bool Bool::operator_or(const Bool& other) const {
   return Bool(value.bool_value || other.value.bool_value);
 }
 
-Bool Bool::operator!() const {
+Bool Bool::operator_not() const {
   return Bool(!value.bool_value);
 }
 
-Bool Bool::operator==(const Bool& other) const {
+Bool Bool::operator&&(const Bool& other) const {
+  return operator_and(other);
+}
+
+Bool Bool::operator||(const Bool& other) const {
+  return operator_or(other);
+}
+
+Bool Bool::operator!() const {
+  return operator_not();
+}
+
+Bool Bool::operator_equals(const Bool& other) const {
   return Bool(value.bool_value == other.value.bool_value);
 }
 
-Bool Bool::operator!=(const Bool& other) const {
+Bool Bool::operator_not_equals(const Bool& other) const {
   return Bool(value.bool_value != other.value.bool_value);
+}
+
+Bool Bool::operator==(const Bool& other) const {
+  return operator_equals(other);
+}
+
+Bool Bool::operator!=(const Bool& other) const {
+  return operator_not_equals(other);
 }
 
 String Bool::toString() const {
@@ -720,6 +1012,86 @@ void Object::decrement() {
 
 int Object::getRefCount() const { 
   return ref_count; 
+}
+
+// 修复#9: Object::hash 静态方法
+Int Object::hash(const Any& object) {
+  // 根据类型计算哈希值
+  switch (object.type_id) {
+    case 1: return Int(std::hash<int>{}(object.value.int_value));
+    case 2: return Int(static_cast<int>(std::hash<double>{}(object.value.double_value)));
+    case 3: return Int(std::hash<bool>{}(object.value.bool_value));
+    case 4: return Int(std::hash<int>{}(object.value.string_index));
+    default: return Int(reinterpret_cast<std::intptr_t>(object.value.object_ptr));
+  }
+}
+
+Int Object::hashAll(const std::vector<Any>& objects) {
+  std::size_t result = 0;
+  for (const auto& obj : objects) {
+    result ^= std::hash<int>{}(hash(obj).getValue()) + 0x9e3779b9 + (result << 6) + (result >> 2);
+  }
+  return Int(static_cast<int>(result));
+}
+
+// ============================================================================
+// Exception 实现 (修复#5)
+// ============================================================================
+
+Exception::Exception() : message_(String("")) {}
+
+Exception::Exception(const String& message) : message_(message) {}
+
+String Exception::getMessage() const {
+  return message_;
+}
+
+String Exception::toString() const {
+  return String("Exception: ") + message_;
+}
+
+ObjectPtr<Exception> Exception::create(const String& message) {
+  return ObjectPtr<Exception>(new Exception(message));
+}
+
+// FormatException 实现
+FormatException::FormatException() : Exception() {}
+FormatException::FormatException(const String& message) : Exception(message) {}
+String FormatException::toString() const {
+  return String("FormatException: ") + message_;
+}
+ObjectPtr<FormatException> FormatException::create(const String& message) {
+  return ObjectPtr<FormatException>(new FormatException(message));
+}
+
+// StateError 实现
+StateError::StateError() : Exception() {}
+StateError::StateError(const String& message) : Exception(message) {}
+String StateError::toString() const {
+  return String("StateError: ") + message_;
+}
+ObjectPtr<StateError> StateError::create(const String& message) {
+  return ObjectPtr<StateError>(new StateError(message));
+}
+
+// ArgumentError 实现
+ArgumentError::ArgumentError() : Exception() {}
+ArgumentError::ArgumentError(const String& message) : Exception(message) {}
+String ArgumentError::toString() const {
+  return String("ArgumentError: ") + message_;
+}
+ObjectPtr<ArgumentError> ArgumentError::create(const String& message) {
+  return ObjectPtr<ArgumentError>(new ArgumentError(message));
+}
+
+// RangeError 实现
+RangeError::RangeError() : Exception() {}
+RangeError::RangeError(const String& message) : Exception(message) {}
+String RangeError::toString() const {
+  return String("RangeError: ") + message_;
+}
+ObjectPtr<RangeError> RangeError::create(const String& message) {
+  return ObjectPtr<RangeError>(new RangeError(message));
 }
 
 // ============================================================================
@@ -779,8 +1151,9 @@ String CppUserData::toString() const {
 // Function 实现
 // ============================================================================
 
-Function::Function() : return_type_(0), param_count_(0) { 
-  type_id = 15; 
+
+Function::Function() {
+  type_id = 4; // Function类型ID
 }
 
 Function::~Function() {}
@@ -794,17 +1167,6 @@ String Function::toString() const {
   return dart_string("Function");
 }
 
-Int Function::getParameterCount() const {
-  return Int(static_cast<int>(param_count_));
-}
-
-std::vector<int> Function::getParameterTypes() const {
-  return param_types_;
-}
-
-Int Function::getReturnType() const {
-  return Int(return_type_);
-}
 
 // ============================================================================
 // 类型转换函数特化实现
@@ -865,4 +1227,165 @@ Any convertToAny<Bool>(const Bool& value) {
   result.type_id = 3;
   result.value.bool_value = value.value.bool_value;
   return result;
+}
+
+// ============================================================================
+// StringBuffer 实现
+// ============================================================================
+
+StringBuffer::StringBuffer() : buffer_("") {}
+
+StringBuffer::StringBuffer(const String& initial) : buffer_(initial.getValue()) {}
+
+void StringBuffer::write(const String& str) {
+  buffer_ += str.getValue();
+}
+
+void StringBuffer::writeln(const String& str) {
+  buffer_ += str.getValue() + "\n";
+}
+
+void StringBuffer::writeAll(const std::vector<String>& objects, const String& separator) {
+  for (size_t i = 0; i < objects.size(); ++i) {
+    if (i > 0) {
+      buffer_ += separator.getValue();
+    }
+    buffer_ += objects[i].getValue();
+  }
+}
+
+void StringBuffer::clear() {
+  buffer_.clear();
+}
+
+Int StringBuffer::length() const {
+  return Int(static_cast<int>(buffer_.length()));
+}
+
+Bool StringBuffer::isEmpty() const {
+  return Bool(buffer_.empty());
+}
+
+Bool StringBuffer::isNotEmpty() const {
+  return Bool(!buffer_.empty());
+}
+
+String StringBuffer::toString() const {
+  return String(buffer_);
+}
+
+ObjectPtr<StringBuffer> StringBuffer::create() {
+  return ObjectPtr<StringBuffer>(new StringBuffer());
+}
+
+ObjectPtr<StringBuffer> StringBuffer::create(const String& initial) {
+  return ObjectPtr<StringBuffer>(new StringBuffer(initial));
+}
+
+// ============================================================================
+// RegExp 实现
+// ============================================================================
+
+RegExp::RegExp(const String& pattern, bool caseSensitive, bool multiLine, bool dotAll) 
+  : pattern_(pattern.getValue()), caseSensitive_(caseSensitive), multiLine_(multiLine), dotAll_(dotAll) {}
+
+Bool RegExp::hasMatch(const String& input) {
+  // 简化实现：基础字符串匹配
+  return Bool(input.getValue().find(pattern_) != std::string::npos);
+}
+
+String RegExp::stringMatch(const String& input) {
+  auto pos = input.getValue().find(pattern_);
+  if (pos != std::string::npos) {
+    return String(pattern_);
+  }
+  return String("");
+}
+
+Int RegExp::matchAsPrefix(const String& string, Int start) {
+  auto pos = string.getValue().find(pattern_, start.getValue());
+  return Int(pos != std::string::npos ? static_cast<int>(pos) : -1);
+}
+
+String RegExp::pattern() const {
+  return String(pattern_);
+}
+
+Bool RegExp::isCaseSensitive() const {
+  return Bool(caseSensitive_);
+}
+
+Bool RegExp::isMultiLine() const {
+  return Bool(multiLine_);
+}
+
+Bool RegExp::isDotAll() const {
+  return Bool(dotAll_);
+}
+
+String RegExp::toString() const {
+  return String("RegExp('" + pattern_ + "')");
+}
+
+ObjectPtr<RegExp> RegExp::create(const String& pattern) {
+  return ObjectPtr<RegExp>(new RegExp(pattern));
+}
+
+ObjectPtr<RegExp> RegExp::create(const String& pattern, bool caseSensitive, bool multiLine, bool dotAll) {
+  return ObjectPtr<RegExp>(new RegExp(pattern, caseSensitive, multiLine, dotAll));
+}
+
+// ============================================================================
+// Timer 实现
+// ============================================================================
+
+Timer::Timer() : isActive_(false) {}
+
+void Timer::cancel() {
+  isActive_ = false;
+}
+
+Bool Timer::isActive() const {
+  return Bool(isActive_);
+}
+
+String Timer::toString() const {
+  return String("Timer");
+}
+
+ObjectPtr<Timer> Timer::create() {
+  return ObjectPtr<Timer>(new Timer());
+}
+
+// ============================================================================
+// List 方法实现
+// ============================================================================
+
+template<typename T>
+void List<T>::addAll(const ObjectPtr<List<T>>& items) {
+  if (items) {
+    for (Int i = Int(0); i < items->size(); ++i) {
+      add(items->get(i));
+    }
+  }
+}
+
+template<typename T>
+void List<T>::insertAll(const Int& index, const ObjectPtr<List<T>>& items) {
+  if (items) {
+    Int insertIndex = index;
+    for (Int i = Int(0); i < items->size(); ++i) {
+      insert(insertIndex, items->get(i));
+      insertIndex = insertIndex + Int(1);
+    }
+  }
+}
+
+template<typename T>
+T List<T>::removeLast() {
+  if (isEmpty().getValue()) {
+    throw std::runtime_error("Cannot remove from empty list");
+  }
+  Int lastIndex = size() - Int(1);
+  return removeAt(lastIndex);
 }

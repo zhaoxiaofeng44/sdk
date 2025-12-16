@@ -87,8 +87,39 @@ public:
     }
 };
 
-const Double Math::PI = Double(3.141592653589793);
-const Double Math::E = Double(2.718281828459045);
+inline const Double Math::PI = Double(3.141592653589793);
+inline const Double Math::E = Double(2.718281828459045);
+
+// ============================================================================
+// 扩展方法命名空间 - MathExtension
+// ============================================================================
+
+namespace MathExtension {
+    // 为 double 类型提供扩展方法
+    inline Double sqrt(const Double& value) {
+        return Math::sqrt(value);
+    }
+    
+    inline Double abs(const Double& value) {
+        return Math::abs(value);
+    }
+    
+    inline Double pow(const Double& base, const Double& exponent) {
+        return Math::pow(base, exponent);
+    }
+    
+    inline Double sin(const Double& value) {
+        return Math::sin(value);
+    }
+    
+    inline Double cos(const Double& value) {
+        return Math::cos(value);
+    }
+    
+    inline Double tan(const Double& value) {
+        return Math::tan(value);
+    }
+}
 
 // ============================================================================
 // DateTime 日期时间类
@@ -181,6 +212,33 @@ private:
 public:
     Duration(int milliseconds) : duration_(milliseconds) {
         type_id = 13;
+    }
+    
+    // 修复#14: 支持所有时间单位参数的构造函数
+    // 参数顺序: days, hours, minutes, seconds, milliseconds, microseconds
+    // 命名参数转为位置参数，按定义顺序传递，默认值为0
+    Duration(Int days, Int hours, Int minutes, Int seconds, 
+             Int milliseconds, Int microseconds) 
+        : duration_(days.getValue() * 24 * 60 * 60 * 1000 +
+                    hours.getValue() * 60 * 60 * 1000 +
+                    minutes.getValue() * 60 * 1000 +
+                    seconds.getValue() * 1000 +
+                    milliseconds.getValue() +
+                    microseconds.getValue() / 1000) {
+        type_id = 13;
+    }
+    
+    // 静态创建方法 - 支持命名参数风格
+    static ObjectPtr<Duration> create(Int days = Int(0), Int hours = Int(0), 
+                                       Int minutes = Int(0), Int seconds = Int(0),
+                                       Int milliseconds = Int(0), Int microseconds = Int(0)) {
+        int totalMs = days.getValue() * 24 * 60 * 60 * 1000 +
+                      hours.getValue() * 60 * 60 * 1000 +
+                      minutes.getValue() * 60 * 1000 +
+                      seconds.getValue() * 1000 +
+                      milliseconds.getValue() +
+                      microseconds.getValue() / 1000;
+        return ObjectPtr<Duration>(new Duration(totalMs));
     }
     
     // 静态创建方法
@@ -348,7 +406,7 @@ public:
     }
     
     String toString() const override {
-        return dart_string("Stopwatch(elapsed: " + 
+        return String("Stopwatch(elapsed: " + 
                      std::to_string(get_elapsedMilliseconds().toInt()) + "ms)");
     }
 };
@@ -359,8 +417,8 @@ public:
 
 namespace CollectionUtils {
     // 列表排序
-    template<typename T>
-    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<Function>& compare = nullptr) {
+    template<typename T, typename CompareFunc = std::function<Int(T, T)>>
+    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<CompareFunc, Int, T, T>>& compare = nullptr) {
         bool is_null = (compare == nullptr);
         bool compare_is_null = !is_null && (compare->isNull().toBool());
         if (is_null || compare_is_null) {
@@ -393,7 +451,7 @@ namespace CollectionUtils {
     }
     
     // 列表平均值
-    Double average(const ObjectPtr<List<Int>>& list) {
+    inline Double average(const ObjectPtr<List<Int>>& list) {
         if (list->isEmpty().toBool()) {
             return Double(0);
         }
@@ -401,7 +459,7 @@ namespace CollectionUtils {
         return Double(total.toInt()) / Double(list->size().toInt());
     }
     
-    Double average(const ObjectPtr<List<Double>>& list) {
+    inline Double average(const ObjectPtr<List<Double>>& list) {
         if (list->isEmpty().toBool()) {
             return Double(0);
         }
@@ -416,7 +474,7 @@ namespace CollectionUtils {
 
 namespace StringUtils {
     // 判断字符串是否为数字
-    Bool isNumeric(const String& str) {
+    inline Bool isNumeric(const String& str) {
         std::string s = str.getValue();
         if (s.empty()) return Bool(false);
         
@@ -435,7 +493,7 @@ namespace StringUtils {
     }
     
     // 字符串转数字
-    Int parseInt(const String& str) {
+    inline Int parseInt(const String& str) {
         try {
             return Int(std::stoi(str.getValue()));
         } catch (...) {
@@ -443,7 +501,7 @@ namespace StringUtils {
         }
     }
     
-    Double parseDouble(const String& str) {
+    inline Double parseDouble(const String& str) {
         try {
             return Double(std::stod(str.getValue()));
         } catch (...) {
@@ -452,14 +510,14 @@ namespace StringUtils {
     }
     
     // 字符串反转
-    String reverse(const String& str) {
+    inline String reverse(const String& str) {
         std::string s = str.getValue();
         std::reverse(s.begin(), s.end());
         return String(s);
     }
     
     // 字符串重复
-    String repeat(const String& str, const Int& times) {
+    inline String repeat(const String& str, const Int& times) {
         std::string result;
         std::string s = str.getValue();
         int count = times.toInt();

@@ -555,6 +555,125 @@ TEST(string_starts_ends_with) {
 }
 
 // ============================================================================
+// 箭头运算符 (->) 方法调用测试
+// 测试基础类型通过 -> 操作符调用方法的功能
+// ============================================================================
+
+TEST(arrow_operator_method_calls) {
+    std::cout << "  测试箭头运算符 (->) 方法调用..." << std::endl;
+    
+    // ========== Int 类型 -> 方法调用 ==========
+    Int int_val = dart_int(42);
+    
+    // 使用 -> 调用 abs() 方法
+    Int abs_result = int_val->abs();
+    ASSERT_EQ(42, abs_result.toInt());
+    
+    // 使用 -> 调用 toString() 方法
+    String int_str = int_val->toString();
+    ASSERT_TRUE(int_str == dart_string("42"));
+    
+    // 使用 -> 访问属性方法
+    Bool is_even = int_val->get_isEven();
+    ASSERT_TRUE(is_even);
+    
+    Int sign = int_val->get_sign();
+    ASSERT_EQ(1, sign.toInt());
+    
+    // 负数测试
+    Int negative = dart_int(-10);
+    Int neg_abs = negative->abs();
+    ASSERT_EQ(10, neg_abs.toInt());
+    
+    Int neg_sign = negative->get_sign();
+    ASSERT_EQ(-1, neg_sign.toInt());
+    
+    // ========== Double 类型 -> 方法调用 ==========
+    Double double_val = dart_double(3.14159);
+    
+    // 使用 -> 调用 floor() 方法
+    Double floor_result = double_val->floor();
+    ASSERT_NEAR(3.0, floor_result.toDouble(), 0.001);
+    
+    // 使用 -> 调用 ceil() 方法
+    Double ceil_result = double_val->ceil();
+    ASSERT_NEAR(4.0, ceil_result.toDouble(), 0.001);
+    
+    // 使用 -> 调用 round() 方法
+    Double round_result = double_val->round();
+    ASSERT_NEAR(3.0, round_result.toDouble(), 0.001);
+    
+    // 使用 -> 调用 abs() 方法
+    Double neg_double = dart_double(-2.5);
+    Double double_abs = neg_double->abs();
+    ASSERT_NEAR(2.5, double_abs.toDouble(), 0.001);
+    
+    // 使用 -> 调用 toString() 方法
+    String double_str = double_val->toString();
+    ASSERT_TRUE(double_str.contains(dart_string("3.14")));
+    
+    // ========== Bool 类型 -> 方法调用 ==========
+    Bool bool_true = dart_bool(true);
+    Bool bool_false = dart_bool(false);
+    
+    // 使用 -> 调用 toString() 方法
+    String bool_true_str = bool_true->toString();
+    ASSERT_TRUE(bool_true_str == dart_string("true"));
+    
+    String bool_false_str = bool_false->toString();
+    ASSERT_TRUE(bool_false_str == dart_string("false"));
+    
+    // ========== String 类型方法调用（注意：String 不支持 -> 操作符）==========
+    String str = dart_string("Hello World");
+    
+    // 直接调用 length 属性
+    Int str_length = str.get_length();
+    ASSERT_EQ(11, str_length.toInt());
+    
+    // 直接调用 isEmpty 属性
+    Bool is_empty = str.get_isEmpty();
+    ASSERT_FALSE(is_empty);
+    
+    // 直接调用 toUpperCase() 方法
+    String upper = str.toUpperCase();
+    ASSERT_TRUE(upper == dart_string("HELLO WORLD"));
+    
+    // 直接调用 toLowerCase() 方法
+    String lower = str.toLowerCase();
+    ASSERT_TRUE(lower == dart_string("hello world"));
+    
+    // 直接调用 contains() 方法
+    Bool contains_hello = str.contains(dart_string("Hello"));
+    ASSERT_TRUE(contains_hello);
+    
+    Bool contains_xyz = str.contains(dart_string("xyz"));
+    ASSERT_FALSE(contains_xyz);
+    
+    // 直接调用 substring() 方法
+    String sub = str.substring(dart_int(0), dart_int(5));
+    ASSERT_TRUE(sub == dart_string("Hello"));
+    
+    // 直接调用 startsWith() 方法
+    Bool starts = str.startsWith(dart_string("Hello"));
+    ASSERT_TRUE(starts);
+    
+    // 直接调用 endsWith() 方法
+    Bool ends = str.endsWith(dart_string("World"));
+    ASSERT_TRUE(ends);
+    
+    // 直接调用 trim() 方法
+    String padded = dart_string("  spaces  ");
+    String trimmed = padded.trim();
+    ASSERT_TRUE(trimmed == dart_string("spaces"));
+    
+    // 直接调用 replaceAll() 方法
+    String replaced = str.replaceAll(dart_string("World"), dart_string("Dart"));
+    ASSERT_TRUE(replaced == dart_string("Hello Dart"));
+    
+    std::cout << "  ✓ 所有箭头运算符方法调用测试通过" << std::endl;
+}
+
+// ============================================================================
 // 主函数
 // ============================================================================
 
@@ -595,6 +714,9 @@ int main() {
     RUN_TEST(string_replacement);
     RUN_TEST(string_split_and_join);
     RUN_TEST(string_starts_ends_with);
+    
+    // 箭头运算符测试
+    RUN_TEST(arrow_operator_method_calls);
     
     std::cout << "====================================" << std::endl;
     std::cout << "  所有测试通过！✓" << std::endl;
