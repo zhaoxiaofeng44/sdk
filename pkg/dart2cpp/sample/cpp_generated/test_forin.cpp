@@ -8,7 +8,7 @@
 
 int main() {
   try {
-    auto fruits = dart_literal(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+    auto fruits = dart_literal<String>(dart_string("apple"), dart_string("banana"), dart_string("orange"));
 dart_print(dart_string("For-in test:"));
 auto sync_for_iterator = fruits->iterator();
 for (; sync_for_iterator->hasNext(); ) {

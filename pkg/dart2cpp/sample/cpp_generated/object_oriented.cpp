@@ -84,22 +84,20 @@ public:
     return this->_width;
   }
   
-  Nullable width(Double value) {
+  Double width(Double value) {
     if (value->operator_greater(dart_int(0))) {
 this->_width = value;
-};
-return Void;
+}
   }
   
   Double height() {
     return this->_height;
   }
   
-  Nullable height(Double value) {
+  Double height(Double value) {
     if (value->operator_greater(dart_int(0))) {
 this->_height = value;
-};
-return Void;
+}
   }
   
   Double area() {
@@ -231,11 +229,14 @@ return Void;
 // 类: Drivable
 // ============================================================================
 
-DART_INTERFACE(Drivable)
-  DART_ABSTRACT_METHOD(Nullable, start, ())
-  DART_ABSTRACT_METHOD(Nullable, stop, ())
-  DART_ABSTRACT_METHOD(Int, maxSpeed, ())
-DART_INTERFACE_END
+class Drivable {
+public:
+  virtual ~Drivable() = default;
+  
+  virtual Nullable start() = 0;
+  virtual Nullable stop() = 0;
+  virtual Int maxSpeed() = 0;
+};
 
 // ============================================================================
 // 类: Car
@@ -299,17 +300,23 @@ return Void;
 // 类: Callable
 // ============================================================================
 
-DART_INTERFACE(Callable)
-  DART_ABSTRACT_METHOD(Nullable, call, (String number))
-DART_INTERFACE_END
+class Callable {
+public:
+  virtual ~Callable() = default;
+  
+  virtual Nullable call(String number) = 0;
+};
 
 // ============================================================================
 // 类: Messageable
 // ============================================================================
 
-DART_INTERFACE(Messageable)
-  DART_ABSTRACT_METHOD(Nullable, sendMessage, (String message))
-DART_INTERFACE_END
+class Messageable {
+public:
+  virtual ~Messageable() = default;
+  
+  virtual Nullable sendMessage(String message) = 0;
+};
 
 // ============================================================================
 // 类: Smartphone
@@ -354,29 +361,61 @@ return Void;
 // 类: Singing
 // ============================================================================
 
-DART_INTERFACE(Singing)
-DART_INTERFACE_END
+class Singing {
+public:
+  virtual ~Singing() = default;
+  
+  Nullable sing() {
+    dart_print(dart_string("    正在唱歌 🎵"));
+return Void;
+  }
+  
+};
 
 // ============================================================================
 // 类: Playing
 // ============================================================================
 
-DART_INTERFACE(Playing)
-DART_INTERFACE_END
+class Playing {
+public:
+  virtual ~Playing() = default;
+  
+  Nullable playInstrument() {
+    dart_print(dart_string("    正在演奏乐器 🎹"));
+return Void;
+  }
+  
+};
 
 // ============================================================================
 // 类: Dancing
 // ============================================================================
 
-DART_INTERFACE(Dancing)
-DART_INTERFACE_END
+class Dancing {
+public:
+  virtual ~Dancing() = default;
+  
+  Nullable dance() {
+    dart_print(dart_string("    正在跳舞 💃"));
+return Void;
+  }
+  
+};
 
 // ============================================================================
 // 类: Painting
 // ============================================================================
 
-DART_INTERFACE(Painting)
-DART_INTERFACE_END
+class Painting {
+public:
+  virtual ~Painting() = default;
+  
+  Nullable paint() {
+    dart_print(dart_string("    正在绘画 🎨"));
+return Void;
+  }
+  
+};
 
 // ============================================================================
 // 类: Performer
@@ -396,12 +435,66 @@ return Void;
 };
 
 // ============================================================================
+// 类: _Musician_Performer_Singing
+// ============================================================================
+
+class _Musician_Performer_Singing : public Performer, virtual public Singing {
+public:
+  virtual ~_Musician_Performer_Singing() = default;
+  
+  template<typename... Args>
+  _Musician_Performer_Singing(Args&&... args) : Performer(std::forward<Args>(args)...) {}
+  
+  Nullable sing() {
+    dart_print(dart_string("    正在唱歌 🎵"));
+return Void;
+  }
+  
+};
+
+// ============================================================================
+// 类: _Musician_Performer_Singing_Playing
+// ============================================================================
+
+class _Musician_Performer_Singing_Playing : public _Musician_Performer_Singing, virtual public Playing {
+public:
+  virtual ~_Musician_Performer_Singing_Playing() = default;
+  
+  template<typename... Args>
+  _Musician_Performer_Singing_Playing(Args&&... args) : _Musician_Performer_Singing(std::forward<Args>(args)...) {}
+  
+  Nullable playInstrument() {
+    dart_print(dart_string("    正在演奏乐器 🎹"));
+return Void;
+  }
+  
+};
+
+// ============================================================================
 // 类: Musician
 // ============================================================================
 
-class Musician : public _Musician&Performer&Singing&Playing {
+class Musician : public _Musician_Performer_Singing_Playing {
 public:
-  Musician(String name) : _Musician&Performer&Singing&Playing(name) {
+  Musician(String name) : _Musician_Performer_Singing_Playing(name) {
+  }
+  
+};
+
+// ============================================================================
+// 类: _Dancer_Performer_Dancing
+// ============================================================================
+
+class _Dancer_Performer_Dancing : public Performer, virtual public Dancing {
+public:
+  virtual ~_Dancer_Performer_Dancing() = default;
+  
+  template<typename... Args>
+  _Dancer_Performer_Dancing(Args&&... args) : Performer(std::forward<Args>(args)...) {}
+  
+  Nullable dance() {
+    dart_print(dart_string("    正在跳舞 💃"));
+return Void;
   }
   
 };
@@ -410,9 +503,81 @@ public:
 // 类: Dancer
 // ============================================================================
 
-class Dancer : public _Dancer&Performer&Dancing {
+class Dancer : public _Dancer_Performer_Dancing {
 public:
-  Dancer(String name) : _Dancer&Performer&Dancing(name) {
+  Dancer(String name) : _Dancer_Performer_Dancing(name) {
+  }
+  
+};
+
+// ============================================================================
+// 类: _Artist_Performer_Singing
+// ============================================================================
+
+class _Artist_Performer_Singing : public Performer, virtual public Singing {
+public:
+  virtual ~_Artist_Performer_Singing() = default;
+  
+  template<typename... Args>
+  _Artist_Performer_Singing(Args&&... args) : Performer(std::forward<Args>(args)...) {}
+  
+  Nullable sing() {
+    dart_print(dart_string("    正在唱歌 🎵"));
+return Void;
+  }
+  
+};
+
+// ============================================================================
+// 类: _Artist_Performer_Singing_Playing
+// ============================================================================
+
+class _Artist_Performer_Singing_Playing : public _Artist_Performer_Singing, virtual public Playing {
+public:
+  virtual ~_Artist_Performer_Singing_Playing() = default;
+  
+  template<typename... Args>
+  _Artist_Performer_Singing_Playing(Args&&... args) : _Artist_Performer_Singing(std::forward<Args>(args)...) {}
+  
+  Nullable playInstrument() {
+    dart_print(dart_string("    正在演奏乐器 🎹"));
+return Void;
+  }
+  
+};
+
+// ============================================================================
+// 类: _Artist_Performer_Singing_Playing_Dancing
+// ============================================================================
+
+class _Artist_Performer_Singing_Playing_Dancing : public _Artist_Performer_Singing_Playing, virtual public Dancing {
+public:
+  virtual ~_Artist_Performer_Singing_Playing_Dancing() = default;
+  
+  template<typename... Args>
+  _Artist_Performer_Singing_Playing_Dancing(Args&&... args) : _Artist_Performer_Singing_Playing(std::forward<Args>(args)...) {}
+  
+  Nullable dance() {
+    dart_print(dart_string("    正在跳舞 💃"));
+return Void;
+  }
+  
+};
+
+// ============================================================================
+// 类: _Artist_Performer_Singing_Playing_Dancing_Painting
+// ============================================================================
+
+class _Artist_Performer_Singing_Playing_Dancing_Painting : public _Artist_Performer_Singing_Playing_Dancing, virtual public Painting {
+public:
+  virtual ~_Artist_Performer_Singing_Playing_Dancing_Painting() = default;
+  
+  template<typename... Args>
+  _Artist_Performer_Singing_Playing_Dancing_Painting(Args&&... args) : _Artist_Performer_Singing_Playing_Dancing(std::forward<Args>(args)...) {}
+  
+  Nullable paint() {
+    dart_print(dart_string("    正在绘画 🎨"));
+return Void;
   }
   
 };
@@ -421,9 +586,9 @@ public:
 // 类: Artist
 // ============================================================================
 
-class Artist : public _Artist&Performer&Singing&Playing&Dancing&Painting {
+class Artist : public _Artist_Performer_Singing_Playing_Dancing_Painting {
 public:
-  Artist(String name) : _Artist&Performer&Singing&Playing&Dancing&Painting(name) {
+  Artist(String name) : _Artist_Performer_Singing_Playing_Dancing_Painting(name) {
   }
   
 };
@@ -432,11 +597,19 @@ public:
 // 类: Shape
 // ============================================================================
 
-DART_INTERFACE(Shape)
-  DART_ABSTRACT_METHOD(String, name, ())
-  DART_ABSTRACT_METHOD(Double, area, ())
-  DART_ABSTRACT_METHOD(Double, perimeter, ())
-DART_INTERFACE_END
+class Shape {
+public:
+  virtual ~Shape() = default;
+  
+  virtual String name() = 0;
+  virtual Double area() = 0;
+  virtual Double perimeter() = 0;
+  Nullable draw() {
+    dart_print(dart_string("    绘制 ") + (this->get_name()).toString());
+return Void;
+  }
+  
+};
 
 // ============================================================================
 // 类: Circle
@@ -540,7 +713,7 @@ public:
   }
   
   Bool isWeekend() {
-    return !(this->isWeekday());
+    return !(this->get_isWeekday());
   }
   
 };
@@ -619,7 +792,7 @@ private:
   Logger(String name) : name(name) {
   }
   
-  ObjectPtr<Logger> unnamed(String name) {
+  static ObjectPtr<Logger> create(String name) {
     return Logger::_cache->putIfAbsent(name, makeFunction([&]() { return ObjectPtr<Logger>(new Logger(name)); }));
   }
   
@@ -645,53 +818,24 @@ public:
 };
 
 // ============================================================================
-// 类: _Musician&Performer&Singing
+// Extension: MathExtension
 // ============================================================================
 
-DART_INTERFACE(_Musician&Performer&Singing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Musician&Performer&Singing&Playing
-// ============================================================================
-
-DART_INTERFACE(_Musician&Performer&Singing&Playing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Dancer&Performer&Dancing
-// ============================================================================
-
-DART_INTERFACE(_Dancer&Performer&Dancing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Artist&Performer&Singing
-// ============================================================================
-
-DART_INTERFACE(_Artist&Performer&Singing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Artist&Performer&Singing&Playing
-// ============================================================================
-
-DART_INTERFACE(_Artist&Performer&Singing&Playing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Artist&Performer&Singing&Playing&Dancing
-// ============================================================================
-
-DART_INTERFACE(_Artist&Performer&Singing&Playing&Dancing)
-DART_INTERFACE_END
-
-// ============================================================================
-// 类: _Artist&Performer&Singing&Playing&Dancing&Painting
-// ============================================================================
-
-DART_INTERFACE(_Artist&Performer&Singing&Playing&Dancing&Painting)
-DART_INTERFACE_END
+namespace MathExtension {
+  inline Double sqrt(Double this_) {
+    if (this_->operator_less(dart_int(0))) {
+return dart_double(0.0);
+}
+auto x = this_;
+auto prev = dart_double(0.0);
+while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
+prev = x;
+x = x->operator_add(this_->operator_div(x))->operator_div(dart_double(2.0));
+}
+return x;
+  }
+  
+} // namespace MathExtension
 
 Nullable testBasicClasses();
 Nullable testInheritance();
@@ -700,8 +844,7 @@ Nullable testMixins();
 Nullable testAbstractClasses();
 Nullable testEnums();
 Nullable testConstructors();
-Double MathExtension::sqrt(Double _this);
-ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
+Double MathExtension::sqrt(Double this_);
 Nullable testBasicClasses() {
   dart_print(dart_string("\n📌 测试基本类和对象"));
 auto person = ObjectPtr<Person>(new Person(dart_string("Alice"), dart_int(25)));
@@ -718,10 +861,10 @@ dart_print(dart_string("  账户余额: \$") + (account->getBalance()).toString(
 dart_print(dart_string("  创建的人数: ") + (Person::totalCount).toString());
 Person::showStatistics();
 auto rectangle = ObjectPtr<Rectangle>(new Rectangle(dart_double(4.0), dart_double(6.0)));
-dart_print(dart_string("  矩形面积: ") + (rectangle->area()).toString());
-dart_print(dart_string("  矩形周长: ") + (rectangle->perimeter()).toString());
+dart_print(dart_string("  矩形面积: ") + (rectangle->get_area()).toString());
+dart_print(dart_string("  矩形周长: ") + (rectangle->get_perimeter()).toString());
 rectangle->set_width(dart_double(5.0));
-dart_print(dart_string("  修改宽度后面积: ") + (rectangle->area()).toString());
+dart_print(dart_string("  修改宽度后面积: ") + (rectangle->get_area()).toString());
 return Void;
 }
 
@@ -730,7 +873,7 @@ Nullable testInheritance() {
 auto animal = ObjectPtr<Animal>(new Animal(dart_string("Generic Animal")));
 auto dog = ObjectPtr<Dog>(new Dog(dart_string("Buddy"), dart_string("Golden Retriever")));
 auto cat = ObjectPtr<Cat>(new Cat(dart_string("Whiskers"), dart_string("Persian")));
-auto animals = dart_literal(animal, dog, cat);
+auto animals = dart_literal<ObjectPtr<Animal>>(animal, dog, cat);
 dart_print(dart_string("  多态测试:"));
 auto sync_for_iterator = animals->iterator();
 for (; sync_for_iterator->hasNext(); ) {
@@ -738,10 +881,12 @@ auto animal = sync_for_iterator->next();
 animal->makeSound();
 animal->move();
 if (dart_is<ObjectPtr<Dog>>(animal)) {
-animal->fetch();
+auto animal_promoted = dart_cast<ObjectPtr<Dog>>(animal);
+animal_promoted->fetch();
 } else {
 if (dart_is<ObjectPtr<Cat>>(animal)) {
-animal->climb();
+auto animal_promoted = dart_cast<ObjectPtr<Cat>>(animal);
+animal_promoted->climb();
 }
 }
 }
@@ -759,14 +904,14 @@ Nullable testInterfaces() {
   dart_print(dart_string("\n📌 测试接口"));
 auto car = ObjectPtr<Car>(new Car());
 auto bicycle = ObjectPtr<Bicycle>(new Bicycle());
-auto vehicles = dart_literal(car, bicycle);
+auto vehicles = dart_literal<ObjectPtr<Drivable>>(car, bicycle);
 dart_print(dart_string("  接口实现测试:"));
 auto sync_for_iterator = vehicles->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 auto vehicle = sync_for_iterator->next();
 vehicle->start();
 vehicle->stop();
-dart_print(dart_concat(dart_string("    最高速度: "), (vehicle->maxSpeed()).toString(), dart_string(" km/h")));
+dart_print(dart_concat(dart_string("    最高速度: "), (vehicle->get_maxSpeed()).toString(), dart_string(" km/h")));
 }
 auto smartphone = ObjectPtr<Smartphone>(new Smartphone());
 smartphone->start();
@@ -799,12 +944,12 @@ Nullable testAbstractClasses() {
 auto circle = ObjectPtr<Circle>(new Circle(dart_double(5.0)));
 auto rectangle = ObjectPtr<RectangleShape>(new RectangleShape(dart_double(4.0), dart_double(6.0)));
 auto triangle = ObjectPtr<Triangle>(new Triangle(dart_double(3.0), dart_double(4.0), dart_double(5.0)));
-auto shapes = dart_literal(circle, rectangle, triangle);
+auto shapes = dart_literal<ObjectPtr<Shape>>(circle, rectangle, triangle);
 dart_print(dart_string("  抽象类实现测试:"));
 auto sync_for_iterator = shapes->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 auto shape = sync_for_iterator->next();
-dart_print(dart_concat(dart_string("    "), (shape->name()).toString(), dart_string(": 面积 = "), (shape->area()).toString(), dart_string(", 周长 = "), (shape->perimeter()).toString()));
+dart_print(dart_concat(dart_string("    "), (shape->get_name()).toString(), dart_string(": 面积 = "), (shape->area()).toString(), dart_string(", 周长 = "), (shape->perimeter()).toString()));
 shape->draw();
 };
 return Void;
@@ -814,8 +959,8 @@ Nullable testEnums() {
   dart_print(dart_string("\n📌 测试枚举"));
 auto today = ObjectPtr<Weekday>::createConst();
 dart_print(dart_string("  今天是: ") + (EnumName|get_name(today)).toString());
-dart_print(dart_string("  是工作日吗: ") + (today->isWeekday()).toString());
-dart_print(dart_string("  是周末吗: ") + (today->isWeekend()).toString());
+dart_print(dart_string("  是工作日吗: ") + (today->get_isWeekday()).toString());
+dart_print(dart_string("  是周末吗: ") + (today->get_isWeekend()).toString());
 dart_print(dart_string("  所有星期:"));
 auto sync_for_iterator = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst(), ObjectPtr<Weekday>::createConst()})->iterator();
 for (; sync_for_iterator->hasNext(); ) {
@@ -851,33 +996,16 @@ auto student2 = ObjectPtr<Student>(new Student(dart_string("Charlie"), dart_int(
 dart_print(dart_concat(dart_string("  命名构造函数: "), (student2->name).toString(), dart_string(", 成绩: "), (student2->grade).toString()));
 auto student3 = ObjectPtr<Student>(new Student(dart_string("David"), dart_int(22)));
 dart_print(dart_concat(dart_string("  毕业生构造函数: "), (student3->name).toString(), dart_string(", 毕业生: "), (student3->isGraduate).toString()));
-auto logger1 = Logger::(dart_string("App"));
-auto logger2 = Logger::(dart_string("App"));
+auto logger1 = Logger::create(dart_string("App"));
+auto logger2 = Logger::create(dart_string("App"));
 dart_print(dart_string("  工厂构造函数: 同一实例? ") + (identical(logger1, logger2)).toString());
 auto point1 = ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)));
 auto point2 = ObjectPtr<Point>(new Point());
-auto point3 = ObjectPtr<Point>(new Point(dart_literal(dart_double(1.0), dart_double(2.0))));
+auto point3 = ObjectPtr<Point>(new Point(dart_literal<Double>(dart_double(1.0), dart_double(2.0))));
 dart_print(dart_concat(dart_string("  点坐标: ("), (point1->x).toString(), dart_string(", "), (point1->y).toString(), dart_string(")")));
 dart_print(dart_concat(dart_string("  原点: ("), (point2->x).toString(), dart_string(", "), (point2->y).toString(), dart_string(")")));
 dart_print(dart_concat(dart_string("  从列表: ("), (point3->x).toString(), dart_string(", "), (point3->y).toString(), dart_string(")")));
 return Void;
-}
-
-Double MathExtension_sqrt(Double this) {
-  if (this->operator_less(dart_int(0))) {
-return dart_double(0.0);
-}
-auto x = this;
-auto prev = dart_double(0.0);
-while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
-prev = x;
-x = x->operator_add(this->operator_div(x))->operator_div(dart_double(2.0));
-}
-return x;
-}
-
-ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension_get_sqrt(Double this) {
-  return makeFunction([&]() { return MathExtension::sqrt(this); });
 }
 
 // ============================================================================

@@ -75,10 +75,10 @@ dart_print(dart_string("    正无穷: ") + (infinity).toString());
 dart_print(dart_string("    负无穷: ") + (negativeInfinity).toString());
 dart_print(dart_string("    NaN: ") + (nan).toString());
 dart_print(dart_string("  特殊值检查:"));
-dart_print(dart_string("    infinity是无穷: ") + (infinity->isInfinite()).toString());
-dart_print(dart_string("    nan是NaN: ") + (nan->isNaN()).toString());
-dart_print(dart_string("    infinity是有限: ") + (infinity->isFinite()).toString());
-dart_print(dart_string("    veryLarge是有限: ") + (veryLarge->isFinite()).toString());
+dart_print(dart_string("    infinity是无穷: ") + (infinity->get_isInfinite()).toString());
+dart_print(dart_string("    nan是NaN: ") + (nan->get_isNaN()).toString());
+dart_print(dart_string("    infinity是有限: ") + (infinity->get_isFinite()).toString());
+dart_print(dart_string("    veryLarge是有限: ") + (veryLarge->get_isFinite()).toString());
 dart_print(dart_string("  零值运算:"));
 dart_print(dart_string("    5 + 0 = ") + (dart_int(5)->operator_add(dart_int(0))).toString());
 dart_print(dart_string("    5 * 0 = ") + (dart_int(5)->operator_mul(dart_int(0))).toString());
@@ -158,7 +158,7 @@ return Void;
 
 Nullable testCollectionEdgeCases() {
   dart_print(dart_string("\n📌 测试集合边界情况"));
-auto emptyList = dart_literal(dart_int(0));
+auto emptyList = dart_literal<Int>();
 dart_print(dart_string("  空列表:"));
 dart_print(dart_string("    长度: ") + (emptyList->size()).toString());
 dart_print(dart_string("    是否为空: ") + (emptyList->isEmpty()).toString());
@@ -170,17 +170,17 @@ try {
 dart_print(dart_string("    last: ") + (emptyList->last()).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-auto singleList = dart_literal(dart_int(42));
+auto singleList = dart_literal<Int>(dart_int(42));
 dart_print(dart_string("  单元素列表:"));
 dart_print(dart_string("    内容: ") + (singleList).toString());
 dart_print(dart_string("    first: ") + (singleList->first()).toString());
 dart_print(dart_string("    last: ") + (singleList->last()).toString());
 dart_print(dart_string("    first == last: ") + ((singleList->first() == singleList->last())).toString());
-auto duplicates = dart_literal(dart_int(1), dart_int(1), dart_int(2), dart_int(2), dart_int(3), dart_int(3));
+auto duplicates = dart_literal<Int>(dart_int(1), dart_int(1), dart_int(2), dart_int(2), dart_int(3), dart_int(3));
 dart_print(dart_string("  重复元素列表:"));
 dart_print(dart_string("    内容: ") + (duplicates).toString());
 dart_print(dart_string("    去重: ") + (duplicates->toSet()->toList()).toString());
-auto testList = dart_literal(dart_int(1), dart_int(2), dart_int(3));
+auto testList = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3));
 dart_print(dart_string("  列表边界访问:"));
 try {
 dart_print(dart_string("    索引0: ") + (testList->operator_index(dart_int(0))).toString());
@@ -201,18 +201,18 @@ dart_print(dart_string("  单键值对Map:"));
 dart_print(dart_string("    内容: ") + (singleMap).toString());
 dart_print(dart_string("    键集合: ") + (singleMap->keys()).toString());
 dart_print(dart_string("    值集合: ") + (singleMap->values()).toString());
-auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); return unnamed_var; })();
 dart_print(dart_string("  空Set:"));
 dart_print(dart_string("    长度: ") + (emptySet->size()).toString());
 dart_print(dart_string("    是否为空: ") + (emptySet->isEmpty()).toString());
-auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
 testSet->add(dart_int(2));
 dart_print(dart_string("  Set重复添加:"));
 dart_print(dart_string("    添加重复元素后: ") + (testSet).toString());
-auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
-auto set2 = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); return unnamed_var; })();
+auto set1 = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
+auto set2 = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); return unnamed_var; })();
 dart_print(dart_string("  集合运算边界:"));
-dart_print(dart_string("    非空与空的并集: ") + (set1->union(set2)).toString());
+dart_print(dart_string("    非空与空的并集: ") + (set1->union_(set2)).toString());
 dart_print(dart_string("    非空与空的交集: ") + (set1->intersection(set2)).toString());
 dart_print(dart_string("    非空与空的差集: ") + (set1->difference(set2)).toString());
 return Void;
@@ -231,7 +231,7 @@ dart_print(dart_string("    nullList: ") + (nullList).toString());
 dart_print(dart_string("    nullMap: ") + (nullMap).toString());
 auto value1 = dart_null_coalesce(nullInt, dart_int(0));
 auto value2 = dart_null_coalesce(nullString, dart_string("default"));
-auto value3 = dart_null_coalesce(nullList, dart_literal(dart_int(0)));
+auto value3 = dart_null_coalesce(nullList, dart_literal<Int>());
 dart_print(dart_string("  空值合并:"));
 dart_print(dart_string("    nullInt ?? 0: ") + (value1).toString());
 dart_print(dart_string("    nullString ?? default: ") + (value2).toString());
@@ -296,7 +296,7 @@ auto bigInt1 = dart_int(9223372036854775807);
 auto bigInt2 = dart_int(1);
 dart_print(dart_string("    大整数: ") + (bigInt1).toString());
 auto sum = bigInt1->operator_add(bigInt2);
-dart_print(dart_concat(dart_string("    大整数 + 1: "), (sum).toString(), dart_string(" (类型: "), (sum->runtimeType()).toString(), dart_string(")")));
+dart_print(dart_concat(dart_string("    大整数 + 1: "), (sum).toString(), dart_string(" (类型: "), (sum->get_runtimeType()).toString(), dart_string(")")));
 dart_print(dart_string("  浮点数精度:"));
 auto precise1 = dart_double(0.1)->operator_add(dart_double(0.2));
 dart_print(dart_string("    0.1 + 0.2 = ") + (precise1).toString());
@@ -318,32 +318,32 @@ Nullable testTypeConversionEdges() {
   dart_print(dart_string("\n📌 测试类型转换边界"));
 dart_print(dart_string("  字符串转数字:"));
 try {
-auto parsed1 = int::parse(dart_string("123"), Int(Null), nullptr);
+auto parsed1 = Int::parse(dart_string("123"), nullptr, nullptr);
 dart_print(dart_string("    parse \"123\": ") + (parsed1).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto parsed2 = int::parse(dart_string(""), Int(Null), nullptr);
+auto parsed2 = Int::parse(dart_string(""), nullptr, nullptr);
 dart_print(dart_string("    parse 空字符串: ") + (parsed2).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto parsed3 = int::parse(dart_string("abc"), Int(Null), nullptr);
+auto parsed3 = Int::parse(dart_string("abc"), nullptr, nullptr);
 dart_print(dart_string("    parse \"abc\": ") + (parsed3).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  tryParse 安全转换:"));
-auto safe1 = int::tryParse(dart_string("123"), Int(Null));
-auto safe2 = int::tryParse(dart_string("abc"), Int(Null));
-auto safe3 = int::tryParse(dart_string(""), Int(Null));
+auto safe1 = Int::tryParse(dart_string("123"), nullptr);
+auto safe2 = Int::tryParse(dart_string("abc"), nullptr);
+auto safe3 = Int::tryParse(dart_string(""), nullptr);
 dart_print(dart_string("    tryParse \"123\": ") + (safe1).toString());
 dart_print(dart_string("    tryParse \"abc\": ") + (safe2).toString());
 dart_print(dart_string("    tryParse 空字符串: ") + (safe3).toString());
 dart_print(dart_string("  浮点数转换:"));
-auto float1 = double::tryParse(dart_string("3.14"));
-auto float2 = double::tryParse(dart_string("abc"));
-auto float3 = double::tryParse(dart_string("infinity"));
-auto float4 = double::tryParse(dart_string("nan"));
+auto float1 = Double::tryParse(dart_string("3.14"));
+auto float2 = Double::tryParse(dart_string("abc"));
+auto float3 = Double::tryParse(dart_string("infinity"));
+auto float4 = Double::tryParse(dart_string("nan"));
 dart_print(dart_string("    tryParse \"3.14\": ") + (float1).toString());
 dart_print(dart_string("    tryParse \"abc\": ") + (float2).toString());
 dart_print(dart_string("    tryParse \"infinity\": ") + (float3).toString());

@@ -26,8 +26,9 @@ ObjectPtr<Function> getAddFunction() {
   return makeFunction(&add);
 }
 
-ObjectPtr<Function> createMultiplier(Int factor) {
-  return makeFunction([&](Int value) { return value->operator_mul(factor); });
+ObjectPtr<Function> createMultiplier(Int _factor) {
+  ObjectPtr<_ValueBox<Int>> factor(new _ValueBox<Int>(_factor));
+  return makeFunction([&, factor](Int value) mutable { return value->operator_mul((*factor)); });
 }
 
 Nullable testAnonymousFunction() {

@@ -26,9 +26,9 @@ int main() {
     dart_print(dart_string("=== 综合测试 ==="));
 auto result = add(dart_int(10), dart_int(20));
 dart_print(dart_string("Add result: ") + (result).toString());
-greet(dart_string("Alice"), String(Null));
+greet(dart_string("Alice"), nullptr);
 greet(dart_string("Bob"), dart_string("Mr."));
-auto items = dart_literal(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+auto items = dart_literal<String>(dart_string("apple"), dart_string("banana"), dart_string("orange"));
 dart_print(dart_string("\\nFor-in loop:"));
 auto sync_for_iterator = items->iterator();
 for (; sync_for_iterator->hasNext(); ) {

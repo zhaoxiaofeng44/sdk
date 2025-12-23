@@ -5,7 +5,7 @@
 # 功能: 自动构建运行时库 -> 转换Dart文件 -> 编译C++ -> 运行测试
 # ============================================================================
 
-set -e
+# set -e  # 已禁用：允许单个测试失败后继续执行
 
 # 颜色定义
 RED='\033[0;31m'
@@ -81,11 +81,11 @@ if [ -f "$SCRIPT_DIR/build_cpp_runtime.sh" ]; then
         echo -e "${GREEN}✓ C++运行时库构建成功${NC}"
     else
         echo -e "${RED}✗ C++运行时库构建失败${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠ 继续执行测试，但可能会遇到链接错误${NC}"
     fi
 else
     echo -e "${RED}✗ 找不到 build_cpp_runtime.sh 脚本${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠ 继续执行测试，但可能会遇到链接错误${NC}"
 fi
 
 echo ""
@@ -104,7 +104,7 @@ if [ -f "$PROJECT_ROOT/bin/dart2cpp.dart" ]; then
     fi
 else
     echo -e "${RED}✗ 找不到dart2cpp编译器${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠ 继续执行，但转换可能会失败${NC}"
 fi
 
 echo ""
@@ -130,7 +130,9 @@ if [ -f "$SCRIPT_DIR/test_all_samples.sh" ]; then
     
 else
     echo -e "${RED}✗ 找不到 test_all_samples.sh 脚本${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠ 跳过批量测试${NC}"
+    test_exit_code=2
+    duration=0
 fi
 
 echo ""

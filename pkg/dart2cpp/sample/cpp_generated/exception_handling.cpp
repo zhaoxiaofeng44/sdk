@@ -78,8 +78,16 @@ public:
 // 类: DatabaseException
 // ============================================================================
 
-DART_INTERFACE(DatabaseException)
-DART_INTERFACE_END
+class DatabaseException : virtual public Exception {
+public:
+  virtual ~DatabaseException() = default;
+  
+  String toString() {
+    return dart_string("DatabaseException: ") + (this->message).toString();
+  }
+  
+  virtual String get_message() = 0;
+};
 
 // ============================================================================
 // 类: ConnectionException
@@ -231,7 +239,7 @@ divideByZero(dart_int(10), dart_int(0));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-accessInvalidIndex(dart_literal(dart_int(1), dart_int(2), dart_int(3)), dart_int(5));
+accessInvalidIndex(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3)), dart_int(5));
 } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
@@ -249,22 +257,22 @@ validateAge(dart_int(-5));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto numbers = dart_literal(dart_int(1), dart_int(2), dart_int(3));
+auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3));
 dart_print(numbers->operator_index(dart_int(10)));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto emptyList = dart_literal(dart_int(0));
+auto emptyList = dart_literal<Int>();
 emptyList->first();
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto fixedList = _List::filled(dart_int(3), dart_int(0));
+auto fixedList = dart_literal<Int>(dart_int(3), dart_int(0));
 fixedList->add(dart_int(4));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-int::parse(dart_string("not_a_number"), Int(Null), nullptr);
+Int::parse(dart_string("not_a_number"), nullptr, nullptr);
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
@@ -342,15 +350,15 @@ performConditionalRethrow(dart_bool(false));
 return Void;
 }
 
-DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, testAsyncExceptions, ()) {
-    DART_ASYNC_BEGIN
+ObjectPtr<Future<Nullable>> testAsyncExceptions() {
+  DART_ASYNC_BEGIN(Nullable)
   dart_print(dart_string("\n📌 测试异步异常处理"));
 try {
 DART_AWAIT(throwAsyncException());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto result = DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), makeFunction([&]() { return throw DartException(Exception::(dart_string("Future异常"))); })));
+auto result = DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return throw DartException(Exception::create(dart_string("Future异常"))); })));
 dart_print(dart_string("  不应该执行到这里: ") + (result).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
@@ -360,21 +368,22 @@ DART_AWAIT(asyncOperationChain());
 // Finally block should be implemented using RAII pattern
 try {
 auto stream = errorStream();
-auto for_iterator = ObjectPtr<_StreamIterator>(new _StreamIterator(stream));
+auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-    DART_ASYNC_END
+  // TODO: 需要处理异步函数返回值
+  DART_ASYNC_END(Null)
 }
 
 Nullable throwGenericException() {
-  throw DartException(Exception::(dart_string("这是一个通用异常")));
+  throw DartException(Exception::create(dart_string("这是一个通用异常")));
 return Void;
 }
 
 Double divideByZero(Int a, Int b) {
   if ((b == dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), String(Null))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), nullptr)));
 }
 return a->operator_div(b);
 }
@@ -393,10 +402,10 @@ return Void;
 
 Nullable validateAge(Int age) {
   if (age->operator_less(dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), String(Null))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), nullptr)));
 }
 if (age->operator_greater(dart_int(150))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), String(Null))));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), nullptr)));
 };
 return Void;
 }
@@ -427,7 +436,7 @@ return Void;
 }
 
 Nullable performDatabaseOperation() {
-  auto random = ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch()->operator_mod(dart_int(2));
+  auto random = ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()->operator_mod(dart_int(2));
 if ((random == dart_int(0))) {
 throw DartException(ObjectPtr<ConnectionException>(new ConnectionException(dart_string("无法连接到数据库"), dart_string("localhost:5432"))));
 } else {
@@ -453,7 +462,7 @@ return Void;
 }
 
 Nullable performLowLevelOperation() {
-  throw DartException(Exception::(dart_string("底层操作失败")));
+  throw DartException(Exception::create(dart_string("底层操作失败")));
 return Void;
 }
 
@@ -463,13 +472,13 @@ return Void;
 }
 
 Nullable performExceptionOperation() {
-  throw DartException(Exception::(dart_string("异常操作")));
+  throw DartException(Exception::create(dart_string("异常操作")));
 return Void;
 }
 
 Nullable performOperationWithRethrow() {
   try {
-throw DartException(Exception::(dart_string("原始异常")));
+throw DartException(Exception::create(dart_string("原始异常")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern;
 return Void;
@@ -477,7 +486,7 @@ return Void;
 
 Nullable performOperationWithModifiedRethrow() {
   try {
-throw DartException(Exception::(dart_string("原始异常")));
+throw DartException(Exception::create(dart_string("原始异常")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern;
 return Void;
@@ -485,36 +494,39 @@ return Void;
 
 Nullable performConditionalRethrow(Bool shouldRethrow) {
   try {
-throw DartException(Exception::(dart_string("条件异常")));
+throw DartException(Exception::create(dart_string("条件异常")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern;
 return Void;
 }
 
-DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, throwAsyncException, ()) {
-    DART_ASYNC_BEGIN
-  DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr));
-throw DartException(Exception::(dart_string("异步异常")));
-    DART_ASYNC_END
+ObjectPtr<Future<Nullable>> throwAsyncException() {
+  DART_ASYNC_BEGIN(Nullable)
+  DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr));
+throw DartException(Exception::create(dart_string("异步异常")));
+  // TODO: 需要处理异步函数返回值
+  DART_ASYNC_END(Null)
 }
 
-DART_ASYNC_FUNCTION(ObjectPtr<Future<Nullable>>, asyncOperationChain, ()) {
-    DART_ASYNC_BEGIN
+ObjectPtr<Future<Nullable>> asyncOperationChain() {
+  DART_ASYNC_BEGIN(Nullable)
   try {
-DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(Int(Null), Int(Null), Int(Null), Int(Null), dart_int(50), Int(Null))), nullptr));
-throw DartException(Exception::(dart_string("异步链异常")));
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr));
+throw DartException(Exception::create(dart_string("异步链异常")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-    DART_ASYNC_END
+  // TODO: 需要处理异步函数返回值
+  DART_ASYNC_END(Null)
 }
 
-DART_ASYNC_FUNCTION(ObjectPtr<Stream<Int>>, errorStream, ()) {
-    DART_ASYNC_BEGIN
+ObjectPtr<Stream<Int>> errorStream() {
+  DART_ASYNC_BEGIN(ObjectPtr<Stream<Int>>)
   co_yield dart_int(1);  // C++20 coroutine
 co_yield dart_int(2);  // C++20 coroutine
-throw DartException(Exception::(dart_string("Stream异常")));
+throw DartException(Exception::create(dart_string("Stream异常")));
 co_yield dart_int(3);  // C++20 coroutine
-    DART_ASYNC_END
+  // TODO: 需要处理异步函数返回值
+  DART_ASYNC_END(Null)
 }
 
 // ============================================================================

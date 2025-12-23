@@ -79,7 +79,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class NumberProcessor {
 public:
   NumberProcessor() {
@@ -103,7 +102,7 @@ Nullable testAsExpressions() {
   dart_print(dart_string("\n📌 测试 as 表达式"));
 Any value1 = dart_int(42);
 Any value2 = dart_string("hello");
-Any value3 = dart_literal(dart_int(1), dart_int(2), dart_int(3));
+Any value3 = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3));
 Any value4 = Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}});
 dart_print(dart_string("  基本 as 转换:"));
 try {
@@ -165,7 +164,7 @@ Nullable testIsTypeChecks() {
   dart_print(dart_string("\n📌 测试 is 类型检查"));
 Any value1 = dart_int(42);
 Any value2 = dart_string("hello");
-Any value3 = dart_literal(dart_int(1), dart_int(2), dart_int(3));
+Any value3 = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3));
 Any value4 = Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}});
 Any value5 = Null;
 dart_print(dart_string("  基本类型检查:"));
@@ -192,38 +191,44 @@ dart_print(dart_string("    Animal(Dog) is Cat: ") + (dart_is<ObjectPtr<Cat>>(an
 dart_print(dart_string("  智能转换:"));
 Any unknownValue = dart_string("Hello World");
 if (dart_is<String>(unknownValue)) {
-dart_print(dart_string("    智能转换为String: ") + (DART_ANY_CALL(unknownValue, toUpperCase)).toString());
-dart_print(dart_string("    字符串长度: ") + (DART_ANY_CALL(unknownValue, length)).toString());
+auto unknownValue_promoted = dart_cast<String>(unknownValue);
+dart_print(dart_string("    智能转换为String: ") + (DART_ANY_CALL(unknownValue_promoted, toUpperCase)).toString());
+dart_print(dart_string("    字符串长度: ") + (DART_ANY_CALL(unknownValue_promoted, length)).toString());
 }
-unknownValue = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+unknownValue = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
 if (dart_is<ObjectPtr<List<Int>>>(unknownValue)) {
-dart_print(dart_string("    智能转换为List<int>: ") + (DART_ANY_CALL(unknownValue, first)).toString());
-dart_print(dart_string("    列表长度: ") + (DART_ANY_CALL(unknownValue, length)).toString());
+auto unknownValue_promoted = dart_cast<ObjectPtr<List<Int>>>(unknownValue);
+dart_print(dart_string("    智能转换为List<int>: ") + (DART_ANY_CALL(unknownValue_promoted, first)).toString());
+dart_print(dart_string("    列表长度: ") + (DART_ANY_CALL(unknownValue_promoted, length)).toString());
 }
 dart_print(dart_string("  否定类型检查:"));
 Any testValue = dart_int(42);
 if (!(dart_is<String>(testValue))) {
 dart_print(dart_string("    42 不是 String"));
 }
-if (!(dart_is<Any>(testValue))) {
+if (!(dart_is_null(testValue))) {
 dart_print(dart_string("    42 不是 null"));
 }
 dart_print(dart_string("  复杂类型检查:"));
-auto mixedList = dart_literal(dart_int(1), dart_string("hello"), dart_literal(dart_int(1), dart_int(2)), Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}}));
+auto mixedList = dart_literal<Int>(dart_int(1), dart_string("hello"), dart_literal<Int>(dart_int(1), dart_int(2)), Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}}));
 auto sync_for_iterator = mixedList->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 Any item = sync_for_iterator->next();
 if (dart_is<Int>(item)) {
-dart_print(dart_string("    整数: ") + (item).toString());
+auto item_promoted = dart_cast<Int>(item);
+dart_print(dart_string("    整数: ") + (item_promoted).toString());
 } else {
 if (dart_is<String>(item)) {
-dart_print(dart_string("    字符串: ") + (item).toString());
+auto item_promoted = dart_cast<String>(item);
+dart_print(dart_string("    字符串: ") + (item_promoted).toString());
 } else {
 if (dart_is<ObjectPtr<List<Any>>>(item)) {
-dart_print(dart_string("    列表: ") + (item).toString());
+auto item_promoted = dart_cast<ObjectPtr<List<Any>>>(item);
+dart_print(dart_string("    列表: ") + (item_promoted).toString());
 } else {
 if (dart_is<ObjectPtr<Map<Any, Any>>>(item)) {
-dart_print(dart_string("    映射: ") + (item).toString());
+auto item_promoted = dart_cast<ObjectPtr<Map<Any, Any>>>(item);
+dart_print(dart_string("    映射: ") + (item_promoted).toString());
 } else {
 dart_print(dart_string("    未知类型: ") + (item).toString());
 }
@@ -255,25 +260,25 @@ auto doubleString = dart_string("3.14");
 auto boolString = dart_string("true");
 auto invalidString = dart_string("abc");
 try {
-auto parsedInt = int::parse(intString, Int(Null), nullptr);
+auto parsedInt = Int::parse(intString, nullptr, nullptr);
 dart_print(dart_string("    parse \"123\": ") + (parsedInt).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto parsedDouble = double::parse(doubleString);
+auto parsedDouble = Double::parse(doubleString);
 dart_print(dart_string("    parse \"3.14\": ") + (parsedDouble).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto invalidInt = int::parse(invalidString, Int(Null), nullptr);
+auto invalidInt = Int::parse(invalidString, nullptr, nullptr);
 dart_print(dart_string("    不应该执行到这里: ") + (invalidInt).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  安全解析:"));
-auto safeInt1 = int::tryParse(intString, Int(Null));
-auto safeInt2 = int::tryParse(invalidString, Int(Null));
-auto safeDouble1 = double::tryParse(doubleString);
-auto safeDouble2 = double::tryParse(invalidString);
+auto safeInt1 = Int::tryParse(intString, nullptr);
+auto safeInt2 = Int::tryParse(invalidString, nullptr);
+auto safeDouble1 = Double::tryParse(doubleString);
+auto safeDouble2 = Double::tryParse(invalidString);
 dart_print(dart_string("    tryParse \"123\": ") + (safeInt1).toString());
 dart_print(dart_string("    tryParse \"abc\": ") + (safeInt2).toString());
 dart_print(dart_string("    tryParse \"3.14\": ") + (safeDouble1).toString());
@@ -284,20 +289,20 @@ dart_print(dart_string("    255转16进制: ") + (decimal->toRadixString(dart_in
 dart_print(dart_string("    255转8进制: ") + (decimal->toRadixString(dart_int(8))).toString());
 dart_print(dart_string("    255转2进制: ") + (decimal->toRadixString(dart_int(2))).toString());
 try {
-auto fromHex = int::parse(dart_string("FF"), dart_int(16), nullptr);
+auto fromHex = Int::parse(dart_string("FF"), dart_int(16), nullptr);
 dart_print(dart_string("    16进制FF转10进制: ") + (fromHex).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  集合转换:"));
-auto list = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
-auto set = ([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
+auto list = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+auto set = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); unnamed_var->add(dart_int(4)); unnamed_var->add(dart_int(5)); return unnamed_var; })();
 auto listToSet = list->toSet();
 auto setToList = set->toList();
 dart_print(dart_string("    List转Set: ") + (listToSet).toString());
 dart_print(dart_string("    Set转List: ") + (setToList).toString());
 auto text = dart_string("Hello");
-auto charCodes = text->codeUnits();
-auto fromCodes = String::fromCharCodes(charCodes, Int(Null), Int(Null));
+auto charCodes = text->get_codeUnits();
+auto fromCodes = String::fromCharCodes(charCodes, dart_int(0), nullptr);
 dart_print(dart_string("    String转字符码: ") + (charCodes).toString());
 dart_print(dart_string("    字符码转String: ") + (fromCodes).toString());
 return Void;
@@ -362,46 +367,51 @@ dart_print(dart_string("  动态类型处理:"));
 dart_print(dart_string("    初始值(int): ") + (dynamicVar).toString());
 dynamicVar = dart_string("Hello");
 dart_print(dart_string("    改为String: ") + (dynamicVar).toString());
-dynamicVar = dart_literal(dart_int(1), dart_int(2), dart_int(3));
+dynamicVar = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3));
 dart_print(dart_string("    改为List: ") + (dynamicVar).toString());
 dynamicVar = Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}});
 dart_print(dart_string("    改为Map: ") + (dynamicVar).toString());
 dart_print(dart_string("  动态方法调用:"));
 Any stringDynamic = dart_string("hello world");
 dart_print(dart_string("    动态String方法: ") + (stringDynamic.toUpperCase()).toString());
-Any listDynamic = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+Any listDynamic = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
 dart_print(dart_string("    动态List方法: ") + (listDynamic.length).toString());
 dart_print(dart_string("  Object 类型:"));
 auto objectVar = dart_int(42);
 dart_print(dart_string("    Object(int): ") + (objectVar).toString());
-dart_print(dart_string("    Object类型: ") + (objectVar->runtimeType()).toString());
+dart_print(dart_string("    Object类型: ") + (objectVar->get_runtimeType()).toString());
 objectVar = dart_string("Hello");
 dart_print(dart_string("    Object(String): ") + (objectVar).toString());
-dart_print(dart_string("    Object类型: ") + (objectVar->runtimeType()).toString());
+dart_print(dart_string("    Object类型: ") + (objectVar->get_runtimeType()).toString());
 dart_print(dart_string("  运行时类型:"));
 auto runtimeVar = dart_int(42);
-dart_print(dart_string("    变量类型: ") + (runtimeVar->runtimeType()).toString());
+dart_print(dart_string("    变量类型: ") + (runtimeVar->get_runtimeType()).toString());
 runtimeVar = dart_cast<Int>(dart_cast<Any>(dart_string("Hello")));
-dart_print(dart_string("    变量类型: ") + (runtimeVar->runtimeType()).toString());
+dart_print(dart_string("    变量类型: ") + (runtimeVar->get_runtimeType()).toString());
 dart_print(dart_string("  类型安全的动态调用:"));
 Any unknownObject = dart_string("Hello World");
 if (dart_is<String>(unknownObject)) {
-dart_print(dart_string("    作为String处理: ") + (DART_ANY_CALL(unknownObject, toLowerCase)).toString());
+auto unknownObject_promoted = dart_cast<String>(unknownObject);
+dart_print(dart_string("    作为String处理: ") + (DART_ANY_CALL(unknownObject_promoted, toLowerCase)).toString());
 } else {
 if (dart_is<Int>(unknownObject)) {
-dart_print(dart_string("    作为int处理: ") + (unknownObject->operator_add(dart_int(10))).toString());
+auto unknownObject_promoted = dart_cast<Int>(unknownObject);
+dart_print(dart_string("    作为int处理: ") + (unknownObject_promoted->operator_add(dart_int(10))).toString());
 } else {
 if (dart_is<ObjectPtr<List<Any>>>(unknownObject)) {
-dart_print(dart_string("    作为List处理: 长度") + (DART_ANY_CALL(unknownObject, length)).toString());
+auto unknownObject_promoted = dart_cast<ObjectPtr<List<Any>>>(unknownObject);
+dart_print(dart_string("    作为List处理: 长度") + (DART_ANY_CALL(unknownObject_promoted, length)).toString());
 }
 }
 }
 dart_print(dart_string("  函数类型转换:"));
 Any functionVar = makeFunction([&](Int x) { return x->operator_mul(dart_int(2)); });
 if (dart_is<ObjectPtr<Function>>(functionVar)) {
+auto functionVar_promoted = dart_cast<ObjectPtr<Function>>(functionVar);
 dart_print(dart_string("    是函数类型"));
-if (dart_is<ObjectPtr<TypedFunction<std::function<Int(Int)>, Int, Int>>>(functionVar)) {
-auto result = functionVar->call(dart_int(5));
+if (dart_is<ObjectPtr<TypedFunction<std::function<Int(Int)>, Int, Int>>>(functionVar_promoted)) {
+auto functionVar_promoted = dart_cast<ObjectPtr<TypedFunction<std::function<Int(Int)>, Int, Int>>>(functionVar);
+auto result = functionVar_promoted->call(dart_int(5));
 dart_print(dart_string("    函数调用结果: ") + (result).toString());
 }
 };
@@ -411,59 +421,63 @@ return Void;
 Nullable testGenericTypeConversions() {
   dart_print(dart_string("\n📌 测试泛型类型转换"));
 dart_print(dart_string("  泛型集合转换:"));
-auto dynamicList = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+auto dynamicList = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
 if (dynamicList->every(makeFunction([&](Any item) { return dart_is<Int>(item); }))) {
 auto intList = dynamicList->cast();
 dart_print(dart_string("    dynamic List转int List: ") + (intList).toString());
 }
-auto numList = dart_literal(dart_int(1), dart_double(2.5), dart_int(3), dart_double(4.7), dart_int(5));
+auto numList = dart_literal<Int>(dart_int(1), dart_double(2.5), dart_int(3), dart_double(4.7), dart_int(5));
 auto intList = numList->whereType()->toList();
 auto doubleList = numList->whereType()->toList();
 dart_print(dart_string("    num List中的int: ") + (intList).toString());
 dart_print(dart_string("    num List中的double: ") + (doubleList).toString());
 dart_print(dart_string("  泛型类型检查:"));
-auto objectList = dart_literal(dart_int(1), dart_string("hello"), dart_double(3.14), dart_bool(true));
+auto objectList = dart_literal<Any>(dart_int(1), dart_string("hello"), dart_double(3.14), dart_bool(true));
 auto sync_for_iterator = objectList->iterator();
 for (; sync_for_iterator->hasNext(); ) {
 auto item = sync_for_iterator->next();
 if (dart_is<Int>(item)) {
-dart_print(dart_string("    整数: ") + (item).toString());
+auto item_promoted = dart_cast<Int>(item);
+dart_print(dart_string("    整数: ") + (item_promoted).toString());
 } else {
 if (dart_is<String>(item)) {
-dart_print(dart_string("    字符串: ") + (item).toString());
+auto item_promoted = dart_cast<String>(item);
+dart_print(dart_string("    字符串: ") + (item_promoted).toString());
 } else {
 if (dart_is<Double>(item)) {
-dart_print(dart_string("    浮点数: ") + (item).toString());
+auto item_promoted = dart_cast<Double>(item);
+dart_print(dart_string("    浮点数: ") + (item_promoted).toString());
 } else {
 if (dart_is<Bool>(item)) {
-dart_print(dart_string("    布尔值: ") + (item).toString());
+auto item_promoted = dart_cast<Bool>(item);
+dart_print(dart_string("    布尔值: ") + (item_promoted).toString());
 }
 }
 }
 }
 }
 dart_print(dart_string("  协变和逆变:"));
-auto dogList = dart_literal(ObjectPtr<Dog>(new Dog(dart_string("Buddy"))), ObjectPtr<Dog>(new Dog(dart_string("Max"))));
+auto dogList = dart_literal<ObjectPtr<Dog>>(ObjectPtr<Dog>(new Dog(dart_string("Buddy"))), ObjectPtr<Dog>(new Dog(dart_string("Max"))));
 auto animalList = dogList;
 dart_print(dart_string("    Dog List作为Animal List: ") + (animalList->size()).toString());
 dart_print(dart_string("  泛型方法类型推断:"));
 auto inferredList = createList(dart_string("hello"), dart_string("world"));
-dart_print(dart_string("    推断的列表类型: ") + (inferredList->runtimeType()).toString());
+dart_print(dart_string("    推断的列表类型: ") + (inferredList->get_runtimeType()).toString());
 dart_print(dart_string("    推断的列表内容: ") + (inferredList).toString());
 auto inferredIntList = createList(dart_int(1), dart_int(2));
-dart_print(dart_string("    推断的int列表: ") + (inferredIntList->runtimeType()).toString());
+dart_print(dart_string("    推断的int列表: ") + (inferredIntList->get_runtimeType()).toString());
 dart_print(dart_string("    推断的int列表内容: ") + (inferredIntList).toString());
 dart_print(dart_string("  类型参数约束:"));
-auto numberProcessor = ObjectPtr<NumberProcessor>(new NumberProcessor());
+auto numberProcessor = ObjectPtr<NumberProcessor<Int>>(new NumberProcessor<Int>());
 dart_print(dart_string("    int处理器: ") + (numberProcessor->process(dart_int(42))).toString());
-auto doubleProcessor = ObjectPtr<NumberProcessor>(new NumberProcessor());
+auto doubleProcessor = ObjectPtr<NumberProcessor<Double>>(new NumberProcessor<Double>());
 dart_print(dart_string("    double处理器: ") + (doubleProcessor->process(dart_double(3.14))).toString());
 return Void;
 }
 
 template<typename T>
 ObjectPtr<List<T>> createList(T first, T second) {
-  return dart_literal(first, second);
+  return dart_literal<Any>(first, second);
 }
 
 // ============================================================================

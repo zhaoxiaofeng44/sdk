@@ -7,7 +7,6 @@
 // ============================================================================
 
 template<typename T>
-
 class Box {
 private:
   T _value;
@@ -19,7 +18,7 @@ public:
     return this->_value;
   }
   
-  Nullable setValue(T value) {
+  T setValue(T value) {
     return this->_value = value;
   }
   
@@ -33,10 +32,7 @@ public:
 // 类: Pair
 // ============================================================================
 
-template<typename T>
-
-template<typename U>
-
+template<typename T, typename U>
 class Pair {
 public:
   T first;
@@ -58,8 +54,7 @@ return Void;
 // ============================================================================
 
 template<typename T>
-
-class NumberContainer : public Box {
+class NumberContainer : public Box<T> {
 public:
   NumberContainer(T value) : Box(value) {
   }
@@ -81,14 +76,13 @@ return Void;
 // ============================================================================
 
 template<typename T>
-
 class ContainerFactory {
 public:
   ContainerFactory() {
   }
   
   ObjectPtr<Box> create(T value) {
-    return ObjectPtr<Box>(new Box(value));
+    return ObjectPtr<Box<T>>(new Box<T>(value));
   }
   
 };
@@ -98,7 +92,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class NumberCalculator {
 public:
   NumberCalculator() {
@@ -131,7 +124,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class Comparator {
 public:
   Comparator() {
@@ -146,7 +138,7 @@ public:
   }
   
   ObjectPtr<List<T>> sort(ObjectPtr<List<T>> items) {
-    auto sorted = List::from(items, Bool(Null));
+    auto sorted = List<List>::from(items);
 sorted->sort();
 return sorted;
   }
@@ -157,16 +149,18 @@ return sorted;
 // 类: Serializable
 // ============================================================================
 
-DART_INTERFACE(Serializable)
-  DART_ABSTRACT_METHOD(ObjectPtr<Map<String, Any>>, toJson, ())
-DART_INTERFACE_END
+class Serializable {
+public:
+  virtual ~Serializable() = default;
+  
+  virtual ObjectPtr<Map<String, Any>> toJson() = 0;
+};
 
 // ============================================================================
 // 类: Serializer
 // ============================================================================
 
 template<typename T>
-
 class Serializer {
 public:
   Serializer() {
@@ -183,7 +177,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class CollectionProcessor {
 public:
   CollectionProcessor() {
@@ -204,7 +197,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class AdvancedProcessor {
 public:
   AdvancedProcessor() {
@@ -221,10 +213,9 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class GenericList {
 private:
-  ObjectPtr<List<T>> _items = dart_literal(dart_int(0));
+  ObjectPtr<List<T>> _items = dart_literal<Any>();
 public:
   GenericList() {
   }
@@ -242,7 +233,7 @@ public:
   }
   
   ObjectPtr<List<T>> toList() {
-    return List::from(this->_items, Bool(Null));
+    return List<Any>::from(this->_items);
   }
   
 };
@@ -252,10 +243,9 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class GenericStack {
 private:
-  ObjectPtr<List<T>> _items = dart_literal(dart_int(0));
+  ObjectPtr<List<T>> _items = dart_literal<Any>();
 public:
   GenericStack() {
   }
@@ -287,10 +277,9 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class GenericQueue {
 private:
-  ObjectPtr<List<T>> _items = dart_literal(dart_int(0));
+  ObjectPtr<List<T>> _items = dart_literal<Any>();
 public:
   GenericQueue() {
   }
@@ -321,10 +310,7 @@ public:
 // 类: GenericMap
 // ============================================================================
 
-template<typename K>
-
-template<typename V>
-
+template<typename K, typename V>
 class GenericMap {
 private:
   ObjectPtr<Map<K, V>> _items = Map<K, V>::create();
@@ -359,7 +345,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class BinaryTree {
 private:
   ObjectPtr<TreeNode> _root = Null;
@@ -384,7 +369,7 @@ return Void;
   
   ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
     if (dart_is_null(node)) {
-return ObjectPtr<TreeNode>(new TreeNode(value));
+return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
 }
 if (value->compareTo(node->value)->operator_less(dart_int(0))) {
 node->left = this->_insertNode(node->left, value);
@@ -415,7 +400,6 @@ return this->_findNode(node->right, value);
 // ============================================================================
 
 template<typename T>
-
 class TreeNode {
 public:
   T value;
@@ -479,7 +463,6 @@ public:
 // ============================================================================
 
 template<typename T>
-
 class AnimalProcessor {
 public:
   AnimalProcessor() {
@@ -497,26 +480,30 @@ return Void;
 // ============================================================================
 
 template<typename T>
-
-DART_INTERFACE(Producer)
-  DART_ABSTRACT_METHOD(T, produce, ())
-DART_INTERFACE_END
+class Producer {
+public:
+  virtual ~Producer() = default;
+  
+  virtual T produce() = 0;
+};
 
 // ============================================================================
 // 类: Consumer
 // ============================================================================
 
 template<typename T>
-
-DART_INTERFACE(Consumer)
-  DART_ABSTRACT_METHOD(Nullable, consume, (T item))
-DART_INTERFACE_END
+class Consumer {
+public:
+  virtual ~Consumer() = default;
+  
+  virtual Nullable consume(T item) = 0;
+};
 
 // ============================================================================
 // 类: DogProducer
 // ============================================================================
 
-class DogProducer : virtual public Producer {
+class DogProducer : virtual public Producer<ObjectPtr<Dog>> {
 public:
   DogProducer() {
   }
@@ -531,7 +518,7 @@ public:
 // 类: AnimalConsumer
 // ============================================================================
 
-class AnimalConsumer : virtual public Consumer {
+class AnimalConsumer : virtual public Consumer<ObjectPtr<Animal>> {
 public:
   AnimalConsumer() {
   }
@@ -581,20 +568,22 @@ public:
 // ============================================================================
 
 template<typename T>
-
-DART_INTERFACE(Repository)
-  DART_ABSTRACT_METHOD(Nullable, save, (T item))
-  DART_ABSTRACT_METHOD(T, findById, (String id))
-  DART_ABSTRACT_METHOD(ObjectPtr<List<T>>, findAll, ())
-DART_INTERFACE_END
+class Repository {
+public:
+  virtual ~Repository() = default;
+  
+  virtual Nullable save(T item) = 0;
+  virtual T findById(String id) = 0;
+  virtual ObjectPtr<List<T>> findAll() = 0;
+};
 
 // ============================================================================
 // 类: StringRepository
 // ============================================================================
 
-class StringRepository : virtual public Repository {
+class StringRepository : virtual public Repository<String> {
 private:
-  ObjectPtr<List<String>> _items = dart_literal(dart_int(0));
+  ObjectPtr<List<String>> _items = dart_literal<String>();
 public:
   StringRepository() {
   }
@@ -608,7 +597,7 @@ public:
   }
   
   ObjectPtr<List<String>> findAll() {
-    return List::from(this->_items, Bool(Null));
+    return List<String>::from(this->_items);
   }
   
 };
@@ -617,9 +606,9 @@ public:
 // 类: IntRepository
 // ============================================================================
 
-class IntRepository : virtual public Repository {
+class IntRepository : virtual public Repository<Int> {
 private:
-  ObjectPtr<List<Int>> _items = dart_literal(dart_int(0));
+  ObjectPtr<List<Int>> _items = dart_literal<Int>();
 public:
   IntRepository() {
   }
@@ -629,12 +618,12 @@ public:
   }
   
   Int findById(String id) {
-    auto intId = int::tryParse(id, Int(Null));
+    auto intId = Int::tryParse(id, nullptr);
 return !(dart_is_null(intId)) && this->_items->contains(intId) ? intId : Null;
   }
   
   ObjectPtr<List<Int>> findAll() {
-    return List::from(this->_items, Bool(Null));
+    return List<Int>::from(this->_items);
   }
   
 };
@@ -643,25 +632,25 @@ return !(dart_is_null(intId)) && this->_items->contains(intId) ? intId : Null;
 // 类: Converter
 // ============================================================================
 
-template<typename T>
-
-template<typename R>
-
-DART_INTERFACE(Converter)
-  DART_ABSTRACT_METHOD(R, convert, (T input))
-DART_INTERFACE_END
+template<typename T, typename R>
+class Converter {
+public:
+  virtual ~Converter() = default;
+  
+  virtual R convert(T input) = 0;
+};
 
 // ============================================================================
 // 类: StringToIntConverter
 // ============================================================================
 
-class StringToIntConverter : virtual public Converter {
+class StringToIntConverter : virtual public Converter<String, Int> {
 public:
   StringToIntConverter() {
   }
   
   Int convert(String input) {
-    return int::parse(input, Int(Null), nullptr);
+    return Int::parse(input, nullptr, nullptr);
   }
   
 };
@@ -670,7 +659,7 @@ public:
 // 类: IntToStringConverter
 // ============================================================================
 
-class IntToStringConverter : virtual public Converter {
+class IntToStringConverter : virtual public Converter<Int, String> {
 public:
   IntToStringConverter() {
   }
@@ -686,16 +675,18 @@ public:
 // ============================================================================
 
 template<typename T>
-
-DART_INTERFACE(Validator)
-  DART_ABSTRACT_METHOD(Bool, validate, (T input))
-DART_INTERFACE_END
+class Validator {
+public:
+  virtual ~Validator() = default;
+  
+  virtual Bool validate(T input) = 0;
+};
 
 // ============================================================================
 // 类: EmailValidator
 // ============================================================================
 
-class EmailValidator : virtual public Validator {
+class EmailValidator : virtual public Validator<String> {
 public:
   EmailValidator() {
   }
@@ -710,7 +701,7 @@ public:
 // 类: AgeValidator
 // ============================================================================
 
-class AgeValidator : virtual public Validator {
+class AgeValidator : virtual public Validator<Int> {
 public:
   AgeValidator() {
   }
@@ -733,8 +724,7 @@ template<typename T>
 ObjectPtr<Pair> swap(T a, T b);
 template<typename T>
 T getFirst(ObjectPtr<List<T>> list);
-template<typename T>
-template<typename R>
+template<typename T, typename R>
 ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper);
 template<typename T>
 ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<Bool(T)>, Bool, T>> predicate);
@@ -743,9 +733,9 @@ T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<T(T,
 Nullable processAnimals(ObjectPtr<List<ObjectPtr<Animal>>> animals);
 Nullable testGenericClasses() {
   dart_print(dart_string("\n📌 测试泛型类"));
-auto intBox = ObjectPtr<Box>(new Box(dart_int(42)));
-auto stringBox = ObjectPtr<Box>(new Box(dart_string("Hello")));
-auto boolBox = ObjectPtr<Box>(new Box(dart_bool(true)));
+auto intBox = ObjectPtr<Box<Int>>(new Box<Int>(dart_int(42)));
+auto stringBox = ObjectPtr<Box<String>>(new Box<String>(dart_string("Hello")));
+auto boolBox = ObjectPtr<Box<Bool>>(new Box<Bool>(dart_bool(true)));
 dart_print(dart_string("  基本泛型类:"));
 dart_print(dart_string("    整数盒子: ") + (intBox->getValue()).toString());
 dart_print(dart_string("    字符串盒子: ") + (stringBox->getValue()).toString());
@@ -755,20 +745,20 @@ stringBox->setValue(dart_string("World"));
 dart_print(dart_string("  修改后:"));
 dart_print(dart_string("    整数盒子: ") + (intBox->getValue()).toString());
 dart_print(dart_string("    字符串盒子: ") + (stringBox->getValue()).toString());
-auto pair = ObjectPtr<Pair>(new Pair(dart_string("Alice"), dart_int(25)));
+auto pair = ObjectPtr<Pair<String, Int>>(new Pair<String, Int>(dart_string("Alice"), dart_int(25)));
 dart_print(dart_string("  多泛型参数:"));
 dart_print(dart_concat(dart_string("    键值对: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
 pair->swap();
 dart_print(dart_concat(dart_string("    交换后: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
-auto nestedBox = ObjectPtr<Box>(new Box(ObjectPtr<Box>(new Box(dart_string("Nested")))));
+auto nestedBox = ObjectPtr<Box<ObjectPtr<Box>>>(new Box<ObjectPtr<Box>>(ObjectPtr<Box<String>>(new Box<String>(dart_string("Nested")))));
 dart_print(dart_string("  嵌套泛型: ") + (nestedBox->getValue()->getValue()).toString());
-auto numberContainer = ObjectPtr<NumberContainer>(new NumberContainer(dart_int(42)));
+auto numberContainer = ObjectPtr<NumberContainer<Int>>(new NumberContainer<Int>(dart_int(42)));
 numberContainer->add(dart_int(10));
 dart_print(dart_string("  泛型继承: ") + (numberContainer->getValue()).toString());
-auto doubleContainer = ObjectPtr<NumberContainer>(new NumberContainer(dart_double(3.14)));
+auto doubleContainer = ObjectPtr<NumberContainer<Double>>(new NumberContainer<Double>(dart_double(3.14)));
 doubleContainer->multiply(dart_double(2.0));
 dart_print(dart_string("  浮点容器: ") + (doubleContainer->getValue()).toString());
-auto factory = ObjectPtr<ContainerFactory>(new ContainerFactory());
+auto factory = ObjectPtr<ContainerFactory<String>>(new ContainerFactory<String>());
 auto container1 = factory->create(dart_string("Hello"));
 auto container2 = factory->create(dart_string("World"));
 dart_print(dart_string("  泛型工厂:"));
@@ -797,8 +787,8 @@ auto swapped = swap(a, b);
 dart_print(dart_string("  泛型交换:"));
 dart_print(dart_concat(dart_string("    交换前: "), (a).toString(), dart_string(", "), (b).toString()));
 dart_print(dart_concat(dart_string("    交换后: "), (swapped->first()).toString(), dart_string(", "), (swapped->second).toString()));
-auto numbers = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
-auto strings = dart_literal(dart_string("a"), dart_string("b"), dart_string("c"));
+auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+auto strings = dart_literal<String>(dart_string("a"), dart_string("b"), dart_string("c"));
 auto firstNumber = getFirst(numbers);
 auto firstString = getFirst(strings);
 dart_print(dart_string("  泛型列表操作:"));
@@ -809,7 +799,7 @@ dart_print(dart_string("    转换结果: ") + (numberStrings->take(dart_int(3))
 auto evenNumbers = filterList(numbers, makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
 dart_print(dart_string("    偶数过滤: ") + (evenNumbers).toString());
 auto sum = reduceList(numbers, makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
-auto concatenated = reduceList(dart_literal(dart_string("a"), dart_string("b"), dart_string("c")), makeFunction([&](String a, String b) { return a->operator_add(b); }));
+auto concatenated = reduceList(dart_literal<String>(dart_string("a"), dart_string("b"), dart_string("c")), makeFunction([&](String a, String b) { return a->operator_add(b); }));
 dart_print(dart_string("  泛型归约:"));
 dart_print(dart_string("    数字求和: ") + (sum).toString());
 dart_print(dart_string("    字符串连接: ") + (concatenated).toString());
@@ -818,71 +808,71 @@ return Void;
 
 Nullable testTypeConstraints() {
   dart_print(dart_string("\n📌 测试类型约束"));
-auto intCalculator = ObjectPtr<NumberCalculator>(new NumberCalculator());
-auto doubleCalculator = ObjectPtr<NumberCalculator>(new NumberCalculator());
+auto intCalculator = ObjectPtr<NumberCalculator<Int>>(new NumberCalculator<Int>());
+auto doubleCalculator = ObjectPtr<NumberCalculator<Double>>(new NumberCalculator<Double>());
 dart_print(dart_string("  数字约束:"));
 dart_print(dart_string("    整数计算: ") + (intCalculator->add(dart_int(5), dart_int(3))).toString());
 dart_print(dart_string("    浮点计算: ") + (doubleCalculator->add(dart_double(2.5), dart_double(1.5))).toString());
 dart_print(dart_string("    整数最大值: ") + (intCalculator->max(dart_int(10), dart_int(5))).toString());
 dart_print(dart_string("    浮点最大值: ") + (doubleCalculator->max(dart_double(3.14), dart_double(2.71))).toString());
-auto intComparator = ObjectPtr<Comparator>(new Comparator());
-auto stringComparator = ObjectPtr<Comparator>(new Comparator());
+auto intComparator = ObjectPtr<Comparator<Int>>(new Comparator<Int>());
+auto stringComparator = ObjectPtr<Comparator<String>>(new Comparator<String>());
 dart_print(dart_string("  比较约束:"));
 dart_print(dart_string("    整数比较: ") + (intComparator->max(dart_int(10), dart_int(5))).toString());
 dart_print(dart_string("    字符串比较: ") + (stringComparator->max(dart_string("apple"), dart_string("banana"))).toString());
-dart_print(dart_string("    整数排序: ") + (intComparator->sort(dart_literal(dart_int(3), dart_int(1), dart_int(4), dart_int(1), dart_int(5)))).toString());
+dart_print(dart_string("    整数排序: ") + (intComparator->sort(dart_literal<Int>(dart_int(3), dart_int(1), dart_int(4), dart_int(1), dart_int(5)))).toString());
 auto person = ObjectPtr<Person>(new Person(dart_string("Alice"), dart_int(25)));
 auto student = ObjectPtr<Student>(new Student(dart_string("Bob"), dart_int(20), dart_string("S001")));
-auto personSerializer = ObjectPtr<Serializer>(new Serializer());
-auto studentSerializer = ObjectPtr<Serializer>(new Serializer());
+auto personSerializer = ObjectPtr<Serializer<ObjectPtr<Person>>>(new Serializer<ObjectPtr<Person>>());
+auto studentSerializer = ObjectPtr<Serializer<ObjectPtr<Student>>>(new Serializer<ObjectPtr<Student>>());
 dart_print(dart_string("  序列化约束:"));
 dart_print(dart_string("    人员序列化: ") + (personSerializer->serialize(person)).toString());
 dart_print(dart_string("    学生序列化: ") + (studentSerializer->serialize(student)).toString());
-auto listProcessor = ObjectPtr<CollectionProcessor>(new CollectionProcessor());
-auto setProcessor = ObjectPtr<CollectionProcessor>(new CollectionProcessor());
+auto listProcessor = ObjectPtr<CollectionProcessor<ObjectPtr<List<Int>>>>(new CollectionProcessor<ObjectPtr<List<Int>>>());
+auto setProcessor = ObjectPtr<CollectionProcessor<ObjectPtr<Set<String>>>>(new CollectionProcessor<ObjectPtr<Set<String>>>());
 dart_print(dart_string("  集合约束:"));
-dart_print(dart_string("    列表大小: ") + (listProcessor->getSize(dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)))).toString());
-dart_print(dart_string("    集合大小: ") + (setProcessor->getSize(([&]() { const auto unnamed_var = ObjectPtr<Set>(new Set()); unnamed_var->add(dart_string("a")); unnamed_var->add(dart_string("b")); unnamed_var->add(dart_string("c")); return unnamed_var; })())).toString());
-auto advancedProcessor = ObjectPtr<AdvancedProcessor>(new AdvancedProcessor());
+dart_print(dart_string("    列表大小: ") + (listProcessor->getSize(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)))).toString());
+dart_print(dart_string("    集合大小: ") + (setProcessor->getSize(([&]() { const auto unnamed_var = ObjectPtr<Set<String>>(new Set<String>()); unnamed_var->add(dart_string("a")); unnamed_var->add(dart_string("b")); unnamed_var->add(dart_string("c")); return unnamed_var; })())).toString());
+auto advancedProcessor = ObjectPtr<AdvancedProcessor<ObjectPtr<Person>>>(new AdvancedProcessor<ObjectPtr<Person>>());
 dart_print(dart_string("    高级处理: ") + (advancedProcessor->process(person)).toString());
 return Void;
 }
 
 Nullable testGenericCollections() {
   dart_print(dart_string("\n📌 测试泛型集合"));
-auto intList = ObjectPtr<GenericList>(new GenericList());
+auto intList = ObjectPtr<GenericList<Int>>(new GenericList<Int>());
 intList->add(dart_int(1));
 intList->add(dart_int(2));
 intList->add(dart_int(3));
 dart_print(dart_string("  自定义泛型列表:"));
 dart_print(dart_string("    列表内容: ") + (intList->toList()).toString());
-dart_print(dart_string("    列表大小: ") + (intList->size()).toString());
+dart_print(dart_string("    列表大小: ") + (intList->get_size()).toString());
 dart_print(dart_string("    获取索引1: ") + (intList->get(dart_int(1))).toString());
-auto stringStack = ObjectPtr<GenericStack>(new GenericStack());
+auto stringStack = ObjectPtr<GenericStack<String>>(new GenericStack<String>());
 stringStack->push(dart_string("First"));
 stringStack->push(dart_string("Second"));
 stringStack->push(dart_string("Third"));
 dart_print(dart_string("  自定义泛型栈:"));
 dart_print(dart_string("    栈顶元素: ") + (stringStack->peek()).toString());
 dart_print(dart_string("    弹出元素: ") + (stringStack->pop()).toString());
-dart_print(dart_string("    栈大小: ") + (stringStack->size()).toString());
-auto intQueue = ObjectPtr<GenericQueue>(new GenericQueue());
+dart_print(dart_string("    栈大小: ") + (stringStack->get_size()).toString());
+auto intQueue = ObjectPtr<GenericQueue<Int>>(new GenericQueue<Int>());
 intQueue->enqueue(dart_int(10));
 intQueue->enqueue(dart_int(20));
 intQueue->enqueue(dart_int(30));
 dart_print(dart_string("  自定义泛型队列:"));
 dart_print(dart_string("    队列前端: ") + (intQueue->front()).toString());
 dart_print(dart_string("    出队元素: ") + (intQueue->dequeue()).toString());
-dart_print(dart_string("    队列大小: ") + (intQueue->size()).toString());
-auto stringIntMap = ObjectPtr<GenericMap>(new GenericMap());
+dart_print(dart_string("    队列大小: ") + (intQueue->get_size()).toString());
+auto stringIntMap = ObjectPtr<GenericMap<String, Int>>(new GenericMap<String, Int>());
 stringIntMap->put(dart_string("one"), dart_int(1));
 stringIntMap->put(dart_string("two"), dart_int(2));
 stringIntMap->put(dart_string("three"), dart_int(3));
 dart_print(dart_string("  泛型映射:"));
 dart_print(dart_string("    获取值: ") + (stringIntMap->get(dart_string("two"))).toString());
-dart_print(dart_string("    映射大小: ") + (stringIntMap->size()).toString());
+dart_print(dart_string("    映射大小: ") + (stringIntMap->get_size()).toString());
 dart_print(dart_string("    所有键: ") + (stringIntMap->keys()).toString());
-auto intTree = ObjectPtr<BinaryTree>(new BinaryTree());
+auto intTree = ObjectPtr<BinaryTree<Int>>(new BinaryTree<Int>());
 intTree->insert(dart_int(5));
 intTree->insert(dart_int(3));
 intTree->insert(dart_int(7));
@@ -891,20 +881,20 @@ intTree->insert(dart_int(9));
 dart_print(dart_string("  泛型二叉树:"));
 dart_print(dart_string("    包含5: ") + (intTree->contains(dart_int(5))).toString());
 dart_print(dart_string("    包含6: ") + (intTree->contains(dart_int(6))).toString());
-dart_print(dart_string("    树的大小: ") + (intTree->size()).toString());
+dart_print(dart_string("    树的大小: ") + (intTree->get_size()).toString());
 return Void;
 }
 
 Nullable testVariance() {
   dart_print(dart_string("\n📌 测试协变和逆变"));
-auto animalList = dart_literal(/* Invalid: temp_dart_source.dart:259:32: Error: Too few positional arguments: 2 required, 1 given.
+auto animalList = dart_literal<ObjectPtr<Animal>>(/* Invalid: temp_dart_source.dart:260:32: Error: Too few positional arguments: 2 required, 1 given.
   var animalList = <Animal>[Dog('Buddy'), Cat('Whiskers')];
-                               ^ */, /* Invalid: temp_dart_source.dart:259:46: Error: Too few positional arguments: 2 required, 1 given.
+                               ^ */, /* Invalid: temp_dart_source.dart:260:46: Error: Too few positional arguments: 2 required, 1 given.
   var animalList = <Animal>[Dog('Buddy'), Cat('Whiskers')];
                                              ^ */);
-auto dogList = dart_literal(/* Invalid: temp_dart_source.dart:260:26: Error: Too few positional arguments: 2 required, 1 given.
+auto dogList = dart_literal<ObjectPtr<Dog>>(/* Invalid: temp_dart_source.dart:261:26: Error: Too few positional arguments: 2 required, 1 given.
   var dogList = <Dog>[Dog('Max'), Dog('Rex')];
-                         ^ */, /* Invalid: temp_dart_source.dart:260:38: Error: Too few positional arguments: 2 required, 1 given.
+                         ^ */, /* Invalid: temp_dart_source.dart:261:38: Error: Too few positional arguments: 2 required, 1 given.
   var dogList = <Dog>[Dog('Max'), Dog('Rex')];
                                      ^ */);
 auto animals = dogList;
@@ -919,14 +909,9 @@ auto animalHandler = makeFunction([&](ObjectPtr<Animal> animal) { dart_print(dar
 auto dogHandler = makeFunction([&](ObjectPtr<Dog> dog) { dart_print(dart_concat(dart_string("      处理狗: "), (dog->name).toString(), dart_string(", 品种: "), (dog->breed).toString())); });
 dogHandler = animalHandler;
 dogHandler->call(ObjectPtr<Dog>(new Dog(dart_string("Covariant Dog"), dart_string("Labrador"))));
-auto processor = ObjectPtr<AnimalProcessor>(new AnimalProcessor());
+auto processor = ObjectPtr<AnimalProcessor<ObjectPtr<Dog>>>(new AnimalProcessor<ObjectPtr<Dog>>());
 processor->process(ObjectPtr<Dog>(new Dog(dart_string("Generic Dog"), dart_string("Poodle"))));
-processAnimals(dart_literal(ObjectPtr<Dog>(new Dog(dart_string("Dog1"), dart_string("Beagle"))), ObjectPtr<Cat>(new Cat(dart_string("Cat1"), dart_string("Siamese")))));
-auto animalProducer = ObjectPtr<DogProducer>(new DogProducer());
-auto producedAnimal = animalProducer->produce();
-dart_print(dart_string("    生产的动物: ") + (producedAnimal->name).toString());
-auto dogConsumer = ObjectPtr<AnimalConsumer>(new AnimalConsumer());
-dogConsumer->consume(ObjectPtr<Dog>(new Dog(dart_string("Consumed Dog"), dart_string("Bulldog"))));
+processAnimals(dart_literal<ObjectPtr<Animal>>(ObjectPtr<Dog>(new Dog(dart_string("Dog1"), dart_string("Beagle"))), ObjectPtr<Cat>(new Cat(dart_string("Cat1"), dart_string("Siamese")))));
 return Void;
 }
 
@@ -964,7 +949,7 @@ T identity(T value) {
 
 template<typename T>
 ObjectPtr<Pair> swap(T a, T b) {
-  return ObjectPtr<Pair>(new Pair(b, a));
+  return ObjectPtr<Pair<T, T>>(new Pair<T, T>(b, a));
 }
 
 template<typename T>
@@ -972,8 +957,7 @@ T getFirst(ObjectPtr<List<T>> list) {
   return list->first();
 }
 
-template<typename T>
-template<typename R>
+template<typename T, typename R>
 ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper) {
   return list->map(mapper)->toList();
 }

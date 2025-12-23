@@ -43,16 +43,16 @@ return this->noSuchMethod(invocation);
     return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
   }
   
-  Nullable a(Int value) {
-    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+  Int a(Int value) {
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
   }
   
   Int b() {
     return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
   }
   
-  Nullable b(Int value) {
-    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+  Int b(Int value) {
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
   }
   
   Nullable testA() {

@@ -27,11 +27,11 @@ public:
   }
   
   Bool operator_equals(ObjectPtr<Object> other) {
-    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == dart_cast<ObjectPtr<Point>>(other)->x) && (this->y == dart_cast<ObjectPtr<Point>>(other)->y);
   }
   
   Int hashCode() {
-    return Object::hash(this->x, this->y, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+    return Object::hash(this->x, this->y);
   }
   
   String toString() {
@@ -50,25 +50,16 @@ public:
   Color(Int value) : value(value) {
   }
   
-  ObjectPtr<Color> red() {
-    return /* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.red() = Color._(0xFF0000);
-                              ^ */;
+  static ObjectPtr<Color> red() {
+    return ObjectPtr<Color>(new Color(dart_int(16711680)));
   }
   
-  ObjectPtr<Color> green() {
-    return /* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.green() = Color._(0x00FF00);
-                                ^ */;
+  static ObjectPtr<Color> green() {
+    return ObjectPtr<Color>(new Color(dart_int(65280)));
   }
   
-  ObjectPtr<Color> blue() {
-    return /* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.blue() = Color._(0x0000FF);
-                               ^ */;
+  static ObjectPtr<Color> blue() {
+    return ObjectPtr<Color>(new Color(dart_int(255)));
   }
   
   String toString() {
@@ -97,7 +88,7 @@ public:
   }
   
   Double area() {
-    return this->width()->operator_mul(this->height());
+    return this->get_width()->operator_mul(this->get_height());
   }
   
   String toString() {
@@ -221,13 +212,32 @@ public:
   
 };
 
+// ============================================================================
+// Extension: MathExtension
+// ============================================================================
+
+namespace MathExtension {
+  inline Double sqrt(Double this_) {
+    if (this_->operator_less(dart_int(0))) {
+return dart_double(NaN);
+}
+auto x = this_;
+auto prev = dart_double(0.0);
+while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
+prev = x;
+x = x->operator_add(this_->operator_div(x))->operator_div(dart_double(2.0));
+}
+return x;
+  }
+  
+} // namespace MathExtension
+
 Nullable testBasicConstants();
 Nullable testConstantCollections();
 Nullable testConstantConstructors();
 Nullable testStaticConstants();
 Nullable testCompileTimeExpressions();
-Double MathExtension::sqrt(Double _this);
-ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
+Double MathExtension::sqrt(Double this_);
 Nullable testBasicConstants() {
   dart_print(dart_string("\n📌 测试基本常量"));
 dart_print(dart_string("  const 常量:"));
@@ -246,7 +256,7 @@ dart_print(dart_string("    finalDouble: ") + (finalDouble).toString());
 dart_print(dart_string("    finalBool: ") + (finalBool).toString());
 dart_print(dart_string("    finalString: ") + (finalString).toString());
 dart_print(dart_string("    finalTime: ") + (finalTime).toString());
-const auto runTime = dart_string("Run Time: ") + (ObjectPtr<DateTime>(new DateTime())->millisecondsSinceEpoch()).toString();
+const auto runTime = dart_string("Run Time: ") + (ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()).toString();
 dart_print(dart_string("  const vs final:"));
 dart_print(dart_string("    编译时常量: Compile Time"));
 dart_print(dart_string("    运行时常量: ") + (runTime).toString());
@@ -273,11 +283,11 @@ dart_print(dart_string("    constNestedMap: ") + (Map<String, ObjectPtr<List<Int
 dart_print(dart_string("  嵌套常量集合:"));
 dart_print(dart_string("    constNestedList: ") + (List<ObjectPtr<List<Int>>>::createConst({List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3)}), List<Int>::createConst({dart_int(4), dart_int(5), dart_int(6)}), List<Int>::createConst({dart_int(7), dart_int(8), dart_int(9)})})).toString());
 dart_print(dart_string("    constDeepMap: ") + (Map<String, ObjectPtr<Map<String, Int>>>::createConst()).toString());
-auto firstNumber = /* Invalid: The method '[]' can't be invoked on '<int>[1, 2, 3, 4, 5]' in a constant expression. */;
-auto listLength = /* Invalid: The property 'length' can't be accessed on '<int>[1, 2, 3, 4, 5]' in a constant expression. */;
+auto firstNumber = List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})->operator_index(dart_int(0));
+auto listLength = List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})->size();
 dart_print(dart_string("  常量集合操作:"));
-dart_print(dart_string("    firstNumber: ") + (/* Invalid: The method '[]' can't be invoked on '<int>[1, 2, 3, 4, 5]' in a constant expression. */).toString());
-dart_print(dart_string("    listLength: ") + (/* Invalid: The property 'length' can't be accessed on '<int>[1, 2, 3, 4, 5]' in a constant expression. */).toString());
+dart_print(dart_string("    firstNumber: ") + (firstNumber).toString());
+dart_print(dart_string("    listLength: ") + (listLength).toString());
 dart_print(dart_string("    combined: ") + (List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6)})).toString());
 return Void;
 }
@@ -291,41 +301,23 @@ dart_print(dart_string("    p3: ") + (ObjectPtr<Point>::createConst()).toString(
 dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>::createConst() == ObjectPtr<Point>::createConst())).toString());
 dart_print(dart_string("    identical(p1, p2): ") + (identical(ObjectPtr<Point>::createConst(), ObjectPtr<Point>::createConst())).toString());
 dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>::createConst()->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>::createConst()->y).toString()));
-dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>::createConst()->distance()).toString());
+dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>::createConst()->get_distance()).toString());
 dart_print(dart_string("  命名常量构造函数:"));
 dart_print(dart_string("    origin: ") + (ObjectPtr<Point>::createConst()).toString());
 dart_print(dart_string("    unitX: ") + (ObjectPtr<Point>::createConst()).toString());
 dart_print(dart_string("    unitY: ") + (ObjectPtr<Point>::createConst()).toString());
-auto red = /* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.red() = Color._(0xFF0000);
-                              ^ */;
-auto green = /* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.green() = Color._(0x00FF00);
-                                ^ */;
-auto blue = /* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.blue() = Color._(0x0000FF);
-                               ^ */;
+auto red = Color::red();
+auto green = Color::green();
+auto blue = Color::blue();
 dart_print(dart_string("  常量工厂构造函数:"));
-dart_print(dart_string("    red: ") + (/* Invalid: temp_dart_source.dart:362:31: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.red() = Color._(0xFF0000);
-                              ^ */).toString());
-dart_print(dart_string("    green: ") + (/* Invalid: temp_dart_source.dart:363:33: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.green() = Color._(0x00FF00);
-                                ^ */).toString());
-dart_print(dart_string("    blue: ") + (/* Invalid: temp_dart_source.dart:364:32: Error: The constructor function type 'Color Function(int)' isn't a subtype of 'Color Function()'.
- - 'Color' is from 'temp_dart_source.dart'.
-  const factory Color.blue() = Color._(0x0000FF);
-                               ^ */).toString());
+dart_print(dart_string("    red: ") + (red).toString());
+dart_print(dart_string("    green: ") + (green).toString());
+dart_print(dart_string("    blue: ") + (blue).toString());
 dart_print(dart_string("  复杂常量对象:"));
 dart_print(dart_string("    rect: ") + (ObjectPtr<Rectangle>::createConst()).toString());
 dart_print(dart_string("    circle: ") + (ObjectPtr<Circle>::createConst()).toString());
-dart_print(dart_string("    rect.area: ") + (ObjectPtr<Rectangle>::createConst()->area()).toString());
-dart_print(dart_string("    circle.area: ") + (ObjectPtr<Circle>::createConst()->area()).toString());
+dart_print(dart_string("    rect.area: ") + (ObjectPtr<Rectangle>::createConst()->get_area()).toString());
+dart_print(dart_string("    circle.area: ") + (ObjectPtr<Circle>::createConst()->get_area()).toString());
 dart_print(dart_string("  常量对象列表:"));
 dart_print(dart_string("    constPoints: ") + (List<ObjectPtr<Point>>::createConst({ObjectPtr<Point>::createConst(), ObjectPtr<Point>::createConst(), ObjectPtr<Point>::createConst()})).toString());
 return Void;
@@ -378,23 +370,6 @@ dart_print(dart_string("  复杂表达式:"));
 dart_print(dart_string("    circumference: 31.4159"));
 dart_print(dart_string("    area: 78.53975"));
 return Void;
-}
-
-Double MathExtension_sqrt(Double this) {
-  if (this->operator_less(dart_int(0))) {
-return dart_double(NaN);
-}
-auto x = this;
-auto prev = dart_double(0.0);
-while (x->operator_sub(prev)->abs()->operator_greater(dart_double(0.0001))) {
-prev = x;
-x = x->operator_add(this->operator_div(x))->operator_div(dart_double(2.0));
-}
-return x;
-}
-
-ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension_get_sqrt(Double this) {
-  return makeFunction([&]() { return MathExtension::sqrt(this); });
 }
 
 // ============================================================================

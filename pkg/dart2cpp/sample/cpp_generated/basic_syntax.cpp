@@ -50,9 +50,9 @@ const auto finalValue = dart_string("cannot change");
 const auto typedFinal = dart_int(200);
 const auto now = ObjectPtr<DateTime>(new DateTime());
 Int nullableInt(Null);
-auto nullableString = Null;
+Any nullableString = Null;
 Double nullableDouble(Null);
-auto nonNull = dart_null_coalesce(nullableString, dart_string("default"));
+auto nonNull = dart_cast<String>(dart_null_coalesce(nullableString, dart_string("default")));
 if (dart_is_null(nullableInt)) nullableInt = dart_int(42);
 dart_print(dart_concat(dart_string("  var: "), (autoInt).toString(), dart_string(", "), (autoString).toString(), dart_string(", "), (autoDouble).toString(), dart_string(", "), (autoBool).toString()));
 dart_print(dart_concat(dart_string("  final: "), (finalValue).toString(), dart_string(", "), (typedFinal).toString()));
@@ -148,7 +148,7 @@ dart_print(dart_string("  for 循环测试:"));
 for (auto i = dart_int(0); i->operator_less(dart_int(5)); i = i->operator_add(dart_int(1))) {
 dart_print(dart_concat(dart_string("    索引: "), (i).toString(), dart_string(", 值: "), (i->operator_mul(i)).toString()));
 }
-auto fruits = dart_literal(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+auto fruits = dart_literal<String>(dart_string("apple"), dart_string("banana"), dart_string("orange"));
 dart_print(dart_string("  for-in 循环测试:"));
 auto sync_for_iterator = fruits->iterator();
 for (; sync_for_iterator->hasNext(); ) {
@@ -219,15 +219,15 @@ Nullable testFunctions() {
   dart_print(dart_string("\n📌 测试函数"));
 auto sum = add(dart_int(5), dart_int(3));
 dart_print(dart_string("  加法函数: add(5, 3) = ") + (sum).toString());
-greet(dart_string("Alice"), String(Null));
+greet(dart_string("Alice"), nullptr);
 greet(dart_string("Bob"), dart_string("Mr."));
-createUser(dart_string("Charlie"), dart_int(25), String(Null));
+createUser(dart_string("Charlie"), dart_int(25), nullptr);
 createUser(dart_string("David"), dart_int(30), dart_string("david@example.com"));
 auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
 dart_print(dart_string("  匿名函数: multiply(4, 5) = ") + (multiply->call(dart_int(4), dart_int(5))).toString());
 auto square = makeFunction([&](Int x) { return x->operator_mul(x); });
 dart_print(dart_string("  箭头函数: square(6) = ") + (square->call(dart_int(6))).toString());
-auto numbers = dart_literal(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
 auto doubled = numbers->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); }))->toList();
 dart_print(dart_string("  高阶函数 map: ") + (doubled).toString());
 auto evens = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->toList();

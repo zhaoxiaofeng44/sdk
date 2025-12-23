@@ -5,7 +5,7 @@
 # 功能: 将sample/dart下所有.dart文件转换为C++并编译运行
 # ============================================================================
 
-set -e  # 遇到错误立即退出
+# set -e  # 已禁用：允许单个测试失败后继续执行
 
 # 颜色定义
 RED='\033[0;31m'
@@ -21,6 +21,29 @@ DART_DIR="$SAMPLE_DIR/dart"
 CPP_OUTPUT_DIR="$SAMPLE_DIR/cpp_generated"
 BUILD_DIR="$SAMPLE_DIR/build"
 LOG_FILE="$SAMPLE_DIR/test_results.log"
+
+# 清理函数
+clean_generated_files() {
+    echo -e "${YELLOW}清理生成的文件和编译产物...${NC}"
+    
+    # 清理C++生成代码
+    if [ -d "$CPP_OUTPUT_DIR" ]; then
+        echo "  清理: $CPP_OUTPUT_DIR"
+        rm -rf "$CPP_OUTPUT_DIR"/*
+    fi
+    
+    # 清理编译产物
+    if [ -d "$BUILD_DIR" ]; then
+        echo "  清理: $BUILD_DIR"
+        rm -rf "$BUILD_DIR"/*
+    fi
+    
+    echo -e "${GREEN}✓ 清理完成${NC}"
+    echo ""
+}
+
+# 执行清理
+clean_generated_files
 
 # 创建必要的目录
 mkdir -p "$CPP_OUTPUT_DIR"

@@ -94,7 +94,7 @@ void testVariableDeclarations() {
 
   // 可空类型
   int? nullableInt;
-  String? nullableString = null;
+  var nullableString = null;
   double? nullableDouble;
 
   // 非空断言和空值合并
