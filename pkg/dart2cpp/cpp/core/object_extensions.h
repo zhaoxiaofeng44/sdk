@@ -40,10 +40,10 @@ struct is_object_ptr<ObjectPtr<T>> : std::true_type {};
 
 // 模板函数版本的 dart_is_null - 支持 ObjectPtr 类型和值类型
 template<typename T>
-constexpr bool dart_is_null(const T& obj) {
+inline bool dart_is_null(const T& obj) {
     if constexpr (is_object_ptr<T>::value) {
-        // ObjectPtr 类型：使用 -> 调用 isNull()
-        return obj->isNull();
+        // ObjectPtr 类型：检查 get() 是否为 nullptr
+        return obj.get() == nullptr;
     } else if constexpr (std::is_same_v<T, Nullable>) {
         // Nullable 类型：使用 . 调用 isNull()
         return obj.isNull();
@@ -70,9 +70,24 @@ constexpr bool dart_is_null(const T& obj) {
 
 #define DART_ANY_ACCESS(any_var, property) \
     (any_var.getProperty(#property))
+
+// 重新设计的 dart_null_coalesce - 使用模板函数而非宏
+template<typename L, typename R>
+inline auto dart_null_coalesce_impl(const L& left, const R& right) {
+    if constexpr (is_object_ptr<L>::value) {
+        return left->isNull().toBool() ? right : static_cast<R>(*left);
+    } else if constexpr (std::is_same_v<L, Nullable>) {
+        return right;
+    } else {
+        // 值类型，检查 type_id
+        return left.type_id == 0 ? right : static_cast<R>(left);
+    }
+}
+
+// 保持宏的兼容性，但使用更智能的类型推断
 // 如果 left 为 null，返回 right；否则返回 left
-// 使用decltype(right)来推导返回类型
-#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+#define dart_null_coalesce(left, right) \
+    (dart_is_null(left) ? (right) : (left))
 
 // ============================================================================
 // 5. 调试和工具宏
@@ -103,103 +118,100 @@ constexpr bool dart_is_null(const T& obj) {
 
 
 // dart_cast 函数 - 类型转换
+// 通用版本 - 用于 ObjectPtr 类型之间的转换
 template <typename T, typename U>
-T dart_cast(U value) {
-  return dynamic_cast<T>(value);
+typename std::enable_if<!std::is_same<T, Int>::value && 
+                        !std::is_same<T, Double>::value && 
+                        !std::is_same<T, Bool>::value && 
+                        !std::is_same<T, String>::value &&
+                        !is_object_ptr<T>::value, T>::type
+dart_cast(U value) {
+    // 对于指针类型使用 dynamic_cast
+    if constexpr (std::is_pointer_v<U>) {
+        return dynamic_cast<T>(value);
+    } else {
+        return static_cast<T>(value);
+    }
+}
+
+// 特化版本 - Int 类型转换
+template <typename T, typename U>
+typename std::enable_if<std::is_same<T, Int>::value, T>::type
+dart_cast(const U& value) {
+    if constexpr (std::is_same_v<U, Any>) {
+        return Int(value.toInt());
+    } else if constexpr (std::is_same_v<U, Double>) {
+        return Int(static_cast<int>(value.toDouble()));
+    } else if constexpr (std::is_same_v<U, Int>) {
+        return value;
+    } else {
+        return Int(static_cast<int>(value));
+    }
+}
+
+// 特化版本 - Double 类型转换
+template <typename T, typename U>
+typename std::enable_if<std::is_same<T, Double>::value, T>::type
+dart_cast(const U& value) {
+    if constexpr (std::is_same_v<U, Any>) {
+        return Double(value.toDouble());
+    } else if constexpr (std::is_same_v<U, Int>) {
+        return Double(static_cast<double>(value.getValue()));
+    } else if constexpr (std::is_same_v<U, Double>) {
+        return value;
+    } else {
+        return Double(static_cast<double>(value));
+    }
+}
+
+// 特化版本 - Bool 类型转换
+template <typename T, typename U>
+typename std::enable_if<std::is_same<T, Bool>::value, T>::type
+dart_cast(const U& value) {
+    if constexpr (std::is_same_v<U, Any>) {
+        return Bool(value.toBool());
+    } else if constexpr (std::is_same_v<U, Bool>) {
+        return value;
+    } else {
+        return Bool(static_cast<bool>(value));
+    }
+}
+
+// 特化版本 - String 类型转换
+template <typename T, typename U>
+typename std::enable_if<std::is_same<T, String>::value, T>::type
+dart_cast(const U& value) {
+    if constexpr (std::is_same_v<U, String>) {
+        return value;
+    } else {
+        return value.toString();
+    }
+}
+
+// 特化版本 - ObjectPtr 类型之间的转换
+template <typename T, typename U>
+typename std::enable_if<is_object_ptr<T>::value, T>::type
+dart_cast(const U& value) {
+    if constexpr (is_object_ptr<U>::value) {
+        // ObjectPtr 到 ObjectPtr 的转换
+        using TargetType = typename std::remove_pointer<decltype(std::declval<T>().get())>::type;
+        auto* ptr = dynamic_cast<TargetType*>(value.get());
+        return T(ptr);
+    } else {
+        // 其他类型到 ObjectPtr 的转换
+        return T(nullptr);
+    }
 }
 
 // ============================================================================
 // String 类型扩展
 // ============================================================================
-
-// 字符串分割功能
-class StringExtensions {
-public:
-    // 字符串分割
-    static ObjectPtr<List<String>> split(const String& str, const String& delimiter) {
-        ObjectPtr<List<String>> result = List<String>::create();
-        std::string s = str.getValue();
-        std::string delim = delimiter.getValue();
-        
-        if (delim.empty()) {
-            result->add(str);
-            return result;
-        }
-        
-        size_t start = 0;
-        size_t found = s.find(delim);
-        
-        while (found != std::string::npos) {
-            if (found != start) {
-                result->add(String(s.substr(start, found - start)));
-            }
-            start = found + delim.length();
-            found = s.find(delim, start);
-        }
-        
-        if (start < s.length()) {
-            result->add(String(s.substr(start)));
-        }
-        
-        return result;
-    }
-    
-    // 简化的字符串插值（使用占位符 ${} ）
-    static String interpolate(const String& template_str, const ObjectPtr<Map<String, String>>& variables) {
-        std::string result = template_str.getValue();
-        
-        // 简单的占位符替换：${变量名}
-        auto it = variables->iterator();
-        while (it->hasNext()) {
-            String key = it->currentKey();
-            String value = it->currentValue();
-            
-            std::string placeholder = "${" + key.getValue() + "}";
-            size_t pos = result.find(placeholder);
-            while (pos != std::string::npos) {
-                result.replace(pos, placeholder.length(), value.getValue());
-                pos = result.find(placeholder, pos + value.getValue().length());
-            }
-            it->next();
-        }
-        
-        return String(result);
-    }
-    
-    // 字符串格式化（类似 sprintf）
-    template<typename... Args>
-    static String format(const String& format, Args... args) {
-        std::stringstream ss;
-        format_helper(ss, format.getValue(), args...);
-        return String(ss.str());
-    }
-
-private:
-    template<typename T>
-    static void format_helper(std::stringstream& ss, const std::string& format, T&& value) {
-        size_t pos = format.find("{}");
-        if (pos != std::string::npos) {
-            ss << format.substr(0, pos) << value << format.substr(pos + 2);
-        } else {
-            ss << format;
-        }
-    }
-    
-    template<typename T, typename... Args>
-    static void format_helper(std::stringstream& ss, const std::string& format, T&& value, Args&&... args) {
-        size_t pos = format.find("{}");
-        if (pos != std::string::npos) {
-            ss << format.substr(0, pos) << value;
-            format_helper(ss, format.substr(pos + 2), args...);
-        } else {
-            ss << format;
-        }
-    }
-};
+// 注意：StringExtensions 类已被移除，相关方法已迁移到 String 类中作为静态方法
+// 保留全局函数以保持向后兼容
 
 // 为 String 添加新方法（通过全局函数实现）
 inline ObjectPtr<List<String>> dart_split(const String& str, const String& delimiter) {
-    return StringExtensions::split(str, delimiter);
+    return String::splitStatic(str, delimiter);
 }
 
 inline String dart_format(const String& format) {
@@ -208,7 +220,7 @@ inline String dart_format(const String& format) {
 
 template<typename... Args>
 inline String dart_format(const String& format, Args... args) {
-    return StringExtensions::format(format, args...);
+    return String::format(format, args...);
 }
 
 // ============================================================================
@@ -400,10 +412,94 @@ ObjectPtr<List<R>> dart_map(const ObjectPtr<List<T>>& list, const ObjectPtr<Type
 // 类型检查和转换
 // ============================================================================
 
-// 类型检查 is 操作符的实现
+// 辅助类型特征：判断是否为基础值类型
+template<typename T>
+struct is_dart_value_type : std::false_type {};
+
+template<> struct is_dart_value_type<Int> : std::true_type {};
+template<> struct is_dart_value_type<Double> : std::true_type {};
+template<> struct is_dart_value_type<Bool> : std::true_type {};
+template<> struct is_dart_value_type<String> : std::true_type {};
+template<> struct is_dart_value_type<Any> : std::true_type {};
+
+// 类型检查 is 操作符的实现 - 通用版本
 template<typename T, typename U>
-inline Bool dart_is(const U& obj) {
-    return Bool(dynamic_cast<const T*>(&obj) != nullptr);
+inline typename std::enable_if<!is_dart_value_type<T>::value && !is_object_ptr<T>::value, Bool>::type
+dart_is(const U& obj) {
+    // 对于多态类型使用 dynamic_cast
+    if constexpr (std::is_pointer_v<U>) {
+        return Bool(dynamic_cast<const T*>(obj) != nullptr);
+    } else {
+        return Bool(dynamic_cast<const T*>(&obj) != nullptr);
+    }
+}
+
+// 类型检查 - 对于 Int 类型
+template<typename T, typename U>
+inline typename std::enable_if<std::is_same<T, Int>::value, Bool>::type
+dart_is(const U& obj) {
+    if constexpr (std::is_same_v<U, Int>) {
+        return Bool(true);
+    } else if constexpr (std::is_same_v<U, Any>) {
+        return Bool(obj.type_id == 1);
+    } else {
+        return Bool(false);
+    }
+}
+
+// 类型检查 - 对于 Double 类型
+template<typename T, typename U>
+inline typename std::enable_if<std::is_same<T, Double>::value, Bool>::type
+dart_is(const U& obj) {
+    if constexpr (std::is_same_v<U, Double>) {
+        return Bool(true);
+    } else if constexpr (std::is_same_v<U, Any>) {
+        return Bool(obj.type_id == 2);
+    } else {
+        return Bool(false);
+    }
+}
+
+// 类型检查 - 对于 Bool 类型
+template<typename T, typename U>
+inline typename std::enable_if<std::is_same<T, Bool>::value && !std::is_same<T, Int>::value && !std::is_same<T, Double>::value, Bool>::type
+dart_is(const U& obj) {
+    if constexpr (std::is_same_v<U, Bool>) {
+        return Bool(true);
+    } else if constexpr (std::is_same_v<U, Any>) {
+        return Bool(obj.type_id == 3);
+    } else {
+        return Bool(false);
+    }
+}
+
+// 类型检查 - 对于 String 类型
+template<typename T, typename U>
+inline typename std::enable_if<std::is_same<T, String>::value, Bool>::type
+dart_is(const U& obj) {
+    if constexpr (std::is_same_v<U, String>) {
+        return Bool(true);
+    } else if constexpr (std::is_same_v<U, Any>) {
+        return Bool(obj.type_id == 4);
+    } else {
+        return Bool(false);
+    }
+}
+
+// 类型检查 - 对于 ObjectPtr 类型
+template<typename T, typename U>
+inline typename std::enable_if<is_object_ptr<T>::value, Bool>::type
+dart_is(const U& obj) {
+    if constexpr (is_object_ptr<U>::value) {
+        // ObjectPtr 类型之间的检查
+        using TargetType = typename std::remove_pointer<decltype(std::declval<T>().get())>::type;
+        return Bool(dynamic_cast<TargetType*>(obj.get()) != nullptr);
+    } else if constexpr (std::is_same_v<U, Any>) {
+        // Any 类型，检查 type_id
+        return Bool(obj.type_id == 100 || obj.type_id == 7);
+    } else {
+        return Bool(false);
+    }
 }
 
 // 类型转换 as 操作符的实现
@@ -512,9 +608,8 @@ inline String dart_concat(const Any& first, const Args&... rest) {
 }
 
 // ============================================================================
-// dart_literal 函数 - 简化的列表创建函数
+// dart_literal 函数 - 简化的列表创建函数（支持类型指定）
 // ============================================================================
-// dart_literal 重载 - 创建空列表
 // 辅助函数：递归展开参数包（C++11 兼容）
 template <typename T>
 void _add_items_helper(ObjectPtr<List<T>>& /* list */) {
@@ -527,12 +622,13 @@ void _add_items_helper(ObjectPtr<List<T>>& list, const Arg& arg, const Args&... 
   _add_items_helper(list, args...);
 }
 
+// dart_literal 重载 1: 创建空列表（显式指定类型）
 template <typename T>
 ObjectPtr<List<T>> dart_literal() {
   return List<T>::create();
 }
 
-// dart_literal 函数 - 创建包含任意数量元素的列表
+// dart_literal 重载 2: 创建包含任意数量元素的列表（显式指定类型）
 template <typename T, typename... Args>
 ObjectPtr<List<T>> dart_literal(const T& first, const Args&... args) {
   ObjectPtr<List<T>> list = List<T>::create();
@@ -541,6 +637,9 @@ ObjectPtr<List<T>> dart_literal(const T& first, const Args&... args) {
   _add_items_helper(list, args...);
   return list;
 }
+
+// dart_literal 重载 3: 向后兼容的自动类型推断版本（无显式类型参数时从第一个元素推断）
+// 注意：当需要明确类型时，应使用 dart_literal<T>(...) 的显式类型版本
 
 
 

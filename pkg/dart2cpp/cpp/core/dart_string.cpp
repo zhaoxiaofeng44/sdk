@@ -269,6 +269,12 @@ String String::substring(const Int& start, const Int& end) const {
   return String(str.substr(startIdx, endIdx - startIdx));
 }
 
+String String::substring(const Int& start) const {
+  // 单参数版本：从 start 到字符串末尾
+  const std::string& str = StringPool::getInstance()->getString(value.string_index);
+  return substring(start, Int(static_cast<int>(str.length())));
+}
+
 Int String::indexOf(const String& pattern) const {
   const std::string& str = StringPool::getInstance()->getString(value.string_index);
   const std::string& pat = StringPool::getInstance()->getString(pattern.value.string_index);
@@ -450,6 +456,23 @@ String String::repeat(const Int& times) const {
   return String(result);
 }
 
+String String::operator_mul(const Int& times) const {
+  return repeat(times);
+}
+
+String String::operator*(const Int& times) const {
+  return repeat(times);
+}
+
+ObjectPtr<List<Int> > String::get_codeUnits() const {
+  const std::string& str = StringPool::getInstance()->getString(value.string_index);
+  ObjectPtr<List<Int> > result = List<Int>::create();
+  for (unsigned char c : str) {
+    result->add(Int(static_cast<int>(c)));
+  }
+  return result;
+}
+
 String::operator std::string() const {
   return StringPool::getInstance()->getString(value.string_index);
 }
@@ -588,4 +611,105 @@ String String::join(const ObjectPtr<List<String> >& strings, const String& separ
   }
   
   return String(result);
+}
+
+// ===========================================================================
+// 静态扩展方法实现（从 StringExtensions 迁移）
+// ===========================================================================
+
+ObjectPtr<List<String>> String::splitStatic(const String& str, const String& delimiter) {
+  ObjectPtr<List<String>> result = List<String>::create();
+  std::string s = str.getValue();
+  std::string delim = delimiter.getValue();
+  
+  if (delim.empty()) {
+    result->add(str);
+    return result;
+  }
+  
+  size_t start = 0;
+  size_t found = s.find(delim);
+  
+  while (found != std::string::npos) {
+    if (found != start) {
+      result->add(String(s.substr(start, found - start)));
+    }
+    start = found + delim.length();
+    found = s.find(delim, start);
+  }
+  
+  if (start < s.length()) {
+    result->add(String(s.substr(start)));
+  }
+  
+  return result;
+}
+
+String String::interpolate(const String& template_str, const ObjectPtr<Map<String, String>>& variables) {
+  std::string result = template_str.getValue();
+  
+  // 简单的占位符替换：${变量名}
+  auto it = variables->iterator();
+  while (it->hasNext()) {
+    String key = it->currentKey();
+    String value = it->currentValue();
+    
+    std::string placeholder = "${" + key.getValue() + "}";
+    size_t pos = result.find(placeholder);
+    while (pos != std::string::npos) {
+      result.replace(pos, placeholder.length(), value.getValue());
+      pos = result.find(placeholder, pos + value.getValue().length());
+    }
+    it->next();
+  }
+  
+  return String(result);
+}
+
+// ============================================================================
+// RegExp 相关方法实现 - 将正则表达式功能合并到 String 类型
+// ============================================================================
+
+Bool String::hasMatch(const String& input) const {
+  // 简化实现：基础字符串匹配
+  const std::string& pattern = getValue();
+  const std::string& str = input.getValue();
+  return Bool(str.find(pattern) != std::string::npos);
+}
+
+String String::stringMatch(const String& input) const {
+  const std::string& pattern = getValue();
+  const std::string& str = input.getValue();
+  auto pos = str.find(pattern);
+  if (pos != std::string::npos) {
+    return String(pattern);
+  }
+  return String("");
+}
+
+Int String::matchAsPrefix(const String& str, const Int& start) const {
+  const std::string& pattern = getValue();
+  const std::string& input = str.getValue();
+  auto pos = input.find(pattern, start.getValue());
+  return Int(pos != std::string::npos ? static_cast<int>(pos) : -1);
+}
+
+Int String::matchAsPrefix(const String& str) const {
+  return matchAsPrefix(str, Int(0));
+}
+
+String String::pattern() const {
+  return *this;  // 返回自身作为模式
+}
+
+Bool String::isCaseSensitive() const {
+  return Bool(true);  // 默认区分大小写
+}
+
+Bool String::isMultiLine() const {
+  return Bool(false);  // 默认不是多行模式
+}
+
+Bool String::isDotAll() const {
+  return Bool(false);  // 默认不是 dotAll 模式
 }

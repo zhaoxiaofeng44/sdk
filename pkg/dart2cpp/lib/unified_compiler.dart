@@ -86,12 +86,14 @@ class UnifiedCompiler {
       config: config.copyWith(
         outputPath: outputPath,
       ),
+      inputPath: inputPath,
     );
   }
 
   /// 从源码编译
   static Future<CompilationResult> compileSource(
     String dartSource, {
+    required String inputPath,
     CompilerConfig config = const CompilerConfig(),
   }) async {
     final stopwatch = Stopwatch()..start();
@@ -121,20 +123,9 @@ class UnifiedCompiler {
       final originalLength = cppCode.length;
 
       // 修复扩展方法命名空间语法
-      processedCode =
-          processedCode.replaceAll('MathExtension|', 'MathExtension::');
-      processedCode =
-          processedCode.replaceAll('StringExtension|', 'StringExtension::');
-      processedCode = processedCode.replaceAll(
-          'DartStringExtensions|', 'DartStringExtensions::');
-      processedCode = processedCode.replaceAll(
-          'CollectionExtension|', 'CollectionExtension::');
-      processedCode =
-          processedCode.replaceAll('ListExtension|', 'ListExtension::');
-      processedCode =
-          processedCode.replaceAll('IntExtension|', 'IntExtension::');
+      // 将所有扩展名称中的 | 替换为 ::
       processedCode = processedCode.replaceAllMapped(
-          RegExp(r'(\w+Extension)\|'), (match) => '${match.group(1)}::');
+          RegExp(r'(\w+Extensions?)\|'), (match) => '${match.group(1)}::');
 
       // 修复非法的C++标识符：将 # 替换为 _（但保留 #include 等预处理指令）
       // 只替换标识符中的 #，不替换 #include、#define 等预处理指令
@@ -159,6 +150,14 @@ class UnifiedCompiler {
       // 5. 写入文件
       if (config.outputPath != null) {
         await File(config.outputPath!).writeAsString(finalCppCode);
+        
+        // 生成头文件
+        final headerOutputPath = config.outputPath!.replaceAll('.cpp', '.h');
+        if (config.verbose) {
+          print('📝 生成头文件: $headerOutputPath');
+        }
+        final headerCode = transformer.generateHeaderContent(inputPath);
+        await File(headerOutputPath).writeAsString(headerCode);
       }
 
       stopwatch.stop();

@@ -77,7 +77,7 @@ public:
         return Bool(*state_ != FutureState::PENDING);
     }
     
-    /// then 操作 - 链式调用
+    /// then 操作 - 链式调用（优化版：支持Lambda和函数对象）
     template<typename R, typename CallbackFunc>
     ObjectPtr<Future<R>> then(ObjectPtr<TypedFunction<CallbackFunc, R, T>> callback) {
         ObjectPtr<Future<R>> resultFuture(new Future<R>());
@@ -87,6 +87,24 @@ public:
             try {
                 T value = this->wait();
                 R result = (*callback)(value);
+                resultFuture->_complete(result);
+            } catch (...) {
+                resultFuture->_completeError(std::current_exception());
+            }
+        }).detach();
+        
+        return resultFuture;
+    }
+    
+    /// then 操作重载 - 直接接受Lambda表达式
+    template<typename R>
+    ObjectPtr<Future<R>> then(std::function<R(T)> callback) {
+        ObjectPtr<Future<R>> resultFuture(new Future<R>());
+        
+        std::thread([this, callback, resultFuture]() {
+            try {
+                T value = this->wait();
+                R result = callback(value);
                 resultFuture->_complete(result);
             } catch (...) {
                 resultFuture->_completeError(std::current_exception());
@@ -113,6 +131,51 @@ public:
                     resultFuture->_completeError(std::current_exception());
                 }
             } catch (...) {
+                resultFuture->_completeError(std::current_exception());
+            }
+        }).detach();
+        
+        return resultFuture;
+    }
+    
+    /// catchError 操作重载 - 直接接受Lambda表达式
+    ObjectPtr<Future<T>> catchError(std::function<T(const std::exception&)> errorHandler) {
+        ObjectPtr<Future<T>> resultFuture(new Future<T>());
+        
+        std::thread([this, errorHandler, resultFuture]() {
+            try {
+                T value = this->wait();
+                resultFuture->_complete(value);
+            } catch (const std::exception& e) {
+                try {
+                    T recoveredValue = errorHandler(e);
+                    resultFuture->_complete(recoveredValue);
+                } catch (...) {
+                    resultFuture->_completeError(std::current_exception());
+                }
+            } catch (...) {
+                resultFuture->_completeError(std::current_exception());
+            }
+        }).detach();
+        
+        return resultFuture;
+    }
+    
+    /// whenComplete 操作 - 无论成功失败都执行
+    ObjectPtr<Future<T>> whenComplete(std::function<void()> action) {
+        ObjectPtr<Future<T>> resultFuture(new Future<T>());
+        
+        std::thread([this, action, resultFuture]() {
+            try {
+                T value = this->wait();
+                action();
+                resultFuture->_complete(value);
+            } catch (...) {
+                try {
+                    action();
+                } catch (...) {
+                    // 忽略action中的异常
+                }
                 resultFuture->_completeError(std::current_exception());
             }
         }).detach();

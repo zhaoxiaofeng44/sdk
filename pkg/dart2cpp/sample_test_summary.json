@@ -1,0 +1,1454 @@
+{
+  "test_results": [
+    {
+      "file": "sample/dart/advanced_features.dart",
+      "filename": "advanced_features",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/advanced_features.cpp:101:68: error: no member named 'x' in 'Object'
+    return dart_is<ObjectPtr<Vector>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                            ~~~~~~~^
+sample/cpp_generated/advanced_features.cpp:101:93: error: no member named 'y' in 'Object'
+    return dart_is<ObjectPtr<Vector>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                                                     ~~~~~~~^
+sample/cpp_generated/advanced_features.cpp:167:10: error: no viable conversion from 'Double' to 'const Int'
+row->add(this->data->operator_index(i)->operator_index(j)->operator_add(other->data->operator_index(i)->operator_index(j)));
+         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:268:3: note: candidate constructor not viable: no known conversion from 'Double' to 'int' for 1st argument
+  Int(int v);
+  ^
+cpp/core/dart_object.h:269:3: note: candidate constructor not viable: no known conversion from 'Double' to 'const Int &' for 1st argument
+  Int(const Int& other);
+  ^
+cpp/core/dart_object.h:270:12: note: explicit constructor is not a candidate
+  explicit Int(const Any& any);
+           ^
+cpp/core/dart_object.h:271:12: note: explicit constructor is not a candidate
+  explicit Int(const Nullable&);  // NULL 构造函数
+           ^
+cpp/core/dart_object.h:1121:21: note: passing argument to parameter 'item' here
+  void add(const T& item);
+                    ^
+sample/cpp_generated/advanced_features.cpp:169:13: error: no viable conversion from 'ObjectPtr<List<Int>>' to 'const Int'
+result->add(row);
+            ^~~
+cpp/core/dart_object.h:268:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'int' for 1st argument
+  Int(int v);
+  ^
+cpp/core/dart_object.h:269:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'const Int &' for 1st argument
+  Int(const Int& other);
+  ^
+cpp/core/dart_object.h:270:12: note: explicit constructor is not a candidate
+  explicit Int(const Any& any);
+           ^
+cpp/core/dart_object.h:271:12: note: explicit constructor is not a candidate
+  explicit Int(const Nullable&);  // NULL 构造函数
+           ^
+cpp/core/dart_object.h:1121:21: note: passing argument to parameter 'item' here
+  void add(const T& item);
+                    ^
+sample/cpp_generated/advanced_features.cpp:171:30: error: no matching constructor for initialization of 'Matrix'
+return ObjectPtr<Matrix>(new Matrix(result));
+                             ^      ~~~~~~
+sample/cpp_generated/advanced_features.cpp:156:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'const Matrix' for 1st argument
+class Matrix {
+      ^
+sample/cpp_generated/advanced_features.cpp:156:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'Matrix' for 1st argument
+class Matrix {
+      ^
+sample/cpp_generated/advanced_features.cpp:159:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<List<Int>>' to 'ObjectPtr<List<ObjectPtr<List<Double>>>>' for 1st argument
+  Matrix(ObjectPtr<List<ObjectPtr<List<Double>>>> data) : data(data) {
+  ^
+sample/cpp_generated/advanced_features.cpp:188:30: error: unknown template name 'Comparable'
+class Point : virtual public Comparable<ObjectPtr<Point>> {
+                             ^
+sample/cpp_generated/advanced_features.cpp:218:67: error: no member named 'x' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                           ~~~~~~~^
+sample/cpp_generated/advanced_features.cpp:218:92: error: no member named 'y' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                                                    ~~~~~~~^
+sample/cpp_generated/advanced_features.cpp:273:74: error: no matching function for call to 'create'
+    dart_print(dart_string(\"    验证密码: \") + (password->replaceAll(RegExp::create(dart_string(\".\"), dart_bool(false), dart_bool(true), dart_bool(false), dart_bool(false)), dart_string(\"*\"))).toString());
+                                                                     ^~~~~~~~~~~~~~
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+cpp/core/dart_object.h:1397:28: note: candidate function not viable: requires at most 4 arguments, but 5 were provided
+  static ObjectPtr<RegExp> create(const String& pattern, bool caseSensitive, bool multiLine = false, bool dotAll = false);
+                           ^
+cpp/core/dart_object.h:1396:28: note: candidate function not viable: requires single argument 'pattern', but 5 arguments were provided
+  static ObjectPtr<RegExp> create(const String& pattern);
+                           ^
+sample/cpp_generated/advanced_features.cpp:317:11: error: redefinition of 'StringExtensions' as different kind of symbol
+namespace StringExtensions {
+          ^
+cpp/core/object_extensions.h:116:7: note: previous definition is here
+class StringExtensions {
+      ^
+sample/cpp_generated/advanced_features.cpp:318:33: error: expected ';' after top level declarator
+  inline String StringExtensions|capitalize(const String& self, String _this) {
+                                ^
+                                ;
+sample/cpp_generated/advanced_features.cpp:345:27: error: expected ';' after top level declarator
+  inline Int IntExtensions|factorial(const Int& self, Int _this) {
+                          ^
+                          ;
+sample/cpp_generated/advanced_features.cpp:381:10: error: unknown type name 'T'
+  inline T ListExtensions|secondOrNull(const ObjectPtr<List<T>>& self, ObjectPtr<List<T>> _this) {
+         ^
+sample/cpp_generated/advanced_features.cpp:381:26: error: expected ';' after top level declarator
+  inline T ListExtensions|secondOrNull(const ObjectPtr<List<T>>& self, ObjectPtr<List<T>> _this) {
+                         ^
+                         ;
+sample/cpp_generated/advanced_features.cpp:403:33: error: expected ';' after top level declarator
+  inline Bool DateTimeExtensions|isToday(const ObjectPtr<DateTime>& self, ObjectPtr<DateTime> _this) {
+                                ^
+                                ;
+sample/cpp_generated/advanced_features.cpp:431:10: error: unknown type name 'R'
+  inline R LetExtension::let(const T& self, T _this, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+         ^
+sample/cpp_generated/advanced_features.cpp:431:36: error: unknown type name 'T'
+  inline R LetExtension::let(const T& self, T _this, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+                                   ^
+sample/cpp_generated/advanced_features.cpp:431:45: error: unknown type name 'T'
+  inline R LetExtension::let(const T& self, T _this, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+                                            ^
+sample/cpp_generated/advanced_features.cpp:431:94: error: use of undeclared identifier 'T'
+  inline R LetExtension::let(const T& self, T _this, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+                                                                                             ^
+sample/cpp_generated/advanced_features.cpp:431:26: warning: extra qualification on member 'let' [-Wextra-qualification]
+  inline R LetExtension::let(const T& self, T _this, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+                         ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+1 warning and 20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/async_programming.dart",
+      "filename": "async_programming",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/async_programming.cpp:26:22: error: no matching function for call to 'delayed'
+auto delayedFuture = Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string(\"延迟完成\"); }));
+                     ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'String'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:29:12: error: no matching function for call to 'delayed'
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string(\"  then: 延迟操作完成\")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string(\"  catchError: \") + (error).toString()); })));
+           ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_macros.h:115:34: note: expanded from macro 'DART_AWAIT'
+#define DART_AWAIT(future_expr) (future_expr)->wait()
+                                 ^~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'ObjectPtr<TypedFunction<type-parameter-0-0, Any>>' against 'std::nullptr_t'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:29:195: error: expected expression
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string(\"  then: 延迟操作完成\")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string(\"  catchError: \") + (error).toString()); })));
+                                                                                                                                                                                                  ^
+cpp/core/object_extensions.h:82:3: note: expanded from macro 'dart_print'
+  do {                                                                         \
+  ^
+In file included from sample/cpp_generated/async_programming.cpp:1:
+In file included from cpp/core/dart2cpp.h:40:
+cpp/core/dart_async.h:101:48: error: argument may not have 'void' type
+    ObjectPtr<Future<R>> then(std::function<R(T)> callback) {
+                                               ^
+sample/cpp_generated/async_programming.cpp:29:253: note: in instantiation of template class 'Future<void>' requested here
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string(\"  then: 延迟操作完成\")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string(\"  catchError: \") + (error).toString()); })));
+                                                                                                                                                                                                                                                      ^
+In file included from sample/cpp_generated/async_programming.cpp:1:
+In file included from cpp/core/dart2cpp.h:40:
+cpp/core/dart_async.h:206:41: error: argument may not have 'void' type
+    static ObjectPtr<Future<T>> value(T val) {
+                                        ^
+cpp/core/dart_async.h:276:22: error: argument may not have 'void' type
+    void _complete(T value) {
+                     ^
+sample/cpp_generated/async_programming.cpp:29:303: error: expected expression
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string(\"  then: 延迟操作完成\")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string(\"  catchError: \") + (error).toString()); })));
+                                                                                                                                                                                                                                                                                                        ^
+cpp/core/object_extensions.h:82:3: note: expanded from macro 'dart_print'
+  do {                                                                         \
+  ^
+sample/cpp_generated/async_programming.cpp:29:255: error: no matching member function for call to 'catchError'
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string(\"  then: 延迟操作完成\")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string(\"  catchError: \") + (error).toString()); })));
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_macros.h:115:34: note: expanded from macro 'DART_AWAIT'
+#define DART_AWAIT(future_expr) (future_expr)->wait()
+                                 ^~~~~~~~~~~
+cpp/core/dart_async.h:142:26: note: candidate function not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/async_programming.cpp:29:1), void, Any>>' to 'std::function<void (const std::exception &)>' for 1st argument
+    ObjectPtr<Future<T>> catchError(std::function<T(const std::exception&)> errorHandler) {
+                         ^
+cpp/core/dart_async.h:119:26: note: candidate template ignored: could not match 'const std::exception &' against 'Any'
+    ObjectPtr<Future<T>> catchError(ObjectPtr<TypedFunction<ErrorHandlerFunc, T, const std::exception&>> errorHandler) {
+                         ^
+sample/cpp_generated/async_programming.cpp:30:19: error: no matching function for call to 'sync'
+auto syncFuture = Future<Any>::sync(makeFunction([&]() { return dart_int(42); }));
+                  ^~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:214:33: note: candidate template ignored: could not match 'Any' against 'Int'
+    static ObjectPtr<Future<T>> sync(ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:33:18: error: 'Completer' is not a class, namespace, or enumeration
+auto completer = Completer::create();
+                 ^
+cpp/core/dart_async.h:301:7: note: 'Completer' declared here
+class Completer : public Object {
+      ^
+sample/cpp_generated/async_programming.cpp:37:22: error: no matching function for call to 'delayed'
+auto pendingFuture = Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(123); }));
+                     ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'Int'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:59:34: error: use of class template 'List' requires template arguments
+auto results = DART_AWAIT(Future<List>::wait(futures, dart_bool(false), nullptr));
+                                 ^
+cpp/core/dart_object.h:1091:7: note: template is declared here
+class List : public Object {
+      ^
+sample/cpp_generated/async_programming.cpp:70:35: error: no matching function for call to 'delayed'
+auto numberFutures = dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(1); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(150), dart_int(0))), makeFunction([&]() { return dart_int(2); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(80), dart_int(0))), makeFunction([&]() { return dart_int(3); })));
+                                  ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'Int'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:70:217: error: no matching function for call to 'delayed'
+auto numberFutures = dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(1); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(150), dart_int(0))), makeFunction([&]() { return dart_int(2); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(80), dart_int(0))), makeFunction([&]() { return dart_int(3); })));
+                                                                                                                                                                                                                        ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'Int'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:70:399: error: no matching function for call to 'delayed'
+auto numberFutures = dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(1); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(150), dart_int(0))), makeFunction([&]() { return dart_int(2); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(80), dart_int(0))), makeFunction([&]() { return dart_int(3); })));
+                                                                                                                                                                                                                                                                                                                                                                                                              ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'Int'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:71:34: error: use of class template 'List' requires template arguments
+auto numbers = DART_AWAIT(Future<List>::wait(numberFutures, dart_bool(false), nullptr));
+                                 ^
+cpp/core/dart_object.h:1091:7: note: template is declared here
+class List : public Object {
+      ^
+sample/cpp_generated/async_programming.cpp:73:48: error: no matching function for call to 'delayed'
+auto anyResult = Future<Any>::any(dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(200), dart_int(0))), makeFunction([&]() { return dart_string(\"慢的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string(\"快的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(300), dart_int(0))), makeFunction([&]() { return dart_string(\"最慢的\"); }))));
+                                               ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'String'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:73:240: error: no matching function for call to 'delayed'
+auto anyResult = Future<Any>::any(dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(200), dart_int(0))), makeFunction([&]() { return dart_string(\"慢的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string(\"快的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(300), dart_int(0))), makeFunction([&]() { return dart_string(\"最慢的\"); }))));
+                                                                                                                                                                                                                                             ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'String'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+sample/cpp_generated/async_programming.cpp:73:432: error: no matching function for call to 'delayed'
+auto anyResult = Future<Any>::any(dart_literal(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(200), dart_int(0))), makeFunction([&]() { return dart_string(\"慢的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string(\"快的\"); })), Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(300), dart_int(0))), makeFunction([&]() { return dart_string(\"最慢的\"); }))));
+                                                                                                                                                                                                                                                                                                                                                                                                                                           ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_async.h:188:33: note: candidate template ignored: could not match 'Any' against 'String'
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+                                ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/basic_syntax.dart",
+      "filename": "basic_syntax",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "failed",
+      "execution_error": "🔥 基础语法测试开始
+
+📌 测试基本数据类型
+AnyAnyAnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  插值: The answer is 42
+  表达式: Sum: 45.1416
+  多行字符串长度: 38
+
+📌 测试变量声明
+AnyAnyAnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+  const: compile time constant, 3.14159, 100
+AnyAnyAnyAnyAnyAny
+  non-null: default
+
+📌 测试运算符
+  算术运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+  比较运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+  逻辑运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  位运算:
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  赋值运算: c += 2 结果: 7
+  赋值运算: c -= 1 结果: 6
+  赋值运算: c *= 3 结果: 18
+  赋值运算: c ~/= 2 结果: 9
+  三元运算符: a is greater
+  空值合并: default value
+
+📌 测试控制流
+  if-else 测试:
+    成绩: 良好
+  switch-case 测试:
+    等级: 良好
+  for 循环测试:
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAny
+  for-in 循环测试:
+    水果: apple
+    水果: banana
+    水果: orange
+  while 循环测试:
+    计数: 0
+    计数: 1
+    计数: 2
+  do-while 循环测试:
+    数字: 0
+    数字: 1
+    数字: 2
+  break 和 continue 测试:
+    处理: 0
+    处理: 1
+
+📌 测试字符串操作
+  连接: Hello World
+  插值: The answer is 42
+  表达式插值: Sum: 30
+  字符串属性:
+    长度: 5
+    是否为空: true
+    是否不为空: true
+  字符串方法:
+    大写: HELLO
+    小写: world
+AnyAnyAny
+    子字符串: Hell
+    包含: true
+    开始于: true
+    结束于: true
+    索引: 2
+    替换: HeLLo
+    分割: [, ]
+  字符串比较:
+    相等: true
+    比较: -1
+  多行字符串行数: 4
+
+📌 测试函数
+  加法函数: add(5, 3) = 8"
+    }
+    ,
+    {
+      "file": "sample/dart/closure_capture_test.dart",
+      "filename": "closure_capture_test",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/closure_capture_test.cpp:16:12: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:16:25), Int, Int>>' to function return type 'ObjectPtr<Function>'
+    return makeFunction([&](Int x) { return this->base->operator_add(x); });
+           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:916:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:16:25), Int, Int>>' to 'Function *' for 1st argument
+  ObjectPtr(T* ptr);
+  ^
+cpp/core/dart_object.h:917:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:16:25), Int, Int>>' to 'const ObjectPtr<Function> &' for 1st argument
+  ObjectPtr(const ObjectPtr<T>& other);
+  ^
+cpp/core/dart_object.h:918:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:16:25), Int, Int>>' to 'ObjectPtr<Function> &&' for 1st argument
+  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  ^
+sample/cpp_generated/closure_capture_test.cpp:49:19: error: no member named 'call' in 'Function'
+dart_print(adder->call(dart_int(23)));
+           ~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/closure_capture_test.cpp:56:29: error: indirection requires pointer operand ('Int' invalid)
+for (auto i = dart_int(0); (*i)->operator_less(dart_int(3)); (*i) = (*i)->operator_add(dart_int(1))) {
+                            ^~
+sample/cpp_generated/closure_capture_test.cpp:56:63: error: indirection requires pointer operand ('Int' invalid)
+for (auto i = dart_int(0); (*i)->operator_less(dart_int(3)); (*i) = (*i)->operator_add(dart_int(1))) {
+                                                              ^~
+sample/cpp_generated/closure_capture_test.cpp:56:70: error: indirection requires pointer operand ('Int' invalid)
+for (auto i = dart_int(0); (*i)->operator_less(dart_int(3)); (*i) = (*i)->operator_add(dart_int(1))) {
+                                                                     ^~
+sample/cpp_generated/closure_capture_test.cpp:57:56: error: indirection requires pointer operand ('Int' invalid)
+functions->add(makeFunction([&, i]() mutable { return (*i); }));
+                                                       ^~
+In file included from sample/cpp_generated/closure_capture_test.cpp:1:
+In file included from cpp/core/dart2cpp.h:13:
+cpp/core/dart_object.h:1039:41: error: no type named 'args_tuple' in 'lambda_traits<(lambda at sample/cpp_generated/closure_capture_test.cpp:57:29)>'
+    using args_tuple = typename traits::args_tuple;
+                       ~~~~~~~~~~~~~~~~~^~~~~~~~~~
+sample/cpp_generated/closure_capture_test.cpp:57:16: note: in instantiation of function template specialization 'makeFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:57:29)>' requested here
+functions->add(makeFunction([&, i]() mutable { return (*i); }));
+               ^
+In file included from sample/cpp_generated/closure_capture_test.cpp:1:
+In file included from cpp/core/dart2cpp.h:13:
+cpp/core/dart_object.h:1042:12: error: no matching function for call to 'makeFunctionHelper'
+    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{});
+           ^~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:1059:6: note: candidate template ignored: could not match 'tuple<type-parameter-0-1...>' against 'int'
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
+     ^
+cpp/core/dart_object.h:1068:6: note: candidate function template not viable: requires 3 arguments, but 2 were provided
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>, const std::vector<Any>& captured_vars) {
+     ^
+sample/cpp_generated/closure_capture_test.cpp:62:15: error: no member named 'call' in 'Int'
+dart_print(f->call());
+           ~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+9 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/closure_value_boxing_test.dart",
+      "filename": "closure_value_boxing_test",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "Test 1: Basic Value Type Boxing
+Before: 10
+After: 11
+Test 2: Parameter Boxing
+1
+2
+3
+Test 3: Local Variable Boxing
+Count: 1
+Count: 2
+Count: 3
+Test 4: Mixed Boxing
+30
+36"
+    }
+    ,
+    {
+      "file": "sample/dart/collections.dart",
+      "filename": "collections",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/collections.cpp:84:24: error: expected unqualified-id
+auto union_ = numbers->union(otherNumbers);
+                       ^
+sample/cpp_generated/collections.cpp:127:54: error: no member named 'get_keys' in 'Map<String, Int>'
+dart_print(dart_string(\"    键集合: \") + (scores->get_keys()).toString());
+                                          ~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/collections.cpp:128:54: error: no member named 'get_values' in 'Map<String, Int>'
+dart_print(dart_string(\"    值集合: \") + (scores->get_values()).toString());
+                                          ~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/collections.cpp:129:54: error: no member named 'get_entries' in 'Map<String, Int>'
+dart_print(dart_string(\"    键值对: \") + (scores->get_entries()).toString());
+                                          ~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/collections.cpp:132:91: error: use of undeclared identifier 'MapEntry'
+auto bonusScores = scores->map(makeFunction([&](String key, Int value) { return ObjectPtr<MapEntry<String, Int>>(new MapEntry<String, Int>(key, value->operator_add(dart_int(5)))); }));
+                                                                                          ^
+sample/cpp_generated/collections.cpp:132:118: error: no template named 'MapEntry'
+auto bonusScores = scores->map(makeFunction([&](String key, Int value) { return ObjectPtr<MapEntry<String, Int>>(new MapEntry<String, Int>(key, value->operator_add(dart_int(5)))); }));
+                                                                                                                     ^
+sample/cpp_generated/collections.cpp:132:28: error: no member named 'map' in 'Map<String, Int>'
+auto bonusScores = scores->map(makeFunction([&](String key, Int value) { return ObjectPtr<MapEntry<String, Int>>(new MapEntry<String, Int>(key, value->operator_add(dart_int(5)))); }));
+                   ~~~~~~~~^
+sample/cpp_generated/collections.cpp:162:25: error: no member named 'any' in 'List<Int>'
+auto hasEven = numbers->any(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+               ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:163:29: error: no member named 'any' in 'List<Int>'
+auto hasNegative = numbers->any(makeFunction([&](Int n) { return n->operator_less(dart_int(0)); }));
+                   ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:167:29: error: no member named 'every' in 'List<Int>'
+auto allPositive = numbers->every(makeFunction([&](Int n) { return n->operator_greater(dart_int(0)); }));
+                   ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:168:25: error: no member named 'every' in 'List<Int>'
+auto allEven = numbers->every(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+               ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:172:27: error: no member named 'firstWhere' in 'List<Int>'
+auto firstEven = numbers->firstWhere(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+                 ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:173:25: error: no member named 'lastWhere' in 'List<Int>'
+auto lastOdd = numbers->lastWhere(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(1)); }));
+               ~~~~~~~~~^
+sample/cpp_generated/collections.cpp:184:70: error: no member named 'expand' in 'List<Int>'
+auto expanded = dart_literal(dart_int(1), dart_int(2), dart_int(3))->expand(makeFunction([&](Int n) { return dart_literal(n, n->operator_mul(dart_int(10))); }))->toList();
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/collections.cpp:185:72: error: no member named 'expand' in 'List<String>'
+auto words = dart_literal(dart_string(\"hello\"), dart_string(\"world\"))->expand(makeFunction([&](String word) { return word->split(dart_string(\"\")); }))->toList();
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/collections.cpp:219:51: error: 'List' is not a class, namespace, or enumeration
+auto combined = ([&]() { const auto unnamed_var = List::of(list1, dart_bool(true)); unnamed_var->addAll(list2); return unnamed_var; })();
+                                                  ^
+cpp/core/dart_object.h:1091:7: note: 'List' declared here
+class List : public Object {
+      ^
+sample/cpp_generated/collections.cpp:219:6: error: variable has incomplete type 'void'
+auto combined = ([&]() { const auto unnamed_var = List::of(list1, dart_bool(true)); unnamed_var->addAll(list2); return unnamed_var; })();
+     ^
+sample/cpp_generated/collections.cpp:235:54: error: use of undeclared identifier 'LinkedHashSet'
+auto combinedSet = ([&]() { const auto unnamed_var = LinkedHashSet::of(set1); unnamed_var->addAll(set2); return unnamed_var; })();
+                                                     ^
+sample/cpp_generated/collections.cpp:235:6: error: variable has incomplete type 'void'
+auto combinedSet = ([&]() { const auto unnamed_var = LinkedHashSet::of(set1); unnamed_var->addAll(set2); return unnamed_var; })();
+     ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/constants.dart",
+      "filename": "constants",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/constants.cpp:19:3: error: constructor cannot be redeclared
+  Point() : x(dart_double(1.0)), y(dart_double(0.0)) {
+  ^
+sample/cpp_generated/constants.cpp:16:3: note: previous definition is here
+  Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
+  ^
+sample/cpp_generated/constants.cpp:22:3: error: constructor cannot be redeclared
+  Point() : x(dart_double(0.0)), y(dart_double(1.0)) {
+  ^
+sample/cpp_generated/constants.cpp:16:3: note: previous definition is here
+  Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
+  ^
+sample/cpp_generated/constants.cpp:30:67: error: no member named 'x' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                           ~~~~~~~^
+sample/cpp_generated/constants.cpp:30:92: error: no member named 'y' in 'Object'
+    return dart_is<ObjectPtr<Point>>(other) && (this->x == other->x) && (this->y == other->y);
+                                                                                    ~~~~~~~^
+sample/cpp_generated/constants.cpp:91:18: error: no member named 'get_width' in 'Rectangle'
+    return this->get_width()->operator_mul(this->get_height());
+           ~~~~  ^
+sample/cpp_generated/constants.cpp:91:50: error: no member named 'get_height' in 'Rectangle'
+    return this->get_width()->operator_mul(this->get_height());
+                                           ~~~~  ^
+sample/cpp_generated/constants.cpp:166:54: error: no member named 'createConst' in 'ObjectPtr<Duration>'
+  ObjectPtr<Duration> TIMEOUT = ObjectPtr<Duration>::createConst();
+                                ~~~~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/constants.cpp:195:59: error: no member named 'createConst' in 'List<String>'
+  ObjectPtr<List<String>> SUPPORTED_TYPES = List<String>::createConst({dart_string(\".dart\"), dart_string(\".cpp\"), dart_string(\".h\"), dart_string(\".txt\"), dart_string(\".json\")});
+                                            ~~~~~~~~~~~~~~^
+sample/cpp_generated/constants.cpp:196:68: error: no member named 'createConst' in 'Map<String, String>'
+  ObjectPtr<Map<String, String>> MIME_TYPES = Map<String, String>::createConst();
+                                              ~~~~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/constants.cpp:208:68: error: no member named 'createConst' in 'Map<String, Any>'
+  ObjectPtr<Map<String, Any>> DEFAULT_SETTINGS = Map<String, Any>::createConst();
+                                                 ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/constants.cpp:209:60: error: no member named 'createConst' in 'List<String>'
+  ObjectPtr<List<String>> AVAILABLE_THEMES = List<String>::createConst({dart_string(\"light\"), dart_string(\"dark\"), dart_string(\"high-contrast\")});
+                                             ~~~~~~~~~~~~~~^
+sample/cpp_generated/constants.cpp:220:32: warning: extra qualification on member 'sqrt' [-Wextra-qualification]
+  inline Double MathExtension::sqrt(const Double& self, Double _this) {
+                               ^
+sample/cpp_generated/constants.cpp:220:32: error: out-of-line definition of 'sqrt' does not match any declaration in namespace 'MathExtension'
+  inline Double MathExtension::sqrt(const Double& self, Double _this) {
+                               ^~~~
+sample/cpp_generated/constants.cpp:221:9: error: use of undeclared identifier 'this_'
+    if (this_->operator_less(dart_int(0))) {
+        ^
+sample/cpp_generated/constants.cpp:224:10: error: use of undeclared identifier 'this_'; did you mean '_this'?
+auto x = this_;
+         ^~~~~
+         _this
+sample/cpp_generated/constants.cpp:220:64: note: '_this' declared here
+  inline Double MathExtension::sqrt(const Double& self, Double _this) {
+                                                               ^
+sample/cpp_generated/constants.cpp:228:21: error: use of undeclared identifier 'this_'; did you mean '_this'?
+x = x->operator_add(this_->operator_div(x))->operator_div(dart_double(2.0));
+                    ^~~~~
+                    _this
+sample/cpp_generated/constants.cpp:220:64: note: '_this' declared here
+  inline Double MathExtension::sqrt(const Double& self, Double _this) {
+                                                               ^
+sample/cpp_generated/constants.cpp:240:23: error: out-of-line declaration of 'sqrt' does not match any declaration in namespace 'MathExtension'
+Double MathExtension::sqrt(Double _this);
+                      ^~~~
+cpp/core/dart_helpers.h:99:30: note: type of 1st parameter of member declaration does not match definition ('const Double &' vs 'Double')
+    inline Double sqrt(const Double& value) {
+                             ^
+sample/cpp_generated/constants.cpp:241:74: error: out-of-line declaration of 'get_sqrt' does not match any declaration in namespace 'MathExtension'
+ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
+                                                                         ^~~~~~~~
+sample/cpp_generated/constants.cpp:260:88: error: no member named 'get_millisecondsSinceEpoch' in 'DateTime'; did you mean 'millisecondsSinceEpoch'?
+const auto runTime = dart_string(\"Run Time: \") + (ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()).toString();
+                                                                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+                                                                                       millisecondsSinceEpoch
+cpp/core/dart_helpers.h:197:9: note: 'millisecondsSinceEpoch' declared here
+    Int millisecondsSinceEpoch() const {
+        ^
+sample/cpp_generated/constants.cpp:275:57: error: no member named 'createConst' in 'List<Int>'
+dart_print(dart_string(\"    constList: \") + (List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})).toString());
+                                             ~~~~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+1 warning and 20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/edge_cases.dart",
+      "filename": "edge_cases",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/edge_cases.cpp:53:25: warning: integer literal is too large to be represented in a signed integer type, interpreting as unsigned [-Wimplicitly-unsigned-literal]
+auto minInt = dart_int(-9223372036854775808);
+                        ^
+sample/cpp_generated/edge_cases.cpp:52:24: warning: implicit conversion from 'long' to 'int' changes value from 9223372036854775807 to -1 [-Wconstant-conversion]
+auto maxInt = dart_int(9223372036854775807);
+              ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_macros.h:22:29: note: expanded from macro 'dart_int'
+#define dart_int(value) Int(value)
+                        ~~~ ^~~~~
+sample/cpp_generated/edge_cases.cpp:53:24: warning: implicit conversion from 'unsigned long long' to 'int' changes value from 9223372036854775808 to 0 [-Wconstant-conversion]
+auto minInt = dart_int(-9223372036854775808);
+              ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_macros.h:22:29: note: expanded from macro 'dart_int'
+#define dart_int(value) Int(value)
+                        ~~~ ^~~~~
+sample/cpp_generated/edge_cases.cpp:124:37: error: no member named 'operator_mul' in 'String'
+auto longString = dart_string(\"a\")->operator_mul(dart_int(1000));
+                  ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/edge_cases.cpp:182:55: error: no member named 'toSet' in 'List<Int>'
+dart_print(dart_string(\"    去重: \") + (duplicates->toSet()->toList()).toString());
+                                        ~~~~~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/edge_cases.cpp:202:57: error: no member named 'get_keys' in 'Map<String, Int>'
+dart_print(dart_string(\"    键集合: \") + (singleMap->get_keys()).toString());
+                                          ~~~~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/edge_cases.cpp:203:57: error: no member named 'get_values' in 'Map<String, Int>'
+dart_print(dart_string(\"    值集合: \") + (singleMap->get_values()).toString());
+                                          ~~~~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/edge_cases.cpp:215:64: error: expected unqualified-id
+dart_print(dart_string(\"    非空与空的并集: \") + (set1->union(set2)).toString());
+                                                        ^
+sample/cpp_generated/edge_cases.cpp:234:15: error: no matching conversion for functional-style cast from 'ObjectPtr<ObjectPtr<List<Int>>>' to 'decltype(dart_literal(Int(0)))' (aka 'ObjectPtr<List<Int>>')
+auto value3 = dart_null_coalesce(nullList, dart_literal(dart_int(0)));
+              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:916:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<ObjectPtr<List<Int>>>' to 'List<Int> *' for 1st argument
+  ObjectPtr(T* ptr);
+  ^
+cpp/core/dart_object.h:917:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<ObjectPtr<List<Int>>>' to 'const ObjectPtr<List<Int>>' for 1st argument
+  ObjectPtr(const ObjectPtr<T>& other);
+  ^
+cpp/core/dart_object.h:918:3: note: candidate constructor not viable: no known conversion from 'ObjectPtr<ObjectPtr<List<Int>>>' to 'ObjectPtr<List<Int>>' for 1st argument
+  ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  ^
+cpp/core/dart_object.h:915:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  ObjectPtr();
+  ^
+sample/cpp_generated/edge_cases.cpp:241:37: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string(\"    testInt ??= 42: \") + (testInt).toString());
+                                    ^
+sample/cpp_generated/edge_cases.cpp:243:37: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string(\"    testInt ??= 100: \") + (testInt).toString());
+                                    ^
+sample/cpp_generated/edge_cases.cpp:245:16: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+auto length1 = dart_null_coalesce(name, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+cpp/core/dart_object.h:177:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+sample/cpp_generated/edge_cases.cpp:249:16: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+auto length2 = dart_null_coalesce(name, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'String' to 'Nullable' for 1st argument
+cpp/core/dart_object.h:177:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+In file included from sample/cpp_generated/edge_cases.cpp:1:
+In file included from cpp/core/dart2cpp.h:45:
+cpp/core/object_extensions.h:46:21: error: no member named 'isNull' in 'Person'
+        return obj->isNull();
+               ~~~~~^
+sample/cpp_generated/edge_cases.cpp:252:57: note: in instantiation of function template specialization 'dart_is_null<ObjectPtr<Person>>' requested here
+auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                        ^
+sample/cpp_generated/edge_cases.cpp:252:112: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                                                               ^
+sample/cpp_generated/edge_cases.cpp:252:79: error: right operand to ? is void, but left operand is of type 'Nullable'
+auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                              ^ ~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sample/cpp_generated/edge_cases.cpp:254:8: error: no viable overloaded '='
+person = Null;
+~~~~~~ ^ ~~~~
+cpp/core/dart_object.h:924:17: note: candidate function not viable: no known conversion from 'Nullable' to 'const ObjectPtr<Person>' for 1st argument
+  ObjectPtr<T>& operator=(const ObjectPtr<T>& other);
+                ^
+cpp/core/dart_object.h:925:17: note: candidate function not viable: no known conversion from 'Nullable' to 'ObjectPtr<Person>' for 1st argument
+  ObjectPtr<T>& operator=(ObjectPtr<T>&& other) noexcept;
+                ^
+cpp/core/dart_object.h:926:17: note: candidate function not viable: no known conversion from 'Nullable' to 'Person *' for 1st argument
+  ObjectPtr<T>& operator=(T* ptr);
+                ^
+sample/cpp_generated/edge_cases.cpp:255:57: error: no matching function for call to 'dart_is_null'
+auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                        ^~~~~~~~~~~~
+cpp/core/object_extensions.h:43:16: note: candidate template ignored: substitution failure [with T = ObjectPtr<Person>]
+constexpr bool dart_is_null(const T& obj) {
+               ^
+sample/cpp_generated/edge_cases.cpp:255:112: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                                                               ^
+sample/cpp_generated/edge_cases.cpp:255:79: error: right operand to ? is void, but left operand is of type 'Nullable'
+auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                              ^ ~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sample/cpp_generated/edge_cases.cpp:299:111: error: no member named 'get_runtimeType' in 'Int'
+dart_print(dart_concat(dart_string(\"    大整数 + 1: \"), (sum).toString(), dart_string(\" (类型: \"), (sum->get_runtimeType()).toString(), dart_string(\")\")));
+                                                                                                    ~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/edge_cases.cpp:295:25: warning: implicit conversion from 'long' to 'int' changes value from 9223372036854775807 to -1 [-Wconstant-conversion]
+auto bigInt1 = dart_int(9223372036854775807);
+               ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_macros.h:22:29: note: expanded from macro 'dart_int'
+#define dart_int(value) Int(value)
+                        ~~~ ^~~~~
+sample/cpp_generated/edge_cases.cpp:321:19: error: expected '(' for function-style cast or type construction
+auto parsed1 = int::parse(dart_string(\"123\"), nullptr, nullptr);
+               ~~~^
+sample/cpp_generated/edge_cases.cpp:326:19: error: expected '(' for function-style cast or type construction
+auto parsed2 = int::parse(dart_string(\"\"), nullptr, nullptr);
+               ~~~^
+sample/cpp_generated/edge_cases.cpp:331:19: error: expected '(' for function-style cast or type construction
+auto parsed3 = int::parse(dart_string(\"abc\"), nullptr, nullptr);
+               ~~~^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+6 warnings and 20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/exception_handling.dart",
+      "filename": "exception_handling",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/exception_handling.cpp:86:56: error: no member named 'message' in 'DatabaseException'; did you mean 'message_'?
+    return dart_string(\"DatabaseException: \") + (this->message).toString();
+                                                       ^~~~~~~
+                                                       message_
+cpp/core/dart_object.h:634:10: note: 'message_' declared here
+  String message_;
+         ^
+sample/cpp_generated/exception_handling.cpp:99:66: error: no matching constructor for initialization of 'DatabaseException'
+  ConnectionException(String message, String host) : host(host), DatabaseException(message) {
+                                                                 ^                 ~~~~~~~
+sample/cpp_generated/exception_handling.cpp:81:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const DatabaseException' for 1st argument
+class DatabaseException : virtual public Exception {
+      ^
+sample/cpp_generated/exception_handling.cpp:81:7: note: candidate constructor (the implicit default constructor) not viable: requires 0 arguments, but 1 was provided
+sample/cpp_generated/exception_handling.cpp:103:58: error: no member named 'message' in 'ConnectionException'
+    return dart_string(\"ConnectionException: \") + (this->message).toString();
+                                                   ~~~~  ^
+sample/cpp_generated/exception_handling.cpp:115:58: error: no matching constructor for initialization of 'DatabaseException'
+  QueryException(String message, String sql) : sql(sql), DatabaseException(message) {
+                                                         ^                 ~~~~~~~
+sample/cpp_generated/exception_handling.cpp:81:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'String' to 'const DatabaseException' for 1st argument
+class DatabaseException : virtual public Exception {
+      ^
+sample/cpp_generated/exception_handling.cpp:81:7: note: candidate constructor (the implicit default constructor) not viable: requires 0 arguments, but 1 was provided
+sample/cpp_generated/exception_handling.cpp:119:53: error: no member named 'message' in 'QueryException'
+    return dart_string(\"QueryException: \") + (this->message).toString();
+                                              ~~~~  ^
+sample/cpp_generated/exception_handling.cpp:168:7: error: use of undeclared identifier 'DartException'
+throw DartException(ObjectPtr<InsufficientFundsException>(new InsufficientFundsException(dart_string(\"余额不足\"), this->balance, amount)));
+      ^
+sample/cpp_generated/exception_handling.cpp:190:7: error: use of undeclared identifier 'DartException'
+throw DartException(ObjectPtr<StateError>(new StateError(dart_string(\"文件已关闭\"))));
+      ^
+sample/cpp_generated/exception_handling.cpp:243:70: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                     ^
+sample/cpp_generated/exception_handling.cpp:243:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+sample/cpp_generated/exception_handling.cpp:243:124: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                                                                           ^
+sample/cpp_generated/exception_handling.cpp:243:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+sample/cpp_generated/exception_handling.cpp:275:6: error: definition or redeclaration of 'parse' cannot name the global scope
+int::parse(dart_string(\"not_a_number\"), nullptr, nullptr);
+   ~~^
+sample/cpp_generated/exception_handling.cpp:275:6: error: no member named 'parse' in the global namespace
+int::parse(dart_string(\"not_a_number\"), nullptr, nullptr);
+   ~~^
+sample/cpp_generated/exception_handling.cpp:361:195: error: use of undeclared identifier 'DartException'
+auto result = DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return throw DartException(Exception::create(dart_string(\"Future异常\"))); })));
+                                                                                                                                                                                                  ^
+In file included from sample/cpp_generated/exception_handling.cpp:1:
+In file included from cpp/core/dart2cpp.h:13:
+cpp/core/dart_object.h:1039:41: error: no type named 'args_tuple' in 'lambda_traits<(lambda at sample/cpp_generated/exception_handling.cpp:361:15)>'
+    using args_tuple = typename traits::args_tuple;
+                       ~~~~~~~~~~~~~~~~~^~~~~~~~~~
+sample/cpp_generated/exception_handling.cpp:361:161: note: in instantiation of function template specialization 'makeFunction<(lambda at sample/cpp_generated/exception_handling.cpp:361:15)>' requested here
+auto result = DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return throw DartException(Exception::create(dart_string(\"Future异常\"))); })));
+                                                                                                                                                                ^
+In file included from sample/cpp_generated/exception_handling.cpp:1:
+In file included from cpp/core/dart2cpp.h:13:
+cpp/core/dart_object.h:1042:12: error: no matching function for call to 'makeFunctionHelper'
+    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{});
+           ^~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:1059:6: note: candidate template ignored: could not match 'tuple<type-parameter-0-1...>' against 'int'
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
+     ^
+cpp/core/dart_object.h:1068:6: note: candidate function template not viable: requires 3 arguments, but 2 were provided
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>, const std::vector<Any>& captured_vars) {
+     ^
+sample/cpp_generated/exception_handling.cpp:371:31: error: use of undeclared identifier '_StreamIterator'
+auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
+                              ^
+sample/cpp_generated/exception_handling.cpp:371:57: error: no template named '_StreamIterator'; did you mean 'SetIterator'?
+auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
+                                                        ^~~~~~~~~~~~~~~
+                                                        SetIterator
+cpp/core/dart_object.h:871:7: note: 'SetIterator' declared here
+class SetIterator : public Object {
+      ^
+sample/cpp_generated/exception_handling.cpp:371:57: error: no matching constructor for initialization of 'SetIterator<Int>'
+auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
+                                                        ^                    ~~~~~~
+cpp/core/dart_object.h:871:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'ObjectPtr<Stream<Int>>' to 'const SetIterator<Int>' for 1st argument
+class SetIterator : public Object {
+      ^
+cpp/core/dart_object.h:871:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'ObjectPtr<Stream<Int>>' to 'SetIterator<Int>' for 1st argument
+cpp/core/dart_object.h:877:3: note: candidate constructor not viable: requires 2 arguments, but 1 was provided
+  SetIterator(typename std::unordered_set<T>::iterator begin,
+  ^
+sample/cpp_generated/exception_handling.cpp:380:9: error: use of undeclared identifier 'DartException'
+  throw DartException(Exception::create(dart_string(\"这是一个通用异常\")));
+        ^
+sample/cpp_generated/exception_handling.cpp:386:50: error: no matching constructor for initialization of 'ArgumentError'
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string(\"除数不能为零\"), nullptr)));
+                                                 ^             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:671:3: note: candidate constructor not viable: requires single argument 'message', but 2 arguments were provided
+  ArgumentError(const String& message);
+  ^
+cpp/core/dart_object.h:668:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 2 were provided
+class ArgumentError : public Exception {
+      ^
+cpp/core/dart_object.h:668:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 2 were provided
+cpp/core/dart_object.h:670:3: note: candidate constructor not viable: requires 0 arguments, but 2 were provided
+  ArgumentError();
+  ^
+sample/cpp_generated/exception_handling.cpp:393:7: error: use of undeclared identifier 'DartException'
+throw DartException(ObjectPtr<RangeError>(new RangeError(dart_string(\"索引超出范围: \") + (index).toString())));
+      ^
+sample/cpp_generated/exception_handling.cpp:399:9: error: use of undeclared identifier 'DartException'
+  throw DartException(ObjectPtr<StateError>(new StateError(dart_string(\"带堆栈跟踪的异常\"))));
+        ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+2 warnings and 20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/generics.dart",
+      "filename": "generics",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/generics.cpp:26:46: error: use of undeclared identifier 'Type'
+    return dart_concat(dart_string(\"Box<\"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(\">(\"), (this->_value).toString(), dart_string(\")\"));
+                                             ^
+sample/cpp_generated/generics.cpp:26:73: error: 'Box' does not refer to a value
+    return dart_concat(dart_string(\"Box<\"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(\">(\"), (this->_value).toString(), dart_string(\")\"));
+                                                                        ^
+sample/cpp_generated/generics.cpp:10:7: note: declared here
+class Box {
+      ^
+sample/cpp_generated/generics.cpp:26:79: error: expected expression
+    return dart_concat(dart_string(\"Box<\"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(\">(\"), (this->_value).toString(), dart_string(\")\"));
+                                                                              ^
+sample/cpp_generated/generics.cpp:26:82: error: expected expression
+    return dart_concat(dart_string(\"Box<\"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(\">(\"), (this->_value).toString(), dart_string(\")\"));
+                                                                                 ^
+sample/cpp_generated/generics.cpp:59:30: error: member initializer 'Box' does not name a non-static data member or base class
+  NumberContainer(T value) : Box(value) {
+                             ^~~~~~~~~~
+sample/cpp_generated/generics.cpp:84:13: error: use of class template 'Box' requires template arguments
+  ObjectPtr<Box> create(T value) {
+            ^
+sample/cpp_generated/generics.cpp:10:7: note: template is declared here
+class Box {
+      ^
+sample/cpp_generated/generics.cpp:141:19: error: 'List' is not a class, namespace, or enumeration
+    auto sorted = List::from(items, dart_bool(true));
+                  ^
+cpp/core/dart_object.h:1091:7: note: 'List' declared here
+class List : public Object {
+      ^
+sample/cpp_generated/generics.cpp:152:7: error: redefinition of 'Serializable'
+class Serializable {
+      ^
+cpp/core/dart_oop_extensions.h:35:11: note: previous definition is here
+interface Serializable {
+          ^
+sample/cpp_generated/generics.cpp:236:12: error: 'List' is not a class, namespace, or enumeration
+    return List::from(this->_items, dart_bool(true));
+           ^
+cpp/core/dart_object.h:1091:7: note: 'List' declared here
+class List : public Object {
+      ^
+sample/cpp_generated/generics.cpp:322:155: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                          ^
+sample/cpp_generated/generics.cpp:322:183: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                                                      ^
+sample/cpp_generated/generics.cpp:322:192: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                                                               ^
+sample/cpp_generated/generics.cpp:350:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _root = Null;
+            ^
+sample/cpp_generated/generics.cpp:370:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
+            ^
+sample/cpp_generated/generics.cpp:370:45: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
+                                            ^
+sample/cpp_generated/generics.cpp:382:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _findNode(ObjectPtr<TreeNode> node, T value) {
+            ^
+sample/cpp_generated/generics.cpp:382:43: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode> _findNode(ObjectPtr<TreeNode> node, T value) {
+                                          ^
+sample/cpp_generated/generics.cpp:372:18: error: use of undeclared identifier 'TreeNode'
+return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
+                 ^
+sample/cpp_generated/generics.cpp:372:35: error: no template named 'TreeNode'
+return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
+                                  ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test.dart",
+      "filename": "hello_test",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "🔥 Dart 基础语法测试开始
+
+--- 基本数据类型 ---
+基本类型测试完成
+
+--- 控制流 ---
+良好
+良好
+For 循环:
+数字: 0
+数字: 1
+数字: 2
+数字: 3
+数字: 4
+For-in 循环:
+水果: 苹果
+水果: 香蕉
+水果: 橙子
+While 循环:
+倒计时: 3
+倒计时: 2
+倒计时: 1
+Do-while 循环:
+数字: 1
+数字: 2
+数字: 4
+数字: 8
+
+--- 函数 ---
+函数测试完成
+
+--- 简单集合类型 ---
+数字列表: [, , , , ]
+姓名列表: [, , ]
+列表长度: 5
+列表第一个元素: 1
+列表最后一个元素: 5
+添加元素后: [, , , , , ]
+
+--- 类和对象 ---
+个人信息: AnyAnyAnyAnyAny
+AnyAnyAnyAnyAny
+姓名: 张三
+年龄: 25
+一年后的年龄: 26
+学生信息: AnyAnyAnyAnyAnyAnyAny
+AnyAnyAnyAny
+AnyAnyAnyAnyAnyAnyAny
+✅ Dart 基础语法测试完成"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_additional_features.dart",
+      "filename": "hello_test_additional_features",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/hello_test_additional_features.cpp:243:16: error: no matching conversion for functional-style cast from 'ObjectPtr<List<String>>' to 'decltype(Null)' (aka 'Nullable')
+auto length1 = dart_null_coalesce(nullableList, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'ObjectPtr<List<String>>' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'ObjectPtr<List<String>>' to 'Nullable' for 1st argument
+cpp/core/dart_object.h:177:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+sample/cpp_generated/hello_test_additional_features.cpp:251:7: error: use of undeclared identifier 'DartException'
+throw DartException(Exception::create(dart_string(\"列表为空\")));
+      ^
+2 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_enhanced.dart",
+      "filename": "hello_test_enhanced",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/hello_test_enhanced.cpp:127:21: error: expected class name
+class Bird : public _Bird_Object_Flyable_Speakable {
+                    ^
+sample/cpp_generated/hello_test_enhanced.cpp:161:13: error: declaration of reference variable 'Object' requires an initializer
+class _Bird&Object&Flyable : virtual public Flyable {
+            ^~~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:161:19: error: expected ';' after top level declarator
+class _Bird&Object&Flyable : virtual public Flyable {
+                  ^
+                  ;
+sample/cpp_generated/hello_test_enhanced.cpp:176:13: error: declaration of reference variable 'Object' requires an initializer
+class _Bird&Object&Flyable&Speakable : public _Bird&Object&Flyable, virtual public Speakable {
+            ^~~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:176:19: error: expected ';' after top level declarator
+class _Bird&Object&Flyable&Speakable : public _Bird&Object&Flyable, virtual public Speakable {
+                  ^
+                  ;
+sample/cpp_generated/hello_test_enhanced.cpp:272:72: error: use of undeclared identifier 'name'
+auto createProfile = [&]() { auto profile = dart_string(\"姓名: \") + (name).toString();
+                                                                     ^
+sample/cpp_generated/hello_test_enhanced.cpp:273:20: error: use of undeclared identifier 'age'
+if (!(dart_is_null(age))) {
+                   ^
+sample/cpp_generated/hello_test_enhanced.cpp:274:62: error: use of undeclared identifier 'age'
+profile = profile->operator_add(dart_string(\", 年龄: \") + (age).toString());
+                                                           ^
+sample/cpp_generated/hello_test_enhanced.cpp:276:20: error: use of undeclared identifier 'city'
+if (!(dart_is_null(city))) {
+                   ^
+sample/cpp_generated/hello_test_enhanced.cpp:277:62: error: use of undeclared identifier 'city'
+profile = profile->operator_add(dart_string(\", 城市: \") + (city).toString());
+                                                           ^
+sample/cpp_generated/hello_test_enhanced.cpp:283:12: error: no matching function for call to object of type '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:271:14)'
+dart_print(greet(dart_string(\"李四\")));
+           ^~~~~
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:271:14: note: candidate function not viable: requires 2 arguments, but 1 was provided
+auto greet = [&](String name, String greeting) { return dart_concat((greeting).toString(), dart_string(\", \"), (name).toString(), dart_string(\"!\")); };
+             ^
+sample/cpp_generated/hello_test_enhanced.cpp:285:12: error: no matching function for call to object of type '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:272:22)'
+dart_print(createProfile(/*name:*/ dart_string(\"赵六\"), /*age:*/ dart_int(30), /*city:*/ dart_string(\"北京\")));
+           ^~~~~~~~~~~~~
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:272:22: note: candidate function not viable: requires 0 arguments, but 3 were provided
+auto createProfile = [&]() { auto profile = dart_string(\"姓名: \") + (name).toString();
+                     ^
+sample/cpp_generated/hello_test_enhanced.cpp:286:12: error: no matching function for call to object of type '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:280:18)'
+auto sum = calculate(dart_int(5), dart_int(3), add);
+           ^~~~~~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:280:18: note: candidate function not viable: no known conversion from '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:281:12)' to 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' for 3rd argument
+auto calculate = [&](Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation) { return operation->call(a, b); };
+                 ^
+sample/cpp_generated/hello_test_enhanced.cpp:287:16: error: no matching function for call to object of type '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:280:18)'
+auto product = calculate(dart_int(5), dart_int(3), multiply);
+               ^~~~~~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:280:18: note: candidate function not viable: no known conversion from '(lambda at sample/cpp_generated/hello_test_enhanced.cpp:282:17)' to 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' for 3rd argument
+auto calculate = [&](Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation) { return operation->call(a, b); };
+                 ^
+sample/cpp_generated/hello_test_enhanced.cpp:317:9: error: call to non-static member function without an object argument
+Person::logCreation();
+~~~~~~~~^~~~~~~~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:318:53: error: no member named 'get_name' in 'Person'
+dart_print(dart_string(\"人员姓名: \") + (person->get_name()).toString());
+                                        ~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:319:9: error: no member named 'set_name' in 'Person'
+person->set_name(dart_string(\"李四\"));
+~~~~~~~~^
+sample/cpp_generated/hello_test_enhanced.cpp:320:56: error: no member named 'get_name' in 'Person'
+dart_print(dart_string(\"更新后姓名: \") + (person->get_name()).toString());
+                                          ~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_enhanced.cpp:326:7: error: no member named 'fly' in 'Bird'
+bird->fly();
+~~~~~~^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_enhanced_simple.dart",
+      "filename": "hello_test_enhanced_simple",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "🔥 Dart 简化增强语法测试开始
+
+--- 基本数据类型 ---
+基本类型测试完成
+
+--- 控制流 ---
+良好
+良好
+For 循环:
+数字: 0
+数字: 1
+数字: 2
+数字: 3
+数字: 4
+For-in 循环:
+水果: 苹果
+水果: 香蕉
+水果: 橙子
+While 循环:
+倒计时: 3
+倒计时: 2
+倒计时: 1
+Do-while 循环:
+数字: 1
+数字: 2
+数字: 4
+数字: 8
+成年人: true
+
+--- 简化函数 ---
+AnyAnyAny
+加法结果: 8
+
+--- 简化集合 ---
+数字列表长度: 5
+第一个数字: 1
+最后一个数字: 5
+添加元素后列表长度: 6
+张三的分数: 95
+更新后的分数数量: 4
+
+--- 简化类 ---
+创建Person对象
+AnyAnyAnyAnyAny
+姓名: 张三
+更新后姓名: 李四
+
+--- 简化泛型 ---
+字符串盒子内容: Hello
+整数盒子内容: 42
+
+--- 简化异常处理 ---
+结果: 5
+异常处理测试完成
+✅ Dart 简化增强语法测试完成"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_final.dart",
+      "filename": "hello_test_final",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "🔥 Dart 基础语法测试开始
+
+--- 基本数据类型 ---
+基本类型测试完成
+
+--- 控制流 ---
+良好
+良好
+For 循环:
+数字: 0
+数字: 1
+数字: 2
+数字: 3
+数字: 4
+For-in 循环:
+水果: 苹果
+水果: 香蕉
+水果: 橙子
+While 循环:
+倒计时: 3
+倒计时: 2
+倒计时: 1
+Do-while 循环:
+数字: 1
+数字: 2
+数字: 4
+数字: 8
+
+--- 函数 ---
+函数测试完成
+
+--- 简单集合类型 ---
+数字列表长度: 5
+姓名列表长度: 3
+添加元素后列表长度: 6
+
+--- 类和对象 ---
+创建Person对象
+AnyAnyAnyAnyAny
+访问属性完成
+创建Student对象
+AnyAnyAnyAny
+AnyAnyAnyAnyAnyAnyAny
+✅ Dart 基础语法测试完成"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_final_enhanced.dart",
+      "filename": "hello_test_final_enhanced",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "🔥 Dart 最终增强语法测试开始
+
+--- 数据类型和操作 ---
+数据类型操作完成
+
+--- 最终控制流 ---
+其他分数
+正序循环:
+数字: 1
+数字: 2
+数字: 3
+水果列表:
+  苹果
+  香蕉
+  橙子
+年龄描述: 成年人
+
+--- 最终函数特性 ---
+问候语: AnyAnyAny
+两数之和: 3
+
+--- 最终集合特性 ---
+列表长度: 5
+添加元素后长度: 6
+映射大小: 2
+张三的分数: 95
+
+--- 最终类特性 ---
+创建FinalPerson对象
+AnyAnyAnyAnyAny
+姓名: 张三
+创建FinalStudent对象
+AnyAnyAny
+AnyAnyAnyAnyAnyAnyAny
+
+--- 最终泛型特性 ---
+字符串容器值: Hello
+整数容器值: 42
+✅ Dart 最终增强语法测试完成"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_minimal_enhanced.dart",
+      "filename": "hello_test_minimal_enhanced",
+      "conversion": "success",
+      "compilation": "success",
+      "execution": "success",
+      "output": "🔥 Dart 最小化增强语法测试开始
+
+--- 数据类型和操作 ---
+数据类型操作完成
+
+--- 增强控制流 ---
+良好
+水果列表:
+  苹果
+  香蕉
+  橙子
+年龄描述: 成年人
+
+--- 增强函数 ---
+函数特性测试完成
+
+--- 增强集合 ---
+列表长度: 5
+映射大小: 2
+添加元素后长度: 6
+
+--- 增强类 ---
+创建EnhancedPerson对象
+AnyAnyAnyAnyAny
+
+--- 泛型 ---
+泛型特性测试完成
+✅ Dart 最小化增强语法测试完成"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_more_enhanced.dart",
+      "filename": "hello_test_more_enhanced",
+      "conversion": "success",
+      "compilation": "failed",
+      "compilation_error": "sample/cpp_generated/hello_test_more_enhanced.cpp:85:22: error: expected class name
+class Color : public _Enum {
+                     ^
+sample/cpp_generated/hello_test_more_enhanced.cpp:87:44: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<Color> red = ObjectPtr<Color>::createConst();
+                         ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:88:46: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<Color> green = ObjectPtr<Color>::createConst();
+                           ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:89:45: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<Color> blue = ObjectPtr<Color>::createConst();
+                          ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:90:101: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
+                                                                                  ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:90:134: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
+                                                                                                                   ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:90:167: error: no member named 'createConst' in 'ObjectPtr<Color>'
+  ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
+                                                                                                                                                    ~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:90:70: error: no member named 'createConst' in 'List<ObjectPtr<Color>>'
+  ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
+                                             ~~~~~~~~~~~~~~~~~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:91:50: error: use of undeclared identifier 'name'; did you mean '_name'?
+  Color(Int _index, String _name) : _Enum(index, name) {
+                                                 ^~~~
+                                                 _name
+sample/cpp_generated/hello_test_more_enhanced.cpp:91:28: note: '_name' declared here
+  Color(Int _index, String _name) : _Enum(index, name) {
+                           ^
+sample/cpp_generated/hello_test_more_enhanced.cpp:91:37: error: member initializer '_Enum' does not name a non-static data member or base class
+  Color(Int _index, String _name) : _Enum(index, name) {
+                                    ^~~~~~~~~~~~~~~~~~
+sample/cpp_generated/hello_test_more_enhanced.cpp:95:43: error: no member named '_name' in 'Color'
+    return dart_string(\"Color.\") + (this->_name).toString();
+                                    ~~~~  ^
+sample/cpp_generated/hello_test_more_enhanced.cpp:194:9: error: no member named 'addAll' in 'Map<String, Int>'
+scores->addAll(Map<String, Int>::createFromEntries({{dart_string(\"孙七\"), dart_int(90)}, {dart_string(\"周八\"), dart_int(85)}}));
+~~~~~~~~^
+sample/cpp_generated/hello_test_more_enhanced.cpp:208:13: error: call to non-static member function without an object argument
+MorePerson::logCreation();
+~~~~~~~~~~~~^~~~~~~~~~~
+sample/cpp_generated/hello_test_more_enhanced.cpp:209:57: error: invalid use of non-static data member 'instanceCount'
+dart_print(dart_string(\"实例计数: \") + (MorePerson::instanceCount).toString());
+                                        ~~~~~~~~~~~~^~~~~~~~~~~~~
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_more_enhanced.cpp:246:16: error: no matching conversion for functional-style cast from 'ObjectPtr<List<String>>' to 'decltype(Null)' (aka 'Nullable')
+auto length1 = dart_null_coalesce(nullableList, Null);
+               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cpp/core/object_extensions.h:75:74: note: expanded from macro 'dart_null_coalesce'
+#define dart_null_coalesce(left, right)  (dart_is_null(left) ? (right) : decltype(right)(left))
+                                                                         ^~~~~~~~~~~~~~~~~~~~
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'ObjectPtr<List<String>>' to 'const Nullable' for 1st argument
+class Nullable : public Any {
+      ^
+cpp/core/dart_object.h:175:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'ObjectPtr<List<String>>' to 'Nullable' for 1st argument
+cpp/core/dart_object.h:177:3: note: candidate constructor not viable: requires 0 arguments, but 1 was provided
+  Nullable() { type_id = 0; }
+  ^
+sample/cpp_generated/hello_test_more_enhanced.cpp:259:60: error: no member named 'createConst' in 'ObjectPtr<Color>'
+dart_print(dart_string(\"枚举值: \") + (ObjectPtr<Color>::createConst()).toString());
+                                      ~~~~~~~~~~~~~~~~~~^
+cpp/core/object_extensions.h:83:19: note: expanded from macro 'dart_print'
+    std::cout << (value).toString().getValue() << std::endl;                   \
+                  ^~~~~
+sample/cpp_generated/hello_test_more_enhanced.cpp:267:7: error: use of undeclared identifier 'DartException'
+throw DartException(Exception::create(dart_string(\"列表为空\")));
+      ^
+17 errors generated.",
+      "execution": "skipped"
+    }
+    ,
+    {
+      "file": "sample/dart/hello_test_working_enhanced.dart",
+      "filename": "hello_test_working_enhanced",
+      "conversion": "success",
+      "compilation": "success",

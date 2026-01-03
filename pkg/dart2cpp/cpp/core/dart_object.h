@@ -91,6 +91,8 @@ class Any {
   Any(const String& s);
   
   // 从ObjectPtr类型构造 - 模板构造函数
+  // 注意：这个构造函数会将ObjectPtr转换为原始指针存储，不增加引用计数
+  // 这是设计上的选择，Any是轻量级的值传递类型，不应该持有对象所有权
   template<typename T>
   Any(const ObjectPtr<T>& obj) : type_id(100) { 
     value.object_ptr = obj.get();
@@ -173,6 +175,17 @@ class Any {
 class Nullable : public Any {
  public:
   Nullable() { type_id = 0; }
+  
+  // 与 ObjectPtr 的比较运算符 - 返回 bool 以避免循环依赖
+  template<typename T>
+  bool operator==(const ObjectPtr<T>& other) const {
+    return other.get() == nullptr;
+  }
+  
+  template<typename T>
+  bool operator!=(const ObjectPtr<T>& other) const {
+    return other.get() != nullptr;
+  }
 };
 
 // 外部声明 Void 和 Null 实例
@@ -266,7 +279,7 @@ class Int : public Any {
   Int(int v);
   Int(const Int& other);
   explicit Int(const Any& any);
-  explicit Int(const Nullable&);  // NULL 构造函数
+  Int(const Nullable&);  // NULL 构造函数（支持隐式转换）
 
   // 拷贝赋值运算符
   Int& operator=(const Int& other);
@@ -416,7 +429,7 @@ class Double : public Any {
   Double(const Double& other);
   Double(const Int& other);
   explicit Double(const Any& any);
-  explicit Double(const Nullable&);  // NULL 构造函数
+  Double(const Nullable&);  // NULL 构造函数（支持隐式转换）
 
   // 拷贝赋值运算符
   Double& operator=(const Double& other);
@@ -512,6 +525,11 @@ class Double : public Any {
   Bool get_isFinite() const;
   Bool get_isInfinite() const;
   Bool get_isNaN() const;
+  
+  // 支持无get_前缀的调用方式（实现在文件末尾）
+  Bool isFinite() const;
+  Bool isInfinite() const;
+  Bool isNaN() const;
 
   // 显式类型转换方法
   double toDouble() const;
@@ -544,7 +562,7 @@ class Bool : public Any {
   Bool(bool v);
   Bool(const Bool& other);
   explicit Bool(const Any& any);
-  explicit Bool(const Nullable&);  // NULL 构造函数
+  Bool(const Nullable&);  // NULL 构造函数（支持隐式转换）
 
   // 拷贝赋值运算符
   Bool& operator=(const Bool& other);
@@ -606,9 +624,16 @@ class Object : public Any {
   void decrement();
   int getRefCount() const;
 
-  // 修复#9: Object::hash 静态方法
+  // 修复#9: Object::hash 静态方法 - 支持可变参数
   static Int hash(const Any& object);
   static Int hashAll(const std::vector<Any>& objects);
+  
+  // 可变参数版本的hash方法
+  template<typename... Args>
+  static Int hash(const Args&... args) {
+    std::vector<Any> vec = {Any(args)...};
+    return hashAll(vec);
+  }
 };
 
 // ============================================================================
@@ -668,6 +693,30 @@ public:
   static ObjectPtr<RangeError> create(const String& message);
 };
 
+// DartException - 通用异常包装类，用于 throw 语句
+class DartException : public std::exception {
+private:
+  std::string message_;
+public:
+  DartException() : message_("DartException") {}
+  DartException(const std::string& msg) : message_(msg) {}
+  DartException(const String& message) : message_(message.getValue()) {}
+  
+  // 模板构造函数 - 支持任意 ObjectPtr<T> 类型的异常
+  template<typename T>
+  DartException(const ObjectPtr<T>& ex) {
+    if (ex.get() != nullptr) {
+      message_ = ex->toString().getValue();
+    } else {
+      message_ = "null exception";
+    }
+  }
+  
+  const char* what() const noexcept override {
+    return message_.c_str();
+  }
+};
+
 // ============================================================================
 // CppUserData 类声明
 // ============================================================================
@@ -712,6 +761,19 @@ public:
   // 接收std::vector<Any>参数列表，返回Any结果
   virtual Any apply(const std::vector<Any>& args) = 0;
   
+  // call 方法 - 通用函数调用，支持任意参数
+  // 调用 apply 方法实现
+  template<typename... Args>
+  Any call(Args... args) {
+    std::vector<Any> argVec = {Any(args)...};
+    return apply(argVec);
+  }
+  
+  // 无参数版本
+  Any call() {
+    return apply(std::vector<Any>{});
+  }
+  
   // 辅助方法
   Bool isNull() const;
   String toString() const override;
@@ -724,11 +786,18 @@ template<typename F, typename R, typename... Args>
 class TypedFunction : public Function {
 private:
   F func_;
+  // 被捕获的变量列表，用于闭包和成员函数的生命周期管理
+  std::vector<Any> captured_variables_;
   
 public:
   // 构造函数 - 支持任意可调用对象
   template<typename FuncType>
   TypedFunction(FuncType&& func) : func_(std::forward<FuncType>(func)) {}
+  
+  // 构造函数 - 支持捕获变量的可调用对象
+  template<typename FuncType>
+  TypedFunction(FuncType&& func, const std::vector<Any>& captured_vars) 
+    : func_(std::forward<FuncType>(func)), captured_variables_(captured_vars) {}
   
   // 实现apply方法 - 直接转换参数并调用，不做边界检查
   Any apply(const std::vector<Any>& args) override {
@@ -743,6 +812,11 @@ public:
   // call 方法 - 效果和 operator() 一样，使用 ->call 调用函数
   R call(Args... args) {
     return func_(std::forward<Args>(args)...);
+  }
+  
+  // 获取捕获的变量列表
+  const std::vector<Any>& getCapturedVariables() const {
+    return captured_variables_;
   }
   
 private:
@@ -763,10 +837,16 @@ template<typename R, typename... Args>
 class TypedFunction<std::function<R(Args...)>, R, Args...> : public Function {
 private:
   std::function<R(Args...)> func_;
+  // 被捕获的变量列表，用于闭包和成员函数的生命周期管理
+  std::vector<Any> captured_variables_;
   
 public:
   // 构造函数
   TypedFunction(std::function<R(Args...)> func) : func_(std::move(func)) {}
+  
+  // 构造函数 - 支持捕获变量
+  TypedFunction(std::function<R(Args...)> func, const std::vector<Any>& captured_vars)
+    : func_(std::move(func)), captured_variables_(captured_vars) {}
   
   // 实现apply方法
   Any apply(const std::vector<Any>& args) override {
@@ -781,6 +861,11 @@ public:
   // call 方法 - 效果和 operator() 一样，使用 ->call 调用函数
   R call(Args... args) {
     return func_(std::forward<Args>(args)...);
+  }
+  
+  // 获取捕获的变量列表
+  const std::vector<Any>& getCapturedVariables() const {
+    return captured_variables_;
   }
   
 private:
@@ -800,6 +885,31 @@ private:
 // ============================================================================
 // 容器类型声明
 // ============================================================================
+
+// ============================================================================
+// Iterable 基类 - 可迭代集合的抽象基类
+// ============================================================================
+
+template <typename T>
+class Iterable : public Object {
+public:
+  virtual ~Iterable() = default;
+  
+  // 获取元素数量
+  virtual Int size() const = 0;
+  virtual Bool isEmpty() const = 0;
+  virtual Bool isNotEmpty() const = 0;
+  
+  // 转换为List
+  virtual ObjectPtr<List<T>> toList() const = 0;
+  
+  // 取前n个元素
+  virtual ObjectPtr<List<T>> take(const Int& n) const = 0;
+  
+  // 获取第一个和最后一个元素
+  virtual T first() const = 0;
+  virtual T last() const = 0;
+};
 
 // ============================================================================
 // 迭代器包装类型
@@ -870,7 +980,7 @@ class MapIterator : public Object {
 
 template <typename T>
 class ObjectPtr {
- private:
+ protected:
   T* ptr_;
 
  public:
@@ -879,6 +989,21 @@ class ObjectPtr {
   ObjectPtr(T* ptr);
   ObjectPtr(const ObjectPtr<T>& other);
   ObjectPtr(ObjectPtr<T>&& other) noexcept;
+  
+  // 从 Nullable 构造（支持从 Null 隐式转换）
+  ObjectPtr(const Nullable&) : ptr_(nullptr) {}
+  
+  // 基类转换构造函数 - 支持派生类到基类的自动转换
+  // 例如: ObjectPtr<TypedFunction<...>> -> ObjectPtr<Function>
+  template<typename U, typename = std::enable_if_t<std::is_base_of_v<T, U>>>
+  ObjectPtr(const ObjectPtr<U>& other) : ptr_(other.get()) {
+    if (ptr_) {
+      // 增加引用计数（如果需要）
+    }
+  }
+  
+  template<typename U, typename = std::enable_if_t<std::is_base_of_v<T, U>>>
+  ObjectPtr(ObjectPtr<U>&& other) noexcept : ptr_(other.release()) {}
 
   // 析构函数
   ~ObjectPtr();
@@ -887,6 +1012,8 @@ class ObjectPtr {
   ObjectPtr<T>& operator=(const ObjectPtr<T>& other);
   ObjectPtr<T>& operator=(ObjectPtr<T>&& other) noexcept;
   ObjectPtr<T>& operator=(T* ptr);
+  ObjectPtr<T>& operator=(std::nullptr_t);  // 支持 = nullptr
+  ObjectPtr<T>& operator=(const Nullable&); // 支持 = Null
 
   // 访问运算符
   T& operator*() const;
@@ -897,6 +1024,10 @@ class ObjectPtr {
   Bool operator!=(const ObjectPtr<T>& other) const;
   Bool operator==(std::nullptr_t) const;
   Bool operator!=(std::nullptr_t) const;
+  
+  // 与 Nullable 的比较运算符 - 返回 bool 以避免循环依赖
+  bool operator==(const Nullable&) const { return ptr_ == nullptr; }
+  bool operator!=(const Nullable&) const { return ptr_ != nullptr; }
 
   // 获取原始指针
   T* get() const;
@@ -922,15 +1053,71 @@ class ObjectPtr {
 };
 
 
+
+template<typename T>
+class _ValueBox : public Object {
+ public:
+  T value_;
+  
+  _ValueBox(const T& value) : value_(value) {}
+  
+  // 从 Nullable 构造（支持隐式转换）
+  _ValueBox(const Nullable&) : value_(T(Null)) {}
+  
+  // 赋值运算符 - 支持从值类型赋值
+  _ValueBox<T>& operator=(const T& value) {
+    value_ = value;
+    return *this;
+  }
+  
+  // 赋值运算符 - 支持从 Nullable 赋值
+  _ValueBox<T>& operator=(const Nullable&) {
+    value_ = T(Null);
+    return *this;
+  }
+  
+  // 箭头运算符重载 - 返回持有的值的指针
+  T* operator->() {
+    return &value_;
+  }
+  
+  const T* operator->() const {
+    return &value_;
+  }
+  
+  // 解引用运算符 - 获取持有的值
+  T& operator*() {
+    return value_;
+  }
+  
+  const T& operator*() const {
+    return value_;
+  }
+  
+  // 自动类型转换为 T 类型（自动解箱）
+  operator T&() {
+    return value_;
+  }
+  
+  operator const T&() const {
+    return value_;
+  }
+  
+  String toString() const override {
+    return value_.toString();
+  }
+};
+
+
 // Lambda类型推导辅助结构
 template<typename T>
 struct lambda_traits;
 
-// 特化：推导lambda的函数签名
+// 特化：推寻lambda的函数签名
 template<typename F>
 struct lambda_traits : lambda_traits<decltype(&F::operator())> {};
 
-// 特化：从成员函数指针提取签名
+// 特化：从成员函数指针提取签名 (const 版本)
 template<typename C, typename R, typename... Args>
 struct lambda_traits<R(C::*)(Args...) const> {
     using return_type = R;
@@ -938,9 +1125,49 @@ struct lambda_traits<R(C::*)(Args...) const> {
     static constexpr size_t arity = sizeof...(Args);
 };
 
-// 特化：非const lambda
+// 特化：非const lambda (mutable lambda)
 template<typename C, typename R, typename... Args>
 struct lambda_traits<R(C::*)(Args...)> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：const volatile lambda
+template<typename C, typename R, typename... Args>
+struct lambda_traits<R(C::*)(Args...) const volatile> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：带noexcept的const lambda
+template<typename C, typename R, typename... Args>
+struct lambda_traits<R(C::*)(Args...) const noexcept> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：带noexcept的mutable lambda
+template<typename C, typename R, typename... Args>
+struct lambda_traits<R(C::*)(Args...) noexcept> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：函数指针
+template<typename R, typename... Args>
+struct lambda_traits<R(*)(Args...)> {
+    using return_type = R;
+    using args_tuple = std::tuple<Args...>;
+    static constexpr size_t arity = sizeof...(Args);
+};
+
+// 特化：std::function
+template<typename R, typename... Args>
+struct lambda_traits<std::function<R(Args...)>> {
     using return_type = R;
     using args_tuple = std::tuple<Args...>;
     static constexpr size_t arity = sizeof...(Args);
@@ -958,6 +1185,18 @@ auto makeFunction(F&& lambda) {
     return makeFunctionHelper(std::forward<F>(lambda), args_tuple{});
 }
 
+// makeFunction 模板函数 - 支持捕获变量的版本
+template<typename F>
+auto makeFunction(F&& lambda, const std::vector<Any>& captured_vars) {
+    // 推导lambda的返回类型和参数类型
+    using traits = lambda_traits<std::decay_t<F>>;
+    using return_type = typename traits::return_type;
+    using args_tuple = typename traits::args_tuple;
+    
+    // 使用辅助函数创建TypedFunction，传递捕获的变量
+    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{}, captured_vars);
+}
+
 // 辅助函数：从参数tuple创建TypedFunction
 template<typename F, typename... Args>
 auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
@@ -965,6 +1204,15 @@ auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
     using return_type = typename traits::return_type;
     using TypedFuncType = TypedFunction<std::decay_t<F>, return_type, Args...>;
     return ObjectPtr<TypedFuncType>(new TypedFuncType(std::forward<F>(lambda)));
+}
+
+// 辅助函数：从参数tuple创建TypedFunction（支持捕获变量）
+template<typename F, typename... Args>
+auto makeFunctionHelper(F&& lambda, std::tuple<Args...>, const std::vector<Any>& captured_vars) {
+    using traits = lambda_traits<std::decay_t<F>>;
+    using return_type = typename traits::return_type;
+    using TypedFuncType = TypedFunction<std::decay_t<F>, return_type, Args...>;
+    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::forward<F>(lambda), captured_vars));
 }
 
 // makeFunction 函数指针重载 - 支持普通函数指针
@@ -983,7 +1231,7 @@ auto makeFunction(R (*func)(Args...)) {
 // ============================================================================
 
 template <typename T>
-class List : public Object {
+class List : public Iterable<T> {
  private:
   std::vector<T> data_;
 
@@ -1007,10 +1255,10 @@ class List : public Object {
   void operator_index_set(const Int& index, const T& value);
 
   // 容量相关
-  Int size() const;
+  Int size() const override;
   Int get_length() const;
-  Bool isEmpty() const;
-  Bool isNotEmpty() const;
+  Bool isEmpty() const override;
+  Bool isNotEmpty() const override;
 
   // 修改操作
   void add(const T& item);
@@ -1036,13 +1284,13 @@ class List : public Object {
   Bool contains(const T& item) const;
   
   // 访问方法
-  T first() const;
-  T last() const;
+  T first() const override;
+  T last() const override;
   
   // 转换方法
-  ObjectPtr<List<T>> take(const Int& n) const;
+  ObjectPtr<List<T>> take(const Int& n) const override;
   ObjectPtr<List<T>> skip(const Int& n) const;
-  ObjectPtr<List<T>> toList() const;
+  ObjectPtr<List<T>> toList() const override;
 
   // 迭代器
   ObjectPtr<ListIterator<T>> iterator() const;
@@ -1065,11 +1313,41 @@ class List : public Object {
   template <typename R, typename CombineFunc>
   R fold(const R& initialValue, const ObjectPtr<TypedFunction<CombineFunc, R, R, T>>& combine) const;
 
+  // any/every - 元素检查
+  template <typename PredicateFunc>
+  Bool any(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  
+  template <typename PredicateFunc>
+  Bool every(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  
+  // firstWhere/lastWhere - 查找元素
+  template <typename PredicateFunc>
+  T firstWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  
+  template <typename PredicateFunc>
+  T lastWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  
+  // expand - 展开操作
+  template <typename R, typename ExpandFunc>
+  ObjectPtr<List<R>> expand(const ObjectPtr<TypedFunction<ExpandFunc, ObjectPtr<List<R>>, T>>& expander) const;
+  
+  // toSet - 转换为Set
+  ObjectPtr<Set<T>> toSet() const;
+  
+  // join - 将元素连接成字符串
+  String join(const String& separator) const;
+  
+  // forEach - 遍历操作
+  template <typename ActionFunc>
+  void forEach(const ObjectPtr<TypedFunction<ActionFunc, Nullable, T>>& action) const;
+
   // 静态创建方法
   static ObjectPtr<List<T>> create();
   static ObjectPtr<List<T>> create(const List<T>& other);
   static ObjectPtr<List<T>> create(std::initializer_list<T> init);
   static ObjectPtr<List<T>> createFromValues(std::initializer_list<T> values);
+  static ObjectPtr<List<T>> createConst();  // const 空列表
+  static ObjectPtr<List<T>> createConst(std::initializer_list<T> init);  // const 初始化列表
 
   // 修复#13: List.from 和 List.of 静态工厂方法
   template<typename Iterable>
@@ -1109,12 +1387,119 @@ ObjectPtr<List<T>> List<T>::where(const ObjectPtr<TypedFunction<PredicateFunc, B
   return result;
 }
 
+// any - 是否有任意元素满足条件
+template <typename T>
+template <typename PredicateFunc>
+Bool List<T>::any(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+  for (const auto& item : data_) {
+    if (predicate->call(item)->toBool()) {
+      return Bool(true);
+    }
+  }
+  return Bool(false);
+}
+
+// every - 是否所有元素都满足条件
+template <typename T>
+template <typename PredicateFunc>
+Bool List<T>::every(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+  for (const auto& item : data_) {
+    if (!predicate->call(item)->toBool()) {
+      return Bool(false);
+    }
+  }
+  return Bool(true);
+}
+
+// firstWhere - 查找第一个满足条件的元素
+template <typename T>
+template <typename PredicateFunc>
+T List<T>::firstWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+  for (const auto& item : data_) {
+    if (predicate->call(item)->toBool()) {
+      return item;
+    }
+  }
+  throw std::runtime_error("No element matches the predicate");
+}
+
+// lastWhere - 查找最后一个满足条件的元素
+template <typename T>
+template <typename PredicateFunc>
+T List<T>::lastWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+  for (int i = static_cast<int>(data_.size()) - 1; i >= 0; --i) {
+    if (predicate->call(data_[i])->toBool()) {
+      return data_[i];
+    }
+  }
+  throw std::runtime_error("No element matches the predicate");
+}
+
+// expand - 展开操作
+template <typename T>
+template <typename R, typename ExpandFunc>
+ObjectPtr<List<R>> List<T>::expand(const ObjectPtr<TypedFunction<ExpandFunc, ObjectPtr<List<R>>, T>>& expander) const {
+  auto result = ObjectPtr<List<R>>(new List<R>());
+  for (const auto& item : data_) {
+    auto expanded = expander->call(item);
+    for (int i = 0; i < expanded->get_length()->toInt(); ++i) {
+      result->add(expanded->get(Int(i)));
+    }
+  }
+  return result;
+}
+
+// toSet - 转换为Set
+template <typename T>
+ObjectPtr<Set<T>> List<T>::toSet() const {
+  auto result = ObjectPtr<Set<T>>(new Set<T>());
+  for (const auto& item : data_) {
+    result->add(item);
+  }
+  return result;
+}
+
+// join - 将元素连接成字符串
+template <typename T>
+String List<T>::join(const String& separator) const {
+  if (data_.empty()) {
+    return String("");
+  }
+  std::stringstream ss;
+  bool first = true;
+  for (const auto& item : data_) {
+    if (!first) {
+      ss << separator.getValue();
+    }
+    first = false;
+    // 尝试调用元素的 toString 方法
+    if constexpr (std::is_same_v<T, String>) {
+      ss << item.getValue();
+    } else if constexpr (std::is_same_v<T, Int> || std::is_same_v<T, Double> || std::is_same_v<T, Bool>) {
+      ss << item.toString().getValue();
+    } else {
+      // ObjectPtr 或其他类型
+      ss << item->toString().getValue();
+    }
+  }
+  return String(ss.str());
+}
+
+// forEach - 遍历操作
+template <typename T>
+template <typename ActionFunc>
+void List<T>::forEach(const ObjectPtr<TypedFunction<ActionFunc, Nullable, T>>& action) const {
+  for (const auto& item : data_) {
+    action->call(item);
+  }
+}
+
 // ============================================================================
 // Set 容器类型
 // ============================================================================
 
 template <typename T>
-class Set : public Object {
+class Set : public Iterable<T> {
  private:
   std::unordered_set<T> data_;
 
@@ -1128,13 +1513,14 @@ class Set : public Object {
   Set<T>& operator=(const Set<T>& other);
 
   // 容量相关
-  Int size() const;
+  Int size() const override;
   Int get_length() const;
-  Bool isEmpty() const;
-  Bool isNotEmpty() const;
+  Bool isEmpty() const override;
+  Bool isNotEmpty() const override;
 
   // 修改操作
   Bool add(const T& item);
+  void addAll(const ObjectPtr<List<T>>& items); // 添加所有元素
   Bool remove(const T& item);
   void clear();
 
@@ -1150,12 +1536,19 @@ class Set : public Object {
   ObjectPtr<SetIterator<T>> iterator() const;
 
   // 转换操作
-  ObjectPtr<List<T>> toList() const;
+  ObjectPtr<List<T>> toList() const override;
+  
+  // Iterable 接口方法
+  T first() const override;
+  T last() const override;
+  ObjectPtr<List<T>> take(const Int& n) const override;
 
   // 静态创建方法
   static ObjectPtr<Set<T>> create();
   static ObjectPtr<Set<T>> create(const Set<T>& other);
   static ObjectPtr<Set<T>> create(std::initializer_list<T> init);
+  static ObjectPtr<Set<T>> createConst();  // const 空集合
+  static ObjectPtr<Set<T>> createConst(std::initializer_list<T> init);  // const 初始化集合
 
   // Dart 方法实现
   String toString() const override;
@@ -1207,6 +1600,15 @@ class Map : public Object {
   // 获取键值集合
   ObjectPtr<Set<K>> keys() const;
   ObjectPtr<List<V>> values() const;
+  ObjectPtr<List<std::pair<K, V>>> entries() const; // 返回键值对列表
+  
+  // 迭代方法
+  template<typename Func>
+  void forEach(Func func) const; // 对每个键值对执行函数
+  
+  // map 方法 - 将 Map 的每个键值对转换为新的键值对
+  template<typename K2, typename V2, typename MapperFunc>
+  ObjectPtr<Map<K2, V2>> map(MapperFunc mapper) const;
 
   // 迭代器
   ObjectPtr<MapIterator<K, V>> iterator() const;
@@ -1216,6 +1618,8 @@ class Map : public Object {
   static ObjectPtr<Map<K, V>> create(const Map<K, V>& other);
   static ObjectPtr<Map<K, V>> create(std::initializer_list<std::pair<K, V>> init);
   static ObjectPtr<Map<K, V>> createFromEntries(std::initializer_list<std::pair<K, V>> entries);
+  static ObjectPtr<Map<K, V>> createConst();  // const 空 Map
+  static ObjectPtr<Map<K, V>> createConst(std::initializer_list<std::pair<K, V>> init);  // const 初始化 Map
 
   // Dart 方法实现
   String toString() const override;
@@ -1254,37 +1658,10 @@ public:
 };
 
 // ============================================================================
-// RegExp 类 - 正则表达式
+// RegExp 类已被移除 - 功能已合并到 String 类型
+// Dart 中的 RegExp 现在直接转换为 String 类型
+// 使用 String 的 hasMatch(), stringMatch(), matchAsPrefix() 等方法
 // ============================================================================
-
-class RegExp : public Object {
-private:
-  std::string pattern_;
-  bool caseSensitive_;
-  bool multiLine_;
-  bool dotAll_;
-
-public:
-  RegExp(const String& pattern, bool caseSensitive = true, bool multiLine = false, bool dotAll = false);
-  virtual ~RegExp() = default;
-
-  // 核心方法
-  Bool hasMatch(const String& input);
-  String stringMatch(const String& input);
-  Int matchAsPrefix(const String& string, Int start = Int(0));
-  
-  // 属性
-  String pattern() const;
-  Bool isCaseSensitive() const;
-  Bool isMultiLine() const;
-  Bool isDotAll() const;
-  
-  String toString() const override;
-  
-  // 静态创建方法
-  static ObjectPtr<RegExp> create(const String& pattern);
-  static ObjectPtr<RegExp> create(const String& pattern, bool caseSensitive, bool multiLine = false, bool dotAll = false);
-};
 
 // ============================================================================
 // Timer 类 - 定时器
@@ -1354,6 +1731,77 @@ void ListIterator<T>::reset(typename std::vector<T>::iterator begin) {
   current_ = begin;
 }
 
+// SetIterator 实现
+template<typename T>
+SetIterator<T>::SetIterator(typename std::unordered_set<T>::iterator begin,
+                            typename std::unordered_set<T>::iterator end)
+    : current_(begin), end_(end) {}
+
+template<typename T>
+Bool SetIterator<T>::hasNext() const {
+  return Bool(current_ != end_);
+}
+
+template<typename T>
+T SetIterator<T>::next() {
+  if (current_ == end_) {
+    throw std::runtime_error("Iterator out of range");
+  }
+  return *current_++;
+}
+
+template<typename T>
+T SetIterator<T>::current() const {
+  if (current_ == end_) {
+    throw std::runtime_error("Iterator out of range");
+  }
+  return *current_;
+}
+
+template<typename T>
+void SetIterator<T>::reset(typename std::unordered_set<T>::iterator begin) {
+  current_ = begin;
+}
+
+// MapIterator 实现
+template<typename K, typename V>
+MapIterator<K, V>::MapIterator(typename std::unordered_map<K, V>::iterator begin,
+                               typename std::unordered_map<K, V>::iterator end)
+    : current_(begin), end_(end) {}
+
+template<typename K, typename V>
+Bool MapIterator<K, V>::hasNext() const {
+  return Bool(current_ != end_);
+}
+
+template<typename K, typename V>
+void MapIterator<K, V>::next() {
+  if (current_ != end_) {
+    ++current_;
+  }
+}
+
+template<typename K, typename V>
+K MapIterator<K, V>::currentKey() const {
+  if (current_ == end_) {
+    throw std::runtime_error("Iterator out of range");
+  }
+  return current_->first;
+}
+
+template<typename K, typename V>
+V MapIterator<K, V>::currentValue() const {
+  if (current_ == end_) {
+    throw std::runtime_error("Iterator out of range");
+  }
+  return current_->second;
+}
+
+template<typename K, typename V>
+void MapIterator<K, V>::reset(typename std::unordered_map<K, V>::iterator begin) {
+  current_ = begin;
+}
+
 // ObjectPtr 实现
 template<typename T>
 ObjectPtr<T>::ObjectPtr() : ptr_(nullptr) {}
@@ -1394,6 +1842,18 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr<T>&& other) noexcept {
 template<typename T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(T* ptr) {
   ptr_ = ptr;
+  return *this;
+}
+
+template<typename T>
+ObjectPtr<T>& ObjectPtr<T>::operator=(std::nullptr_t) {
+  ptr_ = nullptr;
+  return *this;
+}
+
+template<typename T>
+ObjectPtr<T>& ObjectPtr<T>::operator=(const Nullable&) {
+  ptr_ = nullptr;
   return *this;
 }
 
@@ -1763,6 +2223,17 @@ String List<T>::toString() const {
   return String(ss.str());
 }
 
+// List::createConst 实现 - const 版本的创建方法
+template<typename T>
+ObjectPtr<List<T>> List<T>::createConst() {
+  return ObjectPtr<List<T>>(new List<T>());
+}
+
+template<typename T>
+ObjectPtr<List<T>> List<T>::createConst(std::initializer_list<T> init) {
+  return ObjectPtr<List<T>>(new List<T>(init));
+}
+
 // Set 实现
 template<typename T>
 Set<T>::Set() {}
@@ -1869,6 +2340,40 @@ ObjectPtr<List<T>> Set<T>::toList() const {
 }
 
 template<typename T>
+T Set<T>::first() const {
+  if (data_.empty()) {
+    throw std::runtime_error("Set is empty");
+  }
+  return *data_.begin();
+}
+
+template<typename T>
+T Set<T>::last() const {
+  if (data_.empty()) {
+    throw std::runtime_error("Set is empty");
+  }
+  // unordered_set 没有顺序，返回任意元素作为 "last"
+  T result = *data_.begin();
+  for (const auto& item : data_) {
+    result = item;
+  }
+  return result;
+}
+
+template<typename T>
+ObjectPtr<List<T>> Set<T>::take(const Int& n) const {
+  auto result = new List<T>();
+  int count = 0;
+  int limit = n.toInt();
+  for (const auto& item : data_) {
+    if (count >= limit) break;
+    result->add(item);
+    ++count;
+  }
+  return ObjectPtr<List<T>>(result);
+}
+
+template<typename T>
 ObjectPtr<Set<T>> Set<T>::create() {
   return ObjectPtr<Set<T>>(new Set<T>());
 }
@@ -1895,6 +2400,17 @@ String Set<T>::toString() const {
   }
   ss << "}";
   return String(ss.str());
+}
+
+// Set::createConst 实现 - const 版本的创建方法
+template<typename T>
+ObjectPtr<Set<T>> Set<T>::createConst() {
+  return ObjectPtr<Set<T>>(new Set<T>());
+}
+
+template<typename T>
+ObjectPtr<Set<T>> Set<T>::createConst(std::initializer_list<T> init) {
+  return ObjectPtr<Set<T>>(new Set<T>(init));
 }
 
 // Map 实现
@@ -2068,6 +2584,17 @@ String Map<K, V>::toString() const {
   return String(ss.str());
 }
 
+// Map::createConst 实现 - const 版本的创建方法
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> Map<K, V>::createConst() {
+  return ObjectPtr<Map<K, V>>(new Map<K, V>());
+}
+
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> Map<K, V>::createConst(std::initializer_list<std::pair<K, V>> init) {
+  return ObjectPtr<Map<K, V>>(new Map<K, V>(init));
+}
+
 // ============================================================================
 // std::hash 特化 - 支持Dart类型在std容器中使用
 // ============================================================================
@@ -2128,7 +2655,59 @@ public:
   String toString() const override { return String("Invocation"); }
 };
 
+// ============================================================================
+// Set 和 Map 模板方法实现
+// ============================================================================
+
+template<typename T>
+void Set<T>::addAll(const ObjectPtr<List<T>>& items) {
+  if (!items) return;
+  for (Int i = Int(0); i < items->size(); i = i + Int(1)) {
+    add(items->operator_index(i));
+  }
+}
+
+template<typename K, typename V>
+ObjectPtr<List<std::pair<K, V>>> Map<K, V>::entries() const {
+  auto result = List<std::pair<K, V>>::create();
+  for (const auto& pair : data_) {
+    result->add(std::make_pair(pair.first, pair.second));
+  }
+  return result;
+}
+
+template<typename K, typename V>
+template<typename Func>
+void Map<K, V>::forEach(Func func) const {
+  for (const auto& pair : data_) {
+    func(pair.first, pair.second);
+  }
+}
+
+// map 方法 - 将 Map 的每个键值对转换为新的键值对
+template<typename K, typename V>
+template<typename K2, typename V2, typename MapperFunc>
+ObjectPtr<Map<K2, V2>> Map<K, V>::map(MapperFunc mapper) const {
+  auto result = Map<K2, V2>::create();
+  for (const auto& pair : data_) {
+    auto entry = mapper(pair.first, pair.second);
+    result->put(entry.get_key(), entry.get_value());
+  }
+  return result;
+}
+
+// ============================================================================
+// Double 类 inline 方法实现
+// ============================================================================
+
+inline Bool Double::isFinite() const { return get_isFinite(); }
+inline Bool Double::isInfinite() const { return get_isInfinite(); }
+inline Bool Double::isNaN() const { return get_isNaN(); }
+
 // 无穷大常量
 const Double Infinity = Double(std::numeric_limits<double>::infinity());
+
+// NaN 常量
+const Double NaN = Double(std::numeric_limits<double>::quiet_NaN());
 
 #endif // _DART_OBJECT_H_

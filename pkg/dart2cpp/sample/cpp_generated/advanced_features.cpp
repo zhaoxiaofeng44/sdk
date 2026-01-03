@@ -463,19 +463,19 @@ Nullable testExtensionMethods();
 Nullable testOperatorOverloading();
 Nullable testMetadataAnnotations();
 Nullable testFunctionalProgramming();
-template<typename T, typename R>
-R applyTwice(T value, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> func);
-template<typename T, typename R, typename S>
-ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<std::function<S(R)>, S, R>> f, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> g);
-template<typename T, typename U, typename R>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<std::function<R(T, U)>, R, T, U>> func);
+template<typename T, typename R, typename _F2>
+R applyTwice(T value, ObjectPtr<TypedFunction<_F2, R, T>> func);
+template<typename T, typename R, typename S, typename _F1, typename _F2>
+ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<_F1, S, R>> f, ObjectPtr<TypedFunction<_F2, R, T>> g);
+template<typename T, typename U, typename R, typename _F1>
+ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<_F1, R, T, U>> func);
 template<typename T>
 ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions);
-template<typename T, typename U, typename R>
-ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<std::function<R(T, U)>, R, T, U>> func, T first);
+template<typename T, typename U, typename R, typename _F1>
+ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<_F1, R, T, U>> func, T first);
 ObjectPtr<Function> memoize(ObjectPtr<Function> func);
 Int fibonacci(Int n);
-ObjectPtr<Iterable> generateLazy(Int max);
+ObjectPtr<Iterable<Int>> generateLazy(Int max);
 String StringExtensions::capitalize(String this_);
 Bool StringExtensions::isPalindrome(String this_);
 Int StringExtensions::wordCount(String this_);
@@ -535,8 +535,8 @@ auto multiplyByTwo = makeFunction([&](Int x) { return x->operator_mul(dart_int(2
 auto composed = compose(multiplyByTwo, addOne);
 dart_print(dart_string("    函数组合 (x+1)*2 应用于5: ") + (composed->call(dart_int(5))).toString());
 auto curriedAdd = curry(makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
-Any add10 = curriedAdd->call(dart_int(10));
-dart_print(dart_string("    柯里化加法: ") + (add10.call(dart_int(5))).toString());
+auto add10 = dart_cast<ObjectPtr<TypedFunction<std::function<Int(Int)>, Int, Int>>>(curriedAdd->call(dart_int(10)));
+dart_print(dart_string("    柯里化加法: ") + (add10->call(dart_int(5))).toString());
 return Void;
 }
 
@@ -659,7 +659,7 @@ auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int
 auto result = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return n->operator_mul(n); }))->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(10)); }))->toList();
 dart_print(dart_string("  函数式链式操作:"));
 dart_print(dart_string("    偶数平方大于10: ") + (result).toString());
-auto pipeline = pipe(dart_literal<ObjectPtr<Function>>(makeFunction([&](ObjectPtr<List<Int>> list) { return list->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(5)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); })); }), makeFunction([&](ObjectPtr<Iterable> iter) { return iter->toList(); })));
+auto pipeline = pipe(dart_literal<ObjectPtr<Function>>(makeFunction([&](ObjectPtr<List<Int>> list) { return list->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(5)); })); }), makeFunction([&](ObjectPtr<Iterable<Int>> iter) { return iter->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); })); }), makeFunction([&](ObjectPtr<Iterable<Int>> iter) { return iter->toList(); })));
 Any pipeResult = pipeline->call(numbers);
 dart_print(dart_string("    管道处理结果: ") + (pipeResult).toString());
 auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
@@ -677,18 +677,18 @@ dart_print(dart_string("    前5个数: ") + (firstFive).toString());
 return Void;
 }
 
-template<typename T, typename R>
-R applyTwice(T value, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> func) {
+template<typename T, typename R, typename _F2>
+R applyTwice(T value, ObjectPtr<TypedFunction<_F2, R, T>> func) {
   return func->call(dart_cast<T>(func->call(value)));
 }
 
-template<typename T, typename R, typename S>
-ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<std::function<S(R)>, S, R>> f, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> g) {
+template<typename T, typename R, typename S, typename _F1, typename _F2>
+ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<_F1, S, R>> f, ObjectPtr<TypedFunction<_F2, R, T>> g) {
   return makeFunction([&](T x) { return f->call(g->call(x)); });
 }
 
-template<typename T, typename U, typename R>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<std::function<R(T, U)>, R, T, U>> func) {
+template<typename T, typename U, typename R, typename _F1>
+ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<_F1, R, T, U>> func) {
   return makeFunction([&](T first) { return makeFunction([&](U second) { return func->call(first, second); }); });
 }
 
@@ -703,8 +703,8 @@ result = func->call(result);
 return result; });
 }
 
-template<typename T, typename U, typename R>
-ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<std::function<R(T, U)>, R, T, U>> func, T first) {
+template<typename T, typename U, typename R, typename _F1>
+ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<_F1, R, T, U>> func, T first) {
   return makeFunction([&](U second) { return func->call(first, second); });
 }
 
@@ -726,7 +726,7 @@ return n;
 return fibonacci(n->operator_sub(dart_int(1)))->operator_add(fibonacci(n->operator_sub(dart_int(2))));
 }
 
-ObjectPtr<Iterable> generateLazy(Int max) {
+ObjectPtr<Iterable<Int>> generateLazy(Int max) {
   for (auto i = dart_int(0); i->operator_less(max); i = i->operator_add(dart_int(1))) {
 co_yield i;  // C++20 coroutine
 }

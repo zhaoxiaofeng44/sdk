@@ -4,7 +4,8 @@
 
 Int add(Int a, Int b);
 Int subtract(Int a, Int b);
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation);
+template<typename _F3>
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation);
 Int add(Int a, Int b) {
   return a->operator_add(b);
 }
@@ -13,7 +14,8 @@ Int subtract(Int a, Int b) {
   return a->operator_sub(b);
 }
 
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation) {
+template<typename _F3>
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation) {
   return operation->call(a, b);
 }
 

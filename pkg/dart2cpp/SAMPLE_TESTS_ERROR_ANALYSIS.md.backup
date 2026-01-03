@@ -1,0 +1,2790 @@
+# Sample测试用例错误分析报告
+
+**生成时间**: 2025年12月18日 星期四 13时48分14秒 CST
+
+## 📝 目录
+
+- [📊 测试摘要](#-测试摘要)
+- [✅ 编译成功的测试用例](#-编译成功的测试用例)
+- [❌ 编译失败的测试用例详细分析](#-编译失败的测试用例详细分析)
+- [📈 错误类型统计](#-错误类型统计)
+- [🔧 建议的修复优先级](#-建议的修复优先级)
+- [📝 备注](#-备注)
+
+---
+
+## 📊 测试摘要
+
+| 统计项 | 数量 | 百分比 | 状态 |
+|--------|------|--------|------|
+| **总测试数** | 37 | 100% | - |
+| **✅ 转换成功** | 37 | 100% | 全部通过 |
+| **✅ 编译成功** | 10 | 27% | 部分通过 |
+| **❌ 编译失败** | 27 | 73% | 需要修复 |
+| **✅ 运行成功** | 10 | 27% | 运行正常 |
+| **❌ 运行失败** | 0 | 0% | - |
+
+**关键发现**:
+- ✅ **Dart到C++转换阶段**: 100%成功率，转换器工作正常
+- ⚠️ **C++编译阶段**: 27%成功率，主要问题集中在编译阶段
+- ✅ **程序运行阶段**: 编译成功的用例全部运行成功
+
+**结论**: 问题主要出在生成的C++代码与运行时库的兼容性上，转换逻辑本身是正常的。
+
+## ✅ 编译成功的测试用例
+
+这些测试用例成功完成了 **Dart → C++ 转换 → 编译 → 运行** 的完整流程：
+
+| 序号 | 测试文件 | 说明 |
+|------|---------|------|
+| 1 | `closure_value_boxing_test.dart` | 闭包值类型自动装箱测试 |
+| 2 | `minimal_test.dart` | 最小化测试用例 |
+| 3 | `test_arrow_operator.dart` | 箭头函数测试 |
+| 4 | `test_function_param.dart` | 函数参数测试 |
+| 5 | `test_lambda.dart` | Lambda表达式测试 |
+| 6 | `test_null_assign.dart` | Null赋值测试 |
+| 7 | `test_return_this.dart` | 链式调用返回this测试 |
+| 8 | `test_stringbuffer.dart` | StringBuffer测试 |
+| 9 | `test_top_function.dart` | 顶层函数测试 |
+| 10 | `type_inference_test.dart` | 类型推断测试 |
+
+> 💡 这些成功案例可以作为参考模板，用于分析失败用例的差异。
+
+## ❌ 编译失败的测试用例详细分析
+
+### 1. `advanced_features.dart`
+
+**文件位置**: `sample/dart/advanced_features.dart`  
+**生成文件**: `sample/cpp_generated/advanced_features.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/advanced_features.cpp:101:68: error: no member named 'x' in 'Object'
+```
+
+```
+sample/cpp_generated/advanced_features.cpp:101:93: error: no member named 'y' in 'Object'
+```
+
+```
+sample/cpp_generated/advanced_features.cpp:163:19: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 高级特性测试用例
+   2   ///
+   3   /// 测试Dart高级语法特性，包括：
+   4   /// - 闭包和高阶函数
+   5   /// - 级联操作符
+   6   /// - 扩展方法
+   7   /// - 操作符重载
+   8   /// - 元数据注解
+   9   
+  10   void main() {
+  11     print('🔥 高级特性测试开始');
+  12   
+  13     // 1. 闭包和高阶函数测试
+  14     testClosuresAndHigherOrder();
+  15   
+  16     // 2. 级联操作符测试
+  17     testCascadeNotation();
+  18   
+  19     // 3. 扩展方法测试
+  20     testExtensionMethods();
+  21   
+  22     // 4. 操作符重载测试
+  23     testOperatorOverloading();
+  24   
+  25     // 5. 元数据注解测试
+  26     testMetadataAnnotations();
+  27   
+  28     // 6. 函数式编程测试
+  29     testFunctionalProgramming();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  93       return ObjectPtr<Vector>(new Vector(this->x->operator_sub(other->x), this->y->operator_sub(other->y)));
+  94     }
+  95   
+  96     ObjectPtr<Vector> operator_mul(Double scalar) {
+  97       return ObjectPtr<Vector>(new Vector(this->x->operator_mul(scalar), this->y->operator_mul(scalar)));
+  98     }
+  99   
+ 100     Bool operator_equals(ObjectPtr<Object> other) {
+ 101 ➤     return dart_is<ObjectPtr<Vector>>(other) && (this->x == other->x) && (this->y == other->y);
+ 102     }
+ 103   
+ 104     Int hashCode() {
+ 105       return Object::hash(this->x, this->y);
+ 106     }
+ 107   
+ 108     Double length() {
+ 109       return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+```
+
+**错误行**: 第 101 行 (标记为 ➤)
+
+</details>
+**错误类别**: 成员访问错误
+
+**问题原因**: 在基类Object上访问派生类的成员变量，类型转换不正确
+
+**解决方案**:
+
+- [ ] **方案1**: 修复编译器的类型推导，确保正确使用派生类指针
+- [ ] **方案2**: 在比较或访问成员前添加类型转换
+- [ ] **方案3**: 使用ObjectPtr的模板特化正确处理成员访问
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 2. `async_programming.dart`
+
+**文件位置**: `sample/dart/async_programming.dart`  
+**生成文件**: `sample/cpp_generated/async_programming.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/async_programming.cpp:23:24: error: 'Future' is not a class, namespace, or enumeration
+```
+
+```
+sample/cpp_generated/async_programming.cpp:26:22: error: 'Future' is not a class, namespace, or enumeration
+```
+
+```
+sample/cpp_generated/async_programming.cpp:29:12: error: 'Future' is not a class, namespace, or enumeration
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 异步编程测试用例
+   2   ///
+   3   /// 测试Dart异步编程特性，包括：
+   4   /// - Future 基础操作
+   5   /// - async/await 语法
+   6   /// - Stream 流处理
+   7   /// - 异步异常处理
+   8   /// - 定时器和延迟
+   9   
+  10   import 'dart:async';
+  11   
+  12   void main() async {
+  13     print('🔥 异步编程测试开始');
+  14   
+  15     // 1. Future 基础测试
+  16     await testFutureBasics();
+  17   
+  18     // 2. async/await 测试
+  19     await testAsyncAwait();
+  20   
+  21     // 3. Future 组合测试
+  22     await testFutureCombination();
+  23   
+  24     // 4. 异步错误处理测试
+  25     await testAsyncErrorHandling();
+  26   
+  27     // 5. Stream 测试
+  28     await testStreamBasics();
+  29   
+  30     // 6. Stream 转换测试
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  15   ObjectPtr<Future<String>> riskyOperation(Bool shouldFail);
+  16   ObjectPtr<Future<String>> slowOperation();
+  17   ObjectPtr<Future<Nullable>> cascadingAsyncError();
+  18   ObjectPtr<Stream<String>> generateMessages();
+  19   ObjectPtr<Stream<Int>> generateNumbers(Int count);
+  20   ObjectPtr<Future<Nullable>> testFutureBasics() {
+  21     DART_ASYNC_BEGIN(Nullable)
+  22     dart_print(dart_string("\n📌 测试 Future 基础"));
+  23 ➤ auto immediateFuture = Future::value(dart_string("立即完成"));
+  24   auto result1 = DART_AWAIT(immediateFuture);
+  25   dart_print(dart_string("  立即Future: ") + (result1).toString());
+  26   auto delayedFuture = Future::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string("延迟完成"); }));
+  27   auto result2 = DART_AWAIT(delayedFuture);
+  28   dart_print(dart_string("  延迟Future: ") + (result2).toString());
+  29   DART_AWAIT(Future::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr)->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
+  30   auto syncFuture = Future::sync(makeFunction([&]() { return dart_int(42); }));
+  31   auto result3 = DART_AWAIT(syncFuture);
+```
+
+**错误行**: 第 23 行 (标记为 ➤)
+
+</details>
+**错误类别**: 静态方法调用错误
+
+**问题原因**: Future的静态方法调用方式不正确，应该使用模板形式
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成Future::delayed为Future<T>::delayed
+- [ ] **方案2**: 使用makeFuture辅助函数替代静态方法
+- [ ] **方案3**: 调整运行时库的Future API设计
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 3. `basic_syntax.dart`
+
+**文件位置**: `sample/dart/basic_syntax.dart`  
+**生成文件**: `sample/cpp_generated/basic_syntax.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/basic_syntax.cpp:151:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/basic_syntax.cpp:230:16: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 基础语法测试用例
+   2   ///
+   3   /// 测试Dart基础语法特性，包括：
+   4   /// - 变量声明和数据类型
+   5   /// - 运算符
+   6   /// - 控制流语句
+   7   /// - 字符串操作
+   8   /// - 基本函数
+   9   
+  10   void main() {
+  11     print('🔥 基础语法测试开始');
+  12   
+  13     // 1. 基本数据类型测试
+  14     testBasicTypes();
+  15   
+  16     // 2. 变量声明测试
+  17     testVariableDeclarations();
+  18   
+  19     // 3. 运算符测试
+  20     testOperators();
+  21   
+  22     // 4. 控制流测试
+  23     testControlFlow();
+  24   
+  25     // 5. 字符串操作测试
+  26     testStringOperations();
+  27   
+  28     // 6. 函数测试
+  29     testFunctions();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+ 143     dart_print(dart_string("    等级: 中等"));
+ 144   }else {
+ 145     dart_print(dart_string("    等级: 未知"));
+ 146   }
+ 147   dart_print(dart_string("  for 循环测试:"));
+ 148   for (auto i = dart_int(0); i->operator_less(dart_int(5)); i = i->operator_add(dart_int(1))) {
+ 149   dart_print(dart_concat(dart_string("    索引: "), (i).toString(), dart_string(", 值: "), (i->operator_mul(i)).toString()));
+ 150   }
+ 151 ➤ auto fruits = _GrowableList::_literal3(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+ 152   dart_print(dart_string("  for-in 循环测试:"));
+ 153   auto sync_for_iterator = fruits->iterator();
+ 154   for (; sync_for_iterator->hasNext(); ) {
+ 155   auto fruit = sync_for_iterator->next();
+ 156   dart_print(dart_string("    水果: ") + (fruit).toString());
+ 157   }
+ 158   dart_print(dart_string("  while 循环测试:"));
+ 159   auto count = dart_int(0);
+```
+
+**错误行**: 第 151 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 4. `closure_capture_test.dart`
+
+**文件位置**: `sample/dart/closure_capture_test.dart`  
+**生成文件**: `sample/cpp_generated/closure_capture_test.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/closure_capture_test.cpp:16:12: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/closure_capture_test.cpp:16:25), I...
+```
+
+```
+sample/cpp_generated/closure_capture_test.cpp:49:19: error: no member named 'call' in 'Function'
+```
+
+```
+sample/cpp_generated/closure_capture_test.cpp:55:18: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 闭包变量捕获功能测试
+   2   
+   3   void main() {
+   4     // 测试1: 基础闭包 - 捕获局部变量
+   5     testBasicClosure();
+   6   
+   7     // 测试2: 闭包捕获多个变量
+   8     testMultipleCapture();
+   9   
+  10     // 测试3: 成员函数引用 - 捕获this
+  11     testMemberFunctionCapture();
+  12   
+  13     // 测试4: 闭包在循环中
+  14     testClosureInLoop();
+  15   
+  16     // 测试5: 嵌套闭包
+  17     testNestedClosure();
+  18   }
+  19   
+  20   // 测试1: 基础闭包捕获
+  21   void testBasicClosure() {
+  22     print("Test 1: Basic Closure");
+  23   
+  24     int x = 10;
+  25   
+  26     var addX = (int y) {
+  27       return x + y; // 捕获外部变量x
+  28     };
+  29   
+  30     print(addX(5)); // 应该输出15
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   8   
+   9   class Calculator {
+  10   public:
+  11     Int base;
+  12     Calculator(Int base) : base(base) {
+  13     }
+  14   
+  15     ObjectPtr<Function> makeAdder() {
+  16 ➤     return makeFunction([&](Int x) { return this->base->operator_add(x); });
+  17     }
+  18   
+  19   };
+  20   
+  21   Nullable testBasicClosure();
+  22   Nullable testMultipleCapture();
+  23   Nullable testMemberFunctionCapture();
+  24   Nullable testClosureInLoop();
+```
+
+**错误行**: 第 16 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 5. `collections.dart`
+
+**文件位置**: `sample/dart/collections.dart`  
+**生成文件**: `sample/cpp_generated/collections.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/collections.cpp:13:16: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/collections.cpp:14:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/collections.cpp:15:14: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 集合操作测试用例
+   2   ///
+   3   /// 测试Dart集合类型，包括：
+   4   /// - List 操作
+   5   /// - Set 操作
+   6   /// - Map 操作
+   7   /// - 集合方法和迭代
+   8   /// - 集合字面量
+   9   
+  10   void main() {
+  11     print('🔥 集合操作测试开始');
+  12   
+  13     // 1. List 操作测试
+  14     testLists();
+  15   
+  16     // 2. Set 操作测试
+  17     testSets();
+  18   
+  19     // 3. Map 操作测试
+  20     testMaps();
+  21   
+  22     // 4. 集合方法测试
+  23     testCollectionMethods();
+  24   
+  25     // 5. 集合字面量测试
+  26     testCollectionLiterals();
+  27   
+  28     // 6. 集合迭代测试
+  29     testIterations();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   5   Nullable testLists();
+   6   Nullable testSets();
+   7   Nullable testMaps();
+   8   Nullable testCollectionMethods();
+   9   Nullable testCollectionLiterals();
+  10   Nullable testIterations();
+  11   Nullable testLists() {
+  12     dart_print(dart_string("\n📌 测试 List 操作"));
+  13 ➤ auto numbers = _GrowableList::_literal5(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
+  14   auto fruits = _GrowableList::_literal3(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+  15   auto mixed = _GrowableList::_literal4(dart_int(1), dart_string("hello"), dart_bool(true), dart_double(3.14));
+  16   auto emptyList = _GrowableList::create(dart_int(0));
+  17   dart_print(dart_string("  List 创建:"));
+  18   dart_print(dart_string("    数字列表: ") + (numbers).toString());
+  19   dart_print(dart_string("    水果列表: ") + (fruits).toString());
+  20   dart_print(dart_string("    混合列表: ") + (mixed).toString());
+  21   dart_print(dart_string("    空列表: ") + (emptyList).toString());
+```
+
+**错误行**: 第 13 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 6. `constants.dart`
+
+**文件位置**: `sample/dart/constants.dart`  
+**生成文件**: `sample/cpp_generated/constants.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/constants.cpp:19:3: error: constructor cannot be redeclared
+```
+
+```
+sample/cpp_generated/constants.cpp:22:3: error: constructor cannot be redeclared
+```
+
+```
+sample/cpp_generated/constants.cpp:30:67: error: no member named 'x' in 'Object'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 常量处理测试用例
+   2   ///
+   3   /// 测试Dart常量相关特性，包括：
+   4   /// - const 常量
+   5   /// - final 常量
+   6   /// - 静态常量
+   7   /// - 编译时常量
+   8   /// - 常量构造函数
+   9   
+  10   void main() {
+  11     print('🔥 常量处理测试开始');
+  12   
+  13     // 1. 基本常量测试
+  14     testBasicConstants();
+  15   
+  16     // 2. 常量集合测试
+  17     testConstantCollections();
+  18   
+  19     // 3. 常量构造函数测试
+  20     testConstantConstructors();
+  21   
+  22     // 4. 静态常量测试
+  23     testStaticConstants();
+  24   
+  25     // 5. 编译时常量表达式测试
+  26     testCompileTimeExpressions();
+  27   
+  28     print('✅ 常量处理测试完成');
+  29   }
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  11     Double x;
+  12     Double y;
+  13     Point(Double x, Double y) : x(x), y(y) {
+  14     }
+  15   
+  16     Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
+  17     }
+  18   
+  19 ➤   Point() : x(dart_double(1.0)), y(dart_double(0.0)) {
+  20     }
+  21   
+  22     Point() : x(dart_double(0.0)), y(dart_double(1.0)) {
+  23     }
+  24   
+  25     Double distance() {
+  26       return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+  27     }
+```
+
+**错误行**: 第 19 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 7. `edge_cases.dart`
+
+**文件位置**: `sample/dart/edge_cases.dart`  
+**生成文件**: `sample/cpp_generated/edge_cases.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/edge_cases.cpp:69:24: error: use of undeclared identifier 'NaN'
+```
+
+```
+sample/cpp_generated/edge_cases.cpp:124:37: error: no member named 'operator_mul' in 'String'
+```
+
+```
+sample/cpp_generated/edge_cases.cpp:161:18: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 边界测试用例
+   2   ///
+   3   /// 测试Dart边界情况和极端情况，包括：
+   4   /// - 数值边界
+   5   /// - 字符串边界
+   6   /// - 集合边界
+   7   /// - 空值处理
+   8   /// - 除零和溢出
+   9   
+  10   void main() {
+  11     print('🔥 边界测试开始');
+  12   
+  13     // 1. 数值边界测试
+  14     testNumericEdgeCases();
+  15   
+  16     // 2. 字符串边界测试
+  17     testStringEdgeCases();
+  18   
+  19     // 3. 集合边界测试
+  20     testCollectionEdgeCases();
+  21   
+  22     // 4. 空值边界测试
+  23     testNullEdgeCases();
+  24   
+  25     // 5. 除零和溢出测试
+  26     testDivisionAndOverflow();
+  27   
+  28     // 6. 类型转换边界测试
+  29     testTypeConversionEdges();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  61   dart_print(dart_string("    负一: ") + (minusOne).toString());
+  62   dart_print(dart_string("  浮点数边界:"));
+  63   auto positiveZero = dart_double(0.0);
+  64   auto negativeZero = dart_double(-0.0);
+  65   auto verySmall = dart_double(1e-7);
+  66   auto veryLarge = dart_double(1000000000.0);
+  67   auto infinity = dart_double(Infinity);
+  68   auto negativeInfinity = dart_double(-Infinity);
+  69 ➤ auto nan = dart_double(NaN);
+  70   dart_print(dart_string("    正零: ") + (positiveZero).toString());
+  71   dart_print(dart_string("    负零: ") + (negativeZero).toString());
+  72   dart_print(dart_string("    很小的数: ") + (verySmall).toString());
+  73   dart_print(dart_string("    很大的数: ") + (veryLarge).toString());
+  74   dart_print(dart_string("    正无穷: ") + (infinity).toString());
+  75   dart_print(dart_string("    负无穷: ") + (negativeInfinity).toString());
+  76   dart_print(dart_string("    NaN: ") + (nan).toString());
+  77   dart_print(dart_string("  特殊值检查:"));
+```
+
+**错误行**: 第 69 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 8. `exception_handling.dart`
+
+**文件位置**: `sample/dart/exception_handling.dart`  
+**生成文件**: `sample/cpp_generated/exception_handling.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/exception_handling.cpp:86:56: error: no member named 'message' in 'DatabaseException'; did you mean 'message_'?
+```
+
+```
+sample/cpp_generated/exception_handling.cpp:99:66: error: no matching constructor for initialization of 'DatabaseException'
+```
+
+```
+sample/cpp_generated/exception_handling.cpp:103:58: error: no member named 'message' in 'ConnectionException'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 异常处理测试用例
+   2   ///
+   3   /// 测试Dart异常处理特性，包括：
+   4   /// - 基本异常捕获
+   5   /// - 自定义异常
+   6   /// - 异常链和重新抛出
+   7   /// - finally 块
+   8   /// - 异步异常处理
+   9   
+  10   void main() async {
+  11     print('🔥 异常处理测试开始');
+  12   
+  13     // 1. 基本异常处理测试
+  14     testBasicExceptions();
+  15   
+  16     // 2. 自定义异常测试
+  17     testCustomExceptions();
+  18   
+  19     // 3. 异常链测试
+  20     testExceptionChaining();
+  21   
+  22     // 4. finally 块测试
+  23     testFinallyBlocks();
+  24   
+  25     // 5. 异常重新抛出测试
+  26     testRethrowExceptions();
+  27   
+  28     // 6. 异步异常处理测试
+  29     await testAsyncExceptions();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  78   // 类: DatabaseException
+  79   // ============================================================================
+  80   
+  81   class DatabaseException : virtual public Exception {
+  82   public:
+  83     virtual ~DatabaseException() = default;
+  84   
+  85     String toString() {
+  86 ➤     return dart_string("DatabaseException: ") + (this->message).toString();
+  87     }
+  88   
+  89     virtual String get_message() = 0;
+  90   };
+  91   
+  92   // ============================================================================
+  93   // 类: ConnectionException
+  94   // ============================================================================
+```
+
+**错误行**: 第 86 行 (标记为 ➤)
+
+</details>
+**错误类别**: 异常类成员访问错误
+
+**问题原因**: 异常类的message成员应为message_（带下划线）
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成异常类时使用message_命名
+- [ ] **方案2**: 在运行时库中添加message()的getter方法
+- [ ] **方案3**: 统一异常类的成员命名规范
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 9. `generics.dart`
+
+**文件位置**: `sample/dart/generics.dart`  
+**生成文件**: `sample/cpp_generated/generics.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/generics.cpp:26:46: error: use of undeclared identifier 'Type'
+```
+
+```
+sample/cpp_generated/generics.cpp:26:73: error: 'Box' does not refer to a value
+```
+
+```
+sample/cpp_generated/generics.cpp:26:79: error: expected expression
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 泛型测试用例
+   2   ///
+   3   /// 测试Dart泛型特性，包括：
+   4   /// - 泛型类
+   5   /// - 泛型方法
+   6   /// - 类型约束
+   7   /// - 协变和逆变
+   8   /// - 泛型集合
+   9   
+  10   void main() {
+  11     print('🔥 泛型测试开始');
+  12   
+  13     // 1. 泛型类测试
+  14     testGenericClasses();
+  15   
+  16     // 2. 泛型方法测试
+  17     testGenericMethods();
+  18   
+  19     // 3. 类型约束测试
+  20     testTypeConstraints();
+  21   
+  22     // 4. 泛型集合测试
+  23     testGenericCollections();
+  24   
+  25     // 5. 协变和逆变测试
+  26     testVariance();
+  27   
+  28     // 6. 泛型接口测试
+  29     testGenericInterfaces();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  18       return this->_value;
+  19     }
+  20   
+  21     Nullable setValue(T value) {
+  22       return this->_value = value;
+  23     }
+  24   
+  25     String toString() {
+  26 ➤     return dart_concat(dart_string("Box<"), (Type::of<TypeParameterType(Box.T%)>()).toString(), dart_string(">("), (this->_value).toString(), dart_string(")"));
+  27     }
+  28   
+  29   };
+  30   
+  31   // ============================================================================
+  32   // 类: Pair
+  33   // ============================================================================
+  34   
+```
+
+**错误行**: 第 26 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 10. `hello_test.dart`
+
+**文件位置**: `sample/dart/hello_test.dart`  
+**生成文件**: `sample/cpp_generated/hello_test.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test.cpp:102:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test.cpp:132:16: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test.cpp:133:14: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 基础语法测试示例
+   2   ///
+   3   /// 包含能够被正确转换的基础Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 基础语法测试开始');
+   8   
+   9     // 1. 基本数据类型
+  10     testBasicTypes();
+  11   
+  12     // 2. 控制流
+  13     testControlFlow();
+  14   
+  15     // 3. 函数
+  16     testFunctions();
+  17   
+  18     // 4. 集合类型（简化版）
+  19     testSimpleCollections();
+  20   
+  21     // 5. 类和对象
+  22     testClasses();
+  23   
+  24     print('✅ Dart 基础语法测试完成');
+  25   }
+  26   
+  27   /// 测试基本数据类型（简化版）
+  28   void testBasicTypes() {
+  29     print('\n--- 基本数据类型 ---');
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  94     dart_print(dart_string("及格"));
+  95   }else {
+  96     dart_print(dart_string("未知等级"));
+  97   }
+  98   dart_print(dart_string("For 循环:"));
+  99   for (auto i = dart_int(0); i->operator_less(dart_int(5)); i = i->operator_add(dart_int(1))) {
+ 100   dart_print(dart_string("数字: ") + (i).toString());
+ 101   }
+ 102 ➤ auto fruits = _GrowableList::_literal3(dart_string("苹果"), dart_string("香蕉"), dart_string("橙子"));
+ 103   dart_print(dart_string("For-in 循环:"));
+ 104   auto sync_for_iterator = fruits->iterator();
+ 105   for (; sync_for_iterator->hasNext(); ) {
+ 106   auto fruit = sync_for_iterator->next();
+ 107   dart_print(dart_string("水果: ") + (fruit).toString());
+ 108   }
+ 109   dart_print(dart_string("While 循环:"));
+ 110   auto count = dart_int(3);
+```
+
+**错误行**: 第 102 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 11. `hello_test_additional_features.dart`
+
+**文件位置**: `sample/dart/hello_test_additional_features.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_additional_features.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_additional_features.cpp:22:12: error: no viable conversion from returned value of type 'String' to function return type 'Nullable'
+```
+
+```
+sample/cpp_generated/hello_test_additional_features.cpp:30:12: error: no viable conversion from returned value of type 'Int' to function return type 'Nullable'
+```
+
+```
+sample/cpp_generated/hello_test_additional_features.cpp:60:12: error: no viable conversion from returned value of type 'String' to function return type 'Nullable'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 附加特性测试示例
+   2   ///
+   3   /// 包含适配转换器的更多Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 附加特性测试开始');
+   8   
+   9     // 1. 基本数据类型和操作
+  10     testDataTypes();
+  11   
+  12     // 2. 控制流附加特性
+  13     testAdditionalControlFlow();
+  14   
+  15     // 3. 函数附加特性
+  16     testAdditionalFunctions();
+  17   
+  18     // 4. 集合附加特性
+  19     testAdditionalCollections();
+  20   
+  21     // 5. 类附加特性
+  22     testAdditionalClasses();
+  23   
+  24     // 6. 泛型附加特性
+  25     testAdditionalGenerics();
+  26   
+  27     // 7. 异常处理
+  28     testSimpleExceptionHandling();
+  29   
+  30     // 8. 空安全特性
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  14     AdditionalPerson(String _name, Int _age) : _name(_name), _age(_age) {
+  15     }
+  16   
+  17     String getName() {
+  18       return this->_name;
+  19     }
+  20   
+  21     Nullable setName(String value) {
+  22 ➤     return this->_name = value;
+  23     }
+  24   
+  25     Int getAge() {
+  26       return this->_age;
+  27     }
+  28   
+  29     Nullable setAge(Int value) {
+  30       return this->_age = value;
+```
+
+**错误行**: 第 22 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 12. `hello_test_enhanced.dart`
+
+**文件位置**: `sample/dart/hello_test_enhanced.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_enhanced.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_enhanced.cpp:127:21: error: unknown class name '_Bird'; did you mean 'Bird'?
+```
+
+```
+sample/cpp_generated/hello_test_enhanced.cpp:127:21: error: base class has incomplete type
+```
+
+```
+sample/cpp_generated/hello_test_enhanced.cpp:161:13: error: declaration of reference variable 'Object' requires an initializer
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 增强语法测试示例
+   2   ///
+   3   /// 包含更多高级Dart语法特性，用于测试Dart到C++的转换
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型
+  10     testBasicTypes();
+  11   
+  12     // 2. 控制流
+  13     testControlFlow();
+  14   
+  15     // 3. 函数（增强版）
+  16     testEnhancedFunctions();
+  17   
+  18     // 4. 集合类型（增强版）
+  19     testEnhancedCollections();
+  20   
+  21     // 5. 类和对象（增强版）
+  22     testEnhancedClasses();
+  23   
+  24     // 6. 泛型
+  25     testGenerics();
+  26   
+  27     // 7. 异常处理
+  28     testExceptions();
+  29   
+  30     // 8. 空安全特性
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+ 119     }
+ 120   
+ 121   };
+ 122   
+ 123   // ============================================================================
+ 124   // 类: Bird
+ 125   // ============================================================================
+ 126   
+ 127 ➤ class Bird : public _Bird&Object&Flyable&Speakable {
+ 128   public:
+ 129     String name;
+ 130     Bird(String name) : name(name) {
+ 131     }
+ 132   
+ 133   };
+ 134   
+ 135   // ============================================================================
+```
+
+**错误行**: 第 127 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 13. `hello_test_enhanced_simple.dart`
+
+**文件位置**: `sample/dart/hello_test_enhanced_simple.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_enhanced_simple.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_enhanced_simple.cpp:22:12: error: no viable conversion from returned value of type 'String' to function return type 'Nullable'
+```
+
+```
+sample/cpp_generated/hello_test_enhanced_simple.cpp:30:12: error: no viable conversion from returned value of type 'Int' to function return type 'Nullable'
+```
+
+```
+sample/cpp_generated/hello_test_enhanced_simple.cpp:116:15: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 简化增强语法测试示例
+   2   ///
+   3   /// 包含适配转换器的更多Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 简化增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型
+  10     testBasicTypes();
+  11   
+  12     // 2. 控制流
+  13     testControlFlow();
+  14   
+  15     // 3. 函数（简化版）
+  16     testSimpleFunctions();
+  17   
+  18     // 4. 集合类型（简化版）
+  19     testSimpleCollections();
+  20   
+  21     // 5. 类和对象（简化版）
+  22     testSimpleClasses();
+  23   
+  24     // 6. 泛型（简化版）
+  25     testSimpleGenerics();
+  26   
+  27     // 7. 异常处理（简化版）
+  28     testSimpleExceptions();
+  29   
+  30     print('✅ Dart 简化增强语法测试完成');
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  14     SimplePerson(String _name, Int _age) : _name(_name), _age(_age) {
+  15     }
+  16   
+  17     String getName() {
+  18       return this->_name;
+  19     }
+  20   
+  21     Nullable setName(String value) {
+  22 ➤     return this->_name = value;
+  23     }
+  24   
+  25     Int getAge() {
+  26       return this->_age;
+  27     }
+  28   
+  29     Nullable setAge(Int value) {
+  30       return this->_age = value;
+```
+
+**错误行**: 第 22 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 14. `hello_test_final.dart`
+
+**文件位置**: `sample/dart/hello_test_final.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_final.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_final.cpp:101:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test_final.cpp:131:16: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test_final.cpp:132:14: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 基础语法测试示例 (最终版)
+   2   ///
+   3   /// 包含能够被正确转换的基础Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 基础语法测试开始');
+   8   
+   9     // 1. 基本数据类型
+  10     testBasicTypes();
+  11   
+  12     // 2. 控制流
+  13     testControlFlow();
+  14   
+  15     // 3. 函数
+  16     testFunctions();
+  17   
+  18     // 4. 集合类型（简化版）
+  19     testSimpleCollections();
+  20   
+  21     // 5. 类和对象
+  22     testClasses();
+  23   
+  24     print('✅ Dart 基础语法测试完成');
+  25   }
+  26   
+  27   /// 测试基本数据类型（简化版）
+  28   void testBasicTypes() {
+  29     print('\n--- 基本数据类型 ---');
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  93     dart_print(dart_string("及格"));
+  94   }else {
+  95     dart_print(dart_string("未知等级"));
+  96   }
+  97   dart_print(dart_string("For 循环:"));
+  98   for (auto i = dart_int(0); i->operator_less(dart_int(5)); i = i->operator_add(dart_int(1))) {
+  99   dart_print(dart_string("数字: ") + (i).toString());
+ 100   }
+ 101 ➤ auto fruits = _GrowableList::_literal3(dart_string("苹果"), dart_string("香蕉"), dart_string("橙子"));
+ 102   dart_print(dart_string("For-in 循环:"));
+ 103   auto sync_for_iterator = fruits->iterator();
+ 104   for (; sync_for_iterator->hasNext(); ) {
+ 105   auto fruit = sync_for_iterator->next();
+ 106   dart_print(dart_string("水果: ") + (fruit).toString());
+ 107   }
+ 108   dart_print(dart_string("While 循环:"));
+ 109   auto count = dart_int(3);
+```
+
+**错误行**: 第 101 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 15. `hello_test_final_enhanced.dart`
+
+**文件位置**: `sample/dart/hello_test_final_enhanced.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_final_enhanced.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_final_enhanced.cpp:122:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test_final_enhanced.cpp:148:16: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 最终增强语法测试示例
+   2   ///
+   3   /// 包含转换器完全支持的更多Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 最终增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型和操作
+  10     testDataTypes();
+  11   
+  12     // 2. 控制流增强
+  13     testFinalControlFlow();
+  14   
+  15     // 3. 函数增强
+  16     testFinalFunctions();
+  17   
+  18     // 4. 集合增强
+  19     testFinalCollections();
+  20   
+  21     // 5. 类增强
+  22     testFinalClasses();
+  23   
+  24     // 6. 泛型
+  25     testFinalGenerics();
+  26   
+  27     print('✅ Dart 最终增强语法测试完成');
+  28   }
+  29   
+  30   /// 测试数据类型和操作
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+ 114     dart_print(dart_string("良好"));
+ 115   }else {
+ 116     dart_print(dart_string("其他分数"));
+ 117   }
+ 118   dart_print(dart_string("正序循环:"));
+ 119   for (auto i = dart_int(1); i->operator_less_equals(dart_int(3)); i = i->operator_add(dart_int(1))) {
+ 120   dart_print(dart_string("数字: ") + (i).toString());
+ 121   }
+ 122 ➤ auto fruits = _GrowableList::_literal3(dart_string("苹果"), dart_string("香蕉"), dart_string("橙子"));
+ 123   dart_print(dart_string("水果列表:"));
+ 124   auto sync_for_iterator = fruits->iterator();
+ 125   for (; sync_for_iterator->hasNext(); ) {
+ 126   auto fruit = sync_for_iterator->next();
+ 127   dart_print(dart_string("  ") + (fruit).toString());
+ 128   }
+ 129   auto testAge = dart_int(20);
+ 130   auto description = testAge->operator_greater_equals(dart_int(18)) ? dart_string("成年人") : dart_string("未成年人");
+```
+
+**错误行**: 第 122 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 16. `hello_test_minimal_enhanced.dart`
+
+**文件位置**: `sample/dart/hello_test_minimal_enhanced.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_minimal_enhanced.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_minimal_enhanced.cpp:68:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test_minimal_enhanced.cpp:89:16: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 最小化增强语法测试示例
+   2   ///
+   3   /// 包含转换器支持的增强Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 最小化增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型和操作
+  10     testDataTypes();
+  11   
+  12     // 2. 控制流增强
+  13     testEnhancedControlFlow();
+  14   
+  15     // 3. 函数增强
+  16     testEnhancedFunctions();
+  17   
+  18     // 4. 集合增强
+  19     testEnhancedCollections();
+  20   
+  21     // 5. 类增强
+  22     testEnhancedClasses();
+  23   
+  24     // 6. 泛型
+  25     testGenerics();
+  26   
+  27     print('✅ Dart 最小化增强语法测试完成');
+  28   }
+  29   
+  30   /// 测试数据类型和操作
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  60   auto grade = dart_string("B");
+  61   if (grade == dart_string("A")) {
+  62     dart_print(dart_string("优秀"));
+  63   } else if (grade == dart_string("B")) {
+  64     dart_print(dart_string("良好"));
+  65   }else {
+  66     dart_print(dart_string("其他等级"));
+  67   }
+  68 ➤ auto fruits = _GrowableList::_literal3(dart_string("苹果"), dart_string("香蕉"), dart_string("橙子"));
+  69   dart_print(dart_string("水果列表:"));
+  70   auto sync_for_iterator = fruits->iterator();
+  71   for (; sync_for_iterator->hasNext(); ) {
+  72   auto fruit = sync_for_iterator->next();
+  73   dart_print(dart_string("  ") + (fruit).toString());
+  74   }
+  75   auto testAge = dart_int(20);
+  76   auto description = testAge->operator_greater_equals(dart_int(18)) ? dart_string("成年人") : dart_string("未成年人");
+```
+
+**错误行**: 第 68 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 17. `hello_test_more_enhanced.dart`
+
+**文件位置**: `sample/dart/hello_test_more_enhanced.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_more_enhanced.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_more_enhanced.cpp:85:22: error: expected class name
+```
+
+```
+sample/cpp_generated/hello_test_more_enhanced.cpp:87:44: error: no member named 'createConst' in 'ObjectPtr<Color>'
+```
+
+```
+sample/cpp_generated/hello_test_more_enhanced.cpp:88:46: error: no member named 'createConst' in 'ObjectPtr<Color>'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 更多增强语法测试示例
+   2   ///
+   3   /// 包含更全面的Dart语法特性，用于测试Dart到C++的转换
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 更多增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型和操作
+  10     testDataTypes();
+  11   
+  12     // 2. 控制流增强
+  13     testMoreControlFlow();
+  14   
+  15     // 3. 函数增强
+  16     testMoreFunctions();
+  17   
+  18     // 4. 集合增强
+  19     testMoreCollections();
+  20   
+  21     // 5. 类增强
+  22     testMoreClasses();
+  23   
+  24     // 6. 泛型增强
+  25     testMoreGenerics();
+  26   
+  27     // 7. 异常处理
+  28     testExceptionHandling();
+  29   
+  30     // 8. 空安全特性
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  77     }
+  78   
+  79   };
+  80   
+  81   // ============================================================================
+  82   // 类: Color
+  83   // ============================================================================
+  84   
+  85 ➤ class Color : public _Enum {
+  86   public:
+  87     ObjectPtr<Color> red = ObjectPtr<Color>::createConst();
+  88     ObjectPtr<Color> green = ObjectPtr<Color>::createConst();
+  89     ObjectPtr<Color> blue = ObjectPtr<Color>::createConst();
+  90     ObjectPtr<List<ObjectPtr<Color>>> values = List<ObjectPtr<Color>>::createConst({ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst(), ObjectPtr<Color>::createConst()});
+  91     Color(Int _index, String _name) : _Enum(index, name) {
+  92     }
+  93   
+```
+
+**错误行**: 第 85 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 18. `hello_test_working_enhanced.dart`
+
+**文件位置**: `sample/dart/hello_test_working_enhanced.dart`  
+**生成文件**: `sample/cpp_generated/hello_test_working_enhanced.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/hello_test_working_enhanced.cpp:53:15: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/hello_test_working_enhanced.cpp:74:16: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// Dart 工作增强语法测试示例
+   2   ///
+   3   /// 包含转换器完全支持的Dart语法特性
+   4   ///
+   5   
+   6   void main() {
+   7     print('🔥 Dart 工作增强语法测试开始');
+   8   
+   9     // 1. 基本数据类型
+  10     testDataTypes();
+  11   
+  12     // 2. 控制流增强
+  13     testWorkingControlFlow();
+  14   
+  15     // 3. 函数特性
+  16     testWorkingFunctions();
+  17   
+  18     // 4. 集合特性
+  19     testWorkingCollections();
+  20   
+  21     // 5. 类特性
+  22     testWorkingClasses();
+  23   
+  24     // 6. 泛型特性
+  25     testWorkingGenerics();
+  26   
+  27     print('✅ Dart 工作增强语法测试完成');
+  28   }
+  29   
+  30   /// 测试数据类型
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  45   auto score = dart_int(85);
+  46   if (score == dart_int(100) || score == dart_int(90)) {
+  47     dart_print(dart_string("优秀"));
+  48   } else if (score == dart_int(80)) {
+  49     dart_print(dart_string("良好"));
+  50   }else {
+  51     dart_print(dart_string("其他分数"));
+  52   }
+  53 ➤ auto fruits = _GrowableList::_literal3(dart_string("苹果"), dart_string("香蕉"), dart_string("橙子"));
+  54   dart_print(dart_string("水果列表:"));
+  55   auto sync_for_iterator = fruits->iterator();
+  56   for (; sync_for_iterator->hasNext(); ) {
+  57   auto fruit = sync_for_iterator->next();
+  58   dart_print(dart_string("  ") + (fruit).toString());
+  59   }
+  60   auto testAge = dart_int(20);
+  61   auto description = testAge->operator_greater_equals(dart_int(18)) ? dart_string("成年人") : dart_string("未成年人");
+```
+
+**错误行**: 第 53 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 19. `null_safety_test.dart`
+
+**文件位置**: `sample/dart/null_safety_test.dart`  
+**生成文件**: `sample/cpp_generated/null_safety_test.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/null_safety_test.cpp:11:13: error: use of undeclared identifier 'Address'
+```
+
+```
+sample/cpp_generated/null_safety_test.cpp:23:17: error: no viable conversion from 'Nullable' to 'String'
+```
+
+```
+sample/cpp_generated/null_safety_test.cpp:43:15: error: no matching conversion for functional-style cast from 'String' to 'decltype(Null)' (aka 'Nullable')
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   void main() {
+   2     // 测试空值比较
+   3     int? nullableInt;
+   4     if (nullableInt == null) {
+   5       print("nullableInt is null");
+   6     }
+   7   
+   8     // 测试空合并操作符 ??
+   9     String? nullableString;
+  10     String result = nullableString ?? "default value";
+  11     print(result);
+  12   
+  13     // 测试空安全调用操作符 ?.
+  14     String? maybeString = "hello";
+  15     int? length = maybeString?.length;
+  16     print(length);
+  17   
+  18     // 测试链式空安全调用
+  19     Person? person;
+  20     String? cityName = person?.address?.city;
+  21     print(cityName ?? "unknown city");
+  22   }
+  23   
+  24   class Person {
+  25     Address? address;
+  26   }
+  27   
+  28   class Address {
+  29     String? city;
+  30   }
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   3   // 工具宏定义
+   4   
+   5   // ============================================================================
+   6   // 类: Person
+   7   // ============================================================================
+   8   
+   9   class Person {
+  10   public:
+  11 ➤   ObjectPtr<Address> address = Null;
+  12     Person() {
+  13     }
+  14   
+  15   };
+  16   
+  17   // ============================================================================
+  18   // 类: Address
+  19   // ============================================================================
+```
+
+**错误行**: 第 11 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 20. `object_oriented.dart`
+
+**文件位置**: `sample/dart/object_oriented.dart`  
+**生成文件**: `sample/cpp_generated/object_oriented.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/object_oriented.cpp:441:25: error: unknown class name '_Musician'; did you mean 'Musician'?
+```
+
+```
+sample/cpp_generated/object_oriented.cpp:441:25: error: base class has incomplete type
+```
+
+```
+sample/cpp_generated/object_oriented.cpp:443:36: error: expected '(' or '{'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 面向对象编程测试用例
+   2   ///
+   3   /// 测试Dart面向对象特性，包括：
+   4   /// - 类和对象
+   5   /// - 继承和多态
+   6   /// - 接口和抽象类
+   7   /// - 混入(Mixins)
+   8   /// - 枚举
+   9   /// - 构造函数
+  10   
+  11   void main() {
+  12     print('🔥 面向对象编程测试开始');
+  13   
+  14     // 1. 基本类和对象测试
+  15     testBasicClasses();
+  16   
+  17     // 2. 继承测试
+  18     testInheritance();
+  19   
+  20     // 3. 接口测试
+  21     testInterfaces();
+  22   
+  23     // 4. 混入测试
+  24     testMixins();
+  25   
+  26     // 5. 抽象类测试
+  27     testAbstractClasses();
+  28   
+  29     // 6. 枚举测试
+  30     testEnums();
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+ 433     }
+ 434   
+ 435   };
+ 436   
+ 437   // ============================================================================
+ 438   // 类: Musician
+ 439   // ============================================================================
+ 440   
+ 441 ➤ class Musician : public _Musician&Performer&Singing&Playing {
+ 442   public:
+ 443     Musician(String name) : _Musician&Performer&Singing&Playing(name) {
+ 444     }
+ 445   
+ 446   };
+ 447   
+ 448   // ============================================================================
+ 449   // 类: Dancer
+```
+
+**错误行**: 第 441 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 21. `test.dart`
+
+**文件位置**: `sample/dart/test.dart`  
+**生成文件**: `sample/cpp_generated/test.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/test.cpp:32:3: error: constructor for 'MyTest2' must explicitly initialize the base class 'MyTest' which does not have a default constructor
+```
+
+```
+sample/cpp_generated/test.cpp:33:11: error: no member named 'set_a' in 'MyTest2'
+```
+
+```
+sample/cpp_generated/test.cpp:34:7: error: no member named 'set_b' in 'MyTest2'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   class MyTest {
+   2     int a;
+   3     int b;
+   4     MyTest(this.a, this.b);
+   5     void testA() {}
+   6   
+   7     int getgg() {
+   8       return a + b;
+   9     }
+  10   }
+  11   
+  12   class MyTest2 implements MyTest {
+  13     MyTest2(int a, int b) {
+  14       this.a = a;
+  15       this.b = b;
+  16     }
+  17     @override
+  18     noSuchMethod(Invocation invocation) {
+  19       // TODO: implement noSuchMethod
+  20       print(invocation);
+  21       return super.noSuchMethod(invocation);
+  22     }
+  23   }
+  24   
+  25   void main() {
+  26     print('🔥 基础语法测试开始');
+  27   
+  28     MyTest2 myTest2 = MyTest2(1, 3);
+  29   }
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  24   };
+  25   
+  26   // ============================================================================
+  27   // 类: MyTest2
+  28   // ============================================================================
+  29   
+  30   class MyTest2 : virtual public MyTest {
+  31   public:
+  32 ➤   MyTest2(Int a, Int b) {
+  33       this->set_a(a);
+  34   this->set_b(b);
+  35     }
+  36   
+  37     Any noSuchMethod(ObjectPtr<Invocation> invocation) {
+  38       dart_print(invocation);
+  39   return this->noSuchMethod(invocation);
+  40     }
+```
+
+**错误行**: 第 32 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 22. `test_all_functions.dart`
+
+**文件位置**: `sample/dart/test_all_functions.dart`  
+**生成文件**: `sample/cpp_generated/test_all_functions.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/test_all_functions.cpp:22:36: error: no member named 'call' in 'Function'
+```
+
+```
+sample/cpp_generated/test_all_functions.cpp:26:10: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<std::function<Int (Int, Int)>, Int, Int, Int>>' to function return t...
+```
+
+```
+sample/cpp_generated/test_all_functions.cpp:31:10: error: no viable conversion from returned value of type 'ObjectPtr<TypedFunction<(lambda at sample/cpp_generated/test_all_functions.cpp:31:23), Int, ...
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   // 测试所有函数相关表达式的转换
+   2   
+   3   // 1. 普通函数定义
+   4   int add(int a, int b) {
+   5     return a + b;
+   6   }
+   7   
+   8   int subtract(int a, int b) {
+   9     return a - b;
+  10   }
+  11   
+  12   // 2. Lambda 函数表达式
+  13   var multiply = (int a, int b) => a * b;
+  14   
+  15   // 3. 函数作为参数传递
+  16   int calculate(int a, int b, Function operation) {
+  17     return operation(a, b);
+  18   }
+  19   
+  20   // 4. 函数引用（Tear-off）
+  21   Function getAddFunction() {
+  22     return add;
+  23   }
+  24   
+  25   // 5. 高阶函数
+  26   Function createMultiplier(int factor) {
+  27     return (int value) => value * factor;
+  28   }
+  29   
+  30   // 6. 匿名函数
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  14     return a->operator_add(b);
+  15   }
+  16   
+  17   Int subtract(Int a, Int b) {
+  18     return a->operator_sub(b);
+  19   }
+  20   
+  21   Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+  22 ➤   return dart_cast<Int>(operation->call(a, b));
+  23   }
+  24   
+  25   ObjectPtr<Function> getAddFunction() {
+  26     return makeFunction(&add);
+  27   }
+  28   
+  29   ObjectPtr<Function> createMultiplier(Int _factor) {
+  30     ObjectPtr<_ValueBox<Int>> factor(new _ValueBox<Int>(_factor));
+```
+
+**错误行**: 第 22 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 23. `test_comprehensive.dart`
+
+**文件位置**: `sample/dart/test_comprehensive.dart`  
+**生成文件**: `sample/cpp_generated/test_comprehensive.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/test_comprehensive.cpp:31:14: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 综合测试：验证已修复的问题
+   2   int add(int a, int b) {
+   3     return a + b;
+   4   }
+   5   
+   6   void greet(String name, [String? title]) {
+   7     if (title != null) {
+   8       print('Hello, $title $name!');
+   9     } else {
+  10       print('Hello, $name!');
+  11     }
+  12   }
+  13   
+  14   void main() {
+  15     print('=== 综合测试 ===');
+  16   
+  17     // 测试1: 顶级函数调用
+  18     int result = add(10, 20);
+  19     print('Add result: $result');
+  20   
+  21     // 测试2: 可选参数
+  22     greet('Alice');
+  23     greet('Bob', 'Mr.');
+  24   
+  25     // 测试3: for-in 循环
+  26     List<String> items = ['apple', 'banana', 'orange'];
+  27     print('\\nFor-in loop:');
+  28     for (String item in items) {
+  29       print('  - $item');
+  30     }
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  23   
+  24   int main() {
+  25     try {
+  26       dart_print(dart_string("=== 综合测试 ==="));
+  27   auto result = add(dart_int(10), dart_int(20));
+  28   dart_print(dart_string("Add result: ") + (result).toString());
+  29   greet(dart_string("Alice"), nullptr);
+  30   greet(dart_string("Bob"), dart_string("Mr."));
+  31 ➤ auto items = _GrowableList::_literal3(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+  32   dart_print(dart_string("\\nFor-in loop:"));
+  33   auto sync_for_iterator = items->iterator();
+  34   for (; sync_for_iterator->hasNext(); ) {
+  35   auto item = sync_for_iterator->next();
+  36   dart_print(dart_string("  - ") + (item).toString());
+  37   }
+  38   dart_print(dart_string("\\n✅ 所有测试通过！"));
+  39       return 0;
+```
+
+**错误行**: 第 31 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 24. `test_forin.dart`
+
+**文件位置**: `sample/dart/test_forin.dart`  
+**生成文件**: `sample/cpp_generated/test_forin.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/test_forin.cpp:11:19: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 测试 for-in 循环
+   2   void main() {
+   3     List<String> fruits = ['apple', 'banana', 'orange'];
+   4     print('For-in test:');
+   5     for (String fruit in fruits) {
+   6       print(fruit);
+   7     }
+   8     print('Done!');
+   9   }
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   3   // 工具宏定义
+   4   
+   5   // ============================================================================
+   6   // 主函数
+   7   // ============================================================================
+   8   
+   9   int main() {
+  10     try {
+  11 ➤     auto fruits = _GrowableList::_literal3(dart_string("apple"), dart_string("banana"), dart_string("orange"));
+  12   dart_print(dart_string("For-in test:"));
+  13   auto sync_for_iterator = fruits->iterator();
+  14   for (; sync_for_iterator->hasNext(); ) {
+  15   auto fruit = sync_for_iterator->next();
+  16   dart_print(fruit);
+  17   }
+  18   dart_print(dart_string("Done!"));
+  19       return 0;
+```
+
+**错误行**: 第 11 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 25. `test_simple_functions.dart`
+
+**文件位置**: `sample/dart/test_simple_functions.dart`  
+**生成文件**: `sample/cpp_generated/test_simple_functions.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/test_simple_functions.cpp:17:36: error: no member named 'call' in 'Function'
+```
+
+```
+sample/cpp_generated/test_simple_functions.cpp:26:20: error: no matching function for call to 'calculate'
+```
+
+```
+sample/cpp_generated/test_simple_functions.cpp:28:53: error: use of undeclared identifier 'multiply'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   // 简单函数测试
+   2   
+   3   // 1. 普通函数定义
+   4   int add(int a, int b) {
+   5     return a + b;
+   6   }
+   7   
+   8   int subtract(int a, int b) {
+   9     return a - b;
+  10   }
+  11   
+  12   // 2. Lambda 函数表达式
+  13   var multiply = (int a, int b) => a * b;
+  14   
+  15   // 3. 函数作为参数传递
+  16   int calculate(int a, int b, Function operation) {
+  17     return operation(a, b);
+  18   }
+  19   
+  20   // 主函数
+  21   void main() {
+  22     // 测试普通函数
+  23     var result1 = calculate(10, 5, add);
+  24     print('10 + 5 = $result1');
+  25   
+  26     // 测试 Lambda 函数
+  27     var result2 = calculate(10, 5, multiply);
+  28     print('10 * 5 = $result2');
+  29   }
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   9     return a->operator_add(b);
+  10   }
+  11   
+  12   Int subtract(Int a, Int b) {
+  13     return a->operator_sub(b);
+  14   }
+  15   
+  16   Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+  17 ➤   return dart_cast<Int>(operation->call(a, b));
+  18   }
+  19   
+  20   // ============================================================================
+  21   // 主函数
+  22   // ============================================================================
+  23   
+  24   int main() {
+  25     try {
+```
+
+**错误行**: 第 17 行 (标记为 ➤)
+
+</details>
+**错误类别**: 未分类错误
+
+**问题原因**: 需要进一步分析
+
+**解决方案**:
+
+- [ ] **方案1**: 查看生成的C++代码定位问题
+- [ ] **方案2**: 对比成功案例找出差异
+- [ ] **方案3**: 检查编译器转换逻辑
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 26. `type_conversion.dart`
+
+**文件位置**: `sample/dart/type_conversion.dart`  
+**生成文件**: `sample/cpp_generated/type_conversion.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/type_conversion.cpp:105:14: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/type_conversion.cpp:167:14: error: use of undeclared identifier '_GrowableList'
+```
+
+```
+sample/cpp_generated/type_conversion.cpp:195:58: error: no member named 'callMethod' in 'String'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 类型转换测试用例
+   2   ///
+   3   /// 测试Dart类型转换特性，包括：
+   4   /// - as 表达式
+   5   /// - is 类型检查
+   6   /// - 类型转换方法
+   7   /// - 空安全转换
+   8   /// - 动态类型处理
+   9   
+  10   void main() {
+  11     print('🔥 类型转换测试开始');
+  12   
+  13     // 1. as 表达式测试
+  14     testAsExpressions();
+  15   
+  16     // 2. is 类型检查测试
+  17     testIsTypeChecks();
+  18   
+  19     // 3. 类型转换方法测试
+  20     testTypeConversionMethods();
+  21   
+  22     // 4. 空安全转换测试
+  23     testNullSafetyConversions();
+  24   
+  25     // 5. 动态类型处理测试
+  26     testDynamicTypeHandling();
+  27   
+  28     // 6. 泛型类型转换测试
+  29     testGenericTypeConversions();
+  30   
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+  97   Nullable testDynamicTypeHandling();
+  98   Nullable testGenericTypeConversions();
+  99   template<typename T>
+ 100   ObjectPtr<List<T>> createList(T first, T second);
+ 101   Nullable testAsExpressions() {
+ 102     dart_print(dart_string("\n📌 测试 as 表达式"));
+ 103   Any value1 = dart_int(42);
+ 104   Any value2 = dart_string("hello");
+ 105 ➤ Any value3 = _GrowableList::_literal3(dart_int(1), dart_int(2), dart_int(3));
+ 106   Any value4 = Map<String, String>::createFromEntries({{dart_string("key"), dart_string("value")}});
+ 107   dart_print(dart_string("  基本 as 转换:"));
+ 108   try {
+ 109   auto intValue = dart_cast<Int>(value1);
+ 110   dart_print(dart_string("    42 as int: ") + (intValue).toString());
+ 111   } catch (const std::exception& e) { /* catch block */ }
+ 112   // Finally block should be implemented using RAII pattern
+ 113   try {
+```
+
+**错误行**: 第 105 行 (标记为 ➤)
+
+</details>
+**错误类别**: 类型转换错误
+
+**问题原因**: List字面量被转换为_GrowableList，但运行时库中不存在此类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器生成代码逻辑，将_GrowableList替换为List::create和add方法
+- [ ] **方案2**: 在C++运行时库中实现_GrowableList辅助类
+- [ ] **方案3**: 使用List<T>::_literal方法替代_GrowableList
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+### 27. `type_promotion_test.dart`
+
+**文件位置**: `sample/dart/type_promotion_test.dart`  
+**生成文件**: `sample/cpp_generated/type_promotion_test.cpp`
+
+**主要错误**:
+
+```
+sample/cpp_generated/type_promotion_test.cpp:10:10: error: no viable conversion from returned value of type 'String' to function return type 'ObjectPtr<Object>'
+```
+
+```
+sample/cpp_generated/type_promotion_test.cpp:14:10: error: no viable conversion from returned value of type 'String' to function return type 'ObjectPtr<Object>'
+```
+
+```
+sample/cpp_generated/type_promotion_test.cpp:18:10: error: use of undeclared identifier '_GrowableList'
+```
+
+
+
+**📋 代码片段对比**:
+
+<details>
+<summary>📄 Dart源代码 (点击展开)</summary>
+
+```dart
+   1   /// 类型提升测试
+   2   void main() {
+   3     // 测试1: 基本的is类型检查和类型提升
+   4     Object obj = "Hello";
+   5     if (obj is String) {
+   6       // 在这个分支中，obj被提升为String类型
+   7       print(obj.length); // 可以访问String的方法
+   8       print(obj.toUpperCase());
+   9     }
+  10   
+  11     // 测试2: 使用dynamic类型
+  12     dynamic value = 42;
+  13     if (value is int) {
+  14       print(value + 10); // value被提升为int类型
+  15     }
+  16   
+  17     // 测试3: 嵌套的is检查
+  18     Object? nullable = getValue();
+  19     if (nullable != null) {
+  20       if (nullable is String) {
+  21         print(nullable.substring(0, 5)); // nullable被提升为String类型
+  22       }
+  23     }
+  24   
+  25     // 测试4: 逻辑与运算符中的类型提升
+  26     Object x = getObject();
+  27     Object y = getObject();
+  28   
+  29     if (x is String && y is int) {
+  30       // x被提升为String，y被提升为int
+```
+
+</details>
+
+<details>
+<summary>⚠️ 生成的C++代码 (错误位置)</summary>
+
+```cpp
+   2   
+   3   // 工具宏定义
+   4   
+   5   ObjectPtr<Object> getValue();
+   6   ObjectPtr<Object> getObject();
+   7   ObjectPtr<Object> getData();
+   8   ObjectPtr<Object> getItem();
+   9   ObjectPtr<Object> getValue() {
+  10 ➤   return dart_string("test");
+  11   }
+  12   
+  13   ObjectPtr<Object> getObject() {
+  14     return dart_string("sample");
+  15   }
+  16   
+  17   ObjectPtr<Object> getData() {
+  18     return _GrowableList::_literal3(dart_int(1), dart_int(2), dart_int(3));
+```
+
+**错误行**: 第 10 行 (标记为 ➤)
+
+</details>
+**错误类别**: 返回类型不匹配
+
+**问题原因**: 函数返回类型为ObjectPtr<Object>但返回了String值类型
+
+**解决方案**:
+
+- [ ] **方案1**: 修改编译器推导返回类型为String而非ObjectPtr<Object>
+- [ ] **方案2**: 使用ValuePtr<String>包装返回值
+- [ ] **方案3**: 添加自动装箱机制将值类型转换为ObjectPtr
+- [ ] **其他方案**: <请在此处输入其他解决方案或补充信息>
+
+---
+
+## 📈 错误类型统计
+
+### 未分类错误 (13个)
+
+- `closure_capture_test.dart`
+- `constants.dart`
+- `edge_cases.dart`
+- `generics.dart`
+- `hello_test_additional_features.dart`
+- `hello_test_enhanced.dart`
+- `hello_test_enhanced_simple.dart`
+- `hello_test_more_enhanced.dart`
+- `null_safety_test.dart`
+- `object_oriented.dart`
+- `test.dart`
+- `test_all_functions.dart`
+- `test_simple_functions.dart`
+
+### 类型转换错误 (10个)
+
+- `basic_syntax.dart`
+- `collections.dart`
+- `hello_test.dart`
+- `hello_test_final.dart`
+- `hello_test_final_enhanced.dart`
+- `hello_test_minimal_enhanced.dart`
+- `hello_test_working_enhanced.dart`
+- `test_comprehensive.dart`
+- `test_forin.dart`
+- `type_conversion.dart`
+
+### 成员访问错误 (1个)
+
+- `advanced_features.dart`
+
+### 静态方法调用错误 (1个)
+
+- `async_programming.dart`
+
+### 异常类成员访问错误 (1个)
+
+- `exception_handling.dart`
+
+### 返回类型不匹配 (1个)
+
+- `type_promotion_test.dart`
+
+## 🔧 建议的修复优先级
+
+- [ ] **高优先级**: 修复`_GrowableList`相关错误 (影响最多测试)
+- [ ] **中优先级**: 修复静态方法调用错误 (Future/List相关)
+- [ ] **中优先级**: 修复类型转换和类型检查错误
+- [ ] **低优先级**: 修复扩展方法命名冲突
+- [ ] **低优先级**: 完善异常处理机制
+
+## 📝 备注
+
+### 如何使用本报告
+
+1. **查看错误详情**: 每个失败的测试用例都包含：
+   - 文件位置：原始Dart文件路径
+   - 生成文件：转换后的C++文件路径
+   - 主要错误：编译器报错信息
+   - 错误类别：错误的分类
+   - 问题原因：错误的根本原因分析
+   - 解决方案：1-3个可选方案 + 自定义输入
+
+2. **选择解决方案**: 
+   - 直接在方案前勾选 `[x]` 表示已采纳，例如：`- [x] **方案1**: ...`
+   - 可以同时勾选多个方案
+   
+3. **添加自定义方案**: 
+   - 在"其他方案"后的尖括号中输入，例如：
+     ```markdown
+     - [ ] **其他方案**: 使用特定的转换逻辑处理此类问题
+     ```
+
+4. **查看统计信息**: 
+   - 滚动到 [📈 错误类型统计](#-错误类型统计) 查看哪些错误影响最多测试
+   - 优先处理影响范围最大的错误类型
+
+5. **参考成功案例**: 
+   - 对比 [✅ 编译成功的测试用例](#-编译成功的测试用例) 找出差异
+   - 分析为什么这些用例能够成功
+
+### 注意事项
+
+- 本报告是Markdown格式，可以在任何Markdown编辑器或GitHub中查看
+- 所有复选框 `[ ]` 都可以直接编辑，方便跟踪修复进度
+- 建议优先处理影响多个测试用例的共性问题，提高修复效率
+- 每次修复后可重新运行 `bash run_all_sample_tests.sh` 验证效果

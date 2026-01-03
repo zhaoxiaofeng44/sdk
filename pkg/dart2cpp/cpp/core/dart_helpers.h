@@ -94,32 +94,32 @@ inline const Double Math::E = Double(2.718281828459045);
 // 扩展方法命名空间 - MathExtension
 // ============================================================================
 
-namespace MathExtension {
-    // 为 double 类型提供扩展方法
-    inline Double sqrt(const Double& value) {
-        return Math::sqrt(value);
-    }
+// namespace MathExtension {
+//     // 为 double 类型提供扩展方法
+//     inline Double sqrt(const Double& value) {
+//         return Math::sqrt(value);
+//     }
     
-    inline Double abs(const Double& value) {
-        return Math::abs(value);
-    }
+//     inline Double abs(const Double& value) {
+//         return Math::abs(value);
+//     }
     
-    inline Double pow(const Double& base, const Double& exponent) {
-        return Math::pow(base, exponent);
-    }
+//     inline Double pow(const Double& base, const Double& exponent) {
+//         return Math::pow(base, exponent);
+//     }
     
-    inline Double sin(const Double& value) {
-        return Math::sin(value);
-    }
+//     inline Double sin(const Double& value) {
+//         return Math::sin(value);
+//     }
     
-    inline Double cos(const Double& value) {
-        return Math::cos(value);
-    }
+//     inline Double cos(const Double& value) {
+//         return Math::cos(value);
+//     }
     
-    inline Double tan(const Double& value) {
-        return Math::tan(value);
-    }
-}
+//     inline Double tan(const Double& value) {
+//         return Math::tan(value);
+//     }
+// }
 
 // ============================================================================
 // DateTime 日期时间类
@@ -185,6 +185,27 @@ public:
         std::tm* tm = std::localtime(&time);
         return Int(tm->tm_sec);
     }
+    
+    // 新增：获取星期几（1=星期一, 7=星期日）
+    Int get_weekday() const {
+        std::time_t time = std::chrono::system_clock::to_time_t(time_point_);
+        std::tm* tm = std::localtime(&time);
+        // tm_wday: 0=星期日, 1=星期一, ..., 6=星期六
+        // Dart 中：1=星期一, 7=星期日
+        int weekday = tm->tm_wday;
+        return Int(weekday == 0 ? 7 : weekday);
+    }
+    
+    // 新增：获取毫秒时间戳（getter 方法）
+    Int get_millisecondsSinceEpoch() const {
+        auto duration = time_point_.time_since_epoch();
+        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+        return Int(static_cast<int>(millis.count()));
+    }
+    
+    // 新增：添加/减去 Duration（声明，实现在 Duration 类定义之后）
+    ObjectPtr<DateTime> add(const ObjectPtr<Duration>& duration) const;
+    ObjectPtr<DateTime> subtract(const ObjectPtr<Duration>& duration) const;
     
     String toString() const override {
         std::time_t time = std::chrono::system_clock::to_time_t(time_point_);
@@ -355,6 +376,23 @@ public:
         return String(ss.str());
     }
 };
+
+// DateTime 方法实现（依赖 Duration，必须在 Duration 定义之后）
+inline ObjectPtr<DateTime> DateTime::add(const ObjectPtr<Duration>& duration) const {
+    auto newDateTime = new DateTime();
+    auto millis = duration->inMilliseconds();
+    auto duration_ms = std::chrono::milliseconds(millis.getValue());
+    newDateTime->time_point_ = time_point_ + duration_ms;
+    return ObjectPtr<DateTime>(newDateTime);
+}
+
+inline ObjectPtr<DateTime> DateTime::subtract(const ObjectPtr<Duration>& duration) const {
+    auto newDateTime = new DateTime();
+    auto millis = duration->inMilliseconds();
+    auto duration_ms = std::chrono::milliseconds(millis.getValue());
+    newDateTime->time_point_ = time_point_ - duration_ms;
+    return ObjectPtr<DateTime>(newDateTime);
+}
 
 // ============================================================================
 // Stopwatch 秒表类

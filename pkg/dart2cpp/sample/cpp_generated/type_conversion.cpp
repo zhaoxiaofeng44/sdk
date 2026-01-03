@@ -260,7 +260,7 @@ auto doubleString = dart_string("3.14");
 auto boolString = dart_string("true");
 auto invalidString = dart_string("abc");
 try {
-auto parsedInt = Int::parse(intString, nullptr, nullptr);
+auto parsedInt = Int::parse(intString, Null, Null);
 dart_print(dart_string("    parse \"123\": ") + (parsedInt).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
@@ -270,13 +270,13 @@ dart_print(dart_string("    parse \"3.14\": ") + (parsedDouble).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto invalidInt = Int::parse(invalidString, nullptr, nullptr);
+auto invalidInt = Int::parse(invalidString, Null, Null);
 dart_print(dart_string("    不应该执行到这里: ") + (invalidInt).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  安全解析:"));
-auto safeInt1 = Int::tryParse(intString, nullptr);
-auto safeInt2 = Int::tryParse(invalidString, nullptr);
+auto safeInt1 = Int::tryParse(intString, Null);
+auto safeInt2 = Int::tryParse(invalidString, Null);
 auto safeDouble1 = Double::tryParse(doubleString);
 auto safeDouble2 = Double::tryParse(invalidString);
 dart_print(dart_string("    tryParse \"123\": ") + (safeInt1).toString());
@@ -289,7 +289,7 @@ dart_print(dart_string("    255转16进制: ") + (decimal->toRadixString(dart_in
 dart_print(dart_string("    255转8进制: ") + (decimal->toRadixString(dart_int(8))).toString());
 dart_print(dart_string("    255转2进制: ") + (decimal->toRadixString(dart_int(2))).toString());
 try {
-auto fromHex = Int::parse(dart_string("FF"), dart_int(16), nullptr);
+auto fromHex = Int::parse(dart_string("FF"), dart_int(16), Null);
 dart_print(dart_string("    16进制FF转10进制: ") + (fromHex).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
@@ -302,7 +302,7 @@ dart_print(dart_string("    List转Set: ") + (listToSet).toString());
 dart_print(dart_string("    Set转List: ") + (setToList).toString());
 auto text = dart_string("Hello");
 auto charCodes = text->get_codeUnits();
-auto fromCodes = String::fromCharCodes(charCodes, dart_int(0), nullptr);
+auto fromCodes = String::fromCharCodes(charCodes, dart_int(0), Null);
 dart_print(dart_string("    String转字符码: ") + (charCodes).toString());
 dart_print(dart_string("    字符码转String: ") + (fromCodes).toString());
 return Void;

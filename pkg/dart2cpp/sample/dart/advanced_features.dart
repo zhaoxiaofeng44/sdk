@@ -102,7 +102,7 @@ void testClosuresAndHigherOrder() {
 
   // 柯里化
   var curriedAdd = curry((int a, int b) => a + b);
-  var add10 = curriedAdd(10);
+  int Function(int) add10 = curriedAdd(10);
 
   print('    柯里化加法: ${add10(5)}');
 }
@@ -524,8 +524,7 @@ class DataValidator {
   }
 
   @timeout(5000)
-  void validateAge(int age) {
-  }
+  void validateAge(int age) {}
 
   @requiredTag()
   void validatePassword(String password) {

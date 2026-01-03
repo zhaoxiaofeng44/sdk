@@ -467,7 +467,7 @@ class CompleteExpressionConverter {
 
   String _convertEqualsNull(EqualsNull node) {
     final expr = convertExpression(node.expression);
-    return '($expr == nullptr)';
+    return '($expr == Null)';
   }
 
   // ============================================================================
@@ -639,7 +639,7 @@ class CompleteExpressionConverter {
 
   String _convertConstant(Constant constant) {
     if (constant is NullConstant) {
-      return 'nullptr';
+      return 'Null';
     } else if (constant is BoolConstant) {
       return CppTypeConverter.convertLiteral(constant.value);
     } else if (constant is IntConstant) {

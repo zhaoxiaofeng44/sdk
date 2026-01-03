@@ -49,6 +49,8 @@ class Nullable;
 // 容器类型前向声明
 template <typename T>
 class List;
+template <typename K, typename V>
+class Map;
 template <typename T>
 class ObjectPtr;
 class Function;
@@ -101,7 +103,7 @@ class String  {
   String(const char* v);  // 接受字符串字面量 - 实现在cpp文件中
   String(const std::string& v);  // 接受 std::string - 实现在cpp文件中
   explicit String(const Any& any);  // 显式构造，避免与其他构造函数冲突
-  explicit String(const Nullable&);  // 显式NULL构造函数
+  String(const Nullable&);  // NULL构造函数（支持隐式转换）
 
   // 拷贝赋值运算符
   String& operator=(const String& other);
@@ -162,6 +164,7 @@ class String  {
 
   // 字符串操作方法
   String substring(const Int& start, const Int& end) const;
+  String substring(const Int& start) const;  // 单参数版本，从 start 到字符串末尾
   Int indexOf(const String& pattern) const;
   Int indexOf(const String& pattern, const Int& start) const;
   Int lastIndexOf(const String& pattern) const;
@@ -191,9 +194,77 @@ class String  {
   String replaceFirstMapped(const String& from, const ObjectPtr<TypedFunction<ReplaceFunc, String, String>>& replace) const;
   ObjectPtr<List<String> > splitChars() const;  // 分割为字符列表
   String repeat(const Int& times) const;
+  String operator_mul(const Int& times) const;  // 字符串乘法运算 ("a" * 3 = "aaa")
+  String operator*(const Int& times) const;  // 标准乘法运算符
+  
+  // 字符编码相关
+  ObjectPtr<List<Int> > get_codeUnits() const;  // 获取字符编码列表
   
   // 静态方法：连接字符串列表
   static String join(const ObjectPtr<List<String> >& strings, const String& separator);
+  
+  // 静态扩展方法（从 StringExtensions 迁移）
+  static ObjectPtr<List<String>> splitStatic(const String& str, const String& delimiter);
+  static String interpolate(const String& template_str, const ObjectPtr<Map<String, String>>& variables);
+  
+  // ============================================================================
+  // RegExp 相关方法 - 将正则表达式功能合并到 String 类型
+  // String 本身可以用作正则表达式模式
+  // ============================================================================
+  
+  // 检查正则表达式是否在输入字符串中有匹配
+  // this 作为正则表达式模式，input 是要匹配的字符串
+  Bool hasMatch(const String& input) const;
+  
+  // 返回正则表达式在输入字符串中的第一个匹配字符串
+  // this 作为正则表达式模式，input 是要匹配的字符串
+  String stringMatch(const String& input) const;
+  
+  // 从指定位置开始匹配，返回匹配位置
+  // this 作为正则表达式模式
+  Int matchAsPrefix(const String& str, const Int& start) const;
+  Int matchAsPrefix(const String& str) const;
+  
+  // 获取正则表达式模式（返回自身）
+  String pattern() const;
+  
+  // 正则表达式属性（简化实现，都返回默认值）
+  Bool isCaseSensitive() const;
+  Bool isMultiLine() const;
+  Bool isDotAll() const;
+  
+  // format 方法为模板方法，需要在头文件中实现
+  template<typename... Args>
+  static String format(const String& format_str, Args... args) {
+    std::stringstream ss;
+    format_helper(ss, format_str.getValue(), args...);
+    return String(ss.str());
+  }
+
+private:
+  // format 辅助方法
+  template<typename T>
+  static void format_helper(std::stringstream& ss, const std::string& format, T&& value) {
+    size_t pos = format.find("{}");
+    if (pos != std::string::npos) {
+      ss << format.substr(0, pos) << value << format.substr(pos + 2);
+    } else {
+      ss << format;
+    }
+  }
+  
+  template<typename T, typename... Args>
+  static void format_helper(std::stringstream& ss, const std::string& format, T&& value, Args&&... args) {
+    size_t pos = format.find("{}");
+    if (pos != std::string::npos) {
+      ss << format.substr(0, pos) << value;
+      format_helper(ss, format.substr(pos + 2), args...);
+    } else {
+      ss << format;
+    }
+  }
+
+public:
 
   // 类型转换
   operator std::string() const;

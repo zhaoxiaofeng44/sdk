@@ -1,0 +1,331 @@
+========================================
+[1] Testing: sample/dart/advanced_features.dart
+========================================
+Step 1: Converting sample/dart/advanced_features.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/advanced_features.cpp...
+✗ Compilation FAILED
+
+========================================
+[2] Testing: sample/dart/async_programming.dart
+========================================
+Step 1: Converting sample/dart/async_programming.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/async_programming.cpp...
+✗ Compilation FAILED
+
+========================================
+[3] Testing: sample/dart/basic_syntax.dart
+========================================
+Step 1: Converting sample/dart/basic_syntax.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/basic_syntax.cpp...
+✗ Compilation FAILED
+
+========================================
+[4] Testing: sample/dart/closure_capture_test.dart
+========================================
+Step 1: Converting sample/dart/closure_capture_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/closure_capture_test.cpp...
+✗ Compilation FAILED
+
+========================================
+[5] Testing: sample/dart/closure_value_boxing_test.dart
+========================================
+Step 1: Converting sample/dart/closure_value_boxing_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/closure_value_boxing_test.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/closure_value_boxing_test...
+✗ Execution FAILED (exit code: 124)
+
+========================================
+[6] Testing: sample/dart/collections.dart
+========================================
+Step 1: Converting sample/dart/collections.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/collections.cpp...
+✗ Compilation FAILED
+
+========================================
+[7] Testing: sample/dart/constants.dart
+========================================
+Step 1: Converting sample/dart/constants.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/constants.cpp...
+✗ Compilation FAILED
+
+========================================
+[8] Testing: sample/dart/edge_cases.dart
+========================================
+Step 1: Converting sample/dart/edge_cases.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/edge_cases.cpp...
+✗ Compilation FAILED
+
+========================================
+[9] Testing: sample/dart/exception_handling.dart
+========================================
+Step 1: Converting sample/dart/exception_handling.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/exception_handling.cpp...
+✗ Compilation FAILED
+
+========================================
+[10] Testing: sample/dart/generics.dart
+========================================
+Step 1: Converting sample/dart/generics.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/generics.cpp...
+✗ Compilation FAILED
+
+========================================
+[11] Testing: sample/dart/hello_test.dart
+========================================
+Step 1: Converting sample/dart/hello_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test.cpp...
+✗ Compilation FAILED
+
+========================================
+[12] Testing: sample/dart/hello_test_additional_features.dart
+========================================
+Step 1: Converting sample/dart/hello_test_additional_features.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_additional_features.cpp...
+✗ Compilation FAILED
+
+========================================
+[13] Testing: sample/dart/hello_test_enhanced.dart
+========================================
+Step 1: Converting sample/dart/hello_test_enhanced.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_enhanced.cpp...
+✗ Compilation FAILED
+
+========================================
+[14] Testing: sample/dart/hello_test_enhanced_simple.dart
+========================================
+Step 1: Converting sample/dart/hello_test_enhanced_simple.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_enhanced_simple.cpp...
+✗ Compilation FAILED
+
+========================================
+[15] Testing: sample/dart/hello_test_final.dart
+========================================
+Step 1: Converting sample/dart/hello_test_final.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_final.cpp...
+✗ Compilation FAILED
+
+========================================
+[16] Testing: sample/dart/hello_test_final_enhanced.dart
+========================================
+Step 1: Converting sample/dart/hello_test_final_enhanced.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_final_enhanced.cpp...
+✗ Compilation FAILED
+
+========================================
+[17] Testing: sample/dart/hello_test_minimal_enhanced.dart
+========================================
+Step 1: Converting sample/dart/hello_test_minimal_enhanced.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_minimal_enhanced.cpp...
+✗ Compilation FAILED
+
+========================================
+[18] Testing: sample/dart/hello_test_more_enhanced.dart
+========================================
+Step 1: Converting sample/dart/hello_test_more_enhanced.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_more_enhanced.cpp...
+✗ Compilation FAILED
+
+========================================
+[19] Testing: sample/dart/hello_test_working_enhanced.dart
+========================================
+Step 1: Converting sample/dart/hello_test_working_enhanced.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/hello_test_working_enhanced.cpp...
+✗ Compilation FAILED
+
+========================================
+[20] Testing: sample/dart/minimal_test.dart
+========================================
+Step 1: Converting sample/dart/minimal_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/minimal_test.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/minimal_test...
+✓ Execution SUCCESS
+
+========================================
+[21] Testing: sample/dart/null_safety_test.dart
+========================================
+Step 1: Converting sample/dart/null_safety_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/null_safety_test.cpp...
+✗ Compilation FAILED
+
+========================================
+[22] Testing: sample/dart/object_oriented.dart
+========================================
+Step 1: Converting sample/dart/object_oriented.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/object_oriented.cpp...
+✗ Compilation FAILED
+
+========================================
+[23] Testing: sample/dart/test.dart
+========================================
+Step 1: Converting sample/dart/test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test.cpp...
+✗ Compilation FAILED
+
+========================================
+[24] Testing: sample/dart/test_all_functions.dart
+========================================
+Step 1: Converting sample/dart/test_all_functions.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_all_functions.cpp...
+✗ Compilation FAILED
+
+========================================
+[25] Testing: sample/dart/test_arrow_operator.dart
+========================================
+Step 1: Converting sample/dart/test_arrow_operator.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_arrow_operator.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_arrow_operator...
+✓ Execution SUCCESS
+
+========================================
+[26] Testing: sample/dart/test_comprehensive.dart
+========================================
+Step 1: Converting sample/dart/test_comprehensive.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_comprehensive.cpp...
+✗ Compilation FAILED
+
+========================================
+[27] Testing: sample/dart/test_forin.dart
+========================================
+Step 1: Converting sample/dart/test_forin.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_forin.cpp...
+✗ Compilation FAILED
+
+========================================
+[28] Testing: sample/dart/test_function_param.dart
+========================================
+Step 1: Converting sample/dart/test_function_param.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_function_param.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_function_param...
+✓ Execution SUCCESS
+
+========================================
+[29] Testing: sample/dart/test_lambda.dart
+========================================
+Step 1: Converting sample/dart/test_lambda.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_lambda.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_lambda...
+✓ Execution SUCCESS
+
+========================================
+[30] Testing: sample/dart/test_null_assign.dart
+========================================
+Step 1: Converting sample/dart/test_null_assign.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_null_assign.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_null_assign...
+✓ Execution SUCCESS
+
+========================================
+[31] Testing: sample/dart/test_return_this.dart
+========================================
+Step 1: Converting sample/dart/test_return_this.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_return_this.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_return_this...
+✓ Execution SUCCESS
+
+========================================
+[32] Testing: sample/dart/test_simple_functions.dart
+========================================
+Step 1: Converting sample/dart/test_simple_functions.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_simple_functions.cpp...
+✗ Compilation FAILED
+
+========================================
+[33] Testing: sample/dart/test_stringbuffer.dart
+========================================
+Step 1: Converting sample/dart/test_stringbuffer.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_stringbuffer.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_stringbuffer...
+✓ Execution SUCCESS
+
+========================================
+[34] Testing: sample/dart/test_top_function.dart
+========================================
+Step 1: Converting sample/dart/test_top_function.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/test_top_function.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/test_top_function...
+✓ Execution SUCCESS
+
+========================================
+[35] Testing: sample/dart/type_conversion.dart
+========================================
+Step 1: Converting sample/dart/type_conversion.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/type_conversion.cpp...
+✗ Compilation FAILED
+
+========================================
+[36] Testing: sample/dart/type_inference_test.dart
+========================================
+Step 1: Converting sample/dart/type_inference_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/type_inference_test.cpp...
+✓ Compilation SUCCESS
+Step 3: Running sample/cpp_generated/type_inference_test...
+✓ Execution SUCCESS
+
+========================================
+[37] Testing: sample/dart/type_promotion_test.dart
+========================================
+Step 1: Converting sample/dart/type_promotion_test.dart to C++...
+✓ Conversion SUCCESS
+Step 2: Compiling sample/cpp_generated/type_promotion_test.cpp...
+✗ Compilation FAILED
+
+========================================
+FINAL SUMMARY
+========================================
+Total Files:        37
+Conversion Success: 37 / 37
+Conversion Failed:  0 / 37
+Compile Success:    10 / 37
+Compile Failed:     27 / 37
+Run Success:        9 / 10
+Run Failed:         1 / 10
+========================================
+
+Results saved to:
+  - Detailed log: sample_test_results.txt
+  - JSON summary: sample_test_summary.json

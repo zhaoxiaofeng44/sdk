@@ -42,7 +42,7 @@ dart_print(result);
 auto maybeString = dart_string("hello");
 auto length = dart_null_coalesce(maybeString, Null);
 dart_print(length);
-ObjectPtr<ObjectPtr<Person>> person(nullptr);
+ObjectPtr<ObjectPtr<Person>> person(Null);
 auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
 dart_print(dart_null_coalesce(cityName, dart_string("unknown city")));
     return 0;

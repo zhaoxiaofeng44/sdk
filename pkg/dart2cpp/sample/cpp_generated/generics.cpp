@@ -81,7 +81,7 @@ public:
   ContainerFactory() {
   }
   
-  ObjectPtr<Box> create(T value) {
+  ObjectPtr<Box<T>> create(T value) {
     return ObjectPtr<Box<T>>(new Box<T>(value));
   }
   
@@ -330,11 +330,11 @@ public:
     return this->_items->size();
   }
   
-  ObjectPtr<Iterable> keys() {
+  ObjectPtr<Iterable<K>> keys() {
     return this->_items->keys();
   }
   
-  ObjectPtr<Iterable> values() {
+  ObjectPtr<Iterable<V>> values() {
     return this->_items->values();
   }
   
@@ -347,7 +347,7 @@ public:
 template<typename T>
 class BinaryTree {
 private:
-  ObjectPtr<TreeNode> _root = Null;
+  ObjectPtr<TreeNode<T>> _root = Null;
   Int _size = dart_int(0);
 public:
   BinaryTree() {
@@ -367,7 +367,7 @@ return Void;
     return this->_size;
   }
   
-  ObjectPtr<TreeNode> _insertNode(ObjectPtr<TreeNode> node, T value) {
+  ObjectPtr<TreeNode<T>> _insertNode(ObjectPtr<TreeNode<T>> node, T value) {
     if (dart_is_null(node)) {
 return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
 }
@@ -379,7 +379,7 @@ node->right = this->_insertNode(node->right, value);
 return node;
   }
   
-  ObjectPtr<TreeNode> _findNode(ObjectPtr<TreeNode> node, T value) {
+  ObjectPtr<TreeNode<T>> _findNode(ObjectPtr<TreeNode<T>> node, T value) {
     if (dart_is_null(node)) {
 return Null;
 }
@@ -403,8 +403,8 @@ template<typename T>
 class TreeNode {
 public:
   T value;
-  ObjectPtr<TreeNode> left = Null;
-  ObjectPtr<TreeNode> right = Null;
+  ObjectPtr<TreeNode<T>> left = Null;
+  ObjectPtr<TreeNode<T>> right = Null;
   TreeNode(T value) : value(value) {
   }
   
@@ -618,7 +618,7 @@ public:
   }
   
   Int findById(String id) {
-    auto intId = Int::tryParse(id, nullptr);
+    auto intId = Int::tryParse(id, Null);
 return !(dart_is_null(intId)) && this->_items->contains(intId) ? intId : Null;
   }
   
@@ -650,7 +650,7 @@ public:
   }
   
   Int convert(String input) {
-    return Int::parse(input, nullptr, nullptr);
+    return Int::parse(input, Null, Null);
   }
   
 };
@@ -721,15 +721,15 @@ Nullable testGenericInterfaces();
 template<typename T>
 T identity(T value);
 template<typename T>
-ObjectPtr<Pair> swap(T a, T b);
+ObjectPtr<Pair<T, T>> swap(T a, T b);
 template<typename T>
 T getFirst(ObjectPtr<List<T>> list);
-template<typename T, typename R>
-ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper);
-template<typename T>
-ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<Bool(T)>, Bool, T>> predicate);
-template<typename T>
-T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<T(T, T)>, T, T, T>> reducer);
+template<typename T, typename R, typename _F2>
+ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, R, T>> mapper);
+template<typename T, typename _F2>
+ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, Bool, T>> predicate);
+template<typename T, typename _F2>
+T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, T, T, T>> reducer);
 Nullable processAnimals(ObjectPtr<List<ObjectPtr<Animal>>> animals);
 Nullable testGenericClasses() {
   dart_print(dart_string("\n📌 测试泛型类"));
@@ -750,7 +750,7 @@ dart_print(dart_string("  多泛型参数:"));
 dart_print(dart_concat(dart_string("    键值对: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
 pair->swap();
 dart_print(dart_concat(dart_string("    交换后: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
-auto nestedBox = ObjectPtr<Box<ObjectPtr<Box>>>(new Box<ObjectPtr<Box>>(ObjectPtr<Box<String>>(new Box<String>(dart_string("Nested")))));
+auto nestedBox = ObjectPtr<Box<ObjectPtr<Box<String>>>>(new Box<ObjectPtr<Box<String>>>(ObjectPtr<Box<String>>(new Box<String>(dart_string("Nested")))));
 dart_print(dart_string("  嵌套泛型: ") + (nestedBox->getValue()->getValue()).toString());
 auto numberContainer = ObjectPtr<NumberContainer<Int>>(new NumberContainer<Int>(dart_int(42)));
 numberContainer->add(dart_int(10));
@@ -948,7 +948,7 @@ T identity(T value) {
 }
 
 template<typename T>
-ObjectPtr<Pair> swap(T a, T b) {
+ObjectPtr<Pair<T, T>> swap(T a, T b) {
   return ObjectPtr<Pair<T, T>>(new Pair<T, T>(b, a));
 }
 
@@ -957,18 +957,18 @@ T getFirst(ObjectPtr<List<T>> list) {
   return list->first();
 }
 
-template<typename T, typename R>
-ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> mapper) {
+template<typename T, typename R, typename _F2>
+ObjectPtr<List<R>> mapList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, R, T>> mapper) {
   return list->map(mapper)->toList();
 }
 
-template<typename T>
-ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<Bool(T)>, Bool, T>> predicate) {
+template<typename T, typename _F2>
+ObjectPtr<List<T>> filterList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, Bool, T>> predicate) {
   return list->where(predicate)->toList();
 }
 
-template<typename T>
-T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<std::function<T(T, T)>, T, T, T>> reducer) {
+template<typename T, typename _F2>
+T reduceList(ObjectPtr<List<T>> list, ObjectPtr<TypedFunction<_F2, T, T, T>> reducer) {
   return list->reduce(reducer);
 }
 

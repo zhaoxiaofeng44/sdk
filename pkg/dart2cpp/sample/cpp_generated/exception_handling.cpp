@@ -272,7 +272,7 @@ fixedList->add(dart_int(4));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-Int::parse(dart_string("not_a_number"), nullptr, nullptr);
+Int::parse(dart_string("not_a_number"), Null, Null);
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
@@ -323,7 +323,7 @@ Nullable testFinallyBlocks() {
   dart_print(dart_string("\n📌 测试 finally 块"));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
-ObjectPtr<ObjectPtr<FileManager>> fileManager(nullptr);
+ObjectPtr<ObjectPtr<FileManager>> fileManager(Null);
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ };
 return Void;
@@ -383,7 +383,7 @@ return Void;
 
 Double divideByZero(Int a, Int b) {
   if ((b == dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), nullptr)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), Null)));
 }
 return a->operator_div(b);
 }
@@ -402,10 +402,10 @@ return Void;
 
 Nullable validateAge(Int age) {
   if (age->operator_less(dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), nullptr)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), Null)));
 }
 if (age->operator_greater(dart_int(150))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), nullptr)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), Null)));
 };
 return Void;
 }
@@ -502,7 +502,7 @@ return Void;
 
 ObjectPtr<Future<Nullable>> throwAsyncException() {
   DART_ASYNC_BEGIN(Nullable)
-  DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr));
+  DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null));
 throw DartException(Exception::create(dart_string("异步异常")));
   // TODO: 需要处理异步函数返回值
   DART_ASYNC_END(Null)
@@ -511,7 +511,7 @@ throw DartException(Exception::create(dart_string("异步异常")));
 ObjectPtr<Future<Nullable>> asyncOperationChain() {
   DART_ASYNC_BEGIN(Nullable)
   try {
-DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), nullptr));
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null));
 throw DartException(Exception::create(dart_string("异步链异常")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern

@@ -222,8 +222,8 @@ Nullable testNullEdgeCases() {
   dart_print(dart_string("\n📌 测试空值边界情况"));
 Int nullInt(Null);
 String nullString(Null);
-ObjectPtr<ObjectPtr<List<Int>>> nullList(nullptr);
-ObjectPtr<ObjectPtr<Map<String, Int>>> nullMap(nullptr);
+ObjectPtr<ObjectPtr<List<Int>>> nullList(Null);
+ObjectPtr<ObjectPtr<Map<String, Int>>> nullMap(Null);
 dart_print(dart_string("  空值变量:"));
 dart_print(dart_string("    nullInt: ") + (nullInt).toString());
 dart_print(dart_string("    nullString: ") + (nullString).toString());
@@ -318,24 +318,24 @@ Nullable testTypeConversionEdges() {
   dart_print(dart_string("\n📌 测试类型转换边界"));
 dart_print(dart_string("  字符串转数字:"));
 try {
-auto parsed1 = Int::parse(dart_string("123"), nullptr, nullptr);
+auto parsed1 = Int::parse(dart_string("123"), Null, Null);
 dart_print(dart_string("    parse \"123\": ") + (parsed1).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto parsed2 = Int::parse(dart_string(""), nullptr, nullptr);
+auto parsed2 = Int::parse(dart_string(""), Null, Null);
 dart_print(dart_string("    parse 空字符串: ") + (parsed2).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto parsed3 = Int::parse(dart_string("abc"), nullptr, nullptr);
+auto parsed3 = Int::parse(dart_string("abc"), Null, Null);
 dart_print(dart_string("    parse \"abc\": ") + (parsed3).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  tryParse 安全转换:"));
-auto safe1 = Int::tryParse(dart_string("123"), nullptr);
-auto safe2 = Int::tryParse(dart_string("abc"), nullptr);
-auto safe3 = Int::tryParse(dart_string(""), nullptr);
+auto safe1 = Int::tryParse(dart_string("123"), Null);
+auto safe2 = Int::tryParse(dart_string("abc"), Null);
+auto safe3 = Int::tryParse(dart_string(""), Null);
 dart_print(dart_string("    tryParse \"123\": ") + (safe1).toString());
 dart_print(dart_string("    tryParse \"abc\": ") + (safe2).toString());
 dart_print(dart_string("    tryParse 空字符串: ") + (safe3).toString());

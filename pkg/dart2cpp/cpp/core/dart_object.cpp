@@ -1283,57 +1283,9 @@ ObjectPtr<StringBuffer> StringBuffer::create(const String& initial) {
 }
 
 // ============================================================================
-// RegExp 实现
+// RegExp 类已被移除 - 功能已合并到 String 类型
+// 请参见 dart_string.cpp 中的 String::hasMatch 等方法
 // ============================================================================
-
-RegExp::RegExp(const String& pattern, bool caseSensitive, bool multiLine, bool dotAll) 
-  : pattern_(pattern.getValue()), caseSensitive_(caseSensitive), multiLine_(multiLine), dotAll_(dotAll) {}
-
-Bool RegExp::hasMatch(const String& input) {
-  // 简化实现：基础字符串匹配
-  return Bool(input.getValue().find(pattern_) != std::string::npos);
-}
-
-String RegExp::stringMatch(const String& input) {
-  auto pos = input.getValue().find(pattern_);
-  if (pos != std::string::npos) {
-    return String(pattern_);
-  }
-  return String("");
-}
-
-Int RegExp::matchAsPrefix(const String& string, Int start) {
-  auto pos = string.getValue().find(pattern_, start.getValue());
-  return Int(pos != std::string::npos ? static_cast<int>(pos) : -1);
-}
-
-String RegExp::pattern() const {
-  return String(pattern_);
-}
-
-Bool RegExp::isCaseSensitive() const {
-  return Bool(caseSensitive_);
-}
-
-Bool RegExp::isMultiLine() const {
-  return Bool(multiLine_);
-}
-
-Bool RegExp::isDotAll() const {
-  return Bool(dotAll_);
-}
-
-String RegExp::toString() const {
-  return String("RegExp('" + pattern_ + "')");
-}
-
-ObjectPtr<RegExp> RegExp::create(const String& pattern) {
-  return ObjectPtr<RegExp>(new RegExp(pattern));
-}
-
-ObjectPtr<RegExp> RegExp::create(const String& pattern, bool caseSensitive, bool multiLine, bool dotAll) {
-  return ObjectPtr<RegExp>(new RegExp(pattern, caseSensitive, multiLine, dotAll));
-}
 
 // ============================================================================
 // Timer 实现

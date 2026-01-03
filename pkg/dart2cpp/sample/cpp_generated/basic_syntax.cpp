@@ -12,7 +12,8 @@ Int add(Int a, Int b);
 Int subtract(Int a, Int b);
 Nullable greet(String name, String title = String(Null));
 Nullable createUser(String name = String(Null), Int age = Int(Null), String email = String(Null));
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation);
+template<typename _F3>
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation);
 Nullable testBasicTypes() {
   dart_print(dart_string("\n📌 测试基本数据类型"));
 auto intValue = dart_int(42);
@@ -219,9 +220,9 @@ Nullable testFunctions() {
   dart_print(dart_string("\n📌 测试函数"));
 auto sum = add(dart_int(5), dart_int(3));
 dart_print(dart_string("  加法函数: add(5, 3) = ") + (sum).toString());
-greet(dart_string("Alice"), nullptr);
+greet(dart_string("Alice"), Null);
 greet(dart_string("Bob"), dart_string("Mr."));
-createUser(dart_string("Charlie"), dart_int(25), nullptr);
+createUser(dart_string("Charlie"), dart_int(25), Null);
 createUser(dart_string("David"), dart_int(30), dart_string("david@example.com"));
 auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
 dart_print(dart_string("  匿名函数: multiply(4, 5) = ") + (multiply->call(dart_int(4), dart_int(5))).toString());
@@ -261,7 +262,8 @@ Nullable createUser(String name, Int age, String email) {
 return Void;
 }
 
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<std::function<Int(Int, Int)>, Int, Int, Int>> operation) {
+template<typename _F3>
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation) {
   return operation->call(a, b);
 }
 
