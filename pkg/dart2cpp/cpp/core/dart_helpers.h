@@ -455,8 +455,8 @@ public:
 
 namespace CollectionUtils {
     // 列表排序
-    template<typename T, typename CompareFunc = std::function<Int(T, T)>>
-    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<CompareFunc, Int, T, T>>& compare = nullptr) {
+    template<typename T>
+    void sort(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<Int, T, T>>& compare = nullptr) {
         bool is_null = (compare == nullptr);
         bool compare_is_null = !is_null && (compare->isNull().toBool());
         if (is_null || compare_is_null) {
@@ -575,11 +575,11 @@ namespace ControlFlow {
     // 模拟 Dart 的 switch 表达式
     template<typename T, typename R>
     R switchExpression(const T& value, 
-                      const std::vector<std::pair<T, R>>& cases, 
+                      const std::vector<ObjectPtr<MapEntry<T, R>>>& cases, 
                       const R& defaultValue = R{}) {
-        for (const auto& case_pair : cases) {
-            if (value.operator==(case_pair.first).toBool()) {
-                return case_pair.second;
+        for (const auto& entry : cases) {
+            if (value.operator==(entry->key).toBool()) {
+                return entry->value;
             }
         }
         return defaultValue;

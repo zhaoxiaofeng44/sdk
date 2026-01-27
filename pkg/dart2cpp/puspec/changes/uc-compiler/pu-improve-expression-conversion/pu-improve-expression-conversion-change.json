@@ -1,0 +1,17 @@
+{
+  "pu_id": "pu-improve-expression-conversion",
+  "uc_id": "uc-compiler",
+  "scenario_name": "转换PU",
+  "version": "1.0.0",
+  "status": "draft",
+  "created_date": "2026-01-27",
+  "title": "改进 Dart 到 C++ 表达式转换逻辑",
+  "description": "通过深入分析 Dart 表达式的语义和类型信息，改进转换逻辑，生成更准确、更符合 C++ 语义的代码，而不是简单的字符串替换",
+  "business_goal": "提升转换质量和准确性，确保生成的 C++ 代码能够正确表达 Dart 代码的语义",
+  "target_files": [
+    "lib/dart_to_cpp_compiler.dart",
+    "lib/type_analyzer.dart"
+  ],
+  "impact_assessment": "现有方法升级",
+  "breaking_changes": false
+}

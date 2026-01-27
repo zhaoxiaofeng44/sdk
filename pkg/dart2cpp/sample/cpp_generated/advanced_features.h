@@ -44,7 +44,7 @@ namespace DateTimeExtensions {
 }; // namespace DateTimeExtensions
 namespace LetExtension {
 template<typename T, typename R>
-  R let(T this_, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block);
+  R let(T this_, ObjectPtr<TypedFunction<R, T>> block);
 }; // namespace LetExtension
 namespace MathExtension {
   Double sqrt(Double this_);
@@ -55,15 +55,16 @@ Nullable testExtensionMethods();
 Nullable testOperatorOverloading();
 Nullable testMetadataAnnotations();
 Nullable testFunctionalProgramming();
-template<typename T, typename R, typename _F2>
-R applyTwice(T value, ObjectPtr<TypedFunction<_F2, R, T>> func);
-template<typename T, typename R, typename S, typename _F1, typename _F2>
-ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<_F1, S, R>> f, ObjectPtr<TypedFunction<_F2, R, T>> g);
-template<typename T, typename U, typename R, typename _F1>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<_F1, R, T, U>> func);
+template<typename T, typename R>
+R applyTwice(T value, ObjectPtr<TypedFunction<R, T>> func);
+template<typename T, typename R, typename S>
+ObjectPtr<TypedFunction<S, T>> compose(ObjectPtr<TypedFunction<S, R>> f, ObjectPtr<TypedFunction<R, T>> g);
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<ObjectPtr<TypedFunction<R, U>>, T>> curry(ObjectPtr<TypedFunction<R, T, U>> func);
 template<typename T>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions);
-ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<_F1, R, T, U>> func, T first);
+ObjectPtr<TypedFunction<Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions);
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<R, U>> partial(ObjectPtr<TypedFunction<R, T, U>> func, T first);
 ObjectPtr<Function> memoize(ObjectPtr<Function> func);
 Int fibonacci(Int n);
 ObjectPtr<Iterable<Int>> generateLazy(Int max);

@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "constants.h"
 
 // 工具宏定义
 
@@ -88,7 +88,7 @@ public:
   }
   
   Double area() {
-    return this->get_width()->operator_mul(this->get_height());
+    return this->width()->operator_mul(this->height());
   }
   
   String toString() {
@@ -193,7 +193,7 @@ public:
 class FileTypes {
 public:
   ObjectPtr<List<String>> SUPPORTED_TYPES = List<String>::createConst({dart_string(".dart"), dart_string(".cpp"), dart_string(".h"), dart_string(".txt"), dart_string(".json")});
-  ObjectPtr<Map<String, String>> MIME_TYPES = Map<String, String>::createConst();
+  ObjectPtr<Map<String, String>> MIME_TYPES = Map<String, String>::createConst({{dart_string(".dart"), dart_string("text/plain")}, {dart_string(".cpp"), dart_string("text/x-c++src")}, {dart_string(".h"), dart_string("text/x-chdr")}, {dart_string(".txt"), dart_string("text/plain")}, {dart_string(".json"), dart_string("application/json")}});
   FileTypes() {
   }
   
@@ -205,7 +205,7 @@ public:
 
 class Settings {
 public:
-  ObjectPtr<Map<String, Any>> DEFAULT_SETTINGS = Map<String, Any>::createConst();
+  ObjectPtr<Map<String, Any>> DEFAULT_SETTINGS = Map<String, Any>::createConst({{dart_string("theme"), dart_string("light")}, {dart_string("fontSize"), dart_int(14)}, {dart_string("autoSave"), dart_bool(true)}, {dart_string("showLineNumbers"), dart_bool(true)}, {dart_string("tabSize"), dart_int(2)}});
   ObjectPtr<List<String>> AVAILABLE_THEMES = List<String>::createConst({dart_string("light"), dart_string("dark"), dart_string("high-contrast")});
   Settings() {
   }
@@ -278,13 +278,13 @@ dart_print(dart_string("  const 集合:"));
 dart_print(dart_string("    constSet: ") + (Set<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})).toString());
 dart_print(dart_string("    constStringSet: ") + (Set<String>::createConst({dart_string("red"), dart_string("green"), dart_string("blue")})).toString());
 dart_print(dart_string("  const 映射:"));
-dart_print(dart_string("    constMap: ") + (Map<String, Int>::createConst()).toString());
-dart_print(dart_string("    constNestedMap: ") + (Map<String, ObjectPtr<List<Int>>>::createConst()).toString());
+dart_print(dart_string("    constMap: ") + (Map<String, Int>::createConst({{dart_string("one"), dart_int(1)}, {dart_string("two"), dart_int(2)}, {dart_string("three"), dart_int(3)}})).toString());
+dart_print(dart_string("    constNestedMap: ") + (Map<String, ObjectPtr<List<Int>>>::createConst({{dart_string("evens"), List<Int>::createConst({dart_int(2), dart_int(4), dart_int(6), dart_int(8)})}, {dart_string("odds"), List<Int>::createConst({dart_int(1), dart_int(3), dart_int(5), dart_int(7)})}})).toString());
 dart_print(dart_string("  嵌套常量集合:"));
 dart_print(dart_string("    constNestedList: ") + (List<ObjectPtr<List<Int>>>::createConst({List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3)}), List<Int>::createConst({dart_int(4), dart_int(5), dart_int(6)}), List<Int>::createConst({dart_int(7), dart_int(8), dart_int(9)})})).toString());
-dart_print(dart_string("    constDeepMap: ") + (Map<String, ObjectPtr<Map<String, Int>>>::createConst()).toString());
+dart_print(dart_string("    constDeepMap: ") + (Map<String, ObjectPtr<Map<String, Int>>>::createConst({{dart_string("scores"), Map<String, Int>::createConst({{dart_string("math"), dart_int(95)}, {dart_string("english"), dart_int(87)}})}, {dart_string("grades"), Map<String, Int>::createConst({{dart_string("A"), dart_int(90)}, {dart_string("B"), dart_int(80)}})}})).toString());
 auto firstNumber = List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})->operator_index(dart_int(0));
-auto listLength = List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})->size();
+auto listLength = List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})->get_length();
 dart_print(dart_string("  常量集合操作:"));
 dart_print(dart_string("    firstNumber: ") + (firstNumber).toString());
 dart_print(dart_string("    listLength: ") + (listLength).toString());
@@ -343,7 +343,7 @@ dart_print(dart_string("    OK: 200"));
 dart_print(dart_string("    NOT_FOUND: 404"));
 dart_print(dart_string("    SERVER_ERROR: 500"));
 dart_print(dart_string("  支持的文件类型: ") + (List<String>::createConst({dart_string(".dart"), dart_string(".cpp"), dart_string(".h"), dart_string(".txt"), dart_string(".json")})).toString());
-dart_print(dart_string("  默认设置: ") + (Map<String, Any>::createConst()).toString());
+dart_print(dart_string("  默认设置: ") + (Map<String, Any>::createConst({{dart_string("theme"), dart_string("light")}, {dart_string("fontSize"), dart_int(14)}, {dart_string("autoSave"), dart_bool(true)}, {dart_string("showLineNumbers"), dart_bool(true)}, {dart_string("tabSize"), dart_int(2)}})).toString());
 return Void;
 }
 
@@ -365,7 +365,7 @@ dart_print(dart_string("    passed: true"));
 dart_print(dart_string("  集合表达式:"));
 dart_print(dart_string("    extendedList: ") + (List<Int>::createConst({dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5)})).toString());
 dart_print(dart_string("    colors: ") + (Set<String>::createConst({dart_string("red"), dart_string("green"), dart_string("blue")})).toString());
-dart_print(dart_string("    colorCodes: ") + (Map<String, Int>::createConst()).toString());
+dart_print(dart_string("    colorCodes: ") + (Map<String, Int>::createConst({{dart_string("red"), dart_int(16711680)}, {dart_string("green"), dart_int(65280)}, {dart_string("blue"), dart_int(255)}})).toString());
 dart_print(dart_string("  复杂表达式:"));
 dart_print(dart_string("    circumference: 31.4159"));
 dart_print(dart_string("    area: 78.53975"));

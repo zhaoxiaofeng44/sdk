@@ -40,21 +40,24 @@ struct is_object_ptr<ObjectPtr<T>> : std::true_type {};
 
 // 模板函数版本的 dart_is_null - 支持 ObjectPtr 类型和值类型
 template<typename T>
-inline bool dart_is_null(const T& obj) {
+inline Bool dart_is_null(const T& obj) {
     if constexpr (is_object_ptr<T>::value) {
         // ObjectPtr 类型：检查 get() 是否为 nullptr
-        return obj.get() == nullptr;
+        return Bool(obj.get() == nullptr);
+    } else if constexpr (std::is_pointer_v<T>) {
+        // 指针类型：检查指针是否为 nullptr
+        return Bool(obj.get() == nullptr);
     } else if constexpr (std::is_same_v<T, Nullable>) {
         // Nullable 类型：使用 . 调用 isNull()
         return obj.isNull();
     } else {
         // 其他值类型（Int、Double、String等）：检查 type_id
         // type_id == 0 表示 null
-        return obj.type_id == 0;
+        return Bool(obj.type_id == 0);
     }
 }
 
-#define dart_is_not_null(ptr) (!dart_is_null(ptr))
+#define dart_is_not_null(ptr) (dart_is_null(ptr).operator_not())
 
 // 空安全操作符 ?. 的宏实现
 // 用法: aa?.bb?.cc 转换为 dart_null_check(aa, dart_null_check(aa.bb, aa.bb.cc))
@@ -93,10 +96,10 @@ inline auto dart_null_coalesce_impl(const L& left, const R& right) {
 // 5. 调试和工具宏
 // ============================================================================
 
-#define dart_print(value)                                                      \
-  do {                                                                         \
-    std::cout << (value).toString().getValue() << std::endl;                   \
-  } while (0)
+inline Nullable dart_print(const Any& value) {
+    std::cout << (value).toString().getValue() << std::endl;
+    return Null;
+}
 
 #define dart_assert(condition, message)                                        \
   do {                                                                         \
@@ -378,8 +381,8 @@ ObjectPtr<List<T>> dart_list_with_spread(const Args&... args) {
 }
 
 // List 的 where 方法（过滤）
-template<typename T, typename PredicateFunc>
-ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) {
+template<typename T>
+ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<Bool, T>>& predicate) {
     ObjectPtr<List<T>> result = List<T>::create();
     
     for (int i = 0; i < list->size().toInt(); ++i) {
@@ -395,8 +398,8 @@ ObjectPtr<List<T>> dart_where(const ObjectPtr<List<T>>& list, const ObjectPtr<Ty
 }
 
 // List 的 map 方法
-template<typename T, typename R, typename MapperFunc>
-ObjectPtr<List<R>> dart_map(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) {
+template<typename T, typename R>
+ObjectPtr<List<R>> dart_map(const ObjectPtr<List<T>>& list, const ObjectPtr<TypedFunction<R, T>>& mapper) {
     ObjectPtr<List<R>> result = List<R>::create();
     auto it = list->iterator();
     while (it->hasNext()) {

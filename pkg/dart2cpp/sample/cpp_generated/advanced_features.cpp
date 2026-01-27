@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "advanced_features.h"
 
 // 工具宏定义
 
@@ -161,9 +161,9 @@ public:
   
   ObjectPtr<Matrix> operator_add(ObjectPtr<Matrix> other) {
     auto result = dart_literal<ObjectPtr<List<Double>>>();
-for (auto i = dart_int(0); i->operator_less(this->data->size()); i = i->operator_add(dart_int(1))) {
+for (auto i = dart_int(0); i->operator_less(this->data->get_length()); i = i->operator_add(dart_int(1))) {
 auto row = dart_literal<Double>();
-for (auto j = dart_int(0); j->operator_less(this->data->operator_index(i)->size()); j = j->operator_add(dart_int(1))) {
+for (auto j = dart_int(0); j->operator_less(this->data->operator_index(i)->get_length()); j = j->operator_add(dart_int(1))) {
 row->add(this->data->operator_index(i)->operator_index(j)->operator_add(other->data->operator_index(i)->operator_index(j)));
 }
 result->add(row);
@@ -327,7 +327,7 @@ return (cleaned == cleaned->split(dart_string(""))->reversed()->join(dart_string
   }
   
   inline Int wordCount(String this_) {
-    return this_->trim()->split(dart_string("\\s+"))->where(makeFunction([&](String word) { return word->isNotEmpty(); }))->size();
+    return this_->trim()->split(dart_string("\\s+"))->where(makeFunction<Bool, String>(std::function<Bool(String)>([=](String word) -> Bool { return word->isNotEmpty(); })))->get_length();
   }
   
   inline String reverse(String this_) {
@@ -379,12 +379,12 @@ return dart_bool(true);
 namespace ListExtensions {
   template<typename T>
   inline T secondOrNull(ObjectPtr<List<T>> this_) {
-    return this_->size()->operator_greater_equals(dart_int(2)) ? this_->operator_index(dart_int(1)) : Null;
+    return this_->get_length()->operator_greater_equals(dart_int(2)) ? this_->operator_index(dart_int(1)) : Null;
   }
   
   template<typename T>
   inline T secondLastOrNull(ObjectPtr<List<T>> this_) {
-    return this_->size()->operator_greater_equals(dart_int(2)) ? this_->operator_index(this_->size()->operator_sub(dart_int(2))) : Null;
+    return this_->get_length()->operator_greater_equals(dart_int(2)) ? this_->operator_index(this_->get_length()->operator_sub(dart_int(2))) : Null;
   }
   
   template<typename T>
@@ -392,7 +392,7 @@ namespace ListExtensions {
     if (this_->isEmpty()) {
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("Empty list"))));
 }
-return this_->operator_index(ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()->operator_mod(this_->size()));
+return this_->operator_index(ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()->operator_mod(this_->get_length()));
   }
   
 } // namespace ListExtensions
@@ -431,7 +431,7 @@ return result;
 
 namespace LetExtension {
   template<typename T, typename R>
-  inline R let(T this_, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block) {
+  inline R let(T this_, ObjectPtr<TypedFunction<R, T>> block) {
     return block->call(this_);
   }
   
@@ -463,16 +463,16 @@ Nullable testExtensionMethods();
 Nullable testOperatorOverloading();
 Nullable testMetadataAnnotations();
 Nullable testFunctionalProgramming();
-template<typename T, typename R, typename _F2>
-R applyTwice(T value, ObjectPtr<TypedFunction<_F2, R, T>> func);
-template<typename T, typename R, typename S, typename _F1, typename _F2>
-ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<_F1, S, R>> f, ObjectPtr<TypedFunction<_F2, R, T>> g);
-template<typename T, typename U, typename R, typename _F1>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<_F1, R, T, U>> func);
+template<typename T, typename R>
+R applyTwice(T value, ObjectPtr<TypedFunction<R, T>> func);
+template<typename T, typename R, typename S>
+ObjectPtr<TypedFunction<S, T>> compose(ObjectPtr<TypedFunction<S, R>> f, ObjectPtr<TypedFunction<R, T>> g);
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<ObjectPtr<TypedFunction<R, U>>, T>> curry(ObjectPtr<TypedFunction<R, T, U>> func);
 template<typename T>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions);
-template<typename T, typename U, typename R, typename _F1>
-ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<_F1, R, T, U>> func, T first);
+ObjectPtr<TypedFunction<Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions);
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<R, U>> partial(ObjectPtr<TypedFunction<R, T, U>> func, T first);
 ObjectPtr<Function> memoize(ObjectPtr<Function> func);
 Int fibonacci(Int n);
 ObjectPtr<Iterable<Int>> generateLazy(Int max);
@@ -493,28 +493,28 @@ Bool DateTimeExtensions::isToday(ObjectPtr<DateTime> this_);
 String DateTimeExtensions::formatDate(ObjectPtr<DateTime> this_);
 ObjectPtr<DateTime> DateTimeExtensions::addBusinessDays(ObjectPtr<DateTime> this_, Int days);
 template<typename T, typename R>
-R LetExtension::let(T this_, ObjectPtr<TypedFunction<std::function<R(T)>, R, T>> block);
+R LetExtension::let(T this_, ObjectPtr<TypedFunction<R, T>> block);
 Double MathExtension::sqrt(Double this_);
 Nullable testClosuresAndHigherOrder() {
   dart_print(dart_string("\n📌 测试闭包和高阶函数"));
 auto makeAdder = [&](Int _addBy) { ObjectPtr<_ValueBox<Int>> addBy(new _ValueBox<Int>(_addBy));
-return makeFunction([&, addBy](Int i) mutable { return i->operator_add((*addBy)); }); };
+return makeFunction<Int, Int>(std::function<Int(Int)>([=](Int i) mutable -> Int { return i->operator_add((*addBy)); })); };
 auto add2 = makeAdder(dart_int(2));
 auto add5 = makeAdder(dart_int(5));
 dart_print(dart_string("  简单闭包:"));
 dart_print(dart_string("    add2(10): ") + (add2->call(dart_int(10))).toString());
 dart_print(dart_string("    add5(10): ") + (add5->call(dart_int(10))).toString());
 auto makeCounter = [&]() { ObjectPtr<_ValueBox<Int>> count(new _ValueBox<Int>(dart_int(0)));
-return makeFunction([&, count]() mutable { (*count) = (*count)->operator_add(dart_int(1));
-return (*count); }); };
+return makeFunction<Int>(std::function<Int()>([=]() mutable -> Int { (*count) = (*count)->operator_add(dart_int(1));
+return (*count); })); };
 auto counter = makeCounter();
 dart_print(dart_string("  计数器闭包:"));
 dart_print(dart_concat(dart_string("    计数: "), (counter->call()).toString(), dart_string(", "), (counter->call()).toString(), dart_string(", "), (counter->call()).toString()));
 auto makeMultiplier = [&](Int _factor) { ObjectPtr<_ValueBox<Int>> factor(new _ValueBox<Int>(_factor));
 ObjectPtr<_ValueBox<Int>> callCount(new _ValueBox<Int>(dart_int(0)));
-return makeFunction([&, factor](Int value) mutable { (*callCount) = (*callCount)->operator_add(dart_int(1));
+return makeFunction<Int, Int>(std::function<Int(Int)>([=](Int value) mutable -> Int { (*callCount) = (*callCount)->operator_add(dart_int(1));
 dart_print(dart_concat(dart_string("    调用第"), (callCount).toString(), dart_string("次")));
-return value->operator_mul((*factor)); }); };
+return value->operator_mul((*factor)); })); };
 auto triple = makeMultiplier(dart_int(3));
 dart_print(dart_string("  多变量闭包:"));
 dart_print(dart_string("    triple(5): ") + (triple->call(dart_int(5))).toString());
@@ -522,20 +522,20 @@ dart_print(dart_string("    triple(7): ") + (triple->call(dart_int(7))).toString
 auto functions = dart_literal<ObjectPtr<Function>>();
 for (auto i = dart_int(0); i->operator_less(dart_int(3)); i = i->operator_add(dart_int(1))) {
 ObjectPtr<_ValueBox<Int>> captured(new _ValueBox<Int>(i));
-functions->add(makeFunction([&, captured]() mutable { return (*captured); }));
+functions->add(makeFunction<Int>(std::function<Int()>([=]() mutable -> Int { return (*captured); })));
 }
 dart_print(dart_string("  循环变量捕获:"));
 dart_print(dart_concat(dart_string("    捕获的值: "), (functions->operator_index(dart_int(0))->call()).toString(), dart_string(", "), (functions->operator_index(dart_int(1))->call()).toString(), dart_string(", "), (functions->operator_index(dart_int(2))->call()).toString()));
 auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
-auto result = applyTwice(dart_int(5), makeFunction([&](Int x) { return x->operator_mul(dart_int(2)); }));
+auto result = applyTwice(dart_int(5), makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return x->operator_mul(dart_int(2)); })));
 dart_print(dart_string("  高阶函数:"));
 dart_print(dart_string("    applyTwice(5, x*2): ") + (result).toString());
-auto addOne = makeFunction([&](Int x) { return x->operator_add(dart_int(1)); });
-auto multiplyByTwo = makeFunction([&](Int x) { return x->operator_mul(dart_int(2)); });
+auto addOne = makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return x->operator_add(dart_int(1)); }));
+auto multiplyByTwo = makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return x->operator_mul(dart_int(2)); }));
 auto composed = compose(multiplyByTwo, addOne);
 dart_print(dart_string("    函数组合 (x+1)*2 应用于5: ") + (composed->call(dart_int(5))).toString());
-auto curriedAdd = curry(makeFunction([&](Int a, Int b) { return a->operator_add(b); }));
-auto add10 = dart_cast<ObjectPtr<TypedFunction<std::function<Int(Int)>, Int, Int>>>(curriedAdd->call(dart_int(10)));
+auto curriedAdd = curry(makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([=](Int a, Int b) -> Int { return a->operator_add(b); })));
+auto add10 = dart_cast<ObjectPtr<TypedFunction<Int, Int>>>(curriedAdd->call(dart_int(10)));
 dart_print(dart_string("    柯里化加法: ") + (add10->call(dart_int(5))).toString());
 return Void;
 }
@@ -593,8 +593,8 @@ dart_print(dart_string("  日期时间扩展:"));
 dart_print(dart_string("    是否为今天: ") + (DateTimeExtensions::isToday(now)).toString());
 dart_print(dart_string("    格式化: ") + (DateTimeExtensions::formatDate(now)).toString());
 dart_print(dart_string("    添加工作日: ") + (DateTimeExtensions::formatDate(DateTimeExtensions::addBusinessDays(now, dart_int(5)))).toString());
-auto result1 = LetExtension::let(dart_int(42), makeFunction([&](Int value) { return value->operator_mul(dart_int(2)); }));
-auto result2 = LetExtension::let(dart_string("hello"), makeFunction([&](String value) { return value->toUpperCase(); }));
+auto result1 = LetExtension::let(dart_int(42), makeFunction<Int, Int>(std::function<Int(Int)>([=](Int value) -> Int { return value->operator_mul(dart_int(2)); })));
+auto result2 = LetExtension::let(dart_string("hello"), makeFunction<String, String>(std::function<String(String)>([=](String value) -> String { return value->toUpperCase(); })));
 dart_print(dart_string("  泛型扩展:"));
 dart_print(dart_string("    let应用于数字: ") + (result1).toString());
 dart_print(dart_string("    let应用于字符串: ") + (result2).toString());
@@ -612,7 +612,7 @@ dart_print(dart_string("    v1 + v2: ") + (v1->operator_add(v2)).toString());
 dart_print(dart_string("    v1 - v2: ") + (v1->operator_sub(v2)).toString());
 dart_print(dart_string("    v1 * 2: ") + (v1->operator_mul(dart_double(2.0))).toString());
 dart_print(dart_string("    v1 == v2: ") + ((v1 == v2)).toString());
-dart_print(dart_string("    v1长度: ") + (v1->size()).toString());
+dart_print(dart_string("    v1长度: ") + (v1->length()).toString());
 auto c1 = ObjectPtr<Complex>(new Complex(dart_double(3.0), dart_double(4.0)));
 auto c2 = ObjectPtr<Complex>(new Complex(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  复数操作符重载:"));
@@ -635,7 +635,7 @@ auto p3 = ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  点比较:"));
 dart_print(dart_string("    p1 < p2: ") + (p1->operator_less(p2)).toString());
 dart_print(dart_string("    p1 == p3: ") + ((p1 == p3)).toString());
-dart_print(dart_string("    p1.hashCode == p3.hashCode: ") + ((p1->get_hashCode() == p3->get_hashCode())).toString());
+dart_print(dart_string("    p1.hashCode == p3.hashCode: ") + ((p1->hashCode() == p3->hashCode())).toString());
 return Void;
 }
 
@@ -656,17 +656,17 @@ return Void;
 Nullable testFunctionalProgramming() {
   dart_print(dart_string("\n📌 测试函数式编程"));
 auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10));
-auto result = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->map(makeFunction([&](Int n) { return n->operator_mul(n); }))->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(10)); }))->toList();
+auto result = numbers->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return (n->operator_mod(dart_int(2)) == dart_int(0)); })))->map(makeFunction<Int, Int>(std::function<Int(Int)>([=](Int n) -> Int { return n->operator_mul(n); })))->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return n->operator_greater(dart_int(10)); })))->toList();
 dart_print(dart_string("  函数式链式操作:"));
 dart_print(dart_string("    偶数平方大于10: ") + (result).toString());
-auto pipeline = pipe(dart_literal<ObjectPtr<Function>>(makeFunction([&](ObjectPtr<List<Int>> list) { return list->where(makeFunction([&](Int n) { return n->operator_greater(dart_int(5)); })); }), makeFunction([&](ObjectPtr<Iterable<Int>> iter) { return iter->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); })); }), makeFunction([&](ObjectPtr<Iterable<Int>> iter) { return iter->toList(); })));
+auto pipeline = pipe(dart_literal<ObjectPtr<Function>>(makeFunction<ObjectPtr<Iterable<Int>>, ObjectPtr<List<Int>>>(std::function<ObjectPtr<Iterable<Int>>(ObjectPtr<List<Int>>)>([=](ObjectPtr<List<Int>> list) -> ObjectPtr<Iterable<Int>> { return list->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return n->operator_greater(dart_int(5)); }))); })), makeFunction<ObjectPtr<Iterable<Int>>, ObjectPtr<Iterable<Int>>>(std::function<ObjectPtr<Iterable<Int>>(ObjectPtr<Iterable<Int>>)>([=](ObjectPtr<Iterable<Int>> iter) -> ObjectPtr<Iterable<Int>> { return iter->map(makeFunction<Int, Int>(std::function<Int(Int)>([=](Int n) -> Int { return n->operator_mul(dart_int(2)); }))); })), makeFunction<ObjectPtr<List<Int>>, ObjectPtr<Iterable<Int>>>(std::function<ObjectPtr<List<Int>>(ObjectPtr<Iterable<Int>>)>([=](ObjectPtr<Iterable<Int>> iter) -> ObjectPtr<List<Int>> { return iter->toList(); }))));
 Any pipeResult = pipeline->call(numbers);
 dart_print(dart_string("    管道处理结果: ") + (pipeResult).toString());
-auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
+auto multiply = makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([=](Int a, Int b) -> Int { return a->operator_mul(b); }));
 auto double_ = partial(multiply, dart_int(2));
 dart_print(dart_string("  部分应用:"));
 dart_print(dart_string("    double(5): ") + (double_->call(dart_int(5))).toString());
-auto fibMemo = memoize(makeFunction(&fibonacci));
+auto fibMemo = memoize(makeFunction<Int, Int>(std::function<Int(Int)>(&fibonacci)));
 dart_print(dart_string("  记忆化斐波那契:"));
 dart_print(dart_string("    fib(10): ") + (fibMemo->call(dart_int(10))).toString());
 dart_print(dart_string("    fib(15): ") + (fibMemo->call(dart_int(15))).toString());
@@ -677,46 +677,46 @@ dart_print(dart_string("    前5个数: ") + (firstFive).toString());
 return Void;
 }
 
-template<typename T, typename R, typename _F2>
-R applyTwice(T value, ObjectPtr<TypedFunction<_F2, R, T>> func) {
+template<typename T, typename R>
+R applyTwice(T value, ObjectPtr<TypedFunction<R, T>> func) {
   return func->call(dart_cast<T>(func->call(value)));
 }
 
-template<typename T, typename R, typename S, typename _F1, typename _F2>
-ObjectPtr<TypedFunction<std::function<S(T)>, S, T>> compose(ObjectPtr<TypedFunction<_F1, S, R>> f, ObjectPtr<TypedFunction<_F2, R, T>> g) {
-  return makeFunction([&](T x) { return f->call(g->call(x)); });
+template<typename T, typename R, typename S>
+ObjectPtr<TypedFunction<S, T>> compose(ObjectPtr<TypedFunction<S, R>> f, ObjectPtr<TypedFunction<R, T>> g) {
+  return makeFunction<S, T>(std::function<S(T)>([=](T x) -> S { return f->call(g->call(x)); }));
 }
 
-template<typename T, typename U, typename R, typename _F1>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> curry(ObjectPtr<TypedFunction<_F1, R, T, U>> func) {
-  return makeFunction([&](T first) { return makeFunction([&](U second) { return func->call(first, second); }); });
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<ObjectPtr<TypedFunction<R, U>>, T>> curry(ObjectPtr<TypedFunction<R, T, U>> func) {
+  return makeFunction<ObjectPtr<TypedFunction<R, U>>, T>(std::function<ObjectPtr<TypedFunction<R, U>>(T)>([=](T first) -> ObjectPtr<TypedFunction<R, U>> { return makeFunction<R, U>(std::function<R(U)>([=](U second) -> R { return func->call(first, second); })); }));
 }
 
 template<typename T>
-ObjectPtr<TypedFunction<std::function<Any(T)>, Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions) {
-  return makeFunction([&](T input) { Any result = input;
-auto sync_for_iterator = functions->iterator();
-for (; sync_for_iterator->hasNext(); ) {
-auto func = sync_for_iterator->next();
+ObjectPtr<TypedFunction<Any, T>> pipe(ObjectPtr<List<ObjectPtr<Function>>> functions) {
+  return makeFunction<Any, T>(std::function<Any(T)>([=](T input) -> Any { Any result = input;
+auto sync_for_iterator_1 = functions->iterator();
+for (; sync_for_iterator_1->hasNext(); ) {
+auto func = sync_for_iterator_1->next();
 result = func->call(result);
 }
-return result; });
+return result; }));
 }
 
-template<typename T, typename U, typename R, typename _F1>
-ObjectPtr<TypedFunction<std::function<Any(U)>, Any, U>> partial(ObjectPtr<TypedFunction<_F1, R, T, U>> func, T first) {
-  return makeFunction([&](U second) { return func->call(first, second); });
+template<typename T, typename U, typename R>
+ObjectPtr<TypedFunction<R, U>> partial(ObjectPtr<TypedFunction<R, T, U>> func, T first) {
+  return makeFunction<R, U>(std::function<R(U)>([=](U second) -> R { return func->call(first, second); }));
 }
 
 ObjectPtr<Function> memoize(ObjectPtr<Function> func) {
   auto cache = Map<String, Any>::create();
-return makeFunction([&](Any arg) { auto key = DART_ANY_CALL(arg, toString);
+return makeFunction<Any, Any>(std::function<Any(Any)>([=](Any arg) -> Any { auto key = DART_ANY_CALL(arg, toString);
 if (cache->containsKey(key)) {
 return cache->operator_index(key);
 }
 Any result = func->call(arg);
 cache->operator_index_set(key, result);
-return result; }, std::vector<Any>{Any(cache)});
+return result; }), std::vector<Any>{Any(cache)});
 }
 
 Int fibonacci(Int n) {

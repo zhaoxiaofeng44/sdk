@@ -29,27 +29,20 @@ public:
 
 template<typename K, typename V>
 class MapEntry : public Object {
-private:
-  K key_;
-  V value_;
-
 public:
-  MapEntry() : key_(), value_() {}
-  MapEntry(const K& key, const V& value) : key_(key), value_(value) {}
-  MapEntry(const MapEntry<K, V>& other) : key_(other.key_), value_(other.value_) {}
-  
-  K get_key() const { return key_; }
-  V get_value() const { return value_; }
-  
-  void set_key(const K& key) { key_ = key; }
-  void set_value(const V& value) { value_ = value; }
+  K key;
+  V value;
+
+  MapEntry() : key(), value() {}
+  MapEntry(const K& k, const V& v) : key(k), value(v) {}
+  MapEntry(const MapEntry<K, V>& other) : key(other.key), value(other.value) {}
   
   String toString() const override {
-    return String("MapEntry(") + key_.toString() + String(", ") + value_.toString() + String(")");
+    return String("MapEntry(") + key.toString() + String(", ") + value.toString() + String(")");
   }
   
-  static ObjectPtr<MapEntry<K, V>> create(const K& key, const V& value) {
-    return ObjectPtr<MapEntry<K, V>>(new MapEntry<K, V>(key, value));
+  static ObjectPtr<MapEntry<K, V>> create(const K& k, const V& v) {
+    return ObjectPtr<MapEntry<K, V>>(new MapEntry<K, V>(k, v));
   }
 };
 

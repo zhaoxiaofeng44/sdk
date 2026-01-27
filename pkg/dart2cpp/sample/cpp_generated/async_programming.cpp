@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "async_programming.h"
 
 // 工具宏定义
 
@@ -23,18 +23,18 @@ ObjectPtr<Future<Nullable>> testFutureBasics() {
 auto immediateFuture = Future<String>::value(dart_string("立即完成"));
 auto result1 = DART_AWAIT(immediateFuture);
 dart_print(dart_string("  立即Future: ") + (result1).toString());
-auto delayedFuture = Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string("延迟完成"); }));
+auto delayedFuture = Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("延迟完成"); })));
 auto result2 = DART_AWAIT(delayedFuture);
 dart_print(dart_string("  延迟Future: ") + (result2).toString());
-DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null)->then(makeFunction([&](Any _) { return dart_print(dart_string("  then: 延迟操作完成")); }))->catchError(makeFunction([&](Any error) { return dart_print(dart_string("  catchError: ") + (error).toString()); })));
-auto syncFuture = Future<Any>::sync(makeFunction([&]() { return dart_int(42); }));
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null)->then(makeFunction<Nullable, Any>(std::function<Nullable(Any)>([=](Any _) -> Nullable { return dart_print(dart_string("  then: 延迟操作完成")); return Void; })))->catchError(makeFunction<Nullable, Any>(std::function<Nullable(Any)>([=](Any error) -> Nullable { return dart_print(dart_string("  catchError: ") + (error).toString()); return Void; }))));
+auto syncFuture = Future<Any>::sync(makeFunction<Int>(std::function<Int()>([=]() -> Int { return dart_int(42); })));
 auto result3 = DART_AWAIT(syncFuture);
 dart_print(dart_string("  同步Future: ") + (result3).toString());
 auto completer = Completer::create();
-Timer::create(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { completer->complete(dart_string("Completer完成")); }, std::vector<Any>{Any(completer)}));
+Timer::create(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction<Nullable>(std::function<Nullable()>([=]() -> Nullable { completer->complete(dart_string("Completer完成")); return Void; }), std::vector<Any>{Any(completer)}));
 auto result4 = DART_AWAIT(completer->get_future());
 dart_print(dart_string("  Completer: ") + (result4).toString());
-auto pendingFuture = Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(123); }));
+auto pendingFuture = Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<Int>(std::function<Int()>([=]() -> Int { return dart_int(123); })));
 dart_print(dart_string("  Future创建后立即检查完成状态"));
 auto pendingResult = DART_AWAIT(pendingFuture);
 dart_print(dart_string("  等待后的结果: ") + (pendingResult).toString());
@@ -67,18 +67,18 @@ dart_print(dart_string("  嵌套异步结果: ") + (nestedResult).toString());
 ObjectPtr<Future<Nullable>> testFutureCombination() {
   DART_ASYNC_BEGIN(Nullable)
   dart_print(dart_string("\n📌 测试 Future 组合"));
-auto numberFutures = dart_literal<ObjectPtr<Future<Int>>>(Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_int(1); })), Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(150), dart_int(0))), makeFunction([&]() { return dart_int(2); })), Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(80), dart_int(0))), makeFunction([&]() { return dart_int(3); })));
+auto numberFutures = dart_literal<ObjectPtr<Future<Int>>>(Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<Int>(std::function<Int()>([=]() -> Int { return dart_int(1); }))), Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(150), dart_int(0))), makeFunction<Int>(std::function<Int()>([=]() -> Int { return dart_int(2); }))), Future<Int>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(80), dart_int(0))), makeFunction<Int>(std::function<Int()>([=]() -> Int { return dart_int(3); }))));
 auto numbers = DART_AWAIT(Future<List>::wait(numberFutures, dart_bool(false), Null));
 dart_print(dart_string("  Future.wait: ") + (numbers).toString());
-auto anyResult = Future<Any>::any(dart_literal<ObjectPtr<Future<String>>>(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(200), dart_int(0))), makeFunction([&]() { return dart_string("慢的"); })), Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { return dart_string("快的"); })), Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(300), dart_int(0))), makeFunction([&]() { return dart_string("最慢的"); }))));
+auto anyResult = Future<Any>::any(dart_literal<ObjectPtr<Future<String>>>(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(200), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("慢的"); }))), Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("快的"); }))), Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(300), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("最慢的"); })))));
 auto firstResult = DART_AWAIT(anyResult);
 dart_print(dart_string("  Future.any: ") + (firstResult).toString());
-auto chainResult = DART_AWAIT(Future<Int>::value(dart_int(5))->then(makeFunction([&](Int value) { return value->operator_mul(dart_int(2)); }))->then(makeFunction([&](Int value) { return dart_string("Result: ") + (value).toString(); }))->then(makeFunction([&](String text) { return text->toUpperCase(); })));
+auto chainResult = DART_AWAIT(Future<Int>::value(dart_int(5))->then(makeFunction<Int, Int>(std::function<Int(Int)>([=](Int value) -> Int { return value->operator_mul(dart_int(2)); })))->then(makeFunction<String, Int>(std::function<String(Int)>([=](Int value) -> String { return dart_string("Result: ") + (value).toString(); })))->then(makeFunction<String, String>(std::function<String(String)>([=](String text) -> String { return text->toUpperCase(); }))));
 dart_print(dart_string("  链式调用: ") + (chainResult).toString());
 auto items = dart_literal<String>(dart_string("A"), dart_string("B"), dart_string("C"));
 dart_print(dart_string("  Future.forEach 处理:"));
-DART_AWAIT(Future<List>::forEach(items, makeFunction([&](String item) { DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null));
-dart_print(dart_string("    处理项目: ") + (item).toString()); })));
+DART_AWAIT(Future<List>::forEach(items, makeFunction<ObjectPtr<Future<Any>>, String>(std::function<ObjectPtr<Future<Any>>(String)>([=](String item) -> ObjectPtr<Future<Any>> { DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), Null));
+dart_print(dart_string("    处理项目: ") + (item).toString()); }))));
 auto condition = dart_bool(true);
 auto conditionalResult = DART_AWAIT(condition ? Future<String>::value(dart_string("条件为真")) : Future<String>::value(dart_string("条件为假")));
 dart_print(dart_string("  条件Future: ") + (conditionalResult).toString());
@@ -93,16 +93,16 @@ try {
 DART_AWAIT(riskyOperation(dart_bool(true)));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-auto recoveredValue = DART_AWAIT(riskyOperation(dart_bool(true))->catchError(makeFunction([&](Any error) { dart_print(dart_string("  Future.catchError: ") + (error).toString());
-return dart_string("错误恢复值"); })));
+auto recoveredValue = DART_AWAIT(riskyOperation(dart_bool(true))->catchError(makeFunction<String, Any>(std::function<String(Any)>([=](Any error) -> String { dart_print(dart_string("  Future.catchError: ") + (error).toString());
+return dart_string("错误恢复值"); }))));
 dart_print(dart_string("  恢复后的值: ") + (recoveredValue).toString());
 try {
 auto result = DART_AWAIT(slowOperation()->timeout(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0)))));
 dart_print(dart_string("  操作结果: ") + (result).toString());
 } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
-auto errorHandledValue = dart_cast<String>(DART_AWAIT(FutureExtensions::onError(Future<String>::error(dart_string("测试错误"), Null), makeFunction([&](String error, ObjectPtr<StackTrace> stackTrace) { dart_print(dart_string("  onError处理: ") + (error).toString());
-return dart_string("默认值"); }), Null)));
+auto errorHandledValue = dart_cast<String>(DART_AWAIT(FutureExtensions::onError(Future<String>::error(dart_string("测试错误"), Null), makeFunction<String, String, ObjectPtr<StackTrace>>(std::function<String(String, ObjectPtr<StackTrace>)>([=](String error, ObjectPtr<StackTrace> stackTrace) -> String { dart_print(dart_string("  onError处理: ") + (error).toString());
+return dart_string("默认值"); })), Null)));
 dart_print(dart_string("  最终值: ") + (errorHandledValue).toString());
 try {
 DART_AWAIT(cascadingAsyncError());
@@ -121,7 +121,7 @@ auto stream = numberStream;
 auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 dart_print(dart_string("  周期性Stream (3次):"));
-auto periodicStream = Stream<Any>::periodic(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&](Int count) { return count; }))->take(dart_int(3));
+auto periodicStream = Stream<Any>::periodic(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<Int, Int>(std::function<Int(Int)>([=](Int count) -> Int { return count; })))->take(dart_int(3));
 auto stream = periodicStream;
 auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
@@ -132,11 +132,11 @@ auto for_iterator = ObjectPtr<_StreamIterator<String>>(new _StreamIterator<Strin
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 dart_print(dart_string("  Stream监听:"));
 auto listenStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(10), dart_int(20), dart_int(30)));
-auto subscription = listenStream->listen(makeFunction([&](Int data) { return dart_print(dart_string("    监听到数据: ") + (data).toString()); }));
+auto subscription = listenStream->listen(makeFunction<Nullable, Int>(std::function<Nullable(Int)>([=](Int data) -> Nullable { return dart_print(dart_string("    监听到数据: ") + (data).toString()); return Void; })));
 DART_AWAIT(subscription->asFuture());
 dart_print(dart_string("  StreamController:"));
 auto controller = StreamController::create(Null, Null, Null, Null, dart_bool(false));
-auto controllerSub = controller->get_stream()->listen(makeFunction([&](String data) { return dart_print(dart_string("    Controller数据: ") + (data).toString()); }));
+auto controllerSub = controller->stream()->listen(makeFunction<Nullable, String>(std::function<Nullable(String)>([=](String data) -> Nullable { return dart_print(dart_string("    Controller数据: ") + (data).toString()); return Void; })));
 controller->add(dart_string("消息1"));
 controller->add(dart_string("消息2"));
 controller->add(dart_string("消息3"));
@@ -151,17 +151,17 @@ ObjectPtr<Future<Nullable>> testStreamTransformation() {
   DART_ASYNC_BEGIN(Nullable)
   dart_print(dart_string("\n📌 测试 Stream 转换"));
 auto sourceStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)));
-auto mappedStream = sourceStream->map(makeFunction([&](Int n) { return dart_string("Number: ") + (n).toString(); }));
+auto mappedStream = sourceStream->map(makeFunction<String, Int>(std::function<String(Int)>([=](Int n) -> String { return dart_string("Number: ") + (n).toString(); })));
 dart_print(dart_string("  map转换:"));
 auto stream = mappedStream->take(dart_int(3));
 auto for_iterator = ObjectPtr<_StreamIterator<String>>(new _StreamIterator<String>(stream));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
-auto evenStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)))->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }));
+auto evenStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5), dart_int(6), dart_int(7), dart_int(8), dart_int(9), dart_int(10)))->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return (n->operator_mod(dart_int(2)) == dart_int(0)); })));
 dart_print(dart_string("  where过滤 (偶数):"));
 auto stream = evenStream;
 auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
-auto expandedStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3)))->expand(makeFunction([&](Int n) { return dart_literal<Int>(n, n->operator_mul(dart_int(10))); }));
+auto expandedStream = Stream<Any>::fromIterable(dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3)))->expand(makeFunction<ObjectPtr<List<Int>>, Int>(std::function<ObjectPtr<List<Int>>(Int)>([=](Int n) -> ObjectPtr<List<Int>> { return dart_literal<Int>(n, n->operator_mul(dart_int(10))); })));
 dart_print(dart_string("  expand展开:"));
 auto stream = expandedStream;
 auto for_iterator = ObjectPtr<_StreamIterator<Int>>(new _StreamIterator<Int>(stream));
@@ -190,23 +190,23 @@ ObjectPtr<Future<Nullable>> testTimers() {
   dart_print(dart_string("\n📌 测试定时器"));
 dart_print(dart_string("  一次性定时器 (100ms后执行):"));
 auto timerCompleter = Completer::create();
-Timer::create(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { dart_print(dart_string("    定时器触发！"));
-timerCompleter->complete(); }, std::vector<Any>{Any(timerCompleter)}));
+Timer::create(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<Nullable>(std::function<Nullable()>([=]() -> Nullable { dart_print(dart_string("    定时器触发！"));
+timerCompleter->complete(); return Void; }), std::vector<Any>{Any(timerCompleter)}));
 DART_AWAIT(timerCompleter->get_future());
 dart_print(dart_string("  周期性定时器 (每50ms执行，共3次):"));
 ObjectPtr<_ValueBox<Int>> count(new _ValueBox<Int>(dart_int(0)));
 auto periodicCompleter = Completer::create();
-Timer::periodic(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&](ObjectPtr<Timer> timer) { (*count) = (*count)->operator_add(dart_int(1));
+Timer::periodic(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction<Nullable, ObjectPtr<Timer>>(std::function<Nullable(ObjectPtr<Timer>)>([=](ObjectPtr<Timer> timer) -> Nullable { (*count) = (*count)->operator_add(dart_int(1));
 dart_print(dart_concat(dart_string("    周期执行第"), (count).toString(), dart_string("次")));
 if ((*count)->operator_greater_equals(dart_int(3))) {
 timer->cancel();
 periodicCompleter->complete();
-} }, std::vector<Any>{Any(count), Any(periodicCompleter)}));
+} return Void; }), std::vector<Any>{Any(count), Any(periodicCompleter)}));
 DART_AWAIT(periodicCompleter->get_future());
 dart_print(dart_string("  延迟执行:"));
-DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction([&]() { dart_print(dart_string("    延迟100ms后执行")); })));
+DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(100), dart_int(0))), makeFunction<Any>(std::function<Any()>([=]() -> Any { dart_print(dart_string("    延迟100ms后执行")); }))));
 dart_print(dart_string("  微任务调度:"));
-scheduleMicrotask(makeFunction([&]() { dart_print(dart_string("    微任务执行")); }));
+scheduleMicrotask(makeFunction<Nullable>(std::function<Nullable()>([=]() -> Nullable { dart_print(dart_string("    微任务执行")); return Void; })));
 DART_AWAIT(Future<Any>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(10), dart_int(0))), Null));
   // TODO: 需要处理异步函数返回值
   DART_ASYNC_END(Null)
@@ -230,9 +230,9 @@ return dart_concat((name).toString(), dart_string(" (延迟"), (delayMs).toStrin
 
 ObjectPtr<Future<String>> processNestedAsync() {
   DART_ASYNC_BEGIN(String)
-  auto step1 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return dart_string("Step1"); })));
-auto step2 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return dart_string("Step2"); })));
-auto step3 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction([&]() { return dart_string("Step3"); })));
+  auto step1 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("Step1"); }))));
+auto step2 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("Step2"); }))));
+auto step3 = DART_AWAIT(Future<String>::delayed(ObjectPtr<Duration>(new Duration(dart_int(0), dart_int(0), dart_int(0), dart_int(0), dart_int(50), dart_int(0))), makeFunction<String>(std::function<String()>([=]() -> String { return dart_string("Step3"); }))));
 return dart_concat((step1).toString(), dart_string(" -> "), (step2).toString(), dart_string(" -> "), (step3).toString());
   // TODO: 需要处理异步函数返回值
   DART_ASYNC_END(Null)

@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "closure_capture_test.h"
 
 // 工具宏定义
 
@@ -13,7 +13,7 @@ public:
   }
   
   ObjectPtr<Function> makeAdder() {
-    return makeFunction([&](Int x) { return this->base->operator_add(x); });
+    return makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return this->base->operator_add(x); }));
   }
   
 };
@@ -26,7 +26,7 @@ Nullable testNestedClosure();
 Nullable testBasicClosure() {
   dart_print(dart_string("Test 1: Basic Closure"));
 ObjectPtr<_ValueBox<Int>> x(new _ValueBox<Int>(dart_int(10)));
-auto addX = makeFunction([&, x](Int y) mutable { return (*x)->operator_add(y); });
+auto addX = makeFunction<Int, Int>(std::function<Int(Int)>([=](Int y) mutable -> Int { return (*x)->operator_add(y); }));
 dart_print(addX->call(dart_int(5)));
 return Void;
 }
@@ -36,8 +36,8 @@ Nullable testMultipleCapture() {
 ObjectPtr<_ValueBox<Int>> a(new _ValueBox<Int>(dart_int(5)));
 ObjectPtr<_ValueBox<Int>> b(new _ValueBox<Int>(dart_int(10)));
 ObjectPtr<_ValueBox<String>> prefix(new _ValueBox<String>(dart_string("Result: ")));
-auto compute = makeFunction([&, prefix]() mutable { auto sum = (*a)->operator_add((*b));
-return (*prefix)->operator_add(sum->toString()); }, std::vector<Any>{Any(a), Any(b)});
+auto compute = makeFunction<String>(std::function<String()>([=]() mutable -> String { auto sum = (*a)->operator_add((*b));
+return (*prefix)->operator_add(sum->toString()); }), std::vector<Any>{Any(a), Any(b)});
 dart_print(compute->call());
 return Void;
 }
@@ -54,11 +54,11 @@ Nullable testClosureInLoop() {
   dart_print(dart_string("Test 4: Closure in Loop"));
 auto functions = dart_literal<ObjectPtr<Function>>();
 for (auto i = dart_int(0); (*i)->operator_less(dart_int(3)); (*i) = (*i)->operator_add(dart_int(1))) {
-functions->add(makeFunction([&, i]() mutable { return (*i); }));
+functions->add(makeFunction<Int>(std::function<Int()>([=]() mutable -> Int { return (*i); })));
 }
-auto sync_for_iterator = functions->iterator();
-for (; sync_for_iterator->hasNext(); ) {
-auto f = sync_for_iterator->next();
+auto sync_for_iterator_1 = functions->iterator();
+for (; sync_for_iterator_1->hasNext(); ) {
+auto f = sync_for_iterator_1->next();
 dart_print(f->call());
 };
 return Void;
@@ -67,9 +67,9 @@ return Void;
 Nullable testNestedClosure() {
   dart_print(dart_string("Test 5: Nested Closure"));
 ObjectPtr<_ValueBox<Int>> outer(new _ValueBox<Int>(dart_int(1)));
-auto outerFunc = makeFunction([&]() { ObjectPtr<_ValueBox<Int>> middle(new _ValueBox<Int>(dart_int(10)));
-auto innerFunc = makeFunction([&, outer, middle]() mutable { return (*outer)->operator_add((*middle)); });
-return innerFunc->call(); });
+auto outerFunc = makeFunction<Int>(std::function<Int()>([=]() -> Int { ObjectPtr<_ValueBox<Int>> middle(new _ValueBox<Int>(dart_int(10)));
+auto innerFunc = makeFunction<Int>(std::function<Int()>([=]() mutable -> Int { return (*outer)->operator_add((*middle)); }));
+return innerFunc->call(); }));
 dart_print(outerFunc->call());
 return Void;
 }

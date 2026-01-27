@@ -123,9 +123,23 @@ compile_cpp_file() {
     
     echo -e "${BLUE}[编译]${NC} $basename.cpp -> $basename"
     
-    # C++编译选项
-    local compile_cmd="g++ -std=c++17 -I$PROJECT_ROOT/cpp/core -L$PROJECT_ROOT/cpp/build -o $executable $cpp_file -ldart_object -ldart_string"
+    # C++编译选项 - 使用 clang++ 并直接包含 header-only 库
+    # 对于 Mac M1，使用 Command Line Tools 的 clang++
+    local CXX="/Library/Developer/CommandLineTools/usr/bin/clang++"
+    if [ ! -x "$CXX" ]; then
+        CXX="clang++"  # fallback
+    fi
     
+    # SDK 路径 - 卂载Xcode后需要显式指定
+    local SDK_PATH="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+    local SYSROOT_FLAG=""
+    if [ -d "$SDK_PATH" ]; then
+        SYSROOT_FLAG="-isysroot $SDK_PATH"
+    fi
+    
+    local compile_cmd="$CXX -std=c++17 $SYSROOT_FLAG -I$PROJECT_ROOT/cpp/core -o $executable $cpp_file $PROJECT_ROOT/cpp/core/dart_object.cpp $PROJECT_ROOT/cpp/core/dart_string.cpp"
+    
+    echo "  执行: $compile_cmd" >> "$LOG_FILE"
     if eval "$compile_cmd" 2>>"$LOG_FILE"; then
         echo -e "${GREEN}  ✓ 编译成功${NC}"
         echo "编译成功: $basename.cpp -> $basename" >> "$LOG_FILE"

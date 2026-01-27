@@ -56,7 +56,7 @@ class ObjectPtr;
 class Function;
 
 // TypedFunction 前向声明 - 用于 replaceAllMapped 和 replaceFirstMapped
-template<typename F, typename R, typename... Args>
+template<typename R, typename... Args>
 class TypedFunction;
 
 // ============================================================================
@@ -188,10 +188,8 @@ class String  {
   
   // 其他 Dart String 方法
   String replaceRange(const Int& start, const Int& end, const String& replacement) const;
-  template<typename ReplaceFunc>
-  String replaceAllMapped(const String& from, const ObjectPtr<TypedFunction<ReplaceFunc, String, String>>& replace) const;
-  template<typename ReplaceFunc>
-  String replaceFirstMapped(const String& from, const ObjectPtr<TypedFunction<ReplaceFunc, String, String>>& replace) const;
+  String replaceAllMapped(const String& from, const ObjectPtr<TypedFunction<String, String>>& replace) const;
+  String replaceFirstMapped(const String& from, const ObjectPtr<TypedFunction<String, String>>& replace) const;
   ObjectPtr<List<String> > splitChars() const;  // 分割为字符列表
   String repeat(const Int& times) const;
   String operator_mul(const Int& times) const;  // 字符串乘法运算 ("a" * 3 = "aaa")

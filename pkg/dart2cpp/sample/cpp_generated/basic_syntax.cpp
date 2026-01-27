@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "basic_syntax.h"
 
 // 工具宏定义
 
@@ -12,8 +12,7 @@ Int add(Int a, Int b);
 Int subtract(Int a, Int b);
 Nullable greet(String name, String title = String(Null));
 Nullable createUser(String name = String(Null), Int age = Int(Null), String email = String(Null));
-template<typename _F3>
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation);
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<Int, Int, Int>> operation);
 Nullable testBasicTypes() {
   dart_print(dart_string("\n📌 测试基本数据类型"));
 auto intValue = dart_int(42);
@@ -37,7 +36,7 @@ dart_print(dart_concat(dart_string("  布尔值: "), (trueValue).toString(), dar
 dart_print(dart_concat(dart_string("  字符串: "), (singleQuote).toString(), dart_string(" "), (doubleQuote).toString()));
 dart_print(dart_string("  插值: ") + (interpolation).toString());
 dart_print(dart_string("  表达式: ") + (expression).toString());
-dart_print(dart_string("  多行字符串长度: ") + (multiLine->size()).toString());
+dart_print(dart_string("  多行字符串长度: ") + (multiLine->get_length()).toString());
 return Void;
 }
 
@@ -79,7 +78,7 @@ dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" ~/ "),
 dart_print(dart_concat(dart_string("    -"), (a).toString(), dart_string(" = "), (a->operator_negate()).toString()));
 dart_print(dart_string("  比较运算:"));
 dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" == "), (b).toString(), dart_string(": "), ((a == b)).toString()));
-dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" != "), (b).toString(), dart_string(": "), (!((a == b))).toString()));
+dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" != "), (b).toString(), dart_string(": "), (((a == b)).operator_not()).toString()));
 dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" > "), (b).toString(), dart_string(": "), (a->operator_greater(b)).toString()));
 dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" < "), (b).toString(), dart_string(": "), (a->operator_less(b)).toString()));
 dart_print(dart_concat(dart_string("    "), (a).toString(), dart_string(" >= "), (b).toString(), dart_string(": "), (a->operator_greater_equals(b)).toString()));
@@ -89,8 +88,8 @@ auto q = dart_bool(false);
 dart_print(dart_string("  逻辑运算:"));
 dart_print(dart_concat(dart_string("    "), (p).toString(), dart_string(" && "), (q).toString(), dart_string(": "), (p && q).toString()));
 dart_print(dart_concat(dart_string("    "), (p).toString(), dart_string(" || "), (q).toString(), dart_string(": "), (p || q).toString()));
-dart_print(dart_concat(dart_string("    !"), (p).toString(), dart_string(": "), (!(p)).toString()));
-dart_print(dart_concat(dart_string("    !"), (q).toString(), dart_string(": "), (!(q)).toString()));
+dart_print(dart_concat(dart_string("    !"), (p).toString(), dart_string(": "), ((p).operator_not()).toString()));
+dart_print(dart_concat(dart_string("    !"), (q).toString(), dart_string(": "), ((q).operator_not()).toString()));
 auto m = dart_int(12);
 auto n = dart_int(5);
 dart_print(dart_string("  位运算:"));
@@ -151,9 +150,9 @@ dart_print(dart_concat(dart_string("    索引: "), (i).toString(), dart_string(
 }
 auto fruits = dart_literal<String>(dart_string("apple"), dart_string("banana"), dart_string("orange"));
 dart_print(dart_string("  for-in 循环测试:"));
-auto sync_for_iterator = fruits->iterator();
-for (; sync_for_iterator->hasNext(); ) {
-auto fruit = sync_for_iterator->next();
+auto sync_for_iterator_1 = fruits->iterator();
+for (; sync_for_iterator_1->hasNext(); ) {
+auto fruit = sync_for_iterator_1->next();
 dart_print(dart_string("    水果: ") + (fruit).toString());
 }
 dart_print(dart_string("  while 循环测试:"));
@@ -194,7 +193,7 @@ auto expression = dart_string("Sum: ") + (dart_int(10)->operator_add(dart_int(20
 dart_print(dart_string("  插值: ") + (interpolated).toString());
 dart_print(dart_string("  表达式插值: ") + (expression).toString());
 dart_print(dart_string("  字符串属性:"));
-dart_print(dart_string("    长度: ") + (str1->size()).toString());
+dart_print(dart_string("    长度: ") + (str1->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (dart_string("")->isEmpty()).toString());
 dart_print(dart_string("    是否不为空: ") + (str1->isNotEmpty()).toString());
 dart_print(dart_string("  字符串方法:"));
@@ -212,7 +211,7 @@ dart_print(dart_string("  字符串比较:"));
 dart_print(dart_string("    相等: ") + ((str1 == dart_string("Hello"))).toString());
 dart_print(dart_string("    比较: ") + (str1->compareTo(str2)).toString());
 auto multiLine = dart_string("    第一行\n    第二行\n    第三行\n  ");
-dart_print(dart_string("  多行字符串行数: ") + (multiLine->split(dart_string("\n"))->size()).toString());
+dart_print(dart_string("  多行字符串行数: ") + (multiLine->split(dart_string("\n"))->get_length()).toString());
 return Void;
 }
 
@@ -224,18 +223,18 @@ greet(dart_string("Alice"), Null);
 greet(dart_string("Bob"), dart_string("Mr."));
 createUser(dart_string("Charlie"), dart_int(25), Null);
 createUser(dart_string("David"), dart_int(30), dart_string("david@example.com"));
-auto multiply = makeFunction([&](Int a, Int b) { return a->operator_mul(b); });
+auto multiply = makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([=](Int a, Int b) -> Int { return a->operator_mul(b); }));
 dart_print(dart_string("  匿名函数: multiply(4, 5) = ") + (multiply->call(dart_int(4), dart_int(5))).toString());
-auto square = makeFunction([&](Int x) { return x->operator_mul(x); });
+auto square = makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return x->operator_mul(x); }));
 dart_print(dart_string("  箭头函数: square(6) = ") + (square->call(dart_int(6))).toString());
 auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
-auto doubled = numbers->map(makeFunction([&](Int n) { return n->operator_mul(dart_int(2)); }))->toList();
+auto doubled = numbers->map(makeFunction<Int, Int>(std::function<Int(Int)>([=](Int n) -> Int { return n->operator_mul(dart_int(2)); })))->toList();
 dart_print(dart_string("  高阶函数 map: ") + (doubled).toString());
-auto evens = numbers->where(makeFunction([&](Int n) { return (n->operator_mod(dart_int(2)) == dart_int(0)); }))->toList();
+auto evens = numbers->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return (n->operator_mod(dart_int(2)) == dart_int(0)); })))->toList();
 dart_print(dart_string("  高阶函数 where: ") + (evens).toString());
-auto result = calculate(dart_int(10), dart_int(5), makeFunction(&add));
+auto result = calculate(dart_int(10), dart_int(5), makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&add)));
 dart_print(dart_string("  函数作为参数: calculate(10, 5, add) = ") + (result).toString());
-result = calculate(dart_int(10), dart_int(5), makeFunction(&subtract));
+result = calculate(dart_int(10), dart_int(5), makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&subtract)));
 dart_print(dart_string("  函数作为参数: calculate(10, 5, subtract) = ") + (result).toString());
 return Void;
 }
@@ -249,7 +248,7 @@ Int subtract(Int a, Int b) {
 }
 
 Nullable greet(String name, String title) {
-  if (!(dart_is_null(title))) {
+  if ((dart_is_null(title)).operator_not()) {
 dart_print(dart_concat(dart_string("  问候: Hello, "), (title).toString(), dart_string(" "), (name).toString(), dart_string("!")));
 } else {
 dart_print(dart_concat(dart_string("  问候: Hello, "), (name).toString(), dart_string("!")));
@@ -258,12 +257,11 @@ return Void;
 }
 
 Nullable createUser(String name, Int age, String email) {
-  dart_print(dart_concat(dart_string("  创建用户: "), (name).toString(), dart_string(", "), (age).toString(), dart_string("岁"), (!(dart_is_null(email)) ? dart_string(", 邮箱: ") + (email).toString() : dart_string("")).toString()));
+  dart_print(dart_concat(dart_string("  创建用户: "), (name).toString(), dart_string(", "), (age).toString(), dart_string("岁"), ((dart_is_null(email)).operator_not() ? dart_string(", 邮箱: ") + (email).toString() : dart_string("")).toString()));
 return Void;
 }
 
-template<typename _F3>
-Int calculate(Int a, Int b, ObjectPtr<TypedFunction<_F3, Int, Int, Int>> operation) {
+Int calculate(Int a, Int b, ObjectPtr<TypedFunction<Int, Int, Int>> operation) {
   return operation->call(a, b);
 }
 

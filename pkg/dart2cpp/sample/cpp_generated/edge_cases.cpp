@@ -1,4 +1,4 @@
-#include "dart2cpp.h"
+#include "edge_cases.h"
 
 // 工具宏定义
 
@@ -99,31 +99,31 @@ Nullable testStringEdgeCases() {
   dart_print(dart_string("\n📌 测试字符串边界情况"));
 auto empty = dart_string("");
 dart_print(dart_string("  空字符串:"));
-dart_print(dart_string("    长度: ") + (empty->size()).toString());
+dart_print(dart_string("    长度: ") + (empty->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (empty->isEmpty()).toString());
 dart_print(dart_string("    是否不为空: ") + (empty->isNotEmpty()).toString());
 auto single = dart_string("a");
 dart_print(dart_string("  单字符:"));
 dart_print(dart_concat(dart_string("    内容: \""), (single).toString(), dart_string("\"")));
-dart_print(dart_string("    长度: ") + (single->size()).toString());
+dart_print(dart_string("    长度: ") + (single->get_length()).toString());
 auto spaces = dart_string("   ");
 auto tabs = dart_string("\t\t\t");
 auto newlines = dart_string("\n\n\n");
 dart_print(dart_string("  空白字符串:"));
-dart_print(dart_string("    空格长度: ") + (spaces->size()).toString());
-dart_print(dart_string("    制表符长度: ") + (tabs->size()).toString());
-dart_print(dart_string("    换行符长度: ") + (newlines->size()).toString());
+dart_print(dart_string("    空格长度: ") + (spaces->get_length()).toString());
+dart_print(dart_string("    制表符长度: ") + (tabs->get_length()).toString());
+dart_print(dart_string("    换行符长度: ") + (newlines->get_length()).toString());
 dart_print(dart_concat(dart_string("    空格trim后: \""), (spaces->trim()).toString(), dart_string("\"")));
 auto special = dart_string("Hello\nWorld\t!");
 auto unicode = dart_string("你好世界🌍");
 auto escaped = dart_string("Quote: \"Hello\" and 'World'");
 dart_print(dart_string("  特殊字符:"));
 dart_print(dart_concat(dart_string("    换行制表: \""), (special).toString(), dart_string("\"")));
-dart_print(dart_concat(dart_string("    Unicode: "), (unicode).toString(), dart_string(" (长度: "), (unicode->size()).toString(), dart_string(")")));
+dart_print(dart_concat(dart_string("    Unicode: "), (unicode).toString(), dart_string(" (长度: "), (unicode->get_length()).toString(), dart_string(")")));
 dart_print(dart_string("    转义字符: ") + (escaped).toString());
 auto longString = dart_string("a")->operator_mul(dart_int(1000));
 dart_print(dart_string("  长字符串:"));
-dart_print(dart_string("    长度: ") + (longString->size()).toString());
+dart_print(dart_string("    长度: ") + (longString->get_length()).toString());
 dart_print(dart_string("    前10个字符: ") + (longString->substring(dart_int(0), dart_int(10))).toString());
 auto concat1 = dart_string("")->operator_add(dart_string("hello"));
 auto concat2 = dart_string("hello")->operator_add(dart_string(""));
@@ -140,12 +140,12 @@ dart_print(dart_concat(dart_string("    substring(0,0): \""), (sub1).toString(),
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto sub2 = str->substring(dart_int(0), str->size());
+auto sub2 = str->substring(dart_int(0), str->get_length());
 dart_print(dart_concat(dart_string("    substring(0,len): \""), (sub2).toString(), dart_string("\"")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 try {
-auto sub3 = str->substring(str->size(), str->size());
+auto sub3 = str->substring(str->get_length(), str->get_length());
 dart_print(dart_concat(dart_string("    substring(len,len): \""), (sub3).toString(), dart_string("\"")));
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
@@ -160,7 +160,7 @@ Nullable testCollectionEdgeCases() {
   dart_print(dart_string("\n📌 测试集合边界情况"));
 auto emptyList = dart_literal<Int>();
 dart_print(dart_string("  空列表:"));
-dart_print(dart_string("    长度: ") + (emptyList->size()).toString());
+dart_print(dart_string("    长度: ") + (emptyList->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (emptyList->isEmpty()).toString());
 try {
 dart_print(dart_string("    first: ") + (emptyList->first()).toString());
@@ -193,17 +193,17 @@ dart_print(dart_string("    索引3: ") + (testList->operator_index(dart_int(3))
 // Finally block should be implemented using RAII pattern
 auto emptyMap = Map<String, Int>::create();
 dart_print(dart_string("  空Map:"));
-dart_print(dart_string("    长度: ") + (emptyMap->size()).toString());
+dart_print(dart_string("    长度: ") + (emptyMap->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (emptyMap->isEmpty()).toString());
 dart_print(dart_string("    访问不存在键: ") + (emptyMap->operator_index(dart_string("nonexistent"))).toString());
-auto singleMap = Map<String, Int>::createFromEntries({{dart_string("key"), dart_int(42)}});
+auto singleMap = Map<String, Int>::create({{dart_string("key"), dart_int(42)}});
 dart_print(dart_string("  单键值对Map:"));
 dart_print(dart_string("    内容: ") + (singleMap).toString());
 dart_print(dart_string("    键集合: ") + (singleMap->keys()).toString());
 dart_print(dart_string("    值集合: ") + (singleMap->values()).toString());
 auto emptySet = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); return unnamed_var; })();
 dart_print(dart_string("  空Set:"));
-dart_print(dart_string("    长度: ") + (emptySet->size()).toString());
+dart_print(dart_string("    长度: ") + (emptySet->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (emptySet->isEmpty()).toString());
 auto testSet = ([&]() { const auto unnamed_var = ObjectPtr<Set<Int>>(new Set<Int>()); unnamed_var->add(dart_int(1)); unnamed_var->add(dart_int(2)); unnamed_var->add(dart_int(3)); return unnamed_var; })();
 testSet->add(dart_int(2));

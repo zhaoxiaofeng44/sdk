@@ -24,8 +24,6 @@ Nullable testConstantCollections();
 Nullable testConstantConstructors();
 Nullable testStaticConstants();
 Nullable testCompileTimeExpressions();
-Double MathExtension::sqrt(Double _this);
-ObjectPtr<TypedFunction<std::function<Double()>, Double>> MathExtension::get_sqrt(Double _this);
 
 
 #endif // _CONSTANTS_H_

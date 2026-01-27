@@ -1,0 +1,11 @@
+{
+  "name": "pu-spec-skill",
+  "version": "0.9.0",
+  "description": "PuSpec（Process Unit Specification）是一款规范驱动开发工具，基于 PU（Process Unit）设计思想和 SDD（Specification-Driven Development）方法论。用于生成、管理和归档业务处理单元的实现文档和代码。适用于需要高可复现性、可测试性、可维护性的业务开发场景。",
+  "publishConfig": {
+    "registry": "https://contextlab.alibaba-inc.com/skill"
+  },
+  "aoneKit": {
+    "generated": true
+  }
+}

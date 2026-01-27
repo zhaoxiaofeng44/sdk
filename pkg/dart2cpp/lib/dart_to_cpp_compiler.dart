@@ -192,6 +192,8 @@ class CppConstants {
     'List': 'List',
     'Set': 'Set',
     'Map': 'Map',
+    'LinkedHashSet': 'Set', // LinkedHashSet 映射到 Set
+    'LinkedHashMap': 'Map', // LinkedHashMap 映射到 Map
     'Future': 'Future',
     'Stream': 'Stream',
     'StringBuffer': 'StringBuffer',
@@ -223,7 +225,7 @@ class CppConstants {
     '>=': '>=',
     '&&': '&&',
     '||': '||',
-    '!': '!',
+    '!': 'operator_not',
     '&': 'operator_bitwise_and',
     '|': 'operator_bitwise_or',
     '^': 'operator_bitwise_xor',
@@ -401,8 +403,8 @@ class CppTypeConverter {
           .replaceAll('"', '\\"') // Double quote
           .replaceAll('\n', '\\n') // Newline
           .replaceAll('\r', '\\r') // Carriage return
-          .replaceAll('\t', '\\t') // Tab
-          .replaceAll('\$', '\\\$'); // Dollar sign (for string interpolation)
+          .replaceAll('\t', '\\t'); // Tab
+      // Note: $ doesn't need escaping in C++ strings, only in Dart string interpolation
       return 'dart_string("$escaped")';
     } else if (value is int) {
       return 'dart_int($value)';
@@ -424,8 +426,8 @@ class CppTypeConverter {
     return TypeAnalyzer.isBasicType(className);
   }
 
-  /// 转换函数类型为 ObjectPtr<TypedFunction<...>>
-  /// 使用TypeFunction类型进行参数传递
+  /// 转换函数类型为 ObjectPtr<TypedFunction<R, Args...>>
+  /// TypedFunction 只需要返回类型和参数类型，不需要 std::function
   static String _convertFunctionType(FunctionType type) {
     final returnType = convertType(type.returnType);
 
@@ -440,27 +442,18 @@ class CppTypeConverter {
     // 合并所有参数
     final allParams = [...positionalParams, ...namedParams];
 
-    // 构造 std::function 类型作为 TypedFunction 的第一个模板参数
-    String stdFunctionType;
+    // 生成 ObjectPtr<TypedFunction<ReturnType, Args...>> 格式
+    // TypedFunction 只需要返回类型和参数类型
     if (allParams.isEmpty) {
-      stdFunctionType = 'std::function<$returnType()>';
+      return 'ObjectPtr<TypedFunction<$returnType>>';
     } else {
       final paramTypes = allParams.join(', ');
-      stdFunctionType = 'std::function<$returnType($paramTypes)>';
-    }
-
-    // 生成 ObjectPtr<TypedFunction<F, ReturnType, Args...>> 格式
-    // 使用TypeFunction类型替代原来的复杂模板参数
-    if (allParams.isEmpty) {
-      return 'ObjectPtr<TypedFunction<$stdFunctionType, $returnType>>';
-    } else {
-      final paramTypes = allParams.join(', ');
-      return 'ObjectPtr<TypedFunction<$stdFunctionType, $returnType, $paramTypes>>';
+      return 'ObjectPtr<TypedFunction<$returnType, $paramTypes>>';
     }
   }
 
-  /// 转换函数类型为使用模板参数的版本
-  /// templateParamName: 用于替代 std::function 的模板参数名（如 "_F1"）
+  /// 转换函数类型为 ObjectPtr<TypedFunction<R, Args...>>
+  /// 不再需要模板参数名，TypedFunction 只需要返回类型和参数类型
   static String convertFunctionTypeWithTemplate(
       FunctionType type, String templateParamName) {
     final returnType = convertType(type.returnType);
@@ -476,12 +469,13 @@ class CppTypeConverter {
     // 合并所有参数
     final allParams = [...positionalParams, ...namedParams];
 
-    // 使用模板参数替代 std::function
+    // 生成 ObjectPtr<TypedFunction<ReturnType, Args...>> 格式
+    // 不再需要模板参数名作为第一个参数
     if (allParams.isEmpty) {
-      return 'ObjectPtr<TypedFunction<$templateParamName, $returnType>>';
+      return 'ObjectPtr<TypedFunction<$returnType>>';
     } else {
       final paramTypes = allParams.join(', ');
-      return 'ObjectPtr<TypedFunction<$templateParamName, $returnType, $paramTypes>>';
+      return 'ObjectPtr<TypedFunction<$returnType, $paramTypes>>';
     }
   }
 
@@ -510,15 +504,103 @@ class CppTypeConverter {
   }
 
   /// 生成额外的函数类型模板参数声明
-  /// 返回如 "typename _F1, typename _F2" 的字符串，如果没有函数类型参数则返回空字符串
+  /// TypedFunction 已简化为 <R, Args...>，不再需要额外的函数类型模板参数
+  /// 始终返回空字符串
   static String generateFunctionTypeTemplateParams(FunctionNode function) {
-    final funcTypeParams = collectFunctionTypeParams(function);
-    if (funcTypeParams.isEmpty) {
-      return '';
+    // TypedFunction 现在只需要 <R, Args...>，不需要额外的 _F1, _F2 等模板参数
+    return '';
+  }
+
+  /// 从 DartType 中递归收集所有使用的 TypeParameterType 的名称
+  /// 用于确保模板声明包含所有在返回类型和参数类型中使用的泛型参数
+  static Set<String> collectTypeParametersFromType(DartType type) {
+    final result = <String>{};
+    _collectTypeParametersRecursive(type, result);
+    return result;
+  }
+
+  /// 递归收集类型中的类型参数
+  static void _collectTypeParametersRecursive(
+      DartType type, Set<String> result) {
+    if (type is TypeParameterType) {
+      // 直接是类型参数
+      final name = type.parameter.name;
+      if (name != null) {
+        result.add(name);
+      }
+    } else if (type is InterfaceType) {
+      // 接口类型，检查其泛型参数
+      for (final arg in type.typeArguments) {
+        _collectTypeParametersRecursive(arg, result);
+      }
+    } else if (type is FunctionType) {
+      // 函数类型，检查返回类型和参数类型
+      _collectTypeParametersRecursive(type.returnType, result);
+      for (final param in type.positionalParameters) {
+        _collectTypeParametersRecursive(param, result);
+      }
+      for (final param in type.namedParameters) {
+        _collectTypeParametersRecursive(param.type, result);
+      }
+      // 也收集函数类型自身的类型参数
+      for (final typeParam in type.typeParameters) {
+        final name = typeParam.name;
+        if (name != null) {
+          result.add(name);
+        }
+      }
     }
-    return funcTypeParams
-        .map((entry) => 'typename _F${entry.key + 1}')
-        .join(', ');
+  }
+
+  /// 从 FunctionNode 中收集所有在返回类型和参数类型中使用的类型参数
+  static Set<String> collectAllTypeParametersFromFunction(
+      FunctionNode function) {
+    final result = <String>{};
+
+    // 收集返回类型中的类型参数
+    result.addAll(collectTypeParametersFromType(function.returnType));
+
+    // 收集位置参数类型中的类型参数
+    for (final param in function.positionalParameters) {
+      result.addAll(collectTypeParametersFromType(param.type));
+    }
+
+    // 收集命名参数类型中的类型参数
+    for (final param in function.namedParameters) {
+      result.addAll(collectTypeParametersFromType(param.type));
+    }
+
+    return result;
+  }
+
+  /// 检查 FunctionType 的返回类型是否包含 dynamic/Any
+  /// 用于判断是否需要使用 auto 返回类型
+  static bool functionTypeReturnContainsAny(FunctionType type) {
+    return _typeContainsDynamic(type.returnType);
+  }
+
+  /// 检查类型是否包含 dynamic
+  static bool _typeContainsDynamic(DartType type) {
+    if (type is DynamicType) {
+      return true;
+    } else if (type is FunctionType) {
+      // 检查返回类型和参数类型
+      if (_typeContainsDynamic(type.returnType)) return true;
+      for (final param in type.positionalParameters) {
+        if (_typeContainsDynamic(param)) return true;
+      }
+      for (final param in type.namedParameters) {
+        if (_typeContainsDynamic(param.type)) return true;
+      }
+      return false;
+    } else if (type is InterfaceType) {
+      // 检查泛型参数
+      for (final arg in type.typeArguments) {
+        if (_typeContainsDynamic(arg)) return true;
+      }
+      return false;
+    }
+    return false;
   }
 }
 
@@ -750,7 +832,8 @@ class ExpressionConverter {
     if (expr is LogicalExpression) return _convertLogicalExpression(expr);
     if (expr is ConditionalExpression)
       return _convertConditionalExpression(expr);
-    if (expr is Not) return '!(${convertExpression(expr.operand)})';
+    if (expr is Not)
+      return '(${convertExpression(expr.operand)}).operator_not()';
 
     // 优先级7：其他表达式类型
     return _convertOtherExpression(expr);
@@ -768,6 +851,12 @@ class ExpressionConverter {
       varName = varName.substring(1);
     }
     varName = _sanitizeIdentifier(varName);
+
+    // 特殊处理 :sync-for-iterator 变量：使用带索引的变量名
+    if (transformer._syncForIteratorMap.containsKey(expr.variable)) {
+      final index = transformer._syncForIteratorMap[expr.variable]!;
+      varName = '${varName}_$index';
+    }
 
     // 检查是否有类型提升后的变量
     if (_promotedVarMapping.containsKey(varName)) {
@@ -910,6 +999,40 @@ class ExpressionConverter {
     return leftType; // 默认返回左操作数类型
   }
 
+  /// 分割泛型类型参数
+  /// 例如：'String, Int' -> ['String', 'Int']
+  ///      'Map<String, Int>, List<Double>' -> ['Map<String, Int>', 'List<Double>']
+  List<String> _splitTypeParameters(String typeParams) {
+    final result = <String>[];
+    var current = '';
+    var depth = 0;
+
+    for (var i = 0; i < typeParams.length; i++) {
+      final char = typeParams[i];
+
+      if (char == '<') {
+        depth++;
+        current += char;
+      } else if (char == '>') {
+        depth--;
+        current += char;
+      } else if (char == ',' && depth == 0) {
+        // 只在顶层的逗号处分割
+        result.add(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    // 添加最后一个参数
+    if (current.isNotEmpty) {
+      result.add(current.trim());
+    }
+
+    return result;
+  }
+
   /// 推断算术运算结果类型
   String _inferArithmeticResultType(String leftType, String rightType) {
     // double + any_number -> double
@@ -964,6 +1087,8 @@ class ExpressionConverter {
       'double': 'Double',
       'bool': 'Bool',
       'num': 'Any',
+      'LinkedHashSet': 'Set', // LinkedHashSet 映射到 Set
+      'LinkedHashMap': 'Map', // LinkedHashMap 映射到 Map
       // 'String' 保持不变
     };
     return typeMapping[dartTypeName] ?? dartTypeName;
@@ -1385,8 +1510,149 @@ class ExpressionConverter {
         }
       }
 
+      // 特殊处理 Set 工厂构造函数：Set.of, Set.from
+      // LinkedHashSet 已映射为 Set，需要补全泛型参数
+      if (originalClassName == 'Set' ||
+          originalClassName == 'LinkedHashSet' ||
+          originalClassName == '_Set' ||
+          originalClassName == '_CompactLinkedHashSet') {
+        // 推断元素类型
+        String elementType = 'Any';
+
+        // 1. 首先尝试从 Arguments.types 获取类型
+        if (expr.arguments.types.isNotEmpty) {
+          final typeArg = expr.arguments.types.first;
+          if (typeArg is! TypeParameterType) {
+            elementType = CppTypeConverter.convertType(typeArg);
+          }
+        }
+
+        // 2. 尝试从返回类型推断
+        if (elementType == 'Any') {
+          final returnType = target.function.returnType;
+          if (returnType is InterfaceType &&
+              returnType.typeArguments.isNotEmpty) {
+            final typeArg = returnType.typeArguments.first;
+            if (typeArg is! TypeParameterType) {
+              elementType = CppTypeConverter.convertType(typeArg);
+            }
+          }
+        }
+
+        // 3. 尝试从第一个参数的类型推断（参数应该是 Set<T> 或 Iterable<T>）
+        if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
+          final firstArg = expr.arguments.positional.first;
+          // 使用 _inferExpressionType 来推断参数类型
+          final inferredType = _inferExpressionType(firstArg);
+
+          // 如果推断出的类型是 ObjectPtr<Set<T>> 或 Set<T>，提取 T
+          if (inferredType.startsWith('ObjectPtr<Set<') &&
+              inferredType.endsWith('>>')) {
+            elementType = inferredType.substring(
+                'ObjectPtr<Set<'.length, inferredType.length - 2);
+          } else if (inferredType.startsWith('Set<') &&
+              inferredType.endsWith('>')) {
+            elementType =
+                inferredType.substring('Set<'.length, inferredType.length - 1);
+          } else if (inferredType != 'dynamic' && inferredType != 'Any') {
+            // 如果是其他类型，可能是 Iterable<T>
+            if (inferredType.contains('<') && inferredType.contains('>')) {
+              final startIdx = inferredType.indexOf('<');
+              final endIdx = inferredType.lastIndexOf('>');
+              if (startIdx >= 0 && endIdx > startIdx) {
+                elementType = inferredType.substring(startIdx + 1, endIdx);
+              }
+            }
+          }
+        }
+
+        // Set.of(elements) -> Set<T>::of(elements)
+        // Set.from(elements) -> Set<T>::from(elements)
+        if (methodName == 'of' || methodName == 'from') {
+          if (expr.arguments.positional.isNotEmpty) {
+            final source = convertExpression(expr.arguments.positional.first);
+            return 'Set<$elementType>::$methodName($source)';
+          }
+          return 'Set<$elementType>::create()';
+        }
+      }
+
+      // 特殊处理 Map 工厂构造函数：Map.of, Map.from
+      // LinkedHashMap 已映射为 Map，需要补全泛型参数
+      if (originalClassName == 'Map' ||
+          originalClassName == 'LinkedHashMap' ||
+          originalClassName == '_Map' ||
+          originalClassName == '_CompactLinkedHashMap') {
+        // 推断键值类型
+        String keyType = 'Any';
+        String valueType = 'Any';
+
+        // 1. 首先尝试从 Arguments.types 获取类型
+        if (expr.arguments.types.length >= 2) {
+          final keyTypeArg = expr.arguments.types[0];
+          final valueTypeArg = expr.arguments.types[1];
+          if (keyTypeArg is! TypeParameterType) {
+            keyType = CppTypeConverter.convertType(keyTypeArg);
+          }
+          if (valueTypeArg is! TypeParameterType) {
+            valueType = CppTypeConverter.convertType(valueTypeArg);
+          }
+        }
+
+        // 2. 尝试从返回类型推断
+        if (keyType == 'Any' || valueType == 'Any') {
+          final returnType = target.function.returnType;
+          if (returnType is InterfaceType &&
+              returnType.typeArguments.length >= 2) {
+            if (keyType == 'Any') {
+              final keyTypeArg = returnType.typeArguments[0];
+              if (keyTypeArg is! TypeParameterType) {
+                keyType = CppTypeConverter.convertType(keyTypeArg);
+              }
+            }
+            if (valueType == 'Any') {
+              final valueTypeArg = returnType.typeArguments[1];
+              if (valueTypeArg is! TypeParameterType) {
+                valueType = CppTypeConverter.convertType(valueTypeArg);
+              }
+            }
+          }
+        }
+
+        // 3. 尝试从第一个参数的类型推断（参数应该是 Map<K, V>）
+        if ((keyType == 'Any' || valueType == 'Any') &&
+            expr.arguments.positional.isNotEmpty) {
+          final firstArg = expr.arguments.positional.first;
+          // 使用 _inferExpressionType 来推断参数类型
+          final inferredType = _inferExpressionType(firstArg);
+
+          // 如果推断出的类型是 Map<K, V>，提取 K 和 V
+          if (inferredType.startsWith('Map<') && inferredType.endsWith('>')) {
+            final typeParams =
+                inferredType.substring('Map<'.length, inferredType.length - 1);
+            final parts = _splitTypeParameters(typeParams);
+            if (parts.length >= 2) {
+              if (keyType == 'Any') keyType = parts[0];
+              if (valueType == 'Any') valueType = parts[1];
+            }
+          }
+        }
+
+        // Map.of(other) -> Map<K, V>::of(other)
+        // Map.from(other) -> Map<K, V>::from(other)
+        if (methodName == 'of' || methodName == 'from') {
+          if (expr.arguments.positional.isNotEmpty) {
+            final source = convertExpression(expr.arguments.positional.first);
+            return 'Map<$keyType, $valueType>::$methodName($source)';
+          }
+          return 'Map<$keyType, $valueType>::create()';
+        }
+      }
+
+      // 修复: 将Dart基础类型名称转换为C++类型名称
+      final cppClassName = _convertBasicTypeName(originalClassName);
       // 清理类名中的特殊字符（如混入类 _Bird&Object&Flyable）
-      final className = _sanitizeIdentifier(originalClassName);
+      final className = _sanitizeIdentifier(cppClassName);
       final args = _convertArguments(expr.arguments, target.function);
       // 工厂构造函数转换为静态方法调用
       // 默认工厂构造函数使用 'create'，命名工厂使用原名称
@@ -2146,7 +2412,7 @@ class ExpressionConverter {
       return '{$key, $value}';
     }).join(', ');
 
-    return 'Map<$keyType, $valueType>::createFromEntries({$entries})';
+    return 'Map<$keyType, $valueType>::create({$entries})';
   }
 
   // 新增的转换方法
@@ -2220,10 +2486,17 @@ class ExpressionConverter {
     // 使用 interfaceTarget 来判断是字段还是 getter
     final isRealProperty = _isRealProperty(expr);
 
+    // 判断是否是C++运行时库的内置类型
+    final isBuiltinType = _isBuiltinRuntimeType(expr.receiver);
+
     // 统一使用 -> 访问
-    // 对于 List、Set、Map 等容器类型，length 转换为 size()
+    // 对于 length 属性，内置类型使用 get_length()，用户自定义类使用 length()
     if (memberName == 'length') {
-      return '$receiver->size()';
+      if (isBuiltinType) {
+        return '$receiver->get_length()';
+      } else {
+        return '$receiver->length()';
+      }
     }
     // 某些getter需要作为方法调用
     if (methodLikeGetters.contains(memberName)) {
@@ -2233,8 +2506,98 @@ class ExpressionConverter {
     if (isRealProperty) {
       return '$receiver->$memberName'; // 直接属性访问
     } else {
-      return '$receiver->get_$memberName()'; // getter方法调用，使用get_前缀
+      // getter方法调用：
+      // - 内置类型使用 get_ 前缀（如 get_length()）
+      // - 用户自定义类不使用 get_ 前缀（如 width()）
+      if (isBuiltinType) {
+        return '$receiver->get_$memberName()';
+      } else {
+        // 用户自定义类的 getter，直接使用属性名作为方法名
+        return '$receiver->$memberName()';
+      }
     }
+  }
+
+  /// 判断表达式的类型是否是C++运行时库的内置类型
+  bool _isBuiltinRuntimeType(Expression expr) {
+    // C++运行时库内置类型列表
+    const builtinTypes = {
+      'int',
+      'double',
+      'bool',
+      'String',
+      'num',
+      'Int',
+      'Double',
+      'Bool',
+      'List',
+      'Set',
+      'Map',
+      'Iterable',
+      'Object',
+      'Null',
+      'dynamic',
+      'Future',
+      'Stream',
+      'Completer',
+      'StringBuffer',
+      'RegExp',
+      'Timer',
+      'DateTime',
+      'Duration',
+      'Uri',
+      'Exception',
+      'Error',
+      'StackTrace',
+      'Type',
+      'Symbol',
+      'Enum',
+      'Function',
+      'TypedFunction',
+    };
+
+    // 从表达式的类型中获取类名
+    DartType? type;
+    if (expr is VariableGet) {
+      type = expr.promotedType ?? expr.variable.type;
+    } else if (expr is ThisExpression) {
+      // 处理 this 表达式：从当前类上下文获取类型
+      // this 表达式的类型就是当前所在的类
+      // 需要从 transformer 的上下文中获取当前类信息
+      final currentClass = transformer._currentClass;
+      if (currentClass != null) {
+        type = InterfaceType(currentClass, Nullability.nonNullable);
+      }
+    } else if (expr is InstanceInvocation) {
+      final target = expr.interfaceTarget;
+      if (target is Procedure) {
+        type = target.function.returnType;
+      }
+    } else if (expr is InstanceGet) {
+      final target = expr.interfaceTarget;
+      if (target is Field) {
+        type = target.type;
+      } else if (target is Procedure) {
+        type = target.function.returnType;
+      }
+    } else if (expr is ConstructorInvocation) {
+      type = InterfaceType(expr.target.enclosingClass, Nullability.nonNullable);
+    } else if (expr is StaticInvocation) {
+      type = expr.target.function.returnType;
+    }
+
+    if (type == null) return true; // 保守策略：默认当作内置类型
+
+    // 提取类名
+    String className;
+    if (type is InterfaceType) {
+      className = type.classNode.name;
+    } else {
+      // 对于其他类型（如 DynamicType、VoidType 等），当作内置类型
+      return true;
+    }
+
+    return builtinTypes.contains(className);
   }
 
   String _convertInstanceSet(InstanceSet expr) {
@@ -2492,9 +2855,33 @@ class ExpressionConverter {
     // 成员函数需要捕获receiver对象
     final capturedVarsArray = ', std::vector<Any>{Any($receiver)}';
 
-    // 使用 makeFunction 包装实例方法指针
-    // 现在的 makeFunction 支持自动推导参数类型，不再需要指定具体类型
-    return 'makeFunction([=](...args) { return $receiver->$memberName(...args); }$capturedVarsArray)';
+    // 获取方法签名信息
+    final target = expr.interfaceTarget;
+    final functionNode = target.function;
+    final returnType = CppTypeConverter.convertType(functionNode.returnType);
+    final paramTypes = functionNode.positionalParameters
+        .map((p) => CppTypeConverter.convertType(p.type))
+        .toList();
+
+    // 生成参数列表
+    final params = functionNode.positionalParameters
+        .map(
+            (p) => '${CppTypeConverter.convertType(p.type)} ${p.name ?? "arg"}')
+        .join(', ');
+
+    // 生成参数名列表（用于调用）
+    final argNames = functionNode.positionalParameters
+        .map((p) => p.name ?? "arg")
+        .join(', ');
+
+    // 生成显式模板参数 makeFunction<R, Args...>
+    final templateParams = [returnType, ...paramTypes].join(', ');
+
+    // 生成 std::function 类型
+    final stdFuncType = 'std::function<$returnType(${paramTypes.join(', ')})>';
+
+    // 使用 makeFunction 包装实例方法，显式指定类型参数
+    return 'makeFunction<$templateParams>($stdFuncType([=]($params) -> $returnType { return $receiver->$memberName($argNames); })$capturedVarsArray)';
   }
 
   String _convertStaticGet(StaticGet expr) {
@@ -2531,9 +2918,21 @@ class ExpressionConverter {
     final functionPtr =
         className.isNotEmpty ? '&$className::$methodName' : '&$methodName';
 
-    // 使用 makeFunction 包装函数指针
-    // 现在的 makeFunction 支持自动推导参数类型，不再需要指定具体类型
-    return 'makeFunction($functionPtr)';
+    // 获取函数签名信息
+    final functionNode = target.function;
+    final returnType = CppTypeConverter.convertType(functionNode.returnType);
+    final paramTypes = functionNode.positionalParameters
+        .map((p) => CppTypeConverter.convertType(p.type))
+        .toList();
+
+    // 生成显式模板参数 makeFunction<R, Args...>
+    final templateParams = [returnType, ...paramTypes].join(', ');
+
+    // 生成 std::function 类型
+    final stdFuncType = 'std::function<$returnType(${paramTypes.join(', ')})>';
+
+    // 使用 makeFunction 包装函数指针，显式指定类型参数
+    return 'makeFunction<$templateParams>($stdFuncType($functionPtr))';
   }
 
   String _convertSuperPropertyGet(SuperPropertyGet expr) {
@@ -2857,6 +3256,87 @@ class ExpressionConverter {
     }
   }
 
+  /// 从 FunctionExpression 的函数体推断真正的返回类型
+  /// 特别处理嵌套 lambda 的情况（如柯里化函数）
+  String _inferLambdaReturnType(FunctionExpression expr) {
+    // 首先获取声明的返回类型
+    final declaredReturnType = expr.function.returnType;
+
+    // 如果声明的返回类型是完整的（不是 dynamic 或不完整的 FunctionType），直接使用
+    if (declaredReturnType is! DynamicType &&
+        !_isIncompleteFunctionType(declaredReturnType)) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 否则，从函数体推断返回类型
+    final body = expr.function.body;
+    if (body == null) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 找到函数体中的 return 表达式
+    final returnExpr = _findReturnExpression(body);
+    if (returnExpr == null) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 如果返回的是另一个 FunctionExpression，递归推断其类型
+    if (returnExpr is FunctionExpression) {
+      return _buildLambdaTypeString(returnExpr);
+    }
+
+    // 对于其他表达式，使用声明的返回类型或推断类型
+    return CppTypeConverter.convertType(declaredReturnType);
+  }
+
+  /// 检查 FunctionType 是否不完整（返回类型是 dynamic）
+  bool _isIncompleteFunctionType(DartType type) {
+    if (type is FunctionType) {
+      // 如果函数类型的返回类型是 dynamic，认为是不完整的
+      return type.returnType is DynamicType;
+    }
+    return false;
+  }
+
+  /// 从函数体中找到 return 表达式
+  Expression? _findReturnExpression(Statement body) {
+    if (body is ReturnStatement) {
+      return body.expression;
+    }
+    if (body is Block && body.statements.isNotEmpty) {
+      // 遍历 block 中的语句，找到 return 语句
+      for (final stmt in body.statements) {
+        if (stmt is ReturnStatement) {
+          return stmt.expression;
+        }
+      }
+    }
+    if (body is ExpressionStatement) {
+      // 对于箭头函数，body 可能直接是 ExpressionStatement
+      return body.expression;
+    }
+    return null;
+  }
+
+  /// 构建 FunctionExpression 的完整类型字符串（用于嵌套 lambda）
+  /// 返回格式：ObjectPtr<TypedFunction<ReturnType, Args...>>
+  String _buildLambdaTypeString(FunctionExpression expr) {
+    // 递归推断返回类型
+    final returnType = _inferLambdaReturnType(expr);
+
+    // 获取参数类型
+    final paramTypes = expr.function.positionalParameters
+        .map((p) => CppTypeConverter.convertType(p.type))
+        .toList();
+
+    // 构建 TypedFunction 类型
+    if (paramTypes.isEmpty) {
+      return 'ObjectPtr<TypedFunction<$returnType>>';
+    } else {
+      return 'ObjectPtr<TypedFunction<$returnType, ${paramTypes.join(', ')}>>';
+    }
+  }
+
   String _convertFunctionExpression(FunctionExpression expr) {
     // 收集闭包捕获的变量（详细信息）
     final capturedVarsInfo = _collectCapturedVariablesDetailed(expr);
@@ -2876,6 +3356,8 @@ class ExpressionConverter {
 
     // 生成 lambda 函数体
     String body = 'return Void;';
+    bool needsReturnVoid = false;
+
     if (expr.function.body != null) {
       // 在转换函数体之前，为值类型变量生成装箱代码
       String boxingCode = '';
@@ -2909,12 +3391,37 @@ class ExpressionConverter {
         // 这里我们只做标记，实际装箱在 _convertVariableDeclaration 中处理
       }
 
-      body =
-          transformer.statementConverter.convertStatement(expr.function.body!);
+      // 检查函数体类型，判断是否需要添加 return Void;
+      final functionBody = expr.function.body!;
+      final returnType = _inferLambdaReturnType(expr);
+
+      // 如果返回类型是 Nullable，检查函数体是否需要添加返回语句
+      if (returnType == 'Nullable') {
+        if (functionBody is Block) {
+          // Block 语句：检查最后一个语句是否是 ReturnStatement
+          if (functionBody.statements.isEmpty ||
+              functionBody.statements.last is! ReturnStatement) {
+            needsReturnVoid = true;
+          }
+        } else if (functionBody is ExpressionStatement) {
+          // ExpressionStatement：需要添加返回语句
+          needsReturnVoid = true;
+        } else {
+          // 其他类型的语句体（如 EmptyStatement）也需要返回
+          needsReturnVoid = true;
+        }
+      }
+
+      body = transformer.statementConverter.convertStatement(functionBody);
 
       // 如果有装箱代码，添加到函数体前面
       if (boxingCode.isNotEmpty) {
         body = boxingCode + ' ' + body;
+      }
+
+      // 如果需要添加 return Void;
+      if (needsReturnVoid) {
+        body = body + ' return Void;';
       }
     }
 
@@ -2933,8 +3440,8 @@ class ExpressionConverter {
       capturedVarsArray = ', std::vector<Any>{$varList}';
     }
 
-    // 生成捕获列表：装箱变量使用值捕获，非装箱变量使用引用捕获
-    String captureList = '[&]';
+    // 生成捕获列表：统一使用值捕获[=]，避免悬垂引用问题
+    String captureList = '[=]';
     final boxedVarsInClosure = capturedVarsInfo
         .where((info) =>
             info.declaration != null &&
@@ -2942,16 +3449,27 @@ class ExpressionConverter {
         .map((info) => info.name)
         .toList();
 
-    if (boxedVarsInClosure.isNotEmpty) {
-      // 有装箱变量：使用混合捕获（装箱变量用值捕获，其他用引用捕获）
-      final boxedCaptures = boxedVarsInClosure.join(', ');
-      captureList = '[&, $boxedCaptures]';
-    }
-
     // 使用 makeFunction 创建 Function 对象
     // 注意：装箱变量使用值捕获，需要mutable关键字才能修改
     final mutableKeyword = boxedVarsInClosure.isNotEmpty ? ' mutable' : '';
-    return 'makeFunction($captureList($params)$mutableKeyword { $body }$capturedVarsArray)';
+
+    // 获取返回类型 - 使用推断的返回类型而不是声明的返回类型
+    final returnType = _inferLambdaReturnType(expr);
+
+    // 获取参数类型列表（用于显式模板参数）
+    final paramTypes = expr.function.positionalParameters
+        .map((p) => CppTypeConverter.convertType(p.type))
+        .toList();
+
+    // 生成显式模板参数 makeFunction<R, Args...>
+    final templateParams = [returnType, ...paramTypes].join(', ');
+
+    // 生成 std::function 类型
+    final stdFuncType = 'std::function<$returnType(${paramTypes.join(', ')})>';
+
+    // 生成完整的 makeFunction 调用
+    // 格式: makeFunction<R, Args...>(std::function<R(Args...)>(lambda), captured_vars)
+    return 'makeFunction<$templateParams>($stdFuncType($captureList($params)$mutableKeyword -> $returnType { $body })$capturedVarsArray)';
   }
 
   String _convertLet(Let expr) {
@@ -3027,7 +3545,16 @@ class ExpressionConverter {
     } else if (constant is MapConstant) {
       final keyType = CppTypeConverter.convertType(constant.keyType);
       final valueType = CppTypeConverter.convertType(constant.valueType);
-      return 'Map<$keyType, $valueType>::createConst()';
+      if (constant.entries.isEmpty) {
+        return 'Map<$keyType, $valueType>::createConst()';
+      }
+      // 生成带初始化的 const Map，使用 std::pair 格式
+      final entries = constant.entries.map((entry) {
+        final key = _convertConstant(entry.key);
+        final value = _convertConstant(entry.value);
+        return '{$key, $value}';
+      }).join(', ');
+      return 'Map<$keyType, $valueType>::createConst({$entries})';
     } else if (constant is InstanceConstant) {
       final originalClassName = constant.classNode.name;
       // 清理类名中的特殊字符（如混入类 _Bird&Object&Flyable）
@@ -3037,8 +3564,23 @@ class ExpressionConverter {
       // 处理函数引用：使用 makeFunction 包装函数指针
       final target = constant.target;
       final functionName = target.name.text;
-      // 现在的 makeFunction 支持自动推导参数类型，不再需要指定具体类型
-      return 'makeFunction(&$functionName)';
+
+      // 获取函数签名信息
+      final functionNode = target.function;
+      final returnType = CppTypeConverter.convertType(functionNode.returnType);
+      final paramTypes = functionNode.positionalParameters
+          .map((p) => CppTypeConverter.convertType(p.type))
+          .toList();
+
+      // 生成显式模板参数 makeFunction<R, Args...>
+      final templateParams = [returnType, ...paramTypes].join(', ');
+
+      // 生成 std::function 类型
+      final stdFuncType =
+          'std::function<$returnType(${paramTypes.join(', ')})>';
+
+      // 显式指定类型参数
+      return 'makeFunction<$templateParams>($stdFuncType(&$functionName))';
     }
     return '/* Constant: ${constant.runtimeType} */';
   }
@@ -3209,12 +3751,20 @@ class CppStatementConverter {
 
   String _convertVariableDeclaration(VariableDeclaration decl) {
     String name = decl.name ?? 'unnamed_var';
+    final originalName = name; // 保存原始变量名用于特殊处理
 
     // 使用统一的标识符清理函数
     name = _sanitizeIdentifier(name);
     // 为变量添加前缀以避免关键字冲突
     if (name == 'unnamed') {
       name = 'var_$name';
+    }
+
+    // 特殊处理 :sync-for-iterator 变量：为每个实例分配唯一索引
+    if (originalName == ':sync-for-iterator') {
+      transformer._syncForIteratorIndex++;
+      transformer._syncForIteratorMap[decl] = transformer._syncForIteratorIndex;
+      name = '${name}_${transformer._syncForIteratorIndex}';
     }
 
     final type = CppTypeConverter.convertType(decl.type);
@@ -3459,6 +4009,19 @@ class CppStatementConverter {
 
     final body = convertStatement(stmt.body);
 
+    // DEBUG: 检查变量名
+    print('DEBUG: ForStatement variables = [$variables]');
+
+    // 检测 for-in 脱糖后的模式：包含 iterator 变量名或者调用 ->iterator()
+    // 需要外层加 {} 防止多个 for-in 循环的迭代器变量命名冲突
+    final bool isForInDesugared = variables.contains('sync_for_iterator') ||
+        variables.contains('sync-for-iterator') ||
+        variables.contains('->iterator()');
+
+    if (isForInDesugared) {
+      return '{\n$variables;\nfor (; $condition; $updates) {\n$body\n}\n}';
+    }
+
     return 'for ($variables; $condition; $updates) {\n$body\n}';
   }
 
@@ -3486,10 +4049,8 @@ class CppStatementConverter {
     final body = convertStatement(stmt.body);
 
     // 生成正确的C++ for-in循环代码，使用 hasNext() 和 next() 方法
-    return '''for (auto $iteratorVarName = $iterable->iterator(); $iteratorVarName->hasNext(); ) {
-auto $varName = $iteratorVarName->next();
-$body
-}''';
+    // 外层加 {} 防止多个 for-in 循环的 sync_for_iterator 命名冲突
+    return '{ /* FOR_IN_SCOPE */\nauto $iteratorVarName = $iterable->iterator();\nfor (; $iteratorVarName->hasNext(); ) {\nauto $varName = $iteratorVarName->next();\n$body\n}\n}';
   }
 
   String _convertWhileStatement(WhileStatement stmt) {
@@ -3520,6 +4081,26 @@ $body
           // 显式解包：使用 * 运算符
           expr = '(*$expr)';
         }
+      }
+
+      // FunctionExpression 返回处理：
+      // - 如果当前函数返回类型是完整的 FunctionType（不包含 dynamic），使用 makeStdFunction
+      // - 如果返回类型包含 dynamic，使用 makeFunction（返回 ObjectPtr<Function>）
+      if (stmt.expression is FunctionExpression) {
+        final currentReturnType = transformer._currentProcedureReturnType;
+        // 检查是否应该使用 makeStdFunction：
+        // 1. 当前函数有返回类型
+        // 2. 返回类型是 FunctionType
+        // 3. 返回类型不包含 dynamic/Any
+        final bool shouldUseMakeStdFunction = currentReturnType != null &&
+            currentReturnType is FunctionType &&
+            !CppTypeConverter.functionTypeReturnContainsAny(currentReturnType);
+
+        if (shouldUseMakeStdFunction) {
+          // 使用 makeStdFunction 生成 std::function 版本，与声明的返回类型匹配
+          expr = expr.replaceFirst('makeFunction(', 'makeStdFunction(');
+        }
+        // 否则保持 makeFunction，返回 ObjectPtr<Function>
       }
 
       return 'return $expr;';
@@ -3883,8 +4464,21 @@ class DartToCppTransformer {
   // 装箱变量管理：存储需要装箱的变量信息
   final Map<VariableDeclaration, BoxingVarInfo> _boxingVars = {};
 
+  // sync-for-iterator 变量索引管理：用于区分多个 foreach 循环的迭代器变量
+  int _syncForIteratorIndex = 0;
+  final Map<VariableDeclaration, int> _syncForIteratorMap = {};
+
   // 当前函数的参数装箱信息（函数编译过程中使用）
   final Set<VariableDeclaration> _currentFunctionBoxedParams = {};
+
+  // 当前函数的返回类型（用于 return 语句处理）
+  DartType? _currentProcedureReturnType;
+
+  // 当前正在转换的类（用于判断 this 表达式的类型）
+  Class? _currentClass;
+
+  // 存储当前转换的输入文件名
+  String _currentInputFileName = '';
 
   /// 需要跳过的基础库前缀列表
   static const List<String> skipLibraryPrefixes = [
@@ -3914,6 +4508,121 @@ class DartToCppTransformer {
   DartToCppTransformer() {
     statementConverter = CppStatementConverter(this);
     expressionConverter = ExpressionConverter(this, statementConverter);
+  }
+
+  /// 从函数体推断返回类型（用于不完整的 FunctionType 返回类型）
+  /// 特别处理柯里化等嵌套 lambda 的情况
+  String _inferProcedureReturnType(Procedure procedure) {
+    final declaredReturnType = procedure.function.returnType;
+
+    // 如果返回类型不是不完整的 FunctionType，直接使用声明的类型
+    if (declaredReturnType is! FunctionType) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 检查 FunctionType 是否不完整（返回类型是 dynamic）
+    final funcType = declaredReturnType;
+    if (funcType.returnType is! DynamicType) {
+      // 返回类型完整，直接使用
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 返回类型不完整，从函数体推断
+    final body = procedure.function.body;
+    if (body == null) {
+      return 'ObjectPtr<Function>';
+    }
+
+    // 找到返回表达式
+    final returnExpr = _findReturnExpression(body);
+    if (returnExpr == null) {
+      return 'ObjectPtr<Function>';
+    }
+
+    // 如果返回的是 FunctionExpression，推断其完整类型
+    if (returnExpr is FunctionExpression) {
+      return _buildFunctionExpressionType(returnExpr);
+    }
+
+    // 其他情况使用基类
+    return 'ObjectPtr<Function>';
+  }
+
+  /// 从语句中找到返回表达式
+  Expression? _findReturnExpression(Statement body) {
+    if (body is ReturnStatement) {
+      return body.expression;
+    }
+    if (body is Block && body.statements.isNotEmpty) {
+      for (final stmt in body.statements) {
+        if (stmt is ReturnStatement) {
+          return stmt.expression;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// 构建 FunctionExpression 的完整类型字符串
+  /// 递归处理嵌套的 lambda
+  String _buildFunctionExpressionType(FunctionExpression expr) {
+    // 递归推断返回类型
+    final returnType = _inferFunctionExpressionReturnType(expr);
+
+    // 获取参数类型
+    final paramTypes = expr.function.positionalParameters
+        .map((p) => CppTypeConverter.convertType(p.type))
+        .toList();
+
+    // 构建 TypedFunction 类型
+    if (paramTypes.isEmpty) {
+      return 'ObjectPtr<TypedFunction<$returnType>>';
+    } else {
+      return 'ObjectPtr<TypedFunction<$returnType, ${paramTypes.join(', ')}>>';
+    }
+  }
+
+  /// 推断 FunctionExpression 的返回类型
+  String _inferFunctionExpressionReturnType(FunctionExpression expr) {
+    final declaredReturnType = expr.function.returnType;
+
+    // 如果声明的返回类型是完整的（非 dynamic），直接使用
+    if (declaredReturnType is! DynamicType &&
+        !(declaredReturnType is FunctionType &&
+            declaredReturnType.returnType is DynamicType)) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 从函数体推断
+    final body = expr.function.body;
+    if (body == null) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 找到返回表达式
+    Expression? returnExpr;
+    if (body is ReturnStatement) {
+      returnExpr = body.expression;
+    } else if (body is Block && body.statements.isNotEmpty) {
+      for (final stmt in body.statements) {
+        if (stmt is ReturnStatement) {
+          returnExpr = stmt.expression;
+          break;
+        }
+      }
+    }
+
+    if (returnExpr == null) {
+      return CppTypeConverter.convertType(declaredReturnType);
+    }
+
+    // 如果返回的是另一个 FunctionExpression，递归构建类型
+    if (returnExpr is FunctionExpression) {
+      return _buildFunctionExpressionType(returnExpr);
+    }
+
+    // 其他情况使用声明的返回类型
+    return CppTypeConverter.convertType(declaredReturnType);
   }
 
   /// 生成头文件内容
@@ -4217,8 +4926,14 @@ class DartToCppTransformer {
   }
 
   /// 转换整个组件
-  String transformComponent(Component component) {
+  /// [inputFileName] 可选的输入文件名，用于生成正确的 #include 语句
+  String transformComponent(Component component, {String? inputFileName}) {
     _buffer.clear();
+
+    // 保存输入文件名
+    if (inputFileName != null) {
+      _currentInputFileName = inputFileName;
+    }
 
     // 初始化类型分析器并扫描所有类
     typeAnalyzer = TypeAnalyzer();
@@ -4370,13 +5085,37 @@ class DartToCppTransformer {
       if (memberRef != null && memberRef.asProcedure != null) {
         final procedure = memberRef.asProcedure!;
 
-        // 检查是否有泛型参数
+        // 收集函数参数中的 FunctionType 参数
+        final funcTypeParams =
+            CppTypeConverter.collectFunctionTypeParams(procedure.function);
+
+        // 检查是否有泛型参数或函数类型参数
         String templateDecl = '';
-        if (procedure.function.typeParameters.isNotEmpty) {
-          final typeParams = procedure.function.typeParameters
-              .map((p) => 'typename ${p.name}')
-              .join(', ');
-          templateDecl = 'template<$typeParams>\n';
+        if (procedure.function.typeParameters.isNotEmpty ||
+            funcTypeParams.isNotEmpty) {
+          final List<String> allTemplateParams = [];
+
+          // 添加原始泛型参数
+          if (procedure.function.typeParameters.isNotEmpty) {
+            final typeParams = procedure.function.typeParameters
+                .map((p) => 'typename ${p.name}')
+                .join(', ');
+            allTemplateParams.add(typeParams);
+          }
+
+          // 添加函数类型模板参数
+          if (funcTypeParams.isNotEmpty) {
+            final funcTemplateParams =
+                CppTypeConverter.generateFunctionTypeTemplateParams(
+                    procedure.function);
+            if (funcTemplateParams.isNotEmpty) {
+              allTemplateParams.add(funcTemplateParams);
+            }
+          }
+
+          if (allTemplateParams.isNotEmpty) {
+            templateDecl = 'template<${allTemplateParams.join(', ')}>\n';
+          }
         }
 
         final returnType =
@@ -4394,10 +5133,24 @@ class DartToCppTransformer {
         // 构建参数列表
         // Dart Kernel 会为扩展方法自动添加一个 #this 参数
         final params = <String>[];
+        int paramIndex = 0; // 参数在整个列表中的位置索引
 
         // 添加所有参数（包括 #this 和其他参数）
-        for (final param in procedure.function.positionalParameters) {
-          final paramType = CppTypeConverter.convertType(param.type);
+        for (int i = 0;
+            i < procedure.function.positionalParameters.length;
+            i++) {
+          final param = procedure.function.positionalParameters[i];
+          String paramType;
+          // 检查是否是函数类型参数，使用模板参数版本
+          if (param.type is FunctionType) {
+            // 使用参数在整个列表中的位置索引 + 1 作为 _F 编号
+            // 与 generateFunctionTypeTemplateParams 保持一致
+            paramType = CppTypeConverter.convertFunctionTypeWithTemplate(
+                param.type as FunctionType, '_F${paramIndex + 1}');
+          } else {
+            paramType = CppTypeConverter.convertType(param.type);
+          }
+          paramIndex++;
           var paramName = param.name ?? 'param';
           // 将 #this 参数重命名为 this_
           if (paramName == '#this' || paramName == '_this') {
@@ -4408,7 +5161,15 @@ class DartToCppTransformer {
           params.add('$paramType $paramName');
         }
         for (final param in procedure.function.namedParameters) {
-          final paramType = CppTypeConverter.convertType(param.type);
+          String paramType;
+          // 检查是否是函数类型参数，使用模板参数版本
+          if (param.type is FunctionType) {
+            paramType = CppTypeConverter.convertFunctionTypeWithTemplate(
+                param.type as FunctionType, '_F${paramIndex + 1}');
+          } else {
+            paramType = CppTypeConverter.convertType(param.type);
+          }
+          paramIndex++;
           var paramName = param.name ?? 'param';
           // 清理参数名中的非法字符
           paramName = _sanitizeIdentifier(paramName);
@@ -4442,26 +5203,51 @@ class DartToCppTransformer {
   /// 生成函数的前向声明
   void _writeFunctionForwardDeclaration(Procedure procedure) {
     final name = procedure.name.text;
-    final returnType =
-        CppTypeConverter.convertType(procedure.function.returnType);
+
+    // 使用推断的返回类型（可以处理柯里化等嵌套 lambda 的情况）
+    final returnType = _inferProcedureReturnType(procedure);
 
     // 收集函数参数中的 FunctionType 参数
     final funcTypeParams =
         CppTypeConverter.collectFunctionTypeParams(procedure.function);
 
+    // 收集在返回类型和参数类型中使用的所有类型参数
+    final usedTypeParams =
+        CppTypeConverter.collectAllTypeParametersFromFunction(
+            procedure.function);
+
     // 处理泛型函数 - 生成正确的多参数模板语法
     String templateDecl = '';
     if (procedure.function.typeParameters.isNotEmpty ||
-        funcTypeParams.isNotEmpty) {
+        funcTypeParams.isNotEmpty ||
+        usedTypeParams.isNotEmpty) {
       // 为泛型函数生成模板声明
+      final Set<String> allTypeParamNames = <String>{};
       final List<String> allTemplateParams = [];
 
       // 添加原始泛型参数
       if (procedure.function.typeParameters.isNotEmpty) {
+        for (final p in procedure.function.typeParameters) {
+          if (p.name != null) {
+            allTypeParamNames.add(p.name!);
+          }
+        }
         final typeParams = procedure.function.typeParameters
             .map((p) => 'typename ${p.name}')
             .join(', ');
         allTemplateParams.add(typeParams);
+      }
+
+      // 添加在返回类型和参数类型中使用的类型参数（排除已添加的）
+      final additionalTypeParams = usedTypeParams
+          .where((name) =>
+              !allTypeParamNames.contains(name) && !name.startsWith('_F'))
+          .toList();
+      if (additionalTypeParams.isNotEmpty) {
+        allTypeParamNames.addAll(additionalTypeParams);
+        final additionalParams =
+            additionalTypeParams.map((name) => 'typename $name').join(', ');
+        allTemplateParams.add(additionalParams);
       }
 
       // 添加函数类型模板参数
@@ -4479,12 +5265,18 @@ class DartToCppTransformer {
       }
     }
 
-    final params = _buildParameterList(procedure.function);
+    // 在 .cpp 文件的前向声明中不应包含默认参数，避免与 .h 文件中的声明重复定义
+    // 默认参数只应在 .h 文件的声明中出现一次
+    final params = _buildParameterListWithoutDefaults(procedure.function);
 
+    // 将模板声明和函数签名合并成一个字符串，避免 Set 去重问题
+    String fullDeclaration;
     if (templateDecl.isNotEmpty) {
-      addForwardDeclaration(templateDecl.trim());
+      fullDeclaration = '${templateDecl.trim()}\n$returnType $name($params);';
+    } else {
+      fullDeclaration = '$returnType $name($params);';
     }
-    addForwardDeclaration('$returnType $name($params);');
+    addForwardDeclaration(fullDeclaration);
   }
 
   /// 打印转换统计信息
@@ -4802,8 +5594,15 @@ class DartToCppTransformer {
   }
 
   void _writeHeaders() {
-    for (final include in CppConstants.standardIncludes) {
-      _writeLine(include);
+    // 如果有输入文件名，生成对应的 .h 文件 include
+    if (_currentInputFileName.isNotEmpty) {
+      String baseName = _currentInputFileName.split('/').last.split('.').first;
+      _writeLine('#include "$baseName.h"');
+    } else {
+      // 默认 include dart2cpp.h
+      for (final include in CppConstants.standardIncludes) {
+        _writeLine(include);
+      }
     }
   }
 
@@ -4815,32 +5614,40 @@ class DartToCppTransformer {
   }
 
   void _transformClass(Class cls) {
-    // 清理类名中的特殊字符（如混入类 _Bird&Object&Flyable）
-    final sanitizedClassName = _sanitizeIdentifier(cls.name);
+    // 设置当前类上下文（用于 this 表达式的类型判断）
+    _currentClass = cls;
 
-    _writeLine(
-        '// ============================================================================');
-    _writeLine('// 类: $sanitizedClassName');
-    _writeLine(
-        '// ============================================================================');
-    _writeLine('');
+    try {
+      // 清理类名中的特殊字符（如混入类 _Bird&Object&Flyable）
+      final sanitizedClassName = _sanitizeIdentifier(cls.name);
 
-    // 检查是否是接口或抽象类
-    final isAbstract = cls.isAbstract;
-    final hasInterfaces = cls.implementedTypes.isNotEmpty;
-    final hasSuperclass =
-        cls.superclass != null && cls.superclass!.name != 'Object';
+      _writeLine(
+          '// ============================================================================');
+      _writeLine('// 类: $sanitizedClassName');
+      _writeLine(
+          '// ============================================================================');
+      _writeLine('');
 
-    // 生成泛型约束（如果有）
-    // 注释掉，因为 template 声明已经在 _writeClass 和 _writeInterface 中处理
-    // if (cls.typeParameters.isNotEmpty) {
-    //   _writeGenericConstraints(cls);
-    // }
+      // 检查是否是接口或抽象类
+      final isAbstract = cls.isAbstract;
+      final hasInterfaces = cls.implementedTypes.isNotEmpty;
+      final hasSuperclass =
+          cls.superclass != null && cls.superclass!.name != 'Object';
 
-    if (isAbstract) {
-      _writeInterface(cls);
-    } else {
-      _writeClass(cls, hasSuperclass, hasInterfaces);
+      // 生成泛型约束（如果有）
+      // 注释掉，因为 template 声明已经在 _writeClass 和 _writeInterface 中处理
+      // if (cls.typeParameters.isNotEmpty) {
+      //   _writeGenericConstraints(cls);
+      // }
+
+      if (isAbstract) {
+        _writeInterface(cls);
+      } else {
+        _writeClass(cls, hasSuperclass, hasInterfaces);
+      }
+    } finally {
+      // 清除当前类上下文
+      _currentClass = null;
     }
   }
 
@@ -5095,11 +5902,11 @@ class DartToCppTransformer {
       }
     }
 
-    // 处理抽象getter
+    // 处理抽象getter - 不需要get_前缀
     for (final field in cls.fields) {
       final type = CppTypeConverter.convertType(field.type);
       final name = field.name.text;
-      _writeLine('virtual $type get_$name() = 0;');
+      _writeLine('virtual $type $name() = 0;');
     }
 
     _unindent();
@@ -5318,8 +6125,8 @@ class DartToCppTransformer {
       return; // 跳过扩展方法
     }
 
-    final returnType =
-        CppTypeConverter.convertType(procedure.function.returnType);
+    // 使用推断的返回类型（可以处理柯里化等嵌套 lambda 的情况）
+    final returnType = _inferProcedureReturnType(procedure);
 
     // 收集函数参数中的 FunctionType 参数
     final funcTypeParams =
@@ -5362,6 +6169,9 @@ class DartToCppTransformer {
 
   void _writeProcedure(Procedure procedure, {required bool isClassMember}) {
     var name = procedure.name.text;
+
+    // 设置当前函数的返回类型（用于 return 语句处理）
+    _currentProcedureReturnType = procedure.function.returnType;
 
     // 阶段1：预扫描函数，识别需要装箱的变量
     _prescanFunction(procedure.function);
@@ -5420,8 +6230,8 @@ class DartToCppTransformer {
       }
     }
 
-    final returnType =
-        CppTypeConverter.convertType(procedure.function.returnType);
+    // 使用推断的返回类型（可以处理柯里化等嵌套 lambda 的情况）
+    final returnType = _inferProcedureReturnType(procedure);
 
     // 修复Setter返回类型：自动推断为参数类型以支持链式调用
     String actualReturnType = returnType;
@@ -5513,8 +6323,9 @@ class DartToCppTransformer {
     _writeLine('}');
     _writeLine('');
 
-    // 清空当前函数的装箱参数信息
+    // 清空当前函数的装箱参数信息和返回类型
     _currentFunctionBoxedParams.clear();
+    _currentProcedureReturnType = null;
   }
 
   /// 修复#18: 将工厂构造函数转换为静态方法
@@ -5885,9 +6696,10 @@ class DartToCppTransformer {
 }
 
 /// 主要转换函数
-String transformDartToCpp(Component component) {
+String transformDartToCpp(Component component, {String? inputFileName}) {
   final transformer = DartToCppTransformer();
-  return transformer.transformComponent(component);
+  return transformer.transformComponent(component,
+      inputFileName: inputFileName);
 }
 
 /// 编译入口函数
@@ -5911,7 +6723,8 @@ Future<void> compileDartToCpp(String inputFile, String outputFile) async {
     // 转换为C++
     print('正在转换为 C++ 代码...');
     final transformer = DartToCppTransformer();
-    final cppCode = transformer.transformComponent(component);
+    final cppCode =
+        transformer.transformComponent(component, inputFileName: inputFile);
 
     // 注意：不再需要后处理，所有标识符已在生成时正确处理
     var processedCode = cppCode;

@@ -61,7 +61,7 @@ Future<void> main(List<String> arguments) async {
   if (arguments.isEmpty) {
     arguments = [
       "--platform=/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill",
-      "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/basic_syntax.dart"
+      "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/collections.dart"
     ];
   } else {
     // 如果只提供了输入文件，自动添加platform参数
@@ -149,13 +149,15 @@ Future<int> runCompiler(ArgResults options) async {
 }
 
 /// 统一的转换入口点 - 使用真实的Component进行转换
-Future<void> _transformToCpp(Component component, String outputFileName) async {
+Future<void> _transformToCpp(Component component, String outputFileName,
+    {String? inputFileName}) async {
   try {
     print('🔄 开始转换 Dart 到 C++...');
 
     // 直接使用真实的Component进行转换
     final transformer = DartToCppTransformer();
-    String cppCode = transformer.transformComponent(component);
+    String cppCode =
+        transformer.transformComponent(component, inputFileName: inputFileName);
 
     // // 添加运行时支持
     // cppCode = Dart2CppCompiler.addRuntimeSupport(cppCode);

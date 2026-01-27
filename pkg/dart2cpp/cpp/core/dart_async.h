@@ -78,8 +78,8 @@ public:
     }
     
     /// then 操作 - 链式调用（优化版：支持Lambda和函数对象）
-    template<typename R, typename CallbackFunc>
-    ObjectPtr<Future<R>> then(ObjectPtr<TypedFunction<CallbackFunc, R, T>> callback) {
+    template<typename R>
+    ObjectPtr<Future<R>> then(ObjectPtr<TypedFunction<R, T>> callback) {
         ObjectPtr<Future<R>> resultFuture(new Future<R>());
         
         // 创建新线程执行then逻辑
@@ -115,8 +115,7 @@ public:
     }
     
     /// catchError 操作 - 错误处理
-    template<typename ErrorHandlerFunc>
-    ObjectPtr<Future<T>> catchError(ObjectPtr<TypedFunction<ErrorHandlerFunc, T, const std::exception&>> errorHandler) {
+    ObjectPtr<Future<T>> catchError(ObjectPtr<TypedFunction<T, const std::exception&>> errorHandler) {
         ObjectPtr<Future<T>> resultFuture(new Future<T>());
         
         std::thread([this, errorHandler, resultFuture]() {
@@ -184,8 +183,7 @@ public:
     }
     
     /// 延迟创建
-    template<typename ComputationFunc>
-    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+    static ObjectPtr<Future<T>> delayed(ObjectPtr<Duration> duration, ObjectPtr<TypedFunction<T>> computation) {
         ObjectPtr<Future<T>> future(new Future<T>());
         
         std::thread([future, duration, computation]() {
@@ -210,8 +208,7 @@ public:
     }
     
     /// 同步执行函数并返回Future
-    template<typename ComputationFunc>
-    static ObjectPtr<Future<T>> sync(ObjectPtr<TypedFunction<ComputationFunc, T>> computation) {
+    static ObjectPtr<Future<T>> sync(ObjectPtr<TypedFunction<T>> computation) {
         ObjectPtr<Future<T>> future(new Future<T>());
         try {
             T result = (*computation)();

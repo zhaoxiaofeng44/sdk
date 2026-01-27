@@ -654,6 +654,8 @@ Function(T) curry<T, U, R>(R Function(T, U) func) {
   return (T first) => (U second) => func(first, second);
 }
 
+
+
 /// 管道处理
 Function(T) pipe<T>(List<Function> functions) {
   return (T input) {

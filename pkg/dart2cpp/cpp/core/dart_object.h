@@ -50,6 +50,8 @@ template <typename T>
 class Set;
 template <typename K, typename V>
 class Map;
+template <typename K, typename V>
+class MapEntry;
 template <typename T>
 class ObjectPtr;
 
@@ -779,25 +781,57 @@ public:
   String toString() const override;
 };
 
-// TypedFunction模板类 - 统一支持std::function和lambda对象
+// ============================================================================
+// Any 到参数类型的转换辅助模板
+// 用于 TypedFunction::applyImpl 中将 Any 转换为具体参数类型
+// ============================================================================
+
+// 主模板 - 默认使用 static_cast
+template<typename T>
+struct AnyConverter {
+  static T convert(const Any& any) {
+    return static_cast<T>(any);
+  }
+};
+
+// 特化： ObjectPtr<U> 类型 - 从 Any 中提取对象指针
+template<typename U>
+struct AnyConverter<ObjectPtr<U>> {
+  static ObjectPtr<U> convert(const Any& any) {
+    if (any.type_id == 7 || any.type_id == 5 || any.type_id == 100) {
+      return ObjectPtr<U>(static_cast<U*>(any.value.object_ptr));
+    }
+    return ObjectPtr<U>();
+  }
+};
+
+// 辅助函数：简化调用
+template<typename T>
+T anyToArg(const Any& any) {
+  return AnyConverter<T>::convert(any);
+}
+
+// TypedFunction 模板类 - 内部仅使用 std::function<R(Args...)> 存储
 // 继承自Function，实现apply方法
 // 限制参数类型以及返回值
-template<typename F, typename R, typename... Args>
+// 所有外部可调用对象都必须先转换为 std::function 再传入
+template<typename R, typename... Args>
 class TypedFunction : public Function {
 private:
-  F func_;
+  std::function<R(Args...)> func_;
   // 被捕获的变量列表，用于闭包和成员函数的生命周期管理
   std::vector<Any> captured_variables_;
   
 public:
-  // 构造函数 - 支持任意可调用对象
-  template<typename FuncType>
-  TypedFunction(FuncType&& func) : func_(std::forward<FuncType>(func)) {}
+  // 函数类型定义
+  using FunctionType = std::function<R(Args...)>;
   
-  // 构造函数 - 支持捕获变量的可调用对象
-  template<typename FuncType>
-  TypedFunction(FuncType&& func, const std::vector<Any>& captured_vars) 
-    : func_(std::forward<FuncType>(func)), captured_variables_(captured_vars) {}
+  // 构造函数 - 只接收 std::function<R(Args...)> 类型
+  TypedFunction(FunctionType func) : func_(std::move(func)) {}
+  
+  // 构造函数 - 接收 std::function 和捕获变量
+  TypedFunction(FunctionType func, const std::vector<Any>& captured_vars) 
+    : func_(std::move(func)), captured_variables_(captured_vars) {}
   
   // 实现apply方法 - 直接转换参数并调用，不做边界检查
   Any apply(const std::vector<Any>& args) override {
@@ -819,66 +853,24 @@ public:
     return captured_variables_;
   }
   
+  // 获取内部 std::function 引用
+  const FunctionType& getFunction() const {
+    return func_;
+  }
+  
 private:
   // 使用索引序列展开参数并调用
   template<std::size_t... I>
   Any applyImpl(const std::vector<Any>& args, std::index_sequence<I...>) {
     if constexpr (std::is_void_v<R>) {
-      func_(static_cast<Args>(args[I])...);
+      func_(anyToArg<Args>(args[I])...);
       return Any();
     } else {
-      return Any(func_(static_cast<Args>(args[I])...));
+      return Any(func_(anyToArg<Args>(args[I])...));
     }
   }
 };
 
-// 为了向后兼容，保留原始的TypedFunction特化版本（只接受std::function）
-template<typename R, typename... Args>
-class TypedFunction<std::function<R(Args...)>, R, Args...> : public Function {
-private:
-  std::function<R(Args...)> func_;
-  // 被捕获的变量列表，用于闭包和成员函数的生命周期管理
-  std::vector<Any> captured_variables_;
-  
-public:
-  // 构造函数
-  TypedFunction(std::function<R(Args...)> func) : func_(std::move(func)) {}
-  
-  // 构造函数 - 支持捕获变量
-  TypedFunction(std::function<R(Args...)> func, const std::vector<Any>& captured_vars)
-    : func_(std::move(func)), captured_variables_(captured_vars) {}
-  
-  // 实现apply方法
-  Any apply(const std::vector<Any>& args) override {
-    return applyImpl(args, std::index_sequence_for<Args...>{});
-  }
-  
-  // 重载 operator()
-  R operator()(Args... args) {
-    return func_(std::forward<Args>(args)...);
-  }
-  
-  // call 方法 - 效果和 operator() 一样，使用 ->call 调用函数
-  R call(Args... args) {
-    return func_(std::forward<Args>(args)...);
-  }
-  
-  // 获取捕获的变量列表
-  const std::vector<Any>& getCapturedVariables() const {
-    return captured_variables_;
-  }
-  
-private:
-  template<std::size_t... I>
-  Any applyImpl(const std::vector<Any>& args, std::index_sequence<I...>) {
-    if constexpr (std::is_void_v<R>) {
-      func_(static_cast<Args>(args[I])...);
-      return Any();
-    } else {
-      return Any(func_(static_cast<Args>(args[I])...));
-    }
-  }
-};
 
 // makeFunction实现已移至文件末尾
 
@@ -909,6 +901,18 @@ public:
   // 获取第一个和最后一个元素
   virtual T first() const = 0;
   virtual T last() const = 0;
+  
+  // map 方法 - 将元素转换为另一种类型
+  // 通过 toList() 转换后调用 List 的 map 方法
+  template <typename R>
+  ObjectPtr<List<R>> map(const ObjectPtr<TypedFunction<R, T>>& mapper) const {
+    return toList()->template map<R>(mapper);
+  }
+  
+  // where 方法 - 过滤元素
+  ObjectPtr<List<T>> where(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
+    return toList()->where(predicate);
+  }
 };
 
 // ============================================================================
@@ -1109,122 +1113,32 @@ class _ValueBox : public Object {
 };
 
 
-// Lambda类型推导辅助结构
-template<typename T>
-struct lambda_traits;
+// ============================================================================
+// makeFunction - 统一的函数包装接口
+// 只接收 std::function<R(Args...)> 参数
+// ============================================================================
 
-// 特化：推寻lambda的函数签名
-template<typename F>
-struct lambda_traits : lambda_traits<decltype(&F::operator())> {};
-
-// 特化：从成员函数指针提取签名 (const 版本)
-template<typename C, typename R, typename... Args>
-struct lambda_traits<R(C::*)(Args...) const> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// 特化：非const lambda (mutable lambda)
-template<typename C, typename R, typename... Args>
-struct lambda_traits<R(C::*)(Args...)> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// 特化：const volatile lambda
-template<typename C, typename R, typename... Args>
-struct lambda_traits<R(C::*)(Args...) const volatile> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// 特化：带noexcept的const lambda
-template<typename C, typename R, typename... Args>
-struct lambda_traits<R(C::*)(Args...) const noexcept> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// 特化：带noexcept的mutable lambda
-template<typename C, typename R, typename... Args>
-struct lambda_traits<R(C::*)(Args...) noexcept> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// 特化：函数指针
+// makeFunction - std::function 版本
 template<typename R, typename... Args>
-struct lambda_traits<R(*)(Args...)> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
+auto makeFunction(std::function<R(Args...)> func) {
+    using TypedFunc = TypedFunction<R, Args...>;
+    return ObjectPtr<TypedFunc>(new TypedFunc(std::move(func)));
+}
 
-// 特化：std::function
+// makeFunction - std::function + 捕获变量版本
 template<typename R, typename... Args>
-struct lambda_traits<std::function<R(Args...)>> {
-    using return_type = R;
-    using args_tuple = std::tuple<Args...>;
-    static constexpr size_t arity = sizeof...(Args);
-};
-
-// makeFunction 模板函数 - 自动推导 lambda 的参数类型，返回具体的TypedFunction类型
-template<typename F>
-auto makeFunction(F&& lambda) {
-    // 推导lambda的返回类型和参数类型
-    using traits = lambda_traits<std::decay_t<F>>;
-    using return_type = typename traits::return_type;
-    using args_tuple = typename traits::args_tuple;
-    
-    // 使用辅助函数创建TypedFunction
-    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{});
+auto makeFunction(std::function<R(Args...)> func, const std::vector<Any>& captured_vars) {
+    using TypedFunc = TypedFunction<R, Args...>;
+    return ObjectPtr<TypedFunc>(new TypedFunc(std::move(func), captured_vars));
 }
 
-// makeFunction 模板函数 - 支持捕获变量的版本
-template<typename F>
-auto makeFunction(F&& lambda, const std::vector<Any>& captured_vars) {
-    // 推导lambda的返回类型和参数类型
-    using traits = lambda_traits<std::decay_t<F>>;
-    using return_type = typename traits::return_type;
-    using args_tuple = typename traits::args_tuple;
-    
-    // 使用辅助函数创建TypedFunction，传递捕获的变量
-    return makeFunctionHelper(std::forward<F>(lambda), args_tuple{}, captured_vars);
-}
-
-// 辅助函数：从参数tuple创建TypedFunction
-template<typename F, typename... Args>
-auto makeFunctionHelper(F&& lambda, std::tuple<Args...>) {
-    using traits = lambda_traits<std::decay_t<F>>;
-    using return_type = typename traits::return_type;
-    using TypedFuncType = TypedFunction<std::decay_t<F>, return_type, Args...>;
-    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::forward<F>(lambda)));
-}
-
-// 辅助函数：从参数tuple创建TypedFunction（支持捕获变量）
-template<typename F, typename... Args>
-auto makeFunctionHelper(F&& lambda, std::tuple<Args...>, const std::vector<Any>& captured_vars) {
-    using traits = lambda_traits<std::decay_t<F>>;
-    using return_type = typename traits::return_type;
-    using TypedFuncType = TypedFunction<std::decay_t<F>, return_type, Args...>;
-    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::forward<F>(lambda), captured_vars));
-}
-
-// makeFunction 函数指针重载 - 支持普通函数指针
-// 将函数指针转换为 std::function，然后创建 TypedFunction
+// makeStdFunction - makeFunction 别名（兼容性）
 template<typename R, typename... Args>
-auto makeFunction(R (*func)(Args...)) {
-    // 将函数指针包装为 std::function
-    std::function<R(Args...)> stdFunc(func);
-    // 使用 std::function 特化版本的 TypedFunction
-    using TypedFuncType = TypedFunction<std::function<R(Args...)>, R, Args...>;
-    return ObjectPtr<TypedFuncType>(new TypedFuncType(std::move(stdFunc)));
+auto makeStdFunction(std::function<R(Args...)> func) { 
+    return makeFunction(std::move(func)); 
 }
+
+
 
 // ============================================================================
 // List 容器类型
@@ -1274,8 +1188,7 @@ class List : public Iterable<T> {
   
   // 排序方法（自定义比较函数）
   // compare 函数返回值：< 0 表示 a < b，0 表示 a == b，> 0 表示 a > b
-  template<typename CompareFunc>
-  void sort(CompareFunc compare);
+  void sort(const ObjectPtr<TypedFunction<Int, T, T>>& compare);
   void reverse();  // 原地反转
 
   // 查找操作
@@ -1301,35 +1214,29 @@ class List : public Iterable<T> {
   ObjectPtr<List<T>> reversed() const;
 
   // 函数式操作
-  template <typename R, typename MapperFunc>
-  ObjectPtr<List<R>> map(const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) const;
+  template <typename R>
+  ObjectPtr<List<R>> map(const ObjectPtr<TypedFunction<R, T>>& mapper) const;
   
-  template <typename PredicateFunc>
-  ObjectPtr<List<T>> where(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  ObjectPtr<List<T>> where(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const;
   
-  template <typename CombineFunc>
-  T reduce(const ObjectPtr<TypedFunction<CombineFunc, T, T, T>>& combine) const;
+  T reduce(const ObjectPtr<TypedFunction<T, T, T>>& combine) const;
   
-  template <typename R, typename CombineFunc>
-  R fold(const R& initialValue, const ObjectPtr<TypedFunction<CombineFunc, R, R, T>>& combine) const;
+  template <typename R>
+  R fold(const R& initialValue, const ObjectPtr<TypedFunction<R, R, T>>& combine) const;
 
   // any/every - 元素检查
-  template <typename PredicateFunc>
-  Bool any(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  Bool any(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const;
   
-  template <typename PredicateFunc>
-  Bool every(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  Bool every(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const;
   
   // firstWhere/lastWhere - 查找元素
-  template <typename PredicateFunc>
-  T firstWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  T firstWhere(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const;
   
-  template <typename PredicateFunc>
-  T lastWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const;
+  T lastWhere(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const;
   
   // expand - 展开操作
-  template <typename R, typename ExpandFunc>
-  ObjectPtr<List<R>> expand(const ObjectPtr<TypedFunction<ExpandFunc, ObjectPtr<List<R>>, T>>& expander) const;
+  template <typename R>
+  ObjectPtr<List<R>> expand(const ObjectPtr<TypedFunction<ObjectPtr<List<R>>, T>>& expander) const;
   
   // toSet - 转换为Set
   ObjectPtr<Set<T>> toSet() const;
@@ -1338,8 +1245,10 @@ class List : public Iterable<T> {
   String join(const String& separator) const;
   
   // forEach - 遍历操作
-  template <typename ActionFunc>
-  void forEach(const ObjectPtr<TypedFunction<ActionFunc, Nullable, T>>& action) const;
+  void forEach(const ObjectPtr<TypedFunction<Nullable, T>>& action) const;
+  
+  // asMap - 返回索引到元素的映射
+  ObjectPtr<Map<Int, T>> asMap() const;
 
   // 静态创建方法
   static ObjectPtr<List<T>> create();
@@ -1366,8 +1275,8 @@ class List : public Iterable<T> {
 // ============================================================================
 
 template <typename T>
-template <typename R, typename MapperFunc>
-ObjectPtr<List<R>> List<T>::map(const ObjectPtr<TypedFunction<MapperFunc, R, T>>& mapper) const {
+template <typename R>
+ObjectPtr<List<R>> List<T>::map(const ObjectPtr<TypedFunction<R, T>>& mapper) const {
   auto result = ObjectPtr<List<R>>(new List<R>());
   for (const auto& item : data_) {
     result->add(mapper->call(item));
@@ -1376,8 +1285,7 @@ ObjectPtr<List<R>> List<T>::map(const ObjectPtr<TypedFunction<MapperFunc, R, T>>
 }
 
 template <typename T>
-template <typename PredicateFunc>
-ObjectPtr<List<T>> List<T>::where(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+ObjectPtr<List<T>> List<T>::where(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
   auto result = ObjectPtr<List<T>>(new List<T>());
   for (const auto& item : data_) {
     if (predicate->call(item)->toBool()) {
@@ -1389,8 +1297,7 @@ ObjectPtr<List<T>> List<T>::where(const ObjectPtr<TypedFunction<PredicateFunc, B
 
 // any - 是否有任意元素满足条件
 template <typename T>
-template <typename PredicateFunc>
-Bool List<T>::any(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+Bool List<T>::any(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
   for (const auto& item : data_) {
     if (predicate->call(item)->toBool()) {
       return Bool(true);
@@ -1401,8 +1308,7 @@ Bool List<T>::any(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predic
 
 // every - 是否所有元素都满足条件
 template <typename T>
-template <typename PredicateFunc>
-Bool List<T>::every(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+Bool List<T>::every(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
   for (const auto& item : data_) {
     if (!predicate->call(item)->toBool()) {
       return Bool(false);
@@ -1413,8 +1319,7 @@ Bool List<T>::every(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& pred
 
 // firstWhere - 查找第一个满足条件的元素
 template <typename T>
-template <typename PredicateFunc>
-T List<T>::firstWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+T List<T>::firstWhere(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
   for (const auto& item : data_) {
     if (predicate->call(item)->toBool()) {
       return item;
@@ -1425,8 +1330,7 @@ T List<T>::firstWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& pr
 
 // lastWhere - 查找最后一个满足条件的元素
 template <typename T>
-template <typename PredicateFunc>
-T List<T>::lastWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& predicate) const {
+T List<T>::lastWhere(const ObjectPtr<TypedFunction<Bool, T>>& predicate) const {
   for (int i = static_cast<int>(data_.size()) - 1; i >= 0; --i) {
     if (predicate->call(data_[i])->toBool()) {
       return data_[i];
@@ -1437,8 +1341,8 @@ T List<T>::lastWhere(const ObjectPtr<TypedFunction<PredicateFunc, Bool, T>>& pre
 
 // expand - 展开操作
 template <typename T>
-template <typename R, typename ExpandFunc>
-ObjectPtr<List<R>> List<T>::expand(const ObjectPtr<TypedFunction<ExpandFunc, ObjectPtr<List<R>>, T>>& expander) const {
+template <typename R>
+ObjectPtr<List<R>> List<T>::expand(const ObjectPtr<TypedFunction<ObjectPtr<List<R>>, T>>& expander) const {
   auto result = ObjectPtr<List<R>>(new List<R>());
   for (const auto& item : data_) {
     auto expanded = expander->call(item);
@@ -1487,11 +1391,76 @@ String List<T>::join(const String& separator) const {
 
 // forEach - 遍历操作
 template <typename T>
-template <typename ActionFunc>
-void List<T>::forEach(const ObjectPtr<TypedFunction<ActionFunc, Nullable, T>>& action) const {
+void List<T>::forEach(const ObjectPtr<TypedFunction<Nullable, T>>& action) const {
   for (const auto& item : data_) {
     action->call(item);
   }
+}
+
+// asMap - 返回索引到元素的映射
+template <typename T>
+ObjectPtr<Map<Int, T>> List<T>::asMap() const {
+  auto result = Map<Int, T>::create();
+  for (int i = 0; i < static_cast<int>(data_.size()); ++i) {
+    result->put(Int(i), data_[i]);
+  }
+  return result;
+}
+
+// reduce - 将列表元素归约为单个值
+template <typename T>
+T List<T>::reduce(const ObjectPtr<TypedFunction<T, T, T>>& combine) const {
+  if (isEmpty().getValue()) {
+    throw std::runtime_error("Cannot reduce empty list");
+  }
+  T result = data_[0];
+  for (size_t i = 1; i < data_.size(); ++i) {
+    result = combine->call(result, data_[i]);
+  }
+  return result;
+}
+
+// fold - 使用初始值将列表元素归约为单个值
+template <typename T>
+template <typename R>
+R List<T>::fold(const R& initialValue, const ObjectPtr<TypedFunction<R, R, T>>& combine) const {
+  R result = initialValue;
+  for (const auto& item : data_) {
+    result = combine->call(result, item);
+  }
+  return result;
+}
+
+// addAll - 添加另一个列表的所有元素
+template <typename T>
+void List<T>::addAll(const ObjectPtr<List<T>>& items) {
+  if (!items.isNull().getValue()) {
+    for (Int i = Int(0); i < items->size(); ++i) {
+      add(items->get(i));
+    }
+  }
+}
+
+// insertAll - 在指定位置插入另一个列表的所有元素
+template <typename T>
+void List<T>::insertAll(const Int& index, const ObjectPtr<List<T>>& items) {
+  if (!items.isNull().getValue()) {
+    Int insertIndex = index;
+    for (Int i = Int(0); i < items->size(); ++i) {
+      insert(insertIndex, items->get(i));
+      insertIndex = insertIndex + Int(1);
+    }
+  }
+}
+
+// removeLast - 移除并返回最后一个元素
+template <typename T>
+T List<T>::removeLast() {
+  if (isEmpty().getValue()) {
+    throw std::runtime_error("Cannot remove from empty list");
+  }
+  Int lastIndex = size() - Int(1);
+  return removeAt(lastIndex);
 }
 
 // ============================================================================
@@ -1520,7 +1489,8 @@ class Set : public Iterable<T> {
 
   // 修改操作
   Bool add(const T& item);
-  void addAll(const ObjectPtr<List<T>>& items); // 添加所有元素
+  void addAll(const ObjectPtr<List<T>>& items); // 添加所有元素（从 List）
+  void addAll(const ObjectPtr<Set<T>>& items);  // 添加所有元素（从 Set）
   Bool remove(const T& item);
   void clear();
 
@@ -1549,6 +1519,13 @@ class Set : public Iterable<T> {
   static ObjectPtr<Set<T>> create(std::initializer_list<T> init);
   static ObjectPtr<Set<T>> createConst();  // const 空集合
   static ObjectPtr<Set<T>> createConst(std::initializer_list<T> init);  // const 初始化集合
+  
+  // Dart 工厂方法：Set.of() 和 Set.from()
+  static ObjectPtr<Set<T>> of(const ObjectPtr<Set<T>>& other);
+  static ObjectPtr<Set<T>> from(const ObjectPtr<Set<T>>& other);
+  
+  // forEach - 遍历操作
+  void forEach(const ObjectPtr<TypedFunction<Nullable, T>>& action) const;
 
   // Dart 方法实现
   String toString() const override;
@@ -1600,15 +1577,14 @@ class Map : public Object {
   // 获取键值集合
   ObjectPtr<Set<K>> keys() const;
   ObjectPtr<List<V>> values() const;
-  ObjectPtr<List<std::pair<K, V>>> entries() const; // 返回键值对列表
+  ObjectPtr<List<ObjectPtr<MapEntry<K, V>>>> entries() const; // 返回键值对列表
   
-  // 迭代方法
-  template<typename Func>
-  void forEach(Func func) const; // 对每个键值对执行函数
+  // 迭代方法 - 只接受 ObjectPtr<TypedFunction<...>> 参数
+  void forEach(const ObjectPtr<TypedFunction<Nullable, K, V>>& action) const;
   
   // map 方法 - 将 Map 的每个键值对转换为新的键值对
-  template<typename K2, typename V2, typename MapperFunc>
-  ObjectPtr<Map<K2, V2>> map(MapperFunc mapper) const;
+  template<typename K2, typename V2>
+  ObjectPtr<Map<K2, V2>> map(const ObjectPtr<TypedFunction<ObjectPtr<MapEntry<K2, V2>>, K, V>>& mapper) const;
 
   // 迭代器
   ObjectPtr<MapIterator<K, V>> iterator() const;
@@ -1620,6 +1596,13 @@ class Map : public Object {
   static ObjectPtr<Map<K, V>> createFromEntries(std::initializer_list<std::pair<K, V>> entries);
   static ObjectPtr<Map<K, V>> createConst();  // const 空 Map
   static ObjectPtr<Map<K, V>> createConst(std::initializer_list<std::pair<K, V>> init);  // const 初始化 Map
+  
+  // Dart 工厂方法：Map.of() 和 Map.from()
+  static ObjectPtr<Map<K, V>> of(const ObjectPtr<Map<K, V>>& other);
+  static ObjectPtr<Map<K, V>> from(const ObjectPtr<Map<K, V>>& other);
+  
+  // addAll 方法 - 添加另一个 Map 的所有键值对
+  void addAll(const ObjectPtr<Map<K, V>>& other);
 
   // Dart 方法实现
   String toString() const override;
@@ -1682,15 +1665,12 @@ public:
   String toString() const override;
   
   // 静态工厂方法
-  template<typename CallbackFunc>
-  static ObjectPtr<Timer> periodic(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<CallbackFunc, void, ObjectPtr<Timer>>> callback);
+  static ObjectPtr<Timer> periodic(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<void, ObjectPtr<Timer>>> callback);
   
-  template<typename CallbackFunc>  
-  static void run(ObjectPtr<TypedFunction<CallbackFunc, void>> callback);
+  static void run(ObjectPtr<TypedFunction<void>> callback);
   
   // 延迟执行 - 支持延迟调用 (实现在cpp文件中)
-  template<typename CallbackFunc>
-  static ObjectPtr<Timer> delayed(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<CallbackFunc, void>> callback);
+  static ObjectPtr<Timer> delayed(const ObjectPtr<Duration>& duration, ObjectPtr<TypedFunction<void>> callback);
   
   static ObjectPtr<Timer> create();
 };
@@ -2038,20 +2018,14 @@ void List<T>::sort() {
 }
 
 template<typename T>
-template<typename CompareFunc>
-void List<T>::sort(CompareFunc compare) {
+void List<T>::sort(const ObjectPtr<TypedFunction<Int, T, T>>& compare) {
   // 将 Dart 风格的比较函数（返回 int）转换为 C++ 风格（返回 bool）
   std::sort(data_.begin(), data_.end(), 
     [&compare](const T& a, const T& b) {
       // Dart 比较函数返回：< 0 (a < b), 0 (a == b), > 0 (a > b)
       // C++ 需要：true (a < b), false (a >= b)
-      auto result = compare(a, b);
-      // 如果 result 是 Int 类型，需要转换为 int
-      if constexpr (std::is_same_v<decltype(result), Int>) {
-        return result.toInt() < 0;
-      } else {
-        return result < 0;
-      }
+      auto result = compare->call(a, b);
+      return result.toInt() < 0;
     }
   );
 }
@@ -2413,6 +2387,31 @@ ObjectPtr<Set<T>> Set<T>::createConst(std::initializer_list<T> init) {
   return ObjectPtr<Set<T>>(new Set<T>(init));
 }
 
+// Set::of 实现 - 从另一个 Set 创建新的 Set（复制）
+template<typename T>
+ObjectPtr<Set<T>> Set<T>::of(const ObjectPtr<Set<T>>& other) {
+  if (other.get() == nullptr) {
+    return ObjectPtr<Set<T>>(new Set<T>());
+  }
+  return ObjectPtr<Set<T>>(new Set<T>(*other));
+}
+
+// Set::from 实现 - 从另一个 Set 创建新的 Set（复制）
+template<typename T>
+ObjectPtr<Set<T>> Set<T>::from(const ObjectPtr<Set<T>>& other) {
+  // from 和 of 在 Set 中行为相同
+  return of(other);
+}
+
+// Set::addAll 实现 - 添加另一个 Set 的所有元素
+template<typename T>
+void Set<T>::addAll(const ObjectPtr<Set<T>>& items) {
+  if (items.get() == nullptr) return;
+  for (const auto& item : items->data_) {
+    data_.insert(item);
+  }
+}
+
 // Map 实现
 template<typename K, typename V>
 Map<K, V>::Map() {}
@@ -2559,14 +2558,18 @@ ObjectPtr<Map<K, V>> Map<K, V>::create(const Map<K, V>& other) {
 
 template<typename K, typename V>
 ObjectPtr<Map<K, V>> Map<K, V>::create(std::initializer_list<std::pair<K, V>> init) {
-  return ObjectPtr<Map<K, V>>(new Map<K, V>(init));
+  auto map = ObjectPtr<Map<K, V>>(new Map<K, V>());
+  for (const auto& pair : init) {
+    map->data_[pair.first] = pair.second;
+  }
+  return map;
 }
 
 template<typename K, typename V>
 ObjectPtr<Map<K, V>> Map<K, V>::createFromEntries(std::initializer_list<std::pair<K, V>> entries) {
   auto map = ObjectPtr<Map<K, V>>(new Map<K, V>());
-  for (const auto& entry : entries) {
-    map->put(entry.first, entry.second);
+  for (const auto& pair : entries) {
+    map->data_[pair.first] = pair.second;
   }
   return map;
 }
@@ -2592,7 +2595,36 @@ ObjectPtr<Map<K, V>> Map<K, V>::createConst() {
 
 template<typename K, typename V>
 ObjectPtr<Map<K, V>> Map<K, V>::createConst(std::initializer_list<std::pair<K, V>> init) {
-  return ObjectPtr<Map<K, V>>(new Map<K, V>(init));
+  auto map = ObjectPtr<Map<K, V>>(new Map<K, V>());
+  for (const auto& pair : init) {
+    map->data_[pair.first] = pair.second;
+  }
+  return map;
+}
+
+// Map::of 实现 - 从另一个 Map 创建新的 Map（复制）
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> Map<K, V>::of(const ObjectPtr<Map<K, V>>& other) {
+  if (other.get() == nullptr) {
+    return ObjectPtr<Map<K, V>>(new Map<K, V>());
+  }
+  return ObjectPtr<Map<K, V>>(new Map<K, V>(*other));
+}
+
+// Map::from 实现 - 从另一个 Map 创建新的 Map（复制）
+template<typename K, typename V>
+ObjectPtr<Map<K, V>> Map<K, V>::from(const ObjectPtr<Map<K, V>>& other) {
+  // from 和 of 在 Map 中行为相同
+  return of(other);
+}
+
+// Map::addAll 实现 - 添加另一个 Map 的所有键值对
+template<typename K, typename V>
+void Map<K, V>::addAll(const ObjectPtr<Map<K, V>>& other) {
+  if (other.get() == nullptr) return;
+  for (const auto& pair : other->data_) {
+    data_[pair.first] = pair.second;
+  }
 }
 
 // ============================================================================
@@ -2661,37 +2693,45 @@ public:
 
 template<typename T>
 void Set<T>::addAll(const ObjectPtr<List<T>>& items) {
-  if (!items) return;
+  if (items->isEmpty()) return;
   for (Int i = Int(0); i < items->size(); i = i + Int(1)) {
     add(items->operator_index(i));
   }
 }
 
+// Set::forEach - 遍历操作
+template<typename T>
+void Set<T>::forEach(const ObjectPtr<TypedFunction<Nullable, T>>& action) const {
+  for (const auto& item : data_) {
+    action->call(item);
+  }
+}
+
 template<typename K, typename V>
-ObjectPtr<List<std::pair<K, V>>> Map<K, V>::entries() const {
-  auto result = List<std::pair<K, V>>::create();
+ObjectPtr<List<ObjectPtr<MapEntry<K, V>>>> Map<K, V>::entries() const {
+  auto result = List<ObjectPtr<MapEntry<K, V>>>::create();
   for (const auto& pair : data_) {
-    result->add(std::make_pair(pair.first, pair.second));
+    result->add(MapEntry<K, V>::create(pair.first, pair.second));
   }
   return result;
 }
 
+// forEach - ObjectPtr<TypedFunction<...>> 参数版本
 template<typename K, typename V>
-template<typename Func>
-void Map<K, V>::forEach(Func func) const {
+void Map<K, V>::forEach(const ObjectPtr<TypedFunction<Nullable, K, V>>& action) const {
   for (const auto& pair : data_) {
-    func(pair.first, pair.second);
+    action->call(pair.first, pair.second);
   }
 }
 
-// map 方法 - 将 Map 的每个键值对转换为新的键值对
+// map - ObjectPtr<TypedFunction<...>> 参数版本
 template<typename K, typename V>
-template<typename K2, typename V2, typename MapperFunc>
-ObjectPtr<Map<K2, V2>> Map<K, V>::map(MapperFunc mapper) const {
+template<typename K2, typename V2>
+ObjectPtr<Map<K2, V2>> Map<K, V>::map(const ObjectPtr<TypedFunction<ObjectPtr<MapEntry<K2, V2>>, K, V>>& mapper) const {
   auto result = Map<K2, V2>::create();
   for (const auto& pair : data_) {
-    auto entry = mapper(pair.first, pair.second);
-    result->put(entry.get_key(), entry.get_value());
+    auto entry = mapper->call(pair.first, pair.second);
+    result->put(entry->key, entry->value);
   }
   return result;
 }

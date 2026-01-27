@@ -1312,32 +1312,4 @@ ObjectPtr<Timer> Timer::create() {
 // ============================================================================
 // List 方法实现
 // ============================================================================
-
-template<typename T>
-void List<T>::addAll(const ObjectPtr<List<T>>& items) {
-  if (items) {
-    for (Int i = Int(0); i < items->size(); ++i) {
-      add(items->get(i));
-    }
-  }
-}
-
-template<typename T>
-void List<T>::insertAll(const Int& index, const ObjectPtr<List<T>>& items) {
-  if (items) {
-    Int insertIndex = index;
-    for (Int i = Int(0); i < items->size(); ++i) {
-      insert(insertIndex, items->get(i));
-      insertIndex = insertIndex + Int(1);
-    }
-  }
-}
-
-template<typename T>
-T List<T>::removeLast() {
-  if (isEmpty().getValue()) {
-    throw std::runtime_error("Cannot remove from empty list");
-  }
-  Int lastIndex = size() - Int(1);
-  return removeAt(lastIndex);
-}
+// 注意：List 的模板方法实现已移至 dart_object.h 中

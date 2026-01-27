@@ -256,24 +256,24 @@ class CompleteExpressionConverter {
     final keyType = CppTypeConverter.convertType(node.keyType);
     final valueType = CppTypeConverter.convertType(node.valueType);
 
-    if (node.isConst) {
-      if (node.entries.isEmpty) {
+    if (node.entries.isEmpty) {
+      if (node.isConst) {
         return 'Map<$keyType, $valueType>::createConst()';
       }
-    }
-
-    if (node.entries.isEmpty) {
       return 'Map<$keyType, $valueType>::create()';
     }
 
-    // 生成带初始化的Map
+    // 生成带初始化的Map，使用 std::pair 格式
     final entries = node.entries.map((entry) {
       final key = convertExpression(entry.key);
       final value = convertExpression(entry.value);
       return '{$key, $value}';
     }).join(', ');
 
-    return 'Map<$keyType, $valueType>::createFromEntries({$entries})';
+    if (node.isConst) {
+      return 'Map<$keyType, $valueType>::createConst({$entries})';
+    }
+    return 'Map<$keyType, $valueType>::create({$entries})';
   }
 
   // ============================================================================
@@ -506,7 +506,7 @@ class CompleteExpressionConverter {
 
   String _convertNot(Not node) {
     final operand = convertExpression(node.operand);
-    return '(!$operand)';
+    return '(!dart_is_null($operand))';
   }
 
   // ============================================================================

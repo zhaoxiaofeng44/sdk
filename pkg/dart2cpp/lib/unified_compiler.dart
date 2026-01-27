@@ -110,7 +110,8 @@ class UnifiedCompiler {
 
       // 2. 使用完整的转换器进行转换
       final transformer = DartToCppTransformer();
-      final cppCode = transformer.transformComponent(component);
+      final cppCode =
+          transformer.transformComponent(component, inputFileName: inputPath);
 
       // 2.5. 后处理：修复扩展方法语法和非法标识符
       // - Extension| -> Extension:: (修复扩展方法命名空间语法)
@@ -150,7 +151,7 @@ class UnifiedCompiler {
       // 5. 写入文件
       if (config.outputPath != null) {
         await File(config.outputPath!).writeAsString(finalCppCode);
-        
+
         // 生成头文件
         final headerOutputPath = config.outputPath!.replaceAll('.cpp', '.h');
         if (config.verbose) {
