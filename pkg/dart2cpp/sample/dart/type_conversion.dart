@@ -422,10 +422,10 @@ void testDynamicTypeHandling() {
   print('  动态方法调用:');
 
   dynamic stringDynamic = 'hello world';
-  print('    动态String方法: ${stringDynamic.toUpperCase()}');
+  print('    动态String方法: ${(stringDynamic as String).toUpperCase()}');
 
   dynamic listDynamic = [1, 2, 3, 4, 5];
-  print('    动态List方法: ${listDynamic.length}');
+  print('    动态List方法: ${(listDynamic as List).length}');
 
   // Object 类型
   print('  Object 类型:');

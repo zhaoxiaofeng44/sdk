@@ -160,6 +160,56 @@ public:
         return resultFuture;
     }
     
+    /// catchError 操作重载 - 接受 Any 参数的错误处理器（用于生成的代码）
+    ObjectPtr<Future<T>> catchError(ObjectPtr<TypedFunction<T, Any>> errorHandler) {
+        ObjectPtr<Future<T>> resultFuture(new Future<T>());
+        
+        std::thread([this, errorHandler, resultFuture]() {
+            try {
+                T value = this->wait();
+                resultFuture->_complete(value);
+            } catch (const std::exception& e) {
+                try {
+                    // 将 exception 转换为 Any 类型
+                    Any errorAny = Any(std::string(e.what()));
+                    T recoveredValue = (*errorHandler)(errorAny);
+                    resultFuture->_complete(recoveredValue);
+                } catch (...) {
+                    resultFuture->_completeError(std::current_exception());
+                }
+            } catch (...) {
+                resultFuture->_completeError(std::current_exception());
+            }
+        }).detach();
+        
+        return resultFuture;
+    }
+    
+    /// catchError 操作重载 - 接受 std::function<T(Any)> 的错误处理器
+    ObjectPtr<Future<T>> catchError(std::function<T(Any)> errorHandler) {
+        ObjectPtr<Future<T>> resultFuture(new Future<T>());
+        
+        std::thread([this, errorHandler, resultFuture]() {
+            try {
+                T value = this->wait();
+                resultFuture->_complete(value);
+            } catch (const std::exception& e) {
+                try {
+                    // 将 exception 转换为 Any 类型
+                    Any errorAny = Any(std::string(e.what()));
+                    T recoveredValue = errorHandler(errorAny);
+                    resultFuture->_complete(recoveredValue);
+                } catch (...) {
+                    resultFuture->_completeError(std::current_exception());
+                }
+            } catch (...) {
+                resultFuture->_completeError(std::current_exception());
+            }
+        }).detach();
+        
+        return resultFuture;
+    }
+    
     /// whenComplete 操作 - 无论成功失败都执行
     ObjectPtr<Future<T>> whenComplete(std::function<void()> action) {
         ObjectPtr<Future<T>> resultFuture(new Future<T>());
@@ -219,6 +269,21 @@ public:
         return future;
     }
     
+    /// 同步执行函数并返回Future - 模板重载版本（支持类型转换）
+    template<typename R>
+    static ObjectPtr<Future<T>> sync(ObjectPtr<TypedFunction<R>> computation) {
+        ObjectPtr<Future<T>> future(new Future<T>());
+        try {
+            R result = (*computation)();
+            // 将结果转换为目标类型 T
+            T converted = static_cast<T>(result);
+            future->_complete(converted);
+        } catch (...) {
+            future->_completeError(std::current_exception());
+        }
+        return future;
+    }
+    
     /// 等待多个Future完成
     static ObjectPtr<List<T>> wait(ObjectPtr<List<ObjectPtr<Future<T>>>> futures) {
         ObjectPtr<List<T>> results = List<T>::create();
@@ -265,35 +330,23 @@ public:
         return first_result;
     }
     
-    String toString() const override {
-        return String(std::string("Future<") + typeid(T).name() + ">");
-    }
-    
-    // 内部方法：完成Future
+private:
     void _complete(T value) {
         std::lock_guard<std::mutex> lock(*mutex_);
-        if (*state_ == FutureState::PENDING) {
-            *value_ = value;
-            *state_ = FutureState::COMPLETED;
-            cv_->notify_all();
-        }
+        *value_ = value;
+        *state_ = FutureState::COMPLETED;
+        cv_->notify_all();
     }
     
-    // 内部方法：错误完成
     void _completeError(std::exception_ptr error) {
         std::lock_guard<std::mutex> lock(*mutex_);
-        if (*state_ == FutureState::PENDING) {
-            *error_ = error;
-            *state_ = FutureState::ERROR;
-            cv_->notify_all();
-        }
+        *error_ = error;
+        *state_ = FutureState::ERROR;
+        cv_->notify_all();
     }
 };
 
-// ============================================================================
-// Completer - 手动控制Future完成
-// ============================================================================
-
+/// Completer 类模板 - Future的完成器
 template<typename T>
 class Completer : public Object {
 private:
@@ -304,19 +357,19 @@ public:
         Object::type_id = 6; // Completer类型ID
     }
     
-    /// 创建Completer
+    /// 创建Completer实例
     static ObjectPtr<Completer<T>> create() {
         return ObjectPtr<Completer<T>>(new Completer<T>());
     }
     
-    /// 默认构造函数的静态调用方式
-    static ObjectPtr<Completer<T>> make() {
-        return create();
+    /// 获取关联的Future
+    ObjectPtr<Future<T>> get_future() {
+        return future_;
     }
     
-    /// 获取Future
-    ObjectPtr<Future<T>> getFuture() { 
-        return future_; 
+    /// 获取关联的Future（别名方法，兼容宏）
+    ObjectPtr<Future<T>> getFuture() {
+        return future_;
     }
     
     /// 完成Future
@@ -324,18 +377,15 @@ public:
         future_->_complete(value);
     }
     
-    /// 错误完成
-    void completeError(const std::exception& error) {
-        future_->_completeError(std::make_exception_ptr(error));
+    /// 以错误完成Future
+    void completeError(std::exception_ptr error) {
+        future_->_completeError(error);
     }
     
     /// 检查是否已完成
-    Bool isCompleted() { 
-        return future_->isCompleted(); 
-    }
-    
-    String toString() const override {
-        return String(std::string("Completer<") + typeid(T).name() + ">");
+    Bool isCompleted() {
+        return future_->isCompleted();
     }
 };
+
 #endif // DART_ASYNC_H

@@ -654,16 +654,14 @@ Function(T) curry<T, U, R>(R Function(T, U) func) {
   return (T first) => (U second) => func(first, second);
 }
 
-
-
 /// 管道处理
 Function(T) pipe<T>(List<Function> functions) {
   return (T input) {
     dynamic result = input;
     for (var func in functions) {
-      result = func(result);
+      result = (func as Function)(result);
     }
-    return result;
+    return result as T;
   };
 }
 
@@ -682,7 +680,7 @@ Function memoize(Function func) {
       return cache[key];
     }
 
-    dynamic result = func(arg);
+    dynamic result = (func as Function)(arg);
     cache[key] = result;
     return result;
   };

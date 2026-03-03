@@ -201,7 +201,9 @@ class CompleteExpressionConverter {
   }
 
   String _convertTypeLiteral(TypeLiteral node) {
-    final typeName = node.type.toString();
+    // 修复: 使用 CppTypeConverter.convertType 正确转换类型，
+    // 避免 TypeParameterType 等内部类型名泄露到生成代码中
+    final typeName = CppTypeConverter.convertType(node.type);
     return 'Type::of<$typeName>()';
   }
 

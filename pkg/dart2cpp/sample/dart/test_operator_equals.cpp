@@ -13,7 +13,7 @@ public:
   Vector(Double x, Double y) : x(x), y(y) {
   }
   
-  Bool operator_equals(ObjectPtr<Object> other) {
+  Bool operator_equals(Any other) {
     return dart_is<ObjectPtr<Vector>>(other) && (this->x == dart_cast<ObjectPtr<Vector>>(other)->x) && (this->y == dart_cast<ObjectPtr<Vector>>(other)->y);
   }
   
