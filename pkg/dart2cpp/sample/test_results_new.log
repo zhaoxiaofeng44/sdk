@@ -1,0 +1,133 @@
+[1;33m清理生成的文件和编译产物...[0m
+  清理: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated
+  清理: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build
+[0;32m✓ 清理完成[0m
+
+[0;34m=== Dart到C++批量转换测试 ===[0m
+项目根目录: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp
+Dart源码目录: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart
+C++输出目录: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated
+构建目录: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build
+日志文件: /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/test_results.log
+
+[1;33m找到以下Dart文件:[0m
+  - advanced_features.dart
+  - async_programming.dart
+  - basic_syntax.dart
+  - closure_capture_test.dart
+  - closure_value_boxing_test.dart
+  - collections.dart
+  - constants.dart
+  - edge_cases.dart
+  - exception_handling.dart
+  - generics.dart
+  - hello_test.dart
+  - minimal_test.dart
+  - null_safety_test.dart
+  - object_oriented.dart
+  - test.dart
+  - test_all_functions.dart
+  - test_arrow_operator.dart
+  - test_comprehensive.dart
+  - test_forin.dart
+  - test_function_param.dart
+  - test_is_type_promotion_ternary.dart
+  - test_lambda.dart
+  - test_mixin_special_chars.dart
+  - test_null_assign.dart
+  - test_operator_equals.dart
+  - test_return_this.dart
+  - test_simple_functions.dart
+  - test_simple_list.dart
+  - test_stringbuffer.dart
+  - test_top_function.dart
+  - test_typed_list_literal.dart
+  - type_conversion.dart
+  - type_inference_test.dart
+  - type_promotion_test.dart
+总计: 34 个文件
+
+[1;33m=== 开始批量处理 ===[0m
+
+[1;33m处理文件: advanced_features[0m
+[0;34m[转换][0m advanced_features.dart -> advanced_features.cpp
+DEBUG: ForStatement variables = [auto j = dart_int(0)]
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+DEBUG: ForStatement variables = [auto i = dart_int(5)]
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/advanced_features.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m advanced_features.cpp -> advanced_features
+[0;31m  ✗ 编译失败[0m
+
+[1;33m处理文件: async_programming[0m
+[0;34m[转换][0m async_programming.dart -> async_programming.cpp
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/async_programming.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m async_programming.cpp -> async_programming
+[0;32m  ✓ 编译成功[0m
+[0;34m[运行][0m async_programming
+[0;32m  ✓ 运行成功[0m
+
+[1;33m处理文件: basic_syntax[0m
+[0;34m[转换][0m basic_syntax.dart -> basic_syntax.cpp
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/basic_syntax.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/basic_syntax.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m basic_syntax.cpp -> basic_syntax
+[0;32m  ✓ 编译成功[0m
+[0;34m[运行][0m basic_syntax
+[0;32m  ✓ 运行成功[0m
+
+[1;33m处理文件: closure_capture_test[0m
+[0;34m[转换][0m closure_capture_test.dart -> closure_capture_test.cpp
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+DEBUG: ForStatement variables = []
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/closure_capture_test.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/closure_capture_test.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m closure_capture_test.cpp -> closure_capture_test
+[0;32m  ✓ 编译成功[0m
+[0;34m[运行][0m closure_capture_test
+[0;32m  ✓ 运行成功[0m
+
+[1;33m处理文件: closure_value_boxing_test[0m
+[0;34m[转换][0m closure_value_boxing_test.dart -> closure_value_boxing_test.cpp
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/closure_value_boxing_test.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/closure_value_boxing_test.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m closure_value_boxing_test.cpp -> closure_value_boxing_test
+[0;32m  ✓ 编译成功[0m
+[0;34m[运行][0m closure_value_boxing_test
+./test_all_samples.sh: line 157: 26981 Trace/BPT trap: 5       timeout 10s "$executable" >> "$LOG_FILE" 2>&1
+[0;31m  ✗ 运行失败 (退出码: 133)[0m
+
+[1;33m处理文件: collections[0m
+[0;34m[转换][0m collections.dart -> collections.cpp
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = []
+DEBUG: ForStatement variables = [auto i = dart_int(0)]
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/collections.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/collections.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m collections.cpp -> collections
+[0;32m  ✓ 编译成功[0m
+[0;34m[运行][0m collections
+[0;32m  ✓ 运行成功[0m
+
+[1;33m处理文件: constants[0m
+[0;34m[转换][0m constants.dart -> constants.cpp
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/constants.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m constants.cpp -> constants
+[0;31m  ✗ 编译失败[0m
+
+[1;33m处理文件: edge_cases[0m
+[0;34m[转换][0m edge_cases.dart -> edge_cases.cpp
+✅ Successfully compiled /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/dart/edge_cases.dart to /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp
+[0;32m  ✓ 转换成功[0m
+[0;34m[编译][0m edge_cases.cpp -> edge_cases

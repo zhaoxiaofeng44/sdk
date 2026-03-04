@@ -1,0 +1,37 @@
+#include "dart2cpp.h"
+
+// 工具宏定义
+
+ObjectPtr<TypedFunction<Int, Int, Int>> multiply = makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([](Int a, Int b) -> Int { return a->operator_mul(b); }));
+
+Int add(Int a, Int b);
+Int subtract(Int a, Int b);
+Int calculate(Int a, Int b, ObjectPtr<Function> operation);
+Int add(Int a, Int b) {
+  return a->operator_add(b);
+}
+
+Int subtract(Int a, Int b) {
+  return a->operator_sub(b);
+}
+
+Int calculate(Int a, Int b, ObjectPtr<Function> operation) {
+  return dart_cast<Int>(operation->call(a, b));
+}
+
+// ============================================================================
+// 主函数
+// ============================================================================
+
+int main() {
+  try {
+    auto result1 = calculate(dart_int(10), dart_int(5), makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&add)));
+dart_print(dart_string("10 + 5 = ") + (result1).toString());
+auto result2 = calculate(dart_int(10), dart_int(5), multiply);
+dart_print(dart_string("10 * 5 = ") + (result2).toString());
+    return 0;
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
+}

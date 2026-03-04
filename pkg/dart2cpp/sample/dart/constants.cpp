@@ -23,7 +23,7 @@ public:
   }
   
   Double distance() {
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+    return MathExtensions::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   Bool operator_equals(Any other) {

@@ -106,7 +106,7 @@ public:
   }
   
   Double length() {
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+    return MathExtensions::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   String toString() {

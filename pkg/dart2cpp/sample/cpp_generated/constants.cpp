@@ -13,17 +13,29 @@ public:
   Point(Double x, Double y) : x(x), y(y) {
   }
   
-  Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
+  static ObjectPtr<Point> origin() {
+    auto obj = ObjectPtr<Point>(new Point());
+    obj->x = dart_double(0.0);
+    obj->y = dart_double(0.0);
+    return obj;
   }
   
-  Point() : x(dart_double(1.0)), y(dart_double(0.0)) {
+  static ObjectPtr<Point> unitX() {
+    auto obj = ObjectPtr<Point>(new Point());
+    obj->x = dart_double(1.0);
+    obj->y = dart_double(0.0);
+    return obj;
   }
   
-  Point() : x(dart_double(0.0)), y(dart_double(1.0)) {
+  static ObjectPtr<Point> unitY() {
+    auto obj = ObjectPtr<Point>(new Point());
+    obj->x = dart_double(0.0);
+    obj->y = dart_double(1.0);
+    return obj;
   }
   
   Double distance() {
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+    return MathExtensions::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   Bool operator_equals(Any other) {
@@ -47,7 +59,10 @@ public:
 class Color {
 public:
   Int value;
-  Color(Int value) : value(value) {
+  static ObjectPtr<Color> _(Int value) {
+    auto obj = ObjectPtr<Color>(new Color());
+    obj->value = value;
+    return obj;
   }
   
   static ObjectPtr<Color> red() {
@@ -299,7 +314,7 @@ dart_print(dart_string("    p1: ") + (ObjectPtr<Point>(new Point())).toString())
 dart_print(dart_string("    p2: ") + (ObjectPtr<Point>(new Point())).toString());
 dart_print(dart_string("    p3: ") + (ObjectPtr<Point>(new Point())).toString());
 dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>(new Point()) == ObjectPtr<Point>(new Point()))).toString());
-dart_print(dart_string("    identical(p1, p2): ") + (identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
+dart_print(dart_string("    identical(p1, p2): ") + (dart_identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
 dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>(new Point())->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>(new Point())->y).toString()));
 dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>(new Point())->get_distance()).toString());
 dart_print(dart_string("  命名常量构造函数:"));

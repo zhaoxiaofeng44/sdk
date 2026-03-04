@@ -1,12 +1,5 @@
 转换成功: advanced_features.dart -> advanced_features.cpp
   执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/advanced_features /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:109:12: error: use of undeclared identifier 'MathExtension'; did you mean 'MathExtensions'?
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
-           ^~~~~~~~~~~~~
-           MathExtensions
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_extensions.h:51:11: note: 'MathExtensions' declared here
-namespace MathExtensions {
-          ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/advanced_features.cpp:662:17: error: no matching function for call to 'pipe'
 auto pipeline = pipe(dart_literal<ObjectPtr<Function>>(makeFunction<ObjectPtr<Iterable<Int>>, ObjectPtr<List<Int>>>(std::function<ObjectPtr<Iterable<Int>>(ObjectPtr<List<Int>>)>([=](ObjectPtr<List<Int>> list) -> ObjectPtr<Iterable<Int>> { return list->where(makeFunction<Bool, Int>(std::function<Bool(Int)>([=](Int n) -> Bool { return n->operator_greater(dart_int(5)); }))); })), makeFunction<ObjectPtr<Iterable<Int>>, ObjectPtr<Iterable<Int>>>(std::function<ObjectPtr<Iterable<Int>>(ObjectPtr<Iterable<Int>>)>([=](ObjectPtr<Iterable<Int>> iter) -> ObjectPtr<Iterable<Int>> { return iter->map(makeFunction<Int, Int>(std::function<Int(Int)>([=](Int n) -> Int { return n->operator_mul(dart_int(2)); }))); })), makeFunction<ObjectPtr<List<Int>>, ObjectPtr<Iterable<Int>>>(std::function<ObjectPtr<List<Int>>(ObjectPtr<Iterable<Int>>)>([=](ObjectPtr<Iterable<Int>> iter) -> ObjectPtr<List<Int>> { return iter->toList(); }))));
                 ^~~~
@@ -85,7 +78,7 @@ cache->operator_index_set(key, result);
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1560:36: note: passing argument to parameter 'key' here
   void operator_index_set(const K& key, const V& value);
                                    ^
-5 errors generated.
+4 errors generated.
 编译失败: advanced_features.cpp
 转换成功: async_programming.dart -> async_programming.cpp
   执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/async_programming /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/async_programming.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
@@ -425,26 +418,67 @@ Any
 运行成功: collections
 转换成功: constants.dart -> constants.cpp
   执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/constants /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:19:3: error: constructor cannot be redeclared
-  Point() : x(dart_double(1.0)), y(dart_double(0.0)) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:17:37: error: no matching constructor for initialization of 'Point'
+    auto obj = ObjectPtr<Point>(new Point());
+                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:16:3: note: previous definition is here
-  Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:24:37: error: no matching constructor for initialization of 'Point'
+    auto obj = ObjectPtr<Point>(new Point());
+                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:22:3: error: constructor cannot be redeclared
-  Point() : x(dart_double(0.0)), y(dart_double(1.0)) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:31:37: error: no matching constructor for initialization of 'Point'
+    auto obj = ObjectPtr<Point>(new Point());
+                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:16:3: note: previous definition is here
-  Point() : x(dart_double(0.0)), y(dart_double(0.0)) {
-  ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:26:12: error: use of undeclared identifier 'MathExtension'; did you mean 'MathExtensions'?
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
-           ^~~~~~~~~~~~~
-           MathExtensions
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_extensions.h:51:11: note: 'MathExtensions' declared here
-namespace MathExtensions {
-          ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:166:57: error: no matching constructor for initialization of 'Duration'
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:69:33: error: no matching constructor for initialization of 'Color'
+    return ObjectPtr<Color>(new Color(dart_int(16711680)));
+                                ^     ~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'Int' to 'const Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'Int' to 'Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit default constructor) not viable: requires 0 arguments, but 1 was provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:73:33: error: no matching constructor for initialization of 'Color'
+    return ObjectPtr<Color>(new Color(dart_int(65280)));
+                                ^     ~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'Int' to 'const Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'Int' to 'Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit default constructor) not viable: requires 0 arguments, but 1 was provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:77:33: error: no matching constructor for initialization of 'Color'
+    return ObjectPtr<Color>(new Color(dart_int(255)));
+                                ^     ~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit copy constructor) not viable: no known conversion from 'Int' to 'const Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit move constructor) not viable: no known conversion from 'Int' to 'Color' for 1st argument
+class Color {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:59:7: note: candidate constructor (the implicit default constructor) not viable: requires 0 arguments, but 1 was provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:181:57: error: no matching constructor for initialization of 'Duration'
   ObjectPtr<Duration> TIMEOUT = ObjectPtr<Duration>(new Duration());
                                                         ^
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:234:5: note: candidate constructor not viable: requires single argument 'milliseconds', but no arguments were provided
@@ -457,57 +491,128 @@ class Duration : public Object {
 /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_helpers.h:241:5: note: candidate constructor not viable: requires 6 arguments, but 0 were provided
     Duration(Int days, Int hours, Int minutes, Int seconds, 
     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:302:54: error: use of undeclared identifier 'identical'
-dart_print(dart_string("    identical(p1, p2): ") + (identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
-                                                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:304:79: error: no member named 'get_distance' in 'Point'; did you mean 'distance'?
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:313:60: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    p1: ") + (ObjectPtr<Point>(new Point())).toString());
+                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:314:60: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    p2: ") + (ObjectPtr<Point>(new Point())).toString());
+                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:315:60: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    p3: ") + (ObjectPtr<Point>(new Point())).toString());
+                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:316:67: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>(new Point()) == ObjectPtr<Point>(new Point()))).toString());
+                                                                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:316:100: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>(new Point()) == ObjectPtr<Point>(new Point()))).toString());
+                                                                                                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:317:90: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    identical(p1, p2): ") + (dart_identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
+                                                                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:317:121: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    identical(p1, p2): ") + (dart_identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
+                                                                                                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:318:73: error: no matching constructor for initialization of 'Point'
+dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>(new Point())->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>(new Point())->y).toString()));
+                                                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:318:145: error: no matching constructor for initialization of 'Point'
+dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>(new Point())->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>(new Point())->y).toString()));
+                                                                                                                                                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:319:69: error: no matching constructor for initialization of 'Point'
 dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>(new Point())->get_distance()).toString());
-                                                                              ^~~~~~~~~~~~
-                                                                              distance
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:25:10: note: 'distance' declared here
-  Double distance() {
-         ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:317:66: error: no matching constructor for initialization of 'Rectangle'
-dart_print(dart_string("    rect: ") + (ObjectPtr<Rectangle>(new Rectangle())).toString());
-                                                                 ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
-class Rectangle {
+                                                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:79:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
-  Rectangle(ObjectPtr<Point> topLeft, ObjectPtr<Point> bottomRight) : topLeft(topLeft), bottomRight(bottomRight) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:318:65: error: no matching constructor for initialization of 'Circle'
-dart_print(dart_string("    circle: ") + (ObjectPtr<Circle>(new Circle())).toString());
-                                                                ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:104:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
-class Circle {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:321:64: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    origin: ") + (ObjectPtr<Point>(new Point())).toString());
+                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:104:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:108:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
-  Circle(ObjectPtr<Point> center, Double radius) : center(center), radius(radius) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:319:71: error: no matching constructor for initialization of 'Rectangle'
-dart_print(dart_string("    rect.area: ") + (ObjectPtr<Rectangle>(new Rectangle())->get_area()).toString());
-                                                                      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
-class Rectangle {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:322:63: error: no matching constructor for initialization of 'Point'
+dart_print(dart_string("    unitX: ") + (ObjectPtr<Point>(new Point())).toString());
+                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Point {
       ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:75:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:79:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
-  Rectangle(ObjectPtr<Point> topLeft, ObjectPtr<Point> bottomRight) : topLeft(topLeft), bottomRight(bottomRight) {
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:9:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:13:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Point(Double x, Double y) : x(x), y(y) {
   ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:320:70: error: no matching constructor for initialization of 'Circle'
-dart_print(dart_string("    circle.area: ") + (ObjectPtr<Circle>(new Circle())->get_area()).toString());
-                                                                     ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:104:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
-class Circle {
-      ^
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:104:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
-/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/constants.cpp:108:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
-  Circle(ObjectPtr<Point> center, Double radius) : center(center), radius(radius) {
-  ^
-10 errors generated.
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
 编译失败: constants.cpp
 转换成功: edge_cases.dart -> edge_cases.cpp
   执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/edge_cases /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/edge_cases.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
@@ -579,3 +684,666 @@ auto safe3 = Int::tryParse(dart_string(""), Null);
              ^
 6 warnings and 9 errors generated.
 编译失败: edge_cases.cpp
+转换成功: exception_handling.dart -> exception_handling.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/exception_handling /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:242:70: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:242:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:242:124: warning: exception of type 'const std::exception &' will be caught by earlier handler [-Wexceptions]
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+                                                                                                                           ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:242:16: note: for type 'const std::exception &'
+} catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ } catch (const std::exception& e) { /* catch block */ }
+               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:359:50: error: no matching constructor for initialization of 'ArgumentError'
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), Null)));
+                                                 ^             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:684:3: note: candidate constructor not viable: requires single argument 'message', but 2 arguments were provided
+  ArgumentError(const String& message);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 2 were provided
+class ArgumentError : public Exception {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 2 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:683:3: note: candidate constructor not viable: requires 0 arguments, but 2 were provided
+  ArgumentError();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:378:50: error: no matching constructor for initialization of 'ArgumentError'
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), Null)));
+                                                 ^             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:684:3: note: candidate constructor not viable: requires single argument 'message', but 2 arguments were provided
+  ArgumentError(const String& message);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 2 were provided
+class ArgumentError : public Exception {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 2 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:683:3: note: candidate constructor not viable: requires 0 arguments, but 2 were provided
+  ArgumentError();
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/exception_handling.cpp:381:50: error: no matching constructor for initialization of 'ArgumentError'
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), Null)));
+                                                 ^             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:684:3: note: candidate constructor not viable: requires single argument 'message', but 2 arguments were provided
+  ArgumentError(const String& message);
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 2 were provided
+class ArgumentError : public Exception {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:681:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 2 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:683:3: note: candidate constructor not viable: requires 0 arguments, but 2 were provided
+  ArgumentError();
+  ^
+2 warnings and 3 errors generated.
+编译失败: exception_handling.cpp
+转换成功: generics.dart -> generics.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/generics /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:59:30: error: member initializer 'Box' does not name a non-static data member or base class
+  NumberContainer(T value) : Box(value) {
+                             ^~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:141:24: error: use of class template 'List' requires template arguments
+    auto sorted = List<List>::from(items);
+                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:1148:7: note: template is declared here
+class List : public Iterable<T> {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:325:155: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:325:183: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                                                      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:325:192: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+                                                                                                                                                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:353:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode<T>> _root = Null;
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:373:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode<T>> _insertNode(ObjectPtr<TreeNode<T>> node, T value) {
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:373:48: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode<T>> _insertNode(ObjectPtr<TreeNode<T>> node, T value) {
+                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:385:13: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode<T>> _findNode(ObjectPtr<TreeNode<T>> node, T value) {
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:385:46: error: use of undeclared identifier 'TreeNode'
+  ObjectPtr<TreeNode<T>> _findNode(ObjectPtr<TreeNode<T>> node, T value) {
+                                             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:375:18: error: use of undeclared identifier 'TreeNode'
+return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
+                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:375:35: error: no template named 'TreeNode'
+return ObjectPtr<TreeNode<T>>(new TreeNode<T>(value));
+                                  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:387:8: error: no viable conversion from returned value of type 'Nullable' to function return type 'int'
+return Null;
+       ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:604:12: error: no viable conversion from returned value of type 'void' to function return type 'Nullable'
+    return this->_items->add(item);
+           ^~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: cannot convert argument of incomplete type 'void' to 'const Nullable &' for 1st argument
+class Nullable : public Any {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:177:7: note: candidate constructor (the implicit move constructor) not viable: cannot convert argument of incomplete type 'void' to 'Nullable &&' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:629:12: error: no viable conversion from returned value of type 'void' to function return type 'Nullable'
+    return this->_items->add(item);
+           ^~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:177:7: note: candidate constructor (the implicit copy constructor) not viable: cannot convert argument of incomplete type 'void' to 'const Nullable &' for 1st argument
+class Nullable : public Any {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:177:7: note: candidate constructor (the implicit move constructor) not viable: cannot convert argument of incomplete type 'void' to 'Nullable &&' for 1st argument
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:633:36: error: too many arguments to function call, expected single argument 'source', have 2 arguments
+    auto intId = Int::tryParse(id, Null);
+                 ~~~~~~~~~~~~~     ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:416:14: note: 'tryParse' declared here
+  static Int tryParse(const String& source);
+             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:768:57: error: type 'String' does not provide a call operator
+dart_print(dart_concat(dart_string("    键值对: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
+                                                     ^~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:770:57: error: type 'String' does not provide a call operator
+dart_print(dart_concat(dart_string("    交换后: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
+                                                     ^~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/generics.cpp:807:57: error: type 'String' does not provide a call operator
+dart_print(dart_concat(dart_string("    交换后: "), (swapped->first()).toString(), dart_string(", "), (swapped->second).toString()));
+                                                     ^~~~~~~~~~~~~~
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+编译失败: generics.cpp
+转换成功: hello_test.dart -> hello_test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/hello_test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/hello_test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: hello_test.cpp -> hello_test
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+运行成功: hello_test
+转换成功: minimal_test.dart -> minimal_test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/minimal_test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/minimal_test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: minimal_test.cpp -> minimal_test
+Any
+Any
+运行成功: minimal_test
+转换成功: null_safety_test.dart -> null_safety_test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/null_safety_test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:11:13: error: use of undeclared identifier 'Address'
+  ObjectPtr<Address> address = Null;
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
+auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
+                                                                                                         ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:93:19: note: expanded from macro 'dart_null_coalesce'
+    (dart_is_null(left) ? (right) : (left))
+                  ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/null_safety_test.cpp:46:115: error: no member named 'address' in 'ObjectPtr<Person>'
+auto cityName = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->address, Null); })();
+                                                                                                         ~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:93:38: note: expanded from macro 'dart_null_coalesce'
+    (dart_is_null(left) ? (right) : (left))
+                                     ^~~~
+3 errors generated.
+编译失败: null_safety_test.cpp
+转换成功: object_oriented.dart -> object_oriented.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/object_oriented /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:91:3: warning: non-void function does not return a value [-Wreturn-type]
+  }
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:101:3: warning: non-void function does not return a value [-Wreturn-type]
+  }
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:24: error: expected class name
+class Weekday : public _Enum {
+                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:729:54: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> monday = ObjectPtr<Weekday>(new Weekday());
+                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:730:55: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> tuesday = ObjectPtr<Weekday>(new Weekday());
+                                                      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:731:57: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> wednesday = ObjectPtr<Weekday>(new Weekday());
+                                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:732:56: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> thursday = ObjectPtr<Weekday>(new Weekday());
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:733:54: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> friday = ObjectPtr<Weekday>(new Weekday());
+                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:734:56: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> saturday = ObjectPtr<Weekday>(new Weekday());
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:735:54: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<Weekday> sunday = ObjectPtr<Weekday>(new Weekday());
+                                                     ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:110: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:145: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:180: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                                                   ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:215: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                                                                                      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:250: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                                                                                                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:285: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                                                                                                                                                            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:736:320: error: no matching constructor for initialization of 'Weekday'
+  ObjectPtr<List<ObjectPtr<Weekday>>> values = List<ObjectPtr<Weekday>>::createConst({ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday()), ObjectPtr<Weekday>(new Weekday())});
+                                                                                                                                                                                                                                                                                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit copy constructor) not viable: requires 1 argument, but 0 were provided
+class Weekday : public _Enum {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:727:7: note: candidate constructor (the implicit move constructor) not viable: requires 1 argument, but 0 were provided
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:3: note: candidate constructor not viable: requires 2 arguments, but 0 were provided
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:52: error: use of undeclared identifier 'name'; did you mean '_name'?
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+                                                   ^~~~
+                                                   _name
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:30: note: '_name' declared here
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+                             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:737:39: error: member initializer '_Enum' does not name a non-static data member or base class
+  Weekday(Int _index, String _name) : _Enum(index, name) {
+                                      ^~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:741:45: error: no member named '_name' in 'Weekday'
+    return dart_string("Weekday.") + (this->_name).toString();
+                                      ~~~~  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/object_oriented.cpp:745:18: error: no member named 'index' in 'Weekday'
+    return this->index->operator_less(dart_int(5));
+           ~~~~  ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+2 warnings and 20 errors generated.
+编译失败: object_oriented.cpp
+转换成功: test.dart -> test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:32:3: error: constructor for 'MyTest2' must explicitly initialize the base class 'MyTest' which does not have a default constructor
+  MyTest2(Int a, Int b) {
+  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:9:7: note: 'MyTest' declared here
+class MyTest {
+      ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:33:11: error: no member named 'set_a' in 'MyTest2'
+    this->set_a(a);
+    ~~~~  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:34:7: error: no member named 'set_b' in 'MyTest2'
+this->set_b(b);
+~~~~  ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:43:56: error: use of undeclared identifier '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:43:79: error: unknown type name '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:47:41: error: use of undeclared identifier '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:47:64: error: unknown type name '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:51:56: error: use of undeclared identifier '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:51:79: error: unknown type name '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(1), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:55:41: error: use of undeclared identifier '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:55:64: error: unknown type name '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(2), List<ObjectPtr<Type>>::createConst({}), List::unmodifiable(dart_literal<Int>(value)), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:59:41: error: use of undeclared identifier '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(0), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                        ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:59:64: error: unknown type name '_InvocationMirror'
+    return this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(0), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst()))));
+                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:63:56: error: use of undeclared identifier '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(0), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test.cpp:63:79: error: unknown type name '_InvocationMirror'
+    return dart_cast<Int>(this->noSuchMethod(ObjectPtr<_InvocationMirror>(new _InvocationMirror(/* Constant: SymbolConstant */, dart_int(0), List<ObjectPtr<Type>>::createConst({}), List<Any>::createConst({}), Map::unmodifiable(Map<ObjectPtr<Symbol>, Any>::createConst())))));
+                                                                              ^
+15 errors generated.
+编译失败: test.cpp
+转换成功: test_all_functions.dart -> test_all_functions.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_all_functions /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:9:143: error: use of undeclared identifier 'add'
+ObjectPtr<List<ObjectPtr<Function>>> operations = dart_literal<ObjectPtr<Function>>(makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&add)), makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&subtract)), multiply);
+                                                                                                                                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_all_functions.cpp:9:208: error: use of undeclared identifier 'subtract'
+ObjectPtr<List<ObjectPtr<Function>>> operations = dart_literal<ObjectPtr<Function>>(makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&add)), makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>(&subtract)), multiply);
+                                                                                                                                                                                                               ^
+2 errors generated.
+编译失败: test_all_functions.cpp
+转换成功: test_arrow_operator.dart -> test_arrow_operator.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_arrow_operator /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_arrow_operator.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_arrow_operator.cpp -> test_arrow_operator
+Any
+Any
+Any
+Any
+Any
+Any
+运行成功: test_arrow_operator
+转换成功: test_comprehensive.dart -> test_comprehensive.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_comprehensive /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_comprehensive.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_comprehensive.cpp -> test_comprehensive
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+运行成功: test_comprehensive
+转换成功: test_forin.dart -> test_forin.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_forin /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_forin.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_forin.cpp -> test_forin
+Any
+Any
+Any
+Any
+Any
+运行成功: test_forin
+转换成功: test_function_param.dart -> test_function_param.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_function_param /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_function_param.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_function_param.cpp -> test_function_param
+Any
+Any
+运行成功: test_function_param
+转换成功: test_is_type_promotion_ternary.dart -> test_is_type_promotion_ternary.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_is_type_promotion_ternary /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_is_type_promotion_ternary.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_is_type_promotion_ternary.cpp -> test_is_type_promotion_ternary
+Any
+Any
+Any
+Any
+Any
+运行成功: test_is_type_promotion_ternary
+转换成功: test_lambda.dart -> test_lambda.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_lambda /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_lambda.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_lambda.cpp -> test_lambda
+Any
+运行成功: test_lambda
+转换成功: test_mixin_special_chars.dart -> test_mixin_special_chars.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_mixin_special_chars /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_mixin_special_chars.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_mixin_special_chars.cpp -> test_mixin_special_chars
+Any
+Any
+Any
+运行成功: test_mixin_special_chars
+转换成功: test_null_assign.dart -> test_null_assign.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_null_assign /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_null_assign.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_null_assign.cpp -> test_null_assign
+42
+运行成功: test_null_assign
+转换成功: test_operator_equals.dart -> test_operator_equals.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_operator_equals /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_operator_equals.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_operator_equals.cpp -> test_operator_equals
+Any
+Any
+运行成功: test_operator_equals
+转换成功: test_return_this.dart -> test_return_this.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_return_this /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_return_this.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_return_this.cpp -> test_return_this
+Any
+运行成功: test_return_this
+转换成功: test_simple_functions.dart -> test_simple_functions.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_simple_functions /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_functions.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_simple_functions.cpp -> test_simple_functions
+Any
+Any
+运行成功: test_simple_functions
+转换成功: test_simple_list.dart -> test_simple_list.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_simple_list /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_simple_list.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_simple_list.cpp -> test_simple_list
+Any
+Any
+运行成功: test_simple_list
+转换成功: test_stringbuffer.dart -> test_stringbuffer.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_stringbuffer /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_stringbuffer.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_stringbuffer.cpp -> test_stringbuffer
+Any
+运行成功: test_stringbuffer
+转换成功: test_top_function.dart -> test_top_function.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_top_function /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_top_function.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_top_function.cpp -> test_top_function
+Any
+运行成功: test_top_function
+转换成功: test_typed_list_literal.dart -> test_typed_list_literal.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/test_typed_list_literal /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/test_typed_list_literal.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: test_typed_list_literal.cpp -> test_typed_list_literal
+Any
+Any
+Any
+Any
+Any
+Any
+运行成功: test_typed_list_literal
+转换成功: type_conversion.dart -> type_conversion.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/type_conversion /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:195:58: error: no member named 'callMethod' in 'String'
+dart_print(dart_string("    智能转换为String: ") + (DART_ANY_CALL(unknownValue_promoted, toUpperCase)).toString());
+                                                    ^             ~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:14: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+     ~~~~~~~ ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:196:52: error: no member named 'callMethod' in 'String'
+dart_print(dart_string("    字符串长度: ") + (DART_ANY_CALL(unknownValue_promoted, length)).toString());
+                                              ^             ~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:14: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+     ~~~~~~~ ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:201:61: error: no member named 'callMethod' in 'ObjectPtr<List<Int>>'; did you mean to use '->' instead of '.'?
+dart_print(dart_string("    智能转换为List<int>: ") + (DART_ANY_CALL(unknownValue_promoted, first)).toString());
+                                                       ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:13: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:202:49: error: no member named 'callMethod' in 'ObjectPtr<List<Int>>'; did you mean to use '->' instead of '.'?
+dart_print(dart_string("    列表长度: ") + (DART_ANY_CALL(unknownValue_promoted, length)).toString());
+                                            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:13: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+            ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:278:42: error: too many arguments to function call, expected single argument 'source', have 2 arguments
+auto safeInt1 = Int::tryParse(intString, Null);
+                ~~~~~~~~~~~~~            ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:416:14: note: 'tryParse' declared here
+  static Int tryParse(const String& source);
+             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:279:46: error: too many arguments to function call, expected single argument 'source', have 2 arguments
+auto safeInt2 = Int::tryParse(invalidString, Null);
+                ~~~~~~~~~~~~~                ^~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.h:416:14: note: 'tryParse' declared here
+  static Int tryParse(const String& source);
+             ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:305:26: error: no member named 'fromCharCodes' in 'String'
+auto fromCodes = String::fromCharCodes(charCodes, dart_int(0), Null);
+                 ~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:322:34: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string("    null ??= \"assigned\": ") + (testString).toString());
+                                 ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:324:42: warning: trigraph ignored [-Wtrigraphs]
+dart_print(dart_string("    \"assigned\" ??= \"not assigned\": ") + (testString).toString());
+                                         ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:332:112: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:332:79: error: right operand to ? is void, but left operand is of type 'Nullable'
+auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                              ^ ~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:335:112: error: variable 'let_var' declared with deduced type 'auto' cannot appear in its own initializer
+auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                                                               ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:335:79: error: right operand to ? is void, but left operand is of type 'Nullable'
+auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+                                                                              ^ ~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:357:31: error: 'mutable' can only be applied to member variables
+mutable std::optional<String> lateFinalString_storage; const auto& lateFinalString = [&]() -> const String& { if (!lateFinalString_storage.has_value()) throw std::runtime_error("Late variable 'lateFinalString' not initialized"); return lateFinalString_storage.value(); }();
+                              ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:358:17: error: no viable overloaded '='
+lateFinalString = dart_string("Late final initialized");
+~~~~~~~~~~~~~~~ ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:109:11: note: candidate function not viable: 'this' argument has type 'const String', but method is not marked const
+  String& operator=(const String& other);
+          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:110:11: note: candidate function not viable: 'this' argument has type 'const String', but method is not marked const
+  String& operator=(const Any& any);
+          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.h:111:11: note: candidate function not viable: 'this' argument has type 'const String', but method is not marked const
+  String& operator=(const Nullable&);  // NULL 赋值操作符
+          ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:382:60: error: no member named 'get_runtimeType' in 'Int'
+dart_print(dart_string("    Object类型: ") + (objectVar->get_runtimeType()).toString());
+                                              ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:385:60: error: no member named 'get_runtimeType' in 'Int'
+dart_print(dart_string("    Object类型: ") + (objectVar->get_runtimeType()).toString());
+                                              ~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:388:61: error: no member named 'get_runtimeType' in 'Int'
+dart_print(dart_string("    变量类型: ") + (runtimeVar->get_runtimeType()).toString());
+                                            ~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:390:61: error: no member named 'get_runtimeType' in 'Int'
+dart_print(dart_string("    变量类型: ") + (runtimeVar->get_runtimeType()).toString());
+                                            ~~~~~~~~~~~~^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:395:55: error: no member named 'callMethod' in 'String'
+dart_print(dart_string("    作为String处理: ") + (DART_ANY_CALL(unknownObject_promoted, toLowerCase)).toString());
+                                                  ^             ~~~~~~~~~~~~~~~~~~~~~~
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:14: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+     ~~~~~~~ ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_conversion.cpp:403:59: error: no member named 'callMethod' in 'ObjectPtr<List<Any>>'; did you mean to use '->' instead of '.'?
+dart_print(dart_string("    作为List处理: 长度") + (DART_ANY_CALL(unknownObject_promoted, length)).toString());
+                                                    ^
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/object_extensions.h:72:13: note: expanded from macro 'DART_ANY_CALL'
+    (any_var.callMethod(#method))
+            ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+2 warnings and 20 errors generated.
+编译失败: type_conversion.cpp
+转换成功: type_inference_test.dart -> type_inference_test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/type_inference_test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_inference_test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+编译成功: type_inference_test.cpp -> type_inference_test
+Any
+Any
+Any
+Any
+Any
+Any
+Any
+运行成功: type_inference_test
+转换成功: type_promotion_test.dart -> type_promotion_test.cpp
+  执行: /Library/Developer/CommandLineTools/usr/bin/clang++ -std=c++17 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -I/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core -o /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/build/type_promotion_test /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_promotion_test.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_object.cpp /Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/cpp/core/dart_string.cpp
+/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp/sample/cpp_generated/type_promotion_test.cpp:61:16: error: member reference type 'Any' is not a pointer; did you mean to use '.'?
+dart_print(data->toString());
+           ~~~~^~
+               .
+1 error generated.
+编译失败: type_promotion_test.cpp
