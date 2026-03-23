@@ -101,6 +101,17 @@ inline Nullable dart_print(const Any& value) {
     return Null;
 }
 
+// dart identical() 函数：检查两个对象是否是同一个实例（引用相等）
+template<typename T, typename U>
+inline Bool dart_identical(const T& a, const U& b) {
+    if constexpr (is_object_ptr<T>::value && is_object_ptr<U>::value) {
+        return Bool(a.get() == b.get());
+    } else {
+        // 值类型：比较地址
+        return Bool(static_cast<const void*>(&a) == static_cast<const void*>(&b));
+    }
+}
+
 #define dart_assert(condition, message)                                        \
   do {                                                                         \
     if (!(condition)) {                                                        \

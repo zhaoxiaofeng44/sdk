@@ -129,7 +129,7 @@ dart_print(dart_string("    值集合: ") + (scores->values()).toString());
 dart_print(dart_string("    键值对: ") + (scores->entries()).toString());
 dart_print(dart_string("    长度: ") + (scores->get_length()).toString());
 dart_print(dart_string("    是否为空: ") + (scores->isEmpty()).toString());
-auto bonusScores = scores->map(makeFunction<ObjectPtr<MapEntry<String, Int>>, String, Int>(std::function<ObjectPtr<MapEntry<String, Int>>(String, Int)>([=](String key, Int value) -> ObjectPtr<MapEntry<String, Int>> { return ObjectPtr<MapEntry<String, Int>>(new MapEntry<String, Int>(key, value->operator_add(dart_int(5)))); })));
+auto bonusScores = scores->map(makeFunction<ObjectPtr<MapEntry<String, Int>>, String, Int>(std::function<ObjectPtr<MapEntry<String, Int>>(String, Int)>([=](String key, Int value) -> ObjectPtr<MapEntry<String, Int>> { return MapEntry<String, Int>::create(key, value->operator_add(dart_int(5))); })));
 dart_print(dart_string("  加分后的分数: ") + (bonusScores).toString());
 dart_print(dart_string("  遍历分数:"));
 scores->forEach(makeFunction<Nullable, String, Int>(std::function<Nullable(String, Int)>([=](String name, Int score) -> Nullable { dart_print(dart_concat(dart_string("    "), (name).toString(), dart_string(": "), (score).toString(), dart_string("分"))); return Void; })));

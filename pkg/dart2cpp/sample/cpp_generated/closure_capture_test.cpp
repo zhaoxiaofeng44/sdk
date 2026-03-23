@@ -16,6 +16,9 @@ public:
     return makeFunction<Int, Int>(std::function<Int(Int)>([=](Int x) -> Int { return this->base->operator_add(x); }));
   }
   
+  String toString() const {
+    return dart_string("Calculator");
+  }
 };
 
 Nullable testBasicClosure();

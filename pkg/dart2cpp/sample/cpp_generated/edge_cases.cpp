@@ -12,6 +12,9 @@ public:
   City(String name) : name(name) {
   }
   
+  String toString() const {
+    return dart_string("City");
+  }
 };
 
 // ============================================================================
@@ -25,6 +28,9 @@ public:
   Address(String street, ObjectPtr<City> city) : street(street), city(city) {
   }
   
+  String toString() const {
+    return dart_string("Address");
+  }
 };
 
 // ============================================================================
@@ -38,6 +44,9 @@ public:
   Person(String name, ObjectPtr<Address> address) : name(name), address(address) {
   }
   
+  String toString() const {
+    return dart_string("Person");
+  }
 };
 
 Nullable testNumericEdgeCases();
@@ -222,8 +231,8 @@ Nullable testNullEdgeCases() {
   dart_print(dart_string("\n📌 测试空值边界情况"));
 Int nullInt(Null);
 String nullString(Null);
-ObjectPtr<ObjectPtr<List<Int>>> nullList(Null);
-ObjectPtr<ObjectPtr<Map<String, Int>>> nullMap(Null);
+ObjectPtr<List<Int>> nullList(Null);
+ObjectPtr<Map<String, Int>> nullMap(Null);
 dart_print(dart_string("  空值变量:"));
 dart_print(dart_string("    nullInt: ") + (nullInt).toString());
 dart_print(dart_string("    nullString: ") + (nullString).toString());
@@ -249,10 +258,10 @@ name = Null;
 auto length2 = dart_null_coalesce(name, Null);
 dart_print(dart_string("    空字符串长度: ") + (length2).toString());
 auto person = ObjectPtr<Person>(new Person(dart_string("Bob"), ObjectPtr<Address>(new Address(dart_string("Main St"), ObjectPtr<City>(new City(dart_string("New York")))))));
-auto cityName1 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+auto cityName1 = ([&]() { auto let_var_5 = person; return dart_is_null(let_var_5) ? Null : ([&]() { auto let_var_6 = let_var_5->address; return dart_is_null(let_var_6) ? Null : dart_null_coalesce(let_var_6->city, Null); })(); })();
 dart_print(dart_string("    链式访问城市名: ") + (cityName1).toString());
 person = Null;
-auto cityName2 = ([&]() { auto let_var = person; return dart_is_null(let_var) ? Null : ([&]() { auto let_var = let_var->address; return dart_is_null(let_var) ? Null : dart_null_coalesce(let_var->city, Null); })(); })();
+auto cityName2 = ([&]() { auto let_var_8 = person; return dart_is_null(let_var_8) ? Null : ([&]() { auto let_var_9 = let_var_8->address; return dart_is_null(let_var_9) ? Null : dart_null_coalesce(let_var_9->city, Null); })(); })();
 dart_print(dart_string("    空对象链式访问: ") + (cityName2).toString());
 auto maybeString = dart_string("Hello");
 auto definitelyString = maybeString;
@@ -296,7 +305,7 @@ auto bigInt1 = dart_int(9223372036854775807);
 auto bigInt2 = dart_int(1);
 dart_print(dart_string("    大整数: ") + (bigInt1).toString());
 auto sum = bigInt1->operator_add(bigInt2);
-dart_print(dart_concat(dart_string("    大整数 + 1: "), (sum).toString(), dart_string(" (类型: "), (sum->get_runtimeType()).toString(), dart_string(")")));
+dart_print(dart_concat(dart_string("    大整数 + 1: "), (sum).toString(), dart_string(" (类型: "), (dart_string("Int")).toString(), dart_string(")")));
 dart_print(dart_string("  浮点数精度:"));
 auto precise1 = dart_double(0.1)->operator_add(dart_double(0.2));
 dart_print(dart_string("    0.1 + 0.2 = ") + (precise1).toString());
@@ -333,9 +342,9 @@ dart_print(dart_string("    parse \"abc\": ") + (parsed3).toString());
 } catch (const std::exception& e) { /* catch block */ }
 // Finally block should be implemented using RAII pattern
 dart_print(dart_string("  tryParse 安全转换:"));
-auto safe1 = Int::tryParse(dart_string("123"), Null);
-auto safe2 = Int::tryParse(dart_string("abc"), Null);
-auto safe3 = Int::tryParse(dart_string(""), Null);
+auto safe1 = Int::tryParse(dart_string("123"));
+auto safe2 = Int::tryParse(dart_string("abc"));
+auto safe3 = Int::tryParse(dart_string(""));
 dart_print(dart_string("    tryParse \"123\": ") + (safe1).toString());
 dart_print(dart_string("    tryParse \"abc\": ") + (safe2).toString());
 dart_print(dart_string("    tryParse 空字符串: ") + (safe3).toString());

@@ -14,27 +14,21 @@ public:
   }
   
   static ObjectPtr<Point> origin() {
-    auto obj = ObjectPtr<Point>(new Point());
-    obj->x = dart_double(0.0);
-    obj->y = dart_double(0.0);
+    auto obj = ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(0.0)));
     return obj;
   }
   
   static ObjectPtr<Point> unitX() {
-    auto obj = ObjectPtr<Point>(new Point());
-    obj->x = dart_double(1.0);
-    obj->y = dart_double(0.0);
+    auto obj = ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(0.0)));
     return obj;
   }
   
   static ObjectPtr<Point> unitY() {
-    auto obj = ObjectPtr<Point>(new Point());
-    obj->x = dart_double(0.0);
-    obj->y = dart_double(1.0);
+    auto obj = ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(1.0)));
     return obj;
   }
   
-  Double distance() {
+  Double get_distance() {
     return MathExtensions::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
@@ -42,7 +36,7 @@ public:
     return dart_is<ObjectPtr<Point>>(other) && (this->x == dart_cast<ObjectPtr<Point>>(other)->x) && (this->y == dart_cast<ObjectPtr<Point>>(other)->y);
   }
   
-  Int hashCode() {
+  Int get_hashCode() {
     return Object::hash(this->x, this->y);
   }
   
@@ -66,15 +60,15 @@ public:
   }
   
   static ObjectPtr<Color> red() {
-    return ObjectPtr<Color>(new Color(dart_int(16711680)));
+    return Color::_(dart_int(16711680));
   }
   
   static ObjectPtr<Color> green() {
-    return ObjectPtr<Color>(new Color(dart_int(65280)));
+    return Color::_(dart_int(65280));
   }
   
   static ObjectPtr<Color> blue() {
-    return ObjectPtr<Color>(new Color(dart_int(255)));
+    return Color::_(dart_int(255));
   }
   
   String toString() {
@@ -94,16 +88,16 @@ public:
   Rectangle(ObjectPtr<Point> topLeft, ObjectPtr<Point> bottomRight) : topLeft(topLeft), bottomRight(bottomRight) {
   }
   
-  Double width() {
+  Double get_width() {
     return this->bottomRight->x->operator_sub(this->topLeft->x);
   }
   
-  Double height() {
+  Double get_height() {
     return this->bottomRight->y->operator_sub(this->topLeft->y);
   }
   
-  Double area() {
-    return this->width()->operator_mul(this->height());
+  Double get_area() {
+    return this->get_width()->operator_mul(this->get_height());
   }
   
   String toString() {
@@ -123,11 +117,11 @@ public:
   Circle(ObjectPtr<Point> center, Double radius) : center(center), radius(radius) {
   }
   
-  Double area() {
+  Double get_area() {
     return dart_double(3.14159)->operator_mul(this->radius)->operator_mul(this->radius);
   }
   
-  Double circumference() {
+  Double get_circumference() {
     return dart_double(2.0)->operator_mul(dart_double(3.14159))->operator_mul(this->radius);
   }
   
@@ -143,15 +137,24 @@ public:
 
 class MathConstants {
 public:
-  Double PI = dart_double(3.14159265359);
-  Double E = dart_double(2.71828182846);
-  Double GOLDEN_RATIO = dart_double(1.61803398875);
-  Double SQRT_2 = dart_double(1.41421356237);
-  Double SQRT_3 = dart_double(1.73205080757);
+  static Double PI;
+  static Double E;
+  static Double GOLDEN_RATIO;
+  static Double SQRT_2;
+  static Double SQRT_3;
   MathConstants() {
   }
   
+  String toString() const {
+    return dart_string("MathConstants");
+  }
 };
+
+Double MathConstants::PI = dart_double(3.14159265359);
+Double MathConstants::E = dart_double(2.71828182846);
+Double MathConstants::GOLDEN_RATIO = dart_double(1.61803398875);
+Double MathConstants::SQRT_2 = dart_double(1.41421356237);
+Double MathConstants::SQRT_3 = dart_double(1.73205080757);
 
 // ============================================================================
 // 类: PhysicsConstants
@@ -159,14 +162,22 @@ public:
 
 class PhysicsConstants {
 public:
-  Double SPEED_OF_LIGHT = dart_double(299792458.0);
-  Double GRAVITY = dart_double(9.80665);
-  Double PLANCK_CONSTANT = dart_double(6.62607015e-34);
-  Double AVOGADRO_NUMBER = dart_double(6.02214076e+23);
+  static Double SPEED_OF_LIGHT;
+  static Double GRAVITY;
+  static Double PLANCK_CONSTANT;
+  static Double AVOGADRO_NUMBER;
   PhysicsConstants() {
   }
   
+  String toString() const {
+    return dart_string("PhysicsConstants");
+  }
 };
+
+Double PhysicsConstants::SPEED_OF_LIGHT = dart_double(299792458.0);
+Double PhysicsConstants::GRAVITY = dart_double(9.80665);
+Double PhysicsConstants::PLANCK_CONSTANT = dart_double(6.62607015e-34);
+Double PhysicsConstants::AVOGADRO_NUMBER = dart_double(6.02214076e+23);
 
 // ============================================================================
 // 类: AppConfig
@@ -174,15 +185,24 @@ public:
 
 class AppConfig {
 public:
-  String APP_NAME = dart_string("Dart2CPP Test Suite");
-  String VERSION = dart_string("1.0.0");
-  Bool DEBUG_MODE = dart_bool(true);
-  Int MAX_RETRY_COUNT = dart_int(3);
-  ObjectPtr<Duration> TIMEOUT = ObjectPtr<Duration>(new Duration());
+  static String APP_NAME;
+  static String VERSION;
+  static Bool DEBUG_MODE;
+  static Int MAX_RETRY_COUNT;
+  static ObjectPtr<Duration> TIMEOUT;
   AppConfig() {
   }
   
+  String toString() const {
+    return dart_string("AppConfig");
+  }
 };
+
+String AppConfig::APP_NAME = dart_string("Dart2CPP Test Suite");
+String AppConfig::VERSION = dart_string("1.0.0");
+Bool AppConfig::DEBUG_MODE = dart_bool(true);
+Int AppConfig::MAX_RETRY_COUNT = dart_int(3);
+ObjectPtr<Duration> AppConfig::TIMEOUT = ObjectPtr<Duration>(new Duration());
 
 // ============================================================================
 // 类: HttpStatus
@@ -190,16 +210,26 @@ public:
 
 class HttpStatus {
 public:
-  Int OK = dart_int(200);
-  Int CREATED = dart_int(201);
-  Int BAD_REQUEST = dart_int(400);
-  Int UNAUTHORIZED = dart_int(401);
-  Int NOT_FOUND = dart_int(404);
-  Int SERVER_ERROR = dart_int(500);
+  static Int OK;
+  static Int CREATED;
+  static Int BAD_REQUEST;
+  static Int UNAUTHORIZED;
+  static Int NOT_FOUND;
+  static Int SERVER_ERROR;
   HttpStatus() {
   }
   
+  String toString() const {
+    return dart_string("HttpStatus");
+  }
 };
+
+Int HttpStatus::OK = dart_int(200);
+Int HttpStatus::CREATED = dart_int(201);
+Int HttpStatus::BAD_REQUEST = dart_int(400);
+Int HttpStatus::UNAUTHORIZED = dart_int(401);
+Int HttpStatus::NOT_FOUND = dart_int(404);
+Int HttpStatus::SERVER_ERROR = dart_int(500);
 
 // ============================================================================
 // 类: FileTypes
@@ -207,12 +237,18 @@ public:
 
 class FileTypes {
 public:
-  ObjectPtr<List<String>> SUPPORTED_TYPES = List<String>::createConst({dart_string(".dart"), dart_string(".cpp"), dart_string(".h"), dart_string(".txt"), dart_string(".json")});
-  ObjectPtr<Map<String, String>> MIME_TYPES = Map<String, String>::createConst({{dart_string(".dart"), dart_string("text/plain")}, {dart_string(".cpp"), dart_string("text/x-c++src")}, {dart_string(".h"), dart_string("text/x-chdr")}, {dart_string(".txt"), dart_string("text/plain")}, {dart_string(".json"), dart_string("application/json")}});
+  static ObjectPtr<List<String>> SUPPORTED_TYPES;
+  static ObjectPtr<Map<String, String>> MIME_TYPES;
   FileTypes() {
   }
   
+  String toString() const {
+    return dart_string("FileTypes");
+  }
 };
+
+ObjectPtr<List<String>> FileTypes::SUPPORTED_TYPES = List<String>::createConst({dart_string(".dart"), dart_string(".cpp"), dart_string(".h"), dart_string(".txt"), dart_string(".json")});
+ObjectPtr<Map<String, String>> FileTypes::MIME_TYPES = Map<String, String>::createConst({{dart_string(".dart"), dart_string("text/plain")}, {dart_string(".cpp"), dart_string("text/x-c++src")}, {dart_string(".h"), dart_string("text/x-chdr")}, {dart_string(".txt"), dart_string("text/plain")}, {dart_string(".json"), dart_string("application/json")}});
 
 // ============================================================================
 // 类: Settings
@@ -220,12 +256,18 @@ public:
 
 class Settings {
 public:
-  ObjectPtr<Map<String, Any>> DEFAULT_SETTINGS = Map<String, Any>::createConst({{dart_string("theme"), dart_string("light")}, {dart_string("fontSize"), dart_int(14)}, {dart_string("autoSave"), dart_bool(true)}, {dart_string("showLineNumbers"), dart_bool(true)}, {dart_string("tabSize"), dart_int(2)}});
-  ObjectPtr<List<String>> AVAILABLE_THEMES = List<String>::createConst({dart_string("light"), dart_string("dark"), dart_string("high-contrast")});
+  static ObjectPtr<Map<String, Any>> DEFAULT_SETTINGS;
+  static ObjectPtr<List<String>> AVAILABLE_THEMES;
   Settings() {
   }
   
+  String toString() const {
+    return dart_string("Settings");
+  }
 };
+
+ObjectPtr<Map<String, Any>> Settings::DEFAULT_SETTINGS = Map<String, Any>::createConst({{dart_string("theme"), dart_string("light")}, {dart_string("fontSize"), dart_int(14)}, {dart_string("autoSave"), dart_bool(true)}, {dart_string("showLineNumbers"), dart_bool(true)}, {dart_string("tabSize"), dart_int(2)}});
+ObjectPtr<List<String>> Settings::AVAILABLE_THEMES = List<String>::createConst({dart_string("light"), dart_string("dark"), dart_string("high-contrast")});
 
 // ============================================================================
 // Extension: MathExtensions
@@ -264,14 +306,14 @@ const auto finalInt = dart_int(100);
 const auto finalDouble = dart_double(2.71828);
 const auto finalBool = dart_bool(false);
 const auto finalString = dart_string("Final String");
-const auto finalTime = ObjectPtr<DateTime>(new DateTime());
+const auto finalTime = DateTime::now();
 dart_print(dart_string("  final 常量:"));
 dart_print(dart_string("    finalInt: ") + (finalInt).toString());
 dart_print(dart_string("    finalDouble: ") + (finalDouble).toString());
 dart_print(dart_string("    finalBool: ") + (finalBool).toString());
 dart_print(dart_string("    finalString: ") + (finalString).toString());
 dart_print(dart_string("    finalTime: ") + (finalTime).toString());
-const auto runTime = dart_string("Run Time: ") + (ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()).toString();
+const auto runTime = dart_string("Run Time: ") + (DateTime::now()->get_millisecondsSinceEpoch()).toString();
 dart_print(dart_string("  const vs final:"));
 dart_print(dart_string("    编译时常量: Compile Time"));
 dart_print(dart_string("    运行时常量: ") + (runTime).toString());
@@ -310,17 +352,17 @@ return Void;
 Nullable testConstantConstructors() {
   dart_print(dart_string("\n📌 测试常量构造函数"));
 dart_print(dart_string("  基本常量构造函数:"));
-dart_print(dart_string("    p1: ") + (ObjectPtr<Point>(new Point())).toString());
-dart_print(dart_string("    p2: ") + (ObjectPtr<Point>(new Point())).toString());
-dart_print(dart_string("    p3: ") + (ObjectPtr<Point>(new Point())).toString());
-dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>(new Point()) == ObjectPtr<Point>(new Point()))).toString());
-dart_print(dart_string("    identical(p1, p2): ") + (dart_identical(ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()))).toString());
-dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>(new Point())->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>(new Point())->y).toString()));
-dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>(new Point())->get_distance()).toString());
+dart_print(dart_string("    p1: ") + (ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)))).toString());
+dart_print(dart_string("    p2: ") + (ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)))).toString());
+dart_print(dart_string("    p3: ") + (ObjectPtr<Point>(new Point(dart_double(5.0), dart_double(6.0)))).toString());
+dart_print(dart_string("    p1 == p2: ") + ((ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0))) == ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0))))).toString());
+dart_print(dart_string("    identical(p1, p2): ") + (dart_identical(ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0))), ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0))))).toString());
+dart_print(dart_concat(dart_string("    p1.x: "), (ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)))->x).toString(), dart_string(", p1.y: "), (ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)))->y).toString()));
+dart_print(dart_string("    p1.distance: ") + (ObjectPtr<Point>(new Point(dart_double(3.0), dart_double(4.0)))->get_distance()).toString());
 dart_print(dart_string("  命名常量构造函数:"));
-dart_print(dart_string("    origin: ") + (ObjectPtr<Point>(new Point())).toString());
-dart_print(dart_string("    unitX: ") + (ObjectPtr<Point>(new Point())).toString());
-dart_print(dart_string("    unitY: ") + (ObjectPtr<Point>(new Point())).toString());
+dart_print(dart_string("    origin: ") + (ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(0.0)))).toString());
+dart_print(dart_string("    unitX: ") + (ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(0.0)))).toString());
+dart_print(dart_string("    unitY: ") + (ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(1.0)))).toString());
 auto red = Color::red();
 auto green = Color::green();
 auto blue = Color::blue();
@@ -329,12 +371,12 @@ dart_print(dart_string("    red: ") + (red).toString());
 dart_print(dart_string("    green: ") + (green).toString());
 dart_print(dart_string("    blue: ") + (blue).toString());
 dart_print(dart_string("  复杂常量对象:"));
-dart_print(dart_string("    rect: ") + (ObjectPtr<Rectangle>(new Rectangle())).toString());
-dart_print(dart_string("    circle: ") + (ObjectPtr<Circle>(new Circle())).toString());
-dart_print(dart_string("    rect.area: ") + (ObjectPtr<Rectangle>(new Rectangle())->get_area()).toString());
-dart_print(dart_string("    circle.area: ") + (ObjectPtr<Circle>(new Circle())->get_area()).toString());
+dart_print(dart_string("    rect: ") + (ObjectPtr<Rectangle>(new Rectangle(ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(0.0))), ObjectPtr<Point>(new Point(dart_double(10.0), dart_double(5.0)))))).toString());
+dart_print(dart_string("    circle: ") + (ObjectPtr<Circle>(new Circle(ObjectPtr<Point>(new Point(dart_double(5.0), dart_double(5.0))), dart_double(3.0)))).toString());
+dart_print(dart_string("    rect.area: ") + (ObjectPtr<Rectangle>(new Rectangle(ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(0.0))), ObjectPtr<Point>(new Point(dart_double(10.0), dart_double(5.0)))))->get_area()).toString());
+dart_print(dart_string("    circle.area: ") + (ObjectPtr<Circle>(new Circle(ObjectPtr<Point>(new Point(dart_double(5.0), dart_double(5.0))), dart_double(3.0)))->get_area()).toString());
 dart_print(dart_string("  常量对象列表:"));
-dart_print(dart_string("    constPoints: ") + (List<ObjectPtr<Point>>::createConst({ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point()), ObjectPtr<Point>(new Point())})).toString());
+dart_print(dart_string("    constPoints: ") + (List<ObjectPtr<Point>>::createConst({ObjectPtr<Point>(new Point(dart_double(0.0), dart_double(0.0))), ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(1.0))), ObjectPtr<Point>(new Point(dart_double(2.0), dart_double(2.0)))})).toString());
 return Void;
 }
 

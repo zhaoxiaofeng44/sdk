@@ -231,6 +231,10 @@ private:
     std::chrono::milliseconds duration_;
 
 public:
+    Duration() : duration_(0) {
+        type_id = 13;
+    }
+    
     Duration(int milliseconds) : duration_(milliseconds) {
         type_id = 13;
     }
