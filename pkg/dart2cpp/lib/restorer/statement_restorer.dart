@@ -50,10 +50,23 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
         _restoreCatch(c);
       }
     } else if (stmt is TryFinally) {
-      _buf.write('${_pad}try ');
-      _restoreStmt(stmt.body);
-      _buf.write(' finally ');
-      _restoreStmt(stmt.finalizer);
+      // Kernel 将 try-catch-finally 表示为 TryFinally(body: TryCatch(...), finalizer: ...)
+      // 需要合并输出为 try { ... } catch ... finally { ... }
+      final body = stmt.body;
+      if (body is TryCatch) {
+        _buf.write('${_pad}try ');
+        _restoreStmt(body.body);
+        for (final c in body.catches) {
+          _restoreCatch(c);
+        }
+        _buf.write(' finally ');
+        _restoreStmt(stmt.finalizer);
+      } else {
+        _buf.write('${_pad}try ');
+        _restoreStmt(stmt.body);
+        _buf.write(' finally ');
+        _restoreStmt(stmt.finalizer);
+      }
     } else if (stmt is YieldStatement) {
       _buf.write('${_pad}yield ');
       _buf.write(_restoreExpr(stmt.expression));

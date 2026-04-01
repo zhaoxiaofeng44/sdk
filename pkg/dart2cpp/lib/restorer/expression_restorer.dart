@@ -54,6 +54,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
     if (expr is AbstractSuperPropertyGet) return 'super.${expr.name.text}';
     if (expr is InvalidExpression) return '/* invalid */';
+    if (expr is NullCheck) return '${_restoreExpr(expr.operand)}!';
     if (expr is AwaitExpression) return 'await ${_restoreExpr(expr.operand)}';
     if (expr is CheckLibraryIsLoaded) return 'true';
     if (expr is LoadLibrary) return '${expr.import.name}';
@@ -95,6 +96,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
     // 一元运算符
     if (name == 'unary-') return '(-$recv)';
+    if (name == '~') return '(~$recv)';
     if (name == '[]') {
       return '$recv[${_restoreExpr(expr.arguments.positional[0])}]';
     }
@@ -193,12 +195,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
     }
     
-    // 只使用位置参数，忽略命名参数
-    final positionalArgs = expr.arguments.positional.map((e) => _restoreExpr(e)).join(', ');
+    final allArgs = _restoreArgs(expr.arguments);
     final prefix = expr.isConst ? 'const ' : '';
 
-    if (ctorName.isEmpty) return '$prefix$className($positionalArgs)';
-    return '$prefix$className.$ctorName($positionalArgs)';
+    if (ctorName.isEmpty) return '$prefix$className($allArgs)';
+    return '$prefix$className.$ctorName($allArgs)';
   }
 
   String _restoreConditional(ConditionalExpression expr) {

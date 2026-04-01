@@ -111,29 +111,8 @@ mixin _TypeUtils on _DartRestorerBase {
   }
 
   /// 判断参数是否需要 covariant 关键字
-  /// covariant 只能用于类的实例方法重写父类/mixin 方法时的参数
   bool _needsCovariant(VariableDeclaration param, FunctionNode func, Procedure? proc) {
-    // 如果没有 Procedure 上下文，无法判断是否是类方法
-    if (proc == null) return false;
-    
-    // 静态方法不需要 covariant
-    if (proc.isStatic) return false;
-    
-    // getter/setter 不需要 covariant
-    if (proc.isGetter || proc.isSetter) return false;
-    
-    // 如果参数类型是 dynamic 或 Object，不需要 covariant
-    if (param.type is DynamicType) return false;
-    final paramType = _restoreType(param.type);
-    if (paramType == 'dynamic' || paramType == 'Object') return false;
-    
-    // 常见需要 covariant 的方法名（重写父类/mixin 的方法）
-    final covariantMethodNames = {'compareTo', '==', 'contains', 'add', 'remove'};
-    if (covariantMethodNames.contains(proc.name.text)) {
-      return true;
-    }
-    
-    return false;
+    return param.isCovariantByDeclaration;
   }
 
   /// 递归解析合成 mixin 类，找到真正的 superclass 名称
@@ -146,7 +125,7 @@ mixin _TypeUtils on _DartRestorerBase {
     return 'Object';
   }
 
-  /// 递归收集所有 mixin 名称
+  /// 递归收集所有 mixin 名称（保留泛型参数）
   List<String> _collectMixins(Class cls) {
     if (!cls.name.contains('&')) return [];
     final mixins = <String>[];
@@ -156,7 +135,7 @@ mixin _TypeUtils on _DartRestorerBase {
     }
     // 当前合成类的 implementedTypes 中包含当前层的 mixin
     for (final impl in cls.implementedTypes) {
-      mixins.add(impl.classNode.name);
+      mixins.add(_restoreSupertype(impl));
     }
     return mixins;
   }

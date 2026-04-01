@@ -20,10 +20,22 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   void _restoreMixin(Class cls) {
     _buf.write('mixin ${cls.name}');
     _writeTypeParams(cls.typeParameters);
-    if (cls.implementedTypes.isNotEmpty) {
-      _buf.write(' on ');
-      _buf.write(cls.implementedTypes.map((s) => _restoreSupertype(s)).join(', '));
+
+    // Kernel 中 mixin 的 on 约束：
+    // - supertype 包含第一个 on 约束（如果不是 Object）
+    // - implementedTypes 包含剩余的 on 约束
+    final onTypes = <String>[];
+    if (cls.supertype != null && cls.supertype!.classNode.name != 'Object') {
+      onTypes.add(_restoreSupertype(cls.supertype!));
     }
+    for (final impl in cls.implementedTypes) {
+      onTypes.add(_restoreSupertype(impl));
+    }
+    if (onTypes.isNotEmpty) {
+      _buf.write(' on ');
+      _buf.write(onTypes.join(', '));
+    }
+
     _buf.write(' {\n');
     _indent++;
     _restoreClassMembers(cls);
@@ -34,6 +46,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   // ---- Class ----
 
   void _restoreClass(Class cls) {
+    // 检查是否是 Kernel 脱糖后的 enum（superclass 是 _Enum）
+    if (_isEnumClass(cls)) {
+      _restoreEnum(cls);
+      return;
+    }
+
     if (cls.isAbstract) _buf.write('abstract ');
     _buf.write('class ${cls.name}');
     _writeTypeParams(cls.typeParameters);
@@ -68,6 +86,122 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _restoreClassMembers(cls);
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  // ---- Enum ----
+
+  bool _isEnumClass(Class cls) {
+    if (cls.supertype == null) return false;
+    return cls.supertype!.classNode.name == '_Enum';
+  }
+
+  void _restoreEnum(Class cls) {
+    _buf.write('enum ${cls.name}');
+    _writeTypeParams(cls.typeParameters);
+    _buf.write(' {\n');
+    _indent++;
+
+    // 收集 enum 值字段（static const 且类型为自身类型，排除 values 列表）
+    final enumValueFields = cls.fields.where((f) =>
+        f.isStatic && f.isConst && f.type is InterfaceType &&
+        (f.type as InterfaceType).classNode == cls &&
+        f.name.text != 'values').toList();
+
+    // 收集用户自定义字段（非 static、非 _Enum 内部字段）
+    final enumInternalFields = {'index', '_name'};
+    final userFields = cls.fields.where((f) =>
+        !f.isStatic && !enumInternalFields.contains(f.name.text)).toList();
+
+    // 从构造函数提取用户自定义参数名（排除 _Enum 内部参数 index/name）
+    List<String> userParamNames = [];
+    if (cls.constructors.isNotEmpty) {
+      final ctor = cls.constructors.first;
+      for (final p in ctor.function.positionalParameters) {
+        final paramName = _cleanVarName(p.name ?? '');
+        // 排除 _Enum 内部参数（index 和 name，可能带 # 前缀）
+        if (_isEnumInternalParam(paramName)) continue;
+        userParamNames.add(paramName);
+      }
+      for (final p in ctor.function.namedParameters) {
+        final paramName = _cleanVarName(p.name ?? '');
+        if (_isEnumInternalParam(paramName)) continue;
+        userParamNames.add(paramName);
+      }
+    }
+
+    // 输出 enum 值
+    for (var i = 0; i < enumValueFields.length; i++) {
+      final field = enumValueFields[i];
+      _buf.write('$_pad${field.name.text}');
+
+      // 提取构造函数参数值
+      if (userParamNames.isNotEmpty && field.initializer != null) {
+        final args = _extractEnumValueArgs(field.initializer!, userParamNames);
+        if (args.isNotEmpty) {
+          _buf.write('($args)');
+        }
+      }
+
+      if (i < enumValueFields.length - 1) {
+        _buf.write(',\n');
+      } else {
+        _buf.write(';\n');
+      }
+    }
+
+    // 输出用户自定义字段
+    if (userFields.isNotEmpty) {
+      _buf.write('\n');
+      for (final f in userFields) {
+        _restoreField(f);
+      }
+    }
+
+    // 输出构造函数（简化为用户参数）
+    if (userParamNames.isNotEmpty) {
+      _buf.write('\n');
+      _buf.write('${_pad}const ${cls.name}(');
+      _buf.write(userParamNames.map((name) => 'this.$name').join(', '));
+      _buf.write(');\n');
+    }
+
+    // 输出用户自定义方法（排除 _enumToString、toString 如果是默认的）
+    final syntheticMethods = {'_enumToString'};
+    final userMethods = cls.procedures.where((p) =>
+        !syntheticMethods.contains(p.name.text)).toList();
+    if (userMethods.isNotEmpty) {
+      _buf.write('\n');
+      for (final p in userMethods) {
+        _restoreProcedure(p);
+      }
+    }
+
+    _indent--;
+    _buf.write('}\n\n');
+  }
+
+  bool _isEnumInternalParam(String name) {
+    // _Enum 内部参数名（可能带 # 前缀，cleanVarName 后变为 index/name）
+    return name == 'index' || name == 'name' ||
+           name == '#index' || name == '#name';
+  }
+
+  /// 从 enum 值的 ConstructorInvocation 中提取用户自定义参数值
+  String _extractEnumValueArgs(Expression expr, List<String> userParamNames) {
+    // enum 值的初始化器是 ConstantExpression 包裹的 InstanceConstant
+    if (expr is ConstantExpression && expr.constant is InstanceConstant) {
+      final ic = expr.constant as InstanceConstant;
+      final parts = <String>[];
+      // 从 fieldValues 中提取用户自定义字段的值
+      for (final entry in ic.fieldValues.entries) {
+        final fieldName = entry.key.asField.name.text;
+        if (userParamNames.contains(fieldName)) {
+          parts.add(_restoreConstant(entry.value));
+        }
+      }
+      return parts.join(', ');
+    }
+    return '';
   }
 
   void _restoreClassMembers(Class cls) {
@@ -209,7 +343,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // body
     if (proc.function.body != null) {
       _buf.write(' ');
-      if (proc.isSetter) {
+      final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
+      if (isVoidReturn) {
         _restoreSetterBody(proc.function.body!);
       } else {
         _restoreBody(proc.function.body!);

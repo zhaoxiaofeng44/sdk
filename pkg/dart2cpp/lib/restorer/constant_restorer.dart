@@ -37,8 +37,11 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       if (className == 'override') return '@override';
       if (className == 'pragma') return '@pragma';
       if (className == 'Duration') {
-        // Duration() 常量 → Duration()
         return 'Duration()';
+      }
+      // 检查是否是 enum 值（superclass 是 _Enum）
+      if (_isEnumConstant(c)) {
+        return _restoreEnumConstant(c);
       }
       // 尝试匹配类的 const 构造函数来还原正确的构造函数调用
       return _restoreInstanceConstant(c);
@@ -209,5 +212,38 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       return true;
     }
     return false;
+  }
+
+  /// 检查 InstanceConstant 是否是 enum 值
+  bool _isEnumConstant(InstanceConstant c) {
+    final supertype = c.classNode.supertype;
+    if (supertype == null) return false;
+    return supertype.classNode.name == '_Enum';
+  }
+
+  /// 将 enum 的 InstanceConstant 还原为 EnumName.valueName
+  String _restoreEnumConstant(InstanceConstant c) {
+    final className = c.classNode.name;
+    // 从 enum 类的 static const 字段中找到匹配的值名称
+    for (final field in c.classNode.fields) {
+      if (!field.isStatic || !field.isConst) continue;
+      if (field.name.text == 'values') continue;
+      // 检查字段的初始化器是否是相同的常量
+      if (field.initializer is ConstantExpression) {
+        final fieldConst = (field.initializer as ConstantExpression).constant;
+        if (fieldConst == c) {
+          return '$className.${field.name.text}';
+        }
+      }
+    }
+    // 回退：从 fieldValues 中查找 _name 字段
+    for (final entry in c.fieldValues.entries) {
+      final fieldName = entry.key.asField.name.text;
+      if (fieldName == '_name' && entry.value is StringConstant) {
+        final valueName = (entry.value as StringConstant).value;
+        return '$className.$valueName';
+      }
+    }
+    return '$className.unknown';
   }
 }

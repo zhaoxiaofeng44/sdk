@@ -343,6 +343,390 @@ List<B> flatMap<A, B>(List<A> list, List<B> Function(A) f) {
   return list.expand(f).toList();
 }
 
+// ---- 19. 多层继承链 + super 构造函数调用 ----
+class Shape {
+  final String color;
+  final double opacity;
+
+  Shape(this.color, {this.opacity = 1.0});
+  Shape.transparent(String color) : this(color, opacity: 0.5);
+
+  String describe() => 'Shape(color=$color, opacity=$opacity)';
+}
+
+class Polygon extends Shape {
+  final int sides;
+
+  Polygon(super.color, this.sides, {super.opacity});
+
+  @override
+  String describe() => 'Polygon(sides=$sides, ${super.describe()})';
+
+  double perimeter(double sideLength) => sides * sideLength;
+}
+
+class RegularPolygon extends Polygon {
+  final double sideLength;
+
+  RegularPolygon(String color, int sides, this.sideLength, {double opacity = 1.0})
+      : super(color, sides, opacity: opacity);
+
+  @override
+  String describe() => 'RegularPolygon(sideLen=$sideLength, ${super.describe()})';
+
+  @override
+  double perimeter([double? overrideSideLength]) =>
+      sides * (overrideSideLength ?? sideLength);
+
+  double area() {
+    // 简化计算：正多边形面积 ≈ sides * sideLength^2 / 4
+    return sides * sideLength * sideLength / 4.0;
+  }
+}
+
+class Square extends RegularPolygon {
+  Square(String color, double size, {double opacity = 1.0})
+      : super(color, 4, size, opacity: opacity);
+
+  @override
+  String describe() => 'Square(size=$sideLength, color=$color)';
+}
+
+// ---- 20. implements 多接口 ----
+abstract class Serializable {
+  String serialize();
+}
+
+abstract class Cloneable<T> {
+  T clone();
+}
+
+abstract class Comparable2<T> {
+  int compareTo2(T other);
+}
+
+class DataPoint implements Serializable, Cloneable<DataPoint>, Comparable2<DataPoint> {
+  final double x;
+  final double y;
+  final String label;
+
+  DataPoint(this.x, this.y, this.label);
+
+  @override
+  String serialize() => '{"x":$x,"y":$y,"label":"$label"}';
+
+  @override
+  DataPoint clone() => DataPoint(x, y, label);
+
+  @override
+  int compareTo2(DataPoint other) {
+    final dx = x - other.x;
+    if (dx != 0) return dx > 0 ? 1 : -1;
+    final dy = y - other.y;
+    if (dy != 0) return dy > 0 ? 1 : -1;
+    return 0;
+  }
+
+  @override
+  String toString() => 'DataPoint($x, $y, "$label")';
+}
+
+// ---- 21. mixin on 约束 ----
+mixin Loggable {
+  String get logTag;
+  void log(String message) => print('[$logTag] $message');
+}
+
+mixin Validatable on Serializable {
+  bool validate() => serialize().isNotEmpty;
+}
+
+class LoggedDataPoint extends DataPoint with Loggable, Validatable {
+  LoggedDataPoint(super.x, super.y, super.label);
+
+  @override
+  String get logTag => 'DataPoint';
+}
+
+// ---- 22. 增强枚举 (enum with members) ----
+enum Priority {
+  low(1, 'Low'),
+  medium(5, 'Medium'),
+  high(10, 'High'),
+  critical(100, 'Critical');
+
+  final int level;
+  final String displayName;
+
+  const Priority(this.level, this.displayName);
+
+  bool isHigherThan(Priority other) => level > other.level;
+
+  @override
+  String toString() => '$displayName(level=$level)';
+}
+
+enum HttpMethod {
+  get('GET'),
+  post('POST'),
+  put('PUT'),
+  delete('DELETE');
+
+  final String value;
+  const HttpMethod(this.value);
+
+  bool get isReadOnly => this == HttpMethod.get;
+}
+
+// ---- 23. 重定向构造函数 + 初始化列表 ----
+class Config {
+  final String host;
+  final int port;
+  final bool secure;
+  final String baseUrl;
+
+  Config(this.host, this.port, {this.secure = false})
+      : baseUrl = '${secure ? "https" : "http"}://$host:$port';
+
+  Config.localhost({int port = 8080})
+      : this('localhost', port);
+
+  Config.production(String host)
+      : this(host, 443, secure: true);
+
+  @override
+  String toString() => 'Config($baseUrl)';
+}
+
+// ---- 24. 泛型约束 + 泛型方法 ----
+class SortedList<T extends Comparable<dynamic>> {
+  final List<T> _items = [];
+
+  void add(T item) {
+    _items.add(item);
+    _items.sort();
+  }
+
+  T get first => _items.first;
+  T get last => _items.last;
+  int get length => _items.length;
+
+  List<T> toList() => List.unmodifiable(_items);
+
+  @override
+  String toString() => 'SortedList($_items)';
+}
+
+T findMax<T extends Comparable<dynamic>>(List<T> items) {
+  T maxItem = items.first;
+  for (final item in items) {
+    if (item.compareTo(maxItem) > 0) {
+      maxItem = item;
+    }
+  }
+  return maxItem;
+}
+
+R applyTwice<T, R>(T value, R Function(T) fn1, R Function(R) fn2) {
+  return fn2(fn1(value));
+}
+
+// ---- 25. null safety 操作符 ----
+class NullSafetyDemo {
+  String? nullableField;
+  final String nonNullField;
+
+  NullSafetyDemo(this.nonNullField, [this.nullableField]);
+
+  String demonstrate() {
+    // ?. 操作符
+    final len = nullableField?.length;
+    // ?? 操作符
+    final safeLen = len ?? -1;
+    // ??= 操作符
+    nullableField ??= 'default';
+    // ! 操作符
+    final forced = nullableField!.toUpperCase();
+    return 'len=$safeLen, forced=$forced';
+  }
+}
+
+String? findFirst(List<String> items, bool Function(String) test) {
+  for (final item in items) {
+    if (test(item)) return item;
+  }
+  return null;
+}
+
+// ---- 26. for-in + do-while ----
+List<int> filterWithForIn(List<int> items) {
+  final result = <int>[];
+  for (final item in items) {
+    if (item >= 0 && item <= 100) {
+      result.add(item);
+    }
+  }
+  return result;
+}
+
+int collatzSteps(int n) {
+  int steps = 0;
+  do {
+    if (n == 1) break;
+    if (n % 2 == 0) {
+      n = n ~/ 2;
+    } else {
+      n = 3 * n + 1;
+    }
+    steps++;
+  } while (n != 1);
+  return steps;
+}
+
+// ---- 27. 类型测试 is / as ----
+String typeTest(Object value) {
+  if (value is int) {
+    return 'int: ${value * 2}';
+  } else if (value is String) {
+    return 'string: ${value.toUpperCase()}';
+  } else if (value is List<int>) {
+    return 'list<int>: ${value.length} items';
+  } else if (value is bool) {
+    return 'bool: $value';
+  }
+  return 'other: ${value.runtimeType}';
+}
+
+double safeCast(Object value) {
+  try {
+    return value as double;
+  } catch (e) {
+    return 0.0;
+  }
+}
+
+// ---- 28. try-catch-finally ----
+String tryCatchFinally(int code) {
+  final log = StringBuffer();
+  try {
+    log.write('try ');
+    if (code == 1) throw FormatException('bad format');
+    if (code == 2) throw ArgumentError('bad arg');
+    log.write('ok ');
+  } on FormatException catch (e) {
+    log.write('format:${e.message} ');
+  } on ArgumentError catch (e) {
+    log.write('arg:${e.message} ');
+  } catch (e) {
+    log.write('other:$e ');
+  } finally {
+    log.write('finally');
+  }
+  return log.toString();
+}
+
+// ---- 29. 抽象类继承 + covariant ----
+abstract class Renderer {
+  void render(covariant Object shape);
+  String get name;
+}
+
+class CircleRenderer extends Renderer {
+  @override
+  void render(String shape) {
+    print('  CircleRenderer: drawing $shape');
+  }
+
+  @override
+  String get name => 'CircleRenderer';
+}
+
+// ---- 30. 复杂泛型 + 函数类型参数 ----
+class Pipeline<TInput, TOutput> {
+  final TOutput Function(TInput) _transform;
+
+  Pipeline(this._transform);
+
+  TOutput execute(TInput input) => _transform(input);
+
+  Pipeline<TInput, TNewOutput> then<TNewOutput>(TNewOutput Function(TOutput) next) {
+    return Pipeline<TInput, TNewOutput>((input) => next(_transform(input)));
+  }
+}
+
+// ---- 31. switch-case 传统语法 ----
+String dayType(int day) {
+  switch (day) {
+    case 1:
+    case 7:
+      return 'weekend';
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+      return 'weekday';
+    default:
+      return 'invalid';
+  }
+}
+
+// ---- 32. 位运算 ----
+class BitFlags {
+  static const int read = 1;
+  static const int write = 2;
+  static const int execute = 4;
+
+  int _flags;
+
+  BitFlags([this._flags = 0]);
+
+  void set(int flag) => _flags = _flags | flag;
+  void clear(int flag) => _flags = _flags & ~flag;
+  bool has(int flag) => (_flags & flag) != 0;
+
+  @override
+  String toString() {
+    final parts = <String>[];
+    if (has(read)) parts.add('r');
+    if (has(write)) parts.add('w');
+    if (has(execute)) parts.add('x');
+    return parts.isEmpty ? '-' : parts.join('');
+  }
+}
+
+// ---- 33. 多层 mixin 继承 ----
+mixin Timestamped {
+  int get timestamp => 1234567890;
+  String get timeStr => 'T:$timestamp';
+}
+
+mixin Tagged {
+  final List<String> _tags = [];
+  void addTag(String tag) => _tags.add(tag);
+  List<String> get tags => List.unmodifiable(_tags);
+}
+
+class Event with Timestamped, Tagged {
+  final String name;
+  Event(this.name);
+
+  @override
+  String toString() => 'Event($name, $timeStr, tags=$tags)';
+}
+
+class ImportantEvent extends Event with Loggable {
+  final Priority priority;
+
+  ImportantEvent(super.name, this.priority);
+
+  @override
+  String get logTag => 'ImportantEvent';
+
+  @override
+  String toString() => 'ImportantEvent($name, $priority, $timeStr)';
+}
+
 // ---- 18. 主函数：综合测试 ----
 void main() async {
   print('=== 全面语法节点还原测试 ===\n');
@@ -513,6 +897,152 @@ void main() async {
 
   final nested = flatMap<int, int>([1, 2, 3], (x) => [x, x * x]);
   print('flatMap: $nested');
+
+  // ---- 测试 19: 多层继承链 + super 构造函数调用 ----
+  print('\n--- 19. 多层继承链 ---');
+  final shape = Shape('red');
+  print(shape.describe());
+  final transparentShape = Shape.transparent('blue');
+  print(transparentShape.describe());
+  final polygon = Polygon('green', 6, opacity: 0.8);
+  print(polygon.describe());
+  print('perimeter: ${polygon.perimeter(3.0)}');
+  final hexagon = RegularPolygon('yellow', 6, 5.0);
+  print(hexagon.describe());
+  print('perimeter: ${hexagon.perimeter()}');
+  print('area: ${hexagon.area()}');
+  final square = Square('white', 10.0, opacity: 0.9);
+  print(square.describe());
+  print('square perimeter: ${square.perimeter()}');
+
+  // ---- 测试 20: implements 多接口 ----
+  print('\n--- 20. implements 多接口 ---');
+  final dp1 = DataPoint(1.0, 2.0, 'A');
+  final dp2 = DataPoint(3.0, 1.0, 'B');
+  print('dp1: $dp1');
+  print('dp1.serialize: ${dp1.serialize()}');
+  final dp1Clone = dp1.clone();
+  print('dp1.clone: $dp1Clone');
+  print('dp1.compareTo2(dp2): ${dp1.compareTo2(dp2)}');
+
+  // ---- 测试 21: mixin on 约束 ----
+  print('\n--- 21. mixin on 约束 ---');
+  final ldp = LoggedDataPoint(5.0, 6.0, 'logged');
+  ldp.log('created');
+  print('validate: ${ldp.validate()}');
+  print('serialize: ${ldp.serialize()}');
+
+  // ---- 测试 22: 增强枚举 ----
+  print('\n--- 22. 增强枚举 ---');
+  print('Priority.high: $Priority.high');
+  print('high > medium: ${Priority.high.isHigherThan(Priority.medium)}');
+  print('low > high: ${Priority.low.isHigherThan(Priority.high)}');
+  for (final p in Priority.values) {
+    print('  $p');
+  }
+  print('GET isReadOnly: ${HttpMethod.get.isReadOnly}');
+  print('POST isReadOnly: ${HttpMethod.post.isReadOnly}');
+
+  // ---- 测试 23: 重定向构造函数 + 初始化列表 ----
+  print('\n--- 23. 重定向构造函数 ---');
+  final cfg1 = Config('example.com', 8080);
+  final cfg2 = Config.localhost();
+  final cfg3 = Config.production('api.example.com');
+  print('cfg1: $cfg1');
+  print('cfg2: $cfg2');
+  print('cfg3: $cfg3');
+
+  // ---- 测试 24: 泛型约束 ----
+  print('\n--- 24. 泛型约束 ---');
+  final sortedList = SortedList<int>();
+  sortedList.add(5);
+  sortedList.add(1);
+  sortedList.add(3);
+  sortedList.add(2);
+  print('sorted: $sortedList');
+  print('first: ${sortedList.first}, last: ${sortedList.last}');
+  final maxVal = findMax<int>([3, 7, 1, 9, 4]);
+  print('findMax: $maxVal');
+  final result = applyTwice<int, String>(5, (x) => 'n=$x', (s) => '$s!');
+  print('applyTwice: $result');
+
+  // ---- 测试 25: null safety ----
+  print('\n--- 25. null safety ---');
+  final ns1 = NullSafetyDemo('hello', 'world');
+  print('ns1: ${ns1.demonstrate()}');
+  final ns2 = NullSafetyDemo('hello');
+  print('ns2: ${ns2.demonstrate()}');
+  final found = findFirst(['apple', 'banana', 'cherry'], (s) => s.startsWith('b'));
+  print('findFirst(b): $found');
+  final notFound = findFirst(['apple', 'banana'], (s) => s.startsWith('z'));
+  print('findFirst(z): $notFound');
+
+  // ---- 测试 26: for-in + do-while ----
+  print('\n--- 26. for-in + do-while ---');
+  final filtered = filterWithForIn([5, -3, 10, 200, 50, -1, 80]);
+  print('filterWithForIn: $filtered');  // [5, 10, 50, 80]
+  print('collatz(6): ${collatzSteps(6)}');
+  print('collatz(27): ${collatzSteps(27)}');
+
+  // ---- 测试 27: 类型测试 is/as ----
+  print('\n--- 27. 类型测试 ---');
+  print(typeTest(42));
+  print(typeTest('hello'));
+  print(typeTest(true));
+  print(typeTest(<int>[1, 2, 3]));
+  print('safeCast(3.14): ${safeCast(3.14)}');
+  print('safeCast("x"): ${safeCast("x")}');
+
+  // ---- 测试 28: try-catch-finally ----
+  print('\n--- 28. try-catch-finally ---');
+  print('code=0: ${tryCatchFinally(0)}');
+  print('code=1: ${tryCatchFinally(1)}');
+  print('code=2: ${tryCatchFinally(2)}');
+
+  // ---- 测试 29: covariant ----
+  print('\n--- 29. covariant ---');
+  final renderer = CircleRenderer();
+  print('renderer: ${renderer.name}');
+  renderer.render('circle');
+
+  // ---- 测试 30: Pipeline 泛型链 ----
+  print('\n--- 30. Pipeline 泛型链 ---');
+  final pipeline = Pipeline<int, String>((n) => 'val=$n')
+      .then<int>((s) => s.length)
+      .then<String>((len) => 'len=$len');
+  print('pipeline(42): ${pipeline.execute(42)}');
+  print('pipeline(12345): ${pipeline.execute(12345)}');
+
+  // ---- 测试 31: switch-case 传统语法 ----
+  print('\n--- 31. switch-case ---');
+  print('day 1: ${dayType(1)}');
+  print('day 3: ${dayType(3)}');
+  print('day 7: ${dayType(7)}');
+  print('day 9: ${dayType(9)}');
+
+  // ---- 测试 32: 位运算 ----
+  print('\n--- 32. 位运算 ---');
+  final flags = BitFlags();
+  flags.set(BitFlags.read);
+  flags.set(BitFlags.execute);
+  print('flags: $flags');
+  print('has read: ${flags.has(BitFlags.read)}');
+  print('has write: ${flags.has(BitFlags.write)}');
+  flags.set(BitFlags.write);
+  print('after set write: $flags');
+  flags.clear(BitFlags.execute);
+  print('after clear execute: $flags');
+
+  // ---- 测试 33: 多层 mixin 继承 ----
+  print('\n--- 33. 多层 mixin ---');
+  final event = Event('meeting');
+  event.addTag('work');
+  event.addTag('important');
+  print(event);
+  final impEvent = ImportantEvent('deadline', Priority.critical);
+  impEvent.addTag('urgent');
+  impEvent.log('created');
+  print(impEvent);
 
   print('\n=== 所有测试通过 ✅ ===');
 }
