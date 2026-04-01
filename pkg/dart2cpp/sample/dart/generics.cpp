@@ -41,12 +41,15 @@ public:
   }
   
   Nullable swap() {
-    auto temp = this->first();
+    auto temp = this->get_first();
 this->first = dart_cast<T>(this->second);
 this->second = dart_cast<U>(temp);
 return Void;
   }
   
+  String toString() const {
+    return dart_string("Pair");
+  }
 };
 
 // ============================================================================
@@ -69,6 +72,9 @@ return Void;
 return Void;
   }
   
+  String toString() const {
+    return dart_string("NumberContainer");
+  }
 };
 
 // ============================================================================
@@ -85,6 +91,9 @@ public:
     return ObjectPtr<Box<T>>(new Box<T>(value));
   }
   
+  String toString() const {
+    return dart_string("ContainerFactory");
+  }
 };
 
 // ============================================================================
@@ -117,6 +126,9 @@ public:
     return a->operator_less(b) ? a : b;
   }
   
+  String toString() const {
+    return dart_string("NumberCalculator");
+  }
 };
 
 // ============================================================================
@@ -143,6 +155,9 @@ sorted->sort();
 return sorted;
   }
   
+  String toString() const {
+    return dart_string("Comparator");
+  }
 };
 
 // ============================================================================
@@ -173,6 +188,9 @@ public:
     return object->toJson()->toString();
   }
   
+  String toString() const {
+    return dart_string("Serializer");
+  }
 };
 
 // ============================================================================
@@ -193,6 +211,9 @@ public:
     return collection->isEmpty();
   }
   
+  String toString() const {
+    return dart_string("CollectionProcessor");
+  }
 };
 
 // ============================================================================
@@ -209,6 +230,9 @@ public:
     return dart_string("Processing: ") + (object->toJson()).toString();
   }
   
+  String toString() const {
+    return dart_string("AdvancedProcessor");
+  }
 };
 
 // ============================================================================
@@ -231,7 +255,7 @@ public:
     return this->_items->operator_index(index);
   }
   
-  Int size() {
+  Int get_size() {
     return this->_items->get_length();
   }
   
@@ -239,6 +263,9 @@ public:
     return List<Any>::from(this->_items);
   }
   
+  String toString() const {
+    return dart_string("GenericList");
+  }
 };
 
 // ============================================================================
@@ -265,14 +292,17 @@ public:
     return this->_items->last();
   }
   
-  Int size() {
+  Int get_size() {
     return this->_items->get_length();
   }
   
-  Bool isEmpty() {
+  Bool get_isEmpty() {
     return this->_items->isEmpty();
   }
   
+  String toString() const {
+    return dart_string("GenericStack");
+  }
 };
 
 // ============================================================================
@@ -299,14 +329,17 @@ public:
     return this->_items->first();
   }
   
-  Int size() {
+  Int get_size() {
     return this->_items->get_length();
   }
   
-  Bool isEmpty() {
+  Bool get_isEmpty() {
     return this->_items->isEmpty();
   }
   
+  String toString() const {
+    return dart_string("GenericQueue");
+  }
 };
 
 // ============================================================================
@@ -322,14 +355,14 @@ public:
   }
   
   Nullable put(K key, V value) {
-    return ([&]() { auto let_var = this->_items; return ([&]() { auto let_var = key; return ([&]() { auto let_var = value; return ([&]() { auto let_var = let_var->operator_index_set(let_var, let_var); return let_var; })(); })(); })(); })();
+    return ([&]() { auto let_var_0 = this->_items; return ([&]() { auto let_var_1 = key; return ([&]() { auto let_var_2 = value; return ([&]() { auto let_var_3 = let_var_0->operator_index_set(let_var_1, let_var_2); return let_var_2; })(); })(); })(); })();
   }
   
   V get(K key) {
     return this->_items->operator_index(key);
   }
   
-  Int size() {
+  Int get_size() {
     return this->_items->get_length();
   }
   
@@ -341,6 +374,27 @@ public:
     return this->_items->values();
   }
   
+  String toString() const {
+    return dart_string("GenericMap");
+  }
+};
+
+// ============================================================================
+// 类: TreeNode
+// ============================================================================
+
+template<typename T>
+class TreeNode {
+public:
+  T value;
+  ObjectPtr<TreeNode<T>> left = Null;
+  ObjectPtr<TreeNode<T>> right = Null;
+  TreeNode(T value) : value(value) {
+  }
+  
+  String toString() const {
+    return dart_string("TreeNode");
+  }
 };
 
 // ============================================================================
@@ -366,7 +420,7 @@ return Void;
     return (dart_is_null(this->_findNode(this->_root, value))).operator_not();
   }
   
-  Int size() {
+  Int get_size() {
     return this->_size;
   }
   
@@ -396,21 +450,9 @@ return this->_findNode(node->left, value);
 return this->_findNode(node->right, value);
   }
   
-};
-
-// ============================================================================
-// 类: TreeNode
-// ============================================================================
-
-template<typename T>
-class TreeNode {
-public:
-  T value;
-  ObjectPtr<TreeNode<T>> left = Null;
-  ObjectPtr<TreeNode<T>> right = Null;
-  TreeNode(T value) : value(value) {
+  String toString() const {
+    return dart_string("BinaryTree");
   }
-  
 };
 
 // ============================================================================
@@ -427,6 +469,9 @@ public:
     return dart_string("Some sound");
   }
   
+  String toString() const {
+    return dart_string("Animal");
+  }
 };
 
 // ============================================================================
@@ -443,6 +488,9 @@ public:
     return dart_string("Woof!");
   }
   
+  String toString() const {
+    return dart_string("Dog");
+  }
 };
 
 // ============================================================================
@@ -459,6 +507,9 @@ public:
     return dart_string("Meow!");
   }
   
+  String toString() const {
+    return dart_string("Cat");
+  }
 };
 
 // ============================================================================
@@ -476,6 +527,9 @@ public:
 return Void;
   }
   
+  String toString() const {
+    return dart_string("AnimalProcessor");
+  }
 };
 
 // ============================================================================
@@ -521,6 +575,9 @@ public:
     return ObjectPtr<Dog>(new Dog(dart_string("Produced Dog"), dart_string("Golden Retriever")));
   }
   
+  String toString() const {
+    return dart_string("DogProducer");
+  }
 };
 
 // ============================================================================
@@ -537,6 +594,9 @@ public:
 return Void;
   }
   
+  String toString() const {
+    return dart_string("AnimalConsumer");
+  }
 };
 
 // ============================================================================
@@ -554,6 +614,9 @@ public:
     return Map<String, Any>::create({{dart_string("name"), this->name}, {dart_string("age"), this->age}});
   }
   
+  String toString() const {
+    return dart_string("Person");
+  }
 };
 
 // ============================================================================
@@ -570,6 +633,9 @@ public:
     return ([&]() { const auto unnamed_var = Map<String, Any>::of(this->toJson()); unnamed_var->operator_index_set(dart_string("studentId"), this->studentId); return unnamed_var; })();
   }
   
+  String toString() const {
+    return dart_string("Student");
+  }
 };
 
 // ============================================================================
@@ -612,6 +678,9 @@ public:
     return List<String>::from(this->_items);
   }
   
+  String toString() const {
+    return dart_string("StringRepository");
+  }
 };
 
 // ============================================================================
@@ -630,7 +699,7 @@ public:
   }
   
   Int findById(String id) {
-    auto intId = Int::tryParse(id, Null);
+    auto intId = Int::tryParse(id);
 return (dart_is_null(intId)).operator_not() && this->_items->contains(intId) ? intId : Null;
   }
   
@@ -638,6 +707,9 @@ return (dart_is_null(intId)).operator_not() && this->_items->contains(intId) ? i
     return List<Int>::from(this->_items);
   }
   
+  String toString() const {
+    return dart_string("IntRepository");
+  }
 };
 
 // ============================================================================
@@ -668,6 +740,9 @@ public:
     return Int::parse(input);
   }
   
+  String toString() const {
+    return dart_string("StringToIntConverter");
+  }
 };
 
 // ============================================================================
@@ -683,6 +758,9 @@ public:
     return input->toString();
   }
   
+  String toString() const {
+    return dart_string("IntToStringConverter");
+  }
 };
 
 // ============================================================================
@@ -713,6 +791,9 @@ public:
     return input->contains(dart_string("@")) && input->contains(dart_string("."));
   }
   
+  String toString() const {
+    return dart_string("EmailValidator");
+  }
 };
 
 // ============================================================================
@@ -728,6 +809,9 @@ public:
     return input->operator_greater_equals(dart_int(0)) && input->operator_less_equals(dart_int(150));
   }
   
+  String toString() const {
+    return dart_string("AgeValidator");
+  }
 };
 
 Nullable testGenericClasses();
@@ -765,9 +849,9 @@ dart_print(dart_string("    整数盒子: ") + (intBox->getValue()).toString());
 dart_print(dart_string("    字符串盒子: ") + (stringBox->getValue()).toString());
 auto pair = ObjectPtr<Pair<String, Int>>(new Pair<String, Int>(dart_string("Alice"), dart_int(25)));
 dart_print(dart_string("  多泛型参数:"));
-dart_print(dart_concat(dart_string("    键值对: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
+dart_print(dart_concat(dart_string("    键值对: "), (pair->get_first()).toString(), dart_string(" -> "), (pair->second).toString()));
 pair->swap();
-dart_print(dart_concat(dart_string("    交换后: "), (pair->first()).toString(), dart_string(" -> "), (pair->second).toString()));
+dart_print(dart_concat(dart_string("    交换后: "), (pair->get_first()).toString(), dart_string(" -> "), (pair->second).toString()));
 auto nestedBox = ObjectPtr<Box<ObjectPtr<Box<String>>>>(new Box<ObjectPtr<Box<String>>>(ObjectPtr<Box<String>>(new Box<String>(dart_string("Nested")))));
 dart_print(dart_string("  嵌套泛型: ") + (nestedBox->getValue()->getValue()).toString());
 auto numberContainer = ObjectPtr<NumberContainer<Int>>(new NumberContainer<Int>(dart_int(42)));
@@ -804,7 +888,7 @@ auto b = dart_string("Second");
 auto swapped = swap(a, b);
 dart_print(dart_string("  泛型交换:"));
 dart_print(dart_concat(dart_string("    交换前: "), (a).toString(), dart_string(", "), (b).toString()));
-dart_print(dart_concat(dart_string("    交换后: "), (swapped->first()).toString(), dart_string(", "), (swapped->second).toString()));
+dart_print(dart_concat(dart_string("    交换后: "), (swapped->get_first()).toString(), dart_string(", "), (swapped->second).toString()));
 auto numbers = dart_literal<Int>(dart_int(1), dart_int(2), dart_int(3), dart_int(4), dart_int(5));
 auto strings = dart_literal<String>(dart_string("a"), dart_string("b"), dart_string("c"));
 auto firstNumber = getFirst(numbers);
@@ -864,7 +948,7 @@ intList->add(dart_int(2));
 intList->add(dart_int(3));
 dart_print(dart_string("  自定义泛型列表:"));
 dart_print(dart_string("    列表内容: ") + (intList->toList()).toString());
-dart_print(dart_string("    列表大小: ") + (intList->size()).toString());
+dart_print(dart_string("    列表大小: ") + (intList->get_size()).toString());
 dart_print(dart_string("    获取索引1: ") + (intList->get(dart_int(1))).toString());
 auto stringStack = ObjectPtr<GenericStack<String>>(new GenericStack<String>());
 stringStack->push(dart_string("First"));
@@ -873,7 +957,7 @@ stringStack->push(dart_string("Third"));
 dart_print(dart_string("  自定义泛型栈:"));
 dart_print(dart_string("    栈顶元素: ") + (stringStack->peek()).toString());
 dart_print(dart_string("    弹出元素: ") + (stringStack->pop()).toString());
-dart_print(dart_string("    栈大小: ") + (stringStack->size()).toString());
+dart_print(dart_string("    栈大小: ") + (stringStack->get_size()).toString());
 auto intQueue = ObjectPtr<GenericQueue<Int>>(new GenericQueue<Int>());
 intQueue->enqueue(dart_int(10));
 intQueue->enqueue(dart_int(20));
@@ -881,14 +965,14 @@ intQueue->enqueue(dart_int(30));
 dart_print(dart_string("  自定义泛型队列:"));
 dart_print(dart_string("    队列前端: ") + (intQueue->front()).toString());
 dart_print(dart_string("    出队元素: ") + (intQueue->dequeue()).toString());
-dart_print(dart_string("    队列大小: ") + (intQueue->size()).toString());
+dart_print(dart_string("    队列大小: ") + (intQueue->get_size()).toString());
 auto stringIntMap = ObjectPtr<GenericMap<String, Int>>(new GenericMap<String, Int>());
 stringIntMap->put(dart_string("one"), dart_int(1));
 stringIntMap->put(dart_string("two"), dart_int(2));
 stringIntMap->put(dart_string("three"), dart_int(3));
 dart_print(dart_string("  泛型映射:"));
 dart_print(dart_string("    获取值: ") + (stringIntMap->get(dart_string("two"))).toString());
-dart_print(dart_string("    映射大小: ") + (stringIntMap->size()).toString());
+dart_print(dart_string("    映射大小: ") + (stringIntMap->get_size()).toString());
 dart_print(dart_string("    所有键: ") + (stringIntMap->keys()).toString());
 auto intTree = ObjectPtr<BinaryTree<Int>>(new BinaryTree<Int>());
 intTree->insert(dart_int(5));
@@ -899,7 +983,7 @@ intTree->insert(dart_int(9));
 dart_print(dart_string("  泛型二叉树:"));
 dart_print(dart_string("    包含5: ") + (intTree->contains(dart_int(5))).toString());
 dart_print(dart_string("    包含6: ") + (intTree->contains(dart_int(6))).toString());
-dart_print(dart_string("    树的大小: ") + (intTree->size()).toString());
+dart_print(dart_string("    树的大小: ") + (intTree->get_size()).toString());
 return Void;
 }
 

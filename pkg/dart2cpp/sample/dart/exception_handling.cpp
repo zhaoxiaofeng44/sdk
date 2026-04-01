@@ -153,6 +153,9 @@ public:
   User(String name, Int age, String email) : name(name), age(age), email(email) {
   }
   
+  String toString() const {
+    return dart_string("User");
+  }
 };
 
 // ============================================================================
@@ -174,6 +177,9 @@ this->balance = this->balance->operator_sub(amount);
 return Void;
   }
   
+  String toString() const {
+    return dart_string("BankAccount");
+  }
 };
 
 // ============================================================================
@@ -202,6 +208,9 @@ dart_print(dart_string("    关闭文件: ") + (this->filename).toString());
 return Void;
   }
   
+  String toString() const {
+    return dart_string("FileManager");
+  }
 };
 
 Nullable testBasicExceptions();
@@ -322,7 +331,7 @@ Nullable testFinallyBlocks() {
   dart_print(dart_string("\n📌 测试 finally 块"));
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
-ObjectPtr<ObjectPtr<FileManager>> fileManager(Null);
+ObjectPtr<FileManager> fileManager(Null);
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ }
 try { /* try block */ } catch (const std::exception& e) { /* catch block */ };
 return Void;
@@ -356,7 +365,7 @@ return Void;
 
 Double divideByZero(Int a, Int b) {
   if ((b == dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"), Null)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("除数不能为零"))));
 }
 return a->operator_div(b);
 }
@@ -375,10 +384,10 @@ return Void;
 
 Nullable validateAge(Int age) {
   if (age->operator_less(dart_int(0))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"), Null)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能为负数"))));
 }
 if (age->operator_greater(dart_int(150))) {
-throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"), Null)));
+throw DartException(ObjectPtr<ArgumentError>(new ArgumentError(dart_string("年龄不能超过150"))));
 };
 return Void;
 }
@@ -409,7 +418,7 @@ return Void;
 }
 
 Nullable performDatabaseOperation() {
-  auto random = ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()->operator_mod(dart_int(2));
+  auto random = DateTime::now()->get_millisecondsSinceEpoch()->operator_mod(dart_int(2));
 if ((random == dart_int(0))) {
 throw DartException(ObjectPtr<ConnectionException>(new ConnectionException(dart_string("无法连接到数据库"), dart_string("localhost:5432"))));
 } else {

@@ -22,6 +22,9 @@ return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
     return this->_value;
   }
   
+  String toString() const {
+    return dart_string("Builder");
+  }
 };
 
 // ============================================================================

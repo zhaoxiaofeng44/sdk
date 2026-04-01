@@ -48,7 +48,7 @@ auto autoDouble = dart_double(3.14);
 auto autoBool = dart_bool(true);
 const auto finalValue = dart_string("cannot change");
 const auto typedFinal = dart_int(200);
-const auto now = ObjectPtr<DateTime>(new DateTime());
+const auto now = DateTime::now();
 Int nullableInt(Null);
 Any nullableString = Null;
 Double nullableDouble(Null);

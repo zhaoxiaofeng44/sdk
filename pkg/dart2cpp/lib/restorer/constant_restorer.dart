@@ -1,0 +1,213 @@
+part of 'dart_restorer.dart';
+
+// ============================================================================
+// Constant Restorer
+// ============================================================================
+
+mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
+  // ---- Constants ----
+
+  String _restoreConstant(Constant c) {
+    if (c is IntConstant) return '${c.value}';
+    if (c is DoubleConstant) {
+      if (c.value == c.value.toInt().toDouble()) return '${c.value.toStringAsFixed(1)}';
+      return '${c.value}';
+    }
+    if (c is BoolConstant) return '${c.value}';
+    if (c is StringConstant) {
+      final escaped = c.value
+          .replaceAll('\\', '\\\\')
+          .replaceAll("'", "\\'")
+          .replaceAll('\n', '\\n');
+      return "'$escaped'";
+    }
+    if (c is NullConstant) return 'null';
+    if (c is ListConstant) {
+      final items = c.entries.map((e) => _restoreConstant(e)).join(', ');
+      return 'const [${items}]';
+    }
+    if (c is MapConstant) {
+      final entries = c.entries.map((e) {
+        return '${_restoreConstant(e.key)}: ${_restoreConstant(e.value)}';
+      }).join(', ');
+      return 'const {$entries}';
+    }
+    if (c is InstanceConstant) {
+      final className = c.classNode.name;
+      if (className == 'override') return '@override';
+      if (className == 'pragma') return '@pragma';
+      if (className == 'Duration') {
+        // Duration() 常量 → Duration()
+        return 'Duration()';
+      }
+      // 尝试匹配类的 const 构造函数来还原正确的构造函数调用
+      return _restoreInstanceConstant(c);
+    }
+    if (c is TypeLiteralConstant) return _restoreType(c.type);
+    if (c is SymbolConstant) return '#${c.name}';
+    if (c is RecordConstant) {
+      final parts = <String>[];
+      for (final p in c.positional) {
+        parts.add(_restoreConstant(p));
+      }
+      for (final entry in c.named.entries) {
+        parts.add('${entry.key}: ${_restoreConstant(entry.value)}');
+      }
+      return 'const (${parts.join(', ')})';
+    }
+    return '/* const ${c.runtimeType} */';
+  }
+
+  /// 还原 InstanceConstant 为正确的构造函数调用
+  /// Kernel 中 InstanceConstant 只存储字段值映射，需要匹配类的构造函数来还原
+  String _restoreInstanceConstant(InstanceConstant c) {
+    final cls = c.classNode;
+    final className = cls.name;
+
+    // 收集字段值（排除 null 和默认值以找到最佳构造函数）
+    final fieldValues = <String, Constant>{};
+    for (final entry in c.fieldValues.entries) {
+      fieldValues[entry.key.asField.name.text] = entry.value;
+    }
+
+    // 尝试匹配类的 const 构造函数
+    Constructor? bestCtor;
+    int bestScore = -1;
+
+    for (final ctor in cls.constructors) {
+      if (!ctor.isConst) continue;
+      final score = _matchConstructor(ctor, fieldValues);
+      if (score > bestScore) {
+        bestScore = score;
+        bestCtor = ctor;
+      }
+    }
+
+    if (bestCtor != null) {
+      return _buildConstantCtorCall(className, bestCtor, fieldValues, c.typeArguments);
+    }
+
+    // 回退：使用字段名作为命名参数
+    final fields = c.fieldValues.entries.map((e) {
+      return '${e.key.asField.name.text}: ${_restoreConstant(e.value)}';
+    }).join(', ');
+    return 'const $className($fields)';
+  }
+
+  /// 计算构造函数与字段值的匹配分数
+  /// 返回 -1 表示不匹配，否则返回匹配分数（越高越好）
+  int _matchConstructor(Constructor ctor, Map<String, Constant> fieldValues) {
+    // 构建从参数到字段的映射
+    final paramToField = <String, String>{};
+    for (final init in ctor.initializers) {
+      if (init is FieldInitializer && init.value is VariableGet) {
+        final varGet = init.value as VariableGet;
+        final paramName = varGet.variable.name;
+        if (paramName != null) {
+          paramToField[paramName] = init.field.name.text;
+        }
+      }
+    }
+
+    int score = 0;
+    final func = ctor.function;
+
+    // 检查位置参数：每个位置参数对应的字段值不应为 null（除非参数类型允许 null）
+    for (final param in func.positionalParameters) {
+      final paramName = param.name ?? '';
+      final fieldName = paramToField[paramName] ?? paramName;
+      if (fieldValues.containsKey(fieldName)) {
+        final value = fieldValues[fieldName]!;
+        // 如果参数类型不允许 null 但字段值为 null，则不匹配
+        if (value is NullConstant && param.type.nullability != Nullability.nullable) {
+          return -1;
+        }
+        score++;
+      } else if (param.initializer == null && !param.isRequired) {
+        // 必需的位置参数没有对应字段值，不匹配
+        return -1;
+      }
+    }
+
+    return score;
+  }
+
+  /// 根据匹配的构造函数构建 const 构造函数调用
+  String _buildConstantCtorCall(
+    String className,
+    Constructor ctor,
+    Map<String, Constant> fieldValues,
+    List<DartType> typeArguments,
+  ) {
+    final ctorName = ctor.name.text;
+    final func = ctor.function;
+    final argParts = <String>[];
+
+    // 构建从参数名到字段名的映射
+    final paramToField = <String, String>{};
+    for (final init in ctor.initializers) {
+      if (init is FieldInitializer && init.value is VariableGet) {
+        final varGet = init.value as VariableGet;
+        final paramName = varGet.variable.name;
+        if (paramName != null) {
+          paramToField[paramName] = init.field.name.text;
+        }
+      }
+    }
+
+    // 位置参数
+    for (final param in func.positionalParameters) {
+      final paramName = param.name ?? '';
+      final fieldName = paramToField[paramName] ?? paramName;
+      if (fieldValues.containsKey(fieldName)) {
+        argParts.add(_restoreConstant(fieldValues[fieldName]!));
+      }
+    }
+
+    // 命名参数（只输出非默认值的）
+    for (final param in func.namedParameters) {
+      final paramName = param.name ?? '';
+      final fieldName = paramToField[paramName] ?? paramName;
+      if (fieldValues.containsKey(fieldName)) {
+        final value = fieldValues[fieldName]!;
+        // 检查是否有默认值且与默认值相同
+        if (param.initializer != null && _isConstantMatchingDefault(value, param.initializer!)) {
+          continue; // 跳过与默认值相同的命名参数
+        }
+        argParts.add('$paramName: ${_restoreConstant(value)}');
+      }
+    }
+
+    // 构建类型参数
+    final typeArgs = typeArguments.where((t) => t is! DynamicType).toList();
+    final typeArgStr = typeArgs.isNotEmpty
+        ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
+        : '';
+
+    final argsStr = argParts.join(', ');
+    if (ctorName.isEmpty) {
+      return 'const $className$typeArgStr($argsStr)';
+    }
+    return 'const $className$typeArgStr.$ctorName($argsStr)';
+  }
+
+  /// 检查常量值是否与表达式的默认值匹配
+  bool _isConstantMatchingDefault(Constant value, Expression defaultExpr) {
+    if (defaultExpr is IntLiteral && value is IntConstant) {
+      return defaultExpr.value == value.value;
+    }
+    if (defaultExpr is DoubleLiteral && value is DoubleConstant) {
+      return defaultExpr.value == value.value;
+    }
+    if (defaultExpr is BoolLiteral && value is BoolConstant) {
+      return defaultExpr.value == value.value;
+    }
+    if (defaultExpr is StringLiteral && value is StringConstant) {
+      return defaultExpr.value == value.value;
+    }
+    if (defaultExpr is NullLiteral && value is NullConstant) {
+      return true;
+    }
+    return false;
+  }
+}

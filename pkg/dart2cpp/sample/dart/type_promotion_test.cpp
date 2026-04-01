@@ -58,7 +58,7 @@ if (dart_is<ObjectPtr<List<Any>>>(data)) {
 auto data_promoted = dart_cast<ObjectPtr<List<Any>>>(data);
 dart_print(data_promoted->get_length());
 } else {
-dart_print(data->toString());
+dart_print(data.toString());
 }
 auto item = getItem();
 if ((dart_is<Int>(item)).operator_not()) {

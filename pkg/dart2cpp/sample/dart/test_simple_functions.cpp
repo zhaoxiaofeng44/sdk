@@ -2,11 +2,11 @@
 
 // 工具宏定义
 
-ObjectPtr<TypedFunction<Int, Int, Int>> multiply = makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([](Int a, Int b) -> Int { return a->operator_mul(b); }));
-
 Int add(Int a, Int b);
 Int subtract(Int a, Int b);
 Int calculate(Int a, Int b, ObjectPtr<Function> operation);
+ObjectPtr<TypedFunction<Int, Int, Int>> multiply = makeFunction<Int, Int, Int>(std::function<Int(Int, Int)>([](Int a, Int b) -> Int { return a->operator_mul(b); }));
+
 Int add(Int a, Int b) {
   return a->operator_add(b);
 }

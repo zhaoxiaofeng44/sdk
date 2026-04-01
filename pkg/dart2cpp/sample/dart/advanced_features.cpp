@@ -18,6 +18,9 @@ public:
 return Void;
   }
   
+  String toString() const {
+    return dart_string("Person");
+  }
 };
 
 // ============================================================================
@@ -72,6 +75,9 @@ return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
 return ObjectPtr<std::remove_reference_t<decltype(*this)>>(this);
   }
   
+  String toString() const {
+    return dart_string("Calculator");
+  }
 };
 
 // ============================================================================
@@ -101,12 +107,12 @@ public:
     return dart_is<ObjectPtr<Vector>>(other) && (this->x == dart_cast<ObjectPtr<Vector>>(other)->x) && (this->y == dart_cast<ObjectPtr<Vector>>(other)->y);
   }
   
-  Int hashCode() {
+  Int get_hashCode() {
     return Object::hash(this->x, this->y);
   }
   
-  Double length() {
-    return MathExtension::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
+  Double get_length() {
+    return MathExtensions::sqrt(this->x->operator_mul(this->x)->operator_add(this->y->operator_mul(this->y)));
   }
   
   String toString() {
@@ -218,10 +224,13 @@ return thisDistance->compareTo(otherDistance);
     return dart_is<ObjectPtr<Point>>(other) && (this->x == dart_cast<ObjectPtr<Point>>(other)->x) && (this->y == dart_cast<ObjectPtr<Point>>(other)->y);
   }
   
-  Int hashCode() {
+  Int get_hashCode() {
     return Object::hash(this->x, this->y);
   }
   
+  String toString() const {
+    return dart_string("Point");
+  }
 };
 
 // ============================================================================
@@ -248,6 +257,9 @@ return Void;
 return Void;
   }
   
+  String toString() const {
+    return dart_string("UserService");
+  }
 };
 
 // ============================================================================
@@ -273,6 +285,9 @@ return Void;
 return Void;
   }
   
+  String toString() const {
+    return dart_string("DataValidator");
+  }
 };
 
 // ============================================================================
@@ -284,6 +299,9 @@ public:
   requiredTag() {
   }
   
+  String toString() const {
+    return dart_string("requiredTag");
+  }
 };
 
 // ============================================================================
@@ -296,6 +314,9 @@ public:
   timeout(Int milliseconds) : milliseconds(milliseconds) {
   }
   
+  String toString() const {
+    return dart_string("timeout");
+  }
 };
 
 // ============================================================================
@@ -307,6 +328,9 @@ public:
   experimental() {
   }
   
+  String toString() const {
+    return dart_string("experimental");
+  }
 };
 
 // ============================================================================
@@ -392,7 +416,7 @@ namespace ListExtensions {
     if (this_->isEmpty()) {
 throw DartException(ObjectPtr<StateError>(new StateError(dart_string("Empty list"))));
 }
-return this_->operator_index(ObjectPtr<DateTime>(new DateTime())->get_millisecondsSinceEpoch()->operator_mod(this_->get_length()));
+return this_->operator_index(DateTime::now()->get_millisecondsSinceEpoch()->operator_mod(this_->get_length()));
   }
   
 } // namespace ListExtensions
@@ -403,7 +427,7 @@ return this_->operator_index(ObjectPtr<DateTime>(new DateTime())->get_millisecon
 
 namespace DateTimeExtensions {
   inline Bool isToday(ObjectPtr<DateTime> this_) {
-    auto now = ObjectPtr<DateTime>(new DateTime());
+    auto now = DateTime::now();
 return (this_->get_year() == now->get_year()) && (this_->get_month() == now->get_month()) && (this_->get_day() == now->get_day());
   }
   
@@ -542,25 +566,25 @@ return Void;
 
 Nullable testCascadeNotation() {
   dart_print(dart_string("\n📌 测试级联操作符"));
-auto person = ([&]() { auto let_var = ObjectPtr<Person>(new Person(dart_string("Alice"), dart_int(25))); return ([&]() { let_var->name = dart_string("Alice Smith"); let_var->age = dart_int(26); let_var->introduce(); return let_var; })(); })();
+auto person = ([&]() { auto let_var_0 = ObjectPtr<Person>(new Person(dart_string("Alice"), dart_int(25))); return ([&]() { let_var_0->name = dart_string("Alice Smith"); let_var_0->age = dart_int(26); let_var_0->introduce(); return let_var_0; })(); })();
 dart_print(dart_string("  基本级联:"));
 dart_print(dart_concat(dart_string("    人员信息: "), (person->name).toString(), dart_string(", "), (person->age).toString(), dart_string("岁")));
-auto builder = ([&]() { auto let_var = ObjectPtr<StringBuilder>(new StringBuilder()); return ([&]() { let_var->append(dart_string("Hello")); let_var->append(dart_string(" ")); let_var->append(dart_string("World")); let_var->append(dart_string("!")); return let_var; })(); })();
+auto builder = ([&]() { auto let_var_1 = ObjectPtr<StringBuilder>(new StringBuilder()); return ([&]() { let_var_1->append(dart_string("Hello")); let_var_1->append(dart_string(" ")); let_var_1->append(dart_string("World")); let_var_1->append(dart_string("!")); return let_var_1; })(); })();
 dart_print(dart_string("  级联方法调用:"));
 dart_print(dart_string("    构建结果: ") + (builder->toString()).toString());
-auto numbers = ([&]() { auto let_var = dart_literal<Int>(); return ([&]() { let_var->add(dart_int(1)); let_var->add(dart_int(2)); let_var->add(dart_int(3)); let_var->addAll(dart_literal<Int>(dart_int(4), dart_int(5), dart_int(6))); return let_var; })(); })();
+auto numbers = ([&]() { auto let_var_2 = dart_literal<Int>(); return ([&]() { let_var_2->add(dart_int(1)); let_var_2->add(dart_int(2)); let_var_2->add(dart_int(3)); let_var_2->addAll(dart_literal<Int>(dart_int(4), dart_int(5), dart_int(6))); return let_var_2; })(); })();
 dart_print(dart_string("  嵌套级联:"));
 dart_print(dart_string("    列表内容: ") + (numbers).toString());
-auto calculator = ([&]() { auto let_var = ObjectPtr<Calculator>(new Calculator()); return ([&]() { let_var->add(dart_double(10.0)); let_var->multiply(dart_double(2.0)); return let_var; })(); })();
+auto calculator = ([&]() { auto let_var_3 = ObjectPtr<Calculator>(new Calculator()); return ([&]() { let_var_3->add(dart_double(10.0)); let_var_3->multiply(dart_double(2.0)); return let_var_3; })(); })();
 if (calculator->value->operator_greater(dart_int(15))) {
-([&]() { auto let_var = calculator; return ([&]() { let_var->subtract(dart_double(5.0)); let_var->divide(dart_double(3.0)); return let_var; })(); })();
+([&]() { auto let_var_4 = calculator; return ([&]() { let_var_4->subtract(dart_double(5.0)); let_var_4->divide(dart_double(3.0)); return let_var_4; })(); })();
 }
 dart_print(dart_string("  条件级联:"));
 dart_print(dart_string("    计算结果: ") + (calculator->value).toString());
 auto nullablePerson = ObjectPtr<Person>(new Person(dart_string("Bob"), dart_int(30)));
-([&]() { auto let_var = nullablePerson; return dart_is_null(let_var) ? Null : ([&]() { let_var->name = dart_string("Bob Johnson"); let_var->age = dart_int(31); let_var->introduce(); return let_var; })(); })();
+([&]() { auto let_var_5 = nullablePerson; return dart_is_null(let_var_5) ? Null : ([&]() { let_var_5->name = dart_string("Bob Johnson"); let_var_5->age = dart_int(31); let_var_5->introduce(); return let_var_5; })(); })();
 nullablePerson = Null;
-([&]() { auto let_var = nullablePerson; return dart_is_null(let_var) ? Null : ([&]() { let_var->name = dart_string("Won't execute"); let_var->introduce(); return let_var; })(); })();
+([&]() { auto let_var_6 = nullablePerson; return dart_is_null(let_var_6) ? Null : ([&]() { let_var_6->name = dart_string("Won't execute"); let_var_6->introduce(); return let_var_6; })(); })();
 dart_print(dart_string("    空值级联测试完成"));
 return Void;
 }
@@ -588,7 +612,7 @@ dart_print(dart_string("    倒数第二个: ") + (ListExtensions::secondLastOrN
 dart_print(dart_string("    随机元素: ") + (ListExtensions::random(numbers)).toString());
 auto empty = dart_literal<Int>();
 dart_print(dart_string("    空列表第二个: ") + (ListExtensions::secondOrNull(empty)).toString());
-auto now = ObjectPtr<DateTime>(new DateTime());
+auto now = DateTime::now();
 dart_print(dart_string("  日期时间扩展:"));
 dart_print(dart_string("    是否为今天: ") + (DateTimeExtensions::isToday(now)).toString());
 dart_print(dart_string("    格式化: ") + (DateTimeExtensions::formatDate(now)).toString());
@@ -635,7 +659,7 @@ auto p3 = ObjectPtr<Point>(new Point(dart_double(1.0), dart_double(2.0)));
 dart_print(dart_string("  点比较:"));
 dart_print(dart_string("    p1 < p2: ") + (p1->operator_less(p2)).toString());
 dart_print(dart_string("    p1 == p3: ") + ((p1 == p3)).toString());
-dart_print(dart_string("    p1.hashCode == p3.hashCode: ") + ((p1->hashCode() == p3->hashCode())).toString());
+dart_print(dart_string("    p1.hashCode == p3.hashCode: ") + ((p1->get_hashCode() == p3->get_hashCode())).toString());
 return Void;
 }
 
