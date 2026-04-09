@@ -26,6 +26,10 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       final items = c.entries.map((e) => _restoreConstant(e)).join(', ');
       return 'const [${items}]';
     }
+    if (c is SetConstant) {
+      final items = c.entries.map((e) => _restoreConstant(e)).join(', ');
+      return 'const {$items}';
+    }
     if (c is MapConstant) {
       final entries = c.entries.map((e) {
         return '${_restoreConstant(e.key)}: ${_restoreConstant(e.value)}';
@@ -67,6 +71,11 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
     final cls = c.classNode;
     final className = cls.name;
 
+    // OOP Lowering: 用户自定义类的常量 → X_new(args) 形式
+    if (_isUserClass(className)) {
+      return _restoreInstanceConstantLowered(c);
+    }
+
     // 收集字段值（排除 null 和默认值以找到最佳构造函数）
     final fieldValues = <String, Constant>{};
     for (final entry in c.fieldValues.entries) {
@@ -95,6 +104,77 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       return '${e.key.asField.name.text}: ${_restoreConstant(e.value)}';
     }).join(', ');
     return 'const $className($fields)';
+  }
+
+  /// OOP Lowering: 用户自定义类的 InstanceConstant → X_new(field values)
+  String _restoreInstanceConstantLowered(InstanceConstant c) {
+    final className = c.classNode.name;
+    final cls = c.classNode;
+
+    // 收集字段值
+    final fieldValues = <String, Constant>{};
+    for (final entry in c.fieldValues.entries) {
+      fieldValues[entry.key.asField.name.text] = entry.value;
+    }
+
+    // 尝试匹配 const 构造函数来确定参数顺序
+    Constructor? bestCtor;
+    int bestScore = -1;
+    for (final ctor in cls.constructors) {
+      if (!ctor.isConst) continue;
+      final score = _matchConstructor(ctor, fieldValues);
+      if (score > bestScore) {
+        bestScore = score;
+        bestCtor = ctor;
+      }
+    }
+
+    if (bestCtor != null) {
+      final ctorName = bestCtor.name.text;
+      final funcName = ctorName.isEmpty
+          ? '${className}_new'
+          : '${className}_new_$ctorName';
+
+      // 构建参数列表（按构造函数参数顺序）
+      final paramToField = <String, String>{};
+      for (final init in bestCtor.initializers) {
+        if (init is FieldInitializer && init.value is VariableGet) {
+          final varGet = init.value as VariableGet;
+          final paramName = varGet.variable.name;
+          if (paramName != null) {
+            paramToField[paramName] = init.field.name.text;
+          }
+        }
+      }
+
+      final argParts = <String>[];
+      for (final param in bestCtor.function.positionalParameters) {
+        final paramName = param.name ?? '';
+        final fieldName = paramToField[paramName] ?? paramName;
+        if (fieldValues.containsKey(fieldName)) {
+          argParts.add(_restoreConstant(fieldValues[fieldName]!));
+        }
+      }
+      for (final param in bestCtor.function.namedParameters) {
+        final paramName = param.name ?? '';
+        final fieldName = paramToField[paramName] ?? paramName;
+        if (fieldValues.containsKey(fieldName)) {
+          final value = fieldValues[fieldName]!;
+          if (param.initializer != null && _isConstantMatchingDefault(value, param.initializer!)) {
+            continue;
+          }
+          argParts.add('$paramName: ${_restoreConstant(value)}');
+        }
+      }
+
+      return '$funcName(${argParts.join(', ')})';
+    }
+
+    // 回退：使用字段名作为命名参数
+    final fields = c.fieldValues.entries.map((e) {
+      return '${e.key.asField.name.text}: ${_restoreConstant(e.value)}';
+    }).join(', ');
+    return '${className}_new($fields)';
   }
 
   /// 计算构造函数与字段值的匹配分数

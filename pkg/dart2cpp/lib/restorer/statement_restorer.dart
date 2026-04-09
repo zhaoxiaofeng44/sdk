@@ -90,9 +90,22 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       _buf.write('${_pad}break;\n');
     } else if (stmt is EmptyStatement) {
       // skip
+    } else if (stmt is ForInStatement) {
+      _restoreForIn(stmt);
     } else if (stmt is FunctionDeclaration) {
       _restoreFuncDecl(stmt);
     }
+  }
+
+  void _restoreForIn(ForInStatement stmt) {
+    // 还原 for-in 循环：for (final varName in iterable) { body }
+    final varDecl = stmt.variable;
+    final varName = _cleanVarName(varDecl.name ?? '_item${_varCounter++}');
+    varDecl.name = varName;
+    final iterableExpr = _restoreExpr(stmt.iterable);
+    final keyword = varDecl.isFinal ? 'final' : 'var';
+    _buf.write('${_pad}for ($keyword $varName in $iterableExpr) ');
+    _restoreStmt(stmt.body);
   }
 
   void _restoreBlock(Block block) {

@@ -32,7 +32,9 @@ mixin _TypeUtils on _DartRestorerBase {
     final suffix = nullable ? '?' : '';
 
     if (type is InterfaceType) {
-      final name = type.classNode.name;
+      final rawName = type.classNode.name;
+      // OOP Lowering: 用户自定义类的实例类型引用改为 XValue
+      final name = _isUserClass(rawName) ? '${rawName}Value' : rawName;
       if (type.typeArguments.isEmpty) return '$name$suffix';
       final args = type.typeArguments.map((t) => _restoreType(t)).join(', ');
       return '$name<$args>$suffix';
@@ -72,6 +74,18 @@ mixin _TypeUtils on _DartRestorerBase {
 
   // ---- Helpers ----
 
+  // Dart 保留关键字集合（不能作为标识符使用）
+  static const _dartKeywords = {
+    'this', 'super', 'new', 'null', 'true', 'false', 'void', 'var', 'final',
+    'const', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case',
+    'default', 'break', 'continue', 'try', 'catch', 'finally', 'throw',
+    'rethrow', 'class', 'extends', 'implements', 'with', 'mixin', 'enum',
+    'import', 'export', 'library', 'part', 'of', 'show', 'hide', 'as',
+    'abstract', 'static', 'dynamic', 'get', 'set', 'operator', 'typedef',
+    'is', 'in', 'assert', 'async', 'await', 'yield', 'sync', 'late',
+    'required', 'external', 'factory', 'covariant',
+  };
+
   String _cleanVarName(String name) {
     if (_cleanedNames.containsKey(name)) return _cleanedNames[name]!;
     String cleaned;
@@ -96,8 +110,12 @@ mixin _TypeUtils on _DartRestorerBase {
     if (cleaned.isNotEmpty && RegExp(r'^[0-9]').hasMatch(cleaned)) {
       cleaned = '_v${_varCounter++}';
     }
-    // 替换非法字符（如 -）为下划线
+    // 替换非法字符（如 -、|、# 等）为下划线
     cleaned = cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    // 如果清理后的名称是 Dart 关键字，加 _ 后缀
+    if (_dartKeywords.contains(cleaned)) {
+      cleaned = '${cleaned}_';
+    }
     _cleanedNames[name] = cleaned;
     return cleaned;
   }
