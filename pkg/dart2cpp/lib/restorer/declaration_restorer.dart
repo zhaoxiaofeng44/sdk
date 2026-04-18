@@ -6,16 +6,7 @@ part of 'dart_restorer.dart';
 
 mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer, _StatementRestorer {
   // ---- VTable 字段名工具方法 ----
-
-  /// 将方法名转换为 VTable 字段名
-  /// 特殊处理：避免与 Object 内置方法冲突（如 toString、hashCode、noSuchMethod）
-  String _vtableFieldName(String methodName) {
-    const conflictingNames = {'toString', 'hashCode', 'noSuchMethod', 'runtimeType'};
-    if (conflictingNames.contains(methodName)) {
-      return '${methodName}_';
-    }
-    return methodName;
-  }
+  // _vtableFieldName 已移至 _DartRestorerBase 基类中
 
   // ---- Typedef ----
 
@@ -30,9 +21,95 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   // ---- Mixin ----
 
   void _restoreMixin(Class cls) {
-    // Mixin 声明不再输出（mixin 的方法通过合成中间类 lowering）
-    // 只保留注释标记，方便调试
-    _buf.write('// mixin ${cls.name} → lowered via synthetic intermediate classes\n\n');
+    // 为 mixin 生成静态函数，供委托函数调用
+    // mixin 不生成 XValue 类和构造函数，只生成方法的静态函数
+    _buf.write('// mixin ${cls.name} → static functions for delegation\n');
+    
+    _currentClass = cls;
+    final mixinName = cls.name;
+    
+    for (final proc in cls.procedures) {
+      if (proc.isStatic || proc.isFactory || proc.isAbstract) continue;
+      // 只生成有方法体的非抽象方法
+      if (proc.function.body == null || proc.function.body is EmptyStatement) continue;
+      
+      // 生成静态函数，this_ 类型使用 dynamic（因为 mixin 可以被任何类使用）
+      _emitMixinMethodAsStatic(cls, proc, mixinName);
+    }
+    
+    _currentClass = null;
+    _buf.write('\n');
+  }
+  
+  /// 为 mixin 方法生成静态函数
+  /// this_ 类型使用 dynamic，因为 mixin 可以被任何类使用
+  void _emitMixinMethodAsStatic(Class cls, Procedure proc, String mixinName) {
+    final methodName = proc.name.text;
+    String funcName;
+    if (proc.isGetter) {
+      funcName = _staticGetterName(mixinName, methodName);
+    } else if (proc.isSetter) {
+      funcName = _staticSetterName(mixinName, methodName);
+    } else {
+      funcName = _staticMethodName(mixinName, methodName);
+    }
+    
+    final returnType = _restoreType(proc.function.returnType);
+    
+    _buf.write('$returnType $funcName');
+    // 类型参数声明：mixin 类的类型参数 + 方法自身的类型参数
+    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    _buf.write('(dynamic this_');
+    
+    if (proc.isSetter) {
+      if (proc.function.positionalParameters.isNotEmpty) {
+        final p = proc.function.positionalParameters.first;
+        final paramName = _cleanVarName(p.name ?? 'value');
+        _buf.write(', ${_restoreType(p.type)} $paramName');
+      }
+    } else if (!proc.isGetter) {
+      for (final p in proc.function.positionalParameters) {
+        final paramName = _cleanVarName(p.name ?? '_p');
+        _buf.write(', ${_restoreType(p.type)} $paramName');
+      }
+      for (final p in proc.function.namedParameters) {
+        final paramName = _cleanVarName(p.name ?? '_n');
+        final isRequired = p.isRequired;
+        if (isRequired) {
+          _buf.write(', {required ${_restoreType(p.type)} $paramName}');
+        } else {
+          _buf.write(', {${_restoreType(p.type)} $paramName');
+          if (p.initializer != null) {
+            _buf.write(' = ${_restoreExpr(p.initializer!)}');
+          }
+          _buf.write('}');
+        }
+      }
+    }
+    
+    _buf.write(')');
+    
+    // async marker
+    final marker = proc.function.asyncMarker;
+    if (marker == AsyncMarker.Async) _buf.write(' async');
+    if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
+    if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
+    
+    // body
+    if (proc.function.body != null) {
+      _buf.write(' ');
+      _insideMethodBody = true;
+      final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
+      if (isVoidReturn) {
+        _restoreSetterBody(proc.function.body!);
+      } else {
+        _restoreBody(proc.function.body!);
+      }
+      _insideMethodBody = false;
+    } else {
+      _buf.write(';\n');
+    }
+    _buf.write('\n');
   }
 
   // ---- Class (OOP Lowering) ----
@@ -118,7 +195,37 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   }
   
   /// 生成委托静态函数（用于从父类/mixin继承但未在当前类定义的方法）
+  /// 使用原始 Procedure 的参数信息来生成正确的函数签名
   void _emitDelegateMethodAsStatic(Class cls, _VTableEntry entry, String className) {
+    final methodName = entry.name;
+    final proc = entry.proc;
+    
+    // 如果有原始 Procedure 引用，直接使用其参数信息生成正确的委托函数
+    if (proc != null) {
+      _emitDelegateFromProc(cls, proc, entry, className);
+      return;
+    }
+    
+    // 没有 proc 引用时的回退逻辑（不应该发生）
+    String funcName;
+    if (entry.kind == 'getter') {
+      funcName = _staticGetterName(className, methodName);
+    } else if (entry.kind == 'setter') {
+      funcName = _staticSetterName(className, methodName);
+    } else {
+      funcName = _staticMethodName(className, methodName);
+    }
+    
+    _buf.write('${_pad}dynamic $funcName(${className}Value this_) {\n');
+    _indent++;
+    _buf.write("${_pad}throw UnimplementedError('$className.$methodName delegate missing proc');\n");
+    _indent--;
+    _buf.write('}\n\n');
+  }
+  
+  /// 使用原始 Procedure 的参数信息生成委托静态函数
+  /// 委托函数直接调用原始定义该方法的类的静态函数，避免通过 vptr 调用自己形成无限递归
+  void _emitDelegateFromProc(Class cls, Procedure proc, _VTableEntry entry, String className) {
     final methodName = entry.name;
     String funcName;
     if (entry.kind == 'getter') {
@@ -129,79 +236,145 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       funcName = _staticMethodName(className, methodName);
     }
     
-    // 使用更新后的签名（this 参数类型为 dynamic）
-    final updatedSignature = _updateVTableSignature(entry.signature, className);
+    // 找到原始定义该方法的类名
+    final originClass = proc.enclosingClass;
+    String originClassName = originClass != null ? _loweredClassName(originClass.name) : className;
     
-    // 解析返回类型和参数
-    final sigMatch = RegExp(r'(\w+\??)\s+Function\((.*)\)').firstMatch(updatedSignature);
-    if (sigMatch == null) return;
-    
-    final returnType = sigMatch.group(1);
-    final paramsStr = sigMatch.group(2);
-    
-    // 解析参数列表，提取参数名和类型
-    final params = <String>[];
-    final paramTypes = <String>[];
-    if (paramsStr != null && paramsStr.trim().isNotEmpty) {
-      // 分割参数，处理 dynamic this_, DogValue other 这样的格式
-      final paramParts = paramsStr.split(',');
-      for (final part in paramParts) {
-        final trimmed = part.trim();
-        if (trimmed.isEmpty) continue;
-        
-        // 匹配 type name 格式
-        final paramMatch = RegExp(r'(\S+)\s+(\w+)').firstMatch(trimmed);
-        if (paramMatch != null) {
-          paramTypes.add(paramMatch.group(1)!);
-          params.add(paramMatch.group(2)!);
+    // 如果原始类是合成中间类（不生成静态函数），
+    // 需要找到真正定义该方法的 mixin 或用户类
+    if (_syntheticLoweredNames.contains(originClassName)) {
+      // 策略 1: 沿着 stubTarget 链找到真正定义该方法的类
+      var realProc = proc;
+      var visited = <Procedure>{proc};
+      while (realProc.stubTarget is Procedure) {
+        final target = realProc.stubTarget as Procedure;
+        if (visited.contains(target)) break;
+        visited.add(target);
+        realProc = target;
+      }
+      
+      // 检查 realProc 的 enclosingClass 是否是 mixin 或非合成用户类
+      final realOriginClass = realProc.enclosingClass;
+      if (realOriginClass != null) {
+        final realOriginName = _loweredClassName(realOriginClass.name);
+        if (_isMixinName(realOriginName) || (!_syntheticLoweredNames.contains(realOriginName) && _isUserClass(realOriginName))) {
+          originClassName = realOriginName;
+        }
+      }
+      
+      // 策略 2: 如果仍然是合成类，从合成类名中提取 mixin 名
+      // 合成类名格式：Dog_Animal_Printable_Orderable，对应原始名 _Dog&Animal&Printable&Orderable
+      // 最后一个部分是 mixin 名
+      if (_syntheticLoweredNames.contains(originClassName) && originClass != null && originClass.name.contains('&')) {
+        final parts = originClass.name.split('&');
+        if (parts.isNotEmpty) {
+          final lastMixin = parts.last.trim();
+          if (_isMixinName(lastMixin)) {
+            originClassName = lastMixin;
+          }
+        }
+      }
+      
+      // 策略 3: 如果仍然是合成类，在合成类的继承链中查找有方法体的 Procedure
+      if (_syntheticLoweredNames.contains(originClassName)) {
+        var searchClass = originClass;
+        while (searchClass != null) {
+          final superType = searchClass.supertype;
+          if (superType == null) break;
+          searchClass = superType.classNode;
+          for (final p in searchClass.procedures) {
+            if (p.name.text == proc.name.text && p.kind == proc.kind) {
+              final searchName = _loweredClassName(searchClass.name);
+              if (_isMixinName(searchName) || (!_syntheticLoweredNames.contains(searchName) && _isUserClass(searchName))) {
+                originClassName = searchName;
+                break;
+              }
+            }
+          }
+          if (!_syntheticLoweredNames.contains(originClassName)) break;
+        }
+      }
+      
+      // 策略 4: 沿当前类的继承链向上找非合成用户类
+      if (_syntheticLoweredNames.contains(originClassName)) {
+        var parentName = _getParentClassName(className);
+        while (parentName != null) {
+          if (!_syntheticLoweredNames.contains(parentName) && !_isMixinName(parentName) && _isUserClass(parentName)) {
+            final parentEntries = _classVTableEntries[parentName];
+            if (parentEntries != null && parentEntries.any((e) => e.name == methodName && e.kind == entry.kind)) {
+              originClassName = parentName;
+              break;
+            }
+          }
+          parentName = _getParentClassName(parentName);
         }
       }
     }
     
-    // 生成函数签名
-    _buf.write(_pad);
-    _buf.write('$returnType $funcName(');
-    for (int i = 0; i < params.length; i++) {
-      if (i > 0) _buf.write(', ');
-      _buf.write('${paramTypes[i]} ${params[i]}');
+    // 原始定义类的静态函数名
+    String originFuncName;
+    if (entry.kind == 'getter') {
+      originFuncName = _staticGetterName(originClassName, methodName);
+    } else if (entry.kind == 'setter') {
+      originFuncName = _staticSetterName(originClassName, methodName);
+    } else {
+      originFuncName = _staticMethodName(originClassName, methodName);
     }
+    
+    // 返回类型
+    final returnType = _restoreType(proc.function.returnType);
+    
+    _buf.write(_pad);
+    _buf.write('$returnType $funcName');
+    // 类型参数声明：类的类型参数 + 方法自身的类型参数
+    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    _buf.write('(${className}Value');
+    _writeTypeParamNames(cls.typeParameters);
+    _buf.write(' this_');
+    
+    // 构建参数列表和转发参数
+    final forwardArgs = <String>['this_'];
+    
+    if (entry.kind == 'setter') {
+      if (proc.function.positionalParameters.isNotEmpty) {
+        final p = proc.function.positionalParameters.first;
+        final paramName = _cleanVarName(p.name ?? 'value');
+        _buf.write(', ${_restoreType(p.type)} $paramName');
+        forwardArgs.add(paramName);
+      }
+    } else if (entry.kind != 'getter') {
+      // method / operator
+      for (final p in proc.function.positionalParameters) {
+        final paramName = _cleanVarName(p.name ?? '_p');
+        _buf.write(', ${_restoreType(p.type)} $paramName');
+        forwardArgs.add(paramName);
+      }
+      for (final p in proc.function.namedParameters) {
+        final paramName = _cleanVarName(p.name ?? '_n');
+        _buf.write(', {${_restoreType(p.type)} $paramName}');
+      }
+    }
+    
     _buf.write(') {\n');
     _indent++;
     
-    // 生成委托调用 - 通过 VTable 调用
-    // 假设第一个参数是 this_
-    if (params.isNotEmpty) {
-      final thisParam = params[0];
-      final otherParams = params.skip(1).toList();
-      
-      if (entry.kind == 'getter') {
-        // getter: return this_.vptr.get_methodName(this_);
-        _buf.write('${_pad}return $thisParam.vptr.get_$methodName($thisParam');
-        for (final p in otherParams) {
-          _buf.write(', $p');
-        }
-        _buf.write(');\n');
-      } else if (entry.kind == 'setter') {
-        // setter: this_.vptr.set_methodName(this_, value);
-        _buf.write('${_pad}$thisParam.vptr.set_$methodName($thisParam');
-        for (final p in otherParams) {
-          _buf.write(', $p');
-        }
-        _buf.write(');\n');
-      } else {
-        // 普通方法: return this_.vptr.vtableFieldName(this_, ...);
-        // 注意：使用 _vtableFieldName 避免与 Object 内置方法冲突
-        final vtableField = _vtableFieldName(methodName);
-        if (returnType != 'void') {
-          _buf.write('${_pad}return ');
-        }
-        _buf.write('$thisParam.vptr.$vtableField($thisParam');
-        for (final p in otherParams) {
-          _buf.write(', $p');
-        }
-        _buf.write(');\n');
+    // 直接调用原始定义类的静态函数（避免通过 vptr 调用自己形成无限递归）
+    if (returnType != 'void' || entry.kind == 'getter') {
+      _buf.write('${_pad}return ');
+    } else {
+      _buf.write(_pad);
+    }
+    _buf.write('$originFuncName(${forwardArgs.join(', ')}');
+    
+    // 命名参数转发
+    if (entry.kind != 'getter' && entry.kind != 'setter') {
+      for (final p in proc.function.namedParameters) {
+        final paramName = _cleanVarName(p.name ?? '_n');
+        _buf.write(', ${p.name}: $paramName');
       }
     }
+    
+    _buf.write(');\n');
     
     _indent--;
     _buf.write('}\n\n');
@@ -218,8 +391,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write(' {\n');
     _indent++;
 
-    // vptr 字段：使用 dynamic 类型，避免子类 VTable 类型与父类 vptr 字段类型冲突
-    _buf.write('${_pad}late dynamic vptr;\n');
+    // vptr 字段：使用 Map<String, dynamic> 存储虚表方法，key 为方法名，value 为函数引用
+    _buf.write('${_pad}late Map<String, dynamic> vptr;\n');
 
     // 实例字段（排除静态字段）- 收集当前类及所有父类的字段
     final allFields = <Field>[];
@@ -235,8 +408,77 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(';\n');
     }
 
+    // 生成 toString()/operator==/hashCode 覆写，桥接到 vptr 调用
+    // 只在非合成中间类上生成（合成类会继承父类的覆写）
+    if (!isSyntheticMixinClass) {
+      _emitObjectMethodOverrides(cls, className, parentName);
+    }
+
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  /// 在 Value 类中生成 toString()/operator==/hashCode 的覆写方法
+  /// 这些方法桥接到 vptr 中对应的函数指针，确保 Dart 运行时调用时能正确分派
+  void _emitObjectMethodOverrides(Class cls, String className, String? parentName) {
+    // 检查当前类或其继承链中是否定义了 toString
+    final hasToString = _classHasVTableEntry(className, 'toString_', 'method') ||
+        _classHasVTableEntry(className, 'toString', 'method');
+    // 检查是否定义了 operator==
+    final hasOperatorEq = _classHasVTableEntry(className, '==', 'operator');
+    // 检查是否定义了 hashCode getter
+    final hasHashCode = _classHasVTableEntry(className, 'hashCode', 'getter');
+
+    if (hasToString) {
+      _buf.write('$_pad@override\n');
+      _buf.write('${_pad}String toString() {\n');
+      _indent++;
+      _buf.write("${_pad}final toStringFn = vptr['toString_'];\n");
+      _buf.write('${_pad}if (toStringFn != null) return (toStringFn as Function)(this) as String;\n');
+      _buf.write('${_pad}return super.toString();\n');
+      _indent--;
+      _buf.write('$_pad}\n');
+    }
+
+    if (hasOperatorEq) {
+      _buf.write('$_pad@override\n');
+      _buf.write('${_pad}bool operator ==(Object other) {\n');
+      _indent++;
+      _buf.write("${_pad}final eqFn = vptr['operatorEq'];\n");
+      _buf.write('${_pad}if (eqFn != null) return (eqFn as Function)(this, other) as bool;\n');
+      _buf.write('${_pad}return identical(this, other);\n');
+      _indent--;
+      _buf.write('$_pad}\n');
+    }
+
+    if (hasHashCode) {
+      _buf.write('$_pad@override\n');
+      _buf.write('${_pad}int get hashCode {\n');
+      _indent++;
+      _buf.write("${_pad}final hashFn = vptr['get_hashCode'];\n");
+      _buf.write('${_pad}if (hashFn != null) return (hashFn as Function)(this) as int;\n');
+      _buf.write('${_pad}return super.hashCode;\n');
+      _indent--;
+      _buf.write('$_pad}\n');
+    }
+  }
+
+  /// 检查类的 VTable 中是否包含指定名称和类型的条目
+  bool _classHasVTableEntry(String className, String entryName, String kind) {
+    final entries = _classVTableEntries[className];
+    if (entries != null) {
+      for (final entry in entries) {
+        if (entry.name == entryName && entry.kind == kind) return true;
+        // toString 在 vptr 中可能注册为 'toString_' 或 'toString'
+        if (kind == 'method' && entryName == 'toString_' && entry.name == 'toString') return true;
+      }
+    }
+    // 检查父类
+    final parentName = _getParentClassName(className);
+    if (parentName != null && _isUserClass(parentName)) {
+      return _classHasVTableEntry(parentName, entryName, kind);
+    }
+    return false;
   }
   
   /// 收集当前类及所有父类的字段
@@ -244,8 +486,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 先收集父类的字段
     if (cls.supertype != null) {
       final superClass = cls.supertype!.classNode;
-      if (_isUserClass(superClass.name) || _isSyntheticMixinClassName(superClass.name)) {
+      if (_isUserClass(superClass.name) || _isSyntheticMixinClassName(superClass.name) || _isMixinName(superClass.name)) {
         _collectAllFields(superClass, allFields, seenNames);
+      }
+    }
+
+    // 收集 mixedInType 的字段（mixin 的字段可能不在 supertype 链中）
+    if (cls.mixedInType != null) {
+      final mixinClass = cls.mixedInType!.classNode;
+      if (_isMixinName(mixinClass.name) || _isUserClass(mixinClass.name) || _isSyntheticMixinClassName(mixinClass.name)) {
+        _collectAllFields(mixinClass, allFields, seenNames);
       }
     }
     
@@ -259,43 +509,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
   }
 
-  /// 生成 XVTable 类
+  /// 生成 XVTable 类 → 已废弃，vptr 改为 Map<String, dynamic>，不再需要独立的 VTable 类
   void _emitVTableClass(Class cls, String className) {
-    // 使用 _collectAllVTableEntries 收集所有 VTable 条目（包括从父类和 mixin 继承的）
-    final entries = _collectAllVTableEntries(className);
-    if (entries.isEmpty) {
-      _buf.write('class ${className}VTable');
-      _writeTypeParams(cls.typeParameters);
-      _buf.write(' {}\n\n');
-      return;
-    }
-
-    _buf.write('class ${className}VTable');
-    _writeTypeParams(cls.typeParameters);
-    // 移除 VTable 继承关系，每个 VTable 都是独立的
-    _buf.write(' {\n');
-    _indent++;
-
-    for (final entry in entries) {
-      // 虚表字段名：方法名直接作为字段名，getter/setter 加前缀
-      String fieldName;
-      if (entry.kind == 'getter') {
-        fieldName = 'get_${entry.name}';
-      } else if (entry.kind == 'setter') {
-        fieldName = 'set_${entry.name}';
-      } else if (entry.kind == 'operator') {
-        fieldName = 'operator${_operatorFuncName(entry.name)}';
-      } else {
-        // 避免与 Object.toString() 冲突：将 toString 重命名为 toString_
-        fieldName = _vtableFieldName(entry.name);
-      }
-      // 将所有 VTable 条目的 this 参数类型替换为当前类的类型
-      final updatedSignature = _updateVTableSignature(entry.signature, className);
-      _buf.write('${_pad}late $updatedSignature $fieldName;\n');
-    }
-
-    _indent--;
-    _buf.write('}\n\n');
+    // 不再生成 VTable 类，vptr 已改为 Map<String, dynamic>
   }
   
   /// 收集所有 VTable 条目（包括从父类和 mixin 继承的）
@@ -318,6 +534,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
               kind: entry.kind,
               staticFuncName: _getStaticFuncName(className, entry.name, entry.kind),
               signature: entry.signature,
+              proc: entry.proc,
             );
             entries.add(updatedEntry);
           }
@@ -342,16 +559,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
   }
 
-  /// 更新 VTable 条目签名，将 this 参数类型替换为 dynamic 以避免类型协变问题
+  /// 更新 VTable 条目签名，将 this 参数类型替换为当前类的实际类型
   String _updateVTableSignature(String signature, String className) {
     // 签名格式如: String Function(Dog_Animal_PrintableValue this_)
     // 或: void Function(Dog_Animal_PrintableValue this_, String value)
-    // 将第一个参数类型替换为 dynamic
+    // 将第一个参数类型替换为当前类的实际类型
     final pattern = RegExp(r'(\w+\??)\s+Function\((\w+Value)\s+this_');
     final match = pattern.firstMatch(signature);
     if (match != null) {
       final returnType = match.group(1);
-      return '$returnType Function(dynamic this_${signature.substring(match.end)}';
+      return '$returnType Function(${className}Value this_${signature.substring(match.end)}';
     }
     return signature;
   }
@@ -376,34 +593,77 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   }
 
   /// 生成构造函数 → X_new / X_new_name 顶层函数
+  /// 新模式：接收外部传入的 this_，返回 void，只负责设置 vptr 和初始化字段
+  /// 调用点负责创建 XValue 对象并传入
   void _emitConstructorFunction(Class cls, Constructor ctor, String className, String? parentName) {
     final ctorName = ctor.name.text;
     final funcName = ctorName.isEmpty ? '${className}_new' : '${className}_new_$ctorName';
-    
+
     // 获取所有 VTable 条目（包括从父类和 mixin 继承的）
     final entries = _collectAllVTableEntries(className);
 
-    // 返回类型（包含类型参数）
-    _buf.write('${className}Value');
+    // 返回类型为 void，第一个参数为 this_
+    _buf.write('void $funcName');
+    // 构造函数也需要类型参数（如 Pair_new<A, B>），声明位置用完整约束
     _writeTypeParams(cls.typeParameters);
-    _buf.write(' $funcName');
-    // 构造函数也需要类型参数（如 Pair_new<A, B>）
-    _writeTypeParams(cls.typeParameters);
-    _buf.write('(');
+    _buf.write('(${className}Value');
+    // 参数类型位置只写名称，不写 extends 约束
+    _writeTypeParamNames(cls.typeParameters);
+    _buf.write(' this_');
 
-    // 参数列表（排除 this. 语义，直接作为普通参数）
-    _writeParams(ctor.function);
+    // 其余参数列表（排除 this. 语义，直接作为普通参数）
+    final hasParams = _hasParams(ctor.function);
+    if (hasParams) {
+      _buf.write(', ');
+      _writeParams(ctor.function);
+    }
     _buf.write(') {\n');
     _indent++;
 
-    // 对象分配
-    _buf.write('${_pad}final obj = ${className}Value();\n');
+    // 检查是否是 redirecting constructor
+    final hasRedirecting = ctor.initializers.any((init) => init is RedirectingInitializer);
+    if (hasRedirecting) {
+      // Redirecting constructor: 调用目标构造函数（传入 this_）
+      for (final init in ctor.initializers) {
+        if (init is RedirectingInitializer) {
+          final redirCtorName = init.target.name.text;
+          final targetFuncName = redirCtorName.isEmpty
+              ? '${className}_new'
+              : '${className}_new_$redirCtorName';
+          final redirArgs = _restoreArgs(init.arguments);
+          _buf.write('${_pad}$targetFuncName(this_');
+          if (redirArgs.isNotEmpty) _buf.write(', $redirArgs');
+          _buf.write(');\n');
+        }
+      }
+      _indent--;
+      _buf.write('}\n\n');
+      return;
+    }
 
-    // vptr 设置 - 初始化所有 VTable 字段
-    _buf.write('${_pad}obj.vptr = ${className}VTable()');
+    // 父类初始化：先调用父类 new 函数（传入 this_），父类会设置父类的 vptr
+    for (final init in ctor.initializers) {
+      if (init is SuperInitializer) {
+        _emitSuperInit(init, parentName, className);
+      }
+    }
+
+    // vptr 设置 - 在父类构造之后设置，覆盖父类的 vptr，确保最终 vptr 是当前类的完整虚表
+    _buf.write('${_pad}this_.vptr = {\n');
     if (entries.isNotEmpty) {
-      _buf.write('\n');
       _indent++;
+      // vptr 注册统一使用 lambda wrapper：
+      // 1. 泛型类：wrapper 中加类型参数特化，绑定类型参数
+      //    例如：'swap': (self) => Pair_swap<A, B>(self),
+      // 2. 非泛型继承类：消除函数参数类型的逆变问题
+      //    例如 Circle_perimeter(CircleValue) 存入 vptr 后，多态调用时
+      //    cast 为 double Function(ShapeValue) 会失败（函数类型逆变）
+      //    用 lambda wrapper (self) => Circle_perimeter(self) 后，
+      //    lambda 参数类型为 dynamic，可以正常 cast
+      final hasClassTypeParams = cls.typeParameters.isNotEmpty;
+      final typeParamNames = cls.typeParameters.map((tp) => tp.name ?? 'T').toList();
+      final typeParamStr = hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '';
+
       for (final entry in entries) {
         String fieldName;
         if (entry.kind == 'getter') {
@@ -415,44 +675,18 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         } else {
           fieldName = _vtableFieldName(entry.name);
         }
-        _buf.write('$_pad..$fieldName = ${entry.staticFuncName}\n');
+
+        final wrapperStr = _buildVptrLambdaWrapper(cls, entry, className, typeParamStr);
+        _buf.write("$_pad'$fieldName': $wrapperStr,\n");
       }
       _indent--;
     }
-    _buf.write('${_pad};\n');
-
-    // 检查是否是 redirecting constructor
-    final hasRedirecting = ctor.initializers.any((init) => init is RedirectingInitializer);
-    if (hasRedirecting) {
-      // Redirecting constructor: 展开为调用目标构造函数
-      for (final init in ctor.initializers) {
-        if (init is RedirectingInitializer) {
-          final redirCtorName = init.target.name.text;
-          final targetFuncName = redirCtorName.isEmpty
-              ? '${className}_new'
-              : '${className}_new_$redirCtorName';
-          _buf.write('${_pad}final obj = $targetFuncName(');
-          _buf.write(_restoreArgs(init.arguments));
-          _buf.write(');\n');
-        }
-      }
-      _buf.write('${_pad}return obj;\n');
-      _indent--;
-      _buf.write('}\n\n');
-      return;
-    }
-
-    // 父类初始化（展开 super(...)）
-    for (final init in ctor.initializers) {
-      if (init is SuperInitializer) {
-        _emitSuperInit(init, parentName, className);
-      }
-    }
+    _buf.write('${_pad}};\n');
 
     // 字段初始化（展开初始化列表）
     for (final init in ctor.initializers) {
       if (init is FieldInitializer) {
-        _buf.write('${_pad}obj.${init.field.name.text} = ');
+        _buf.write('${_pad}this_.${init.field.name.text} = ');
         _insideMethodBody = true;
         _buf.write(_restoreExpr(init.value));
         _insideMethodBody = false;
@@ -469,134 +703,73 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
     }
 
-    // 处理 this.field 参数 → obj.field = param
+    // 处理 this.field 参数 → this_.field = param
     _emitThisFieldAssignments(ctor, cls);
 
-    // 构造函数体（this → obj）
+    // 为有初始值但未在初始化列表或 this.field 参数中处理的字段生成默认值赋值
+    _emitFieldDefaultValues(ctor, cls);
+
+    // 构造函数体（this → this_）
     if (ctor.function.body != null && ctor.function.body is! EmptyStatement) {
       _insideMethodBody = true;
-      _thisReplacementName = 'obj';
+      _thisReplacementName = 'this_';
       final ctorContextName = ctorName.isEmpty ? '${className}_new' : '${className}_new_$ctorName';
       _pushClosureContext(ctorContextName);
-      _emitBodyWithThisReplacement(ctor.function.body!, 'obj');
+      _emitBodyWithThisReplacement(ctor.function.body!, 'this_');
       _popClosureContext();
       _thisReplacementName = 'this_';
       _insideMethodBody = false;
     }
 
-    _buf.write('${_pad}return obj;\n');
     _indent--;
     _buf.write('}\n\n');
   }
 
-  /// 展开 super(...) 初始化
+  /// 判断构造函数是否有参数（排除 this. 参数）
+  bool _hasParams(FunctionNode func) {
+    return func.positionalParameters.isNotEmpty || func.namedParameters.isNotEmpty;
+  }
+
+  /// 调用父类 new 函数（传入 this_）实现基类构造
+  /// 如果父类是合成 mixin 中间类（不生成构造函数），则沿继承链向上
+  /// 找到真正的非合成用户类来调用其构造函数
   void _emitSuperInit(SuperInitializer init, String? parentName, String className) {
     if (parentName == null || !_isUserClass(parentName)) return;
-    // 展开父类构造函数的字段初始化（不调用父类 X_new，直接内联初始化逻辑）
-    final parentCls = _classNodes[parentName];
-    if (parentCls != null) {
-      final parentCtor = _findMatchingConstructor(parentCls, init.target.name.text);
-      if (parentCtor != null) {
-        _emitParentFieldInits(parentCtor, init.arguments, parentName);
-      }
+    
+    // 沿继承链向上找到真正的非合成类（合成类不生成构造函数）
+    String actualParent = parentName;
+    while (_isSyntheticMixinClassName(actualParent) || 
+           _isSyntheticLoweredName(actualParent)) {
+      final next = _getParentClassName(actualParent);
+      if (next == null || !_isUserClass(next)) break;
+      actualParent = next;
     }
+    
+    // 如果最终找到的父类仍然是合成类，说明没有真正的用户类构造函数可调用
+    if (_isSyntheticLoweredName(actualParent)) return;
+    
+    final superCtorName = init.target.name.text;
+    final parentFuncName = superCtorName.isEmpty
+        ? '${actualParent}_new'
+        : '${actualParent}_new_$superCtorName';
+    final superArgs = _restoreArgs(init.arguments);
+    _buf.write('${_pad}$parentFuncName(this_');
+    if (superArgs.isNotEmpty) _buf.write(', $superArgs');
+    _buf.write(');\n');
+  }
+  
+  /// 判断是否是合成 mixin 中间类的 lowered 名称（如 Dog_Animal_Printable_Orderable）
+  /// 这些类名是由 _sanitizeSyntheticName 生成的，包含多个 _ 分隔的类名
+  bool _isSyntheticLoweredName(String name) {
+    // 检查原始类名映射：如果 _classHierarchy 中有这个名字，
+    // 且它不是原始用户类名（即不在原始 Dart 源码中定义），则是合成类
+    // 简单判断：如果名字中包含多个大写字母开头的段（如 Dog_Animal_Printable），
+    // 且不是原始用户类名，则认为是合成类
+    // 更可靠的方式：检查是否有对应的合成类原始名
+    return _syntheticLoweredNames.contains(name);
   }
 
-  /// 查找匹配的构造函数
-  Constructor? _findMatchingConstructor(Class cls, String ctorName) {
-    for (final ctor in cls.constructors) {
-      if (ctor.name.text == ctorName) return ctor;
-    }
-    return null;
-  }
-
-  /// 展开父类构造函数的字段初始化
-  void _emitParentFieldInits(Constructor parentCtor, Arguments args, String parentName) {
-    // 将参数映射到字段
-    for (final init in parentCtor.initializers) {
-      if (init is FieldInitializer) {
-        // 检查初始化值是否引用了构造函数参数
-        final value = init.value;
-        if (value is VariableGet) {
-          // 找到对应的参数在 args 中的位置
-          final paramIdx = parentCtor.function.positionalParameters.indexOf(value.variable);
-          if (paramIdx >= 0 && paramIdx < args.positional.length) {
-            _buf.write('${_pad}obj.${init.field.name.text} = ');
-            _buf.write(_restoreExpr(args.positional[paramIdx]));
-            _buf.write(';\n');
-          } else {
-            // 检查命名参数
-            final namedIdx = parentCtor.function.namedParameters.indexOf(value.variable);
-            if (namedIdx >= 0) {
-              final paramName = parentCtor.function.namedParameters[namedIdx].name;
-              for (final namedArg in args.named) {
-                if (namedArg.name == paramName) {
-                  _buf.write('${_pad}obj.${init.field.name.text} = ');
-                  _buf.write(_restoreExpr(namedArg.value));
-                  _buf.write(';\n');
-                  break;
-                }
-              }
-            }
-          }
-        } else {
-          _buf.write('${_pad}obj.${init.field.name.text} = ');
-          _buf.write(_restoreExpr(init.value));
-          _buf.write(';\n');
-        }
-      } else if (init is SuperInitializer) {
-        // 递归展开更上层的 super
-        final grandParentName = _getParentClassName(parentName);
-        _emitSuperInit(init, grandParentName, parentName);
-      }
-    }
-
-    // 处理父类构造函数中的 this.field 参数
-    final parentCls = _classNodes[parentName];
-    if (parentCls != null) {
-      _emitThisFieldAssignmentsFromArgs(parentCtor, parentCls, args);
-    }
-  }
-
-  /// 处理 this.field 参数赋值（从外部 Arguments 映射）
-  void _emitThisFieldAssignmentsFromArgs(Constructor ctor, Class cls, Arguments args) {
-    final fieldNames = cls.fields.where((f) => !f.isStatic).map((f) => f.name.text).toSet();
-    // 位置参数
-    for (var i = 0; i < ctor.function.positionalParameters.length; i++) {
-      final param = ctor.function.positionalParameters[i];
-      final paramName = param.name ?? '';
-      if (fieldNames.contains(paramName)) {
-        // 检查是否已经在初始化列表中处理过
-        final alreadyInited = ctor.initializers.any((init) =>
-            init is FieldInitializer && init.field.name.text == paramName);
-        if (!alreadyInited && i < args.positional.length) {
-          _buf.write('${_pad}obj.$paramName = ');
-          _buf.write(_restoreExpr(args.positional[i]));
-          _buf.write(';\n');
-        }
-      }
-    }
-    // 命名参数
-    for (final param in ctor.function.namedParameters) {
-      final paramName = param.name ?? '';
-      if (fieldNames.contains(paramName)) {
-        final alreadyInited = ctor.initializers.any((init) =>
-            init is FieldInitializer && init.field.name.text == paramName);
-        if (!alreadyInited) {
-          for (final namedArg in args.named) {
-            if (namedArg.name == paramName) {
-              _buf.write('${_pad}obj.$paramName = ');
-              _buf.write(_restoreExpr(namedArg.value));
-              _buf.write(';\n');
-              break;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /// 处理 this.field 参数 → obj.field = param
+  /// 处理 this.field 参数 → this_.field = param
   void _emitThisFieldAssignments(Constructor ctor, Class cls) {
     final fieldNames = cls.fields.where((f) => !f.isStatic).map((f) => f.name.text).toSet();
     // 位置参数中的 this.field
@@ -607,7 +780,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         final alreadyInited = ctor.initializers.any((init) =>
             init is FieldInitializer && init.field.name.text == paramName);
         if (!alreadyInited) {
-          _buf.write('${_pad}obj.$paramName = $paramName;\n');
+          _buf.write('${_pad}this_.$paramName = $paramName;\n');
         }
       }
     }
@@ -618,10 +791,195 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         final alreadyInited = ctor.initializers.any((init) =>
             init is FieldInitializer && init.field.name.text == paramName);
         if (!alreadyInited) {
-          _buf.write('${_pad}obj.$paramName = $paramName;\n');
+          _buf.write('${_pad}this_.$paramName = $paramName;\n');
         }
       }
     }
+  }
+
+  /// 为有初始值但未在初始化列表或 this.field 参数中处理的字段生成默认值赋值
+  /// 例如：`bool _initialized = false;` → `this_._initialized = false;`
+  void _emitFieldDefaultValues(Constructor ctor, Class cls) {
+    // 收集已经在初始化列表中处理过的字段名
+    final initedFields = <String>{};
+    for (final init in ctor.initializers) {
+      if (init is FieldInitializer) {
+        initedFields.add(init.field.name.text);
+      }
+    }
+    // 收集已经在 this.field 参数中处理过的字段名
+    final fieldNames = cls.fields.where((f) => !f.isStatic).map((f) => f.name.text).toSet();
+    for (final param in ctor.function.positionalParameters) {
+      final paramName = _cleanVarName(param.name ?? '');
+      if (fieldNames.contains(paramName)) {
+        initedFields.add(paramName);
+      }
+    }
+    for (final param in ctor.function.namedParameters) {
+      final paramName = _cleanVarName(param.name ?? '');
+      if (fieldNames.contains(paramName)) {
+        initedFields.add(paramName);
+      }
+    }
+
+    // 收集当前类及所有父类/mixin 的字段（与 _emitValueClass 中 _collectAllFields 一致）
+    final allFields = <Field>[];
+    _collectAllFields(cls, allFields, <String>{});
+
+    // 为有初始值但未处理的字段生成赋值
+    for (final field in allFields) {
+      if (field.isStatic) continue;
+      if (field.isLate) continue; // late 字段不需要默认值
+      if (initedFields.contains(field.name.text)) continue;
+      if (field.initializer != null) {
+        _buf.write('${_pad}this_.${field.name.text} = ');
+        _buf.write(_restoreExpr(field.initializer!));
+        _buf.write(';\n');
+      }
+    }
+  }
+
+  /// 为泛型类的 vptr 条目生成 lambda wrapper，绑定类型参数
+  /// 例如：Pair_swap 是泛型函数 <A,B>(PairValue<A,B>) => PairValue<B,A>
+  /// wrapper 为：(self) => Pair_swap<A, B>(self)
+  /// 这样 vptr 中存储的就是非泛型函数，可以在调用处做精确类型 cast
+  String _buildVptrLambdaWrapper(Class cls, _VTableEntry entry, String className, String typeParamStr) {
+    final proc = entry.proc;
+    if (proc == null) {
+      // 没有 proc 引用（如从接口继承的条目），直接返回函数名
+      return entry.staticFuncName;
+    }
+
+    // 当方法有命名参数时，lambda 无法声明命名参数语法。
+    // 生成一个内联函数声明来支持命名参数转发。
+    final hasNamedParams = proc.function.namedParameters.isNotEmpty;
+    if (hasNamedParams) {
+      // 当方法有自身类型参数时，lambda 中无法声明方法级类型参数，
+      // 此时不传递任何类型参数，让 Dart 完全推断。否则传递类的类型参数。
+      final effectiveTypeParamStr = proc.function.typeParameters.isEmpty ? typeParamStr : '';
+      // 收集方法自身的类型参数名（这些在 lambda 中不可用，需要替换为 dynamic）
+      final methodTypeParamNames = proc.function.typeParameters.map((tp) => tp.name ?? 'T').toSet();
+      // 构建带命名参数的 wrapper 函数体
+      final wrapperParams = <String>['self'];
+      // 位置参数
+      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
+        wrapperParams.add('_a$i');
+      }
+      // 命名参数：使用 {} 语法，将方法级类型参数替换为 dynamic
+      final namedParts = <String>[];
+      for (final p in proc.function.namedParameters) {
+        final cleanName = _cleanVarName(p.name ?? '_n');
+        var paramType = _restoreType(p.type);
+        // 替换方法级类型参数为 dynamic
+        for (final tpName in methodTypeParamNames) {
+          paramType = _replaceTypeParam(paramType, tpName, 'dynamic');
+        }
+        if (p.isRequired) {
+          namedParts.add('required $paramType $cleanName');
+        } else {
+          var part = '$paramType $cleanName';
+          if (p.initializer != null) {
+            part += ' = ${_restoreExpr(p.initializer!)}';
+          }
+          namedParts.add(part);
+        }
+      }
+      final posParamStr = wrapperParams.join(', ');
+      final namedParamStr = namedParts.join(', ');
+      final fullParamStr = '$posParamStr, {$namedParamStr}';
+      // 构建转发调用
+      final forwardParts = <String>['self'];
+      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
+        forwardParts.add('_a$i');
+      }
+      for (final p in proc.function.namedParameters) {
+        final cleanName = _cleanVarName(p.name ?? '_n');
+        forwardParts.add('${p.name}: $cleanName');
+      }
+      final forwardStr = forwardParts.join(', ');
+      return '($fullParamStr) => ${entry.staticFuncName}$effectiveTypeParamStr($forwardStr)';
+    }
+
+    // 构建 lambda 参数列表
+    final lambdaParams = <String>[];
+    // 第一个参数：self（this_）
+    lambdaParams.add('self');
+    // 其余参数
+    final requiredCount = proc.function.requiredParameterCount;
+    if (entry.kind == 'setter') {
+      if (proc.function.positionalParameters.isNotEmpty) {
+        lambdaParams.add('val');
+      }
+    } else if (entry.kind != 'getter') {
+      // method / operator: 处理可选位置参数
+      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
+        lambdaParams.add('_a$i');
+      }
+    }
+
+    // 检查是否有可选位置参数
+    final hasOptionalPositional = entry.kind != 'getter' && entry.kind != 'setter' &&
+        requiredCount < proc.function.positionalParameters.length;
+
+    String lambdaParamStr;
+    if (hasOptionalPositional) {
+      // 将可选位置参数用 [] 包裹，并提供默认值
+      final requiredParams = <String>['self'];
+      for (var i = 0; i < requiredCount; i++) {
+        requiredParams.add('_a$i');
+      }
+      final optionalParams = <String>[];
+      for (var i = requiredCount; i < proc.function.positionalParameters.length; i++) {
+        final p = proc.function.positionalParameters[i];
+        final defaultVal = p.initializer != null ? _restoreExpr(p.initializer!) : _defaultValueForType(p.type);
+        optionalParams.add('_a$i = $defaultVal');
+      }
+      lambdaParamStr = '${requiredParams.join(', ')}${optionalParams.isNotEmpty ? ', [${optionalParams.join(', ')}]' : ''}';
+    } else {
+      lambdaParamStr = lambdaParams.join(', ');
+    }
+    
+    // 当方法有自身类型参数时（如 then<TNewOutput>），lambda 中无法声明方法级类型参数，
+    // 此时不传递任何类型参数，让 Dart 完全推断。否则传递类的类型参数。
+    final effectiveTypeParamStr = proc.function.typeParameters.isEmpty ? typeParamStr : '';
+    
+    // 构建转发参数列表
+    final forwardParts = <String>[];
+    forwardParts.add('self');
+    if (entry.kind == 'setter') {
+      if (proc.function.positionalParameters.isNotEmpty) {
+        forwardParts.add('val');
+      }
+    } else if (entry.kind != 'getter') {
+      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
+        forwardParts.add('_a$i');
+      }
+    }
+    final forwardArgStr = forwardParts.join(', ');
+
+    return '($lambdaParamStr) => ${entry.staticFuncName}$effectiveTypeParamStr($forwardArgStr)';
+  }
+
+  /// 获取类型的默认值字符串（用于可选参数的默认值）
+  String _defaultValueForType(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      if (name == 'int' && type.nullability != Nullability.nullable) return '0';
+      if (name == 'double' && type.nullability != Nullability.nullable) return '0.0';
+      if (name == 'bool' && type.nullability != Nullability.nullable) return 'false';
+      if (name == 'String' && type.nullability != Nullability.nullable) return "''";
+    }
+    return 'null';
+  }
+
+  /// 在类型字符串中替换类型参数名为指定的替换值
+  /// 例如：将 "R Function(T)" 中的 R 和 T 替换为 dynamic
+  String _replaceTypeParam(String typeStr, String paramName, String replacement) {
+    // 使用单词边界匹配，避免替换部分匹配（如 "Result" 中的 "R"）
+    return typeStr.replaceAllMapped(
+      RegExp('\\b$paramName\\b'),
+      (m) => replacement,
+    );
   }
 
   /// 输出方法体，将 this 替换为指定变量名
@@ -661,14 +1019,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 返回类型（包含类型参数，如 PairValue<B, A> Pair_swap<A, B>(...)）
     _buf.write(_restoreType(proc.function.returnType));
     _buf.write(' $funcName');
-    // 实例方法也需要类型参数（来自类的类型参数）
-    _writeTypeParams(cls.typeParameters);
+    // 类型参数声明：类的类型参数 + 方法自身的类型参数
+    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
     _buf.write('(');
 
-    // 第一个参数：this_ (使用 dynamic 避免类型协变问题)
-    _buf.write('dynamic this_');
+    // 第一个参数：this_，使用实际类类型（参数类型位置只写名称）
+    _buf.write('${className}Value');
+    _writeTypeParamNames(cls.typeParameters);
+    _buf.write(' this_');
 
-    // 其余参数
+    // 其余参数（顶层静态函数中不允许 covariant）
     if (proc.isSetter) {
       if (proc.function.positionalParameters.isNotEmpty) {
         final p = proc.function.positionalParameters.first;
@@ -682,7 +1042,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final named = proc.function.namedParameters;
       if (pos.isNotEmpty || named.isNotEmpty) {
         _buf.write(', ');
-        _writeParams(proc.function, proc: proc);
+        _writeParams(proc.function, proc: proc, suppressCovariant: true);
       }
     }
 
@@ -726,7 +1086,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     _buf.write(_pad);
     _buf.write(_restoreType(proc.function.returnType));
-    _buf.write(' $funcName(dynamic this_');
+    _buf.write(' $funcName');
+    // 抽象方法也需要类型参数声明：类的类型参数 + 方法自身的类型参数
+    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    _buf.write('(${className}Value');
+    _writeTypeParamNames(cls.typeParameters);
+    _buf.write(' this_');
 
     if (proc.isSetter) {
       if (proc.function.positionalParameters.isNotEmpty) {
@@ -740,7 +1105,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final named = proc.function.namedParameters;
       if (pos.isNotEmpty || named.isNotEmpty) {
         _buf.write(', ');
-        _writeParams(proc.function, proc: proc);
+        _writeParams(proc.function, proc: proc, suppressCovariant: true);
       }
     }
 
@@ -1204,12 +1569,15 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     _buf.write(' ');
     _insideMethodBody = true;
+    // 推入闭包上下文，确保函数体内生成的闭包以当前扩展方法名命名
+    _pushClosureContext(cleanedFuncName);
     final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
     if (isVoidReturn) {
       _restoreSetterBody(proc.function.body!);
     } else {
       _restoreBody(proc.function.body!);
     }
+    _popClosureContext();
     _insideMethodBody = false;
     _buf.write('\n');
   }
@@ -1328,7 +1696,34 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write('>');
   }
 
-  void _writeParams(FunctionNode func, {Procedure? proc}) {
+  /// 只写类型参数名称（不含 extends 约束），用于函数参数类型位置
+  /// 例如：`<T>` 而非 `<T extends Comparable<dynamic>>`
+  void _writeTypeParamNames(List<TypeParameter> params) {
+    if (params.isEmpty) return;
+    _buf.write('<');
+    for (var i = 0; i < params.length; i++) {
+      if (i > 0) _buf.write(', ');
+      _buf.write(params[i].name ?? 'T');
+    }
+    _buf.write('>');
+  }
+
+  /// 返回类型参数名称字符串（不含 extends 约束），如 "<T>" 或 "<K, V>"
+  String _typeParamNamesStr(List<TypeParameter> params) {
+    if (params.isEmpty) return '';
+    final names = params.map((tp) => tp.name ?? 'T').join(', ');
+    return '<$names>';
+  }
+
+  /// 写入合并后的类型参数声明（类的类型参数 + 方法自身的类型参数）
+  /// 用于实例方法转静态函数时的类型参数声明位置
+  void _writeCombinedTypeParams(List<TypeParameter> classParams, List<TypeParameter> methodParams) {
+    final allParams = [...classParams, ...methodParams];
+    if (allParams.isEmpty) return;
+    _writeTypeParams(allParams);
+  }
+
+  void _writeParams(FunctionNode func, {Procedure? proc, bool suppressCovariant = false}) {
     final pos = func.positionalParameters;
     final named = func.namedParameters;
     final reqCount = func.requiredParameterCount;
@@ -1342,8 +1737,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         // 开始可选位置参数
       }
       final sb = StringBuffer();
-      // covariant 必须在 final 前面
-      if (_needsCovariant(p, func, proc)) sb.write('covariant ');
+      // covariant 必须在 final 前面（顶层静态函数中不允许 covariant）
+      if (!suppressCovariant && _needsCovariant(p, func, proc)) sb.write('covariant ');
       if (p.isFinal) sb.write('final ');
       sb.write(_restoreType(p.type));
       sb.write(' ');

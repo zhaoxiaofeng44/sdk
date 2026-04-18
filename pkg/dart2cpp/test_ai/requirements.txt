@@ -1,0 +1,4 @@
+torch==2.3+cpu
+transformers==4.44.0
+datasets==2.19.0
+seqeval==1.2.3

@@ -1,6 +1,0 @@
-{
-  "expectedErrors": {
-    "1": "Class cannot be redefined to be a enum class"
-  }
-}
-

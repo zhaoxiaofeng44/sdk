@@ -1,5 +1,0 @@
-{
-  "expectedErrors": {
-    "1": "Error: Method not found: 'importedFunc'."
-  }
-}

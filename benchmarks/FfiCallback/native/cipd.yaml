@@ -1,5 +1,0 @@
-package: dart/benchmarks/fficallback
-description: Dynamic libaries for running the benchmarks/FfiCallback.
-install_mode: copy
-data:
-  - dir: out/

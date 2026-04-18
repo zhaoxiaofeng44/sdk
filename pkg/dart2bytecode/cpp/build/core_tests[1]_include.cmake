@@ -1,5 +1,0 @@
-if(EXISTS "/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/src/build/core_tests[1]_tests.cmake")
-  include("/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2bytecode/src/build/core_tests[1]_tests.cmake")
-else()
-  add_test(core_tests_NOT_BUILT core_tests_NOT_BUILT)
-endif()

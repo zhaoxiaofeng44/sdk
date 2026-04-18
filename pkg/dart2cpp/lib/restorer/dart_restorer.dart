@@ -40,6 +40,9 @@ abstract class _DartRestorerBase {
   /// 所有 enum 名称集合
   final Set<String> _enumNames = {};
 
+  /// 有自定义 toString 方法的枚举名称集合
+  final Set<String> _enumsWithCustomToString = {};
+
   /// 类继承关系：子类名 → 父类名（仅用户自定义类）
   final Map<String, String> _classHierarchy = {};
 
@@ -48,6 +51,10 @@ abstract class _DartRestorerBase {
 
   /// 类 → 其 Class AST 节点（用于查询字段等）
   final Map<String, Class> _classNodes = {};
+
+  /// 合成 mixin 中间类的 lowered 名称集合（如 Dog_Animal_Printable_Orderable）
+  /// 这些类不生成构造函数，需要在 super init 时跳过
+  final Set<String> _syntheticLoweredNames = {};
 
   /// 当前正在处理的类（null 表示在顶层）
   Class? _currentClass;
@@ -102,6 +109,51 @@ abstract class _DartRestorerBase {
   String get _closureContext {
     if (_closureContextStack.isNotEmpty) return _closureContextStack.last;
     return 'anon';
+  }
+
+  /// 将方法名转换为 VTable 字段名
+  /// 特殊处理：避免与 Object 内置方法冲突（如 toString、hashCode、noSuchMethod）
+  String _vtableFieldName(String methodName) {
+    const conflictingNames = {'toString', 'hashCode', 'noSuchMethod', 'runtimeType'};
+    if (conflictingNames.contains(methodName)) {
+      return '${methodName}_';
+    }
+    return methodName;
+  }
+
+  /// 简化版类型还原（用于签名生成）
+  /// 将 Kernel DartType 转换为 Dart 类型字符串，用户自定义类映射为 XValue 形式
+  String _restoreTypeForSignature(DartType type) {
+    final nullable = type.nullability == Nullability.nullable;
+    final suffix = nullable ? '?' : '';
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      final mappedName = _isUserClass(name) ? '${name}Value' : name;
+      if (type.typeArguments.isEmpty) return '$mappedName$suffix';
+      final args = type.typeArguments.map((t) => _restoreTypeForSignature(t)).join(', ');
+      return '$mappedName<$args>$suffix';
+    }
+    if (type is FunctionType) {
+      final ret = _restoreTypeForSignature(type.returnType);
+      final params = <String>[];
+      for (final p in type.positionalParameters) {
+        params.add(_restoreTypeForSignature(p));
+      }
+      return '$ret Function(${params.join(', ')})$suffix';
+    }
+    if (type is TypeParameterType) {
+      // 在 vptr 签名中，类型参数可能在调用处不可用（如 main 函数中调用泛型类的方法）
+      // 检查类型参数是否来自类的声明（而非方法的局部类型参数）
+      // 如果在方法体内（_insideMethodBody），类型参数可能可用；否则替换为 dynamic
+      if (!_insideMethodBody) {
+        return 'dynamic';
+      }
+      return '${type.parameter.name ?? 'T'}$suffix';
+    }
+    if (type is DynamicType) return 'dynamic';
+    if (type is VoidType) return 'void';
+    if (type is NeverType) return 'Never$suffix';
+    return 'dynamic';
   }
 
   /// 判断类名是否是用户自定义类（包括合成 mixin 中间类）
@@ -625,12 +677,14 @@ class _VTableEntry {
   final String kind; // 'method', 'getter', 'setter', 'operator'
   final String staticFuncName;
   final String signature; // Function type signature for VTable field
+  final Procedure? proc; // 原始 Procedure 引用（用于泛型 lambda wrapper 生成）
 
   _VTableEntry({
     required this.name,
     required this.kind,
     required this.staticFuncName,
     required this.signature,
+    this.proc,
   });
 }
 
@@ -653,6 +707,7 @@ class DartRestorer extends _DartRestorerBase
     _classHierarchy.clear();
     _classVTableEntries.clear();
     _classNodes.clear();
+    _syntheticLoweredNames.clear();
 
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
@@ -680,20 +735,30 @@ class DartRestorer extends _DartRestorerBase
         continue;
       }
 
-      // enum: 记录名称和节点
+      // enum: 记录名称和节点，检查是否有自定义 toString
       if (_isEnumClass(cls)) {
         _enumNames.add(cls.name);
         _classNodes[cls.name] = cls;
+        // 检查是否有自定义 toString 方法（非合成的 _enumToString）
+        final hasCustomToString = cls.procedures.any((p) =>
+            p.name.text == 'toString' && !p.isAbstract && p.function.body != null);
+        if (hasCustomToString) {
+          _enumsWithCustomToString.add(cls.name);
+        }
         continue;
       }
 
       // 合成 mixin 中间类（名字包含 &）：作为普通用户类收集
       // 例如 _Dog&Animal&Printable → 规范化名称 Dog_Animal_Printable
-      final className = cls.name.contains('&')
+      final isSynthetic = cls.name.contains('&');
+      final className = isSynthetic
           ? _sanitizeSyntheticName(cls.name)
           : cls.name;
 
       _userClasses.add(className);
+      if (isSynthetic) {
+        _syntheticLoweredNames.add(className);
+      }
       _classNodes[className] = cls;
 
       // 记录继承关系
@@ -817,34 +882,12 @@ class DartRestorer extends _DartRestorerBase
       kind: kind,
       staticFuncName: staticFuncName,
       signature: signature,
+      proc: proc,
     );
   }
 
   /// 简化版类型还原（用于签名生成，在第一遍收集时使用）
-  String _restoreTypeForSignature(DartType type) {
-    final nullable = type.nullability == Nullability.nullable;
-    final suffix = nullable ? '?' : '';
-    if (type is InterfaceType) {
-      final name = type.classNode.name;
-      final mappedName = _isUserClass(name) ? '${name}Value' : name;
-      if (type.typeArguments.isEmpty) return '$mappedName$suffix';
-      final args = type.typeArguments.map((t) => _restoreTypeForSignature(t)).join(', ');
-      return '$mappedName<$args>$suffix';
-    }
-    if (type is FunctionType) {
-      final ret = _restoreTypeForSignature(type.returnType);
-      final params = <String>[];
-      for (final p in type.positionalParameters) {
-        params.add(_restoreTypeForSignature(p));
-      }
-      return '$ret Function(${params.join(', ')})$suffix';
-    }
-    if (type is TypeParameterType) return '${type.parameter.name ?? 'T'}$suffix';
-    if (type is DynamicType) return 'dynamic';
-    if (type is VoidType) return 'void';
-    if (type is NeverType) return 'Never$suffix';
-    return 'dynamic';
-  }
+  /// 注意：此方法已移至 _DartRestorerBase 基类，供所有 mixin 共享访问
 
   // ---- Library ----
 

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(g++ -std=c++17 basic_conversion_test_fixed.cpp ../cpp/core/object.cpp -o basic_conversion_test.out)",
+      "Bash(dart ../bin/dart2cpp.dart basic_conversion_test.dart -o basic_conversion_test_new.cpp)",
+      "Bash(dart ../bin/dart2cpp.dart basic_conversion_test.dart -o basic_conversion_test_fixed.cpp)",
+      "Bash(dart bin/dart2cpp.dart test/basic_conversion_test.dart -o test/basic_conversion_test_fixed.cpp)",
+      "Read(//Users/alsc/MyProject/sdk/mydart/sdk/pkg/**)",
+      "Bash(dart ../bin/dart2cpp.dart basic_conversion_test.dart -o basic_conversion_test_final.cpp -v)",
+      "Bash(g++ -std=c++17 -I../cpp/core basic_conversion_test_final.cpp ../cpp/core/object.cpp -o basic_conversion_test_final.out)",
+      "Bash(./basic_conversion_test_final.out)",
+      "Bash(dart demo/basic_syntax_demo.dart)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

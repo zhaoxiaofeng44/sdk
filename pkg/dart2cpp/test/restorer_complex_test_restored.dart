@@ -1,181 +1,170 @@
 class ShapeValue {
-  late ShapeVTable vptr;
+  late Map<String, dynamic> vptr;
+  @override
+  String toString() {
+    final toStringFn = vptr['toString_'];
+    if (toStringFn != null) return (toStringFn as Function)(this) as String;
+    return super.toString();
+  }
 }
 
-class ShapeVTable {
-  late String Function(dynamic this_) get_name;
-  late double Function(dynamic this_) area;
-  late double Function(dynamic this_) perimeter;
-  late String Function(dynamic this_) toString_;
+void Shape_new(ShapeValue this_) {
+  this_.vptr = {
+    'get_name': (self) => Shape_get_name(self),
+    'area': (self) => Shape_area(self),
+    'perimeter': (self) => Shape_perimeter(self),
+    'toString_': (self) => Shape_toString(self),
+  };
 }
 
-ShapeValue Shape_new() {
-  final obj = ShapeValue();
-  obj.vptr = ShapeVTable()
-    ..get_name = Shape_get_name
-    ..area = Shape_area
-    ..perimeter = Shape_perimeter
-    ..toString_ = Shape_toString
-  ;
-  return obj;
-}
-
-String Shape_get_name(dynamic this_) {
+String Shape_get_name(ShapeValue this_) {
   throw UnimplementedError('Shape.name is abstract');
 }
 
-double Shape_area(dynamic this_) {
+double Shape_area(ShapeValue this_) {
   throw UnimplementedError('Shape.area is abstract');
 }
 
-double Shape_perimeter(dynamic this_) {
+double Shape_perimeter(ShapeValue this_) {
   throw UnimplementedError('Shape.perimeter is abstract');
 }
 
-String Shape_toString(dynamic this_) {
-  return '${this_.vptr.get_name(this_)}(area=${this_.vptr.area(this_).toStringAsFixed(2)})';
+String Shape_toString(ShapeValue this_) {
+  return '${(this_.vptr['get_name'] as String Function(ShapeValue))(this_)}(area=${(this_.vptr['area'] as double Function(ShapeValue))(this_).toStringAsFixed(2)})';
 }
 
 
 class PairValue<A, B> {
-  late PairVTable vptr;
+  late Map<String, dynamic> vptr;
   late A first;
   late B second;
+  @override
+  String toString() {
+    final toStringFn = vptr['toString_'];
+    if (toStringFn != null) return (toStringFn as Function)(this) as String;
+    return super.toString();
+  }
 }
 
-class PairVTable<A, B> {
-  late PairValue<B, A> Function(PairValue this_) swap;
-  late String Function(dynamic this_) toString_;
+void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
+  this_.vptr = {
+    'swap': (self) => Pair_swap<A, B>(self),
+    'toString_': (self) => Pair_toString<A, B>(self),
+  };
+  this_.first = first;
+  this_.second = second;
 }
 
-PairValue<A, B> Pair_new<A, B>(A first, B second) {
-  final obj = PairValue();
-  obj.vptr = PairVTable()
-    ..swap = Pair_swap
-    ..toString_ = Pair_toString
-  ;
-  obj.first = first;
-  obj.second = second;
-  return obj;
+PairValue<B, A> Pair_swap<A, B>(PairValue<A, B> this_) {
+  return (() { final _obj = PairValue<B, A>(); Pair_new(_obj, this_.second, this_.first); return _obj; })();
 }
 
-PairValue<B, A> Pair_swap<A, B>(dynamic this_) {
-  return Pair_new(this_.second, this_.first);
-}
-
-String Pair_toString<A, B>(dynamic this_) {
+String Pair_toString<A, B>(PairValue<A, B> this_) {
   return '(${this_.first}, ${this_.second})';
 }
 
 
 class CircleValue extends ShapeValue {
-  late CircleVTable vptr;
+  late Map<String, dynamic> vptr;
   late double _radius;
+  @override
+  String toString() {
+    final toStringFn = vptr['toString_'];
+    if (toStringFn != null) return (toStringFn as Function)(this) as String;
+    return super.toString();
+  }
 }
 
-class CircleVTable {
-  late String Function(dynamic this_) get_name;
-  late double Function(dynamic this_) area;
-  late double Function(dynamic this_) perimeter;
-  late String Function(dynamic this_) toString_;
-  late double Function(dynamic this_) get_radius;
-  late void Function(dynamic this_, double value) set_radius;
+void Circle_new(CircleValue this_, double _radius) {
+  Shape_new(this_);
+  this_.vptr = {
+    'get_name': (self) => Circle_get_name(self),
+    'area': (self) => Circle_area(self),
+    'perimeter': (self) => Circle_perimeter(self),
+    'toString_': (self) => Circle_toString(self),
+    'get_radius': (self) => Circle_get_radius(self),
+    'set_radius': (self, val) => Circle_set_radius(self, val),
+  };
+  this_._radius = _radius;
 }
 
-CircleValue Circle_new(double _radius) {
-  final obj = CircleValue();
-  obj.vptr = CircleVTable()
-    ..get_name = Circle_get_name
-    ..area = Circle_area
-    ..perimeter = Circle_perimeter
-    ..toString_ = Circle_toString
-    ..get_radius = Circle_get_radius
-    ..set_radius = Circle_set_radius
-  ;
-  obj._radius = _radius;
-  return obj;
+void Circle_new_unit(CircleValue this_) {
+  Shape_new(this_);
+  this_.vptr = {
+    'get_name': (self) => Circle_get_name(self),
+    'area': (self) => Circle_area(self),
+    'perimeter': (self) => Circle_perimeter(self),
+    'toString_': (self) => Circle_toString(self),
+    'get_radius': (self) => Circle_get_radius(self),
+    'set_radius': (self, val) => Circle_set_radius(self, val),
+  };
+  this_._radius = 1.0;
 }
 
-CircleValue Circle_new_unit() {
-  final obj = CircleValue();
-  obj.vptr = CircleVTable()
-    ..get_name = Circle_get_name
-    ..area = Circle_area
-    ..perimeter = Circle_perimeter
-    ..toString_ = Circle_toString
-    ..get_radius = Circle_get_radius
-    ..set_radius = Circle_set_radius
-  ;
-  obj._radius = 1.0;
-  return obj;
-}
-
-double Circle_get_radius(dynamic this_) {
+double Circle_get_radius(CircleValue this_) {
   return this_._radius;
 }
 
-void Circle_set_radius(dynamic this_, double value) {
+void Circle_set_radius(CircleValue this_, double value) {
   if ((value < 0))   throw ArgumentError('Radius must be non-negative');
   this_._radius = value;
 }
 
-String Circle_get_name(dynamic this_) {
+String Circle_get_name(CircleValue this_) {
   return 'Circle';
 }
 
-double Circle_area(dynamic this_) {
+double Circle_area(CircleValue this_) {
   return ((3.14159265 * this_._radius) * this_._radius);
 }
 
-double Circle_perimeter(dynamic this_) {
+double Circle_perimeter(CircleValue this_) {
   return ((2 * 3.14159265) * this_._radius);
 }
 
-String Circle_toString(dynamic this_) {
-  return this_.vptr.toString_(this_);
+String Circle_toString(CircleValue this_) {
+  return Shape_toString(this_);
 }
 
 
 class RectangleValue extends ShapeValue {
-  late RectangleVTable vptr;
+  late Map<String, dynamic> vptr;
   late double width;
   late double height;
+  @override
+  String toString() {
+    final toStringFn = vptr['toString_'];
+    if (toStringFn != null) return (toStringFn as Function)(this) as String;
+    return super.toString();
+  }
 }
 
-class RectangleVTable {
-  late String Function(dynamic this_) get_name;
-  late double Function(dynamic this_) area;
-  late double Function(dynamic this_) perimeter;
-  late String Function(dynamic this_) toString_;
+void Rectangle_new(RectangleValue this_, double width, double height) {
+  Shape_new(this_);
+  this_.vptr = {
+    'get_name': (self) => Rectangle_get_name(self),
+    'area': (self) => Rectangle_area(self),
+    'perimeter': (self) => Rectangle_perimeter(self),
+    'toString_': (self) => Rectangle_toString(self),
+  };
+  this_.width = width;
+  this_.height = height;
 }
 
-RectangleValue Rectangle_new(double width, double height) {
-  final obj = RectangleValue();
-  obj.vptr = RectangleVTable()
-    ..get_name = Rectangle_get_name
-    ..area = Rectangle_area
-    ..perimeter = Rectangle_perimeter
-    ..toString_ = Rectangle_toString
-  ;
-  obj.width = width;
-  obj.height = height;
-  return obj;
-}
-
-String Rectangle_get_name(dynamic this_) {
+String Rectangle_get_name(RectangleValue this_) {
   return 'Rectangle';
 }
 
-double Rectangle_area(dynamic this_) {
+double Rectangle_area(RectangleValue this_) {
   return (this_.width * this_.height);
 }
 
-double Rectangle_perimeter(dynamic this_) {
+double Rectangle_perimeter(RectangleValue this_) {
   return (2 * (this_.width + this_.height));
 }
 
-String Rectangle_toString(dynamic this_) {
-  return this_.vptr.toString_(this_);
+String Rectangle_toString(RectangleValue this_) {
+  return Shape_toString(this_);
 }
 
 
@@ -213,7 +202,7 @@ T identity<T>(T value) {
 }
 
 List<T> repeat<T>(T item, int count) {
-  return <T>[];
+  return List.generate(count, ClosureEnv_repeat_2(item));
 }
 
 Function makeAdder(int base) {
@@ -231,62 +220,44 @@ Future<String> fetchData(String url) async {
 
 Future<List<String>> fetchAll(List<String> urls) async {
   final List<String> results = <String>[];
-{
-    Iterator<String> sync_for_iterator = urls.iterator;
-    for (; sync_for_iterator.moveNext(); ) {
-      final String url = sync_for_iterator.current;
-{
-        final String data = await fetchData(url);
-        results.add(data);
-      }
-    }
+  for (final url in urls) {
+    final String data = await fetchData(url);
+    results.add(data);
   }
   return results;
 }
 
 String? findFirst(List<String> items, bool Function(String) predicate) {
-{
-    Iterator<String> sync_for_iterator = items.iterator;
-    for (; sync_for_iterator.moveNext(); ) {
-      final String item = sync_for_iterator.current;
-{
-        if (predicate(item))         return item;
-      }
-    }
+  for (final item in items) {
+    if (predicate(item))     return item;
   }
   return null;
 }
 
 int safeLength(String? text) {
-  return ((text == null ? null : _let1.length) ?? 0);
+  return (text?.length ?? 0);
 }
 
 void main() {
   print('=== 复杂语法节点还原测试 ===\n');
   print('--- 1. 泛型类 Pair ---');
-  final PairValue<String, int> pair = Pair_new('hello', 42);
-  final PairValue<int, String> swapped = pair.vptr.swap(pair);
+  final PairValue<String, int> pair = (() { final _obj = PairValue<String, int>(); Pair_new(_obj, 'hello', 42); return _obj; })();
+  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(PairValue))(pair);
   print('pair: ${pair}');
   print('swapped: ${swapped}');
   assert((pair.first == 'hello'));
   assert((swapped.first == 42));
   print('\n--- 2. 继承 + 多态 ---');
-  final List<ShapeValue> shapes = <ShapeValue>[Circle_new(5.0), Rectangle_new(3.0, 4.0), Circle_new_unit()];
-{
-    Iterator<ShapeValue> sync_for_iterator = shapes.iterator;
-    for (; sync_for_iterator.moveNext(); ) {
-      final ShapeValue shape = sync_for_iterator.current;
-{
-        print('  ${shape}, perimeter=${shape.vptr.perimeter(shape).toStringAsFixed(2)}');
-      }
-    }
+  final List<ShapeValue> shapes = <ShapeValue>[(() { final _obj = CircleValue(); Circle_new(_obj, 5.0); return _obj; })(), (() { final _obj = RectangleValue(); Rectangle_new(_obj, 3.0, 4.0); return _obj; })(), (() { final _obj = CircleValue(); Circle_new_unit(_obj); return _obj; })()];
+  for (final shape in shapes) {
+    print('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(ShapeValue))(shape).toStringAsFixed(2)}');
   }
   print('\n--- 3. getter/setter + 异常 ---');
-  final CircleValue circle = Circle_new(3.0);
-  circle.vptr.set_radius(circle, 5.0);
-  print('radius after set: ${circle.vptr.get_radius(circle)}');
+  final CircleValue circle = (() { final _obj = CircleValue(); Circle_new(_obj, 3.0); return _obj; })();
+  (circle.vptr['set_radius'] as void Function(CircleValue, double))(circle, 5.0);
+  print('radius after set: ${(circle.vptr['get_radius'] as double Function(CircleValue))(circle)}');
   try {
-    circle.vptr.set_radius(circle, (-1.0));
+    (circle.vptr['set_radius'] as void Function(CircleValue, double))(circle, (-1.0));
     print('ERROR: should have thrown');
   }
  on ArgumentError catch (e) {
@@ -294,40 +265,34 @@ void main() {
   }
   print('\n--- 4. 枚举 + switch ---');
   final List<Direction> directions = <Direction>[Direction.north, Direction.east, Direction.south];
+  for (final dir in directions) {
+    final String label = (() {     late String _v2;
+    do {
+      switch (dir) {
+        case Direction.north:
 {
-    Iterator<Direction> sync_for_iterator = directions.iterator;
-    for (; sync_for_iterator.moveNext(); ) {
-      final Direction dir = sync_for_iterator.current;
-{
-        final String label = (() {         late String _v2;
-        do {
-          switch (dir) {
-            case Direction.north:
-{
-                _v2 = 'N';
-                break;
-              }
-            case Direction.south:
-{
-                _v2 = 'S';
-                break;
-              }
-            case Direction.east:
-{
-                _v2 = 'E';
-                break;
-              }
-            case Direction.west:
-{
-                _v2 = 'W';
-                break;
-              }
+            _v2 = 'N';
+            break;
           }
-        } while (false);
- return _v2; })();
-        print('  ${dir} -> ${label}');
+        case Direction.south:
+{
+            _v2 = 'S';
+            break;
+          }
+        case Direction.east:
+{
+            _v2 = 'E';
+            break;
+          }
+        case Direction.west:
+{
+            _v2 = 'W';
+            break;
+          }
       }
-    }
+    } while (false);
+ return _v2; })();
+    print('  ${dir} -> ${label}');
   }
   print('\n--- 5. 扩展方法 ---');
   final String word = 'hello';
@@ -360,18 +325,8 @@ void main() {
   final Map<String, int> map = <String, int>{'a': 1, 'b': 2, 'c': 3};
   final Map<String, int> filtered = Map.fromEntries(map.entries.where((MapEntry<String, int> e) => (e.value > 1)));
   print('filtered map: ${filtered}');
-  final Set<int> set1 = (() {   final Set<int> _v3 = <dynamic>{};
-  _v3.add(1);
-  _v3.add(2);
-  _v3.add(3);
-  _v3.add(4);
- return _v3; })();
-  final Set<int> set2 = (() {   final Set<int> _v4 = <dynamic>{};
-  _v4.add(3);
-  _v4.add(4);
-  _v4.add(5);
-  _v4.add(6);
- return _v4; })();
+  final Set<int> set1 = <int>{1, 2, 3, 4};
+  final Set<int> set2 = <int>{3, 4, 5, 6};
   final Set<int> intersection = set1.intersection(set2);
   print('intersection: ${intersection}');
   print('\n--- 10. 字符串插值 ---');
@@ -433,21 +388,21 @@ String ClosureEnv_StringExtensions_get_capitalize_0_call(ClosureEnv_StringExtens
   return StringExtensions_capitalize(env.this_);
 }
 
-class ClosureEnv_ListExtensions_get_filterWhere_1 {
+class ClosureEnv_ListExtensions_get_filterWhere_1<T> {
   List<T> this_;
   ClosureEnv_ListExtensions_get_filterWhere_1(this.this_);
-  List<T> call(bool Function(T) predicate) => ClosureEnv_ListExtensions_get_filterWhere_1_call(this, predicate);
+  List<T> call(bool Function(T) predicate) => ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(this, predicate);
 }
-List<T> ClosureEnv_ListExtensions_get_filterWhere_1_call(ClosureEnv_ListExtensions_get_filterWhere_1 env, bool Function(T) predicate) {
+List<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env, bool Function(T) predicate) {
   return ListExtensions_filterWhere(env.this_, predicate);
 }
 
-class ClosureEnv_repeat_2 {
+class ClosureEnv_repeat_2<T> {
   T item;
   ClosureEnv_repeat_2(this.item);
-  T call(int _) => ClosureEnv_repeat_2_call(this, _);
+  T call(int _) => ClosureEnv_repeat_2_call<T>(this, _);
 }
-T ClosureEnv_repeat_2_call(ClosureEnv_repeat_2 env, int _) {
+T ClosureEnv_repeat_2_call<T>(ClosureEnv_repeat_2<T> env, int _) {
   return env.item;
 }
 

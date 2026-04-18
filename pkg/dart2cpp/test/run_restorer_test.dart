@@ -116,7 +116,7 @@ Future<void> main(List<String> args) async {
 
 /// SDK platform dill 路径（vm_platform_strong.dill）
 const String _sdkPlatformDill =
-    '/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
+    '/Users/tbsg/Project/MyProject.bundle/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
 
 Future<Component?> _compileToDill(String sourcePath, String dillPath) async {
   // 使用 front_end API 编译 Dart → Kernel
