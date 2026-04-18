@@ -1,11 +1,26 @@
-class ShapeValue {
+class VPtr {
   late Map<String, dynamic> vptr;
   @override
   String toString() {
-    final toStringFn = vptr['toString_'];
-    if (toStringFn != null) return (toStringFn as Function)(this) as String;
+    final fn = vptr['toString_'];
+    if (fn != null) return (fn as Function)(this) as String;
     return super.toString();
   }
+  @override
+  bool operator ==(Object other) {
+    final fn = vptr['operatorEq'];
+    if (fn != null) return (fn as Function)(this, other) as bool;
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = vptr['get_hashCode'];
+    if (fn != null) return (fn as Function)(this) as int;
+    return super.hashCode;
+  }
+}
+
+class ShapeValue extends VPtr {
 }
 
 void Shape_new(ShapeValue this_) {
@@ -34,16 +49,9 @@ String Shape_toString(ShapeValue this_) {
 }
 
 
-class PairValue<A, B> {
-  late Map<String, dynamic> vptr;
+class PairValue<A, B> extends VPtr {
   late A first;
   late B second;
-  @override
-  String toString() {
-    final toStringFn = vptr['toString_'];
-    if (toStringFn != null) return (toStringFn as Function)(this) as String;
-    return super.toString();
-  }
 }
 
 void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
@@ -65,14 +73,7 @@ String Pair_toString<A, B>(PairValue<A, B> this_) {
 
 
 class CircleValue extends ShapeValue {
-  late Map<String, dynamic> vptr;
   late double _radius;
-  @override
-  String toString() {
-    final toStringFn = vptr['toString_'];
-    if (toStringFn != null) return (toStringFn as Function)(this) as String;
-    return super.toString();
-  }
 }
 
 void Circle_new(CircleValue this_, double _radius) {
@@ -128,15 +129,8 @@ String Circle_toString(CircleValue this_) {
 
 
 class RectangleValue extends ShapeValue {
-  late Map<String, dynamic> vptr;
   late double width;
   late double height;
-  @override
-  String toString() {
-    final toStringFn = vptr['toString_'];
-    if (toStringFn != null) return (toStringFn as Function)(this) as String;
-    return super.toString();
-  }
 }
 
 void Rectangle_new(RectangleValue this_, double width, double height) {

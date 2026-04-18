@@ -716,6 +716,9 @@ class DartRestorer extends _DartRestorerBase
       _collectClassInfo(lib);
     }
 
+    // 输出 VPtr 基类：所有无基类的 Value 类都继承自它
+    _emitVPtrBaseClass();
+
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
       if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
@@ -916,6 +919,33 @@ class DartRestorer extends _DartRestorerBase
       _buf.write(decl);
     }
     _pendingClosureDecls.clear();
+  }
+
+  /// 输出 VPtr 基类定义
+  /// 所有无基类（或继承自 Object）的 Value 类都继承自它
+  /// 提供 vptr 字段和 toString/operator==/hashCode 的桥接覆写
+  void _emitVPtrBaseClass() {
+    _buf.write('class VPtr {\n');
+    _buf.write('  late Map<String, dynamic> vptr;\n');
+    _buf.write('  @override\n');
+    _buf.write('  String toString() {\n');
+    _buf.write("    final fn = vptr['toString_'];\n");
+    _buf.write('    if (fn != null) return (fn as Function)(this) as String;\n');
+    _buf.write('    return super.toString();\n');
+    _buf.write('  }\n');
+    _buf.write('  @override\n');
+    _buf.write('  bool operator ==(Object other) {\n');
+    _buf.write("    final fn = vptr['operatorEq'];\n");
+    _buf.write('    if (fn != null) return (fn as Function)(this, other) as bool;\n');
+    _buf.write('    return identical(this, other);\n');
+    _buf.write('  }\n');
+    _buf.write('  @override\n');
+    _buf.write('  int get hashCode {\n');
+    _buf.write("    final fn = vptr['get_hashCode'];\n");
+    _buf.write('    if (fn != null) return (fn as Function)(this) as int;\n');
+    _buf.write('    return super.hashCode;\n');
+    _buf.write('  }\n');
+    _buf.write('}\n\n');
   }
 
   bool _isSyntheticMixinClass(Class cls) {

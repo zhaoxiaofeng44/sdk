@@ -384,15 +384,18 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   void _emitValueClass(Class cls, String className, String? parentName, [bool isSyntheticMixinClass = false]) {
     _buf.write('class ${className}Value');
     _writeTypeParams(cls.typeParameters);
-    // 恢复 Value 类继承关系，确保子类可以赋值给父类类型
-    if (parentName != null && _isUserClass(parentName)) {
+
+    // 确定继承关系：
+    // - 有用户类基类 → extends ${parentName}Value
+    // - 无基类（根类）→ extends VPtr（VPtr 提供 vptr 字段和 toString/operator==/hashCode 桥接）
+    final hasUserParent = parentName != null && _isUserClass(parentName);
+    if (hasUserParent) {
       _buf.write(' extends ${parentName}Value');
+    } else {
+      _buf.write(' extends VPtr');
     }
     _buf.write(' {\n');
     _indent++;
-
-    // vptr 字段：使用 Map<String, dynamic> 存储虚表方法，key 为方法名，value 为函数引用
-    _buf.write('${_pad}late Map<String, dynamic> vptr;\n');
 
     // 实例字段（排除静态字段）- 收集当前类及所有父类的字段
     final allFields = <Field>[];
@@ -408,11 +411,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(';\n');
     }
 
-    // 生成 toString()/operator==/hashCode 覆写，桥接到 vptr 调用
-    // 只在非合成中间类上生成（合成类会继承父类的覆写）
-    if (!isSyntheticMixinClass) {
-      _emitObjectMethodOverrides(cls, className, parentName);
-    }
+    // vptr 字段和 toString/operator==/hashCode 覆写由 VPtr 基类统一提供
+    // 不再在每个 Value 类中重复生成
 
     _indent--;
     _buf.write('}\n\n');
