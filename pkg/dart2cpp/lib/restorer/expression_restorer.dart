@@ -12,7 +12,25 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (expr is FunctionInvocation) return _restoreFunctionInvocation(expr);
     if (expr is DynamicInvocation) return _restoreDynamicInvocation(expr);
     if (expr is DynamicGet) return '${_restoreExpr(expr.receiver)}.${expr.name.text}';
-    if (expr is DynamicSet) return '${_restoreExpr(expr.receiver)}.${expr.name.text} = ${_restoreExpr(expr.value)}';
+    if (expr is DynamicSet) {
+      final recv = _restoreExpr(expr.receiver);
+      final fieldName = expr.name.text;
+      final value = _restoreExpr(expr.value);
+      // mixin 内部的 setter 调用：通过 vptr 代理
+      // OOP lowering 后 this 变成了 this_ 参数变量（VariableGet），不再是 ThisExpression
+      final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
+      final isThisReceiver = expr.receiver is ThisExpression ||
+          (expr.receiver is VariableGet &&
+              (expr.receiver as VariableGet).variable.name == _thisReplacementName);
+      if (insideMixin && _insideMethodBody && isThisReceiver) {
+        // 检查是否有对应的 setter（非下划线字段）
+        // 下划线字段直接赋值，非下划线字段通过 vptr setter
+        if (!fieldName.startsWith('_')) {
+          return "($recv.vptr['set_$fieldName'] as Function)($recv, $value)";
+        }
+      }
+      return '$recv.$fieldName = $value';
+    }
     if (expr is EqualsNull) return '(${_restoreExpr(expr.expression)} == null)';
     if (expr is EqualsCall) return _restoreEqualsCall(expr);
     if (expr is StaticInvocation) return _restoreStaticInvocation(expr);
@@ -54,16 +72,33 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return 'this';
     }
     if (expr is SuperPropertyGet) {
-      // OOP Lowering: super.field → this_/obj .field（直接访问父类字段）
+      // OOP Lowering: super.getter → Parent_get_field(this_) 或 super.field → this_.field
       if (_insideMethodBody && _currentClass != null && _needsLowering(_currentClass!.name)) {
-        return '$_thisReplacementName.${expr.name.text}';
+        final fieldName = expr.name.text;
+        final target = expr.interfaceTarget;
+        // 如果 target 是 getter Procedure，调用父类静态函数
+        if (target is Procedure && target.isGetter) {
+          var parentName = _getParentClassName(_currentClass!.name);
+          // 跳过合成中间类
+          while (parentName != null && _syntheticLoweredNames.contains(parentName)) {
+            parentName = _getParentClassName(parentName);
+          }
+          if (parentName != null && _needsLowering(parentName)) {
+            return '${parentName}_get_$fieldName($_thisReplacementName)';
+          }
+        }
+        return '$_thisReplacementName.$fieldName';
       }
       return 'super.${expr.name.text}';
     }
     if (expr is SuperMethodInvocation) {
       // OOP Lowering: super.method() → Parent_method(this_/obj, args)
       if (_currentClass != null && _needsLowering(_currentClass!.name)) {
-        final parentName = _getParentClassName(_currentClass!.name);
+        var parentName = _getParentClassName(_currentClass!.name);
+        // 跳过合成中间类，找到实际的父类
+        while (parentName != null && _syntheticLoweredNames.contains(parentName)) {
+          parentName = _getParentClassName(parentName);
+        }
         if (parentName != null && _needsLowering(parentName)) {
           final args = _restoreArgs(expr.arguments);
           final staticName = _staticMethodName(parentName, expr.name.text);
@@ -83,21 +118,45 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (expr is InstanceGetterInvocation) {
       final recv = _restoreExpr(expr.receiver);
       final methodName = expr.name.text;
-      // OOP Lowering: getter 返回的函数被调用 → 通过虚表
-      final enclosingCls = expr.interfaceTarget.enclosingClass;
-      final receiverClassName = enclosingCls?.name;
+      // OOP Lowering: 泛型方法调用 → 通过虚表或静态函数
+      final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
       if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
+        // 泛型方法调用：还原为 vptr 调用
         final args = _restoreArgs(expr.arguments);
-        final target = expr.interfaceTarget as Procedure;
-        final getterCallSig = _buildPreciseFuncSignature(target);
-        return "($recv.vptr['get_$methodName'] as $getterCallSig)($recv)($args)";
+        final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
+        if (insideMixin) {
+          final argsStr = args.isEmpty ? recv : '$recv, $args';
+          return "($recv.vptr['$methodName'] as Function)($argsStr)";
+        }
+        // 非 mixin 内部：使用精确签名
+        final typeArgs = expr.arguments.types.map((t) => _restoreType(t)).toList();
+        final typeArgsStr = typeArgs.isNotEmpty ? '<${typeArgs.join(', ')}>' : '';
+        final selfArg = _insideMethodBody ? recv : recv;
+        final staticName = '${receiverClassName}_$methodName';
+        if (args.isEmpty) {
+          return '$staticName$typeArgsStr($selfArg)';
+        }
+        return '$staticName$typeArgsStr($selfArg, $args)';
       }
       return '$recv.$methodName(${_restoreArgs(expr.arguments)})';
     }
     if (expr is AbstractSuperPropertyGet) {
-      // OOP Lowering: super.field → this_/obj .field
+      // OOP Lowering: super.getter → Parent_get_field(this_) 或 super.field → this_.field
       if (_insideMethodBody && _currentClass != null && _needsLowering(_currentClass!.name)) {
-        return '$_thisReplacementName.${expr.name.text}';
+        final fieldName = expr.name.text;
+        // AbstractSuperPropertyGet 通常是 getter，尝试调用父类静态函数
+        var parentName = _getParentClassName(_currentClass!.name);
+        while (parentName != null && _syntheticLoweredNames.contains(parentName)) {
+          parentName = _getParentClassName(parentName);
+        }
+        if (parentName != null && _needsLowering(parentName)) {
+          // 检查父类是否有这个 getter 的静态函数
+          final parentEntries = _classVTableEntries[parentName];
+          if (parentEntries != null && parentEntries.any((e) => e.name == fieldName && e.kind == 'getter')) {
+            return '${parentName}_get_$fieldName($_thisReplacementName)';
+          }
+        }
+        return '$_thisReplacementName.$fieldName';
       }
       return 'super.${expr.name.text}';
     }
@@ -142,13 +201,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final recv = _restoreExpr(expr.receiver);
     final fieldName = expr.name.text;
 
-    final receiverClassName = _getReceiverClassName(expr.interfaceTarget);
+    final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
 
-    // 用户自定义类或 mixin 的 getter 调用 → 通过 Map 查找精确类型转换: (recv.vptr['get_field'] as RetType Function(dynamic))(recv)
+    // 用户自定义类或 mixin 的 getter 调用 → 通过 Map 查找类型转换
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isGetter) {
-        final sig = _buildPreciseFuncSignature(target);
+        // mixin 内部：使用 Function cast 避免逆变问题
+        final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
+        if (insideMixin) {
+          return "($recv.vptr['get_$fieldName'] as Function)($recv)";
+        }
+        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName);
         return "($recv.vptr['get_$fieldName'] as $sig)($recv)";
       }
     }
@@ -168,13 +232,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final recv = _restoreExpr(expr.receiver);
     final fieldName = expr.name.text;
 
-    final receiverClassName = _getReceiverClassName(expr.interfaceTarget);
+    final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
 
-    // 用户自定义类的 setter 调用 → 通过 Map 查找精确类型转换: (recv.vptr['set_field'] as void Function(dynamic, ValType))(recv, value)
+    // 用户自定义类的 setter 调用 → 通过 Map 查找类型转换
     if (receiverClassName != null && _isUserClass(receiverClassName)) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isSetter) {
-        final sig = _buildPreciseFuncSignature(target);
+        // mixin 内部：使用 Function cast 避免逆变问题
+        final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
+        if (insideMixin) {
+          return "($recv.vptr['set_$fieldName'] as Function)($recv, ${_restoreExpr(expr.value)})";
+        }
+        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName);
         return "($recv.vptr['set_$fieldName'] as $sig)($recv, ${_restoreExpr(expr.value)})";
       }
     }
@@ -194,22 +263,47 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final recv = _restoreExpr(expr.receiver);
     final name = expr.name.text;
 
-    // 检查接收者类型是否是用户自定义类
-    final receiverClassName = _getReceiverClassName(expr.interfaceTarget);
+    // 从 receiver 表达式的类型推断实际接收者类名
+    final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
 
-    // 对于用户自定义类的实例方法调用，改写为 Map 查找 + 精确类型转换调用
-    if (receiverClassName != null && _isUserClass(receiverClassName)) {
-      // 构建签名：根据调用处实际传递的参数来构建，确保参数数量匹配
+    // 对于用户自定义类或 mixin 的实例方法调用，改写为 Map 查找 + 精确类型转换调用
+    if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
+      // 构建签名：从 interfaceTarget 获取完整参数列表，签名包含全部参数类型
       // 返回类型使用 functionType 中的实际类型（已替换类型参数）
       final returnType = _restoreTypeForSignature(expr.functionType.returnType);
       final enclosingClass = expr.interfaceTarget.enclosingClass;
       final actualClassName = enclosingClass != null ? _getActualClassName(enclosingClass.name) : null;
-      // mixin 不生成 XValue 类，使用 dynamic 作为 this_ 类型
-      // 当在 mixin 方法体内时，this_ 是 dynamic，vptr 调用也应使用 dynamic
+      // this_ 类型需要和函数定义处保持一致
+      // 使用 receiverClassName 解析（而非 target.enclosingClass，后者可能是合成中间类）
       final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
-      final thisType = (actualClassName != null && !_isMixinName(actualClassName) && !insideMixin) 
-          ? '${actualClassName}Value' 
-          : 'dynamic';
+      final thisType = insideMixin ? 'dynamic' : _resolveThisTypeForReceiver(receiverClassName, name, expr.interfaceTarget);
+
+      // mixin 内部的 vptr 调用：使用 Function 类型 cast（不带参数签名）
+      // 因为 mixin 内部 this_ 是 dynamic，但注册的函数参数是具体类型，
+      // Dart 函数类型逆变导致精确签名 cast 不兼容
+      if (insideMixin) {
+        final vtableField = _isBinaryOp(name) ? 'operator${_operatorFuncName(name)}'
+            : name == 'unary-' ? 'operatorNeg'
+            : name == '~' ? 'operatorBitNot'
+            : name == '[]' ? 'operatorIndex'
+            : name == '[]=' ? 'operatorIndexSet'
+            : _vtableFieldName(name);
+        final allArgs = _restoreArgs(expr.arguments);
+        // 补齐缺省的默认参数值
+        final targetFunc = expr.interfaceTarget.function;
+        final fullArgParts = <String>[];
+        for (var i = 0; i < expr.arguments.positional.length; i++) {
+          fullArgParts.add(_restoreExpr(expr.arguments.positional[i]));
+        }
+        for (var i = expr.arguments.positional.length; i < targetFunc.positionalParameters.length; i++) {
+          final param = targetFunc.positionalParameters[i];
+          if (param.initializer != null) {
+            fullArgParts.add(_restoreExpr(param.initializer!));
+          }
+        }
+        final argsStr = fullArgParts.isEmpty ? '' : ', ${fullArgParts.join(', ')}';
+        return "($recv.vptr['$vtableField'] as Function)($recv$argsStr)";
+      }
 
       // 二元运算符 → Map 查找精确类型转换调用
       if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
@@ -260,7 +354,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // 如果有，vptr 中的 lambda 无法保留类型参数，直接调用静态函数
       final hasMethodTypeParams = expr.interfaceTarget.function.typeParameters.isNotEmpty;
       if (hasMethodTypeParams) {
-        final staticFuncName = '${actualClassName}_$name';
+        // 合成中间类 → 找到实际用户类名
+        var resolvedClassName = actualClassName ?? receiverClassName;
+        if (resolvedClassName != null && _syntheticLoweredNames.contains(resolvedClassName)) {
+          resolvedClassName = _findUserClassForSynthetic(resolvedClassName);
+        }
+        final staticFuncName = '${resolvedClassName}_$name';
         // 构建完整的类型参数列表：类的类型参数 + 方法的类型参数
         final allTypeArgs = <String>[];
         // 类的类型参数：从 receiver 的静态类型中提取
@@ -278,15 +377,36 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
 
       // 无命名参数且无方法级类型参数时，使用精确签名
+      // 从 interfaceTarget 获取完整参数列表（含默认参数），签名包含全部参数类型
+      final targetFunc = expr.interfaceTarget.function;
       final sigParamTypes = <String>[thisType];
-      for (var i = 0; i < expr.arguments.positional.length && i < expr.functionType.positionalParameters.length; i++) {
-        sigParamTypes.add(_restoreTypeForSignature(expr.functionType.positionalParameters[i]));
+      for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
+        if (i < expr.functionType.positionalParameters.length) {
+          sigParamTypes.add(_restoreTypeForSignature(expr.functionType.positionalParameters[i]));
+        } else {
+          sigParamTypes.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
+        }
       }
       final sig = '$returnType Function(${sigParamTypes.join(', ')})';
-      if (allArgs.isEmpty) {
+
+      // 补齐缺省的默认参数值
+      final fullArgParts = <String>[];
+      for (var i = 0; i < expr.arguments.positional.length; i++) {
+        fullArgParts.add(_restoreExpr(expr.arguments.positional[i]));
+      }
+      for (var i = expr.arguments.positional.length; i < targetFunc.positionalParameters.length; i++) {
+        final param = targetFunc.positionalParameters[i];
+        if (param.initializer != null) {
+          fullArgParts.add(_restoreExpr(param.initializer!));
+        } else {
+          fullArgParts.add(_defaultValueForType(param.type));
+        }
+      }
+      final fullArgs = fullArgParts.join(', ');
+      if (fullArgs.isEmpty) {
         return "($recv.vptr['$vtableField'] as $sig)($recv)";
       }
-      return "($recv.vptr['$vtableField'] as $sig)($recv, $allArgs)";
+      return "($recv.vptr['$vtableField'] as $sig)($recv, $fullArgs)";
     }
 
     // enum 方法调用 → 直接调用静态函数: EnumName_method(recv, args)
@@ -329,13 +449,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   }
 
   /// 从 Procedure AST 构建精确的函数签名字符串，用于 vptr Map 的类型转换
-  /// this_ 参数使用实际的类类型（如 CircleValue），其余参数从 Procedure 的参数列表提取
-  /// 包含所有位置参数（含可选的）和命名参数
-  String _buildPreciseFuncSignature(Procedure proc) {
-    final enclosingClass = proc.enclosingClass;
-    final className = enclosingClass != null ? _getActualClassName(enclosingClass.name) : null;
-    // mixin 不生成 XValue 类，使用 dynamic 作为 this_ 类型
-    final thisType = (className != null && !_isMixinName(className)) ? '${className}Value' : 'dynamic';
+  /// [receiverClassName] 指定接收者的类名，用于解析 this_ 类型
+  /// 如果未指定，则使用 target.enclosingClass 解析
+  String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName}) {
+    final String thisType;
+    if (receiverClassName != null) {
+      thisType = _resolveThisTypeForReceiver(receiverClassName, proc.name.text, proc);
+    } else {
+      thisType = _resolveThisTypeForSignature(proc);
+    }
     final returnType = _restoreTypeForSignature(proc.function.returnType);
     final paramTypes = <String>[thisType];
     for (final param in proc.function.positionalParameters) {
@@ -349,13 +471,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
   /// 从 InstanceInvocation.functionType 构建精确的函数签名字符串
   /// functionType 已包含接收者类型实参替换后的实际类型
-  /// this_ 参数使用实际的类类型，其余参数从 functionType 的参数列表提取
+  /// this_ 参数使用 declaringClassName 的类型，确保和静态函数定义一致
   /// 包含所有位置参数（含可选的）和命名参数
   String _buildPreciseFuncSignatureFromFunctionType(FunctionType functionType, Procedure proc) {
-    final enclosingClass = proc.enclosingClass;
-    final className = enclosingClass != null ? _getActualClassName(enclosingClass.name) : null;
-    // mixin 不生成 XValue 类，使用 dynamic 作为 this_ 类型
-    final thisType = (className != null && !_isMixinName(className)) ? '${className}Value' : 'dynamic';
+    final thisType = _resolveThisTypeForSignature(proc);
     final returnType = _restoreTypeForSignature(functionType.returnType);
     final paramTypes = <String>[thisType];
     for (final paramType in functionType.positionalParameters) {
@@ -367,6 +486,39 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return '$returnType Function(${paramTypes.join(', ')})';
   }
 
+  /// 解析方法的 this_ 参数类型，用于签名生成
+  /// 和定义处保持一致：mixin → dynamic，其他 → 当前类 Value
+  String _resolveThisTypeForSignature(Procedure proc) {
+    final enclosingClass = proc.enclosingClass;
+    if (enclosingClass == null) return 'dynamic';
+    final className = _getActualClassName(enclosingClass.name);
+    if (_isMixinName(className)) return 'dynamic';
+    return '${className}Value';
+  }
+
+  /// 判断 declaringClass 是否在 className 的 extends 继承链上
+  bool _isDeclaringClassInExtendsChain(String className, String declaringClass) {
+    var current = _getParentClassName(className);
+    while (current != null) {
+      if (current == declaringClass) return true;
+      current = _getParentClassName(current);
+    }
+    return false;
+  }
+
+  /// 根据接收者类名解析 vptr 调用处的 this_ 类型
+  /// 与 _resolveThisTypeForSignature 不同，这里用 receiverClassName 查找 _classVTableEntries
+  /// 而不是用 target.enclosingClass（后者可能是合成中间类或 mixin）
+  String _resolveThisTypeForReceiver(String receiverClassName, String methodName, Member target) {
+    // mixin 接收者 → dynamic（mixin 自身不生成 Value 类）
+    if (_isMixinName(receiverClassName)) {
+      return 'dynamic';
+    }
+    // 统一使用接收者类名的 Value 类型
+    // 因为定义处的静态函数 this_ 参数也是用当前类 Value（非 mixin 类）
+    return '${receiverClassName}Value';
+  }
+
   /// 获取类的实际规范化名称（处理合成 mixin 中间类名）
   String _getActualClassName(String rawName) {
     if (rawName.contains('&')) {
@@ -375,12 +527,65 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return rawName;
   }
 
-  /// 从 interfaceTarget 获取接收者的类名
+  /// 从 receiver 表达式的变量类型中提取实际的接收者类名
+  /// 优先使用 receiver 的静态类型（如 LoggedDataPointValue → LoggedDataPoint）
+  /// fallback 到 interfaceTarget.enclosingClass
+  String? _getReceiverClassNameFromReceiver(Expression receiver, Member? target) {
+    // 从 receiver 的变量类型中提取
+    if (receiver is VariableGet) {
+      final varType = receiver.variable.type;
+      if (varType is InterfaceType) {
+        final rawName = varType.classNode.name;
+        // Value 类名去掉 Value 后缀得到实际类名
+        if (rawName.endsWith('Value')) {
+          final className = rawName.substring(0, rawName.length - 5);
+          if (_isUserClass(className) || _isMixinName(className)) {
+            return className;
+          }
+        }
+        final className = _getActualClassName(rawName);
+        if (_isUserClass(className) || _isMixinName(className)) {
+          return className;
+        }
+      }
+    }
+    // 从 ThisExpression 推断（在类方法内部）
+    if (receiver is ThisExpression && _currentClass != null) {
+      return _getActualClassName(_currentClass!.name);
+    }
+    // fallback 到 interfaceTarget.enclosingClass
+    return _getReceiverClassName(target);
+  }
+
+  /// 从 interfaceTarget 获取接收者的类名（fallback 方法）
   String? _getReceiverClassName(Member? target) {
     if (target == null) return null;
     final enclosingClass = target.enclosingClass;
     if (enclosingClass == null) return null;
-    return enclosingClass.name;
+    final className = _getActualClassName(enclosingClass.name);
+    // 合成中间类（如 Dog_Animal_Printable）→ 提取实际用户类名
+    // 查找哪个非合成用户类的继承链包含此合成中间类
+    if (_syntheticLoweredNames.contains(className)) {
+      return _findUserClassForSynthetic(className);
+    }
+    return className;
+  }
+
+  /// 查找合成中间类对应的实际用户类名
+  /// 例如：Dog_Animal_Printable → Dog（Dog 的继承链包含 Dog_Animal_Printable）
+  String _findUserClassForSynthetic(String syntheticClassName) {
+    for (final userClass in _userClasses) {
+      if (_syntheticLoweredNames.contains(userClass)) continue;
+      if (_isMixinName(userClass)) continue;
+      // 检查 userClass 的继承链是否包含 syntheticClassName
+      var current = _getParentClassName(userClass);
+      while (current != null) {
+        if (current == syntheticClassName) return userClass;
+        current = _getParentClassName(current);
+      }
+    }
+    // fallback: 返回合成中间类名本身
+    return syntheticClassName;
   }
 
   /// 从接收者表达式中提取类的类型参数
@@ -484,9 +689,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     // 静态方法
     if (target.enclosingClass != null) {
-      final className = target.enclosingClass!.name;
+      var className = target.enclosingClass!.name;
       // OOP Lowering: 用户自定义类的静态方法 → X_methodName
       if (_isUserClass(className)) {
+        // 规范化类名（处理合成中间类名中的 & 字符）
+        className = _getActualClassName(className);
+        // 合成中间类 → 找到实际用户类名
+        if (_syntheticLoweredNames.contains(className)) {
+          className = _findUserClassForSynthetic(className);
+        }
         return '${className}_$name($args)';
       }
       return '$className.$name($args)';

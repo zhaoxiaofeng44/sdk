@@ -25,7 +25,7 @@ class ShapeValue extends VPtr {
 
 void Shape_new(ShapeValue this_) {
   this_.vptr = {
-    'get_name': (self) => Shape_get_name(self),
+    'get_name': Shape_get_name,
     'area': (self) => Shape_area(self),
     'perimeter': (self) => Shape_perimeter(self),
     'toString_': (self) => Shape_toString(self),

@@ -270,6 +270,18 @@ abstract class _DartRestorerBase {
   /// 判断一个函数名是否是扩展方法（包含 | 字符）
   bool _isExtensionMethodName(String name) => name.contains('|');
 
+  /// 获取类型的默认值字符串（用于可选参数的默认值补齐）
+  String _defaultValueForType(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      if (name == 'int' && type.nullability != Nullability.nullable) return '0';
+      if (name == 'double' && type.nullability != Nullability.nullable) return '0.0';
+      if (name == 'bool' && type.nullability != Nullability.nullable) return 'false';
+      if (name == 'String' && type.nullability != Nullability.nullable) return "''";
+    }
+    return 'null';
+  }
+
   // 跨模块方法的抽象声明（打破 mixin 循环依赖）
   String _restoreExpr(Expression expr);
   void _restoreStmt(Statement stmt);
@@ -678,6 +690,7 @@ class _VTableEntry {
   final String staticFuncName;
   final String signature; // Function type signature for VTable field
   final Procedure? proc; // 原始 Procedure 引用（用于泛型 lambda wrapper 生成）
+  final String? declaringClassName; // 首次声明该方法的类名（用于 this_ 参数类型）
 
   _VTableEntry({
     required this.name,
@@ -685,6 +698,7 @@ class _VTableEntry {
     required this.staticFuncName,
     required this.signature,
     this.proc,
+    this.declaringClassName,
   });
 }
 
@@ -730,6 +744,9 @@ class DartRestorer extends _DartRestorerBase
   // ---- 第一遍：收集类信息 ----
 
   void _collectClassInfo(Library lib) {
+    // 第一遍：收集所有类的基本信息（名称、继承关系），但不收集虚表
+    final userClassEntries = <(String className, Class cls)>[];
+    
     for (final cls in lib.classes) {
       // mixin 声明：记录名称（不做 lowering，方法通过合成中间类处理）
       if (cls.isMixinDeclaration) {
@@ -742,7 +759,6 @@ class DartRestorer extends _DartRestorerBase
       if (_isEnumClass(cls)) {
         _enumNames.add(cls.name);
         _classNodes[cls.name] = cls;
-        // 检查是否有自定义 toString 方法（非合成的 _enumToString）
         final hasCustomToString = cls.procedures.any((p) =>
             p.name.text == 'toString' && !p.isAbstract && p.function.body != null);
         if (hasCustomToString) {
@@ -752,7 +768,6 @@ class DartRestorer extends _DartRestorerBase
       }
 
       // 合成 mixin 中间类（名字包含 &）：作为普通用户类收集
-      // 例如 _Dog&Animal&Printable → 规范化名称 Dog_Animal_Printable
       final isSynthetic = cls.name.contains('&');
       final className = isSynthetic
           ? _sanitizeSyntheticName(cls.name)
@@ -768,19 +783,51 @@ class DartRestorer extends _DartRestorerBase
       if (cls.supertype != null) {
         final superName = cls.supertype!.classNode.name;
         if (superName.contains('&')) {
-          // 合成类的父类也是合成类 → 规范化
           final parentLowered = _sanitizeSyntheticName(superName);
           _classHierarchy[className] = parentLowered;
         } else if (superName != 'Object') {
-          // 普通父类
-          final parentLowered = _isUserClass(superName) ? superName : superName;
-          _classHierarchy[className] = parentLowered;
+          _classHierarchy[className] = superName;
         }
       }
 
-      // 收集虚表条目（使用规范化后的类名）
+      userClassEntries.add((className, cls));
+    }
+
+    // 第二遍：按拓扑排序收集虚表（确保父类在子类之前处理）
+    final sorted = _topologicalSort(userClassEntries);
+    for (final (className, cls) in sorted) {
       _collectVTableEntries(cls, overrideName: className);
     }
+  }
+
+  /// 按继承关系拓扑排序：父类在子类之前
+  List<(String, Class)> _topologicalSort(List<(String, Class)> entries) {
+    final nameToEntry = <String, (String, Class)>{};
+    for (final entry in entries) {
+      nameToEntry[entry.$1] = entry;
+    }
+
+    final sorted = <(String, Class)>[];
+    final visited = <String>{};
+
+    void visit(String className) {
+      if (visited.contains(className)) return;
+      visited.add(className);
+      // 先处理父类
+      final parent = _classHierarchy[className];
+      if (parent != null && nameToEntry.containsKey(parent)) {
+        visit(parent);
+      }
+      final entry = nameToEntry[className];
+      if (entry != null) {
+        sorted.add(entry);
+      }
+    }
+
+    for (final entry in entries) {
+      visit(entry.$1);
+    }
+    return sorted;
   }
 
   void _collectVTableEntries(Class cls, {String? overrideName}) {
@@ -806,6 +853,7 @@ class DartRestorer extends _DartRestorerBase
               kind: ifaceEntry.kind,
               staticFuncName: ifaceEntry.staticFuncName,
               signature: ifaceEntry.signature,
+              declaringClassName: ifaceEntry.declaringClassName,
             ));
           }
         }
@@ -823,9 +871,26 @@ class DartRestorer extends _DartRestorerBase
 
       final existingIdx = entries.indexWhere((e) => e.name == methodName && e.kind == entry.kind);
       if (existingIdx >= 0) {
-        entries[existingIdx] = entry;
+        // 重载：保留首次声明类的 declaringClassName
+        final existingDeclaringClass = entries[existingIdx].declaringClassName ?? className;
+        entries[existingIdx] = _VTableEntry(
+          name: entry.name,
+          kind: entry.kind,
+          staticFuncName: entry.staticFuncName,
+          signature: entry.signature,
+          proc: entry.proc,
+          declaringClassName: existingDeclaringClass,
+        );
       } else {
-        entries.add(entry);
+        // 新方法：声明类就是当前类
+        entries.add(_VTableEntry(
+          name: entry.name,
+          kind: entry.kind,
+          staticFuncName: entry.staticFuncName,
+          signature: entry.signature,
+          proc: entry.proc,
+          declaringClassName: className,
+        ));
       }
     }
 

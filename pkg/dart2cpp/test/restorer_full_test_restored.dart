@@ -28,17 +28,17 @@ typedef VoidCallback = void Function();
 
 // mixin Printable → static functions for delegation
 void Printable_printInfo(dynamic this_) {
-  print('[${(this_.vptr['get_displayName'] as String Function(dynamic))(this_)}]');
+  print('[${(this_.vptr['get_displayName'] as Function)(this_)}]');
 }
 
 
 // mixin Orderable → static functions for delegation
 bool Orderable_isLessThan<T>(dynamic this_, T other) {
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) < 0);
+  return ((this_.vptr['compareTo'] as Function)(this_, other) < 0);
 }
 
 bool Orderable_isGreaterThan<T>(dynamic this_, T other) {
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) > 0);
+  return ((this_.vptr['compareTo'] as Function)(this_, other) > 0);
 }
 
 
@@ -49,8 +49,8 @@ class AnimalValue extends VPtr {
 
 void Animal_new(AnimalValue this_, String name, int age) {
   this_.vptr = {
-    'speak': (self) => Animal_speak(self),
-    'toString_': (self) => Animal_toString(self),
+    'speak': Animal_speak,
+    'toString_': Animal_toString,
   };
   this_.name = name;
   this_.age = age;
@@ -74,13 +74,13 @@ class DogValue extends Dog_Animal_Printable_OrderableValue {
 void Dog_new(DogValue this_, String name, int age, String breed) {
   Animal_new(this_, name, age);
   this_.vptr = {
-    'get_displayName': (self) => Dog_get_displayName(self),
-    'speak': (self) => Dog_speak(self),
-    'compareTo': (self, _a0) => Dog_compareTo(self, _a0),
-    'toString_': (self) => Dog_toString(self),
-    'printInfo': (self) => Dog_printInfo(self),
-    'isLessThan': (self, _a0) => Dog_isLessThan(self, _a0),
-    'isGreaterThan': (self, _a0) => Dog_isGreaterThan(self, _a0),
+    'speak': Dog_speak,
+    'toString_': Dog_toString,
+    'get_displayName': Dog_get_displayName,
+    'printInfo': Dog_printInfo,
+    'compareTo': Dog_compareTo,
+    'isLessThan': Dog_isLessThan,
+    'isGreaterThan': Dog_isGreaterThan,
   };
   this_.breed = breed;
 }
@@ -89,7 +89,8 @@ String Dog_get_displayName(DogValue this_) {
   return 'Dog:${this_.name}';
 }
 
-String Dog_speak(DogValue this_) {
+String Dog_speak(AnimalValue this__) {
+  final this_ = this__ as DogValue;
   return 'Woof!';
 }
 
@@ -97,7 +98,7 @@ int Dog_compareTo(DogValue this_, DogValue other) {
   return this_.age.compareTo(other.age);
 }
 
-String Dog_toString(DogValue this_) {
+String Dog_toString(AnimalValue this_) {
   return Animal_toString(this_);
 }
 
@@ -123,12 +124,12 @@ class CatValue extends Cat_Animal_PrintableValue {
 void Cat_new(CatValue this_, String name, int age) {
   Animal_new(this_, name, age);
   this_.vptr = {
-    'get_displayName': (self) => Cat_get_displayName(self),
-    'speak': (self) => Cat_speak(self),
-    'get_mood': (self) => Cat_get_mood(self),
-    'set_mood': (self, val) => Cat_set_mood(self, val),
-    'toString_': (self) => Cat_toString(self),
-    'printInfo': (self) => Cat_printInfo(self),
+    'speak': Cat_speak,
+    'toString_': Cat_toString,
+    'get_displayName': Cat_get_displayName,
+    'printInfo': Cat_printInfo,
+    'get_mood': Cat_get_mood,
+    'set_mood': Cat_set_mood,
   };
   this_._mood = 'happy';
 }
@@ -137,7 +138,8 @@ String Cat_get_displayName(CatValue this_) {
   return 'Cat:${this_.name}';
 }
 
-String Cat_speak(CatValue this_) {
+String Cat_speak(AnimalValue this__) {
+  final this_ = this__ as CatValue;
   return 'Meow!';
 }
 
@@ -149,7 +151,7 @@ void Cat_set_mood(CatValue this_, String value) {
   this_._mood = value;
 }
 
-String Cat_toString(CatValue this_) {
+String Cat_toString(AnimalValue this_) {
   return Animal_toString(this_);
 }
 
@@ -165,12 +167,12 @@ class Vector2DValue extends VPtr {
 
 void Vector2D_new(Vector2DValue this_, double x, double y) {
   this_.vptr = {
-    'operatorPlus': (self, _a0) => Vector2D_operatorPlus(self, _a0),
-    'operatorMinus': (self, _a0) => Vector2D_operatorMinus(self, _a0),
-    'operatorStar': (self, _a0) => Vector2D_operatorStar(self, _a0),
-    'operatorEq': (self, _a0) => Vector2D_operatorEq(self, _a0),
-    'get_length': (self) => Vector2D_get_length(self),
-    'toString_': (self) => Vector2D_toString(self),
+    'operatorPlus': Vector2D_operatorPlus,
+    'operatorMinus': Vector2D_operatorMinus,
+    'operatorStar': Vector2D_operatorStar,
+    'operatorEq': Vector2D_operatorEq,
+    'get_length': Vector2D_get_length,
+    'toString_': Vector2D_toString,
   };
   this_.x = x;
   this_.y = y;
@@ -219,10 +221,10 @@ int Counter__instanceCount = 0;
 const int Counter_maxValue = 100;
 void Counter_new__(CounterValue this_, String label, int _value) {
   this_.vptr = {
-    'increment': (self, [_a0 = 1]) => Counter_increment(self, _a0),
-    'decrement': (self, [_a0 = 1]) => Counter_decrement(self, _a0),
-    'get_value': (self) => Counter_get_value(self),
-    'toString_': (self) => Counter_toString(self),
+    'increment': Counter_increment,
+    'decrement': Counter_decrement,
+    'get_value': Counter_get_value,
+    'toString_': Counter_toString,
   };
   this_.label = label;
   this_._value = _value;
@@ -242,11 +244,11 @@ int Counter_instanceCount() {
   return Counter__instanceCount;
 }
 
-void Counter_increment(CounterValue this_, [int step = 1]) {
+void Counter_increment(CounterValue this_, int step) {
   this_._value = (this_._value + step).clamp(0, 100);
 }
 
-void Counter_decrement(CounterValue this_, [int step = 1]) {
+void Counter_decrement(CounterValue this_, int step) {
   this_._value = (this_._value - step).clamp(0, 100);
 }
 
@@ -305,9 +307,9 @@ class LazyLoaderValue extends VPtr {
 
 void LazyLoader_new(LazyLoaderValue this_) {
   this_.vptr = {
-    'initialize': (self, _a0) => LazyLoader_initialize(self, _a0),
-    'get_data': (self) => LazyLoader_get_data(self),
-    'get_computedValue': (self) => LazyLoader_get_computedValue(self),
+    'initialize': LazyLoader_initialize,
+    'get_data': LazyLoader_get_data,
+    'get_computedValue': LazyLoader_get_computedValue,
   };
   this_._initialized = false;
 }
@@ -335,8 +337,8 @@ class BoundedValueValue extends VPtr {
 
 void BoundedValue_new(BoundedValueValue this_, double min, double max, double initial) {
   this_.vptr = {
-    'set': (self, _a0) => BoundedValue_set(self, _a0),
-    'get_current': (self) => BoundedValue_get_current(self),
+    'set': BoundedValue_set,
+    'get_current': BoundedValue_get_current,
   };
   this_.min = min;
   this_.max = max;
@@ -362,7 +364,7 @@ class ShapeValue extends VPtr {
 
 void Shape_new(ShapeValue this_, String color, {double opacity = 1.0}) {
   this_.vptr = {
-    'describe': (self) => Shape_describe(self),
+    'describe': Shape_describe,
   };
   this_.color = color;
   this_.opacity = opacity;
@@ -386,13 +388,15 @@ class PolygonValue extends ShapeValue {
 void Polygon_new(PolygonValue this_, String color, int sides, {double opacity = 1.0}) {
   Shape_new(this_, color, opacity: opacity);
   this_.vptr = {
-    'describe': (self) => Polygon_describe(self),
-    'perimeter': (self, _a0) => Polygon_perimeter(self, _a0),
+    ...this_.vptr,
+    'describe': Polygon_describe,
+    'perimeter': Polygon_perimeter,
   };
   this_.sides = sides;
 }
 
-String Polygon_describe(PolygonValue this_) {
+String Polygon_describe(ShapeValue this__) {
+  final this_ = this__ as PolygonValue;
   return 'Polygon(sides=${this_.sides}, ${Shape_describe(this_)})';
 }
 
@@ -411,18 +415,21 @@ class RegularPolygonValue extends PolygonValue {
 void RegularPolygon_new(RegularPolygonValue this_, String color, int sides, double sideLength, {double opacity = 1.0}) {
   Polygon_new(this_, color, sides, opacity: opacity);
   this_.vptr = {
-    'describe': (self) => RegularPolygon_describe(self),
-    'perimeter': (self, [_a0 = null]) => RegularPolygon_perimeter(self, _a0),
-    'area': (self) => RegularPolygon_area(self),
+    ...this_.vptr,
+    'describe': RegularPolygon_describe,
+    'perimeter': RegularPolygon_perimeter,
+    'area': RegularPolygon_area,
   };
   this_.sideLength = sideLength;
 }
 
-String RegularPolygon_describe(RegularPolygonValue this_) {
+String RegularPolygon_describe(ShapeValue this__) {
+  final this_ = this__ as RegularPolygonValue;
   return 'RegularPolygon(sideLen=${this_.sideLength}, ${Polygon_describe(this_)})';
 }
 
-double RegularPolygon_perimeter(RegularPolygonValue this_, [double? overrideSideLength = null]) {
+double RegularPolygon_perimeter(PolygonValue this__, double? overrideSideLength) {
+  final this_ = this__ as RegularPolygonValue;
   return (this_.sides * (overrideSideLength ?? this_.sideLength));
 }
 
@@ -441,21 +448,23 @@ class SquareValue extends RegularPolygonValue {
 void Square_new(SquareValue this_, String color, double size, {double opacity = 1.0}) {
   RegularPolygon_new(this_, color, 4, size, opacity: opacity);
   this_.vptr = {
-    'describe': (self) => Square_describe(self),
-    'perimeter': (self, [_a0 = null]) => Square_perimeter(self, _a0),
-    'area': (self) => Square_area(self),
+    ...this_.vptr,
+    'describe': Square_describe,
+    'perimeter': Square_perimeter,
+    'area': Square_area,
   };
 }
 
-String Square_describe(SquareValue this_) {
+String Square_describe(ShapeValue this__) {
+  final this_ = this__ as SquareValue;
   return 'Square(size=${this_.sideLength}, color=${this_.color})';
 }
 
-double Square_perimeter(SquareValue this_, double? overrideSideLength) {
+double Square_perimeter(PolygonValue this_, double? overrideSideLength) {
   return RegularPolygon_perimeter(this_, overrideSideLength);
 }
 
-double Square_area(SquareValue this_) {
+double Square_area(RegularPolygonValue this_) {
   return RegularPolygon_area(this_);
 }
 
@@ -465,7 +474,7 @@ class SerializableValue extends VPtr {
 
 void Serializable_new(SerializableValue this_) {
   this_.vptr = {
-    'serialize': (self) => Serializable_serialize(self),
+    'serialize': Serializable_serialize,
   };
 }
 
@@ -510,10 +519,10 @@ class DataPointValue extends VPtr {
 
 void DataPoint_new(DataPointValue this_, double x, double y, String label) {
   this_.vptr = {
-    'serialize': (self) => DataPoint_serialize(self),
-    'clone': (self) => DataPoint_clone(self),
-    'compareTo2': (self, _a0) => DataPoint_compareTo2(self, _a0),
-    'toString_': (self) => DataPoint_toString(self),
+    'serialize': DataPoint_serialize,
+    'clone': DataPoint_clone,
+    'compareTo2': DataPoint_compareTo2,
+    'toString_': DataPoint_toString,
   };
   this_.x = x;
   this_.y = y;
@@ -543,13 +552,13 @@ String DataPoint_toString(DataPointValue this_) {
 
 // mixin Loggable → static functions for delegation
 void Loggable_log(dynamic this_, String message) {
-  print('[${(this_.vptr['get_logTag'] as String Function(dynamic))(this_)}] ${message}');
+  print('[${(this_.vptr['get_logTag'] as Function)(this_)}] ${message}');
 }
 
 
 // mixin Validatable → static functions for delegation
 bool Validatable_validate(dynamic this_) {
-  return (this_.vptr['serialize'] as String Function(dynamic))(this_).isNotEmpty;
+  return (this_.vptr['serialize'] as Function)(this_).isNotEmpty;
 }
 
 
@@ -562,13 +571,13 @@ class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_Validatabl
 void LoggedDataPoint_new(LoggedDataPointValue this_, double x, double y, String label) {
   DataPoint_new(this_, x, y, label);
   this_.vptr = {
-    'get_logTag': (self) => LoggedDataPoint_get_logTag(self),
-    'serialize': (self) => LoggedDataPoint_serialize(self),
-    'clone': (self) => LoggedDataPoint_clone(self),
-    'compareTo2': (self, _a0) => LoggedDataPoint_compareTo2(self, _a0),
-    'toString_': (self) => LoggedDataPoint_toString(self),
-    'log': (self, _a0) => LoggedDataPoint_log(self, _a0),
-    'validate': (self) => LoggedDataPoint_validate(self),
+    'serialize': LoggedDataPoint_serialize,
+    'clone': LoggedDataPoint_clone,
+    'compareTo2': LoggedDataPoint_compareTo2,
+    'toString_': LoggedDataPoint_toString,
+    'get_logTag': LoggedDataPoint_get_logTag,
+    'log': LoggedDataPoint_log,
+    'validate': LoggedDataPoint_validate,
   };
 }
 
@@ -588,7 +597,7 @@ int LoggedDataPoint_compareTo2(LoggedDataPointValue this_, DataPointValue other)
   return DataPoint_compareTo2(this_, other);
 }
 
-String LoggedDataPoint_toString(LoggedDataPointValue this_) {
+String LoggedDataPoint_toString(DataPointValue this_) {
   return DataPoint_toString(this_);
 }
 
@@ -645,7 +654,7 @@ class ConfigValue extends VPtr {
 
 void Config_new(ConfigValue this_, String host, int port, {bool secure = false}) {
   this_.vptr = {
-    'toString_': (self) => Config_toString(self),
+    'toString_': Config_toString,
   };
   this_.host = host;
   this_.port = port;
@@ -715,7 +724,7 @@ class NullSafetyDemoValue extends VPtr {
 
 void NullSafetyDemo_new(NullSafetyDemoValue this_, String nonNullField, [String? nullableField = null]) {
   this_.vptr = {
-    'demonstrate': (self) => NullSafetyDemo_demonstrate(self),
+    'demonstrate': NullSafetyDemo_demonstrate,
   };
   this_.nonNullField = nonNullField;
   this_.nullableField = nullableField;
@@ -735,8 +744,8 @@ class RendererValue extends VPtr {
 
 void Renderer_new(RendererValue this_) {
   this_.vptr = {
-    'render': (self, _a0) => Renderer_render(self, _a0),
-    'get_name': (self) => Renderer_get_name(self),
+    'render': Renderer_render,
+    'get_name': Renderer_get_name,
   };
 }
 
@@ -755,16 +764,19 @@ class CircleRendererValue extends RendererValue {
 void CircleRenderer_new(CircleRendererValue this_) {
   Renderer_new(this_);
   this_.vptr = {
-    'render': (self, _a0) => CircleRenderer_render(self, _a0),
-    'get_name': (self) => CircleRenderer_get_name(self),
+    ...this_.vptr,
+    'render': CircleRenderer_render,
+    'get_name': CircleRenderer_get_name,
   };
 }
 
-void CircleRenderer_render(CircleRendererValue this_, String shape) {
+void CircleRenderer_render(RendererValue this__, String shape) {
+  final this_ = this__ as CircleRendererValue;
   print('  CircleRenderer: drawing ${shape}');
 }
 
-String CircleRenderer_get_name(CircleRendererValue this_) {
+String CircleRenderer_get_name(RendererValue this__) {
+  final this_ = this__ as CircleRendererValue;
   return 'CircleRenderer';
 }
 
@@ -799,10 +811,10 @@ const int BitFlags_write = 2;
 const int BitFlags_execute = 4;
 void BitFlags_new(BitFlagsValue this_, [int _flags = 0]) {
   this_.vptr = {
-    'set': (self, _a0) => BitFlags_set(self, _a0),
-    'clear': (self, _a0) => BitFlags_clear(self, _a0),
-    'has': (self, _a0) => BitFlags_has(self, _a0),
-    'toString_': (self) => BitFlags_toString(self),
+    'set': BitFlags_set,
+    'clear': BitFlags_clear,
+    'has': BitFlags_has,
+    'toString_': BitFlags_toString,
   };
   this_._flags = _flags;
 }
@@ -834,7 +846,7 @@ int Timestamped_get_timestamp(dynamic this_) {
 }
 
 String Timestamped_get_timeStr(dynamic this_) {
-  return 'T:${(this_.vptr['get_timestamp'] as int Function(dynamic))(this_)}';
+  return 'T:${(this_.vptr['get_timestamp'] as Function)(this_)}';
 }
 
 
@@ -855,18 +867,18 @@ class EventValue extends Event_Object_Timestamped_TaggedValue {
 
 void Event_new(EventValue this_, String name) {
   this_.vptr = {
-    'toString_': (self) => Event_toString(self),
-    'get_timestamp': (self) => Event_get_timestamp(self),
-    'get_timeStr': (self) => Event_get_timeStr(self),
-    'addTag': (self, _a0) => Event_addTag(self, _a0),
-    'get_tags': (self) => Event_get_tags(self),
+    'get_timestamp': Event_get_timestamp,
+    'get_timeStr': Event_get_timeStr,
+    'addTag': Event_addTag,
+    'get_tags': Event_get_tags,
+    'toString_': Event_toString,
   };
   this_.name = name;
   this_._tags = <String>[];
 }
 
 String Event_toString(EventValue this_) {
-  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as String Function(Event_Object_TimestampedValue))(this_)}, tags=${(this_.vptr['get_tags'] as List<String> Function(Event_Object_Timestamped_TaggedValue))(this_)})';
+  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as String Function(EventValue))(this_)}, tags=${(this_.vptr['get_tags'] as List<String> Function(EventValue))(this_)})';
 }
 
 int Event_get_timestamp(EventValue this_) {
@@ -895,13 +907,13 @@ class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
 void ImportantEvent_new(ImportantEventValue this_, String name, Priority priority) {
   Event_new(this_, name);
   this_.vptr = {
-    'get_logTag': (self) => ImportantEvent_get_logTag(self),
-    'toString_': (self) => ImportantEvent_toString(self),
-    'log': (self, _a0) => ImportantEvent_log(self, _a0),
-    'get_timestamp': (self) => ImportantEvent_get_timestamp(self),
-    'get_timeStr': (self) => ImportantEvent_get_timeStr(self),
-    'addTag': (self, _a0) => ImportantEvent_addTag(self, _a0),
-    'get_tags': (self) => ImportantEvent_get_tags(self),
+    'get_timestamp': ImportantEvent_get_timestamp,
+    'get_timeStr': ImportantEvent_get_timeStr,
+    'addTag': ImportantEvent_addTag,
+    'get_tags': ImportantEvent_get_tags,
+    'toString_': ImportantEvent_toString,
+    'get_logTag': ImportantEvent_get_logTag,
+    'log': ImportantEvent_log,
   };
   this_.priority = priority;
   this_._tags = <String>[];
@@ -911,12 +923,9 @@ String ImportantEvent_get_logTag(ImportantEventValue this_) {
   return 'ImportantEvent';
 }
 
-String ImportantEvent_toString(ImportantEventValue this_) {
-  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as String Function(Event_Object_TimestampedValue))(this_)})';
-}
-
-void ImportantEvent_log(ImportantEventValue this_, String message) {
-  Loggable_log(this_, message);
+String ImportantEvent_toString(EventValue this__) {
+  final this_ = this__ as ImportantEventValue;
+  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as String Function(ImportantEventValue))(this_)})';
 }
 
 int ImportantEvent_get_timestamp(ImportantEventValue this_) {
@@ -933,6 +942,10 @@ void ImportantEvent_addTag(ImportantEventValue this_, String tag) {
 
 List<String> ImportantEvent_get_tags(ImportantEventValue this_) {
   return Tagged_get_tags(this_);
+}
+
+void ImportantEvent_log(ImportantEventValue this_, String message) {
+  Loggable_log(this_, message);
 }
 
 
@@ -1283,12 +1296,12 @@ void main() async {
   print('--- 1. mixin + implements ---');
   final DogValue dog1 = (() { final _obj = DogValue(); Dog_new(_obj, 'Rex', 3, 'Labrador'); return _obj; })();
   final DogValue dog2 = (() { final _obj = DogValue(); Dog_new(_obj, 'Max', 5, 'Poodle'); return _obj; })();
-  (dog1.vptr['printInfo'] as void Function(Dog_Animal_PrintableValue))(dog1);
+  (dog1.vptr['printInfo'] as void Function(DogValue))(dog1);
   print('${(dog1.vptr['speak'] as String Function(DogValue))(dog1)} (${dog1.breed})');
-  print('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(Dog_Animal_Printable_OrderableValue, DogValue))(dog1, dog2)}');
-  print('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(Dog_Animal_Printable_OrderableValue, DogValue))(dog1, dog2)}');
+  print('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(DogValue, DogValue))(dog1, dog2)}');
+  print('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(DogValue, DogValue))(dog1, dog2)}');
   final CatValue cat = (() { final _obj = CatValue(); Cat_new(_obj, 'Whiskers', 2); return _obj; })();
-  (cat.vptr['printInfo'] as void Function(Cat_Animal_PrintableValue))(cat);
+  (cat.vptr['printInfo'] as void Function(CatValue))(cat);
   print('${(cat.vptr['speak'] as String Function(CatValue))(cat)}, mood: ${(cat.vptr['get_mood'] as String Function(CatValue))(cat)}');
   (cat.vptr['set_mood'] as void Function(CatValue, String))(cat, 'sleepy');
   print('mood after set: ${(cat.vptr['get_mood'] as String Function(CatValue))(cat)}');
@@ -1307,7 +1320,7 @@ void main() async {
   final CounterValue c3 = Counter_new_fromString('gamma:25');
   (c1.vptr['increment'] as void Function(CounterValue, int))(c1, 10);
   (c2.vptr['decrement'] as void Function(CounterValue, int))(c2, 5);
-  (c3.vptr['increment'] as void Function(CounterValue))(c3);
+  (c3.vptr['increment'] as void Function(CounterValue, int))(c3, 1);
   print('${c1}, ${c2}, ${c3}');
   print('instances: ${Counter_instanceCount()}');
   print('maxValue: 100');
@@ -1413,11 +1426,11 @@ void main() async {
   print('perimeter: ${(polygon.vptr['perimeter'] as double Function(PolygonValue, double))(polygon, 3.0)}');
   final RegularPolygonValue hexagon = (() { final _obj = RegularPolygonValue(); RegularPolygon_new(_obj, 'yellow', 6, 5.0); return _obj; })();
   print((hexagon.vptr['describe'] as String Function(RegularPolygonValue))(hexagon));
-  print('perimeter: ${(hexagon.vptr['perimeter'] as double Function(RegularPolygonValue))(hexagon)}');
+  print('perimeter: ${(hexagon.vptr['perimeter'] as double Function(RegularPolygonValue, double?))(hexagon, null)}');
   print('area: ${(hexagon.vptr['area'] as double Function(RegularPolygonValue))(hexagon)}');
   final SquareValue square = (() { final _obj = SquareValue(); Square_new(_obj, 'white', 10.0, opacity: 0.9); return _obj; })();
   print((square.vptr['describe'] as String Function(SquareValue))(square));
-  print('square perimeter: ${(square.vptr['perimeter'] as double Function(RegularPolygonValue))(square)}');
+  print('square perimeter: ${(square.vptr['perimeter'] as double Function(SquareValue, double?))(square, null)}');
   print('\n--- 20. implements 多接口 ---');
   final DataPointValue dp1 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 1.0, 2.0, 'A'); return _obj; })();
   final DataPointValue dp2 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 3.0, 1.0, 'B'); return _obj; })();
@@ -1428,9 +1441,9 @@ void main() async {
   print('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(DataPointValue, DataPointValue))(dp1, dp2)}');
   print('\n--- 21. mixin on 约束 ---');
   final LoggedDataPointValue ldp = (() { final _obj = LoggedDataPointValue(); LoggedDataPoint_new(_obj, 5.0, 6.0, 'logged'); return _obj; })();
-  (ldp.vptr['log'] as void Function(LoggedDataPoint_DataPoint_LoggableValue, String))(ldp, 'created');
-  print('validate: ${(ldp.vptr['validate'] as bool Function(LoggedDataPoint_DataPoint_Loggable_ValidatableValue))(ldp)}');
-  print('serialize: ${(ldp.vptr['serialize'] as String Function(DataPointValue))(ldp)}');
+  (ldp.vptr['log'] as void Function(LoggedDataPointValue, String))(ldp, 'created');
+  print('validate: ${(ldp.vptr['validate'] as bool Function(LoggedDataPointValue))(ldp)}');
+  print('serialize: ${(ldp.vptr['serialize'] as String Function(LoggedDataPointValue))(ldp)}');
   print('\n--- 22. 增强枚举 ---');
   print('Priority.high: ${Priority}.high');
   print('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
@@ -1510,12 +1523,12 @@ void main() async {
   print('after clear execute: ${flags}');
   print('\n--- 33. 多层 mixin ---');
   final EventValue event = (() { final _obj = EventValue(); Event_new(_obj, 'meeting'); return _obj; })();
-  (event.vptr['addTag'] as void Function(Event_Object_Timestamped_TaggedValue, String))(event, 'work');
-  (event.vptr['addTag'] as void Function(Event_Object_Timestamped_TaggedValue, String))(event, 'important');
+  (event.vptr['addTag'] as void Function(EventValue, String))(event, 'work');
+  (event.vptr['addTag'] as void Function(EventValue, String))(event, 'important');
   print(event);
   final ImportantEventValue impEvent = (() { final _obj = ImportantEventValue(); ImportantEvent_new(_obj, 'deadline', Priority.critical); return _obj; })();
-  (impEvent.vptr['addTag'] as void Function(Event_Object_Timestamped_TaggedValue, String))(impEvent, 'urgent');
-  (impEvent.vptr['log'] as void Function(ImportantEvent_Event_LoggableValue, String))(impEvent, 'created');
+  (impEvent.vptr['addTag'] as void Function(ImportantEventValue, String))(impEvent, 'urgent');
+  (impEvent.vptr['log'] as void Function(ImportantEventValue, String))(impEvent, 'created');
   print(impEvent);
   print('\n=== 所有测试通过 ✅ ===');
 }
