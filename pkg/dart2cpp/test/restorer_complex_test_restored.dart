@@ -26,9 +26,9 @@ class ShapeValue extends VPtr {
 void Shape_new(ShapeValue this_) {
   this_.vptr = {
     'get_name': Shape_get_name,
-    'area': (self) => Shape_area(self),
-    'perimeter': (self) => Shape_perimeter(self),
-    'toString_': (self) => Shape_toString(self),
+    'area': Shape_area,
+    'perimeter': Shape_perimeter,
+    'toString_': Shape_toString,
   };
 }
 
@@ -79,12 +79,13 @@ class CircleValue extends ShapeValue {
 void Circle_new(CircleValue this_, double _radius) {
   Shape_new(this_);
   this_.vptr = {
-    'get_name': (self) => Circle_get_name(self),
-    'area': (self) => Circle_area(self),
-    'perimeter': (self) => Circle_perimeter(self),
-    'toString_': (self) => Circle_toString(self),
-    'get_radius': (self) => Circle_get_radius(self),
-    'set_radius': (self, val) => Circle_set_radius(self, val),
+    ...this_.vptr,
+    'get_name': Circle_get_name,
+    'area': Circle_area,
+    'perimeter': Circle_perimeter,
+    'toString_': Circle_toString,
+    'get_radius': Circle_get_radius,
+    'set_radius': Circle_set_radius,
   };
   this_._radius = _radius;
 }
@@ -92,12 +93,13 @@ void Circle_new(CircleValue this_, double _radius) {
 void Circle_new_unit(CircleValue this_) {
   Shape_new(this_);
   this_.vptr = {
-    'get_name': (self) => Circle_get_name(self),
-    'area': (self) => Circle_area(self),
-    'perimeter': (self) => Circle_perimeter(self),
-    'toString_': (self) => Circle_toString(self),
-    'get_radius': (self) => Circle_get_radius(self),
-    'set_radius': (self, val) => Circle_set_radius(self, val),
+    ...this_.vptr,
+    'get_name': Circle_get_name,
+    'area': Circle_area,
+    'perimeter': Circle_perimeter,
+    'toString_': Circle_toString,
+    'get_radius': Circle_get_radius,
+    'set_radius': Circle_set_radius,
   };
   this_._radius = 1.0;
 }
@@ -111,19 +113,22 @@ void Circle_set_radius(CircleValue this_, double value) {
   this_._radius = value;
 }
 
-String Circle_get_name(CircleValue this_) {
+String Circle_get_name(ShapeValue this__) {
+  final this_ = this__ as CircleValue;
   return 'Circle';
 }
 
-double Circle_area(CircleValue this_) {
+double Circle_area(ShapeValue this__) {
+  final this_ = this__ as CircleValue;
   return ((3.14159265 * this_._radius) * this_._radius);
 }
 
-double Circle_perimeter(CircleValue this_) {
+double Circle_perimeter(ShapeValue this__) {
+  final this_ = this__ as CircleValue;
   return ((2 * 3.14159265) * this_._radius);
 }
 
-String Circle_toString(CircleValue this_) {
+String Circle_toString(ShapeValue this_) {
   return Shape_toString(this_);
 }
 
@@ -136,28 +141,32 @@ class RectangleValue extends ShapeValue {
 void Rectangle_new(RectangleValue this_, double width, double height) {
   Shape_new(this_);
   this_.vptr = {
-    'get_name': (self) => Rectangle_get_name(self),
-    'area': (self) => Rectangle_area(self),
-    'perimeter': (self) => Rectangle_perimeter(self),
-    'toString_': (self) => Rectangle_toString(self),
+    ...this_.vptr,
+    'get_name': Rectangle_get_name,
+    'area': Rectangle_area,
+    'perimeter': Rectangle_perimeter,
+    'toString_': Rectangle_toString,
   };
   this_.width = width;
   this_.height = height;
 }
 
-String Rectangle_get_name(RectangleValue this_) {
+String Rectangle_get_name(ShapeValue this__) {
+  final this_ = this__ as RectangleValue;
   return 'Rectangle';
 }
 
-double Rectangle_area(RectangleValue this_) {
+double Rectangle_area(ShapeValue this__) {
+  final this_ = this__ as RectangleValue;
   return (this_.width * this_.height);
 }
 
-double Rectangle_perimeter(RectangleValue this_) {
+double Rectangle_perimeter(ShapeValue this__) {
+  final this_ = this__ as RectangleValue;
   return (2 * (this_.width + this_.height));
 }
 
-String Rectangle_toString(RectangleValue this_) {
+String Rectangle_toString(ShapeValue this_) {
   return Shape_toString(this_);
 }
 
@@ -236,7 +245,7 @@ void main() {
   print('=== 复杂语法节点还原测试 ===\n');
   print('--- 1. 泛型类 Pair ---');
   final PairValue<String, int> pair = (() { final _obj = PairValue<String, int>(); Pair_new(_obj, 'hello', 42); return _obj; })();
-  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(PairValue))(pair);
+  final PairValue<int, String> swapped = (pair.vptr['swap'] as Function)(pair);
   print('pair: ${pair}');
   print('swapped: ${swapped}');
   assert((pair.first == 'hello'));

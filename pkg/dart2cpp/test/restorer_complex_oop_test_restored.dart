@@ -54,7 +54,7 @@ void DiamondClass_new(DiamondClassValue this_, String name) {
 }
 
 String DiamondClass_display(DiamondClassValue this_, String msg) {
-  return '${this_.name}: ${(this_.vptr['format'] as String Function(DiamondClassValue, String))(this_, msg)}';
+  return '${this_.name}: ${(this_.vptr['format'] as Function)(this_, msg)}';
 }
 
 String DiamondClass_get_prefix(DiamondClassValue this_) {
@@ -174,7 +174,7 @@ void DeepMixinClass_new(DeepMixinClassValue this_) {
 }
 
 String DeepMixinClass_allLayers(DeepMixinClassValue this_) {
-  return '${(this_.vptr['layer'] as String Function(DeepMixinClassValue))(this_)}-${(this_.vptr['onlyA'] as String Function(DeepMixinClassValue))(this_)}-${(this_.vptr['onlyB'] as String Function(DeepMixinClassValue))(this_)}-${(this_.vptr['onlyC'] as String Function(DeepMixinClassValue))(this_)}';
+  return '${(this_.vptr['layer'] as Function)(this_)}-${(this_.vptr['onlyA'] as Function)(this_)}-${(this_.vptr['onlyB'] as Function)(this_)}-${(this_.vptr['onlyC'] as Function)(this_)}';
 }
 
 String DeepMixinClass_layer(DeepMixinClassValue this_) {
@@ -210,7 +210,7 @@ bool Filterable_test<T>(dynamic this_, bool Function(T) predicate) {
 }
 
 
-class BoxValue<T> extends Box_Object_Mappable_FilterableValue {
+class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
   late T value;
 }
 
@@ -230,7 +230,7 @@ String Box_toString<T>(BoxValue<T> this_) {
 }
 
 T Box_get_value<T>(BoxValue<T> this_) {
-  return this_.value;
+  return (this_ as BoxValue).value;
 }
 
 R Box_mapValue<T, R>(BoxValue<T> this_, R Function(T) transform) {
@@ -463,7 +463,7 @@ String Amount_toString(AmountValue this_) {
 }
 
 int Amount_get_numericValue(AmountValue this_) {
-  return this_.numericValue;
+  return (this_ as AmountValue).numericValue;
 }
 
 int Amount_addValues(AmountValue this_, int other) {
@@ -601,7 +601,7 @@ double Segment_measure(MeasurableValue this__) {
 }
 
 String Segment_toString(SegmentValue this_) {
-  return 'Segment(${this_.length}, ${(this_.vptr['measureInfo'] as String Function(SegmentValue))(this_)})';
+  return 'Segment(${this_.length}, ${(this_.vptr['measureInfo'] as Function)(this_)})';
 }
 
 double Segment_scale(SegmentValue this_, double factor) {
@@ -636,7 +636,7 @@ double WeightedSegment_measure(MeasurableValue this__) {
 
 String WeightedSegment_toString(SegmentValue this__) {
   final this_ = this__ as WeightedSegmentValue;
-  return 'WeightedSegment(len=${this_.length}, w=${this_.weight}, ${(this_.vptr['measureInfo'] as String Function(WeightedSegmentValue))(this_)})';
+  return 'WeightedSegment(len=${this_.length}, w=${this_.weight}, ${(this_.vptr['measureInfo'] as Function)(this_)})';
 }
 
 double WeightedSegment_scale(WeightedSegmentValue this_, double factor) {
@@ -685,7 +685,7 @@ String MultiMixinEntity_get_label(MultiMixinEntityValue this_) {
 }
 
 String MultiMixinEntity_fullInfo(MultiMixinEntityValue this_) {
-  return '${(this_.vptr['greet'] as String Function(MultiMixinEntityValue))(this_)} | ${(this_.vptr['info'] as String Function(MultiMixinEntityValue))(this_)}';
+  return '${(this_.vptr['greet'] as Function)(this_)} | ${(this_.vptr['info'] as Function)(this_)}';
 }
 
 String MultiMixinEntity_greet(MultiMixinEntityValue this_) {
@@ -734,7 +734,7 @@ void MultiEncoder_new(MultiEncoderValue this_) {
 }
 
 String MultiEncoder_encodeAll(MultiEncoderValue this_, String input) {
-  return (this_.vptr['encode'] as String Function(MultiEncoderValue, String))(this_, input);
+  return (this_.vptr['encode'] as Function)(this_, input);
 }
 
 String MultiEncoder_encode(MultiEncoderValue this_, String input) {
@@ -784,7 +784,7 @@ T Container_get_content<T>(ContainerValue<T> this_) {
 }
 
 
-class LabeledContainerValue<T> extends ContainerValue {
+class LabeledContainerValue<T> extends ContainerValue<T> {
   late String label;
 }
 
@@ -808,7 +808,7 @@ T LabeledContainer_get_content<T>(ContainerValue<T> this_) {
 }
 
 
-class PriorityContainerValue<T> extends LabeledContainerValue {
+class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   late int priority;
 }
 
@@ -894,7 +894,7 @@ void ChainSubClass_new(ChainSubClassValue this_) {
 }
 
 String ChainSubClass_step2(ChainSubClassValue this_) {
-  return '${(this_.vptr['step1'] as String Function(ChainSubClassValue))(this_)}->Y2';
+  return '${(this_.vptr['step1'] as Function)(this_)}->Y2';
 }
 
 String ChainSubClass_step1(ChainSubClassValue this_) {
@@ -1056,7 +1056,7 @@ void GameCharacter_new(GameCharacterValue this_, String name) {
 }
 
 String GameCharacter_statusBars(GameCharacterValue this_) {
-  return '${this_.name}: ${(this_.vptr['healthBar'] as String Function(GameCharacterValue))(this_)} ${(this_.vptr['manaBar'] as String Function(GameCharacterValue))(this_)} ${(this_.vptr['staminaBar'] as String Function(GameCharacterValue))(this_)}';
+  return '${this_.name}: ${(this_.vptr['healthBar'] as Function)(this_)} ${(this_.vptr['manaBar'] as Function)(this_)} ${(this_.vptr['staminaBar'] as Function)(this_)}';
 }
 
 int GameCharacter_get_maxHealth(GameCharacterValue this_) {
@@ -1247,7 +1247,7 @@ class Box_Object_MappableValue<T> extends VPtr {
 }
 
 
-class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue {
+class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
 }
 
 
@@ -1305,40 +1305,40 @@ void main() {
   print('--- 1. 菱形继承 ---');
   final DiamondClassValue diamond = (() { final _obj = DiamondClassValue(); DiamondClass_new(_obj, 'DC'); return _obj; })();
   print('prefix: ${(diamond.vptr['get_prefix'] as String Function(DiamondClassValue))(diamond)}');
-  print('format: ${(diamond.vptr['format'] as String Function(DiamondClassValue, String))(diamond, 'hello')}');
+  print('format: ${(diamond.vptr['format'] as Function)(diamond, 'hello')}');
   print('display: ${(diamond.vptr['display'] as String Function(DiamondClassValue, String))(diamond, 'world')}');
   print('\n--- 2. StatefulMixin ---');
   final StatefulWidgetValue widget = (() { final _obj = StatefulWidgetValue(); StatefulWidget_new(_obj, 'btn1'); return _obj; })();
   print('initial: ${widget}');
-  (widget.vptr['increment'] as void Function(StatefulWidgetValue))(widget);
-  (widget.vptr['increment'] as void Function(StatefulWidgetValue))(widget);
-  (widget.vptr['increment'] as void Function(StatefulWidgetValue))(widget);
+  (widget.vptr['increment'] as Function)(widget);
+  (widget.vptr['increment'] as Function)(widget);
+  (widget.vptr['increment'] as Function)(widget);
   print('after 3 inc: ${widget}');
-  (widget.vptr['decrement'] as void Function(StatefulWidgetValue))(widget);
+  (widget.vptr['decrement'] as Function)(widget);
   print('after 1 dec: ${widget}');
   (widget.vptr['set_counter'] as void Function(StatefulWidgetValue, int))(widget, 10);
   print('after set 10: ${widget}');
   print('\n--- 3. 深层 mixin 链 ---');
   final DeepMixinClassValue deep = (() { final _obj = DeepMixinClassValue(); DeepMixinClass_new(_obj); return _obj; })();
-  print('layer: ${(deep.vptr['layer'] as String Function(DeepMixinClassValue))(deep)}');
+  print('layer: ${(deep.vptr['layer'] as Function)(deep)}');
   print('allLayers: ${(deep.vptr['allLayers'] as String Function(DeepMixinClassValue))(deep)}');
   print('\n--- 4. 泛型 mixin ---');
   final BoxValue<int> intBox = (() { final _obj = BoxValue<int>(); Box_new(_obj, 42); return _obj; })();
   print('intBox: ${intBox}');
-  print('describe: ${(intBox.vptr['describe'] as String Function(BoxValue))(intBox)}');
+  print('describe: ${(intBox.vptr['describe'] as Function)(intBox)}');
   print('mapValue: ${Box_mapValue<int, int>(intBox, (int v) => (v * 2))}');
-  print('test >10: ${(intBox.vptr['test'] as bool Function(BoxValue, bool Function(int)))(intBox, (int v) => (v > 10))}');
-  print('test >100: ${(intBox.vptr['test'] as bool Function(BoxValue, bool Function(int)))(intBox, (int v) => (v > 100))}');
+  print('test >10: ${(intBox.vptr['test'] as Function)(intBox, (int v) => (v > 10))}');
+  print('test >100: ${(intBox.vptr['test'] as Function)(intBox, (int v) => (v > 100))}');
   final BoxValue<String> strBox = (() { final _obj = BoxValue<String>(); Box_new(_obj, 'dart'); return _obj; })();
   print('strBox mapValue: ${Box_mapValue<String, String>(strBox, (String s) => s.toUpperCase())}');
   print('\n--- 5. 抽象+mixin+implements ---');
   final TaggedResourceValue res = (() { final _obj = TaggedResourceValue(); TaggedResource_new(_obj, 'r1', 'file'); return _obj; })();
-  (res.vptr['tag'] as void Function(TaggedResourceValue, String))(res, 'important');
-  (res.vptr['tag'] as void Function(TaggedResourceValue, String))(res, 'v2');
+  (res.vptr['tag'] as Function)(res, 'important');
+  (res.vptr['tag'] as Function)(res, 'v2');
   print('describe: ${(res.vptr['describe'] as String Function(TaggedResourceValue))(res)}');
   print('id: ${res.id}');
-  print('hasTag important: ${(res.vptr['hasTag'] as bool Function(TaggedResourceValue, String))(res, 'important')}');
-  print('hasTag draft: ${(res.vptr['hasTag'] as bool Function(TaggedResourceValue, String))(res, 'draft')}');
+  print('hasTag important: ${(res.vptr['hasTag'] as Function)(res, 'important')}');
+  print('hasTag draft: ${(res.vptr['hasTag'] as Function)(res, 'draft')}');
   print('\n--- 6. super 调用链 ---');
   final BaseProcessorValue base = (() { final _obj = BaseProcessorValue(); BaseProcessor_new(_obj); return _obj; })();
   print('base: ${(base.vptr['process'] as String Function(BaseProcessorValue, String))(base, '  hello  ')} (${(base.vptr['get_processorName'] as String Function(BaseProcessorValue))(base)})');
@@ -1353,50 +1353,50 @@ void main() {
   print('a1 - a2: ${(a1.vptr['operatorMinus'] as AmountValue Function(AmountValue, AmountValue))(a1, a2)}');
   print('a1 < a2: ${(a1.vptr['operatorLt'] as bool Function(AmountValue, AmountValue))(a1, a2)}');
   print('a1 > a2: ${(a1.vptr['operatorGt'] as bool Function(AmountValue, AmountValue))(a1, a2)}');
-  print('doubleValue: ${(a1.vptr['doubleValue'] as int Function(AmountValue))(a1)}');
-  print('addValues: ${(a1.vptr['addValues'] as int Function(AmountValue, int))(a1, 3)}');
+  print('doubleValue: ${(a1.vptr['doubleValue'] as Function)(a1)}');
+  print('addValues: ${(a1.vptr['addValues'] as Function)(a1, 3)}');
   print('\n--- 8. 多层继承+mixin ---');
   final CarValue car = (() { final _obj = CarValue(); Car_new(_obj, 'Toyota', 2024, 4); return _obj; })();
   print('car: ${car}');
-  (car.vptr['prettyPrint'] as void Function(CarValue))(car);
+  (car.vptr['prettyPrint'] as Function)(car);
   final ElectricCarValue ev = (() { final _obj = ElectricCarValue(); ElectricCar_new(_obj, 'Tesla', 2025, 4, 500); return _obj; })();
   print('ev: ${ev}');
-  (ev.vptr['prettyPrint'] as void Function(ElectricCarValue))(ev);
+  (ev.vptr['prettyPrint'] as Function)(ev);
   print('\n--- 9. mixin on 约束 ---');
   final SegmentValue seg = (() { final _obj = SegmentValue(); Segment_new(_obj, 10.0); return _obj; })();
   print('seg: ${seg}');
-  print('scale(2): ${(seg.vptr['scale'] as double Function(SegmentValue, double))(seg, 2.0)}');
+  print('scale(2): ${(seg.vptr['scale'] as Function)(seg, 2.0)}');
   final WeightedSegmentValue wseg = (() { final _obj = WeightedSegmentValue(); WeightedSegment_new(_obj, 10.0, 0.5); return _obj; })();
   print('wseg: ${wseg}');
-  print('wseg.scale(3): ${(wseg.vptr['scale'] as double Function(WeightedSegmentValue, double))(wseg, 3.0)}');
+  print('wseg.scale(3): ${(wseg.vptr['scale'] as Function)(wseg, 3.0)}');
   print('\n--- 10. 多 mixin 同名 getter ---');
   final MultiMixinEntityValue entity = (() { final _obj = MultiMixinEntityValue(); MultiMixinEntity_new(_obj); return _obj; })();
   print('label: ${(entity.vptr['get_label'] as String Function(MultiMixinEntityValue))(entity)}');
-  print('greet: ${(entity.vptr['greet'] as String Function(MultiMixinEntityValue))(entity)}');
-  print('info: ${(entity.vptr['info'] as String Function(MultiMixinEntityValue))(entity)}');
+  print('greet: ${(entity.vptr['greet'] as Function)(entity)}');
+  print('info: ${(entity.vptr['info'] as Function)(entity)}');
   print('fullInfo: ${(entity.vptr['fullInfo'] as String Function(MultiMixinEntityValue))(entity)}');
   print('\n--- 11. 接口+mixin 覆盖 ---');
   final MultiEncoderValue multi = (() { final _obj = MultiEncoderValue(); MultiEncoder_new(_obj); return _obj; })();
-  print('multi.encode: ${(multi.vptr['encode'] as String Function(MultiEncoderValue, String))(multi, 'abc')}');
+  print('multi.encode: ${(multi.vptr['encode'] as Function)(multi, 'abc')}');
   print('multi.encodeAll: ${(multi.vptr['encodeAll'] as String Function(MultiEncoderValue, String))(multi, 'xyz')}');
   final CustomEncoderValue custom = (() { final _obj = CustomEncoderValue(); CustomEncoder_new(_obj); return _obj; })();
   print('custom.encode: ${(custom.vptr['encode'] as String Function(CustomEncoderValue, String))(custom, 'abc')}');
-  print('custom.encodeAll: ${(custom.vptr['encodeAll'] as String Function(CustomEncoderValue, String))(custom, 'xyz')}');
+  print('custom.encodeAll: ${(custom.vptr['encodeAll'] as Function)(custom, 'xyz')}');
   print('\n--- 12. 泛型继承链 ---');
   final ContainerValue<int> c1 = (() { final _obj = ContainerValue<int>(); Container_new(_obj, 42); return _obj; })();
-  print('c1: ${(c1.vptr['describe'] as String Function(ContainerValue))(c1)}');
+  print('c1: ${(c1.vptr['describe'] as Function)(c1)}');
   final LabeledContainerValue<String> c2 = (() { final _obj = LabeledContainerValue<String>(); LabeledContainer_new(_obj, 'hello', 'greeting'); return _obj; })();
-  print('c2: ${(c2.vptr['describe'] as String Function(LabeledContainerValue))(c2)}');
+  print('c2: ${(c2.vptr['describe'] as Function)(c2)}');
   final PriorityContainerValue<double> c3 = (() { final _obj = PriorityContainerValue<double>(); PriorityContainer_new(_obj, 3.14, 'pi', 1); return _obj; })();
-  print('c3: ${(c3.vptr['describe'] as String Function(PriorityContainerValue))(c3)}');
-  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(PriorityContainerValue))(c3)}');
+  print('c3: ${(c3.vptr['describe'] as Function)(c3)}');
+  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(dynamic))(c3)}');
   print('\n--- 13. mixin 调用链 ---');
   final ChainClassValue chain1 = (() { final _obj = ChainClassValue(); ChainClass_new(_obj); return _obj; })();
-  print('chain1.fullChain: ${(chain1.vptr['fullChain'] as String Function(ChainClassValue))(chain1)}');
-  print('chain1.step3: ${(chain1.vptr['step3'] as String Function(ChainClassValue))(chain1)}');
+  print('chain1.fullChain: ${(chain1.vptr['fullChain'] as Function)(chain1)}');
+  print('chain1.step3: ${(chain1.vptr['step3'] as Function)(chain1)}');
   final ChainSubClassValue chain2 = (() { final _obj = ChainSubClassValue(); ChainSubClass_new(_obj); return _obj; })();
-  print('chain2.fullChain: ${(chain2.vptr['fullChain'] as String Function(ChainSubClassValue))(chain2)}');
-  print('chain2.step3: ${(chain2.vptr['step3'] as String Function(ChainSubClassValue))(chain2)}');
+  print('chain2.fullChain: ${(chain2.vptr['fullChain'] as Function)(chain2)}');
+  print('chain2.step3: ${(chain2.vptr['step3'] as Function)(chain2)}');
   print('\n--- 14. 表达式树 ---');
   final BinaryExprValue expr = BinaryExpr_new_add((() { final _obj = NumberExprValue(); NumberExpr_new(_obj, 3.0); return _obj; })(), BinaryExpr_new_mul((() { final _obj = NumberExprValue(); NumberExpr_new(_obj, 4.0); return _obj; })(), (() { final _obj = NumberExprValue(); NumberExpr_new(_obj, 5.0); return _obj; })()));
   print('expr: ${(expr.vptr['display'] as String Function(BinaryExprValue))(expr)}');
@@ -1405,9 +1405,9 @@ void main() {
   final GameCharacterValue hero = (() { final _obj = GameCharacterValue(); GameCharacter_new(_obj, 'Hero'); return _obj; })();
   print((hero.vptr['statusBars'] as String Function(GameCharacterValue))(hero));
   final WarriorValue warrior = (() { final _obj = WarriorValue(); Warrior_new(_obj, 'Conan'); return _obj; })();
-  print((warrior.vptr['statusBars'] as String Function(WarriorValue))(warrior));
+  print((warrior.vptr['statusBars'] as Function)(warrior));
   final MageValue mage = (() { final _obj = MageValue(); Mage_new(_obj, 'Gandalf'); return _obj; })();
-  print((mage.vptr['statusBars'] as String Function(MageValue))(mage));
+  print((mage.vptr['statusBars'] as Function)(mage));
   print('\n=== 所有复杂 OOP 测试通过 ✅ ===');
 }
 

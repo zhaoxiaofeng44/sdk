@@ -321,13 +321,38 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       originFuncName = _staticMethodName(originClassName, methodName);
     }
     
+    // 构建类型参数替换映射：当子类不声明父类的类型参数时，
+    // 需要将父类类型参数替换为从继承链中解析出的具体类型
+    // 例如：StringToIntTransformer extends DataTransformer<String, int>
+    // proc 来自 DataTransformer，其类型参数 TInput/TOutput 需替换为 String/int
+    final typeSubstitution = _buildTypeSubstitutionForDelegate(cls, proc);
+    
+    // 还原类型时使用替换映射
+    String restoreTypeWithSub(DartType type) {
+      if (typeSubstitution.isNotEmpty && type is TypeParameterType) {
+        final paramName = type.parameter.name ?? 'T';
+        final replacement = typeSubstitution[paramName];
+        if (replacement != null) {
+          final nullable = type.nullability == Nullability.nullable;
+          return nullable ? '$replacement?' : replacement;
+        }
+      }
+      return _restoreType(type);
+    }
+    
     // 返回类型
-    final returnType = _restoreType(proc.function.returnType);
+    final returnType = restoreTypeWithSub(proc.function.returnType);
     
     _buf.write(_pad);
     _buf.write('$returnType $funcName');
     // 类型参数声明：类的类型参数 + 方法自身的类型参数
-    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    // 但不包含已被具体化（替换掉）的父类类型参数
+    if (typeSubstitution.isNotEmpty) {
+      // 只写方法自身的类型参数（非来自类的类型参数）
+      _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    } else {
+      _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
+    }
     // this_ 参数类型：直接使用 entry.declaringClassName（来自 _collectAllVTableEntries）
     final delegateDeclaringClass = entry.declaringClassName ?? className;
     final delegateThisParamType = _resolveThisParamType(className, delegateDeclaringClass, cls);
@@ -340,19 +365,19 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       if (proc.function.positionalParameters.isNotEmpty) {
         final p = proc.function.positionalParameters.first;
         final paramName = _cleanVarName(p.name ?? 'value');
-        _buf.write(', ${_restoreType(p.type)} $paramName');
+        _buf.write(', ${restoreTypeWithSub(p.type)} $paramName');
         forwardArgs.add(paramName);
       }
     } else if (entry.kind != 'getter') {
       // method / operator
       for (final p in proc.function.positionalParameters) {
         final paramName = _cleanVarName(p.name ?? '_p');
-        _buf.write(', ${_restoreType(p.type)} $paramName');
+        _buf.write(', ${restoreTypeWithSub(p.type)} $paramName');
         forwardArgs.add(paramName);
       }
       for (final p in proc.function.namedParameters) {
         final paramName = _cleanVarName(p.name ?? '_n');
-        _buf.write(', {${_restoreType(p.type)} $paramName}');
+        _buf.write(', {${restoreTypeWithSub(p.type)} $paramName}');
       }
     }
     
@@ -365,7 +390,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     final isAbstractOrigin = proc.isAbstract || proc.function.body == null;
     if (isAbstractOrigin && entry.kind == 'getter') {
       // 抽象 getter → 直接返回字段访问
-      _buf.write('${_pad}return this_.$methodName;\n');
+      // 抽象 getter: 字段在子类中定义，需要向下转型到当前类
+      _buf.write('${_pad}return (this_ as ${className}Value).$methodName;\n');
     } else if (isAbstractOrigin && entry.kind == 'setter') {
       // 抽象 setter → 直接设置字段
       final valueName = forwardArgs.length > 1 ? forwardArgs[1] : 'value';
@@ -394,6 +420,34 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write('}\n\n');
   }
 
+  /// 为委托函数构建类型参数替换映射
+  /// 当子类不声明父类的类型参数时，将父类类型参数替换为继承链中的具体类型
+  /// 返回映射：{父类类型参数名 → 具体类型字符串}，空映射表示不需要替换
+  Map<String, String> _buildTypeSubstitutionForDelegate(Class cls, Procedure proc) {
+    final originClass = proc.enclosingClass;
+    if (originClass == null) return {};
+    if (originClass == cls) return {}; // 方法定义在当前类，无需替换
+    if (originClass.typeParameters.isEmpty) return {}; // 父类无类型参数
+
+    // 检查当前类是否缺少父类的类型参数
+    final currentTypeParamNames = cls.typeParameters.map((tp) => tp.name).toSet();
+    final parentTypeParamNames = originClass.typeParameters.map((tp) => tp.name).toSet();
+    
+    // 如果当前类拥有所有父类类型参数，不需要替换
+    if (parentTypeParamNames.every((n) => currentTypeParamNames.contains(n))) return {};
+
+    // 从继承链中解析具体类型参数
+    final concreteTypeArgs = _resolveConcreteTypeArgsForAncestor(cls, originClass);
+    if (concreteTypeArgs == null || concreteTypeArgs.isEmpty) return {};
+
+    final substitution = <String, String>{};
+    for (var i = 0; i < originClass.typeParameters.length && i < concreteTypeArgs.length; i++) {
+      final paramName = originClass.typeParameters[i].name ?? 'T$i';
+      substitution[paramName] = concreteTypeArgs[i];
+    }
+    return substitution;
+  }
+
   /// 生成 XValue 类
   void _emitValueClass(Class cls, String className, String? parentName, [bool isSyntheticMixinClass = false]) {
     _buf.write('class ${className}Value');
@@ -404,7 +458,18 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // - 无基类（根类）→ extends VPtr（VPtr 提供 vptr 字段和 toString/operator==/hashCode 桥接）
     final hasUserParent = parentName != null && _isUserClass(parentName);
     if (hasUserParent) {
-      _buf.write(' extends ${parentName}Value');
+      // 从 supertype 中获取具体化的泛型参数
+      final superType = cls.supertype;
+      String parentTypeArgs = '';
+      if (superType != null && superType.typeArguments.isNotEmpty) {
+        // 过滤掉仍然是 TypeParameter 的参数（这些会由当前类声明）
+        // 只保留已经具体化的类型参数
+        final concreteArgs = superType.typeArguments.map((ta) => _restoreType(ta)).toList();
+        if (concreteArgs.isNotEmpty) {
+          parentTypeArgs = '<${concreteArgs.join(', ')}>';
+        }
+      }
+      _buf.write(' extends ${parentName}Value$parentTypeArgs');
     } else {
       _buf.write(' extends VPtr');
     }
@@ -642,9 +707,20 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final declaringCls = _classNodes[declaringClass];
       final buf = StringBuffer('${declaringClass}Value');
       if (declaringCls != null && declaringCls.typeParameters.isNotEmpty) {
-        buf.write('<');
-        buf.write(declaringCls.typeParameters.map((tp) => tp.name ?? 'T').join(', '));
-        buf.write('>');
+        // 父类有类型参数时，需要从当前类的继承链中解析出具体的类型参数
+        // 例如：StringToIntTransformer extends DataTransformer<String, int>
+        // 此时 declaringClass=DataTransformer，其类型参数为 [TInput, TOutput]
+        // 需要从继承链找到具体化的类型 [String, int]
+        final concreteTypeArgs = _resolveConcreteTypeArgsForAncestor(cls, declaringCls);
+        if (concreteTypeArgs != null && concreteTypeArgs.isNotEmpty) {
+          buf.write('<');
+          buf.write(concreteTypeArgs.join(', '));
+          buf.write('>');
+        } else {
+          buf.write('<');
+          buf.write(declaringCls.typeParameters.map((tp) => tp.name ?? 'T').join(', '));
+          buf.write('>');
+        }
       }
       return buf.toString();
     }
@@ -656,6 +732,52 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       buf.write('>');
     }
     return buf.toString();
+  }
+
+  /// 从当前类 cls 的继承链中，解析出祖先类 ancestorCls 的具体类型参数
+  /// 例如：StringToIntTransformer extends DataTransformer<String, int>
+  /// → 返回 ['String', 'int']
+  /// 如果类型参数仍然是类型变量（如 Box<T> extends Container<T>），则返回变量名
+  List<String>? _resolveConcreteTypeArgsForAncestor(Class cls, Class ancestorCls) {
+    // 沿着 supertype 链向上查找 ancestorCls
+    var currentClass = cls;
+    while (true) {
+      final superType = currentClass.supertype;
+      if (superType == null) return null;
+
+      if (superType.classNode == ancestorCls) {
+        // 找到了目标祖先类，提取具体化的类型参数
+        if (superType.typeArguments.isEmpty) return null;
+        return superType.typeArguments.map((ta) => _restoreType(ta)).toList();
+      }
+
+      // 如果当前 superType 的类型参数中包含映射关系，需要沿着链继续往上找
+      // 并在找到后进行类型参数替换
+      currentClass = superType.classNode;
+
+      // 检查 currentClass 是否最终继承自 ancestorCls
+      // 递归地在 currentClass 的继承链中查找
+      final result = _resolveConcreteTypeArgsForAncestor(currentClass, ancestorCls);
+      if (result != null) {
+        // 将 currentClass 的类型参数映射到从 cls 传入的具体类型
+        // 例如：A extends B<T>, B extends C<T>
+        // superType.typeArguments 是从 cls→currentClass 的映射
+        if (superType.typeArguments.isNotEmpty && currentClass.typeParameters.isNotEmpty) {
+          final typeParamMap = <String, String>{};
+          for (var i = 0; i < currentClass.typeParameters.length && i < superType.typeArguments.length; i++) {
+            final paramName = currentClass.typeParameters[i].name ?? 'T$i';
+            typeParamMap[paramName] = _restoreType(superType.typeArguments[i]);
+          }
+          // 替换 result 中仍然是类型变量的部分
+          return result.map((typeStr) {
+            return typeParamMap[typeStr] ?? typeStr;
+          }).toList();
+        }
+        return result;
+      }
+
+      return null;
+    }
   }
 
   /// 获取静态函数名

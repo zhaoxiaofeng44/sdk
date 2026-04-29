@@ -172,6 +172,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (expr is AwaitExpression) return 'await ${_restoreExpr(expr.operand)}';
     if (expr is CheckLibraryIsLoaded) return 'true';
     if (expr is LoadLibrary) return '${expr.import.name}';
+    if (expr is LocalFunctionInvocation) {
+      final funcName = expr.variable.name ?? '_localFunc';
+      final args = _restoreArgs(expr.arguments);
+      return '$funcName($args)';
+    }
     return '/* unknown: ${expr.runtimeType} */';
   }
 
@@ -376,6 +381,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         return '$staticFuncName$typeArgStr($recv, $allArgs)';
       }
 
+      // 如果方法定义在不同于 receiver 的父类中，或声明类有泛型参数，
+      // 使用 Function 类型 cast 避免签名不匹配的运行时错误
+      // （Dart 函数参数类型逆变 + 泛型具体化导致精确签名不安全）
+      final declClass = expr.interfaceTarget.enclosingClass;
+      final declHasTypeParams = declClass != null && declClass.typeParameters.isNotEmpty;
+      if (actualClassName != null && (actualClassName != receiverClassName || declHasTypeParams)) {
+        if (allArgs.isEmpty) {
+          return "($recv.vptr['$vtableField'] as Function)($recv)";
+        }
+        return "($recv.vptr['$vtableField'] as Function)($recv, $allArgs)";
+      }
+
       // 无命名参数且无方法级类型参数时，使用精确签名
       // 从 interfaceTarget 获取完整参数列表（含默认参数），签名包含全部参数类型
       final targetFunc = expr.interfaceTarget.function;
@@ -510,12 +527,19 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// 与 _resolveThisTypeForSignature 不同，这里用 receiverClassName 查找 _classVTableEntries
   /// 而不是用 target.enclosingClass（后者可能是合成中间类或 mixin）
   String _resolveThisTypeForReceiver(String receiverClassName, String methodName, Member target) {
-    // mixin 接收者 → dynamic（mixin 自身不生成 Value 类）
+    // mixin 接收者 -> dynamic
     if (_isMixinName(receiverClassName)) {
       return 'dynamic';
     }
-    // 统一使用接收者类名的 Value 类型
-    // 因为定义处的静态函数 this_ 参数也是用当前类 Value（非 mixin 类）
+    // 如果方法定义在有泛型参数的类中，需要检查 receiver 的类型参数
+    // 以确保 vptr 调用处的签名与实际函数签名匹配
+    final declaringClass = target.enclosingClass;
+    if (declaringClass != null && declaringClass.typeParameters.isNotEmpty) {
+      final declClassName = _getActualClassName(declaringClass.name);
+      // 如果声明类有泛型参数，使用 dynamic 避免泛型类型不匹配
+      // 因为 vptr 中存储的函数签名可能用了具体化的类型参数
+      return 'dynamic';
+    }
     return '${receiverClassName}Value';
   }
 
@@ -666,6 +690,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return '$typePrefix{}';
     }
 
+    // 特殊处理：Map 内部实现类（LinkedHashMap 等）→ Map
+    if (target.enclosingClass != null && _isMapInternalClass(target.enclosingClass!.name)) {
+      final publicName = 'Map';
+      if (name.isEmpty) return '$publicName($args)';
+      return '$publicName.$name($args)';
+    }
+
     // 扩展方法调用：函数名包含 | 字符（如 "StringExtensions|capitalize"）
     // 需要将函数名清理为合法标识符，并将 receiver 参数（this_）正确传递
     if (_isExtensionMethodName(name)) {
@@ -787,6 +818,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     final prefix = expr.isConst ? 'const ' : '';
     if (ctorName.isEmpty) return '$prefix$className($allArgs)';
+    // SDK 类的私有构造函数（如 MapEntry._）应还原为无名构造函数形式
+    if (ctorName.startsWith('_')) return '$prefix$className($allArgs)';
     return '$prefix$className.$ctorName($allArgs)';
   }
 
@@ -797,6 +830,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         className == '_LinkedHashSet' ||
         className == 'LinkedHashSet' ||
         className == '_HashSet';
+  }
+
+  /// 判断是否是 Map 的内部实现类
+  bool _isMapInternalClass(String className) {
+    return className == 'LinkedHashMap' ||
+        className == '_CompactLinkedHashMap' ||
+        className == '_InternalLinkedHashMap' ||
+        className == '_LinkedHashMap';
   }
 
   String _restoreConditional(ConditionalExpression expr) {
@@ -814,7 +855,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
   String _restoreStringConcat(StringConcatenation expr) {
     final parts = expr.expressions.map((e) {
-      if (e is StringLiteral) return e.value;
+      if (e is StringLiteral) {
+        // Escape special characters in string literal parts
+        // to prevent $$ or unintended interpolation in output
+        final escaped = e.value
+            .replaceAll(r'\\', r'\\\\')
+            .replaceAll("'", "\\'")
+            .replaceAll(r'$', r'\$')
+            .replaceAll('\n', r'\n')
+            .replaceAll('\r', r'\r')
+            .replaceAll('\t', r'\t');
+        return escaped;
+      }
       // 对于有自定义 toString 的枚举，在字符串插值中调用静态 toString 函数
       final enumToStringCall = _tryEnumToStringInInterpolation(e);
       if (enumToStringCall != null) return '\${$enumToStringCall}';
@@ -954,18 +1006,25 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
             final thenBranch = body.then;
             if (thenBranch is NullLiteral) {
               // 匹配到 expr?.something 模式
-              // 还原为 lhs?.member 形式
-              final lhs = _restoreExpr(v.initializer!);
-              // 尝试提取 otherwise 中的成员访问，还原为 ?. 语法
               final otherwiseExpr = body.otherwise;
-              final memberAccess = _extractMemberAccessOnVar(otherwiseExpr, v);
-              if (memberAccess != null) {
-                return '$lhs?.$memberAccess';
+              
+              // 检查 receiver 类型是否是用户自定义类（需要 OOP lowering）
+              // 如果是，不能简化为 lhs?.member
+              final receiverNeedsLowering = _nullSafeReceiverNeedsLowering(v);
+              
+              if (!receiverNeedsLowering) {
+                // 非用户自定义类：还原为 lhs?.member 形式
+                final lhs = _restoreExpr(v.initializer!);
+                final memberAccess = _extractMemberAccessOnVar(otherwiseExpr, v);
+                if (memberAccess != null) {
+                  return '$lhs?.$memberAccess';
+                }
               }
-              // 回退：使用 IIFE 模式
-              final init = lhs;
+              
+              // 用户自定义类或无法提取成员访问：使用 IIFE 模式
+              final lhs = _restoreExpr(v.initializer!);
               final tmpName = cleanedName;
-              return '(() { final $tmpName = $init; return $tmpName == null ? null : ${_restoreExpr(otherwiseExpr)}; })()';
+              return '(() { final $tmpName = $lhs; return ($tmpName == null) ? null : ${_restoreExpr(otherwiseExpr)}; })()';
             }
           }
         }
@@ -1307,7 +1366,36 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     // ---- 返回构造表达式 ----
     // 使用处: ClosureEnv_foo_0(captured1, captured2, ...)
-    final constructArgs = capturedFields.map((f) => f.name).join(', ');
+    // 构造参数：如果当前已在外层闭包的 env 上下文中，
+    // 被捕获变量需要加 env. 前缀
+    final constructArgsList = <String>[];
+    for (int _i = 0; _i < capturedFields.length; _i++) {
+      final field = capturedFields[_i];
+      if (field.isThis) {
+        // this 捕获：检查是否在外层 env 中
+        if (savedThisInEnv) {
+          constructArgsList.add('env.${field.name}');
+        } else {
+          constructArgsList.add(field.name);
+        }
+      } else if (_i < capturedDecls.length + (capturesThis && _insideMethodBody && _currentClass != null && _needsLowering(_currentClass!.name) ? 1 : 0)) {
+        // 对应的 VariableDeclaration 在 savedEnvPrefix 中有映射则加前缀
+        final declIdx = field.isThis ? -1 : _i - (capturedFields.any((f) => f.isThis) ? 1 : 0);
+        if (declIdx >= 0 && declIdx < capturedDecls.length) {
+          final prefix = savedEnvPrefix[capturedDecls[declIdx]];
+          if (prefix != null) {
+            constructArgsList.add('$prefix${field.name}');
+          } else {
+            constructArgsList.add(field.name);
+          }
+        } else {
+          constructArgsList.add(field.name);
+        }
+      } else {
+        constructArgsList.add(field.name);
+      }
+    }
+    final constructArgs = constructArgsList.join(', ');
     return '$envClassName($constructArgs)';
   }
 
@@ -1364,6 +1452,19 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return _extractMemberAccessOnVar(expr.operand, targetVar);
     }
     return null;
+  }
+
+  /// 检查 null-safe 访问的 receiver 变量的基础类型是否是用户自定义类
+  /// 如果是，?. 后的成员访问需要 OOP lowering，不能简化为 lhs?.member
+  bool _nullSafeReceiverNeedsLowering(VariableDeclaration v) {
+    final varType = v.type;
+    if (varType is InterfaceType) {
+      final className = varType.classNode.name;
+      if (_isUserClass(className) || _isMixinName(className) || _isEnumName(className)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   String _restoreRecordLiteral(RecordLiteral expr) {

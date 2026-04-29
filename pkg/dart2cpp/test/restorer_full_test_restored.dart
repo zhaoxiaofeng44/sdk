@@ -66,8 +66,6 @@ String Animal_toString(AnimalValue this_) {
 
 
 class DogValue extends Dog_Animal_Printable_OrderableValue {
-  late String name;
-  late int age;
   late String breed;
 }
 
@@ -116,8 +114,6 @@ bool Dog_isGreaterThan(DogValue this_, DogValue other) {
 
 
 class CatValue extends Cat_Animal_PrintableValue {
-  late String name;
-  late int age;
   late String _mood;
 }
 
@@ -380,8 +376,6 @@ String Shape_describe(ShapeValue this_) {
 
 
 class PolygonValue extends ShapeValue {
-  late String color;
-  late double opacity;
   late int sides;
 }
 
@@ -406,9 +400,6 @@ double Polygon_perimeter(PolygonValue this_, double sideLength) {
 
 
 class RegularPolygonValue extends PolygonValue {
-  late String color;
-  late double opacity;
-  late int sides;
   late double sideLength;
 }
 
@@ -439,10 +430,6 @@ double RegularPolygon_area(RegularPolygonValue this_) {
 
 
 class SquareValue extends RegularPolygonValue {
-  late String color;
-  late double opacity;
-  late int sides;
-  late double sideLength;
 }
 
 void Square_new(SquareValue this_, String color, double size, {double opacity = 1.0}) {
@@ -563,9 +550,6 @@ bool Validatable_validate(dynamic this_) {
 
 
 class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_ValidatableValue {
-  late double x;
-  late double y;
-  late String label;
 }
 
 void LoggedDataPoint_new(LoggedDataPointValue this_, double x, double y, String label) {
@@ -861,7 +845,6 @@ List<String> Tagged_get_tags(dynamic this_) {
 
 
 class EventValue extends Event_Object_Timestamped_TaggedValue {
-  late List<String> _tags;
   late String name;
 }
 
@@ -899,8 +882,6 @@ List<String> Event_get_tags(EventValue this_) {
 
 
 class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
-  late List<String> _tags;
-  late String name;
   late Priority priority;
 }
 
@@ -950,34 +931,22 @@ void ImportantEvent_log(ImportantEventValue this_, String message) {
 
 
 class Dog_Animal_PrintableValue extends AnimalValue {
-  late String name;
-  late int age;
 }
 
 
 class Dog_Animal_Printable_OrderableValue extends Dog_Animal_PrintableValue {
-  late String name;
-  late int age;
 }
 
 
 class Cat_Animal_PrintableValue extends AnimalValue {
-  late String name;
-  late int age;
 }
 
 
 class LoggedDataPoint_DataPoint_LoggableValue extends DataPointValue {
-  late double x;
-  late double y;
-  late String label;
 }
 
 
 class LoggedDataPoint_DataPoint_Loggable_ValidatableValue extends LoggedDataPoint_DataPoint_LoggableValue {
-  late double x;
-  late double y;
-  late String label;
 }
 
 
@@ -991,8 +960,6 @@ class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue
 
 
 class ImportantEvent_Event_LoggableValue extends EventValue {
-  late List<String> _tags;
-  late String name;
 }
 
 
@@ -1005,7 +972,7 @@ String formatMessage(String template, [String? subject = null, int? count = null
 
 String buildQuery({required String endpoint, Map<String, String>? params = null, int maxWait = 30, bool secure = true}) {
   final String scheme = (secure ? 'https' : 'http');
-  final String query = ((() { final _let7 = params; return _let7 == null ? null : _let7.entries.map((MapEntry<String, String> e) => '${e.key}=${e.value}').join('&'); })() ?? '');
+  final String query = ((() { final _let7 = params; return (_let7 == null) ? null : _let7.entries.map((MapEntry<String, String> e) => '${e.key}=${e.value}').join('&'); })() ?? '');
   final String suffix = (query.isEmpty ? '' : '?${query}');
   return '${scheme}://${endpoint}${suffix} (timeout=${maxWait}s)';
 }
@@ -1296,12 +1263,12 @@ void main() async {
   print('--- 1. mixin + implements ---');
   final DogValue dog1 = (() { final _obj = DogValue(); Dog_new(_obj, 'Rex', 3, 'Labrador'); return _obj; })();
   final DogValue dog2 = (() { final _obj = DogValue(); Dog_new(_obj, 'Max', 5, 'Poodle'); return _obj; })();
-  (dog1.vptr['printInfo'] as void Function(DogValue))(dog1);
+  (dog1.vptr['printInfo'] as Function)(dog1);
   print('${(dog1.vptr['speak'] as String Function(DogValue))(dog1)} (${dog1.breed})');
-  print('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(DogValue, DogValue))(dog1, dog2)}');
-  print('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(DogValue, DogValue))(dog1, dog2)}');
+  print('dog1 < dog2: ${(dog1.vptr['isLessThan'] as Function)(dog1, dog2)}');
+  print('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as Function)(dog1, dog2)}');
   final CatValue cat = (() { final _obj = CatValue(); Cat_new(_obj, 'Whiskers', 2); return _obj; })();
-  (cat.vptr['printInfo'] as void Function(CatValue))(cat);
+  (cat.vptr['printInfo'] as Function)(cat);
   print('${(cat.vptr['speak'] as String Function(CatValue))(cat)}, mood: ${(cat.vptr['get_mood'] as String Function(CatValue))(cat)}');
   (cat.vptr['set_mood'] as void Function(CatValue, String))(cat, 'sleepy');
   print('mood after set: ${(cat.vptr['get_mood'] as String Function(CatValue))(cat)}');
@@ -1430,7 +1397,7 @@ void main() async {
   print('area: ${(hexagon.vptr['area'] as double Function(RegularPolygonValue))(hexagon)}');
   final SquareValue square = (() { final _obj = SquareValue(); Square_new(_obj, 'white', 10.0, opacity: 0.9); return _obj; })();
   print((square.vptr['describe'] as String Function(SquareValue))(square));
-  print('square perimeter: ${(square.vptr['perimeter'] as double Function(SquareValue, double?))(square, null)}');
+  print('square perimeter: ${(square.vptr['perimeter'] as Function)(square)}');
   print('\n--- 20. implements 多接口 ---');
   final DataPointValue dp1 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 1.0, 2.0, 'A'); return _obj; })();
   final DataPointValue dp2 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 3.0, 1.0, 'B'); return _obj; })();
@@ -1441,9 +1408,9 @@ void main() async {
   print('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(DataPointValue, DataPointValue))(dp1, dp2)}');
   print('\n--- 21. mixin on 约束 ---');
   final LoggedDataPointValue ldp = (() { final _obj = LoggedDataPointValue(); LoggedDataPoint_new(_obj, 5.0, 6.0, 'logged'); return _obj; })();
-  (ldp.vptr['log'] as void Function(LoggedDataPointValue, String))(ldp, 'created');
-  print('validate: ${(ldp.vptr['validate'] as bool Function(LoggedDataPointValue))(ldp)}');
-  print('serialize: ${(ldp.vptr['serialize'] as String Function(LoggedDataPointValue))(ldp)}');
+  (ldp.vptr['log'] as Function)(ldp, 'created');
+  print('validate: ${(ldp.vptr['validate'] as Function)(ldp)}');
+  print('serialize: ${(ldp.vptr['serialize'] as Function)(ldp)}');
   print('\n--- 22. 增强枚举 ---');
   print('Priority.high: ${Priority}.high');
   print('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
@@ -1462,12 +1429,12 @@ void main() async {
   print('cfg3: ${cfg3}');
   print('\n--- 24. 泛型约束 ---');
   final SortedListValue<int> sortedList = (() { final _obj = SortedListValue<int>(); SortedList_new(_obj); return _obj; })();
-  (sortedList.vptr['add'] as void Function(SortedListValue, int))(sortedList, 5);
-  (sortedList.vptr['add'] as void Function(SortedListValue, int))(sortedList, 1);
-  (sortedList.vptr['add'] as void Function(SortedListValue, int))(sortedList, 3);
-  (sortedList.vptr['add'] as void Function(SortedListValue, int))(sortedList, 2);
+  (sortedList.vptr['add'] as Function)(sortedList, 5);
+  (sortedList.vptr['add'] as Function)(sortedList, 1);
+  (sortedList.vptr['add'] as Function)(sortedList, 3);
+  (sortedList.vptr['add'] as Function)(sortedList, 2);
   print('sorted: ${sortedList}');
-  print('first: ${(sortedList.vptr['get_first'] as dynamic Function(SortedListValue))(sortedList)}, last: ${(sortedList.vptr['get_last'] as dynamic Function(SortedListValue))(sortedList)}');
+  print('first: ${(sortedList.vptr['get_first'] as dynamic Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as dynamic Function(dynamic))(sortedList)}');
   final int maxVal = findMax(<int>[3, 7, 1, 9, 4]);
   print('findMax: ${maxVal}');
   final String result = applyTwice(5, (int x) => 'n=${x}', (String s) => '${s}!');
@@ -1503,8 +1470,8 @@ void main() async {
   (renderer.vptr['render'] as void Function(CircleRendererValue, String))(renderer, 'circle');
   print('\n--- 30. Pipeline 泛型链 ---');
   final PipelineValue<int, String> pipeline = Pipeline_then<int, int, String>(Pipeline_then<int, String, int>((() { final _obj = PipelineValue<int, String>(); Pipeline_new(_obj, (int n) => 'val=${n}'); return _obj; })(), (String s) => s.length), (int len) => 'len=${len}');
-  print('pipeline(42): ${(pipeline.vptr['execute'] as String Function(PipelineValue, int))(pipeline, 42)}');
-  print('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(PipelineValue, int))(pipeline, 12345)}');
+  print('pipeline(42): ${(pipeline.vptr['execute'] as Function)(pipeline, 42)}');
+  print('pipeline(12345): ${(pipeline.vptr['execute'] as Function)(pipeline, 12345)}');
   print('\n--- 31. switch-case ---');
   print('day 1: ${dayType(1)}');
   print('day 3: ${dayType(3)}');
@@ -1523,12 +1490,12 @@ void main() async {
   print('after clear execute: ${flags}');
   print('\n--- 33. 多层 mixin ---');
   final EventValue event = (() { final _obj = EventValue(); Event_new(_obj, 'meeting'); return _obj; })();
-  (event.vptr['addTag'] as void Function(EventValue, String))(event, 'work');
-  (event.vptr['addTag'] as void Function(EventValue, String))(event, 'important');
+  (event.vptr['addTag'] as Function)(event, 'work');
+  (event.vptr['addTag'] as Function)(event, 'important');
   print(event);
   final ImportantEventValue impEvent = (() { final _obj = ImportantEventValue(); ImportantEvent_new(_obj, 'deadline', Priority.critical); return _obj; })();
-  (impEvent.vptr['addTag'] as void Function(ImportantEventValue, String))(impEvent, 'urgent');
-  (impEvent.vptr['log'] as void Function(ImportantEventValue, String))(impEvent, 'created');
+  (impEvent.vptr['addTag'] as Function)(impEvent, 'urgent');
+  (impEvent.vptr['log'] as Function)(impEvent, 'created');
   print(impEvent);
   print('\n=== 所有测试通过 ✅ ===');
 }
