@@ -1064,15 +1064,38 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _collectAllFields(cls, allFields, <String>{});
 
     // 为有初始值但未处理的字段生成赋值
-    for (final field in allFields) {
-      if (field.isStatic) continue;
-      if (field.isLate) continue; // late 字段不需要默认值
-      if (initedFields.contains(field.name.text)) continue;
-      if (field.initializer != null) {
+    // 简化方案（Bug 12）：late field with initializer 也在构造时 eager 求值
+    //   原始语义：late + initializer → 首次访问时 lazy 求值并缓存
+    //   简化语义：late + initializer → 构造时 eager 求值
+    //   限制：
+    //   - 改变了 lazy 语义（副作用提前发生）
+    //   - 不支持 initializer 依赖构造后才赋值的字段
+    //   依赖前提：Bug 14 已修复，initializer 中的私有方法调用可直接走静态函数
+    //
+    // 还原 initializer 表达式前需要正确设置上下文：
+    // - _insideMethodBody = true 让 ThisExpression 被替换为 this_
+    // - _thisReplacementName = 'this_' 是当前构造函数中 this 的占位符
+    // 调用方（_emitConstructorFunction）此时尚未设置这两个状态
+    final savedInsideMethodBody = _insideMethodBody;
+    final savedThisReplacementName = _thisReplacementName;
+    _insideMethodBody = true;
+    _thisReplacementName = 'this_';
+    try {
+      for (final field in allFields) {
+        if (field.isStatic) continue;
+        if (initedFields.contains(field.name.text)) continue;
+        // 无 initializer 的字段无需赋值：
+        // - 普通非空字段：Dart 编译器自身会报错，属于源代码问题
+        // - 无 initializer 的 late 字段（如 `late String description;`）：依赖外部赋值
+        if (field.initializer == null) continue;
+        // 有 initializer 的字段（包括 late field with initializer）都在此 eager 求值
         _buf.write('${_pad}this_.${field.name.text} = ');
         _buf.write(_restoreExpr(field.initializer!));
         _buf.write(';\n');
       }
+    } finally {
+      _insideMethodBody = savedInsideMethodBody;
+      _thisReplacementName = savedThisReplacementName;
     }
   }
 

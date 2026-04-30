@@ -239,8 +239,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
 
-    // 用户自定义类的 setter 调用 → 通过 Map 查找类型转换
-    if (receiverClassName != null && _isUserClass(receiverClassName)) {
+    // 用户自定义类或 mixin 的 setter 调用 → 通过 Map 查找类型转换
+    // 与 _restoreInstanceGet/_restoreInstanceInvocation 的条件保持一致
+    if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isSetter) {
         // mixin 内部：使用 Function cast 避免逆变问题
@@ -278,6 +279,53 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final returnType = _restoreTypeForSignature(expr.functionType.returnType);
       final enclosingClass = expr.interfaceTarget.enclosingClass;
       final actualClassName = enclosingClass != null ? _getActualClassName(enclosingClass.name) : null;
+
+      // Bug 14: 私有实例方法（name 以 _ 开头）不在 vtable 中
+      // _collectVTableEntries（dart_restorer.dart）跳过 startsWith('_') 的方法，
+      // 不会注册到 vptr。但实例方法的静态函数（_emitInstanceMethodAsStatic）
+      // 仍然为所有方法生成。因此私有方法必须直接调用静态函数，绕过 vptr。
+      // 限制：运算符不能私有，不需要处理；abstract 方法没有 body，但私有 abstract 极少见。
+      if (name.startsWith('_') && !_isBinaryOp(name) && name != 'unary-' && name != '~' && name != '[]' && name != '[]=') {
+        // 解析声明类：合成中间类需要找到真正的用户类
+        var resolvedClassName = actualClassName ?? receiverClassName;
+        if (_syntheticLoweredNames.contains(resolvedClassName)) {
+          resolvedClassName = _findUserClassForSynthetic(resolvedClassName)!;
+        }
+        final staticFuncName = '${resolvedClassName}_$name';
+
+        // 构建类型参数：类的类型参数 + 方法的类型参数
+        final allTypeArgs = <String>[];
+        final receiverClassTypeArgs = _extractClassTypeArgsFromReceiver(expr.receiver);
+        allTypeArgs.addAll(receiverClassTypeArgs);
+        for (final ta in expr.arguments.types) {
+          allTypeArgs.add(_restoreType(ta));
+        }
+        final typeArgStr = allTypeArgs.isNotEmpty ? '<${allTypeArgs.join(', ')}>' : '';
+
+        // 构建参数列表：补齐可选参数默认值（静态函数签名固定）
+        final tFunc = expr.interfaceTarget.function;
+        final argParts = <String>[];
+        for (var i = 0; i < expr.arguments.positional.length; i++) {
+          argParts.add(_restoreExpr(expr.arguments.positional[i]));
+        }
+        for (var i = expr.arguments.positional.length; i < tFunc.positionalParameters.length; i++) {
+          final p = tFunc.positionalParameters[i];
+          if (p.initializer != null) {
+            argParts.add(_restoreExpr(p.initializer!));
+          } else {
+            argParts.add(_defaultValueForType(p.type));
+          }
+        }
+        for (final n in expr.arguments.named) {
+          argParts.add('${n.name}: ${_restoreExpr(n.value)}');
+        }
+        final argsStr = argParts.join(', ');
+        if (argsStr.isEmpty) {
+          return '$staticFuncName$typeArgStr($recv)';
+        }
+        return '$staticFuncName$typeArgStr($recv, $argsStr)';
+      }
+
       // this_ 类型需要和函数定义处保持一致
       // 使用 receiverClassName 解析（而非 target.enclosingClass，后者可能是合成中间类）
       final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
@@ -342,17 +390,42 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // 普通方法 → Map 查找精确类型转换调用
       final vtableField = _vtableFieldName(name);
       final allArgs = _restoreArgs(expr.arguments);
-      
+
+      // 补齐缺失的可选位置参数默认值
+      // Kernel 中如果调用未传可选参数，arguments.positional 不会包含它们，
+      // 但生成的静态函数签名是固定的，必须传齐
+      String _buildArgsWithDefaults() {
+        final tFunc = expr.interfaceTarget.function;
+        final parts = <String>[];
+        for (var i = 0; i < expr.arguments.positional.length; i++) {
+          parts.add(_restoreExpr(expr.arguments.positional[i]));
+        }
+        for (var i = expr.arguments.positional.length; i < tFunc.positionalParameters.length; i++) {
+          final p = tFunc.positionalParameters[i];
+          if (p.initializer != null) {
+            parts.add(_restoreExpr(p.initializer!));
+          } else {
+            // 可选参数无 initializer：如果可空，传 null；否则跳过（按 Dart 规范应该是 null）
+            parts.add('null');
+          }
+        }
+        for (final n in expr.arguments.named) {
+          parts.add('${n.name}: ${_restoreExpr(n.value)}');
+        }
+        return parts.join(', ');
+      }
+
       // 检查是否有命名参数：如果有，不能使用精确 Function 类型 cast
       // 因为 Dart 的 Function 类型签名不支持命名参数语法
       final hasNamedArgs = expr.arguments.named.isNotEmpty;
-      
+
       if (hasNamedArgs) {
         // 有命名参数时，使用 Function 类型 cast（不带参数签名）
-        if (allArgs.isEmpty) {
+        final args = _buildArgsWithDefaults();
+        if (args.isEmpty) {
           return "($recv.vptr['$vtableField'] as Function)($recv)";
         }
-        return "($recv.vptr['$vtableField'] as Function)($recv, $allArgs)";
+        return "($recv.vptr['$vtableField'] as Function)($recv, $args)";
       }
       
       // 检查方法是否有方法级类型参数（如 then<TNewOutput>）
@@ -387,10 +460,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final declClass = expr.interfaceTarget.enclosingClass;
       final declHasTypeParams = declClass != null && declClass.typeParameters.isNotEmpty;
       if (actualClassName != null && (actualClassName != receiverClassName || declHasTypeParams)) {
-        if (allArgs.isEmpty) {
+        // 使用补齐默认值的参数列表，因为静态函数签名是固定的
+        final args = _buildArgsWithDefaults();
+        if (args.isEmpty) {
           return "($recv.vptr['$vtableField'] as Function)($recv)";
         }
-        return "($recv.vptr['$vtableField'] as Function)($recv, $allArgs)";
+        return "($recv.vptr['$vtableField'] as Function)($recv, $args)";
       }
 
       // 无命名参数且无方法级类型参数时，使用精确签名

@@ -1397,7 +1397,7 @@ void main() async {
   print('area: ${(hexagon.vptr['area'] as double Function(RegularPolygonValue))(hexagon)}');
   final SquareValue square = (() { final _obj = SquareValue(); Square_new(_obj, 'white', 10.0, opacity: 0.9); return _obj; })();
   print((square.vptr['describe'] as String Function(SquareValue))(square));
-  print('square perimeter: ${(square.vptr['perimeter'] as Function)(square)}');
+  print('square perimeter: ${(square.vptr['perimeter'] as Function)(square, null)}');
   print('\n--- 20. implements 多接口 ---');
   final DataPointValue dp1 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 1.0, 2.0, 'A'); return _obj; })();
   final DataPointValue dp2 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 3.0, 1.0, 'B'); return _obj; })();

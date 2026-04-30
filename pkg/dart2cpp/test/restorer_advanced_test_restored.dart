@@ -520,6 +520,7 @@ void ExpensiveComputation_new(ExpensiveComputationValue this_, int seed) {
     'toString_': ExpensiveComputation_toString,
   };
   this_.seed = seed;
+  this_.computedValue = ExpensiveComputation__computeExpensive(this_);
 }
 
 int ExpensiveComputation__computeExpensive(ExpensiveComputationValue this_) {

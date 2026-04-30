@@ -76,11 +76,11 @@ void StatefulMixin_set_counter(dynamic this_, int value) {
 }
 
 void StatefulMixin_increment(dynamic this_) {
-  this_.counter = ((this_.vptr['get_counter'] as Function)(this_) + 1);
+  (this_.vptr['set_counter'] as Function)(this_, ((this_.vptr['get_counter'] as Function)(this_) + 1));
 }
 
 void StatefulMixin_decrement(dynamic this_) {
-  this_.counter = ((this_.vptr['get_counter'] as Function)(this_) - 1);
+  (this_.vptr['set_counter'] as Function)(this_, ((this_.vptr['get_counter'] as Function)(this_) - 1));
 }
 
 String StatefulMixin_get_counterStatus(dynamic this_) {
