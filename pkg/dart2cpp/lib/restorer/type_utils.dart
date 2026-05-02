@@ -3,6 +3,17 @@ part of 'dart_restorer.dart';
 // -----------------------------------------------------------------------------
 
 mixin _TypeUtils on _DartRestorerBase {
+  /// 根据 DartType 选择合适的 Box 类型名称（Bug 11 闭包引用语义）
+  /// 返回形如 'IntBox'、'DoubleBox'、'StringBox'、'BoolBox'、'ObjectBox<T>' 的字符串
+  String _boxTypeNameFor(DartType type) {
+    final primitive = _primitiveBoxName(type);
+    if (primitive != null) return primitive;
+    // 其他类型统一用 ObjectBox<T>
+    // 使用 _restoreType 保留泛型类型参数名（_restoreTypeForSignature 会把 TypeParameterType 降级为 dynamic）
+    final inner = _restoreType(type);
+    return 'ObjectBox<$inner>';
+  }
+
   // ---- Arguments ----
 
   String _restoreArgs(Arguments args) {
@@ -51,7 +62,10 @@ mixin _TypeUtils on _DartRestorerBase {
       return '$ret Function(${params.join(', ')})$suffix';
     }
     if (type is TypeParameterType) {
-      return '${type.parameter.name ?? 'T'}$suffix';
+      final paramName = type.parameter.name ?? 'T';
+      // Bug 21: 如果有活跃的类型参数替换映射，使用替换后的名称
+      final replacement = _activeTypeParamSubstitution[paramName];
+      return '${replacement ?? paramName}$suffix';
     }
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';

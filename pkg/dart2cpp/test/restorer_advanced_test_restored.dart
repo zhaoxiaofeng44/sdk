@@ -20,6 +20,31 @@ class VPtr {
   }
 }
 
+class IntBox {
+  int value;
+  IntBox(this.value);
+}
+
+class DoubleBox {
+  double value;
+  DoubleBox(this.value);
+}
+
+class StringBox {
+  String value;
+  StringBox(this.value);
+}
+
+class BoolBox {
+  bool value;
+  BoolBox(this.value);
+}
+
+class ObjectBox<T> {
+  T value;
+  ObjectBox(this.value);
+}
+
 typedef UnaryFunc<A, B> = B Function(A);
 
 class TreeNodeValue<T> extends VPtr {
@@ -57,8 +82,8 @@ List<T> TreeNode_inorder<T>(TreeNodeValue<T> this_) {
 }
 
 int TreeNode_get_depth<T>(TreeNodeValue<T> this_) {
-  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(dynamic))(_let1); })() ?? 0);
-  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(dynamic))(_let3); })() ?? 0);
+  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(TreeNodeValue))(_let1); })() ?? 0);
+  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(TreeNodeValue))(_let3); })() ?? 0);
   return (1 + ((leftDepth > rightDepth) ? leftDepth : rightDepth));
 }
 
@@ -170,12 +195,12 @@ bool Either_get_isRight<L, R>(EitherValue<L, R> this_) {
 }
 
 L Either_get_leftValue<L, R>(EitherValue<L, R> this_) {
-  if (!((this_.vptr['get_isLeft'] as bool Function(dynamic))(this_)))   throw StateError('Not a left value');
+  if (!((this_.vptr['get_isLeft'] as bool Function(EitherValue))(this_)))   throw StateError('Not a left value');
   return (this_._left as L);
 }
 
 R Either_get_rightValue<L, R>(EitherValue<L, R> this_) {
-  if (!((this_.vptr['get_isRight'] as bool Function(dynamic))(this_)))   throw StateError('Not a right value');
+  if (!((this_.vptr['get_isRight'] as bool Function(EitherValue))(this_)))   throw StateError('Not a right value');
   return (this_._right as R);
 }
 
@@ -326,12 +351,12 @@ int StringToIntTransformer_process(DataTransformerValue<String, int> this__, Str
   return int.parse(input);
 }
 
-int StringToIntTransformer_transform(DataTransformerValue<String, int> this_, String input) {
-  return DataTransformer_transform(this_, input);
+int StringToIntTransformer_transform(StringToIntTransformerValue this_, String input) {
+  return DataTransformer_transform<String, int>(this_, input);
 }
 
-int StringToIntTransformer_postProcess(DataTransformerValue<String, int> this_, int output) {
-  return DataTransformer_postProcess(this_, output);
+int StringToIntTransformer_postProcess(StringToIntTransformerValue this_, int output) {
+  return DataTransformer_postProcess<String, int>(this_, output);
 }
 
 
@@ -361,12 +386,12 @@ String IntToStringTransformer_postProcess(DataTransformerValue<int, String> this
   return output.toUpperCase();
 }
 
-String IntToStringTransformer_transform(DataTransformerValue<int, String> this_, int input) {
-  return DataTransformer_transform(this_, input);
+String IntToStringTransformer_transform(IntToStringTransformerValue this_, int input) {
+  return DataTransformer_transform<int, String>(this_, input);
 }
 
-int IntToStringTransformer_preValidate(DataTransformerValue<int, String> this_, int input) {
-  return DataTransformer_preValidate(this_, input);
+int IntToStringTransformer_preValidate(IntToStringTransformerValue this_, int input) {
+  return DataTransformer_preValidate<int, String>(this_, input);
 }
 
 
@@ -394,16 +419,16 @@ C ChainedTransformer_process<A, B, C>(DataTransformerValue<A, C> this__, A input
   return (this_.second.vptr['transform'] as Function)(this_.second, intermediate);
 }
 
-C ChainedTransformer_transform<A, B, C>(DataTransformerValue<A, C> this_, A input) {
-  return DataTransformer_transform(this_, input);
+C ChainedTransformer_transform<A, B, C>(ChainedTransformerValue<A, B, C> this_, A input) {
+  return DataTransformer_transform<A, C>(this_, input);
 }
 
-A ChainedTransformer_preValidate<A, B, C>(DataTransformerValue<A, C> this_, A input) {
-  return DataTransformer_preValidate(this_, input);
+A ChainedTransformer_preValidate<A, B, C>(ChainedTransformerValue<A, B, C> this_, A input) {
+  return DataTransformer_preValidate<A, C>(this_, input);
 }
 
-C ChainedTransformer_postProcess<A, B, C>(DataTransformerValue<A, C> this_, C output) {
-  return DataTransformer_postProcess(this_, output);
+C ChainedTransformer_postProcess<A, B, C>(ChainedTransformerValue<A, B, C> this_, C output) {
+  return DataTransformer_postProcess<A, C>(this_, output);
 }
 
 
@@ -606,7 +631,7 @@ String Printable3_prettyPrint(Printable3Value this_) {
 }
 
 
-class ScoreValue extends VPtr {
+class ScoreValue extends VPtr implements Printable3Value {
   late String subject;
   late int points;
 }
@@ -669,7 +694,7 @@ double WeightedScore_get_weightedPoints(WeightedScoreValue this_) {
 int WeightedScore_compareTo2(ScoreValue this__, ScoreValue other) {
   final this_ = this__ as WeightedScoreValue;
   if ((other is WeightedScoreValue)) {
-    return (this_.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(this_).compareTo((other.vptr['get_weightedPoints'] as double Function(ScoreValue))(other));
+    return (this_.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(this_).compareTo((other.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(other));
   }
   return Score_compareTo2(this_, other);
 }
@@ -683,11 +708,11 @@ String WeightedScore_toString(ScoreValue this__) {
   return 'WeightedScore(${this_.subject}, ${this_.points}, w=${this_.weight})';
 }
 
-bool WeightedScore_isLessThan(ScoreValue this_, ScoreValue other) {
+bool WeightedScore_isLessThan(WeightedScoreValue this_, ScoreValue other) {
   return Score_isLessThan(this_, other);
 }
 
-bool WeightedScore_isGreaterThan(ScoreValue this_, ScoreValue other) {
+bool WeightedScore_isGreaterThan(WeightedScoreValue this_, ScoreValue other) {
   return Score_isGreaterThan(this_, other);
 }
 
@@ -857,7 +882,7 @@ void Matrix2D_new_zeros(Matrix2DValue this_, int rows, int cols) {
   };
   this_.rows = rows;
   this_.cols = cols;
-  this_._data = List.generate(rows, ClosureEnv_anon_0(cols));
+  this_._data = List.generate(rows, ClosureEnv_anon_0(cols).call);
 }
 
 void Matrix2D_new_identity(Matrix2DValue this_, int size) {
@@ -870,7 +895,7 @@ void Matrix2D_new_identity(Matrix2DValue this_, int size) {
   };
   this_.rows = size;
   this_.cols = size;
-  this_._data = List.generate(size, ClosureEnv_anon_1(size));
+  this_._data = List.generate(size, ClosureEnv_anon_1(size).call);
 }
 
 double Matrix2D_get(Matrix2DValue this_, int row, int col) {
@@ -986,10 +1011,10 @@ void Product_new(ProductValue this_, String entityId, String name, double price)
 }
 
 String Product_toString(ProductValue this_) {
-  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as String Function(ProductValue))(this_)}, audits=${(this_.vptr['get__auditLog'] as List<String> Function(ProductValue))(this_).length})';
+  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as String Function(ProductValue))(this_)}, audits=${this_._auditLog.length})';
 }
 
-String Product_get_entityId(EntityValue this_) {
+String Product_get_entityId(ProductValue this_) {
   return (this_ as ProductValue).entityId;
 }
 
@@ -1038,29 +1063,32 @@ class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableVa
 
 
 Function makeCounter({int start = 0, int step = 1}) {
-  int current = start;
-  return ClosureEnv_makeCounter_3(current, step);
+  IntBox current = IntBox(start);
+  return ClosureEnv_makeCounter_3(current, step).call;
 }
 
 Function makeAccumulator(int initial) {
-  int total = initial;
-  return ClosureEnv_makeAccumulator_4(total);
+  IntBox total = IntBox(initial);
+  return ClosureEnv_makeAccumulator_4(total).call;
 }
 
 List<Function> makeClosureList(int count) {
   final List<Function> closures = <Function>[];
   for (var i = 0; (i < count); i = (i + 1)) {
-    closures.add(ClosureEnv_makeClosureList_6(i));
+    closures.add(ClosureEnv_makeClosureList_6(i).call);
   }
   return closures;
 }
 
-C Function(A) composeFunc<A, B, C>(C Function(B) funcBC, B Function(A) funcAB) {
-  return ClosureEnv_composeFunc_7(funcBC, funcAB);
+C Function(A) composeFunc<A, B, C>(C Function(B) funcBC_raw, B Function(A) funcAB_raw) {
+  ObjectBox<C Function(B)> funcBC = ObjectBox<C Function(B)>(funcBC_raw);
+  ObjectBox<B Function(A)> funcAB = ObjectBox<B Function(A)>(funcAB_raw);
+  return ClosureEnv_composeFunc_7(funcBC, funcAB).call;
 }
 
-C Function(B) Function(A) curry<A, B, C>(C Function(A, B) biFunc) {
-  return ClosureEnv_curry_8(biFunc);
+C Function(B) Function(A) curry<A, B, C>(C Function(A, B) biFunc_raw) {
+  ObjectBox<C Function(A, B)> biFunc = ObjectBox<C Function(A, B)>(biFunc_raw);
+  return ClosureEnv_curry_8(biFunc).call;
 }
 
 T pipe<T>(T value, List<T Function(T)> transforms) {
@@ -1071,9 +1099,10 @@ T pipe<T>(T value, List<T Function(T)> transforms) {
   return result;
 }
 
-B Function(A) memoize<A, B>(B Function(A) func) {
-  final Map<A, B> cache = <A, B>{};
-  return ClosureEnv_memoize_10(cache, func);
+B Function(A) memoize<A, B>(B Function(A) func_raw) {
+  ObjectBox<B Function(A)> func = ObjectBox<B Function(A)>(func_raw);
+  ObjectBox<Map<A, B>> cache = ObjectBox<Map<A, B>>(<A, B>{});
+  return ClosureEnv_memoize_10(cache, func).call;
 }
 
 String classifyNumber(int number) {
@@ -1236,13 +1265,13 @@ void main() async {
   final TreeNodeValue<int> tree = (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 1, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 2, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 4); return _obj; })(), (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 5); return _obj; })()); return _obj; })(), (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 3, null, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 6); return _obj; })()); return _obj; })()); return _obj; })();
   print('preorder: ${(tree.vptr['preorder'] as Function)(tree)}');
   print('inorder: ${(tree.vptr['inorder'] as Function)(tree)}');
-  print('depth: ${(tree.vptr['get_depth'] as int Function(dynamic))(tree)}');
+  print('depth: ${(tree.vptr['get_depth'] as int Function(TreeNodeValue))(tree)}');
   final TreeNodeValue<String> strTree = TreeNode_map<int, String>(tree, (int v) => 'N${v}');
   print('mapped preorder: ${(strTree.vptr['preorder'] as Function)(strTree)}');
   print('\n--- 3. 链表 ---');
   final LinkedNodeValue<int> list = (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 1, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 2, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 3, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 4); return _obj; })()); return _obj; })()); return _obj; })()); return _obj; })();
   print('list: ${list}');
-  print('length: ${(list.vptr['get_length'] as int Function(dynamic))(list)}');
+  print('length: ${(list.vptr['get_length'] as int Function(LinkedNodeValue))(list)}');
   final LinkedNodeValue<int> revList = (list.vptr['reversed'] as Function)(list);
   print('reversed: ${revList}');
   print('\n--- 4. Either ---');
@@ -1326,7 +1355,7 @@ void main() async {
   print('\n--- 13. 多重 implements ---');
   final List<ScoreValue> scores = <ScoreValue>[(() { final _obj = ScoreValue(); Score_new(_obj, 'Math', 90); return _obj; })(), (() { final _obj = ScoreValue(); Score_new(_obj, 'English', 75); return _obj; })(), (() { final _obj = WeightedScoreValue(); WeightedScore_new(_obj, 'Physics', 85, 1.5); return _obj; })(), (() { final _obj = WeightedScoreValue(); WeightedScore_new(_obj, 'Art', 95, 0.5); return _obj; })()];
   for (final s in scores) {
-    print('  ${(s.vptr['prettyPrint'] as String Function(ScoreValue))(s)}');
+    print('  ${(s.vptr['prettyPrint'] as Function)(s)}');
   }
   final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
   final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
@@ -1392,53 +1421,54 @@ List<double> ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, int _) {
 }
 
 class ClosureEnv_ClosureEnv_anon_1_2 {
-  int i;
+  IntBox i;
   ClosureEnv_ClosureEnv_anon_1_2(this.i);
   double call(int j) => ClosureEnv_ClosureEnv_anon_1_2_call(this, j);
 }
 double ClosureEnv_ClosureEnv_anon_1_2_call(ClosureEnv_ClosureEnv_anon_1_2 env, int j) {
-  return ((env.i == j) ? 1.0 : 0.0);
+  return ((env.i.value == j) ? 1.0 : 0.0);
 }
 
 class ClosureEnv_anon_1 {
   int size;
   ClosureEnv_anon_1(this.size);
-  List<double> call(int i) => ClosureEnv_anon_1_call(this, i);
+  List<double> call(int i_raw) => ClosureEnv_anon_1_call(this, i_raw);
 }
-List<double> ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, int i) {
-  return List.generate(env.size, ClosureEnv_ClosureEnv_anon_1_2(i));
+List<double> ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, int i_raw) {
+  IntBox i = IntBox(i_raw);
+  return List.generate(env.size, ClosureEnv_ClosureEnv_anon_1_2(i).call);
 }
 
 class ClosureEnv_makeCounter_3 {
-  int current;
+  IntBox current;
   int step;
   ClosureEnv_makeCounter_3(this.current, this.step);
   int call() => ClosureEnv_makeCounter_3_call(this);
 }
 int ClosureEnv_makeCounter_3_call(ClosureEnv_makeCounter_3 env) {
-    env.current = (env.current + env.step);
-    return env.current;
+    env.current.value = (env.current.value + env.step);
+    return env.current.value;
   }
 
 class ClosureEnv_ClosureEnv_makeAccumulator_4_5 {
-  int snapshot;
-  int total;
+  IntBox snapshot;
+  IntBox total;
   ClosureEnv_ClosureEnv_makeAccumulator_4_5(this.snapshot, this.total);
   String call() => ClosureEnv_ClosureEnv_makeAccumulator_4_5_call(this);
 }
 String ClosureEnv_ClosureEnv_makeAccumulator_4_5_call(ClosureEnv_ClosureEnv_makeAccumulator_4_5 env) {
-  return 'accumulated: ${env.snapshot} (current total: ${env.total})';
+  return 'accumulated: ${env.snapshot.value} (current total: ${env.total.value})';
 }
 
 class ClosureEnv_makeAccumulator_4 {
-  int total;
+  IntBox total;
   ClosureEnv_makeAccumulator_4(this.total);
   String Function() call(int amount) => ClosureEnv_makeAccumulator_4_call(this, amount);
 }
 String Function() ClosureEnv_makeAccumulator_4_call(ClosureEnv_makeAccumulator_4 env, int amount) {
-    env.total = (env.total + amount);
-    final int snapshot = env.total;
-    return ClosureEnv_ClosureEnv_makeAccumulator_4_5(snapshot, env.total);
+    env.total.value = (env.total.value + amount);
+    IntBox snapshot = IntBox(env.total.value);
+    return ClosureEnv_ClosureEnv_makeAccumulator_4_5(snapshot, env.total).call;
   }
 
 class ClosureEnv_makeClosureList_6 {
@@ -1451,44 +1481,45 @@ String ClosureEnv_makeClosureList_6_call(ClosureEnv_makeClosureList_6 env) {
 }
 
 class ClosureEnv_composeFunc_7<C, B, A> {
-  C Function(B) funcBC;
-  B Function(A) funcAB;
+  ObjectBox<C Function(B)> funcBC;
+  ObjectBox<B Function(A)> funcAB;
   ClosureEnv_composeFunc_7(this.funcBC, this.funcAB);
   C call(A a) => ClosureEnv_composeFunc_7_call<C, B, A>(this, a);
 }
 C ClosureEnv_composeFunc_7_call<C, B, A>(ClosureEnv_composeFunc_7<C, B, A> env, A a) {
-  return env.funcBC(env.funcAB(a));
+  return env.funcBC.value(env.funcAB.value(a));
 }
 
 class ClosureEnv_ClosureEnv_curry_8_9<C, A, B> {
-  C Function(A, B) biFunc;
-  A a;
+  ObjectBox<C Function(A, B)> biFunc;
+  ObjectBox<A> a;
   ClosureEnv_ClosureEnv_curry_8_9(this.biFunc, this.a);
   C call(B b) => ClosureEnv_ClosureEnv_curry_8_9_call<C, A, B>(this, b);
 }
 C ClosureEnv_ClosureEnv_curry_8_9_call<C, A, B>(ClosureEnv_ClosureEnv_curry_8_9<C, A, B> env, B b) {
-  return env.biFunc(env.a, b);
+  return env.biFunc.value(env.a.value, b);
 }
 
 class ClosureEnv_curry_8<C, A, B> {
-  C Function(A, B) biFunc;
+  ObjectBox<C Function(A, B)> biFunc;
   ClosureEnv_curry_8(this.biFunc);
-  C Function(B) call(A a) => ClosureEnv_curry_8_call<C, A, B>(this, a);
+  C Function(B) call(A a_raw) => ClosureEnv_curry_8_call<C, A, B>(this, a_raw);
 }
-C Function(B) ClosureEnv_curry_8_call<C, A, B>(ClosureEnv_curry_8<C, A, B> env, A a) {
-  return ClosureEnv_ClosureEnv_curry_8_9(env.biFunc, a);
+C Function(B) ClosureEnv_curry_8_call<C, A, B>(ClosureEnv_curry_8<C, A, B> env, A a_raw) {
+  ObjectBox<A> a = ObjectBox<A>(a_raw);
+  return ClosureEnv_ClosureEnv_curry_8_9(env.biFunc, a).call;
 }
 
 class ClosureEnv_memoize_10<A, B> {
-  Map<A, B> cache;
-  B Function(A) func;
+  ObjectBox<Map<A, B>> cache;
+  ObjectBox<B Function(A)> func;
   ClosureEnv_memoize_10(this.cache, this.func);
   B call(A arg) => ClosureEnv_memoize_10_call<A, B>(this, arg);
 }
 B ClosureEnv_memoize_10_call<A, B>(ClosureEnv_memoize_10<A, B> env, A arg) {
-    if (env.cache.containsKey(arg))     return (env.cache[arg] as B);
-    final B result = env.func(arg);
-    env.cache[arg] = result;
+    if (env.cache.value.containsKey(arg))     return (env.cache.value[arg] as B);
+    final B result = env.func.value(arg);
+    env.cache.value[arg] = result;
     return result;
   }
 

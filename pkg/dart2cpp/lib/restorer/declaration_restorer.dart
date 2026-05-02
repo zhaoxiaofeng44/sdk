@@ -24,6 +24,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 为 mixin 生成静态函数，供委托函数调用
     // mixin 不生成 XValue 类和构造函数，只生成方法的静态函数
     _buf.write('// mixin ${cls.name} → static functions for delegation\n');
+
+    // Bug 19: mixin 的静态字段也需要提升到模块级（与用户类一致）
+    _emitStaticFields(cls, cls.name);
     
     _currentClass = cls;
     final mixinName = cls.name;
@@ -353,9 +356,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     } else {
       _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
     }
-    // this_ 参数类型：直接使用 entry.declaringClassName（来自 _collectAllVTableEntries）
-    final delegateDeclaringClass = entry.declaringClassName ?? className;
-    final delegateThisParamType = _resolveThisParamType(className, delegateDeclaringClass, cls);
+    // this_ 参数类型：委托方法始终使用当前类的 Value 类型
+    // 因为调用者传入的总是当前类的实例（通过 vptr 调用），
+    // 而非 mixin/abstract class 的 Value 类型。
+    // 例如：Money with Comparable2<Money> 的委托方法 Money_operatorGt
+    // this_ 应该是 MoneyValue 而不是 Comparable2Value<MoneyValue>
+    final delegateThisParamType = _resolveThisParamType(className, className, cls);
     _buf.write('($delegateThisParamType this_');
     
     // 构建参数列表和转发参数
@@ -403,21 +409,127 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       } else {
         _buf.write(_pad);
       }
-      _buf.write('$originFuncName(${forwardArgs.join(', ')}');
-      
-      // 命名参数转发
-      if (entry.kind != 'getter' && entry.kind != 'setter') {
-        for (final p in proc.function.namedParameters) {
-          final paramName = _cleanVarName(p.name ?? '_n');
-          _buf.write(', ${p.name}: $paramName');
-        }
-      }
-      
-      _buf.write(');\n');
+
+      // Bug 17: 传递泛型类型参数到 origin 静态函数
+      // 例如 Box_describe<T>(this_) 委托给 mixin 时应输出 Mappable_describe<T>(this_)
+      // 而不是 Mappable_describe(this_)，否则类型推断会把 T 降级为 dynamic。
+      // origin 函数的类型参数顺序：origin 类的类型参数 + 方法自身的类型参数
+      final originTypeArgs = _buildOriginTypeArgs(cls, proc, originClassName);
+      final originTypeArgStr = originTypeArgs.isEmpty ? '' : '<${originTypeArgs.join(', ')}>';
+
+      _buf.write('$originFuncName$originTypeArgStr(${forwardArgs.join(', ')});\n');
     }
     
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  /// Bug 17: 为 origin 静态函数调用构建实参类型列表
+  /// 例如：Box<int> with Mappable<int>，委托函数 Box_describe<T>(this_) 调用 Mappable_describe 时，
+  /// 应该输出 Mappable_describe<T>(this_)；如果 Box<int> 直接 with Mappable<String>，
+  /// 则应输出 Mappable_describe<String>(this_)。
+  ///
+  /// [originClassName] 是已解析的 origin 静态函数前缀对应的类名（如 "Mappable"、"Validatable"），
+  /// 需要用它来查找真正的 origin 类节点，而不是 proc.enclosingClass（可能是合成 mixin 应用类）。
+  /// 顺序：origin 类的类型参数实参 + 方法自身的类型参数（同名透传，与类级去重）
+  List<String> _buildOriginTypeArgs(Class cls, Procedure proc, String originClassName) {
+    final result = <String>[];
+
+    // 使用 originClassName 查找真正的 origin 类节点
+    final originClass = _classNodes[originClassName] ?? proc.enclosingClass;
+    if (originClass != null && originClass != cls && originClass.typeParameters.isNotEmpty) {
+      // 尝试解析 origin 类在当前 cls 继承/混入链中的具体类型实参
+      final concreteArgs = _resolveOriginConcreteTypeArgs(cls, originClass);
+      if (concreteArgs != null && concreteArgs.length == originClass.typeParameters.length) {
+        result.addAll(concreteArgs);
+      } else {
+        // 兜底：同名透传（仅当 cls 的类型参数中有同名参数时）
+        final clsParamNames = cls.typeParameters.map((tp) => tp.name).toSet();
+        for (final tp in originClass.typeParameters) {
+          final name = tp.name ?? 'T';
+          result.add(clsParamNames.contains(name) ? name : 'dynamic');
+        }
+      }
+    }
+    // 方法自身的类型参数：同名透传，但与已添加的 origin 类型参数去重
+    final addedNames = result.toSet();
+    for (final tp in proc.function.typeParameters) {
+      final name = tp.name ?? 'T';
+      if (!addedNames.contains(name)) {
+        result.add(name);
+      }
+    }
+    return result;
+  }
+
+  /// 在 cls 的继承链（含 mixin 应用合成类）中查找 originClass 的具体类型实参。
+  /// 同时考虑 supertype 链 和 每一层合成类的 mixedInType。
+  List<String>? _resolveOriginConcreteTypeArgs(Class cls, Class originClass) {
+    // 1) 先尝试常规 extends 链
+    final viaExtends = _resolveConcreteTypeArgsForAncestor(cls, originClass);
+    if (viaExtends != null) return viaExtends;
+
+    // 2) 沿 supertype 链查找每一层的 mixedInType
+    var currentClass = cls;
+    final typeParamMap = <String, String>{}; // 当前层类型参数名 → cls 视角下的具体类型
+    // 初始化：cls 自身的类型参数同名映射（恒等）
+    for (final tp in cls.typeParameters) {
+      final name = tp.name ?? 'T';
+      typeParamMap[name] = name;
+    }
+
+    while (true) {
+      final superType = currentClass.supertype;
+      if (superType == null) return null;
+
+      // 检查当前类的 mixedInType 是否就是 originClass
+      final mixedIn = currentClass.mixedInType;
+      if (mixedIn != null && mixedIn.classNode == originClass) {
+        if (mixedIn.typeArguments.isEmpty) return null;
+        return mixedIn.typeArguments
+            .map((ta) => _substituteTypeStr(_restoreType(ta), typeParamMap))
+            .toList();
+      }
+
+      // 进入上一层之前，更新 typeParamMap：
+      // currentClass 的类型参数 → superType.typeArguments（用 typeParamMap 替换后）
+      final nextClass = superType.classNode;
+      if (nextClass == originClass) {
+        if (superType.typeArguments.isEmpty) return null;
+        return superType.typeArguments
+            .map((ta) => _substituteTypeStr(_restoreType(ta), typeParamMap))
+            .toList();
+      }
+
+      // 构建 nextClass 类型参数 → 替换后的具体类型 映射
+      final newMap = <String, String>{};
+      for (var i = 0; i < nextClass.typeParameters.length && i < superType.typeArguments.length; i++) {
+        final paramName = nextClass.typeParameters[i].name ?? 'T$i';
+        final argStr = _restoreType(superType.typeArguments[i]);
+        newMap[paramName] = _substituteTypeStr(argStr, typeParamMap);
+      }
+      // 没有 supertype 类型实参时，传递空映射（说明无类型参数）
+      typeParamMap
+        ..clear()
+        ..addAll(newMap);
+      currentClass = nextClass;
+    }
+  }
+
+  /// 简单字符串级别的类型参数替换：将 typeStr 中出现的类型参数名替换为映射值。
+  /// 仅做整词匹配（避免误替换类似 "T" 在 "Type" 中）。
+  String _substituteTypeStr(String typeStr, Map<String, String> map) {
+    if (map.isEmpty) return typeStr;
+    var result = typeStr;
+    map.forEach((from, to) {
+      if (from == to) return;
+      // 整词替换：前后必须是非标识符字符或边界
+      result = result.replaceAllMapped(
+        RegExp('\\b' + RegExp.escape(from) + '\\b'),
+        (m) => to,
+      );
+    });
+    return result;
   }
 
   /// 为委托函数构建类型参数替换映射
@@ -462,8 +574,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final superType = cls.supertype;
       String parentTypeArgs = '';
       if (superType != null && superType.typeArguments.isNotEmpty) {
-        // 过滤掉仍然是 TypeParameter 的参数（这些会由当前类声明）
-        // 只保留已经具体化的类型参数
         final concreteArgs = superType.typeArguments.map((ta) => _restoreType(ta)).toList();
         if (concreteArgs.isNotEmpty) {
           parentTypeArgs = '<${concreteArgs.join(', ')}>';
@@ -473,6 +583,15 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     } else {
       _buf.write(' extends VPtr');
     }
+
+    // Bug 22+23: 收集当前类及其继承链上所有 implements 的用户自定义接口
+    // 生成 implements InterfaceValue，使得子类型关系得以保留
+    final implementedInterfaces = _collectUserImplementedInterfaces(cls, className);
+    if (implementedInterfaces.isNotEmpty) {
+      _buf.write(' implements ');
+      _buf.write(implementedInterfaces.join(', '));
+    }
+
     _buf.write(' {\n');
     _indent++;
 
@@ -488,12 +607,22 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _collectAllFields(cls, fieldsToEmit, <String>{});
     }
     
+    // Bug 21: 为来自 mixin 的字段建立类型参数替换映射
+    // 合成类 ReactiveStore_Object_Loggable_ObservableValue<V> 中，
+    // 来自 Observable<T> 的字段类型含 T，需替换为合成类的 V
+    final mixinTypeSubstitution = _buildMixinFieldTypeSubstitution(cls);
+
     for (final field in fieldsToEmit) {
       if (field.isStatic) continue;
       _buf.write('$_pad');
       // 所有字段都标记为 late，因为它们在构造函数外赋值
       _buf.write('late ');
-      _buf.write(_restoreType(field.type));
+      var fieldTypeStr = _restoreType(field.type);
+      // 如果字段来自 mixin，做类型参数替换
+      if (mixinTypeSubstitution.isNotEmpty) {
+        fieldTypeStr = _substituteTypeStr(fieldTypeStr, mixinTypeSubstitution);
+      }
+      _buf.write(fieldTypeStr);
       _buf.write(' ${field.name.text}');
       _buf.write(';\n');
     }
@@ -503,6 +632,100 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  /// Bug 22+23: 收集当前类及其继承链上通过 implements 实现的用户自定义接口
+  /// 返回接口 Value 类名列表（如 ['ShapeValue']）
+  /// 仅收集用户自定义类（排除 SDK 内置类型和 mixin），
+  /// 因为只有用户自定义类才会被 lowering 为 Value 类
+  List<String> _collectUserImplementedInterfaces(Class cls, String className) {
+    final interfaces = <String>[];
+    final visited = <String>{};
+
+    void collectFromClass(Class currentCls) {
+      for (final implType in currentCls.implementedTypes) {
+        final implClassName = _getActualClassName(implType.classNode.name);
+        if (visited.contains(implClassName)) continue;
+        visited.add(implClassName);
+
+        // 只收集用户自定义类（排除 mixin 和合成中间类）
+        if (_isUserClass(implClassName)
+            && !_isMixinName(implClassName)
+            && !_syntheticLoweredNames.contains(implClassName)) {
+          // 构建接口 Value 类型（含泛型参数）
+          final buf = StringBuffer('${implClassName}Value');
+          if (implType.typeArguments.isNotEmpty) {
+            buf.write('<');
+            buf.write(implType.typeArguments.map((ta) => _restoreType(ta)).join(', '));
+            buf.write('>');
+          }
+          interfaces.add(buf.toString());
+        }
+      }
+
+      // 沿着 supertype 链向上收集合成中间类的 implements
+      final superType = currentCls.supertype;
+      if (superType != null) {
+        final superName = _getActualClassName(superType.classNode.name);
+        if (_syntheticLoweredNames.contains(superName) || _isSyntheticMixinClassName(superType.classNode.name)) {
+          collectFromClass(superType.classNode);
+        }
+      }
+    }
+
+    collectFromClass(cls);
+    return interfaces;
+  }
+
+  /// Bug 21: 构建 mixin 字段类型参数替换映射
+  /// 当合成 mixin 应用类的类型参数名与 mixin 原始类型参数名不同时，
+  /// 需要将 mixin 字段类型中的参数名替换为合成类对应的参数名。
+  /// 例如：Observable<T> 混入 ReactiveStore<V>，合成类 ...ObservableValue<V>
+  /// → 需要 {T → V} 替换映射
+  Map<String, String> _buildMixinFieldTypeSubstitution(Class cls) {
+    final substitution = <String, String>{};
+    // 收集当前类的 mixedInType 映射
+    if (cls.mixedInType != null) {
+      final mixinClass = cls.mixedInType!.classNode;
+      final mixedInArgs = cls.mixedInType!.typeArguments;
+      for (var i = 0; i < mixinClass.typeParameters.length && i < mixedInArgs.length; i++) {
+        final mixinParamName = mixinClass.typeParameters[i].name ?? 'T$i';
+        final actualType = _restoreType(mixedInArgs[i]);
+        if (mixinParamName != actualType) {
+          substitution[mixinParamName] = actualType;
+        }
+      }
+    }
+    // 同时收集 supertype 链上合成类的 mixedInType 映射
+    // 以覆盖多层 mixin 场景
+    var currentClass = cls;
+    while (currentClass.supertype != null) {
+      final superCls = currentClass.supertype!.classNode;
+      if (!_isSyntheticMixinClassName(superCls.name)) break;
+      if (superCls.mixedInType != null) {
+        final mixinClass = superCls.mixedInType!.classNode;
+        final mixedInArgs = superCls.mixedInType!.typeArguments;
+        // 需要先把 supertype 的类型参数映射应用到 mixedInArgs
+        final superTypeArgs = currentClass.supertype!.typeArguments;
+        final superParamMap = <String, String>{};
+        for (var i = 0; i < superCls.typeParameters.length && i < superTypeArgs.length; i++) {
+          final paramName = superCls.typeParameters[i].name ?? 'T$i';
+          superParamMap[paramName] = _restoreType(superTypeArgs[i]);
+        }
+        for (var i = 0; i < mixinClass.typeParameters.length && i < mixedInArgs.length; i++) {
+          final mixinParamName = mixinClass.typeParameters[i].name ?? 'T$i';
+          var actualType = _restoreType(mixedInArgs[i]);
+          actualType = _substituteTypeStr(actualType, superParamMap);
+          // 再用已有的 cls 级替换映射替换
+          actualType = _substituteTypeStr(actualType, substitution);
+          if (mixinParamName != actualType) {
+            substitution[mixinParamName] = actualType;
+          }
+        }
+      }
+      currentClass = superCls;
+    }
+    return substitution;
   }
 
   /// 在 Value 类中生成 toString()/operator==/hashCode 的覆写方法
@@ -694,6 +917,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// - className 本身是 mixin → dynamic（mixin 自身的静态函数）
   /// - extends 链上的非合成父类 → declaringClassName + Value
   /// - 其他情况（mixin/合成中间类/接口声明的方法）→ 当前类名 + Value
+  ///
+  /// 注意：implements 链上的接口方法不使用 declaringClassName，因为接口 Value 类与
+  /// 实现类 Value 类是兄弟关系（都 extends VPtr），无继承关系。此场景下保持使用
+  /// 当前类名 + Value 作为 this_ 类型，调用点通过 Function 类型 cast 处理类型兼容性
+  /// （见 _isMethodFromImplementsChain 和 _restoreInstanceInvocation 中的 Bug 15 修复）。
   String _resolveThisParamType(String className, String declaringClass, Class cls) {
     // className 本身是 mixin → mixin 自身的静态函数用 dynamic
     if (_isMixinName(className)) {
@@ -1076,19 +1304,24 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // - _insideMethodBody = true 让 ThisExpression 被替换为 this_
     // - _thisReplacementName = 'this_' 是当前构造函数中 this 的占位符
     // 调用方（_emitConstructorFunction）此时尚未设置这两个状态
+    // Bug 21: 构建 mixin 类型参数替换映射
+    // 当 mixin 的字段初始化器引用了 mixin 的类型参数（如 Observable<T> 的 T），
+    // 需要替换为当前类对应的类型参数（如 ReactiveStore<V> 的 V）
+    final mixinTypeSubstitution = _buildMixinFieldTypeSubstitution(cls);
+
     final savedInsideMethodBody = _insideMethodBody;
     final savedThisReplacementName = _thisReplacementName;
+    final savedTypeParamSubstitution = _activeTypeParamSubstitution;
     _insideMethodBody = true;
     _thisReplacementName = 'this_';
+    if (mixinTypeSubstitution.isNotEmpty) {
+      _activeTypeParamSubstitution = mixinTypeSubstitution;
+    }
     try {
       for (final field in allFields) {
         if (field.isStatic) continue;
         if (initedFields.contains(field.name.text)) continue;
-        // 无 initializer 的字段无需赋值：
-        // - 普通非空字段：Dart 编译器自身会报错，属于源代码问题
-        // - 无 initializer 的 late 字段（如 `late String description;`）：依赖外部赋值
         if (field.initializer == null) continue;
-        // 有 initializer 的字段（包括 late field with initializer）都在此 eager 求值
         _buf.write('${_pad}this_.${field.name.text} = ');
         _buf.write(_restoreExpr(field.initializer!));
         _buf.write(';\n');
@@ -1096,6 +1329,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     } finally {
       _insideMethodBody = savedInsideMethodBody;
       _thisReplacementName = savedThisReplacementName;
+      _activeTypeParamSubstitution = savedTypeParamSubstitution;
     }
   }
 
@@ -1226,6 +1460,23 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       return;
     }
 
+    // Bug 11: 预分析本方法，识别哪些参数/局部变量被内部闭包捕获，需要 Box 化
+    final savedBoxedVars = Set<VariableDeclaration>.from(_boxedVars);
+    final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
+    if (proc.function.body != null) {
+      _preanalyzeBoxedVarsForFunc(proc.function);
+      _currentFunctionParams.clear();
+      _currentFunctionParams.addAll(proc.function.positionalParameters);
+      _currentFunctionParams.addAll(proc.function.namedParameters);
+    }
+    final boxedParamsForMethod = <VariableDeclaration>[];
+    for (final p in proc.function.positionalParameters) {
+      if (_boxedVars.contains(p)) boxedParamsForMethod.add(p);
+    }
+    for (final p in proc.function.namedParameters) {
+      if (_boxedVars.contains(p)) boxedParamsForMethod.add(p);
+    }
+
     final methodName = proc.name.text;
     String funcName;
     if (proc.isGetter) {
@@ -1295,6 +1546,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
             ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
             : '';
         _buf.write('${_pad}final this_ = this__ as ${className}Value$classTypeParamStr;\n');
+        // Bug 11: 参数 Box 包装
+        for (final p in boxedParamsForMethod) {
+          final baseName = p.name!;
+          final boxType = _boxTypeNameFor(p.type);
+          _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
+        }
         final body = proc.function.body!;
         if (body is Block) {
           for (final s in body.statements) {
@@ -1316,7 +1573,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         if (isVoidReturn) {
           _restoreSetterBody(proc.function.body!);
         } else {
-          _restoreBody(proc.function.body!);
+          // Bug 11: 若有参数需要 Box 化，插入 Box 包装
+          if (boxedParamsForMethod.isNotEmpty) {
+            _restoreBodyWithBoxedParams(proc.function.body!, boxedParamsForMethod);
+          } else {
+            _restoreBody(proc.function.body!);
+          }
         }
       }
       _insideMethodBody = false;
@@ -1324,6 +1586,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(';\n');
     }
     _buf.write('\n');
+
+    // Bug 11: 恢复快照
+    _boxedVars.clear();
+    _boxedVars.addAll(savedBoxedVars);
+    _currentFunctionParams.clear();
+    _currentFunctionParams.addAll(savedCurrentParams);
   }
 
   /// 为抽象方法生成占位实现（抛出 UnimplementedError）
@@ -1734,6 +2002,25 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       return;
     }
 
+    // Bug 11: 预分析本函数，识别哪些参数/局部变量被内部闭包捕获，需要 Box 化
+    // 记录 _boxedVars 的快照，退出时恢复（避免跨函数污染）
+    final savedBoxedVars = Set<VariableDeclaration>.from(_boxedVars);
+    final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
+    if (proc.function.body != null) {
+      _preanalyzeBoxedVarsForFunc(proc.function);
+      _currentFunctionParams.clear();
+      _currentFunctionParams.addAll(proc.function.positionalParameters);
+      _currentFunctionParams.addAll(proc.function.namedParameters);
+    }
+    // 识别本函数中被 Box 化的参数
+    final boxedParamsForProc = <VariableDeclaration>[];
+    for (final p in proc.function.positionalParameters) {
+      if (_boxedVars.contains(p)) boxedParamsForProc.add(p);
+    }
+    for (final p in proc.function.namedParameters) {
+      if (_boxedVars.contains(p)) boxedParamsForProc.add(p);
+    }
+
     _buf.write(_pad);
     if (proc.isStatic && proc.enclosingClass != null && !proc.isFactory) _buf.write('static ');
     if (proc.isFactory) {
@@ -1792,12 +2079,23 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       if (isVoidReturn) {
         _restoreSetterBody(proc.function.body!);
       } else {
-        _restoreBody(proc.function.body!);
+        // Bug 11: 若有参数需要 Box 化，则用专用方法在 body 开头插入 Box 包装
+        if (boxedParamsForProc.isNotEmpty) {
+          _restoreBodyWithBoxedParams(proc.function.body!, boxedParamsForProc);
+        } else {
+          _restoreBody(proc.function.body!);
+        }
       }
     } else {
       _buf.write(';\n');
     }
     _buf.write('\n');
+
+    // Bug 11: 恢复快照
+    _boxedVars.clear();
+    _boxedVars.addAll(savedBoxedVars);
+    _currentFunctionParams.clear();
+    _currentFunctionParams.addAll(savedCurrentParams);
   }
 
   /// 还原扩展方法（函数名包含 | 字符）为顶层静态函数
@@ -1905,6 +2203,35 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
   }
 
+  /// 输出方法体，支持在 body 开头插入参数 Box 包装语句（Bug 11）。
+  /// - boxedParams: 需要 Box 化的参数列表
+  /// - 对每个 p，生成 `BoxType name = BoxType(name_raw);` 插入到 body 开头
+  /// - 调用此方法前，应当已经把 p 加入 `_boxedVars` 集合，这样 _writeParams 会输出 _raw 后缀
+  void _restoreBodyWithBoxedParams(Statement body, List<VariableDeclaration> boxedParams) {
+    if (boxedParams.isEmpty) {
+      _restoreBody(body);
+      return;
+    }
+    _buf.write('{\n');
+    _indent++;
+    // 写入参数 Box 包装
+    for (final p in boxedParams) {
+      final baseName = p.name!;
+      final boxType = _boxTypeNameFor(p.type);
+      _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
+    }
+    // 写入原 body 内容
+    if (body is Block) {
+      for (final s in body.statements) {
+        _restoreStmt(s);
+      }
+    } else {
+      _restoreStmt(body);
+    }
+    _indent--;
+    _buf.write('$_pad}\n');
+  }
+
   void _restoreSetterBody(Statement body) {
     if (body is Block) {
       _buf.write('{\n');
@@ -1975,9 +2302,15 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// 写入合并后的类型参数声明（类的类型参数 + 方法自身的类型参数）
   /// 用于实例方法转静态函数时的类型参数声明位置
   void _writeCombinedTypeParams(List<TypeParameter> classParams, List<TypeParameter> methodParams) {
-    final allParams = [...classParams, ...methodParams];
-    if (allParams.isEmpty) return;
-    _writeTypeParams(allParams);
+    if (classParams.isEmpty && methodParams.isEmpty) return;
+    // 去重：方法类型参数中与类类型参数同名的跳过，避免 <A,B,C,C> 这种重复声明
+    final classParamNames = classParams.map((tp) => tp.name).toSet();
+    final deduped = <TypeParameter>[
+      ...classParams,
+      ...methodParams.where((tp) => !classParamNames.contains(tp.name)),
+    ];
+    if (deduped.isEmpty) return;
+    _writeTypeParams(deduped);
   }
 
   void _writeParams(FunctionNode func, {Procedure? proc, bool suppressCovariant = false, bool flattenOptional = false}) {
@@ -2000,9 +2333,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       sb.write(_restoreType(p.type));
       sb.write(' ');
       final cleanName = _cleanVarName(p.name ?? '_p$i');
-      sb.write(cleanName);
       // 写回清理后的名称
       p.name = cleanName;
+      // Bug 11: 被 Box 化的参数，输出时参数名加 _raw 后缀（原名留给函数体内 Box 局部变量）
+      final displayName = _boxedVars.contains(p) ? '${cleanName}_raw' : cleanName;
+      sb.write(displayName);
       // flattenOptional 模式下不输出默认值（调用处补齐）
       if (!flattenOptional && i >= reqCount && p.initializer != null) {
         sb.write(' = ${_restoreExpr(p.initializer!)}');
@@ -2036,8 +2371,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       if (p.isFinal) sb.write('final ');
       sb.write(_restoreType(p.type));
       sb.write(' ');
-      sb.write(_cleanVarName(p.name ?? '_n'));
-      p.name = _cleanVarName(p.name ?? '_n');
+      final cleanName = _cleanVarName(p.name ?? '_n');
+      p.name = cleanName;
+      // Bug 11: 被 Box 化的 named 参数也加 _raw 后缀
+      final displayName = _boxedVars.contains(p) ? '${cleanName}_raw' : cleanName;
+      sb.write(displayName);
       if (p.initializer != null) {
         sb.write(' = ${_restoreExpr(p.initializer!)}');
       }

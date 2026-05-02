@@ -59,6 +59,11 @@ abstract class _DartRestorerBase {
   /// 当前正在处理的类（null 表示在顶层）
   Class? _currentClass;
 
+  /// Bug 21: 活跃的类型参数替换映射
+  /// 在还原 mixin 字段初始化器时，将 mixin 类型参数名替换为当前类的类型参数名
+  /// 例如：Observable<T> → ReactiveStore<V> 时，映射 {T → V}
+  Map<String, String> _activeTypeParamSubstitution = {};
+
   /// 是否在实例方法体内（用于 this → this_ 转换）
   bool _insideMethodBody = false;
 
@@ -85,6 +90,516 @@ abstract class _DartRestorerBase {
   /// 当前闭包体内，this 是否被捕获到 env 中
   /// 如果为 true，ThisExpression 会被替换为 'env._thisReplacementName'
   bool _thisIsCapturedInEnv = false;
+
+  // ---- Box 化 (Bug 11 闭包引用语义) ----
+
+  /// 需要 Box 化的变量声明集合。
+  /// 进入函数/方法前预分析：凡是被内层 FunctionExpression 捕获的"局部变量"或"参数"，
+  /// 都需要装箱以保证闭包持有引用、读写可见多个闭包共享。
+  /// 当变量在此集合中时：
+  ///   - 声明处（_restoreVarDecl）：生成 `BoxType v = BoxType(init);`
+  ///   - 读取（_restoreVarGet）：追加 `.value`
+  ///   - 写入（_restoreVarSet）：追加 `.value`
+  ///   - 作为闭包构造参数传递：直接传 Box 实例（多个闭包共享同一 Box）
+  ///   - 闭包 env 字段类型：Box 类型；env 内部访问额外 `.value`
+  final Set<VariableDeclaration> _boxedVars = {};
+
+  /// 当前正在生成的函数/方法的参数列表（用于判断 VariableDeclaration 是参数还是局部变量）
+  /// 在进入函数/方法/闭包前填充，退出时清理。
+  final Set<VariableDeclaration> _currentFunctionParams = {};
+
+  /// 根据 DartType 选择合适的 Box 类型名称（基础类型识别）
+  /// 返回形如 'IntBox'、'DoubleBox'、'StringBox'、'BoolBox' 的字符串；
+  /// 对其他类型返回 null，由 _TypeUtils 中的 _boxTypeNameFor 完整版生成 ObjectBox<T>。
+  String? _primitiveBoxName(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      final nonNull = type.nullability != Nullability.nullable;
+      if (nonNull) {
+        if (name == 'int') return 'IntBox';
+        if (name == 'double') return 'DoubleBox';
+        if (name == 'String') return 'StringBox';
+        if (name == 'bool') return 'BoolBox';
+      }
+    }
+    return null;
+  }
+
+  /// 预分析：遍历一个 FunctionNode 的函数体，收集所有被内层 FunctionExpression
+  /// 捕获的"本层作用域的局部变量或参数"。这些变量需要 Box 化以保证引用语义。
+  ///
+  /// 规则：
+  /// - `func` 本身的 positional/named 参数和其函数体内声明的局部变量视为"本层"
+  /// - 任意层级嵌套的 FunctionExpression 若捕获了"本层变量"，都计入 Box 化集合
+  /// - 结果累加到 `_boxedVars`
+  ///
+  /// 必须在进入该函数体之前调用，这样后续 _restoreVarDecl/_restoreVarGet 才能看到标记。
+  void _preanalyzeBoxedVarsForFunc(FunctionNode func) {
+    if (func.body == null) return;
+
+    // 收集本层作用域的所有候选变量（参数 + 局部变量，不穿透进嵌套 FunctionExpression）
+    final localOfThisLevel = <VariableDeclaration>{};
+    localOfThisLevel.addAll(func.positionalParameters);
+    localOfThisLevel.addAll(func.namedParameters);
+    _collectShallowDecls(func.body!, localOfThisLevel);
+
+    // 收集所有嵌套 FunctionExpression（任意深度；对每个运行捕获分析）
+    final innerClosures = <FunctionExpression>[];
+    _collectAllFunctionExpressions(func.body!, innerClosures);
+
+    // 排除：命名参数（_raw 改名会破坏调用处的命名参数调用）
+    // 排除：for 循环变量（Dart 语义为每次迭代独立，值捕获即可符合用户期望）
+    final namedParamSet = <VariableDeclaration>{};
+    namedParamSet.addAll(func.namedParameters);
+
+    for (final fe in innerClosures) {
+      final analysis = analyzeCapturedVarsFromFunc(fe.function);
+      for (final captured in analysis.capturedDecls) {
+        if (!localOfThisLevel.contains(captured)) continue;
+        if (namedParamSet.contains(captured)) continue;
+        // for 循环变量：parent 为 ForStatement，且位于 variables 列表
+        final parent = captured.parent;
+        if (parent is ForStatement && parent.variables.contains(captured)) continue;
+        _boxedVars.add(captured);
+      }
+    }
+  }
+
+  /// 浅层收集 VariableDeclaration：不穿透进 FunctionExpression，因为嵌套闭包的
+  /// 局部变量属于它自己的作用域，由各自层级单独预分析。
+  /// 对 FunctionDeclaration 仅添加其绑定的变量但不穿透其函数体。
+  void _collectShallowDecls(TreeNode node, Set<VariableDeclaration> out) {
+    if (node is FunctionExpression) return;
+    if (node is FunctionDeclaration) {
+      out.add(node.variable);
+      return;
+    }
+    if (node is VariableDeclaration) {
+      out.add(node);
+      // 继续遍历 initializer（子表达式可能含嵌套结构，但不会再有另一个顶层 decl）
+      if (node.initializer != null) {
+        _collectShallowDecls(node.initializer!, out);
+      }
+      return;
+    }
+    _visitChildrenForLocalDecl(node, out);
+  }
+
+  void _visitChildrenForLocalDecl(TreeNode node, Set<VariableDeclaration> out) {
+    if (node is Block) {
+      for (final s in node.statements) _collectShallowDecls(s, out);
+      return;
+    }
+    if (node is ExpressionStatement) {
+      _collectShallowDecls(node.expression, out);
+      return;
+    }
+    if (node is ReturnStatement) {
+      if (node.expression != null) _collectShallowDecls(node.expression!, out);
+      return;
+    }
+    if (node is IfStatement) {
+      _collectShallowDecls(node.condition, out);
+      _collectShallowDecls(node.then, out);
+      if (node.otherwise != null) _collectShallowDecls(node.otherwise!, out);
+      return;
+    }
+    if (node is ForStatement) {
+      for (final v in node.variables) _collectShallowDecls(v, out);
+      if (node.condition != null) _collectShallowDecls(node.condition!, out);
+      for (final u in node.updates) _collectShallowDecls(u, out);
+      _collectShallowDecls(node.body, out);
+      return;
+    }
+    if (node is ForInStatement) {
+      _collectShallowDecls(node.variable, out);
+      _collectShallowDecls(node.iterable, out);
+      _collectShallowDecls(node.body, out);
+      return;
+    }
+    if (node is WhileStatement) {
+      _collectShallowDecls(node.condition, out);
+      _collectShallowDecls(node.body, out);
+      return;
+    }
+    if (node is DoStatement) {
+      _collectShallowDecls(node.body, out);
+      _collectShallowDecls(node.condition, out);
+      return;
+    }
+    if (node is TryCatch) {
+      _collectShallowDecls(node.body, out);
+      for (final c in node.catches) {
+        if (c.exception != null) out.add(c.exception!);
+        if (c.stackTrace != null) out.add(c.stackTrace!);
+        _collectShallowDecls(c.body, out);
+      }
+      return;
+    }
+    if (node is TryFinally) {
+      _collectShallowDecls(node.body, out);
+      _collectShallowDecls(node.finalizer, out);
+      return;
+    }
+    if (node is SwitchStatement) {
+      _collectShallowDecls(node.expression, out);
+      for (final c in node.cases) _collectShallowDecls(c.body, out);
+      return;
+    }
+    if (node is LabeledStatement) {
+      _collectShallowDecls(node.body, out);
+      return;
+    }
+    if (node is YieldStatement) {
+      _collectShallowDecls(node.expression, out);
+      return;
+    }
+    if (node is AssertStatement) {
+      _collectShallowDecls(node.condition, out);
+      if (node.message != null) _collectShallowDecls(node.message!, out);
+      return;
+    }
+    if (node is Let) {
+      out.add(node.variable);
+      _collectShallowDecls(node.variable, out);
+      _collectShallowDecls(node.body, out);
+      return;
+    }
+    if (node is BlockExpression) {
+      _collectShallowDecls(node.body, out);
+      _collectShallowDecls(node.value, out);
+      return;
+    }
+    // 表达式节点常规分派：继续走子节点
+    if (node is InstanceInvocation) {
+      _collectShallowDecls(node.receiver, out);
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    if (node is StaticInvocation) {
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    if (node is ConstructorInvocation) {
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    if (node is InstanceGet) {
+      _collectShallowDecls(node.receiver, out);
+      return;
+    }
+    if (node is InstanceSet) {
+      _collectShallowDecls(node.receiver, out);
+      _collectShallowDecls(node.value, out);
+      return;
+    }
+    if (node is VariableSet) {
+      _collectShallowDecls(node.value, out);
+      return;
+    }
+    if (node is ConditionalExpression) {
+      _collectShallowDecls(node.condition, out);
+      _collectShallowDecls(node.then, out);
+      _collectShallowDecls(node.otherwise, out);
+      return;
+    }
+    if (node is LogicalExpression) {
+      _collectShallowDecls(node.left, out);
+      _collectShallowDecls(node.right, out);
+      return;
+    }
+    if (node is Not) {
+      _collectShallowDecls(node.operand, out);
+      return;
+    }
+    if (node is StringConcatenation) {
+      for (final e in node.expressions) _collectShallowDecls(e, out);
+      return;
+    }
+    if (node is AsExpression) {
+      _collectShallowDecls(node.operand, out);
+      return;
+    }
+    if (node is IsExpression) {
+      _collectShallowDecls(node.operand, out);
+      return;
+    }
+    if (node is NullCheck) {
+      _collectShallowDecls(node.operand, out);
+      return;
+    }
+    if (node is AwaitExpression) {
+      _collectShallowDecls(node.operand, out);
+      return;
+    }
+    if (node is ListLiteral) {
+      for (final e in node.expressions) _collectShallowDecls(e, out);
+      return;
+    }
+    if (node is SetLiteral) {
+      for (final e in node.expressions) _collectShallowDecls(e, out);
+      return;
+    }
+    if (node is MapLiteral) {
+      for (final e in node.entries) {
+        _collectShallowDecls(e.key, out);
+        _collectShallowDecls(e.value, out);
+      }
+      return;
+    }
+    if (node is Throw) {
+      _collectShallowDecls(node.expression, out);
+      return;
+    }
+    if (node is EqualsCall) {
+      _collectShallowDecls(node.left, out);
+      _collectShallowDecls(node.right, out);
+      return;
+    }
+    if (node is EqualsNull) {
+      _collectShallowDecls(node.expression, out);
+      return;
+    }
+    if (node is FunctionInvocation) {
+      _collectShallowDecls(node.receiver, out);
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    if (node is DynamicInvocation) {
+      _collectShallowDecls(node.receiver, out);
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    if (node is LocalFunctionInvocation) {
+      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
+      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
+      return;
+    }
+    // 其他节点默认跳过（字面量、VariableGet、ThisExpression 等无需继续）
+  }
+
+  /// 深层收集：任意嵌套层级的 FunctionExpression 都收集
+  void _collectAllFunctionExpressions(TreeNode node, List<FunctionExpression> out) {
+    if (node is FunctionExpression) {
+      out.add(node);
+      // 继续穿透进其 body，收集内部嵌套
+      if (node.function.body != null) {
+        _collectAllFunctionExpressions(node.function.body!, out);
+      }
+      return;
+    }
+    if (node is FunctionDeclaration) {
+      // function declaration 内部也可能有 FunctionExpression
+      if (node.function.body != null) {
+        _collectAllFunctionExpressions(node.function.body!, out);
+      }
+      return;
+    }
+    // 通用递归：遍历所有子节点
+    _visitChildrenForFuncExpr(node, out);
+  }
+
+  void _visitChildrenForFuncExpr(TreeNode node, List<FunctionExpression> out) {
+    if (node is Block) {
+      for (final s in node.statements) _collectAllFunctionExpressions(s, out);
+      return;
+    }
+    if (node is ExpressionStatement) {
+      _collectAllFunctionExpressions(node.expression, out);
+      return;
+    }
+    if (node is ReturnStatement) {
+      if (node.expression != null) _collectAllFunctionExpressions(node.expression!, out);
+      return;
+    }
+    if (node is IfStatement) {
+      _collectAllFunctionExpressions(node.condition, out);
+      _collectAllFunctionExpressions(node.then, out);
+      if (node.otherwise != null) _collectAllFunctionExpressions(node.otherwise!, out);
+      return;
+    }
+    if (node is ForStatement) {
+      for (final v in node.variables) _collectAllFunctionExpressions(v, out);
+      if (node.condition != null) _collectAllFunctionExpressions(node.condition!, out);
+      for (final u in node.updates) _collectAllFunctionExpressions(u, out);
+      _collectAllFunctionExpressions(node.body, out);
+      return;
+    }
+    if (node is ForInStatement) {
+      _collectAllFunctionExpressions(node.variable, out);
+      _collectAllFunctionExpressions(node.iterable, out);
+      _collectAllFunctionExpressions(node.body, out);
+      return;
+    }
+    if (node is WhileStatement) {
+      _collectAllFunctionExpressions(node.condition, out);
+      _collectAllFunctionExpressions(node.body, out);
+      return;
+    }
+    if (node is DoStatement) {
+      _collectAllFunctionExpressions(node.body, out);
+      _collectAllFunctionExpressions(node.condition, out);
+      return;
+    }
+    if (node is TryCatch) {
+      _collectAllFunctionExpressions(node.body, out);
+      for (final c in node.catches) _collectAllFunctionExpressions(c.body, out);
+      return;
+    }
+    if (node is TryFinally) {
+      _collectAllFunctionExpressions(node.body, out);
+      _collectAllFunctionExpressions(node.finalizer, out);
+      return;
+    }
+    if (node is SwitchStatement) {
+      _collectAllFunctionExpressions(node.expression, out);
+      for (final c in node.cases) _collectAllFunctionExpressions(c.body, out);
+      return;
+    }
+    if (node is LabeledStatement) {
+      _collectAllFunctionExpressions(node.body, out);
+      return;
+    }
+    if (node is YieldStatement) {
+      _collectAllFunctionExpressions(node.expression, out);
+      return;
+    }
+    if (node is AssertStatement) {
+      _collectAllFunctionExpressions(node.condition, out);
+      if (node.message != null) _collectAllFunctionExpressions(node.message!, out);
+      return;
+    }
+    if (node is VariableDeclaration) {
+      if (node.initializer != null) _collectAllFunctionExpressions(node.initializer!, out);
+      return;
+    }
+    if (node is Let) {
+      if (node.variable.initializer != null) {
+        _collectAllFunctionExpressions(node.variable.initializer!, out);
+      }
+      _collectAllFunctionExpressions(node.body, out);
+      return;
+    }
+    if (node is BlockExpression) {
+      _collectAllFunctionExpressions(node.body, out);
+      _collectAllFunctionExpressions(node.value, out);
+      return;
+    }
+    if (node is InstanceInvocation) {
+      _collectAllFunctionExpressions(node.receiver, out);
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+    if (node is StaticInvocation) {
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+    if (node is ConstructorInvocation) {
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+    if (node is InstanceGet) {
+      _collectAllFunctionExpressions(node.receiver, out);
+      return;
+    }
+    if (node is InstanceSet) {
+      _collectAllFunctionExpressions(node.receiver, out);
+      _collectAllFunctionExpressions(node.value, out);
+      return;
+    }
+    if (node is VariableSet) {
+      _collectAllFunctionExpressions(node.value, out);
+      return;
+    }
+    if (node is ConditionalExpression) {
+      _collectAllFunctionExpressions(node.condition, out);
+      _collectAllFunctionExpressions(node.then, out);
+      _collectAllFunctionExpressions(node.otherwise, out);
+      return;
+    }
+    if (node is LogicalExpression) {
+      _collectAllFunctionExpressions(node.left, out);
+      _collectAllFunctionExpressions(node.right, out);
+      return;
+    }
+    if (node is Not) {
+      _collectAllFunctionExpressions(node.operand, out);
+      return;
+    }
+    if (node is StringConcatenation) {
+      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
+      return;
+    }
+    if (node is AsExpression) {
+      _collectAllFunctionExpressions(node.operand, out);
+      return;
+    }
+    if (node is IsExpression) {
+      _collectAllFunctionExpressions(node.operand, out);
+      return;
+    }
+    if (node is NullCheck) {
+      _collectAllFunctionExpressions(node.operand, out);
+      return;
+    }
+    if (node is AwaitExpression) {
+      _collectAllFunctionExpressions(node.operand, out);
+      return;
+    }
+    if (node is ListLiteral) {
+      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
+      return;
+    }
+    if (node is SetLiteral) {
+      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
+      return;
+    }
+    if (node is MapLiteral) {
+      for (final e in node.entries) {
+        _collectAllFunctionExpressions(e.key, out);
+        _collectAllFunctionExpressions(e.value, out);
+      }
+      return;
+    }
+    if (node is Throw) {
+      _collectAllFunctionExpressions(node.expression, out);
+      return;
+    }
+    if (node is EqualsCall) {
+      _collectAllFunctionExpressions(node.left, out);
+      _collectAllFunctionExpressions(node.right, out);
+      return;
+    }
+    if (node is EqualsNull) {
+      _collectAllFunctionExpressions(node.expression, out);
+      return;
+    }
+    if (node is FunctionInvocation) {
+      _collectAllFunctionExpressions(node.receiver, out);
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+    if (node is DynamicInvocation) {
+      _collectAllFunctionExpressions(node.receiver, out);
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+    if (node is LocalFunctionInvocation) {
+      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
+      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
+      return;
+    }
+  }
 
   /// 清理闭包上下文名称，确保是合法的 Dart 标识符
   /// 扩展方法名如 "StringExtensions|get#capitalize" 需要转换为 "StringExtensions_get_capitalize"
@@ -666,13 +1181,15 @@ void _collectCaptured(
 /// 闭包捕获变量信息
 class _CapturedVar {
   final String name;       // 变量名（清理后的）
-  final String typeStr;    // 类型字符串
+  final String typeStr;    // 类型字符串（Box 化时为 Box 类型）
   final bool isThis;       // 是否是 this 捕获
+  final bool isBoxed;      // Bug 11: 是否为 Box 化（引用语义）变量
 
   _CapturedVar({
     required this.name,
     required this.typeStr,
     this.isThis = false,
+    this.isBoxed = false,
   });
 
   @override
@@ -732,6 +1249,9 @@ class DartRestorer extends _DartRestorerBase
 
     // 输出 VPtr 基类：所有无基类的 Value 类都继承自它
     _emitVPtrBaseClass();
+
+    // 输出 Box 类型定义（用于闭包引用语义，Bug 11）
+    _emitBoxClasses();
 
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
@@ -1015,5 +1535,36 @@ class DartRestorer extends _DartRestorerBase
 
   bool _isSyntheticMixinClass(Class cls) {
     return cls.name.contains('&');
+  }
+
+  /// 输出 Box 类型定义（Bug 11 闭包引用语义）
+  /// 提供基础类型的装箱类，使闭包能通过引用共享读写状态。
+  /// - IntBox/DoubleBox/StringBox/BoolBox 针对非空基础类型
+  /// - ObjectBox<T> 针对其他任意类型（含可空类型、用户类、集合、函数类型等）
+  void _emitBoxClasses() {
+    _buf.write('class IntBox {\n');
+    _buf.write('  int value;\n');
+    _buf.write('  IntBox(this.value);\n');
+    _buf.write('}\n\n');
+
+    _buf.write('class DoubleBox {\n');
+    _buf.write('  double value;\n');
+    _buf.write('  DoubleBox(this.value);\n');
+    _buf.write('}\n\n');
+
+    _buf.write('class StringBox {\n');
+    _buf.write('  String value;\n');
+    _buf.write('  StringBox(this.value);\n');
+    _buf.write('}\n\n');
+
+    _buf.write('class BoolBox {\n');
+    _buf.write('  bool value;\n');
+    _buf.write('  BoolBox(this.value);\n');
+    _buf.write('}\n\n');
+
+    _buf.write('class ObjectBox<T> {\n');
+    _buf.write('  T value;\n');
+    _buf.write('  ObjectBox(this.value);\n');
+    _buf.write('}\n\n');
   }
 }

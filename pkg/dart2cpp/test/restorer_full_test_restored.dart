@@ -20,6 +20,31 @@ class VPtr {
   }
 }
 
+class IntBox {
+  int value;
+  IntBox(this.value);
+}
+
+class DoubleBox {
+  double value;
+  DoubleBox(this.value);
+}
+
+class StringBox {
+  String value;
+  StringBox(this.value);
+}
+
+class BoolBox {
+  bool value;
+  BoolBox(this.value);
+}
+
+class ObjectBox<T> {
+  T value;
+  ObjectBox(this.value);
+}
+
 typedef Predicate<T> = bool Function(T);
 
 typedef Transformer<A, B> = B Function(A);
@@ -96,7 +121,7 @@ int Dog_compareTo(DogValue this_, DogValue other) {
   return this_.age.compareTo(other.age);
 }
 
-String Dog_toString(AnimalValue this_) {
+String Dog_toString(DogValue this_) {
   return Animal_toString(this_);
 }
 
@@ -105,11 +130,11 @@ void Dog_printInfo(DogValue this_) {
 }
 
 bool Dog_isLessThan(DogValue this_, DogValue other) {
-  return Orderable_isLessThan(this_, other);
+  return Orderable_isLessThan<DogValue>(this_, other);
 }
 
 bool Dog_isGreaterThan(DogValue this_, DogValue other) {
-  return Orderable_isGreaterThan(this_, other);
+  return Orderable_isGreaterThan<DogValue>(this_, other);
 }
 
 
@@ -147,7 +172,7 @@ void Cat_set_mood(CatValue this_, String value) {
   this_._mood = value;
 }
 
-String Cat_toString(AnimalValue this_) {
+String Cat_toString(CatValue this_) {
   return Animal_toString(this_);
 }
 
@@ -447,11 +472,11 @@ String Square_describe(ShapeValue this__) {
   return 'Square(size=${this_.sideLength}, color=${this_.color})';
 }
 
-double Square_perimeter(PolygonValue this_, double? overrideSideLength) {
+double Square_perimeter(SquareValue this_, double? overrideSideLength) {
   return RegularPolygon_perimeter(this_, overrideSideLength);
 }
 
-double Square_area(RegularPolygonValue this_) {
+double Square_area(SquareValue this_) {
   return RegularPolygon_area(this_);
 }
 
@@ -498,7 +523,7 @@ int Comparable2_compareTo2<T>(Comparable2Value<T> this_, T other) {
 }
 
 
-class DataPointValue extends VPtr {
+class DataPointValue extends VPtr implements SerializableValue, CloneableValue<DataPointValue>, Comparable2Value<DataPointValue> {
   late double x;
   late double y;
   late String label;
@@ -581,7 +606,7 @@ int LoggedDataPoint_compareTo2(LoggedDataPointValue this_, DataPointValue other)
   return DataPoint_compareTo2(this_, other);
 }
 
-String LoggedDataPoint_toString(DataPointValue this_) {
+String LoggedDataPoint_toString(LoggedDataPointValue this_) {
   return DataPoint_toString(this_);
 }
 
@@ -781,8 +806,9 @@ TOutput Pipeline_execute<TInput, TOutput>(PipelineValue<TInput, TOutput> this_, 
   return (() { final _let4 = input; return this_._transform(_let4); })();
 }
 
-PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(PipelineValue<TInput, TOutput> this_, TNewOutput Function(TOutput) next) {
-  return (() { final _obj = PipelineValue<TInput, TNewOutput>(); Pipeline_new(_obj, ClosureEnv_anon_0(this_, next)); return _obj; })();
+PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(PipelineValue<TInput, TOutput> this_, TNewOutput Function(TOutput) next_raw) {
+  ObjectBox<TNewOutput Function(TOutput)> next = ObjectBox<TNewOutput Function(TOutput)>(next_raw);
+  return (() { final _obj = PipelineValue<TInput, TNewOutput>(); Pipeline_new(_obj, ClosureEnv_anon_0(this_, next).call); return _obj; })();
 }
 
 
@@ -1125,12 +1151,16 @@ String multiLineExample() {
   return nested;
 }
 
-C Function(A) compose<A, B, C>(B Function(A) f, C Function(B) g) {
-  return ClosureEnv_compose_1(g, f);
+C Function(A) compose<A, B, C>(B Function(A) f_raw, C Function(B) g_raw) {
+  ObjectBox<B Function(A)> f = ObjectBox<B Function(A)>(f_raw);
+  ObjectBox<C Function(B)> g = ObjectBox<C Function(B)>(g_raw);
+  return ClosureEnv_compose_1(g, f).call;
 }
 
-bool Function(T) and<T>(bool Function(T) p1, bool Function(T) p2) {
-  return ClosureEnv_and_2(p1, p2);
+bool Function(T) and<T>(bool Function(T) p1_raw, bool Function(T) p2_raw) {
+  ObjectBox<bool Function(T)> p1 = ObjectBox<bool Function(T)>(p1_raw);
+  ObjectBox<bool Function(T)> p2 = ObjectBox<bool Function(T)>(p2_raw);
+  return ClosureEnv_and_2(p1, p2).call;
 }
 
 List<B> flatMap<A, B>(List<A> list, List<B> Function(A) f) {
@@ -1402,10 +1432,10 @@ void main() async {
   final DataPointValue dp1 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 1.0, 2.0, 'A'); return _obj; })();
   final DataPointValue dp2 = (() { final _obj = DataPointValue(); DataPoint_new(_obj, 3.0, 1.0, 'B'); return _obj; })();
   print('dp1: ${dp1}');
-  print('dp1.serialize: ${(dp1.vptr['serialize'] as String Function(DataPointValue))(dp1)}');
-  final DataPointValue dp1Clone = (dp1.vptr['clone'] as DataPointValue Function(DataPointValue))(dp1);
+  print('dp1.serialize: ${(dp1.vptr['serialize'] as Function)(dp1)}');
+  final DataPointValue dp1Clone = (dp1.vptr['clone'] as Function)(dp1);
   print('dp1.clone: ${dp1Clone}');
-  print('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(DataPointValue, DataPointValue))(dp1, dp2)}');
+  print('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as Function)(dp1, dp2)}');
   print('\n--- 21. mixin on 约束 ---');
   final LoggedDataPointValue ldp = (() { final _obj = LoggedDataPointValue(); LoggedDataPoint_new(_obj, 5.0, 6.0, 'logged'); return _obj; })();
   (ldp.vptr['log'] as Function)(ldp, 'created');
@@ -1434,7 +1464,7 @@ void main() async {
   (sortedList.vptr['add'] as Function)(sortedList, 3);
   (sortedList.vptr['add'] as Function)(sortedList, 2);
   print('sorted: ${sortedList}');
-  print('first: ${(sortedList.vptr['get_first'] as dynamic Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as dynamic Function(dynamic))(sortedList)}');
+  print('first: ${(sortedList.vptr['get_first'] as dynamic Function(SortedListValue))(sortedList)}, last: ${(sortedList.vptr['get_last'] as dynamic Function(SortedListValue))(sortedList)}');
   final int maxVal = findMax(<int>[3, 7, 1, 9, 4]);
   print('findMax: ${maxVal}');
   final String result = applyTwice(5, (int x) => 'n=${x}', (String s) => '${s}!');
@@ -1502,31 +1532,31 @@ void main() async {
 
 class ClosureEnv_anon_0<TNewOutput, TOutput, TInput> {
   PipelineValue<TInput, TOutput> this_;
-  TNewOutput Function(TOutput) next;
+  ObjectBox<TNewOutput Function(TOutput)> next;
   ClosureEnv_anon_0(this.this_, this.next);
   TNewOutput call(TInput input) => ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(this, input);
 }
 TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(ClosureEnv_anon_0<TNewOutput, TOutput, TInput> env, TInput input) {
-  return env.next((() { final _let5 = input; return env.this_._transform(_let5); })());
+  return env.next.value((() { final _let5 = input; return env.this_._transform(_let5); })());
 }
 
 class ClosureEnv_compose_1<C, B, A> {
-  C Function(B) g;
-  B Function(A) f;
+  ObjectBox<C Function(B)> g;
+  ObjectBox<B Function(A)> f;
   ClosureEnv_compose_1(this.g, this.f);
   C call(A input) => ClosureEnv_compose_1_call<C, B, A>(this, input);
 }
 C ClosureEnv_compose_1_call<C, B, A>(ClosureEnv_compose_1<C, B, A> env, A input) {
-  return env.g(env.f(input));
+  return env.g.value(env.f.value(input));
 }
 
 class ClosureEnv_and_2<T> {
-  bool Function(T) p1;
-  bool Function(T) p2;
+  ObjectBox<bool Function(T)> p1;
+  ObjectBox<bool Function(T)> p2;
   ClosureEnv_and_2(this.p1, this.p2);
   bool call(T value) => ClosureEnv_and_2_call<T>(this, value);
 }
 bool ClosureEnv_and_2_call<T>(ClosureEnv_and_2<T> env, T value) {
-  return (env.p1(value) && env.p2(value));
+  return (env.p1.value(value) && env.p2.value(value));
 }
 

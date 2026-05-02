@@ -62,6 +62,41 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       }
       return 'const (${parts.join(', ')})';
     }
+    // Bug 26: 处理 StaticTearOffConstant / ConstructorTearOffConstant 等 tear-off 常量
+    // 这些常量有 target/targetReference 属性指向被 tear-off 的 Procedure/Constructor
+    try {
+      final target = (c as dynamic).target;
+      if (target is Procedure) {
+        final name = target.name.text;
+        if (target.enclosingClass != null) {
+          final className = target.enclosingClass!.name;
+          if (_isUserClass(className)) {
+            return '${className}_$name';
+          }
+          return '$className.$name';
+        }
+        return name;
+      }
+      if (target is Constructor) {
+        final className = target.enclosingClass.name;
+        final ctorName = target.name.text;
+        if (_isUserClass(className)) {
+          return ctorName.isEmpty ? '${className}_new' : '${className}_new_$ctorName';
+        }
+        return ctorName.isEmpty ? className : '$className.$ctorName';
+      }
+    } catch (_) {}
+    // 尝试 procedure 属性（某些 Kernel 版本使用）
+    try {
+      final proc = (c as dynamic).procedure;
+      if (proc is Procedure) {
+        final name = proc.name.text;
+        if (proc.enclosingClass != null) {
+          return '${proc.enclosingClass!.name}.$name';
+        }
+        return name;
+      }
+    } catch (_) {}
     return '/* const ${c.runtimeType} */';
   }
 

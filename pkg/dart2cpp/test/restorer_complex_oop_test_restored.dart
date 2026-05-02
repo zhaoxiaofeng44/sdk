@@ -20,6 +20,31 @@ class VPtr {
   }
 }
 
+class IntBox {
+  int value;
+  IntBox(this.value);
+}
+
+class DoubleBox {
+  double value;
+  DoubleBox(this.value);
+}
+
+class StringBox {
+  String value;
+  StringBox(this.value);
+}
+
+class BoolBox {
+  bool value;
+  BoolBox(this.value);
+}
+
+class ObjectBox<T> {
+  T value;
+  ObjectBox(this.value);
+}
+
 // mixin Logger → static functions for delegation
 String Logger_get_prefix(dynamic this_) {
   return 'LOG';
@@ -234,15 +259,15 @@ T Box_get_value<T>(BoxValue<T> this_) {
 }
 
 R Box_mapValue<T, R>(BoxValue<T> this_, R Function(T) transform) {
-  return Mappable_mapValue(this_, transform);
+  return Mappable_mapValue<T, R>(this_, transform);
 }
 
 String Box_describe<T>(BoxValue<T> this_) {
-  return Mappable_describe(this_);
+  return Mappable_describe<T>(this_);
 }
 
 bool Box_test<T>(BoxValue<T> this_, bool Function(T) predicate) {
-  return Filterable_test(this_, predicate);
+  return Filterable_test<T>(this_, predicate);
 }
 
 
@@ -288,7 +313,7 @@ bool Taggable_hasTag(dynamic this_, String t) {
 }
 
 
-class ResourceValue extends VPtr {
+class ResourceValue extends VPtr implements IdentifiableValue, DescribableValue {
   late String id;
   late String type;
 }
@@ -758,7 +783,7 @@ String CustomEncoder_encode(CustomEncoderValue this_, String input) {
   return 'custom(${MultiEncoder_encode(this_, input)})';
 }
 
-String CustomEncoder_encodeAll(MultiEncoderValue this_, String input) {
+String CustomEncoder_encodeAll(CustomEncoderValue this_, String input) {
   return MultiEncoder_encodeAll(this_, input);
 }
 
@@ -803,8 +828,8 @@ String LabeledContainer_describe<T>(ContainerValue<T> this__) {
   return 'Labeled[${this_.label}]: ${Container_describe(this_)}';
 }
 
-T LabeledContainer_get_content<T>(ContainerValue<T> this_) {
-  return Container_get_content(this_);
+T LabeledContainer_get_content<T>(LabeledContainerValue<T> this_) {
+  return Container_get_content<T>(this_);
 }
 
 
@@ -827,8 +852,8 @@ String PriorityContainer_describe<T>(ContainerValue<T> this__) {
   return '(P${this_.priority}) ${LabeledContainer_describe(this_)}';
 }
 
-T PriorityContainer_get_content<T>(ContainerValue<T> this_) {
-  return Container_get_content(this_);
+T PriorityContainer_get_content<T>(PriorityContainerValue<T> this_) {
+  return Container_get_content<T>(this_);
 }
 
 
@@ -1152,7 +1177,7 @@ String Warrior_staminaBar(WarriorValue this_) {
   return StaminaMixin_staminaBar(this_);
 }
 
-String Warrior_statusBars(GameCharacterValue this_) {
+String Warrior_statusBars(WarriorValue this_) {
   return GameCharacter_statusBars(this_);
 }
 
@@ -1213,7 +1238,7 @@ String Mage_staminaBar(MageValue this_) {
   return StaminaMixin_staminaBar(this_);
 }
 
-String Mage_statusBars(GameCharacterValue this_) {
+String Mage_statusBars(MageValue this_) {
   return GameCharacter_statusBars(this_);
 }
 
@@ -1335,7 +1360,7 @@ void main() {
   final TaggedResourceValue res = (() { final _obj = TaggedResourceValue(); TaggedResource_new(_obj, 'r1', 'file'); return _obj; })();
   (res.vptr['tag'] as Function)(res, 'important');
   (res.vptr['tag'] as Function)(res, 'v2');
-  print('describe: ${(res.vptr['describe'] as String Function(TaggedResourceValue))(res)}');
+  print('describe: ${(res.vptr['describe'] as Function)(res)}');
   print('id: ${res.id}');
   print('hasTag important: ${(res.vptr['hasTag'] as Function)(res, 'important')}');
   print('hasTag draft: ${(res.vptr['hasTag'] as Function)(res, 'draft')}');
@@ -1389,7 +1414,7 @@ void main() {
   print('c2: ${(c2.vptr['describe'] as Function)(c2)}');
   final PriorityContainerValue<double> c3 = (() { final _obj = PriorityContainerValue<double>(); PriorityContainer_new(_obj, 3.14, 'pi', 1); return _obj; })();
   print('c3: ${(c3.vptr['describe'] as Function)(c3)}');
-  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(dynamic))(c3)}');
+  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(PriorityContainerValue))(c3)}');
   print('\n--- 13. mixin 调用链 ---');
   final ChainClassValue chain1 = (() { final _obj = ChainClassValue(); ChainClass_new(_obj); return _obj; })();
   print('chain1.fullChain: ${(chain1.vptr['fullChain'] as Function)(chain1)}');

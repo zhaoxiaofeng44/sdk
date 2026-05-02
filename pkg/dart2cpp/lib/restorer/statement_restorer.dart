@@ -27,8 +27,18 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       _buf.write('${_pad}for (');
       if (stmt.variables.isNotEmpty) {
         final v = stmt.variables.first;
-        _buf.write('var ${_cleanVarName(v.name ?? '_i')} = ${_restoreExpr(v.initializer!)}');
-        v.name = _cleanVarName(v.name ?? '_i');
+        final vName = _cleanVarName(v.name ?? '_i');
+        v.name = vName;
+        // Bug 11: 若 for 循环变量被内部闭包捕获，需要 Box 化
+        if (_boxedVars.contains(v)) {
+          final boxType = _boxTypeNameFor(v.type);
+          final initStr = v.initializer != null
+              ? _restoreExpr(v.initializer!)
+              : _defaultValueForType(v.type);
+          _buf.write('$boxType $vName = $boxType($initStr)');
+        } else {
+          _buf.write('var $vName = ${_restoreExpr(v.initializer!)}');
+        }
       }
       _buf.write('; ');
       if (stmt.condition != null) _buf.write(_restoreExpr(stmt.condition!));
@@ -149,6 +159,22 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       }
       return;
     }
+
+    // Bug 11: 被 Box 化的局部变量——生成 Box 声明
+    // 形式：`BoxType v = BoxType(初始值);`，未初始化时使用类型默认值
+    if (_boxedVars.contains(v)) {
+      final boxType = _boxTypeNameFor(v.type);
+      _buf.write(_pad);
+      _buf.write('$boxType $name = $boxType(');
+      if (v.initializer != null) {
+        _buf.write(_restoreExpr(v.initializer!));
+      } else {
+        _buf.write(_defaultValueForType(v.type));
+      }
+      _buf.write(');\n');
+      return;
+    }
+
     _buf.write(_pad);
     // 如果变量没有初始化器且类型不可空，添加 late 修饰符
     // 这处理了 pattern matching 脱糖后的变量声明（如 int n; 在赋值前使用）

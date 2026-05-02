@@ -20,6 +20,31 @@ class VPtr {
   }
 }
 
+class IntBox {
+  int value;
+  IntBox(this.value);
+}
+
+class DoubleBox {
+  double value;
+  DoubleBox(this.value);
+}
+
+class StringBox {
+  String value;
+  StringBox(this.value);
+}
+
+class BoolBox {
+  bool value;
+  BoolBox(this.value);
+}
+
+class ObjectBox<T> {
+  T value;
+  ObjectBox(this.value);
+}
+
 class ShapeValue extends VPtr {
 }
 
@@ -128,7 +153,7 @@ double Circle_perimeter(ShapeValue this__) {
   return ((2 * 3.14159265) * this_._radius);
 }
 
-String Circle_toString(ShapeValue this_) {
+String Circle_toString(CircleValue this_) {
   return Shape_toString(this_);
 }
 
@@ -166,7 +191,7 @@ double Rectangle_perimeter(ShapeValue this__) {
   return (2 * (this_.width + this_.height));
 }
 
-String Rectangle_toString(ShapeValue this_) {
+String Rectangle_toString(RectangleValue this_) {
   return Shape_toString(this_);
 }
 
@@ -184,7 +209,7 @@ String StringExtensions_capitalize(final String this_) {
 }
 
 String Function() StringExtensions_get_capitalize(final String this_) {
-  return ClosureEnv_StringExtensions_get_capitalize_0(this_);
+  return ClosureEnv_StringExtensions_get_capitalize_0(this_).call;
 }
 
 bool StringExtensions_get_isPalindrome(final String this_) {
@@ -197,19 +222,21 @@ List<T> ListExtensions_filterWhere<T>(final List<T> this_, bool Function(T) pred
 }
 
 List<T> Function(bool Function(T)) ListExtensions_get_filterWhere<T>(final List<T> this_) {
-  return ClosureEnv_ListExtensions_get_filterWhere_1(this_);
+  return ClosureEnv_ListExtensions_get_filterWhere_1(this_).call;
 }
 
 T identity<T>(T value) {
   return value;
 }
 
-List<T> repeat<T>(T item, int count) {
-  return List.generate(count, ClosureEnv_repeat_2(item));
+List<T> repeat<T>(T item_raw, int count) {
+  ObjectBox<T> item = ObjectBox<T>(item_raw);
+  return List.generate(count, ClosureEnv_repeat_2(item).call);
 }
 
-Function makeAdder(int base) {
-  return ClosureEnv_makeAdder_3(base);
+Function makeAdder(int base_raw) {
+  IntBox base = IntBox(base_raw);
+  return ClosureEnv_makeAdder_3(base).call;
 }
 
 List<int> mapList(List<int> items, int Function(int) transform) {
@@ -313,8 +340,8 @@ void main() {
   print('add10(5): ${add10(5)}');
   final List<int> doubled = mapList(<int>[1, 2, 3, 4], (int x) => (x * 2));
   print('doubled: ${doubled}');
-  int counter = 0;
-  final int Function() increment = ClosureEnv_main_4(counter);
+  IntBox counter = IntBox(0);
+  final int Function() increment = ClosureEnv_main_4(counter).call;
   print('counter: ${increment()}, ${increment()}, ${increment()}');
   print('\n--- 8. 可空类型 ---');
   final List<String> items = <String>['apple', 'banana', 'cherry'];
@@ -401,30 +428,30 @@ List<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(ClosureEnv_ListExten
 }
 
 class ClosureEnv_repeat_2<T> {
-  T item;
+  ObjectBox<T> item;
   ClosureEnv_repeat_2(this.item);
   T call(int _) => ClosureEnv_repeat_2_call<T>(this, _);
 }
 T ClosureEnv_repeat_2_call<T>(ClosureEnv_repeat_2<T> env, int _) {
-  return env.item;
+  return env.item.value;
 }
 
 class ClosureEnv_makeAdder_3 {
-  int base;
+  IntBox base;
   ClosureEnv_makeAdder_3(this.base);
   int call(int x) => ClosureEnv_makeAdder_3_call(this, x);
 }
 int ClosureEnv_makeAdder_3_call(ClosureEnv_makeAdder_3 env, int x) {
-  return (env.base + x);
+  return (env.base.value + x);
 }
 
 class ClosureEnv_main_4 {
-  int counter;
+  IntBox counter;
   ClosureEnv_main_4(this.counter);
   int call() => ClosureEnv_main_4_call(this);
 }
 int ClosureEnv_main_4_call(ClosureEnv_main_4 env) {
-    env.counter = (env.counter + 1);
-    return env.counter;
+    env.counter.value = (env.counter.value + 1);
+    return env.counter.value;
   }
 

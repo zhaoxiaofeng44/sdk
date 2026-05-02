@@ -187,8 +187,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final name = _cleanVarName(expr.variable.name!);
     // 闭包 lowering: 如果变量被捕获到 env 中，加 env. 前缀
     final prefix = _capturedVarEnvPrefix[expr.variable];
-    if (prefix != null) return '$prefix$name';
-    return name;
+    // Bug 11: Box 化访问——被 Box 化的变量读取时追加 .value
+    final boxed = _boxedVars.contains(expr.variable);
+    final suffix = boxed ? '.value' : '';
+    if (prefix != null) return '$prefix$name$suffix';
+    return '$name$suffix';
   }
 
   String _restoreVarSet(VariableSet expr) {
@@ -198,8 +201,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final name = _cleanVarName(expr.variable.name!);
     // 闭包 lowering: 如果变量被捕获到 env 中，加 env. 前缀
     final prefix = _capturedVarEnvPrefix[expr.variable];
-    final qualifiedName = prefix != null ? '$prefix$name' : name;
-    return '$qualifiedName = ${_restoreExpr(expr.value)}';
+    // Bug 11: Box 化访问——被 Box 化的变量写入时目标为 .value
+    final boxed = _boxedVars.contains(expr.variable);
+    final suffix = boxed ? '.value' : '';
+    final base = prefix != null ? '$prefix$name' : name;
+    return '$base$suffix = ${_restoreExpr(expr.value)}';
   }
 
   String _restoreInstanceGet(InstanceGet expr) {
@@ -207,6 +213,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final fieldName = expr.name.text;
 
     final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
+
+    // Bug 16: 私有字段/getter 不在 vtable 中
+    // _collectVTableEntries（dart_restorer.dart:867）跳过 name.startsWith('_') 的 procedure，
+    // 因此私有字段对应的 get_xxx 条目不存在于 vptr。
+    // Dart Kernel 对 final field 会合成隐式 getter Procedure，使得 target.isGetter=true，
+    // 导致私有 final 字段被错误路由到 vtable getter 路径，运行时返回 null 导致 cast 失败。
+    // 修复：私有字段/getter 直接字段访问，绕过 vtable。
+    // 对称场景见 _restoreInstanceSet（私有 setter）和 _restoreInstanceInvocation（Bug 14 私有方法）。
+    if (fieldName.startsWith('_')) {
+      return '$recv.$fieldName';
+    }
 
     // 用户自定义类或 mixin 的 getter 调用 → 通过 Map 查找类型转换
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
@@ -226,6 +243,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (receiverClassName != null && _isEnumName(receiverClassName)) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isGetter) {
+        // SDK 内置枚举属性（name, index, hashCode）直接用属性访问，不生成静态函数
+        // 这些属性来自 Dart SDK 的 Enum/_Enum/_EnumName 等类
+        final declClassName = target.enclosingClass?.name ?? '';
+        if (fieldName == 'name' || fieldName == 'index' || fieldName == 'hashCode'
+            || declClassName == '_Enum' || declClassName == 'Enum'
+            || declClassName == '_EnumName' || declClassName == 'EnumName') {
+          return '$recv.$fieldName';
+        }
         return '${receiverClassName}_get_$fieldName($recv)';
       }
     }
@@ -238,6 +263,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final fieldName = expr.name.text;
 
     final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
+
+    // Bug 16（对称）：私有字段的 setter 不在 vtable 中，直接字段赋值
+    // 见 _restoreInstanceGet 中的详细说明
+    if (fieldName.startsWith('_')) {
+      return '$recv.$fieldName = ${_restoreExpr(expr.value)}';
+    }
 
     // 用户自定义类或 mixin 的 setter 调用 → 通过 Map 查找类型转换
     // 与 _restoreInstanceGet/_restoreInstanceInvocation 的条件保持一致
@@ -384,7 +415,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       if (name == '[]=') {
         final idx = _restoreExpr(expr.arguments.positional[0]);
         final val = _restoreExpr(expr.arguments.positional[1]);
-        final sig = '$returnType Function($thisType, dynamic, dynamic)';
+        final idxType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
+        final valType = expr.functionType.positionalParameters.length > 1
+            ? _restoreTypeForSignature(expr.functionType.positionalParameters[1])
+            : 'dynamic';
+        final sig = '$returnType Function($thisType, $idxType, $valType)';
         return "($recv.vptr['operatorIndexSet'] as $sig)($recv, $idx, $val)";
       }
       // 普通方法 → Map 查找精确类型转换调用
@@ -455,11 +490,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
 
       // 如果方法定义在不同于 receiver 的父类中，或声明类有泛型参数，
+      // 或方法通过 implements 链进入 vtable（Bug 15），
       // 使用 Function 类型 cast 避免签名不匹配的运行时错误
       // （Dart 函数参数类型逆变 + 泛型具体化导致精确签名不安全）
+      //
+      // Bug 15：class Score implements Printable3; class WeightedScore extends Score
+      //   WeightedScore_prettyPrint 的 this_ 类型是 WeightedScoreValue（子类）
+      //   调用点若 cast 为 Function(ScoreValue)，逆变规则下 (Sub)=>X 不是 (Super)=>X 的子类
+      //   → 使用 Function 类型 cast 避开静态签名检查
       final declClass = expr.interfaceTarget.enclosingClass;
       final declHasTypeParams = declClass != null && declClass.typeParameters.isNotEmpty;
-      if (actualClassName != null && (actualClassName != receiverClassName || declHasTypeParams)) {
+      final fromImplements = _isMethodFromImplementsChain(receiverClassName, name, expr.interfaceTarget);
+      if (actualClassName != null && (actualClassName != receiverClassName || declHasTypeParams || fromImplements)) {
         // 使用补齐默认值的参数列表，因为静态函数签名是固定的
         final args = _buildArgsWithDefaults();
         if (args.isEmpty) {
@@ -606,16 +648,48 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (_isMixinName(receiverClassName)) {
       return 'dynamic';
     }
-    // 如果方法定义在有泛型参数的类中，需要检查 receiver 的类型参数
-    // 以确保 vptr 调用处的签名与实际函数签名匹配
-    final declaringClass = target.enclosingClass;
-    if (declaringClass != null && declaringClass.typeParameters.isNotEmpty) {
-      final declClassName = _getActualClassName(declaringClass.name);
-      // 如果声明类有泛型参数，使用 dynamic 避免泛型类型不匹配
-      // 因为 vptr 中存储的函数签名可能用了具体化的类型参数
-      return 'dynamic';
-    }
+    // 委托方法的 this_ 参数始终使用接收者类的 Value 类型
+    // 因为委托方法定义中 this_ 也使用了当前类的 Value 类型
+    // 两边签名必须一致，否则 Dart 的函数类型 cast 会失败
     return '${receiverClassName}Value';
+  }
+
+  /// 检查方法是否通过 implements 链进入 vtable（而非 extends 链）
+  /// 场景：class Score implements Printable3 → prettyPrint 的 declaringClassName='Printable3'
+  /// 此时 Printable3 不在 Score 的 extends 链上，而在 implements 链上
+  /// 返回 true 表示：静态函数的 this_ 类型与调用点 receiver 类型 Value 类无继承关系
+  /// 调用点必须使用 Function 类型 cast（不带参数签名）避免 Dart 编译器静态类型检查失败
+  bool _isMethodFromImplementsChain(String receiverClassName, String methodName, Member target) {
+    final kind = target is Procedure
+        ? (target.isGetter ? 'getter' : target.isSetter ? 'setter' : 'method')
+        : 'method';
+    final entries = _classVTableEntries[receiverClassName];
+    if (entries == null) return false;
+    for (final entry in entries) {
+      if (entry.name == methodName && entry.kind == kind) {
+        final declClassName = entry.declaringClassName;
+        if (declClassName == null
+            || declClassName == receiverClassName
+            || _isMixinName(declClassName)
+            || _syntheticLoweredNames.contains(declClassName)) {
+          return false;
+        }
+        // declaringClass 不在 receiverClassName 的 extends 链上 → 来自 implements 链
+        var current = receiverClassName;
+        final parentMap = <String>{};
+        while (true) {
+          final parent = _getParentClassName(current);
+          if (parent == null || parentMap.contains(parent)) break;
+          parentMap.add(parent);
+          current = parent;
+        }
+        if (!parentMap.contains(declClassName)) {
+          return true;
+        }
+        return false;
+      }
+    }
+    return false;
   }
 
   /// 获取类的实际规范化名称（处理合成 mixin 中间类名）
@@ -632,7 +706,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String? _getReceiverClassNameFromReceiver(Expression receiver, Member? target) {
     // 从 receiver 的变量类型中提取
     if (receiver is VariableGet) {
-      final varType = receiver.variable.type;
+      // 优先使用 promotedType（type promotion 后的类型）
+      // 例如：if (other is WeightedScore) { other.weightedPoints; } 中
+      //   other 的声明类型是 Score，但 promotedType 是 WeightedScore
+      //   调用 weightedPoints 时必须使用 WeightedScore 的 vtable
+      final varType = receiver.promotedType ?? receiver.variable.type;
       if (varType is InterfaceType) {
         final rawName = varType.classNode.name;
         // Value 类名去掉 Value 后缀得到实际类名
@@ -775,6 +853,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 扩展方法调用：函数名包含 | 字符（如 "StringExtensions|capitalize"）
     // 需要将函数名清理为合法标识符，并将 receiver 参数（this_）正确传递
     if (_isExtensionMethodName(name)) {
+      // Bug 25: SDK 内置枚举扩展（EnumName|get#name）→ 直接属性访问
+      // Kernel 将枚举值的 .name getter 编译为 StaticInvocation 调用 EnumName|get#name
+      final pipeIdx = name.indexOf('|');
+      final extensionName = name.substring(0, pipeIdx);
+      final memberPart = name.substring(pipeIdx + 1);
+      if ((extensionName == 'EnumName' || extensionName == '_EnumName') &&
+          memberPart.startsWith('get#')) {
+        final propName = memberPart.substring(4);
+        // receiver 是第一个位置参数
+        if (expr.arguments.positional.isNotEmpty) {
+          final recv = _restoreExpr(expr.arguments.positional.first);
+          return '$recv.$propName';
+        }
+      }
       final cleanedName = _sanitizeExtensionMethodName(name);
       return '$cleanedName($args)';
     }
@@ -817,8 +909,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (target.enclosingClass != null) {
       final className = target.enclosingClass!.name;
       final memberName = target.name.text;
-      // OOP Lowering: 用户自定义类的静态字段/getter → 使用 lowered 名称
-      if (_isUserClass(className)) {
+      // OOP Lowering: 用户自定义类/mixin 的静态字段/getter → 使用 lowered 名称
+      if (_isUserClass(className) || _isMixinName(className)) {
         // 静态字段和静态 getter 都被提升为顶层函数/变量 ClassName_memberName
         // 静态 getter 生成为 ClassName_memberName() 函数
         if (target is Procedure && (target as Procedure).isGetter) {
@@ -826,6 +918,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         }
         // 静态字段 → 顶层变量 ClassName_memberName
         return '${className}_$memberName';
+      }
+      // SDK 扩展类（如 _EnumName）的 getter → 直接在对象上访问
+      // 例如 EnumName.name getter → p.name
+      if (className == '_EnumName' || className == 'EnumName') {
+        return '$memberName'; // 会被上层替换为直接属性访问
       }
       return '$className.$memberName';
     }
@@ -1115,6 +1212,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final blockValue = body.value;
         if (blockValue is VariableGet && blockValue.variable == v) {
           // body 的 value 引用了同一个变量 → 可能是级联
+          // Bug 24: 检查接收者是否是用户自定义类（需要 OOP lowering）
+          // 如果是，级联中的方法调用需要转为 vptr 调用而非 .. 语法
+          final receiverNeedsLowering = _cascadeReceiverNeedsLowering(v);
+          if (receiverNeedsLowering) {
+            // 用户类级联 → 转为 IIFE + vptr 调用
+            final receiver = _restoreExpr(v.initializer!);
+            final tmpName = cleanedName;
+            final stmtBuf = StringBuffer();
+            for (final stmt in body.body.statements) {
+              if (stmt is ExpressionStatement) {
+                // 直接还原表达式（_restoreExpr 中 InstanceInvocation 会自动转为 vptr 调用）
+                stmtBuf.write('${_restoreExpr(stmt.expression)}; ');
+              }
+            }
+            return '(() { final $tmpName = $receiver; ${stmtBuf}return $tmpName; })()';
+          }
           final cascadeOps = _extractCascadeOps(body.body.statements, v);
           if (cascadeOps != null && cascadeOps.isNotEmpty) {
             final receiver = _restoreExpr(v.initializer!);
@@ -1297,12 +1410,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
 
     // 普通变量捕获
+    // Bug 11: 被 Box 化的捕获变量，env 字段类型为 Box 类型（而非原类型），
+    // 构造时传入外层的 Box 实例（外层变量已是 Box，或参数已被包装为 Box）。
+    // 这样多个闭包共享同一个 Box，实现引用语义。
     for (final decl in capturedDecls) {
       final varName = _cleanVarName(decl.name ?? '_cap${_varCounter++}');
       decl.name = varName;
+      final isBoxed = _boxedVars.contains(decl);
+      final typeStr = isBoxed ? _boxTypeNameFor(decl.type) : _restoreType(decl.type);
       capturedFields.add(_CapturedVar(
         name: varName,
-        typeStr: _restoreType(decl.type),
+        typeStr: typeStr,
+        isBoxed: isBoxed,
       ));
     }
 
@@ -1316,23 +1435,46 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       p.name = pName;
     }
 
-    // 构建参数列表字符串（用于 call 方法和静态函数）
-    final callParams = <String>[];
+    // Bug 11: 对闭包自身做预分析，识别哪些参数/局部变量被更深层嵌套闭包捕获
+    // 使得闭包 body 内的 VarDecl/VarGet/VarSet 能正确 Box 化
+    _preanalyzeBoxedVarsForFunc(func);
+
+    // 识别被 Box 化的参数（需要在参数名后加 _raw 后缀，并在函数体开头插入 Box 包装）
+    final boxedParams = <VariableDeclaration>[];
     for (final p in func.positionalParameters) {
-      callParams.add('${_restoreType(p.type)} ${p.name}');
+      if (_boxedVars.contains(p)) boxedParams.add(p);
     }
     for (final p in func.namedParameters) {
-      callParams.add('${_restoreType(p.type)} ${p.name}');
+      if (_boxedVars.contains(p)) boxedParams.add(p);
+    }
+
+    // 构建参数列表字符串（用于 call 方法和静态函数）
+    // 被 Box 化的参数在外部接口上仍是原类型，参数名加 _raw 后缀
+    final callParams = <String>[];
+    for (final p in func.positionalParameters) {
+      final baseName = p.name!;
+      final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
+      callParams.add('${_restoreType(p.type)} $pName');
+    }
+    for (final p in func.namedParameters) {
+      final baseName = p.name!;
+      final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
+      callParams.add('${_restoreType(p.type)} $pName');
     }
     final callParamStr = callParams.join(', ');
 
-    // 参数名列表（用于转发调用）
+    // 参数名列表（用于转发调用 call → staticFunc）：
+    // 转发时直接透传原始参数（_raw 名对应外部接口的传入值），让静态函数内部自己包装 Box
     final callArgNames = <String>[];
     for (final p in func.positionalParameters) {
-      callArgNames.add(p.name!);
+      final baseName = p.name!;
+      final argName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
+      callArgNames.add(argName);
     }
     for (final p in func.namedParameters) {
-      callArgNames.add(p.name!);
+      final baseName = p.name!;
+      final argName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
+      callArgNames.add(argName);
     }
     final callArgStr = callArgNames.join(', ');
 
@@ -1373,8 +1515,23 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 推入闭包上下文（用于嵌套闭包命名）
     _pushClosureContext(envClassName);
 
+    // Bug 11: 在生成闭包 body 之前，切换当前函数参数作用域（用于 _isParameter 判定）
+    final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
+    _currentFunctionParams.clear();
+    _currentFunctionParams.addAll(func.positionalParameters);
+    _currentFunctionParams.addAll(func.namedParameters);
+
+    // Bug 11: 生成参数 Box 包装语句（插入到闭包 body 最开头）
+    // 形式：`BoxType x = BoxType(x_raw);`
+    final paramBoxInitLines = <String>[];
+    for (final p in boxedParams) {
+      final baseName = p.name!;
+      final boxType = _boxTypeNameFor(p.type);
+      paramBoxInitLines.add('  $boxType $baseName = $boxType(${baseName}_raw);\n');
+    }
+
     String bodyStr;
-    if (func.body is ReturnStatement) {
+    if (func.body is ReturnStatement && paramBoxInitLines.isEmpty) {
       final ret = func.body as ReturnStatement;
       if (ret.expression != null) {
         bodyStr = ' {\n  return ${_restoreExpr(ret.expression!)};\n}\n';
@@ -1385,12 +1542,41 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final oldBuf = _buf;
       final tmpBuf = StringBuffer();
       _buf = tmpBuf;
-      _restoreStmt(func.body!);
+      // 若有参数 Box 包装，先写入包装语句；再还原 body
+      if (paramBoxInitLines.isNotEmpty) {
+        tmpBuf.write('{\n');
+        for (final line in paramBoxInitLines) {
+          tmpBuf.write(line);
+        }
+        // body 若本身是 Block，则继续使用其内容但去掉外层大括号
+        if (func.body is Block) {
+          final oldIndent = _indent;
+          _indent = 1;
+          for (final s in (func.body as Block).statements) {
+            _restoreStmt(s);
+          }
+          _indent = oldIndent;
+        } else if (func.body is ReturnStatement) {
+          final ret = func.body as ReturnStatement;
+          if (ret.expression != null) {
+            tmpBuf.write('  return ${_restoreExpr(ret.expression!)};\n');
+          }
+        } else {
+          _restoreStmt(func.body!);
+        }
+        tmpBuf.write('}\n');
+      } else {
+        _restoreStmt(func.body!);
+      }
       _buf = oldBuf;
       bodyStr = ' $tmpBuf';
     } else {
       bodyStr = ' {}\n';
     }
+
+    // 恢复 _currentFunctionParams
+    _currentFunctionParams.clear();
+    _currentFunctionParams.addAll(savedCurrentParams);
 
     _popClosureContext();
 
@@ -1471,7 +1657,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
     }
     final constructArgs = constructArgsList.join(', ');
-    return '$envClassName($constructArgs)';
+    // Bug 27: 闭包环境类虽然有 call 方法，但不能直接 cast 为 Function 类型
+    // 需要追加 .call 将其转为函数引用（tear-off），
+    // 这样 ClosureEnv_xxx(args).call 就是合法的 void Function(params)
+    return '$envClassName($constructArgs).call';
   }
 
   /// 递归收集 DartType 中引用的所有 TypeParameter
@@ -1535,6 +1724,27 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final varType = v.type;
     if (varType is InterfaceType) {
       final className = varType.classNode.name;
+      if (_isUserClass(className) || _isMixinName(className) || _isEnumName(className)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Bug 24: 判断级联操作的接收者是否是用户自定义类（需要 OOP lowering）
+  /// 如果是，级联中的方法调用需要转为 vptr 调用而非 .. 语法
+  bool _cascadeReceiverNeedsLowering(VariableDeclaration v) {
+    final varType = v.type;
+    if (varType is InterfaceType) {
+      final rawName = varType.classNode.name;
+      // Value 类名去掉 Value 后缀得到实际类名
+      if (rawName.endsWith('Value')) {
+        final className = rawName.substring(0, rawName.length - 5);
+        if (_isUserClass(className) || _isMixinName(className) || _isEnumName(className)) {
+          return true;
+        }
+      }
+      final className = _getActualClassName(rawName);
       if (_isUserClass(className) || _isMixinName(className) || _isEnumName(className)) {
         return true;
       }
