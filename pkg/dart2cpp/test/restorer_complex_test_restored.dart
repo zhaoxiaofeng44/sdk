@@ -55,27 +55,30 @@ class ObjectBox<T> {
 class ShapeValue extends VPtr {
 }
 
-void Shape_new(ShapeValue this_) {
+ShapeValue Shape_new(dynamic this__) {
+  final this_ = this__ as ShapeValue;
   this_.vptr['get_name'] = Shape_get_name;
   this_.vptr['area'] = Shape_area;
   this_.vptr['perimeter'] = Shape_perimeter;
   this_.vptr['toString'] = Shape_toString;
+  return this_;
 }
 
-String Shape_get_name(ShapeValue this_) {
+String Shape_get_name(dynamic this_) {
   throw UnimplementedError('Shape.name is abstract');
 }
 
-double Shape_area(ShapeValue this_) {
+double Shape_area(dynamic this_) {
   throw UnimplementedError('Shape.area is abstract');
 }
 
-double Shape_perimeter(ShapeValue this_) {
+double Shape_perimeter(dynamic this_) {
   throw UnimplementedError('Shape.perimeter is abstract');
 }
 
-String Shape_toString(ShapeValue this_) {
-  return '${(this_.vptr['get_name'] as String Function(ShapeValue))(this_)}(area=${(this_.vptr['area'] as double Function(ShapeValue))(this_).toStringAsFixed(2)})';
+String Shape_toString(dynamic this__) {
+  final this_ = this__ as ShapeValue;
+  return '${(this_.vptr['get_name'] as String Function(dynamic))(this_)}(area=${(this_.vptr['area'] as double Function(dynamic))(this_).toStringAsFixed(2)})';
 }
 
 
@@ -84,18 +87,22 @@ class PairValue<A, B> extends VPtr {
   late B second;
 }
 
-void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
+PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
+  final this_ = this__ as PairValue<A, B>;
   this_.vptr['swap'] = Pair_swap<A, B>;
   this_.vptr['toString'] = Pair_toString<A, B>;
   this_.first = first;
   this_.second = second;
+  return this_;
 }
 
-PairValue<B, A> Pair_swap<A, B>(PairValue<A, B> this_) {
-  return (() { final _obj = PairValue<B, A>(); Pair_new(_obj, this_.second, this_.first); return _obj; })();
+PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
+  final this_ = this__ as PairValue<A, B>;
+  return Pair_new<B, A>(PairValue<B, A>(), this_.second, this_.first);
 }
 
-String Pair_toString<A, B>(PairValue<A, B> this_) {
+String Pair_toString<A, B>(dynamic this__) {
+  final this_ = this__ as PairValue<A, B>;
   return '(${this_.first}, ${this_.second})';
 }
 
@@ -104,7 +111,8 @@ class CircleValue extends ShapeValue {
   late double _radius;
 }
 
-void Circle_new(CircleValue this_, double _radius) {
+CircleValue Circle_new(dynamic this__, double _radius) {
+  final this_ = this__ as CircleValue;
   Shape_new(this_);
   this_.vptr['get_name'] = Circle_get_name;
   this_.vptr['area'] = Circle_area;
@@ -113,9 +121,11 @@ void Circle_new(CircleValue this_, double _radius) {
   this_.vptr['get_radius'] = Circle_get_radius;
   this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = _radius;
+  return this_;
 }
 
-void Circle_new_unit(CircleValue this_) {
+CircleValue Circle_new_unit(dynamic this__) {
+  final this_ = this__ as CircleValue;
   Shape_new(this_);
   this_.vptr['get_name'] = Circle_get_name;
   this_.vptr['area'] = Circle_area;
@@ -124,33 +134,37 @@ void Circle_new_unit(CircleValue this_) {
   this_.vptr['get_radius'] = Circle_get_radius;
   this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = 1.0;
+  return this_;
 }
 
-double Circle_get_radius(CircleValue this_) {
+double Circle_get_radius(dynamic this__) {
+  final this_ = this__ as CircleValue;
   return this_._radius;
 }
 
-void Circle_set_radius(CircleValue this_, double value) {
+void Circle_set_radius(dynamic this__, double value) {
+  final this_ = this__ as CircleValue;
   if ((value < 0))   throw ArgumentError('Radius must be non-negative');
   this_._radius = value;
 }
 
-String Circle_get_name(ShapeValue this__) {
+String Circle_get_name(dynamic this__) {
   final this_ = this__ as CircleValue;
   return 'Circle';
 }
 
-double Circle_area(ShapeValue this__) {
+double Circle_area(dynamic this__) {
   final this_ = this__ as CircleValue;
   return ((3.14159265 * this_._radius) * this_._radius);
 }
 
-double Circle_perimeter(ShapeValue this__) {
+double Circle_perimeter(dynamic this__) {
   final this_ = this__ as CircleValue;
   return ((2 * 3.14159265) * this_._radius);
 }
 
-String Circle_toString(CircleValue this_) {
+String Circle_toString(dynamic this__) {
+  final this_ = this__ as CircleValue;
   return Shape_toString(this_);
 }
 
@@ -160,7 +174,8 @@ class RectangleValue extends ShapeValue {
   late double height;
 }
 
-void Rectangle_new(RectangleValue this_, double width, double height) {
+RectangleValue Rectangle_new(dynamic this__, double width, double height) {
+  final this_ = this__ as RectangleValue;
   Shape_new(this_);
   this_.vptr['get_name'] = Rectangle_get_name;
   this_.vptr['area'] = Rectangle_area;
@@ -168,24 +183,26 @@ void Rectangle_new(RectangleValue this_, double width, double height) {
   this_.vptr['toString'] = Rectangle_toString;
   this_.width = width;
   this_.height = height;
+  return this_;
 }
 
-String Rectangle_get_name(ShapeValue this__) {
+String Rectangle_get_name(dynamic this__) {
   final this_ = this__ as RectangleValue;
   return 'Rectangle';
 }
 
-double Rectangle_area(ShapeValue this__) {
+double Rectangle_area(dynamic this__) {
   final this_ = this__ as RectangleValue;
   return (this_.width * this_.height);
 }
 
-double Rectangle_perimeter(ShapeValue this__) {
+double Rectangle_perimeter(dynamic this__) {
   final this_ = this__ as RectangleValue;
   return (2 * (this_.width + this_.height));
 }
 
-String Rectangle_toString(RectangleValue this_) {
+String Rectangle_toString(dynamic this__) {
+  final this_ = this__ as RectangleValue;
   return Shape_toString(this_);
 }
 
@@ -265,23 +282,23 @@ int safeLength(String? text) {
 void main() {
   print('=== 复杂语法节点还原测试 ===\n');
   print('--- 1. 泛型类 Pair ---');
-  final PairValue<String, int> pair = (() { final _obj = PairValue<String, int>(); Pair_new(_obj, 'hello', 42); return _obj; })();
-  final PairValue<int, String> swapped = (pair.vptr['swap'] as Function)(pair);
+  final PairValue<String, int> pair = Pair_new<String, int>(PairValue<String, int>(), 'hello', 42);
+  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(dynamic))(pair);
   print('pair: ${pair}');
   print('swapped: ${swapped}');
   assert((pair.first == 'hello'));
   assert((swapped.first == 42));
   print('\n--- 2. 继承 + 多态 ---');
-  final List<ShapeValue> shapes = <ShapeValue>[(() { final _obj = CircleValue(); Circle_new(_obj, 5.0); return _obj; })(), (() { final _obj = RectangleValue(); Rectangle_new(_obj, 3.0, 4.0); return _obj; })(), (() { final _obj = CircleValue(); Circle_new_unit(_obj); return _obj; })()];
+  final List<ShapeValue> shapes = <ShapeValue>[Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new_unit(CircleValue())];
   for (final shape in shapes) {
-    print('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(ShapeValue))(shape).toStringAsFixed(2)}');
+    print('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
   }
   print('\n--- 3. getter/setter + 异常 ---');
-  final CircleValue circle = (() { final _obj = CircleValue(); Circle_new(_obj, 3.0); return _obj; })();
-  (circle.vptr['set_radius'] as void Function(CircleValue, double))(circle, 5.0);
-  print('radius after set: ${(circle.vptr['get_radius'] as double Function(CircleValue))(circle)}');
+  final CircleValue circle = Circle_new(CircleValue(), 3.0);
+  (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, 5.0);
+  print('radius after set: ${(circle.vptr['get_radius'] as double Function(dynamic))(circle)}');
   try {
-    (circle.vptr['set_radius'] as void Function(CircleValue, double))(circle, (-1.0));
+    (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, (-1.0));
     print('ERROR: should have thrown');
   }
  on ArgumentError catch (e) {
@@ -327,8 +344,8 @@ void main() {
   final List<int> evens = ListExtensions_filterWhere(numbers, (int n) => ((n % 2) == 0));
   print('evens: ${evens}');
   print('\n--- 6. 泛型函数 ---');
-  print('identity<int>(99): ${identity(99)}');
-  print('repeat("x", 3): ${repeat('x', 3)}');
+  print('identity<int>(99): ${identity<int>(99)}');
+  print('repeat("x", 3): ${repeat<String>('x', 3)}');
   print('\n--- 7. 高阶函数 + 闭包 ---');
   final Function add10 = makeAdder(10);
   print('add10(5): ${add10(5)}');

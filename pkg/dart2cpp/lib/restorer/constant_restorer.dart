@@ -208,10 +208,10 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
           ? '<${c.typeArguments.map(_restoreType).join(', ')}>'
           : '';
       final valueType = '${className}Value$typeArgs';
-      // X_new 返回 this_，可直接作为表达式使用
+      // X_new 返回 this_，显式传递泛型类型参数（this_ 为 dynamic 后编译器无法推断）
       return argsStr.isEmpty
-          ? '$funcName($valueType())'
-          : '$funcName($valueType(), $argsStr)';
+          ? '$funcName$typeArgs($valueType())'
+          : '$funcName$typeArgs($valueType(), $argsStr)';
     }
 
     // 回退：使用字段名作为命名参数

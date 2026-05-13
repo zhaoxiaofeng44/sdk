@@ -60,7 +60,8 @@ class TreeNodeValue<T> extends VPtr {
   late TreeNodeValue<T>? right;
 }
 
-void TreeNode_new<T>(TreeNodeValue<T> this_, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
+TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
+  final this_ = this__ as TreeNodeValue<T>;
   this_.vptr['preorder'] = TreeNode_preorder<T>;
   this_.vptr['inorder'] = TreeNode_inorder<T>;
   this_.vptr['get_depth'] = TreeNode_get_depth<T>;
@@ -69,34 +70,40 @@ void TreeNode_new<T>(TreeNodeValue<T> this_, T value, [TreeNodeValue<T>? left = 
   this_.value = value;
   this_.left = left;
   this_.right = right;
+  return this_;
 }
 
-List<T> TreeNode_preorder<T>(TreeNodeValue<T> this_) {
+List<T> TreeNode_preorder<T>(dynamic this__) {
+  final this_ = this__ as TreeNodeValue<T>;
   final List<T> result = <T>[this_.value];
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['preorder'] as Function)(this_.left!));
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['preorder'] as Function)(this_.right!));
+  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['preorder'] as List<T> Function(dynamic))(this_.left!));
+  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['preorder'] as List<T> Function(dynamic))(this_.right!));
   return result;
 }
 
-List<T> TreeNode_inorder<T>(TreeNodeValue<T> this_) {
+List<T> TreeNode_inorder<T>(dynamic this__) {
+  final this_ = this__ as TreeNodeValue<T>;
   final List<T> result = <T>[];
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as Function)(this_.left!));
+  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as List<T> Function(dynamic))(this_.left!));
   result.add(this_.value);
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as Function)(this_.right!));
+  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as List<T> Function(dynamic))(this_.right!));
   return result;
 }
 
-int TreeNode_get_depth<T>(TreeNodeValue<T> this_) {
-  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(TreeNodeValue<T>))(_let1); })() ?? 0);
-  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(TreeNodeValue<T>))(_let3); })() ?? 0);
+int TreeNode_get_depth<T>(dynamic this__) {
+  final this_ = this__ as TreeNodeValue<T>;
+  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(dynamic))(_let1); })() ?? 0);
+  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(dynamic))(_let3); })() ?? 0);
   return (1 + ((leftDepth > rightDepth) ? leftDepth : rightDepth));
 }
 
-TreeNodeValue<R> TreeNode_map<T, R>(TreeNodeValue<T> this_, R Function(T) transform) {
-  return (() { final _obj = TreeNodeValue<R>(); TreeNode_new(_obj, transform(this_.value), (() { final _let4 = this_.left; return (_let4 == null) ? null : TreeNode_map<T, R>(_let4, transform); })(), (() { final _let5 = this_.right; return (_let5 == null) ? null : TreeNode_map<T, R>(_let5, transform); })()); return _obj; })();
+TreeNodeValue<R> TreeNode_map<T, R>(dynamic this__, R Function(T) transform) {
+  final this_ = this__ as TreeNodeValue<T>;
+  return TreeNode_new<R>(TreeNodeValue<R>(), transform(this_.value), (() { final _let4 = this_.left; return (_let4 == null) ? null : TreeNode_map<T, R>(_let4, transform); })(), (() { final _let5 = this_.right; return (_let5 == null) ? null : TreeNode_map<T, R>(_let5, transform); })());
 }
 
-String TreeNode_toString<T>(TreeNodeValue<T> this_) {
+String TreeNode_toString<T>(dynamic this__) {
+  final this_ = this__ as TreeNodeValue<T>;
   return 'TreeNode(${this_.value})';
 }
 
@@ -106,27 +113,31 @@ class LinkedNodeValue<T> extends VPtr {
   late LinkedNodeValue<T>? next;
 }
 
-void LinkedNode_new<T>(LinkedNodeValue<T> this_, T data, [LinkedNodeValue<T>? next = null]) {
+LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>? next = null]) {
+  final this_ = this__ as LinkedNodeValue<T>;
   this_.vptr['reversed'] = LinkedNode_reversed<T>;
   this_.vptr['toList'] = LinkedNode_toList<T>;
   this_.vptr['get_length'] = LinkedNode_get_length<T>;
   this_.vptr['toString'] = LinkedNode_toString<T>;
   this_.data = data;
   this_.next = next;
+  return this_;
 }
 
-LinkedNodeValue<T> LinkedNode_reversed<T>(LinkedNodeValue<T> this_) {
-  if ((this_.next == null))   return (() { final _obj = LinkedNodeValue<T>(); LinkedNode_new(_obj, this_.data); return _obj; })();
-  final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as Function)(this_.next!);
+LinkedNodeValue<T> LinkedNode_reversed<T>(dynamic this__) {
+  final this_ = this__ as LinkedNodeValue<T>;
+  if ((this_.next == null))   return LinkedNode_new<T>(LinkedNodeValue<T>(), this_.data);
+  final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as LinkedNodeValue<T> Function(dynamic))(this_.next!);
   LinkedNodeValue<T> tail = rev;
   while (!((tail.next == null))) {
     tail = tail.next!;
   }
-  tail.next = (() { final _obj = LinkedNodeValue<T>(); LinkedNode_new(_obj, this_.data); return _obj; })();
+  tail.next = LinkedNode_new<T>(LinkedNodeValue<T>(), this_.data);
   return rev;
 }
 
-List<T> LinkedNode_toList<T>(LinkedNodeValue<T> this_) {
+List<T> LinkedNode_toList<T>(dynamic this__) {
+  final this_ = this__ as LinkedNodeValue<T>;
   final List<T> result = <T>[this_.data];
   LinkedNodeValue<T>? current = this_.next;
   while (!((current == null))) {
@@ -136,7 +147,8 @@ List<T> LinkedNode_toList<T>(LinkedNodeValue<T> this_) {
   return result;
 }
 
-int LinkedNode_get_length<T>(LinkedNodeValue<T> this_) {
+int LinkedNode_get_length<T>(dynamic this__) {
+  final this_ = this__ as LinkedNodeValue<T>;
   int count = 1;
   LinkedNodeValue<T>? current = this_.next;
   while (!((current == null))) {
@@ -146,8 +158,9 @@ int LinkedNode_get_length<T>(LinkedNodeValue<T> this_) {
   return count;
 }
 
-String LinkedNode_toString<T>(LinkedNodeValue<T> this_) {
-  return 'LinkedNode(${(this_.vptr['toList'] as Function)(this_).join(' -> ')})';
+String LinkedNode_toString<T>(dynamic this__) {
+  final this_ = this__ as LinkedNodeValue<T>;
+  return 'LinkedNode(${(this_.vptr['toList'] as List<T> Function(dynamic))(this_).join(' -> ')})';
 }
 
 
@@ -157,7 +170,8 @@ class EitherValue<L, R> extends VPtr {
   late bool _isRight;
 }
 
-void Either_new_left<L, R>(EitherValue<L, R> this_, L value) {
+EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
+  final this_ = this__ as EitherValue<L, R>;
   this_.vptr['get_isLeft'] = Either_get_isLeft<L, R>;
   this_.vptr['get_isRight'] = Either_get_isRight<L, R>;
   this_.vptr['get_leftValue'] = Either_get_leftValue<L, R>;
@@ -169,9 +183,11 @@ void Either_new_left<L, R>(EitherValue<L, R> this_, L value) {
   this_._left = value;
   this_._right = null;
   this_._isRight = false;
+  return this_;
 }
 
-void Either_new_right<L, R>(EitherValue<L, R> this_, R value) {
+EitherValue<L, R> Either_new_right<L, R>(dynamic this__, R value) {
+  final this_ = this__ as EitherValue<L, R>;
   this_.vptr['get_isLeft'] = Either_get_isLeft<L, R>;
   this_.vptr['get_isRight'] = Either_get_isRight<L, R>;
   this_.vptr['get_leftValue'] = Either_get_leftValue<L, R>;
@@ -183,62 +199,74 @@ void Either_new_right<L, R>(EitherValue<L, R> this_, R value) {
   this_._left = null;
   this_._right = value;
   this_._isRight = true;
+  return this_;
 }
 
-bool Either_get_isLeft<L, R>(EitherValue<L, R> this_) {
+bool Either_get_isLeft<L, R>(dynamic this__) {
+  final this_ = this__ as EitherValue<L, R>;
   return !(this_._isRight);
 }
 
-bool Either_get_isRight<L, R>(EitherValue<L, R> this_) {
+bool Either_get_isRight<L, R>(dynamic this__) {
+  final this_ = this__ as EitherValue<L, R>;
   return this_._isRight;
 }
 
-L Either_get_leftValue<L, R>(EitherValue<L, R> this_) {
-  if (!((this_.vptr['get_isLeft'] as bool Function(EitherValue<L, R>))(this_)))   throw StateError('Not a left value');
+L Either_get_leftValue<L, R>(dynamic this__) {
+  final this_ = this__ as EitherValue<L, R>;
+  if (!((this_.vptr['get_isLeft'] as bool Function(dynamic))(this_)))   throw StateError('Not a left value');
   return (this_._left as L);
 }
 
-R Either_get_rightValue<L, R>(EitherValue<L, R> this_) {
-  if (!((this_.vptr['get_isRight'] as bool Function(EitherValue<L, R>))(this_)))   throw StateError('Not a right value');
+R Either_get_rightValue<L, R>(dynamic this__) {
+  final this_ = this__ as EitherValue<L, R>;
+  if (!((this_.vptr['get_isRight'] as bool Function(dynamic))(this_)))   throw StateError('Not a right value');
   return (this_._right as R);
 }
 
-T Either_fold<L, R, T>(EitherValue<L, R> this_, T Function(L) onLeft, T Function(R) onRight) {
+T Either_fold<L, R, T>(dynamic this__, T Function(L) onLeft, T Function(R) onRight) {
+  final this_ = this__ as EitherValue<L, R>;
   if (this_._isRight)   return onRight((this_._right as R));
   return onLeft((this_._left as L));
 }
 
-EitherValue<L, R2> Either_mapRight<L, R, R2>(EitherValue<L, R> this_, R2 Function(R) transform) {
-  if (this_._isRight)   return (() { final _obj = EitherValue<L, R2>(); Either_new_right(_obj, transform((this_._right as R))); return _obj; })();
-  return (() { final _obj = EitherValue<L, R2>(); Either_new_left(_obj, (this_._left as L)); return _obj; })();
+EitherValue<L, R2> Either_mapRight<L, R, R2>(dynamic this__, R2 Function(R) transform) {
+  final this_ = this__ as EitherValue<L, R>;
+  if (this_._isRight)   return Either_new_right<L, R2>(EitherValue<L, R2>(), transform((this_._right as R)));
+  return Either_new_left<L, R2>(EitherValue<L, R2>(), (this_._left as L));
 }
 
-EitherValue<L, R2> Either_flatMap<L, R, R2>(EitherValue<L, R> this_, EitherValue<L, R2> Function(R) transform) {
+EitherValue<L, R2> Either_flatMap<L, R, R2>(dynamic this__, EitherValue<L, R2> Function(R) transform) {
+  final this_ = this__ as EitherValue<L, R>;
   if (this_._isRight)   return transform((this_._right as R));
-  return (() { final _obj = EitherValue<L, R2>(); Either_new_left(_obj, (this_._left as L)); return _obj; })();
+  return Either_new_left<L, R2>(EitherValue<L, R2>(), (this_._left as L));
 }
 
-String Either_toString<L, R>(EitherValue<L, R> this_) {
+String Either_toString<L, R>(dynamic this__) {
+  final this_ = this__ as EitherValue<L, R>;
   if (this_._isRight)   return 'Right(${this_._right})';
   return 'Left(${this_._left})';
 }
 
 
 // mixin Serializable → static functions for delegation
-String Serializable_serialize(dynamic this_) {
-  final Map<String, dynamic> map = (this_.vptr['toMap'] as Function)(this_);
+String Serializable_serialize(dynamic this__) {
+  final this_ = this__;
+  final Map<String, dynamic> map = (this_.vptr['toMap'] as Map<String, dynamic> Function(dynamic))(this_);
   final String entries = map.entries.map((MapEntry<String, dynamic> e) => '${e.key}=${e.value}').join(', ');
   return '{${entries}}';
 }
 
 
 // mixin Validatable → static functions for delegation
-bool Validatable_get_isValid(dynamic this_) {
-  return (this_.vptr['validate'] as Function)(this_).isEmpty;
+bool Validatable_get_isValid(dynamic this__) {
+  final this_ = this__;
+  return (this_.vptr['validate'] as List<String> Function(dynamic))(this_).isEmpty;
 }
 
-String Validatable_get_validationSummary(dynamic this_) {
-  final List<String> errors = (this_.vptr['validate'] as Function)(this_);
+String Validatable_get_validationSummary(dynamic this__) {
+  final this_ = this__;
+  final List<String> errors = (this_.vptr['validate'] as List<String> Function(dynamic))(this_);
   if (errors.isEmpty)   return 'valid';
   return 'invalid: ${errors.join('; ')}';
 }
@@ -252,7 +280,9 @@ class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue 
   late int age;
 }
 
-void UserProfile_new(UserProfileValue this_, String name, String email, int age) {
+UserProfileValue UserProfile_new(dynamic this__, String name, String email, int age) {
+  final this_ = this__ as UserProfileValue;
+  UserProfile_Object_Serializable_Validatable_init(this_);
   this_.vptr['toMap'] = UserProfile_toMap;
   this_.vptr['serialize'] = UserProfile_serialize;
   this_.vptr['validate'] = UserProfile_validate;
@@ -262,13 +292,16 @@ void UserProfile_new(UserProfileValue this_, String name, String email, int age)
   this_.name = name;
   this_.email = email;
   this_.age = age;
+  return this_;
 }
 
-Map<String, dynamic> UserProfile_toMap(UserProfileValue this_) {
+Map<String, dynamic> UserProfile_toMap(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   return <String, dynamic>{'name': this_.name, 'email': this_.email, 'age': this_.age};
 }
 
-List<String> UserProfile_validate(UserProfileValue this_) {
+List<String> UserProfile_validate(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   final List<String> errors = <String>[];
   if (this_.name.isEmpty)   errors.add('name is empty');
   if (!(this_.email.contains('@')))   errors.add('invalid email');
@@ -276,19 +309,23 @@ List<String> UserProfile_validate(UserProfileValue this_) {
   return errors;
 }
 
-String UserProfile_toString(UserProfileValue this_) {
+String UserProfile_toString(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   return 'UserProfile(${this_.name}, ${this_.email}, ${this_.age})';
 }
 
-String UserProfile_serialize(UserProfileValue this_) {
+String UserProfile_serialize(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   return Serializable_serialize(this_);
 }
 
-bool UserProfile_get_isValid(UserProfileValue this_) {
+bool UserProfile_get_isValid(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   return Validatable_get_isValid(this_);
 }
 
-String UserProfile_get_validationSummary(UserProfileValue this_) {
+String UserProfile_get_validationSummary(dynamic this__) {
+  final this_ = this__ as UserProfileValue;
   return Validatable_get_validationSummary(this_);
 }
 
@@ -296,28 +333,33 @@ String UserProfile_get_validationSummary(UserProfileValue this_) {
 class DataTransformerValue<TInput, TOutput> extends VPtr {
 }
 
-void DataTransformer_new<TInput, TOutput>(DataTransformerValue<TInput, TOutput> this_) {
+DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(dynamic this__) {
+  final this_ = this__ as DataTransformerValue<TInput, TOutput>;
   this_.vptr['transform'] = DataTransformer_transform<TInput, TOutput>;
   this_.vptr['preValidate'] = DataTransformer_preValidate<TInput, TOutput>;
   this_.vptr['process'] = DataTransformer_process<TInput, TOutput>;
   this_.vptr['postProcess'] = DataTransformer_postProcess<TInput, TOutput>;
+  return this_;
 }
 
-TOutput DataTransformer_transform<TInput, TOutput>(DataTransformerValue<TInput, TOutput> this_, TInput input) {
-  final TInput validated = (this_.vptr['preValidate'] as Function)(this_, input);
-  final TOutput processed = (this_.vptr['process'] as Function)(this_, validated);
-  return (this_.vptr['postProcess'] as Function)(this_, processed);
+TOutput DataTransformer_transform<TInput, TOutput>(dynamic this__, TInput input) {
+  final this_ = this__ as DataTransformerValue<TInput, TOutput>;
+  final TInput validated = (this_.vptr['preValidate'] as TInput Function(dynamic, TInput))(this_, input);
+  final TOutput processed = (this_.vptr['process'] as TOutput Function(dynamic, TInput))(this_, validated);
+  return (this_.vptr['postProcess'] as TOutput Function(dynamic, TOutput))(this_, processed);
 }
 
-TInput DataTransformer_preValidate<TInput, TOutput>(DataTransformerValue<TInput, TOutput> this_, TInput input) {
+TInput DataTransformer_preValidate<TInput, TOutput>(dynamic this__, TInput input) {
+  final this_ = this__ as DataTransformerValue<TInput, TOutput>;
   return input;
 }
 
-TOutput DataTransformer_process<TInput, TOutput>(DataTransformerValue<TInput, TOutput> this_, TInput input) {
+TOutput DataTransformer_process<TInput, TOutput>(dynamic this_, TInput input) {
   throw UnimplementedError('DataTransformer.process is abstract');
 }
 
-TOutput DataTransformer_postProcess<TInput, TOutput>(DataTransformerValue<TInput, TOutput> this_, TOutput output) {
+TOutput DataTransformer_postProcess<TInput, TOutput>(dynamic this__, TOutput output) {
+  final this_ = this__ as DataTransformerValue<TInput, TOutput>;
   return output;
 }
 
@@ -325,29 +367,33 @@ TOutput DataTransformer_postProcess<TInput, TOutput>(DataTransformerValue<TInput
 class StringToIntTransformerValue extends DataTransformerValue<String, int> {
 }
 
-void StringToIntTransformer_new(StringToIntTransformerValue this_) {
+StringToIntTransformerValue StringToIntTransformer_new(dynamic this__) {
+  final this_ = this__ as StringToIntTransformerValue;
   DataTransformer_new(this_);
   this_.vptr['transform'] = StringToIntTransformer_transform;
   this_.vptr['preValidate'] = StringToIntTransformer_preValidate;
   this_.vptr['process'] = StringToIntTransformer_process;
   this_.vptr['postProcess'] = StringToIntTransformer_postProcess;
+  return this_;
 }
 
-String StringToIntTransformer_preValidate(DataTransformerValue<String, int> this__, String input) {
+String StringToIntTransformer_preValidate(dynamic this__, String input) {
   final this_ = this__ as StringToIntTransformerValue;
   return input.trim();
 }
 
-int StringToIntTransformer_process(DataTransformerValue<String, int> this__, String input) {
+int StringToIntTransformer_process(dynamic this__, String input) {
   final this_ = this__ as StringToIntTransformerValue;
   return int.parse(input);
 }
 
-int StringToIntTransformer_transform(StringToIntTransformerValue this_, String input) {
+int StringToIntTransformer_transform(dynamic this__, String input) {
+  final this_ = this__ as StringToIntTransformerValue;
   return DataTransformer_transform<String, int>(this_, input);
 }
 
-int StringToIntTransformer_postProcess(StringToIntTransformerValue this_, int output) {
+int StringToIntTransformer_postProcess(dynamic this__, int output) {
+  final this_ = this__ as StringToIntTransformerValue;
   return DataTransformer_postProcess<String, int>(this_, output);
 }
 
@@ -356,30 +402,34 @@ class IntToStringTransformerValue extends DataTransformerValue<int, String> {
   late String prefix;
 }
 
-void IntToStringTransformer_new(IntToStringTransformerValue this_, [String prefix = '']) {
+IntToStringTransformerValue IntToStringTransformer_new(dynamic this__, [String prefix = '']) {
+  final this_ = this__ as IntToStringTransformerValue;
   DataTransformer_new(this_);
   this_.vptr['transform'] = IntToStringTransformer_transform;
   this_.vptr['preValidate'] = IntToStringTransformer_preValidate;
   this_.vptr['process'] = IntToStringTransformer_process;
   this_.vptr['postProcess'] = IntToStringTransformer_postProcess;
   this_.prefix = prefix;
+  return this_;
 }
 
-String IntToStringTransformer_process(DataTransformerValue<int, String> this__, int input) {
+String IntToStringTransformer_process(dynamic this__, int input) {
   final this_ = this__ as IntToStringTransformerValue;
   return '${this_.prefix}${input.toString()}';
 }
 
-String IntToStringTransformer_postProcess(DataTransformerValue<int, String> this__, String output) {
+String IntToStringTransformer_postProcess(dynamic this__, String output) {
   final this_ = this__ as IntToStringTransformerValue;
   return output.toUpperCase();
 }
 
-String IntToStringTransformer_transform(IntToStringTransformerValue this_, int input) {
+String IntToStringTransformer_transform(dynamic this__, int input) {
+  final this_ = this__ as IntToStringTransformerValue;
   return DataTransformer_transform<int, String>(this_, input);
 }
 
-int IntToStringTransformer_preValidate(IntToStringTransformerValue this_, int input) {
+int IntToStringTransformer_preValidate(dynamic this__, int input) {
+  final this_ = this__ as IntToStringTransformerValue;
   return DataTransformer_preValidate<int, String>(this_, input);
 }
 
@@ -389,7 +439,8 @@ class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
   late DataTransformerValue<B, C> second;
 }
 
-void ChainedTransformer_new<A, B, C>(ChainedTransformerValue<A, B, C> this_, DataTransformerValue<A, B> first, DataTransformerValue<B, C> second) {
+ChainedTransformerValue<A, B, C> ChainedTransformer_new<A, B, C>(dynamic this__, DataTransformerValue<A, B> first, DataTransformerValue<B, C> second) {
+  final this_ = this__ as ChainedTransformerValue<A, B, C>;
   DataTransformer_new(this_);
   this_.vptr['transform'] = ChainedTransformer_transform<A, B, C>;
   this_.vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
@@ -397,23 +448,27 @@ void ChainedTransformer_new<A, B, C>(ChainedTransformerValue<A, B, C> this_, Dat
   this_.vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
   this_.first = first;
   this_.second = second;
+  return this_;
 }
 
-C ChainedTransformer_process<A, B, C>(DataTransformerValue<A, C> this__, A input) {
+C ChainedTransformer_process<A, B, C>(dynamic this__, A input) {
   final this_ = this__ as ChainedTransformerValue<A, B, C>;
-  final B intermediate = (this_.first.vptr['transform'] as Function)(this_.first, input);
-  return (this_.second.vptr['transform'] as Function)(this_.second, intermediate);
+  final B intermediate = (this_.first.vptr['transform'] as B Function(dynamic, A))(this_.first, input);
+  return (this_.second.vptr['transform'] as C Function(dynamic, B))(this_.second, intermediate);
 }
 
-C ChainedTransformer_transform<A, B, C>(ChainedTransformerValue<A, B, C> this_, A input) {
+C ChainedTransformer_transform<A, B, C>(dynamic this__, A input) {
+  final this_ = this__ as ChainedTransformerValue<A, B, C>;
   return DataTransformer_transform<A, C>(this_, input);
 }
 
-A ChainedTransformer_preValidate<A, B, C>(ChainedTransformerValue<A, B, C> this_, A input) {
+A ChainedTransformer_preValidate<A, B, C>(dynamic this__, A input) {
+  final this_ = this__ as ChainedTransformerValue<A, B, C>;
   return DataTransformer_preValidate<A, C>(this_, input);
 }
 
-C ChainedTransformer_postProcess<A, B, C>(ChainedTransformerValue<A, B, C> this_, C output) {
+C ChainedTransformer_postProcess<A, B, C>(dynamic this__, C output) {
+  final this_ = this__ as ChainedTransformerValue<A, B, C>;
   return DataTransformer_postProcess<A, C>(this_, output);
 }
 
@@ -423,8 +478,9 @@ class RegistryValue extends VPtr {
   late int _accessCount;
 }
 
-final RegistryValue Registry__instance = (() { final _obj = RegistryValue(); Registry_new__internal(_obj); return _obj; })();
-void Registry_new__internal(RegistryValue this_) {
+final RegistryValue Registry__instance = Registry_new__internal(RegistryValue());
+RegistryValue Registry_new__internal(dynamic this__) {
+  final this_ = this__ as RegistryValue;
   this_.vptr['register'] = Registry_register;
   this_.vptr['lookup'] = Registry_lookup;
   this_.vptr['contains'] = Registry_contains;
@@ -435,52 +491,63 @@ void Registry_new__internal(RegistryValue this_) {
   this_.vptr['toString'] = Registry_toString;
   this_._store = <String, dynamic>{};
   this_._accessCount = 0;
+  return this_;
 }
 
 RegistryValue Registry_new() {
   return Registry__instance;
 }
 
-void Registry_register(RegistryValue this_, String key, dynamic value) {
+void Registry_register(dynamic this__, String key, dynamic value) {
+  final this_ = this__ as RegistryValue;
   this_._store[key] = value;
   this_._accessCount = (this_._accessCount + 1);
 }
 
-dynamic Registry_lookup(RegistryValue this_, String key) {
+dynamic Registry_lookup(dynamic this__, String key) {
+  final this_ = this__ as RegistryValue;
   this_._accessCount = (this_._accessCount + 1);
   return this_._store[key];
 }
 
-bool Registry_contains(RegistryValue this_, String key) {
+bool Registry_contains(dynamic this__, String key) {
+  final this_ = this__ as RegistryValue;
   return this_._store.containsKey(key);
 }
 
-int Registry_get_size(RegistryValue this_) {
+int Registry_get_size(dynamic this__) {
+  final this_ = this__ as RegistryValue;
   return this_._store.length;
 }
 
-int Registry_get_accessCount(RegistryValue this_) {
+int Registry_get_accessCount(dynamic this__) {
+  final this_ = this__ as RegistryValue;
   return this_._accessCount;
 }
 
-List<String> Registry_get_keys(RegistryValue this_) {
+List<String> Registry_get_keys(dynamic this__) {
+  final this_ = this__ as RegistryValue;
   return (this_._store.keys.toList()..sort());
 }
 
-void Registry_clear(RegistryValue this_) {
+void Registry_clear(dynamic this__) {
+  final this_ = this__ as RegistryValue;
   this_._store.clear();
   this_._accessCount = 0;
 }
 
-String Registry_toString(RegistryValue this_) {
-  return 'Registry(size=${(this_.vptr['get_size'] as int Function(RegistryValue))(this_)}, accesses=${(this_.vptr['get_accessCount'] as int Function(RegistryValue))(this_)})';
+String Registry_toString(dynamic this__) {
+  final this_ = this__ as RegistryValue;
+  return 'Registry(size=${(this_.vptr['get_size'] as int Function(dynamic))(this_)}, accesses=${(this_.vptr['get_accessCount'] as int Function(dynamic))(this_)})';
 }
 
 
 class DataProcessorValue extends VPtr {
 }
 
-void DataProcessor_new(DataProcessorValue this_) {
+DataProcessorValue DataProcessor_new(dynamic this__) {
+  final this_ = this__ as DataProcessorValue;
+  return this_;
 }
 
 List<Map<String, dynamic>> DataProcessor_processRecords(List<Map<String, dynamic>> records) {
@@ -521,14 +588,17 @@ class ExpensiveComputationValue extends VPtr {
   late String description;
 }
 
-void ExpensiveComputation_new(ExpensiveComputationValue this_, int seed) {
+ExpensiveComputationValue ExpensiveComputation_new(dynamic this__, int seed) {
+  final this_ = this__ as ExpensiveComputationValue;
   this_.vptr['initialize'] = ExpensiveComputation_initialize;
   this_.vptr['toString'] = ExpensiveComputation_toString;
   this_.seed = seed;
   this_.computedValue = ExpensiveComputation__computeExpensive(this_);
+  return this_;
 }
 
-int ExpensiveComputation__computeExpensive(ExpensiveComputationValue this_) {
+int ExpensiveComputation__computeExpensive(dynamic this__) {
+  final this_ = this__ as ExpensiveComputationValue;
   int result = this_.seed;
   for (var i = 0; (i < 10); i = (i + 1)) {
     result = (((result * 31) + 17) % 1000);
@@ -536,11 +606,13 @@ int ExpensiveComputation__computeExpensive(ExpensiveComputationValue this_) {
   return result;
 }
 
-void ExpensiveComputation_initialize(ExpensiveComputationValue this_, String desc) {
+void ExpensiveComputation_initialize(dynamic this__, String desc) {
+  final this_ = this__ as ExpensiveComputationValue;
   this_.description = desc;
 }
 
-String ExpensiveComputation_toString(ExpensiveComputationValue this_) {
+String ExpensiveComputation_toString(dynamic this__) {
+  final this_ = this__ as ExpensiveComputationValue;
   return 'ExpensiveComputation(seed=${this_.seed}, computed=${this_.computedValue})';
 }
 
@@ -548,7 +620,9 @@ String ExpensiveComputation_toString(ExpensiveComputationValue this_) {
 class MathUtilsValue extends VPtr {
 }
 
-void MathUtils_new(MathUtilsValue this_) {
+MathUtilsValue MathUtils_new(dynamic this__) {
+  final this_ = this__ as MathUtilsValue;
+  return this_;
 }
 
 int MathUtils_fibonacci(int n) {
@@ -598,11 +672,13 @@ int MathUtils_lcm(int a, int b) {
 class Printable3Value extends VPtr {
 }
 
-void Printable3_new(Printable3Value this_) {
+Printable3Value Printable3_new(dynamic this__) {
+  final this_ = this__ as Printable3Value;
   this_.vptr['prettyPrint'] = Printable3_prettyPrint;
+  return this_;
 }
 
-String Printable3_prettyPrint(Printable3Value this_) {
+String Printable3_prettyPrint(dynamic this_) {
   throw UnimplementedError('Printable3.prettyPrint is abstract');
 }
 
@@ -612,7 +688,8 @@ class ScoreValue extends VPtr implements Printable3Value {
   late int points;
 }
 
-void Score_new(ScoreValue this_, String subject, int points) {
+ScoreValue Score_new(dynamic this__, String subject, int points) {
+  final this_ = this__ as ScoreValue;
   this_.vptr['prettyPrint'] = Score_prettyPrint;
   this_.vptr['compareTo2'] = Score_compareTo2;
   this_.vptr['isLessThan'] = Score_isLessThan;
@@ -620,25 +697,31 @@ void Score_new(ScoreValue this_, String subject, int points) {
   this_.vptr['toString'] = Score_toString;
   this_.subject = subject;
   this_.points = points;
+  return this_;
 }
 
-int Score_compareTo2(ScoreValue this_, ScoreValue other) {
+int Score_compareTo2(dynamic this__, ScoreValue other) {
+  final this_ = this__ as ScoreValue;
   return this_.points.compareTo(other.points);
 }
 
-bool Score_isLessThan(ScoreValue this_, ScoreValue other) {
-  return ((this_.vptr['compareTo2'] as int Function(ScoreValue, ScoreValue))(this_, other) < 0);
+bool Score_isLessThan(dynamic this__, ScoreValue other) {
+  final this_ = this__ as ScoreValue;
+  return ((this_.vptr['compareTo2'] as int Function(dynamic, ScoreValue))(this_, other) < 0);
 }
 
-bool Score_isGreaterThan(ScoreValue this_, ScoreValue other) {
-  return ((this_.vptr['compareTo2'] as int Function(ScoreValue, ScoreValue))(this_, other) > 0);
+bool Score_isGreaterThan(dynamic this__, ScoreValue other) {
+  final this_ = this__ as ScoreValue;
+  return ((this_.vptr['compareTo2'] as int Function(dynamic, ScoreValue))(this_, other) > 0);
 }
 
-String Score_prettyPrint(ScoreValue this_) {
+String Score_prettyPrint(dynamic this__) {
+  final this_ = this__ as ScoreValue;
   return '[${this_.subject}: ${this_.points} pts]';
 }
 
-String Score_toString(ScoreValue this_) {
+String Score_toString(dynamic this__) {
+  final this_ = this__ as ScoreValue;
   return 'Score(${this_.subject}, ${this_.points})';
 }
 
@@ -647,7 +730,8 @@ class WeightedScoreValue extends ScoreValue {
   late double weight;
 }
 
-void WeightedScore_new(WeightedScoreValue this_, String subject, int points, double weight) {
+WeightedScoreValue WeightedScore_new(dynamic this__, String subject, int points, double weight) {
+  final this_ = this__ as WeightedScoreValue;
   Score_new(this_, subject, points);
   this_.vptr['prettyPrint'] = WeightedScore_prettyPrint;
   this_.vptr['compareTo2'] = WeightedScore_compareTo2;
@@ -656,34 +740,39 @@ void WeightedScore_new(WeightedScoreValue this_, String subject, int points, dou
   this_.vptr['toString'] = WeightedScore_toString;
   this_.vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
   this_.weight = weight;
+  return this_;
 }
 
-double WeightedScore_get_weightedPoints(WeightedScoreValue this_) {
+double WeightedScore_get_weightedPoints(dynamic this__) {
+  final this_ = this__ as WeightedScoreValue;
   return (this_.points * this_.weight);
 }
 
-int WeightedScore_compareTo2(ScoreValue this__, ScoreValue other) {
+int WeightedScore_compareTo2(dynamic this__, ScoreValue other) {
   final this_ = this__ as WeightedScoreValue;
   if ((other is WeightedScoreValue)) {
-    return (this_.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(this_).compareTo((other.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(other));
+    return (this_.vptr['get_weightedPoints'] as double Function(dynamic))(this_).compareTo((other.vptr['get_weightedPoints'] as double Function(dynamic))(other));
   }
   return Score_compareTo2(this_, other);
 }
 
-String WeightedScore_prettyPrint(WeightedScoreValue this_) {
-  return '[${this_.subject}: ${this_.points} pts × ${this_.weight} = ${(this_.vptr['get_weightedPoints'] as double Function(WeightedScoreValue))(this_).toStringAsFixed(1)}]';
+String WeightedScore_prettyPrint(dynamic this__) {
+  final this_ = this__ as WeightedScoreValue;
+  return '[${this_.subject}: ${this_.points} pts × ${this_.weight} = ${(this_.vptr['get_weightedPoints'] as double Function(dynamic))(this_).toStringAsFixed(1)}]';
 }
 
-String WeightedScore_toString(ScoreValue this__) {
+String WeightedScore_toString(dynamic this__) {
   final this_ = this__ as WeightedScoreValue;
   return 'WeightedScore(${this_.subject}, ${this_.points}, w=${this_.weight})';
 }
 
-bool WeightedScore_isLessThan(WeightedScoreValue this_, ScoreValue other) {
+bool WeightedScore_isLessThan(dynamic this__, ScoreValue other) {
+  final this_ = this__ as WeightedScoreValue;
   return Score_isLessThan(this_, other);
 }
 
-bool WeightedScore_isGreaterThan(WeightedScoreValue this_, ScoreValue other) {
+bool WeightedScore_isGreaterThan(dynamic this__, ScoreValue other) {
+  final this_ = this__ as WeightedScoreValue;
   return Score_isGreaterThan(this_, other);
 }
 
@@ -691,7 +780,9 @@ bool WeightedScore_isGreaterThan(WeightedScoreValue this_, ScoreValue other) {
 class TextProcessorValue extends VPtr {
 }
 
-void TextProcessor_new(TextProcessorValue this_) {
+TextProcessorValue TextProcessor_new(dynamic this__) {
+  final this_ = this__ as TextProcessorValue;
+  return this_;
 }
 
 String TextProcessor_camelToSnake(String input) {
@@ -789,7 +880,9 @@ bool Season_get_isWarm(Season this_) {
 class JsonLikeProcessorValue extends VPtr {
 }
 
-void JsonLikeProcessor_new(JsonLikeProcessorValue this_) {
+JsonLikeProcessorValue JsonLikeProcessor_new(dynamic this__) {
+  final this_ = this__ as JsonLikeProcessorValue;
+  return this_;
 }
 
 dynamic JsonLikeProcessor_deepMerge(Map<String, dynamic> base, Map<String, dynamic> overlay) {
@@ -826,7 +919,8 @@ class Matrix2DValue extends VPtr {
   late int cols;
 }
 
-void Matrix2D_new(Matrix2DValue this_, List<List<double>> _data) {
+Matrix2DValue Matrix2D_new(dynamic this__, List<List<double>> _data) {
+  final this_ = this__ as Matrix2DValue;
   this_.vptr['get'] = Matrix2D_get;
   this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
   this_.vptr['operatorStar'] = Matrix2D_operatorStar;
@@ -835,9 +929,11 @@ void Matrix2D_new(Matrix2DValue this_, List<List<double>> _data) {
   this_._data = _data;
   this_.rows = _data.length;
   this_.cols = (_data.isEmpty ? 0 : _data[0].length);
+  return this_;
 }
 
-void Matrix2D_new_zeros(Matrix2DValue this_, int rows, int cols) {
+Matrix2DValue Matrix2D_new_zeros(dynamic this__, int rows, int cols) {
+  final this_ = this__ as Matrix2DValue;
   this_.vptr['get'] = Matrix2D_get;
   this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
   this_.vptr['operatorStar'] = Matrix2D_operatorStar;
@@ -846,9 +942,11 @@ void Matrix2D_new_zeros(Matrix2DValue this_, int rows, int cols) {
   this_.rows = rows;
   this_.cols = cols;
   this_._data = List.generate(rows, ClosureEnv_anon_0(cols).call);
+  return this_;
 }
 
-void Matrix2D_new_identity(Matrix2DValue this_, int size) {
+Matrix2DValue Matrix2D_new_identity(dynamic this__, int size) {
+  final this_ = this__ as Matrix2DValue;
   this_.vptr['get'] = Matrix2D_get;
   this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
   this_.vptr['operatorStar'] = Matrix2D_operatorStar;
@@ -857,14 +955,17 @@ void Matrix2D_new_identity(Matrix2DValue this_, int size) {
   this_.rows = size;
   this_.cols = size;
   this_._data = List.generate(size, ClosureEnv_anon_1(size).call);
+  return this_;
 }
 
-double Matrix2D_get(Matrix2DValue this_, int row, int col) {
+double Matrix2D_get(dynamic this__, int row, int col) {
+  final this_ = this__ as Matrix2DValue;
   return this_._data[row][col];
 }
 
-Matrix2DValue Matrix2D_operatorPlus(Matrix2DValue this_, Matrix2DValue other) {
-  final Matrix2DValue result = (() { final _obj = Matrix2DValue(); Matrix2D_new_zeros(_obj, this_.rows, this_.cols); return _obj; })();
+Matrix2DValue Matrix2D_operatorPlus(dynamic this__, Matrix2DValue other) {
+  final this_ = this__ as Matrix2DValue;
+  final Matrix2DValue result = Matrix2D_new_zeros(Matrix2DValue(), this_.rows, this_.cols);
   for (var i = 0; (i < this_.rows); i = (i + 1)) {
     for (var j = 0; (j < this_.cols); j = (j + 1)) {
       result._data[i][j] = (this_._data[i][j] + other._data[i][j]);
@@ -873,8 +974,9 @@ Matrix2DValue Matrix2D_operatorPlus(Matrix2DValue this_, Matrix2DValue other) {
   return result;
 }
 
-Matrix2DValue Matrix2D_operatorStar(Matrix2DValue this_, Matrix2DValue other) {
-  final Matrix2DValue result = (() { final _obj = Matrix2DValue(); Matrix2D_new_zeros(_obj, this_.rows, other.cols); return _obj; })();
+Matrix2DValue Matrix2D_operatorStar(dynamic this__, Matrix2DValue other) {
+  final this_ = this__ as Matrix2DValue;
+  final Matrix2DValue result = Matrix2D_new_zeros(Matrix2DValue(), this_.rows, other.cols);
   for (var i = 0; (i < this_.rows); i = (i + 1)) {
     for (var j = 0; (j < other.cols); j = (j + 1)) {
       double sum = 0.0;
@@ -887,7 +989,8 @@ Matrix2DValue Matrix2D_operatorStar(Matrix2DValue this_, Matrix2DValue other) {
   return result;
 }
 
-double Matrix2D_get_trace(Matrix2DValue this_) {
+double Matrix2D_get_trace(dynamic this__) {
+  final this_ = this__ as Matrix2DValue;
   double sum = 0.0;
   final int minDim = ((this_.rows < this_.cols) ? this_.rows : this_.cols);
   for (var i = 0; (i < minDim); i = (i + 1)) {
@@ -896,7 +999,8 @@ double Matrix2D_get_trace(Matrix2DValue this_) {
   return sum;
 }
 
-String Matrix2D_toString(Matrix2DValue this_) {
+String Matrix2D_toString(dynamic this__) {
+  final this_ = this__ as Matrix2DValue;
   final String rowStrings = this_._data.map((List<double> row) => row.map((double v) => v.toStringAsFixed(1)).join(', ')).map((String r) => '[${r}]').join(', ');
   return 'Matrix(${this_.rows}x${this_.cols}: ${rowStrings})';
 }
@@ -905,40 +1009,48 @@ String Matrix2D_toString(Matrix2DValue this_) {
 class EntityValue extends VPtr {
 }
 
-void Entity_new(EntityValue this_) {
+EntityValue Entity_new(dynamic this__) {
+  final this_ = this__ as EntityValue;
   this_.vptr['get_entityId'] = Entity_get_entityId;
+  return this_;
 }
 
-String Entity_get_entityId(EntityValue this_) {
+String Entity_get_entityId(dynamic this_) {
   throw UnimplementedError('Entity.entityId is abstract');
 }
 
 
 // mixin Auditable → static functions for delegation
-void Auditable_audit(dynamic this_, String action) {
-  this_._auditLog.add('[${(this_.vptr['get_entityId'] as Function)(this_)}] ${action}');
+void Auditable_audit(dynamic this__, String action) {
+  final this_ = this__;
+  this_._auditLog.add('[${(this_.vptr['get_entityId'] as String Function(dynamic))(this_)}] ${action}');
 }
 
-List<String> Auditable_get_auditLog(dynamic this_) {
+List<String> Auditable_get_auditLog(dynamic this__) {
+  final this_ = this__;
   return List.unmodifiable(this_._auditLog);
 }
 
 
 // mixin Cacheable → static functions for delegation
-void Cacheable_markDirty(dynamic this_) {
+void Cacheable_markDirty(dynamic this__) {
+  final this_ = this__;
   this_._isDirty = true;
 }
 
-void Cacheable_markCached(dynamic this_) {
+void Cacheable_markCached(dynamic this__) {
+  final this_ = this__;
   this_._isDirty = false;
   this_._cachedAt = DateTime.now();
 }
 
-bool Cacheable_get_isDirty(dynamic this_) {
+bool Cacheable_get_isDirty(dynamic this__) {
+  final this_ = this__;
   return this_._isDirty;
 }
 
-String Cacheable_get_cacheStatus(dynamic this_) {
+String Cacheable_get_cacheStatus(dynamic this__) {
+  final this_ = this__;
   return (this_._isDirty ? 'dirty' : 'cached');
 }
 
@@ -949,8 +1061,10 @@ class ProductValue extends Product_Entity_Auditable_CacheableValue {
   late double price;
 }
 
-void Product_new(ProductValue this_, String entityId, String name, double price) {
+ProductValue Product_new(dynamic this__, String entityId, String name, double price) {
+  final this_ = this__ as ProductValue;
   Entity_new(this_);
+  Product_Entity_Auditable_Cacheable_init(this_);
   this_.vptr['get_entityId'] = Product_get_entityId;
   this_.vptr['audit'] = Product_audit;
   this_.vptr['get_auditLog'] = Product_get_auditLog;
@@ -965,37 +1079,46 @@ void Product_new(ProductValue this_, String entityId, String name, double price)
   this_._auditLog = <String>[];
   this_._cachedAt = null;
   this_._isDirty = true;
+  return this_;
 }
 
-String Product_toString(ProductValue this_) {
-  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as String Function(ProductValue))(this_)}, audits=${this_._auditLog.length})';
+String Product_toString(dynamic this__) {
+  final this_ = this__ as ProductValue;
+  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as String Function(dynamic))(this_)}, audits=${this_._auditLog.length})';
 }
 
-String Product_get_entityId(ProductValue this_) {
-  return (this_ as ProductValue).entityId;
+String Product_get_entityId(dynamic this__) {
+  final this_ = this__ as ProductValue;
+  return this_.entityId;
 }
 
-void Product_audit(ProductValue this_, String action) {
+void Product_audit(dynamic this__, String action) {
+  final this_ = this__ as ProductValue;
   Auditable_audit(this_, action);
 }
 
-List<String> Product_get_auditLog(ProductValue this_) {
+List<String> Product_get_auditLog(dynamic this__) {
+  final this_ = this__ as ProductValue;
   return Auditable_get_auditLog(this_);
 }
 
-void Product_markDirty(ProductValue this_) {
+void Product_markDirty(dynamic this__) {
+  final this_ = this__ as ProductValue;
   Cacheable_markDirty(this_);
 }
 
-void Product_markCached(ProductValue this_) {
+void Product_markCached(dynamic this__) {
+  final this_ = this__ as ProductValue;
   Cacheable_markCached(this_);
 }
 
-bool Product_get_isDirty(ProductValue this_) {
+bool Product_get_isDirty(dynamic this__) {
+  final this_ = this__ as ProductValue;
   return Cacheable_get_isDirty(this_);
 }
 
-String Product_get_cacheStatus(ProductValue this_) {
+String Product_get_cacheStatus(dynamic this__) {
+  final this_ = this__ as ProductValue;
   return Cacheable_get_cacheStatus(this_);
 }
 
@@ -1003,8 +1126,20 @@ String Product_get_cacheStatus(ProductValue this_) {
 class UserProfile_Object_SerializableValue extends VPtr {
 }
 
+void UserProfile_Object_Serializable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['serialize'] = Serializable_serialize;
+}
+
 
 class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Object_SerializableValue {
+}
+
+void UserProfile_Object_Serializable_Validatable_init(dynamic this__) {
+  UserProfile_Object_Serializable_init(this__);
+  final this_ = this__;
+  this_.vptr['get_isValid'] = Validatable_get_isValid;
+  this_.vptr['get_validationSummary'] = Validatable_get_validationSummary;
 }
 
 
@@ -1012,10 +1147,25 @@ class Product_Entity_AuditableValue extends EntityValue {
   late List<String> _auditLog;
 }
 
+void Product_Entity_Auditable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['audit'] = Auditable_audit;
+  this_.vptr['get_auditLog'] = Auditable_get_auditLog;
+}
+
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
   late DateTime? _cachedAt;
   late bool _isDirty;
+}
+
+void Product_Entity_Auditable_Cacheable_init(dynamic this__) {
+  Product_Entity_Auditable_init(this__);
+  final this_ = this__;
+  this_.vptr['markDirty'] = Cacheable_markDirty;
+  this_.vptr['markCached'] = Cacheable_markCached;
+  this_.vptr['get_isDirty'] = Cacheable_get_isDirty;
+  this_.vptr['get_cacheStatus'] = Cacheable_get_cacheStatus;
 }
 
 
@@ -1219,40 +1369,40 @@ void main() async {
     print('  ${cl()}');
   }
   print('\n--- 2. 二叉树 ---');
-  final TreeNodeValue<int> tree = (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 1, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 2, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 4); return _obj; })(), (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 5); return _obj; })()); return _obj; })(), (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 3, null, (() { final _obj = TreeNodeValue<int>(); TreeNode_new(_obj, 6); return _obj; })()); return _obj; })()); return _obj; })();
-  print('preorder: ${(tree.vptr['preorder'] as Function)(tree)}');
-  print('inorder: ${(tree.vptr['inorder'] as Function)(tree)}');
-  print('depth: ${(tree.vptr['get_depth'] as int Function(TreeNodeValue<int>))(tree)}');
-  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(TreeNodeValue<int>, String Function(int)))(tree, (int v) => 'N${v}');
-  print('mapped preorder: ${(strTree.vptr['preorder'] as Function)(strTree)}');
+  final TreeNodeValue<int> tree = TreeNode_new<int>(TreeNodeValue<int>(), 1, TreeNode_new<int>(TreeNodeValue<int>(), 2, TreeNode_new<int>(TreeNodeValue<int>(), 4), TreeNode_new<int>(TreeNodeValue<int>(), 5)), TreeNode_new<int>(TreeNodeValue<int>(), 3, null, TreeNode_new<int>(TreeNodeValue<int>(), 6)));
+  print('preorder: ${(tree.vptr['preorder'] as List<int> Function(dynamic))(tree)}');
+  print('inorder: ${(tree.vptr['inorder'] as List<int> Function(dynamic))(tree)}');
+  print('depth: ${(tree.vptr['get_depth'] as int Function(dynamic))(tree)}');
+  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, String Function(int)))(tree, (int v) => 'N${v}');
+  print('mapped preorder: ${(strTree.vptr['preorder'] as List<String> Function(dynamic))(strTree)}');
   print('\n--- 3. 链表 ---');
-  final LinkedNodeValue<int> list = (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 1, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 2, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 3, (() { final _obj = LinkedNodeValue<int>(); LinkedNode_new(_obj, 4); return _obj; })()); return _obj; })()); return _obj; })()); return _obj; })();
+  final LinkedNodeValue<int> list = LinkedNode_new<int>(LinkedNodeValue<int>(), 1, LinkedNode_new<int>(LinkedNodeValue<int>(), 2, LinkedNode_new<int>(LinkedNodeValue<int>(), 3, LinkedNode_new<int>(LinkedNodeValue<int>(), 4))));
   print('list: ${list}');
-  print('length: ${(list.vptr['get_length'] as int Function(LinkedNodeValue<int>))(list)}');
-  final LinkedNodeValue<int> revList = (list.vptr['reversed'] as Function)(list);
+  print('length: ${(list.vptr['get_length'] as int Function(dynamic))(list)}');
+  final LinkedNodeValue<int> revList = (list.vptr['reversed'] as LinkedNodeValue<int> Function(dynamic))(list);
   print('reversed: ${revList}');
   print('\n--- 4. Either ---');
-  final EitherValue<String, int> right = (() { final _obj = EitherValue<String, int>(); Either_new_right(_obj, 42); return _obj; })();
-  final EitherValue<String, int> left = (() { final _obj = EitherValue<String, int>(); Either_new_left(_obj, 'error'); return _obj; })();
+  final EitherValue<String, int> right = Either_new_right<String, int>(EitherValue<String, int>(), 42);
+  final EitherValue<String, int> left = Either_new_left<String, int>(EitherValue<String, int>(), 'error');
   print('right: ${right}');
   print('left: ${left}');
-  print('right.fold: ${(right.vptr['fold_String'] as String Function(EitherValue<String, int>, String Function(String), String Function(int)))(right, (String l) => 'L:${l}', (int r) => 'R:${r}')}');
-  print('left.fold: ${(left.vptr['fold_String'] as String Function(EitherValue<String, int>, String Function(String), String Function(int)))(left, (String l) => 'L:${l}', (int r) => 'R:${r}')}');
-  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(EitherValue<String, int>, int Function(int)))(right, (int v) => (v * 2));
+  print('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, String Function(String), String Function(int)))(right, (String l) => 'L:${l}', (int r) => 'R:${r}')}');
+  print('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, String Function(String), String Function(int)))(left, (String l) => 'L:${l}', (int r) => 'R:${r}')}');
+  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, int Function(int)))(right, (int v) => (v * 2));
   print('mapped right: ${mapped}');
-  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(EitherValue<String, int>, EitherValue<String, dynamic> Function(int)))(right, (int v) => ((v > 10) ? (() { final _obj = EitherValue<String, String>(); Either_new_right(_obj, 'big_${v}'); return _obj; })() : (() { final _obj = EitherValue<String, dynamic>(); Either_new_left(_obj, 'too small'); return _obj; })()));
+  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, EitherValue<String, dynamic> Function(int)))(right, (int v) => ((v > 10) ? Either_new_right<String, String>(EitherValue<String, String>(), 'big_${v}') : Either_new_left<String, dynamic>(EitherValue<String, dynamic>(), 'too small')));
   print('chained: ${chained}');
   print('\n--- 5. 函数式编程 ---');
   final int Function(int) double2 = (int x) => (x * 2);
   final int Function(int) addOne = (int x) => (x + 1);
-  final int Function(int) composed = composeFunc(addOne, double2);
+  final int Function(int) composed = composeFunc<int, int, int>(addOne, double2);
   print('compose(double, addOne)(5): ${composed(5)}');
-  final int Function(int) Function(int) curriedAdd = curry((int a, int b) => (a + b));
+  final int Function(int) Function(int) curriedAdd = curry<int, int, int>((int a, int b) => (a + b));
   final int Function(int) add10 = curriedAdd(10);
   print('curriedAdd(10)(5): ${add10(5)}');
-  final int piped = pipe(3, <int Function(int)>[(int x) => (x * 2), (int x) => (x + 10), (int x) => (x * x)]);
+  final int piped = pipe<int>(3, <int Function(int)>[(int x) => (x * 2), (int x) => (x + 10), (int x) => (x * x)]);
   print('pipe(3, [*2, +10, ^2]): ${piped}');
-  final int Function(int) memoFib = memoize((int n) {
+  final int Function(int) memoFib = memoize<int, int>((int n) {
     if ((n <= 1))     return n;
     return n;
   }
@@ -1266,29 +1416,29 @@ void main() async {
   }
   print('parseNumbers: ${parseNumbers(<String>['10', 'abc', ' 42 ', '-5', '', '7'])}');
   print('\n--- 7. mixin 组合 ---');
-  final UserProfileValue user1 = (() { final _obj = UserProfileValue(); UserProfile_new(_obj, 'Alice', 'alice@example.com', 25); return _obj; })();
+  final UserProfileValue user1 = UserProfile_new(UserProfileValue(), 'Alice', 'alice@example.com', 25);
   print('user1: ${user1}');
-  print('serialize: ${(user1.vptr['serialize'] as Function)(user1)}');
-  print('validation: ${(user1.vptr['get_validationSummary'] as String Function(UserProfileValue))(user1)}');
-  final UserProfileValue user2 = (() { final _obj = UserProfileValue(); UserProfile_new(_obj, '', 'invalid-email', (-5)); return _obj; })();
-  print('user2 validation: ${(user2.vptr['get_validationSummary'] as String Function(UserProfileValue))(user2)}');
+  print('serialize: ${(user1.vptr['serialize'] as String Function(dynamic))(user1)}');
+  print('validation: ${(user1.vptr['get_validationSummary'] as String Function(dynamic))(user1)}');
+  final UserProfileValue user2 = UserProfile_new(UserProfileValue(), '', 'invalid-email', (-5));
+  print('user2 validation: ${(user2.vptr['get_validationSummary'] as String Function(dynamic))(user2)}');
   print('\n--- 8. 模板方法模式 ---');
-  final StringToIntTransformerValue strToInt = (() { final _obj = StringToIntTransformerValue(); StringToIntTransformer_new(_obj); return _obj; })();
-  print('strToInt("  42  "): ${(strToInt.vptr['transform'] as Function)(strToInt, '  42  ')}');
-  final IntToStringTransformerValue intToStr = (() { final _obj = IntToStringTransformerValue(); IntToStringTransformer_new(_obj, 'NUM:'); return _obj; })();
-  print('intToStr(123): ${(intToStr.vptr['transform'] as Function)(intToStr, 123)}');
-  final ChainedTransformerValue<String, int, String> chained2 = (() { final _obj = ChainedTransformerValue<String, int, String>(); ChainedTransformer_new(_obj, strToInt, intToStr); return _obj; })();
-  print('chained(" 99 "): ${(chained2.vptr['transform'] as Function)(chained2, ' 99 ')}');
+  final StringToIntTransformerValue strToInt = StringToIntTransformer_new(StringToIntTransformerValue());
+  print('strToInt("  42  "): ${(strToInt.vptr['transform'] as int Function(dynamic, String))(strToInt, '  42  ')}');
+  final IntToStringTransformerValue intToStr = IntToStringTransformer_new(IntToStringTransformerValue(), 'NUM:');
+  print('intToStr(123): ${(intToStr.vptr['transform'] as String Function(dynamic, int))(intToStr, 123)}');
+  final ChainedTransformerValue<String, int, String> chained2 = ChainedTransformer_new<String, int, String>(ChainedTransformerValue<String, int, String>(), strToInt, intToStr);
+  print('chained(" 99 "): ${(chained2.vptr['transform'] as String Function(dynamic, String))(chained2, ' 99 ')}');
   print('\n--- 9. 单例 Registry ---');
   final RegistryValue reg1 = Registry_new();
   final RegistryValue reg2 = Registry_new();
   print('same instance: ${identical(reg1, reg2)}');
-  (reg1.vptr['register'] as void Function(RegistryValue, String, dynamic))(reg1, 'name', 'Dart');
-  (reg1.vptr['register'] as void Function(RegistryValue, String, dynamic))(reg1, 'version', 3);
+  (reg1.vptr['register'] as void Function(dynamic, String, dynamic))(reg1, 'name', 'Dart');
+  (reg1.vptr['register'] as void Function(dynamic, String, dynamic))(reg1, 'version', 3);
   print('registry: ${reg1}');
-  print('lookup name: ${(reg2.vptr['lookup'] as dynamic Function(RegistryValue, String))(reg2, 'name')}');
-  print('keys: ${(reg1.vptr['get_keys'] as List<String> Function(RegistryValue))(reg1)}');
-  (reg1.vptr['clear'] as void Function(RegistryValue))(reg1);
+  print('lookup name: ${(reg2.vptr['lookup'] as dynamic Function(dynamic, String))(reg2, 'name')}');
+  print('keys: ${(reg1.vptr['get_keys'] as List<String> Function(dynamic))(reg1)}');
+  (reg1.vptr['clear'] as void Function(dynamic))(reg1);
   print('\n--- 10. 集合操作链 ---');
   final List<Map<String, Object>> records = <Map<String, Object>>[<String, Object>{'name': 'Alice', 'score': 95}, <String, Object>{'name': 'Bob', 'score': 72}, <String, Object>{'name': 'Carol', 'score': 88}, <String, Object>{'name': 'Dave', 'score': 45}, <String, Object>{'name': 'Eve', 'score': 91}, <String, Object>{'name': 'Frank', 'score': 63}];
   final List<Map<String, dynamic>> processed = DataProcessor_processRecords(records);
@@ -1298,10 +1448,10 @@ void main() async {
   final Map<String, double> averages = DataProcessor_averageByGrade(processed);
   print('averages: ${averages}');
   print('\n--- 11. late 变量 ---');
-  final ExpensiveComputationValue comp = (() { final _obj = ExpensiveComputationValue(); ExpensiveComputation_new(_obj, 42); return _obj; })();
+  final ExpensiveComputationValue comp = ExpensiveComputation_new(ExpensiveComputationValue(), 42);
   print('comp: ${comp}');
   print('computedValue: ${comp.computedValue}');
-  (comp.vptr['initialize'] as void Function(ExpensiveComputationValue, String))(comp, 'test description');
+  (comp.vptr['initialize'] as void Function(dynamic, String))(comp, 'test description');
   print('description: ${comp.description}');
   print('\n--- 12. 局部函数 + 递归 ---');
   print('fibonacci(10): ${MathUtils_fibonacci(10)}');
@@ -1310,13 +1460,13 @@ void main() async {
   print('gcd(48, 18): ${MathUtils_gcd(48, 18)}');
   print('lcm(12, 18): ${MathUtils_lcm(12, 18)}');
   print('\n--- 13. 多重 implements ---');
-  final List<ScoreValue> scores = <ScoreValue>[(() { final _obj = ScoreValue(); Score_new(_obj, 'Math', 90); return _obj; })(), (() { final _obj = ScoreValue(); Score_new(_obj, 'English', 75); return _obj; })(), (() { final _obj = WeightedScoreValue(); WeightedScore_new(_obj, 'Physics', 85, 1.5); return _obj; })(), (() { final _obj = WeightedScoreValue(); WeightedScore_new(_obj, 'Art', 95, 0.5); return _obj; })()];
+  final List<ScoreValue> scores = <ScoreValue>[Score_new(ScoreValue(), 'Math', 90), Score_new(ScoreValue(), 'English', 75), WeightedScore_new(WeightedScoreValue(), 'Physics', 85, 1.5), WeightedScore_new(WeightedScoreValue(), 'Art', 95, 0.5)];
   for (final s in scores) {
-    print('  ${(s.vptr['prettyPrint'] as Function)(s)}');
+    print('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
   }
   final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
   final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
-  print('physics > art (weighted): ${(ws1.vptr['isGreaterThan'] as Function)(ws1, ws2)}');
+  print('physics > art (weighted): ${(ws1.vptr['isGreaterThan'] as bool Function(dynamic, ScoreValue))(ws1, ws2)}');
   print('\n--- 14. 字符串操作 ---');
   print('camelToSnake("helloWorldFoo"): ${TextProcessor_camelToSnake('helloWorldFoo')}');
   print('snakeToCamel("hello_world_foo"): ${TextProcessor_snakeToCamel('hello_world_foo')}');
@@ -1347,24 +1497,24 @@ void main() async {
   final List<int> nums = <int>[10, 20, 30, 40, 50];
   print('sum: ${IterableStats_get_sum(nums)}, avg: ${IterableStats_get_average(nums)}, max: ${IterableStats_get_max(nums)}, min: ${IterableStats_get_min(nums)}');
   print('\n--- 19. Matrix2D ---');
-  final Matrix2DValue m1 = (() { final _obj = Matrix2DValue(); Matrix2D_new(_obj, <List<double>>[<double>[1.0, 2.0], <double>[3.0, 4.0]]); return _obj; })();
-  final Matrix2DValue m2 = (() { final _obj = Matrix2DValue(); Matrix2D_new_identity(_obj, 2); return _obj; })();
+  final Matrix2DValue m1 = Matrix2D_new(Matrix2DValue(), <List<double>>[<double>[1.0, 2.0], <double>[3.0, 4.0]]);
+  final Matrix2DValue m2 = Matrix2D_new_identity(Matrix2DValue(), 2);
   print('m1: ${m1}');
   print('m2 (identity): ${m2}');
-  print('m1 + m2: ${(m1.vptr['operatorPlus'] as Matrix2DValue Function(Matrix2DValue, Matrix2DValue))(m1, m2)}');
-  print('m1 * m2: ${(m1.vptr['operatorStar'] as Matrix2DValue Function(Matrix2DValue, Matrix2DValue))(m1, m2)}');
-  print('m1 trace: ${(m1.vptr['get_trace'] as double Function(Matrix2DValue))(m1)}');
-  final Matrix2DValue m3 = (() { final _obj = Matrix2DValue(); Matrix2D_new_zeros(_obj, 2, 3); return _obj; })();
+  print('m1 + m2: ${(m1.vptr['operatorPlus'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
+  print('m1 * m2: ${(m1.vptr['operatorStar'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
+  print('m1 trace: ${(m1.vptr['get_trace'] as double Function(dynamic))(m1)}');
+  final Matrix2DValue m3 = Matrix2D_new_zeros(Matrix2DValue(), 2, 3);
   print('zeros(2,3): ${m3}');
   print('\n--- 20. 综合 mixin + 抽象类 ---');
-  final ProductValue product = (() { final _obj = ProductValue(); Product_new(_obj, 'P001', 'Widget', 9.99); return _obj; })();
-  (product.vptr['audit'] as Function)(product, 'created');
-  (product.vptr['audit'] as Function)(product, 'priced');
-  (product.vptr['markCached'] as Function)(product);
+  final ProductValue product = Product_new(ProductValue(), 'P001', 'Widget', 9.99);
+  (product.vptr['audit'] as void Function(dynamic, String))(product, 'created');
+  (product.vptr['audit'] as void Function(dynamic, String))(product, 'priced');
+  (product.vptr['markCached'] as void Function(dynamic))(product);
   print('product: ${product}');
-  print('auditLog: ${(product.vptr['get_auditLog'] as List<String> Function(ProductValue))(product)}');
-  (product.vptr['markDirty'] as Function)(product);
-  print('after markDirty: ${(product.vptr['get_cacheStatus'] as String Function(ProductValue))(product)}');
+  print('auditLog: ${(product.vptr['get_auditLog'] as List<String> Function(dynamic))(product)}');
+  (product.vptr['markDirty'] as void Function(dynamic))(product);
+  print('after markDirty: ${(product.vptr['get_cacheStatus'] as String Function(dynamic))(product)}');
   print('\n=== 所有高级语法测试通过 ✅ ===');
 }
 

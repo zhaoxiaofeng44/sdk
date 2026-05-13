@@ -97,61 +97,72 @@ bool Color_get_isWarm(Color this_) {
 class Comparable2Value<T> extends VPtr {
 }
 
-void Comparable2_new<T>(Comparable2Value<T> this_) {
+Comparable2Value<T> Comparable2_new<T>(dynamic this__) {
+  final this_ = this__ as Comparable2Value<T>;
   this_.vptr['compareTo'] = Comparable2_compareTo<T>;
   this_.vptr['operatorLt'] = Comparable2_operatorLt<T>;
   this_.vptr['operatorGt'] = Comparable2_operatorGt<T>;
   this_.vptr['operatorLte'] = Comparable2_operatorLte<T>;
   this_.vptr['operatorGte'] = Comparable2_operatorGte<T>;
+  return this_;
 }
 
-int Comparable2_compareTo<T>(Comparable2Value<T> this_, T other) {
+int Comparable2_compareTo<T>(dynamic this_, T other) {
   throw UnimplementedError('Comparable2.compareTo is abstract');
 }
 
-bool Comparable2_operatorLt<T>(Comparable2Value<T> this_, T other) {
-  return ((this_.vptr['compareTo'] as Function)(this_, other) < 0);
+bool Comparable2_operatorLt<T>(dynamic this__, T other) {
+  final this_ = this__ as Comparable2Value<T>;
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) < 0);
 }
 
-bool Comparable2_operatorGt<T>(Comparable2Value<T> this_, T other) {
-  return ((this_.vptr['compareTo'] as Function)(this_, other) > 0);
+bool Comparable2_operatorGt<T>(dynamic this__, T other) {
+  final this_ = this__ as Comparable2Value<T>;
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) > 0);
 }
 
-bool Comparable2_operatorLte<T>(Comparable2Value<T> this_, T other) {
-  return ((this_.vptr['compareTo'] as Function)(this_, other) <= 0);
+bool Comparable2_operatorLte<T>(dynamic this__, T other) {
+  final this_ = this__ as Comparable2Value<T>;
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) <= 0);
 }
 
-bool Comparable2_operatorGte<T>(Comparable2Value<T> this_, T other) {
-  return ((this_.vptr['compareTo'] as Function)(this_, other) >= 0);
+bool Comparable2_operatorGte<T>(dynamic this__, T other) {
+  final this_ = this__ as Comparable2Value<T>;
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) >= 0);
 }
 
 
 // mixin Printable → static functions for delegation
-String Printable_toPrettyString(dynamic this_) {
-  return '[${(this_.vptr['get_label'] as Function)(this_)}]';
+String Printable_toPrettyString(dynamic this__) {
+  final this_ = this__;
+  return '[${(this_.vptr['get_label'] as String Function(dynamic))(this_)}]';
 }
 
 
 // mixin Serializable → static functions for delegation
-String Serializable_toJson<T>(dynamic this_) {
-  return '{"data": "${(this_.vptr['serialize'] as Function)(this_)}"}';
+String Serializable_toJson<T>(dynamic this__) {
+  final this_ = this__;
+  return '{"data": "${(this_.vptr['serialize'] as T Function(dynamic))(this_)}"}';
 }
 
 
 // mixin Cacheable → static functions for delegation
 final Map<String, dynamic> Cacheable__cache = <String, dynamic>{};
-void Cacheable_cacheValue<K>(dynamic this_, dynamic value) {
-  Cacheable__cache['${(this_.vptr['get_cacheKey'] as Function)(this_)}'] = value;
+void Cacheable_cacheValue<K>(dynamic this__, dynamic value) {
+  final this_ = this__;
+  Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(dynamic))(this_)}'] = value;
 }
 
-dynamic Cacheable_getCachedValue<K>(dynamic this_) {
-  return Cacheable__cache['${(this_.vptr['get_cacheKey'] as Function)(this_)}'];
+dynamic Cacheable_getCachedValue<K>(dynamic this__) {
+  final this_ = this__;
+  return Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(dynamic))(this_)}'];
 }
 
 
 // mixin Validatable → static functions for delegation
-bool Validatable_get_isValid(dynamic this_) {
-  return (this_.vptr['validate'] as Function)(this_).isEmpty;
+bool Validatable_get_isValid(dynamic this__) {
+  final this_ = this__;
+  return (this_.vptr['validate'] as List<String> Function(dynamic))(this_).isEmpty;
 }
 
 
@@ -160,7 +171,9 @@ class EntityValue<ID> extends Entity_Object_Printable_CacheableValue<ID> {
   late String name;
 }
 
-void Entity_new<ID>(EntityValue<ID> this_, ID id, String name) {
+EntityValue<ID> Entity_new<ID>(dynamic this__, ID id, String name) {
+  final this_ = this__ as EntityValue<ID>;
+  Entity_Object_Printable_Cacheable_init(this_);
   this_.vptr['get_label'] = Entity_get_label<ID>;
   this_.vptr['toPrettyString'] = Entity_toPrettyString<ID>;
   this_.vptr['get_cacheKey'] = Entity_get_cacheKey<ID>;
@@ -169,29 +182,36 @@ void Entity_new<ID>(EntityValue<ID> this_, ID id, String name) {
   this_.vptr['toString'] = Entity_toString<ID>;
   this_.id = id;
   this_.name = name;
+  return this_;
 }
 
-String Entity_get_label<ID>(EntityValue<ID> this_) {
+String Entity_get_label<ID>(dynamic this__) {
+  final this_ = this__ as EntityValue<ID>;
   return '${this_.name}(${this_.id})';
 }
 
-ID Entity_get_cacheKey<ID>(EntityValue<ID> this_) {
+ID Entity_get_cacheKey<ID>(dynamic this__) {
+  final this_ = this__ as EntityValue<ID>;
   return this_.id;
 }
 
-String Entity_toString<ID>(EntityValue<ID> this_) {
+String Entity_toString<ID>(dynamic this__) {
+  final this_ = this__ as EntityValue<ID>;
   return 'Entity(${this_.id}, ${this_.name})';
 }
 
-String Entity_toPrettyString<ID>(EntityValue<ID> this_) {
+String Entity_toPrettyString<ID>(dynamic this__) {
+  final this_ = this__ as EntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-void Entity_cacheValue<ID>(EntityValue<ID> this_, dynamic value) {
+void Entity_cacheValue<ID>(dynamic this__, dynamic value) {
+  final this_ = this__ as EntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic Entity_getCachedValue<ID>(EntityValue<ID> this_) {
+dynamic Entity_getCachedValue<ID>(dynamic this__) {
+  final this_ = this__ as EntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
 
@@ -201,7 +221,8 @@ class TimestampedEntityValue<ID> extends EntityValue<ID> {
   late int updatedAt;
 }
 
-void TimestampedEntity_new<ID>(TimestampedEntityValue<ID> this_, ID id, String name, int createdAt, int updatedAt) {
+TimestampedEntityValue<ID> TimestampedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   Entity_new(this_, id, name);
   this_.vptr['get_label'] = TimestampedEntity_get_label<ID>;
   this_.vptr['toPrettyString'] = TimestampedEntity_toPrettyString<ID>;
@@ -212,33 +233,41 @@ void TimestampedEntity_new<ID>(TimestampedEntityValue<ID> this_, ID id, String n
   this_.vptr['get_age'] = TimestampedEntity_get_age<ID>;
   this_.createdAt = createdAt;
   this_.updatedAt = updatedAt;
+  return this_;
 }
 
-Duration TimestampedEntity_get_age<ID>(TimestampedEntityValue<ID> this_) {
+Duration TimestampedEntity_get_age<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   return Duration(milliseconds: (this_.updatedAt - this_.createdAt));
 }
 
-String TimestampedEntity_get_label<ID>(TimestampedEntityValue<ID> this_) {
-  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as Duration Function(TimestampedEntityValue<ID>))(this_).inMilliseconds}ms)';
+String TimestampedEntity_get_label<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
+  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as Duration Function(dynamic))(this_).inMilliseconds}ms)';
 }
 
-String TimestampedEntity_toPrettyString<ID>(TimestampedEntityValue<ID> this_) {
+String TimestampedEntity_toPrettyString<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-ID TimestampedEntity_get_cacheKey<ID>(TimestampedEntityValue<ID> this_) {
+ID TimestampedEntity_get_cacheKey<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   return Entity_get_cacheKey<ID>(this_);
 }
 
-void TimestampedEntity_cacheValue<ID>(TimestampedEntityValue<ID> this_, dynamic value) {
+void TimestampedEntity_cacheValue<ID>(dynamic this__, dynamic value) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic TimestampedEntity_getCachedValue<ID>(TimestampedEntityValue<ID> this_) {
+dynamic TimestampedEntity_getCachedValue<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
 
-String TimestampedEntity_toString<ID>(TimestampedEntityValue<ID> this_) {
+String TimestampedEntity_toString<ID>(dynamic this__) {
+  final this_ = this__ as TimestampedEntityValue<ID>;
   return Entity_toString<ID>(this_);
 }
 
@@ -248,8 +277,10 @@ class VersionedEntityValue<ID> extends VersionedEntity_TimestampedEntity_Seriali
   late List<String> _changelog;
 }
 
-void VersionedEntity_new<ID>(VersionedEntityValue<ID> this_, ID id, String name, int createdAt, int updatedAt) {
+VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   TimestampedEntity_new(this_, id, name, createdAt, updatedAt);
+  VersionedEntity_TimestampedEntity_Serializable_Validatable_init(this_);
   this_.vptr['get_label'] = VersionedEntity_get_label<ID>;
   this_.vptr['toPrettyString'] = VersionedEntity_toPrettyString<ID>;
   this_.vptr['get_cacheKey'] = VersionedEntity_get_cacheKey<ID>;
@@ -266,65 +297,80 @@ void VersionedEntity_new<ID>(VersionedEntityValue<ID> this_, ID id, String name,
   this_.vptr['get_changelog'] = VersionedEntity_get_changelog<ID>;
   this_._version = 1;
   this_._changelog = <String>[];
+  return this_;
 }
 
-int VersionedEntity_get_version<ID>(VersionedEntityValue<ID> this_) {
+int VersionedEntity_get_version<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return this_._version;
 }
 
-void VersionedEntity_bump<ID>(VersionedEntityValue<ID> this_, String change) {
+void VersionedEntity_bump<ID>(dynamic this__, String change) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   this_._version = (this_._version + 1);
   this_._changelog.add('v${this_._version}: ${change}');
 }
 
-List<String> VersionedEntity_get_changelog<ID>(VersionedEntityValue<ID> this_) {
+List<String> VersionedEntity_get_changelog<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return List.unmodifiable(this_._changelog);
 }
 
-String VersionedEntity_serialize<ID>(VersionedEntityValue<ID> this_) {
+String VersionedEntity_serialize<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return '${this_.id}:${this_.name}:v${this_._version}';
 }
 
-List<String> VersionedEntity_validate<ID>(VersionedEntityValue<ID> this_) {
+List<String> VersionedEntity_validate<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   final List<String> errors = <String>[];
   if (this_.name.isEmpty)   errors.add('name is empty');
   if ((this_._version < 1))   errors.add('invalid version');
   return errors;
 }
 
-String VersionedEntity_get_label<ID>(VersionedEntityValue<ID> this_) {
+String VersionedEntity_get_label<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return '${this_.name}(v${this_._version})';
 }
 
-String VersionedEntity_toPrettyString<ID>(VersionedEntityValue<ID> this_) {
+String VersionedEntity_toPrettyString<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-ID VersionedEntity_get_cacheKey<ID>(VersionedEntityValue<ID> this_) {
+ID VersionedEntity_get_cacheKey<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Entity_get_cacheKey<ID>(this_);
 }
 
-void VersionedEntity_cacheValue<ID>(VersionedEntityValue<ID> this_, dynamic value) {
+void VersionedEntity_cacheValue<ID>(dynamic this__, dynamic value) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic VersionedEntity_getCachedValue<ID>(VersionedEntityValue<ID> this_) {
+dynamic VersionedEntity_getCachedValue<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
 
-String VersionedEntity_toString<ID>(VersionedEntityValue<ID> this_) {
+String VersionedEntity_toString<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Entity_toString<ID>(this_);
 }
 
-Duration VersionedEntity_get_age<ID>(VersionedEntityValue<ID> this_) {
+Duration VersionedEntity_get_age<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return TimestampedEntity_get_age<ID>(this_);
 }
 
-String VersionedEntity_toJson<ID>(VersionedEntityValue<ID> this_) {
+String VersionedEntity_toJson<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Serializable_toJson<String>(this_);
 }
 
-bool VersionedEntity_get_isValid<ID>(VersionedEntityValue<ID> this_) {
+bool VersionedEntity_get_isValid<ID>(dynamic this__) {
+  final this_ = this__ as VersionedEntityValue<ID>;
   return Validatable_get_isValid(this_);
 }
 
@@ -334,8 +380,10 @@ class MoneyValue extends Money_Comparable2_PrintableValue {
   late String currency;
 }
 
-void Money_new(MoneyValue this_, int cents, [String currency = 'USD']) {
+MoneyValue Money_new(dynamic this__, int cents, [String currency = 'USD']) {
+  final this_ = this__ as MoneyValue;
   Comparable2_new(this_);
+  Money_Comparable2_Printable_init(this_);
   this_.vptr['compareTo'] = Money_compareTo;
   this_.vptr['operatorLt'] = Money_operatorLt;
   this_.vptr['operatorGt'] = Money_operatorGt;
@@ -350,10 +398,13 @@ void Money_new(MoneyValue this_, int cents, [String currency = 'USD']) {
   this_.vptr['toString'] = Money_toString;
   this_.cents = cents;
   this_.currency = currency;
+  return this_;
 }
 
-void Money_new_fromDollars(MoneyValue this_, double dollars, [String currency = 'USD']) {
+MoneyValue Money_new_fromDollars(dynamic this__, double dollars, [String currency = 'USD']) {
+  final this_ = this__ as MoneyValue;
   Comparable2_new(this_);
+  Money_Comparable2_Printable_init(this_);
   this_.vptr['compareTo'] = Money_compareTo;
   this_.vptr['operatorLt'] = Money_operatorLt;
   this_.vptr['operatorGt'] = Money_operatorGt;
@@ -368,56 +419,68 @@ void Money_new_fromDollars(MoneyValue this_, double dollars, [String currency = 
   this_.vptr['toString'] = Money_toString;
   this_.cents = (dollars * 100).round();
   this_.currency = currency;
+  return this_;
 }
 
-MoneyValue Money_operatorPlus(MoneyValue this_, MoneyValue other) {
+MoneyValue Money_operatorPlus(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   if (!((this_.currency == other.currency)))   throw ArgumentError('Currency mismatch');
-  return (() { final _obj = MoneyValue(); Money_new(_obj, (this_.cents + other.cents), this_.currency); return _obj; })();
+  return Money_new(MoneyValue(), (this_.cents + other.cents), this_.currency);
 }
 
-MoneyValue Money_operatorMinus(MoneyValue this_, MoneyValue other) {
+MoneyValue Money_operatorMinus(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   if (!((this_.currency == other.currency)))   throw ArgumentError('Currency mismatch');
-  return (() { final _obj = MoneyValue(); Money_new(_obj, (this_.cents - other.cents), this_.currency); return _obj; })();
+  return Money_new(MoneyValue(), (this_.cents - other.cents), this_.currency);
 }
 
-MoneyValue Money_operatorStar(MoneyValue this_, int factor) {
-  return (() { final _obj = MoneyValue(); Money_new(_obj, (this_.cents * factor), this_.currency); return _obj; })();
+MoneyValue Money_operatorStar(dynamic this__, int factor) {
+  final this_ = this__ as MoneyValue;
+  return Money_new(MoneyValue(), (this_.cents * factor), this_.currency);
 }
 
-MoneyValue Money_operatorNeg(MoneyValue this_) {
-  return (() { final _obj = MoneyValue(); Money_new(_obj, (-this_.cents), this_.currency); return _obj; })();
+MoneyValue Money_operatorNeg(dynamic this__) {
+  final this_ = this__ as MoneyValue;
+  return Money_new(MoneyValue(), (-this_.cents), this_.currency);
 }
 
-int Money_compareTo(Comparable2Value<MoneyValue> this__, MoneyValue other) {
+int Money_compareTo(dynamic this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return (this_.cents - other.cents);
 }
 
-String Money_get_label(MoneyValue this_) {
+String Money_get_label(dynamic this__) {
+  final this_ = this__ as MoneyValue;
   return '\$${(this_.cents / 100).toStringAsFixed(2)} ${this_.currency}';
 }
 
-String Money_toString(MoneyValue this_) {
-  return (this_.vptr['get_label'] as String Function(MoneyValue))(this_);
+String Money_toString(dynamic this__) {
+  final this_ = this__ as MoneyValue;
+  return (this_.vptr['get_label'] as String Function(dynamic))(this_);
 }
 
-bool Money_operatorLt(MoneyValue this_, MoneyValue other) {
+bool Money_operatorLt(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   return Comparable2_operatorLt<MoneyValue>(this_, other);
 }
 
-bool Money_operatorGt(MoneyValue this_, MoneyValue other) {
+bool Money_operatorGt(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   return Comparable2_operatorGt<MoneyValue>(this_, other);
 }
 
-bool Money_operatorLte(MoneyValue this_, MoneyValue other) {
+bool Money_operatorLte(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   return Comparable2_operatorLte<MoneyValue>(this_, other);
 }
 
-bool Money_operatorGte(MoneyValue this_, MoneyValue other) {
+bool Money_operatorGte(dynamic this__, MoneyValue other) {
+  final this_ = this__ as MoneyValue;
   return Comparable2_operatorGte<MoneyValue>(this_, other);
 }
 
-String Money_toPrettyString(MoneyValue this_) {
+String Money_toPrettyString(dynamic this__) {
+  final this_ = this__ as MoneyValue;
   return Printable_toPrettyString(this_);
 }
 
@@ -426,25 +489,30 @@ class ConfigValue extends VPtr {
   late Map<String, dynamic> _data;
 }
 
-void Config_new(ConfigValue this_, Map<String, dynamic> _data) {
+ConfigValue Config_new(dynamic this__, Map<String, dynamic> _data) {
+  final this_ = this__ as ConfigValue;
   this_.vptr['operatorIndex'] = Config_operatorIndex;
   this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
   this_.vptr['containsKey'] = Config_containsKey;
   this_.vptr['get_length'] = Config_get_length;
   this_.vptr['toString'] = Config_toString;
   this_._data = _data;
+  return this_;
 }
 
-void Config_new_empty(ConfigValue this_) {
+ConfigValue Config_new_empty(dynamic this__) {
+  final this_ = this__ as ConfigValue;
   this_.vptr['operatorIndex'] = Config_operatorIndex;
   this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
   this_.vptr['containsKey'] = Config_containsKey;
   this_.vptr['get_length'] = Config_get_length;
   this_.vptr['toString'] = Config_toString;
   this_._data = <String, dynamic>{};
+  return this_;
 }
 
-void Config_new_fromPairs(ConfigValue this_, List<List<dynamic>> pairs) {
+ConfigValue Config_new_fromPairs(dynamic this__, List<List<dynamic>> pairs) {
+  final this_ = this__ as ConfigValue;
   this_.vptr['operatorIndex'] = Config_operatorIndex;
   this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
   this_.vptr['containsKey'] = Config_containsKey;
@@ -453,31 +521,37 @@ void Config_new_fromPairs(ConfigValue this_, List<List<dynamic>> pairs) {
   this_._data = (() {   final Map<String, dynamic> _v0 = <String, dynamic>{};
   for (final p in pairs)   _v0[(p[0] as String)] = p[1];
  return _v0; })();
+  return this_;
 }
 
 ConfigValue Config_new_withDefaults(Map<String, dynamic> overrides) {
   final Map<String, dynamic> defaults = <String, dynamic>{'debug': false, 'maxRetries': 3, 'timeout': 30, 'name': 'default'};
   defaults.addAll(overrides);
-  return (() { final _obj = ConfigValue(); Config_new(_obj, defaults); return _obj; })();
+  return Config_new(ConfigValue(), defaults);
 }
 
-dynamic Config_operatorIndex(ConfigValue this_, String key) {
+dynamic Config_operatorIndex(dynamic this__, String key) {
+  final this_ = this__ as ConfigValue;
   return this_._data[key];
 }
 
-void Config_operatorIndexSet(ConfigValue this_, String key, dynamic value) {
+void Config_operatorIndexSet(dynamic this__, String key, dynamic value) {
+  final this_ = this__ as ConfigValue;
   (() { final _let1 = this_._data; return (() { final _let2 = key; return (() { final _let3 = value; return (() { final _let4 = _let1[_let2] = _let3; return _let3; })(); })(); })(); })();
 }
 
-bool Config_containsKey(ConfigValue this_, String key) {
+bool Config_containsKey(dynamic this__, String key) {
+  final this_ = this__ as ConfigValue;
   return this_._data.containsKey(key);
 }
 
-int Config_get_length(ConfigValue this_) {
+int Config_get_length(dynamic this__) {
+  final this_ = this__ as ConfigValue;
   return this_._data.length;
 }
 
-String Config_toString(ConfigValue this_) {
+String Config_toString(dynamic this__) {
+  final this_ = this__ as ConfigValue;
   final List<String> sorted = (this_._data.keys.toList()..sort());
   final Iterable<String> entries = sorted.map(ClosureEnv_anon_0(this_).call);
   return 'Config{${entries.join(', ')}}';
@@ -488,17 +562,21 @@ class EventBusValue extends VPtr {
   late List<void Function(String)> _listeners;
 }
 
-void EventBus_new(EventBusValue this_) {
+EventBusValue EventBus_new(dynamic this__) {
+  final this_ = this__ as EventBusValue;
   this_.vptr['on'] = EventBus_on;
   this_.vptr['emit'] = EventBus_emit;
   this_._listeners = <void Function(String)>[];
+  return this_;
 }
 
-void EventBus_on(EventBusValue this_, void Function(String) listener) {
+void EventBus_on(dynamic this__, void Function(String) listener) {
+  final this_ = this__ as EventBusValue;
   this_._listeners.add(listener);
 }
 
-void EventBus_emit(EventBusValue this_, String event) {
+void EventBus_emit(dynamic this__, String event) {
+  final this_ = this__ as EventBusValue;
   for (final listener in this_._listeners) {
     listener(event);
   }
@@ -508,11 +586,13 @@ void EventBus_emit(EventBusValue this_, String event) {
 class DrawableValue extends VPtr {
 }
 
-void Drawable_new(DrawableValue this_) {
+DrawableValue Drawable_new(dynamic this__) {
+  final this_ = this__ as DrawableValue;
   this_.vptr['draw'] = Drawable_draw;
+  return this_;
 }
 
-void Drawable_draw(DrawableValue this_) {
+void Drawable_draw(dynamic this_) {
   throw UnimplementedError('Drawable.draw is abstract');
 }
 
@@ -520,11 +600,13 @@ void Drawable_draw(DrawableValue this_) {
 class ResizableValue extends VPtr {
 }
 
-void Resizable_new(ResizableValue this_) {
+ResizableValue Resizable_new(dynamic this__) {
+  final this_ = this__ as ResizableValue;
   this_.vptr['resize'] = Resizable_resize;
+  return this_;
 }
 
-void Resizable_resize(ResizableValue this_, double factor) {
+void Resizable_resize(dynamic this_, double factor) {
   throw UnimplementedError('Resizable.resize is abstract');
 }
 
@@ -532,11 +614,13 @@ void Resizable_resize(ResizableValue this_, double factor) {
 class ClickableValue extends VPtr {
 }
 
-void Clickable_new(ClickableValue this_) {
+ClickableValue Clickable_new(dynamic this__) {
+  final this_ = this__ as ClickableValue;
   this_.vptr['onClick'] = Clickable_onClick;
+  return this_;
 }
 
-void Clickable_onClick(ClickableValue this_) {
+void Clickable_onClick(dynamic this_) {
   throw UnimplementedError('Clickable.onClick is abstract');
 }
 
@@ -547,7 +631,8 @@ class WidgetValue extends VPtr implements DrawableValue, ResizableValue, Clickab
   late int _clickCount;
 }
 
-void Widget_new(WidgetValue this_) {
+WidgetValue Widget_new(dynamic this__) {
+  final this_ = this__ as WidgetValue;
   this_.vptr['draw'] = Widget_draw;
   this_.vptr['resize'] = Widget_resize;
   this_.vptr['onClick'] = Widget_onClick;
@@ -555,22 +640,27 @@ void Widget_new(WidgetValue this_) {
   this_._state = 'idle';
   this_._scale = 1.0;
   this_._clickCount = 0;
+  return this_;
 }
 
-void Widget_draw(WidgetValue this_) {
+void Widget_draw(dynamic this__) {
+  final this_ = this__ as WidgetValue;
   this_._state = 'drawn';
 }
 
-void Widget_resize(WidgetValue this_, double factor) {
+void Widget_resize(dynamic this__, double factor) {
+  final this_ = this__ as WidgetValue;
   this_._scale = (this_._scale * factor);
 }
 
-void Widget_onClick(WidgetValue this_) {
+void Widget_onClick(dynamic this__) {
+  final this_ = this__ as WidgetValue;
   this_._clickCount = (this_._clickCount + 1);
   this_._state = 'clicked(${this_._clickCount})';
 }
 
-String Widget_get_info(WidgetValue this_) {
+String Widget_get_info(dynamic this__) {
+  final this_ = this__ as WidgetValue;
   return 'Widget(state=${this_._state}, scale=${this_._scale.toStringAsFixed(1)}, clicks=${this_._clickCount})';
 }
 
@@ -580,7 +670,8 @@ class PairValue<A, B> extends VPtr {
   late B second;
 }
 
-void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
+PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
+  final this_ = this__ as PairValue<A, B>;
   this_.vptr['swap'] = Pair_swap<A, B>;
   this_.vptr['mapFirst_int'] = Pair_mapFirst<A, B, int>;
   this_.vptr['mapSecond_String'] = Pair_mapSecond<A, B, String>;
@@ -588,25 +679,31 @@ void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
   this_.vptr['toString'] = Pair_toString<A, B>;
   this_.first = first;
   this_.second = second;
+  return this_;
 }
 
-PairValue<B, A> Pair_swap<A, B>(PairValue<A, B> this_) {
-  return (() { final _obj = PairValue<B, A>(); Pair_new(_obj, this_.second, this_.first); return _obj; })();
+PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
+  final this_ = this__ as PairValue<A, B>;
+  return Pair_new<B, A>(PairValue<B, A>(), this_.second, this_.first);
 }
 
-PairValue<C, B> Pair_mapFirst<A, B, C>(PairValue<A, B> this_, C Function(A) transform) {
-  return (() { final _obj = PairValue<C, B>(); Pair_new(_obj, transform(this_.first), this_.second); return _obj; })();
+PairValue<C, B> Pair_mapFirst<A, B, C>(dynamic this__, C Function(A) transform) {
+  final this_ = this__ as PairValue<A, B>;
+  return Pair_new<C, B>(PairValue<C, B>(), transform(this_.first), this_.second);
 }
 
-PairValue<A, C> Pair_mapSecond<A, B, C>(PairValue<A, B> this_, C Function(B) transform) {
-  return (() { final _obj = PairValue<A, C>(); Pair_new(_obj, this_.first, transform(this_.second)); return _obj; })();
+PairValue<A, C> Pair_mapSecond<A, B, C>(dynamic this__, C Function(B) transform) {
+  final this_ = this__ as PairValue<A, B>;
+  return Pair_new<A, C>(PairValue<A, C>(), this_.first, transform(this_.second));
 }
 
-R Pair_fold<A, B, R>(PairValue<A, B> this_, R Function(A, B) combine) {
+R Pair_fold<A, B, R>(dynamic this__, R Function(A, B) combine) {
+  final this_ = this__ as PairValue<A, B>;
   return combine(this_.first, this_.second);
 }
 
-String Pair_toString<A, B>(PairValue<A, B> this_) {
+String Pair_toString<A, B>(dynamic this__) {
+  final this_ = this__ as PairValue<A, B>;
   return 'Pair(${this_.first}, ${this_.second})';
 }
 
@@ -615,7 +712,8 @@ class TripleValue<A, B, C> extends PairValue<A, B> {
   late C third;
 }
 
-void Triple_new<A, B, C>(TripleValue<A, B, C> this_, A first, B second, C third) {
+TripleValue<A, B, C> Triple_new<A, B, C>(dynamic this__, A first, B second, C third) {
+  final this_ = this__ as TripleValue<A, B, C>;
   Pair_new(this_, first, second);
   this_.vptr['swap'] = Triple_swap<A, B, C>;
   this_.vptr['mapFirst'] = Triple_mapFirst<A, B, C>;
@@ -623,26 +721,31 @@ void Triple_new<A, B, C>(TripleValue<A, B, C> this_, A first, B second, C third)
   this_.vptr['fold_String'] = Triple_fold<A, B, C, String>;
   this_.vptr['toString'] = Triple_toString<A, B, C>;
   this_.third = third;
+  return this_;
 }
 
-String Triple_toString<A, B, C>(PairValue<A, B> this__) {
+String Triple_toString<A, B, C>(dynamic this__) {
   final this_ = this__ as TripleValue<A, B, C>;
   return 'Triple(${this_.first}, ${this_.second}, ${this_.third})';
 }
 
-PairValue<B, A> Triple_swap<A, B, C>(TripleValue<A, B, C> this_) {
+PairValue<B, A> Triple_swap<A, B, C>(dynamic this__) {
+  final this_ = this__ as TripleValue<A, B, C>;
   return Pair_swap<A, B>(this_);
 }
 
-PairValue<C, B> Triple_mapFirst<A, B, C>(TripleValue<A, B, C> this_, C Function(A) transform) {
+PairValue<C, B> Triple_mapFirst<A, B, C>(dynamic this__, C Function(A) transform) {
+  final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapFirst<A, B, C>(this_, transform);
 }
 
-PairValue<A, C> Triple_mapSecond<A, B, C>(TripleValue<A, B, C> this_, C Function(B) transform) {
+PairValue<A, C> Triple_mapSecond<A, B, C>(dynamic this__, C Function(B) transform) {
+  final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapSecond<A, B, C>(this_, transform);
 }
 
-R Triple_fold<A, B, C, R>(TripleValue<A, B, C> this_, R Function(A, B) combine) {
+R Triple_fold<A, B, C, R>(dynamic this__, R Function(A, B) combine) {
+  final this_ = this__ as TripleValue<A, B, C>;
   return Pair_fold<A, B, R>(this_, combine);
 }
 
@@ -652,7 +755,8 @@ class StringBuilderValue extends VPtr {
   late String _separator;
 }
 
-void StringBuilder_new(StringBuilderValue this_) {
+StringBuilderValue StringBuilder_new(dynamic this__) {
+  final this_ = this__ as StringBuilderValue;
   this_.vptr['withSeparator'] = StringBuilder_withSeparator;
   this_.vptr['add'] = StringBuilder_add;
   this_.vptr['addAll'] = StringBuilder_addAll;
@@ -660,14 +764,17 @@ void StringBuilder_new(StringBuilderValue this_) {
   this_.vptr['toString'] = StringBuilder_toString;
   this_._buf = StringBuffer();
   this_._separator = '';
+  return this_;
 }
 
-StringBuilderValue StringBuilder_withSeparator(StringBuilderValue this_, String sep) {
+StringBuilderValue StringBuilder_withSeparator(dynamic this__, String sep) {
+  final this_ = this__ as StringBuilderValue;
   this_._separator = sep;
   return this_;
 }
 
-StringBuilderValue StringBuilder_add(StringBuilderValue this_, String text) {
+StringBuilderValue StringBuilder_add(dynamic this__, String text) {
+  final this_ = this__ as StringBuilderValue;
   if ((this_._buf.isNotEmpty && this_._separator.isNotEmpty)) {
     this_._buf.write(this_._separator);
   }
@@ -675,18 +782,21 @@ StringBuilderValue StringBuilder_add(StringBuilderValue this_, String text) {
   return this_;
 }
 
-StringBuilderValue StringBuilder_addAll(StringBuilderValue this_, List<String> texts) {
+StringBuilderValue StringBuilder_addAll(dynamic this__, List<String> texts) {
+  final this_ = this__ as StringBuilderValue;
   for (final t in texts) {
-    (this_.vptr['add'] as StringBuilderValue Function(StringBuilderValue, String))(this_, t);
+    (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
   }
   return this_;
 }
 
-int StringBuilder_get_length(StringBuilderValue this_) {
+int StringBuilder_get_length(dynamic this__) {
+  final this_ = this__ as StringBuilderValue;
   return this_._buf.length;
 }
 
-String StringBuilder_toString(StringBuilderValue this_) {
+String StringBuilder_toString(dynamic this__) {
+  final this_ = this__ as StringBuilderValue;
   return this_._buf.toString();
 }
 
@@ -697,14 +807,17 @@ class AppErrorValue extends VPtr {
   late AppErrorValue? cause;
 }
 
-void AppError_new(AppErrorValue this_, String message, String code, [AppErrorValue? cause = null]) {
+AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErrorValue? cause = null]) {
+  final this_ = this__ as AppErrorValue;
   this_.vptr['toString'] = AppError_toString;
   this_.message = message;
   this_.code = code;
   this_.cause = cause;
+  return this_;
 }
 
-String AppError_toString(AppErrorValue this_) {
+String AppError_toString(dynamic this__) {
+  final this_ = this__ as AppErrorValue;
   final List<String> chain = <String>[];
   AppErrorValue? current = this_;
   while (!((current == null))) {
@@ -719,7 +832,8 @@ class DataPipelineValue<T> extends VPtr {
   late List<T> _data;
 }
 
-void DataPipeline_new<T>(DataPipelineValue<T> this_, List<T> _data) {
+DataPipelineValue<T> DataPipeline_new<T>(dynamic this__, List<T> _data) {
+  final this_ = this__ as DataPipelineValue<T>;
   this_.vptr['where'] = DataPipeline_where<T>;
   this_.vptr['map_int'] = DataPipeline_map<T, int>;
   this_.vptr['sorted'] = DataPipeline_sorted<T>;
@@ -728,35 +842,43 @@ void DataPipeline_new<T>(DataPipelineValue<T> this_, List<T> _data) {
   this_.vptr['toList'] = DataPipeline_toList<T>;
   this_.vptr['toString'] = DataPipeline_toString<T>;
   this_._data = _data;
+  return this_;
 }
 
-DataPipelineValue<T> DataPipeline_where<T>(DataPipelineValue<T> this_, bool Function(T) test) {
-  return (() { final _obj = DataPipelineValue<T>(); DataPipeline_new(_obj, this_._data.where(test).toList()); return _obj; })();
+DataPipelineValue<T> DataPipeline_where<T>(dynamic this__, bool Function(T) test) {
+  final this_ = this__ as DataPipelineValue<T>;
+  return DataPipeline_new<T>(DataPipelineValue<T>(), this_._data.where(test).toList());
 }
 
-DataPipelineValue<R> DataPipeline_map<T, R>(DataPipelineValue<T> this_, R Function(T) transform) {
-  return (() { final _obj = DataPipelineValue<R>(); DataPipeline_new(_obj, this_._data.map(transform).toList()); return _obj; })();
+DataPipelineValue<R> DataPipeline_map<T, R>(dynamic this__, R Function(T) transform) {
+  final this_ = this__ as DataPipelineValue<T>;
+  return DataPipeline_new<R>(DataPipelineValue<R>(), this_._data.map(transform).toList());
 }
 
-DataPipelineValue<T> DataPipeline_sorted<T>(DataPipelineValue<T> this_, int Function(T, T) compare) {
+DataPipelineValue<T> DataPipeline_sorted<T>(dynamic this__, int Function(T, T) compare) {
+  final this_ = this__ as DataPipelineValue<T>;
   final List<T> copy = List.from(this_._data);
   copy.sort(compare);
-  return (() { final _obj = DataPipelineValue<T>(); DataPipeline_new(_obj, copy); return _obj; })();
+  return DataPipeline_new<T>(DataPipelineValue<T>(), copy);
 }
 
-DataPipelineValue<T> DataPipeline_take<T>(DataPipelineValue<T> this_, int count) {
-  return (() { final _obj = DataPipelineValue<T>(); DataPipeline_new(_obj, this_._data.take(count).toList()); return _obj; })();
+DataPipelineValue<T> DataPipeline_take<T>(dynamic this__, int count) {
+  final this_ = this__ as DataPipelineValue<T>;
+  return DataPipeline_new<T>(DataPipelineValue<T>(), this_._data.take(count).toList());
 }
 
-R DataPipeline_fold<T, R>(DataPipelineValue<T> this_, R initial, R Function(R, T) combine) {
+R DataPipeline_fold<T, R>(dynamic this__, R initial, R Function(R, T) combine) {
+  final this_ = this__ as DataPipelineValue<T>;
   return this_._data.fold(initial, combine);
 }
 
-List<T> DataPipeline_toList<T>(DataPipelineValue<T> this_) {
+List<T> DataPipeline_toList<T>(dynamic this__) {
+  final this_ = this__ as DataPipelineValue<T>;
   return List.unmodifiable(this_._data);
 }
 
-String DataPipeline_toString<T>(DataPipelineValue<T> this_) {
+String DataPipeline_toString<T>(dynamic this__) {
+  final this_ = this__ as DataPipelineValue<T>;
   return 'Pipeline(${this_._data})';
 }
 
@@ -767,7 +889,8 @@ class BoundedValueValue extends VPtr {
   late double _max;
 }
 
-void BoundedValue_new(BoundedValueValue this_, double _value, double _min, double _max) {
+BoundedValueValue BoundedValue_new(dynamic this__, double _value, double _min, double _max) {
+  final this_ = this__ as BoundedValueValue;
   this_.vptr['get_value'] = BoundedValue_get_value;
   this_.vptr['set_value'] = BoundedValue_set_value;
   this_.vptr['operatorPlus'] = BoundedValue_operatorPlus;
@@ -776,27 +899,33 @@ void BoundedValue_new(BoundedValueValue this_, double _value, double _min, doubl
   this_._min = _min;
   this_._max = _max;
   BoundedValue__clamp(this_);
+  return this_;
 }
 
-double BoundedValue_get_value(BoundedValueValue this_) {
+double BoundedValue_get_value(dynamic this__) {
+  final this_ = this__ as BoundedValueValue;
   return this_._value;
 }
 
-void BoundedValue_set_value(BoundedValueValue this_, double v) {
+void BoundedValue_set_value(dynamic this__, double v) {
+  final this_ = this__ as BoundedValueValue;
   this_._value = v;
   BoundedValue__clamp(this_);
 }
 
-void BoundedValue__clamp(BoundedValueValue this_) {
+void BoundedValue__clamp(dynamic this__) {
+  final this_ = this__ as BoundedValueValue;
   if ((this_._value < this_._min))   this_._value = this_._min;
   if ((this_._value > this_._max))   this_._value = this_._max;
 }
 
-BoundedValueValue BoundedValue_operatorPlus(BoundedValueValue this_, double delta) {
-  return (() { final _obj = BoundedValueValue(); BoundedValue_new(_obj, (this_._value + delta), this_._min, this_._max); return _obj; })();
+BoundedValueValue BoundedValue_operatorPlus(dynamic this__, double delta) {
+  final this_ = this__ as BoundedValueValue;
+  return BoundedValue_new(BoundedValueValue(), (this_._value + delta), this_._min, this_._max);
 }
 
-String BoundedValue_toString(BoundedValueValue this_) {
+String BoundedValue_toString(dynamic this__) {
+  final this_ = this__ as BoundedValueValue;
   return 'BoundedValue(${this_._value}, min=${this_._min}, max=${this_._max})';
 }
 
@@ -806,7 +935,9 @@ class MathUtilsValue extends VPtr {
 
 const double MathUtils_pi = 3.14159265358979;
 int MathUtils__callCount = 0;
-void MathUtils_new(MathUtilsValue this_) {
+MathUtilsValue MathUtils_new(dynamic this__) {
+  final this_ = this__ as MathUtilsValue;
+  return this_;
 }
 
 int MathUtils_callCount() {
@@ -837,21 +968,25 @@ double MathUtils_lerp(double a, double b, double t) {
 
 
 // mixin Loggable → static functions for delegation
-void Loggable_log(dynamic this_, String message) {
+void Loggable_log(dynamic this__, String message) {
+  final this_ = this__;
   this_._logs.add(message);
 }
 
-List<String> Loggable_get_logs(dynamic this_) {
+List<String> Loggable_get_logs(dynamic this__) {
+  final this_ = this__;
   return List.unmodifiable(this_._logs);
 }
 
 
 // mixin Observable → static functions for delegation
-void Observable_observe<T>(dynamic this_, void Function(T) callback) {
+void Observable_observe<T>(dynamic this__, void Function(T) callback) {
+  final this_ = this__;
   this_._observers.add(callback);
 }
 
-void Observable_notify<T>(dynamic this_, T value) {
+void Observable_notify<T>(dynamic this__, T value) {
+  final this_ = this__;
   for (final cb in this_._observers) {
     cb(value);
   }
@@ -862,7 +997,9 @@ class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValu
   late Map<String, V> _store;
 }
 
-void ReactiveStore_new<V>(ReactiveStoreValue<V> this_) {
+ReactiveStoreValue<V> ReactiveStore_new<V>(dynamic this__) {
+  final this_ = this__ as ReactiveStoreValue<V>;
+  ReactiveStore_Object_Loggable_Observable_init(this_);
   this_.vptr['log'] = ReactiveStore_log<V>;
   this_.vptr['get_logs'] = ReactiveStore_get_logs<V>;
   this_.vptr['observe'] = ReactiveStore_observe<V>;
@@ -874,40 +1011,49 @@ void ReactiveStore_new<V>(ReactiveStoreValue<V> this_) {
   this_._logs = <String>[];
   this_._observers = <void Function(V)>[];
   this_._store = <String, V>{};
+  return this_;
 }
 
-V? ReactiveStore_get<V>(ReactiveStoreValue<V> this_, String key) {
-  (this_.vptr['log'] as Function)(this_, 'get: ${key}');
+V? ReactiveStore_get<V>(dynamic this__, String key) {
+  final this_ = this__ as ReactiveStoreValue<V>;
+  (this_.vptr['log'] as void Function(dynamic, String))(this_, 'get: ${key}');
   return this_._store[key];
 }
 
-void ReactiveStore_set<V>(ReactiveStoreValue<V> this_, String key, V value) {
-  (this_.vptr['log'] as Function)(this_, 'set: ${key}=${value}');
+void ReactiveStore_set<V>(dynamic this__, String key, V value) {
+  final this_ = this__ as ReactiveStoreValue<V>;
+  (this_.vptr['log'] as void Function(dynamic, String))(this_, 'set: ${key}=${value}');
   this_._store[key] = value;
-  (this_.vptr['notify'] as Function)(this_, value);
+  (this_.vptr['notify'] as void Function(dynamic, V))(this_, value);
 }
 
-int ReactiveStore_get_size<V>(ReactiveStoreValue<V> this_) {
+int ReactiveStore_get_size<V>(dynamic this__) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   return this_._store.length;
 }
 
-String ReactiveStore_toString<V>(ReactiveStoreValue<V> this_) {
+String ReactiveStore_toString<V>(dynamic this__) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   return 'Store(${this_._store})';
 }
 
-void ReactiveStore_log<V>(ReactiveStoreValue<V> this_, String message) {
+void ReactiveStore_log<V>(dynamic this__, String message) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   Loggable_log(this_, message);
 }
 
-List<String> ReactiveStore_get_logs<V>(ReactiveStoreValue<V> this_) {
+List<String> ReactiveStore_get_logs<V>(dynamic this__) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   return Loggable_get_logs(this_);
 }
 
-void ReactiveStore_observe<V>(ReactiveStoreValue<V> this_, void Function(V) callback) {
+void ReactiveStore_observe<V>(dynamic this__, void Function(V) callback) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   Observable_observe<V>(this_, callback);
 }
 
-void ReactiveStore_notify<V>(ReactiveStoreValue<V> this_, V value) {
+void ReactiveStore_notify<V>(dynamic this__, V value) {
+  final this_ = this__ as ReactiveStoreValue<V>;
   Observable_notify<V>(this_, value);
 }
 
@@ -915,16 +1061,18 @@ void ReactiveStore_notify<V>(ReactiveStoreValue<V> this_, V value) {
 class ShapeValue extends VPtr {
 }
 
-void Shape_new(ShapeValue this_) {
+ShapeValue Shape_new(dynamic this__) {
+  final this_ = this__ as ShapeValue;
   this_.vptr['area'] = Shape_area;
   this_.vptr['get_shapeName'] = Shape_get_shapeName;
+  return this_;
 }
 
-double Shape_area(ShapeValue this_) {
+double Shape_area(dynamic this_) {
   throw UnimplementedError('Shape.area is abstract');
 }
 
-String Shape_get_shapeName(ShapeValue this_) {
+String Shape_get_shapeName(dynamic this_) {
   throw UnimplementedError('Shape.shapeName is abstract');
 }
 
@@ -933,22 +1081,27 @@ class CircleValue extends VPtr implements ShapeValue {
   late double radius;
 }
 
-void Circle_new(CircleValue this_, double radius) {
+CircleValue Circle_new(dynamic this__, double radius) {
+  final this_ = this__ as CircleValue;
   this_.vptr['area'] = Circle_area;
   this_.vptr['get_shapeName'] = Circle_get_shapeName;
   this_.vptr['toString'] = Circle_toString;
   this_.radius = radius;
+  return this_;
 }
 
-double Circle_area(CircleValue this_) {
+double Circle_area(dynamic this__) {
+  final this_ = this__ as CircleValue;
   return ((3.14159 * this_.radius) * this_.radius);
 }
 
-String Circle_get_shapeName(CircleValue this_) {
+String Circle_get_shapeName(dynamic this__) {
+  final this_ = this__ as CircleValue;
   return 'Circle';
 }
 
-String Circle_toString(CircleValue this_) {
+String Circle_toString(dynamic this__) {
+  final this_ = this__ as CircleValue;
   return 'Circle(r=${this_.radius})';
 }
 
@@ -958,23 +1111,28 @@ class RectangleValue extends VPtr implements ShapeValue {
   late double height;
 }
 
-void Rectangle_new(RectangleValue this_, double width, double height) {
+RectangleValue Rectangle_new(dynamic this__, double width, double height) {
+  final this_ = this__ as RectangleValue;
   this_.vptr['area'] = Rectangle_area;
   this_.vptr['get_shapeName'] = Rectangle_get_shapeName;
   this_.vptr['toString'] = Rectangle_toString;
   this_.width = width;
   this_.height = height;
+  return this_;
 }
 
-double Rectangle_area(RectangleValue this_) {
+double Rectangle_area(dynamic this__) {
+  final this_ = this__ as RectangleValue;
   return (this_.width * this_.height);
 }
 
-String Rectangle_get_shapeName(RectangleValue this_) {
+String Rectangle_get_shapeName(dynamic this__) {
+  final this_ = this__ as RectangleValue;
   return 'Rectangle';
 }
 
-String Rectangle_toString(RectangleValue this_) {
+String Rectangle_toString(dynamic this__) {
+  final this_ = this__ as RectangleValue;
   return 'Rectangle(${this_.width}x${this_.height})';
 }
 
@@ -984,33 +1142,39 @@ class NodeValue<T> extends VPtr {
   late List<NodeValue<T>> children;
 }
 
-void Node_new<T>(NodeValue<T> this_, T value, [List<NodeValue<T>>? children = null]) {
+NodeValue<T> Node_new<T>(dynamic this__, T value, [List<NodeValue<T>>? children = null]) {
+  final this_ = this__ as NodeValue<T>;
   this_.vptr['addChild'] = Node_addChild<T>;
   this_.vptr['flatten'] = Node_flatten<T>;
   this_.vptr['mapTree_String'] = Node_mapTree<T, String>;
   this_.vptr['toString'] = Node_toString<T>;
   this_.value = value;
   this_.children = (children ?? <NodeValue<T>>[]);
+  return this_;
 }
 
-void Node_addChild<T>(NodeValue<T> this_, NodeValue<T> child) {
+void Node_addChild<T>(dynamic this__, NodeValue<T> child) {
+  final this_ = this__ as NodeValue<T>;
   this_.children.add(child);
 }
 
-List<T> Node_flatten<T>(NodeValue<T> this_) {
+List<T> Node_flatten<T>(dynamic this__) {
+  final this_ = this__ as NodeValue<T>;
   final List<T> result = <T>[this_.value];
   for (final child in this_.children) {
-    result.addAll((child.vptr['flatten'] as Function)(child));
+    result.addAll((child.vptr['flatten'] as List<T> Function(dynamic))(child));
   }
   return result;
 }
 
-NodeValue<R> Node_mapTree<T, R>(NodeValue<T> this_, R Function(T) transform_raw) {
+NodeValue<R> Node_mapTree<T, R>(dynamic this__, R Function(T) transform_raw) {
+  final this_ = this__ as NodeValue<T>;
   ObjectBox<R Function(T)> transform = ObjectBox<R Function(T)>(transform_raw);
-  return (() { final _obj = NodeValue<R>(); Node_new(_obj, transform.value(this_.value), this_.children.map(ClosureEnv_anon_1(transform).call).toList()); return _obj; })();
+  return Node_new<R>(NodeValue<R>(), transform.value(this_.value), this_.children.map(ClosureEnv_anon_1(transform).call).toList());
 }
 
-String Node_toString<T>(NodeValue<T> this_) {
+String Node_toString<T>(dynamic this__) {
+  final this_ = this__ as NodeValue<T>;
   if (this_.children.isEmpty)   return '${this_.value}';
   return '${this_.value}(${this_.children.join(', ')})';
 }
@@ -1020,8 +1184,10 @@ class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   late String nodeLabel;
 }
 
-void LabeledNode_new<T>(LabeledNodeValue<T> this_, String nodeLabel, T value, [List<NodeValue<T>>? children = null]) {
+LabeledNodeValue<T> LabeledNode_new<T>(dynamic this__, String nodeLabel, T value, [List<NodeValue<T>>? children = null]) {
+  final this_ = this__ as LabeledNodeValue<T>;
   Node_new(this_, value, children);
+  LabeledNode_Node_Printable_init(this_);
   this_.vptr['addChild'] = LabeledNode_addChild<T>;
   this_.vptr['flatten'] = LabeledNode_flatten<T>;
   this_.vptr['mapTree_String'] = LabeledNode_mapTree<T, String>;
@@ -1029,30 +1195,36 @@ void LabeledNode_new<T>(LabeledNodeValue<T> this_, String nodeLabel, T value, [L
   this_.vptr['get_label'] = LabeledNode_get_label<T>;
   this_.vptr['toPrettyString'] = LabeledNode_toPrettyString<T>;
   this_.nodeLabel = nodeLabel;
+  return this_;
 }
 
-String LabeledNode_get_label<T>(LabeledNodeValue<T> this_) {
+String LabeledNode_get_label<T>(dynamic this__) {
+  final this_ = this__ as LabeledNodeValue<T>;
   return '${this_.nodeLabel}:${this_.value}';
 }
 
-String LabeledNode_toString<T>(NodeValue<T> this__) {
+String LabeledNode_toString<T>(dynamic this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return '[${this_.nodeLabel}]${this_.value}';
 }
 
-void LabeledNode_addChild<T>(LabeledNodeValue<T> this_, NodeValue<T> child) {
+void LabeledNode_addChild<T>(dynamic this__, NodeValue<T> child) {
+  final this_ = this__ as LabeledNodeValue<T>;
   Node_addChild<T>(this_, child);
 }
 
-List<T> LabeledNode_flatten<T>(LabeledNodeValue<T> this_) {
+List<T> LabeledNode_flatten<T>(dynamic this__) {
+  final this_ = this__ as LabeledNodeValue<T>;
   return Node_flatten<T>(this_);
 }
 
-NodeValue<R> LabeledNode_mapTree<T, R>(LabeledNodeValue<T> this_, R Function(T) transform) {
+NodeValue<R> LabeledNode_mapTree<T, R>(dynamic this__, R Function(T) transform) {
+  final this_ = this__ as LabeledNodeValue<T>;
   return Node_mapTree<T, R>(this_, transform);
 }
 
-String LabeledNode_toPrettyString<T>(LabeledNodeValue<T> this_) {
+String LabeledNode_toPrettyString<T>(dynamic this__) {
+  final this_ = this__ as LabeledNodeValue<T>;
   return Printable_toPrettyString(this_);
 }
 
@@ -1060,20 +1232,48 @@ String LabeledNode_toPrettyString<T>(LabeledNodeValue<T> this_) {
 class Entity_Object_PrintableValue extends VPtr {
 }
 
+void Entity_Object_Printable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['toPrettyString'] = Printable_toPrettyString;
+}
+
 
 class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_PrintableValue {
+}
+
+void Entity_Object_Printable_Cacheable_init(dynamic this__) {
+  Entity_Object_Printable_init(this__);
+  final this_ = this__;
+  this_.vptr['cacheValue'] = Cacheable_cacheValue;
+  this_.vptr['getCachedValue'] = Cacheable_getCachedValue;
 }
 
 
 class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends TimestampedEntityValue<ID> {
 }
 
+void VersionedEntity_TimestampedEntity_Serializable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['toJson'] = Serializable_toJson;
+}
+
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extends VersionedEntity_TimestampedEntity_SerializableValue<ID> {
 }
 
+void VersionedEntity_TimestampedEntity_Serializable_Validatable_init(dynamic this__) {
+  VersionedEntity_TimestampedEntity_Serializable_init(this__);
+  final this_ = this__;
+  this_.vptr['get_isValid'] = Validatable_get_isValid;
+}
+
 
 class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
+}
+
+void Money_Comparable2_Printable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['toPrettyString'] = Printable_toPrettyString;
 }
 
 
@@ -1081,13 +1281,31 @@ class ReactiveStore_Object_LoggableValue extends VPtr {
   late List<String> _logs;
 }
 
+void ReactiveStore_Object_Loggable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['log'] = Loggable_log;
+  this_.vptr['get_logs'] = Loggable_get_logs;
+}
+
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
   late List<void Function(V)> _observers;
 }
 
+void ReactiveStore_Object_Loggable_Observable_init(dynamic this__) {
+  ReactiveStore_Object_Loggable_init(this__);
+  final this_ = this__;
+  this_.vptr['observe'] = Observable_observe;
+  this_.vptr['notify'] = Observable_notify;
+}
+
 
 class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
+}
+
+void LabeledNode_Node_Printable_init(dynamic this__) {
+  final this_ = this__;
+  this_.vptr['toPrettyString'] = Printable_toPrettyString;
 }
 
 
@@ -1138,11 +1356,11 @@ List<String> testClosureBoxing() {
   }
 
   log.add('captureParam=${captureParam('test')}');
-  final EventBusValue bus = (() { final _obj = EventBusValue(); EventBus_new(_obj); return _obj; })();
+  final EventBusValue bus = EventBus_new(EventBusValue());
   ObjectBox<List<String>> received = ObjectBox<List<String>>(<String>[]);
-  (bus.vptr['on'] as void Function(EventBusValue, void Function(String)))(bus, ClosureEnv_testClosureBoxing_8(received).call);
-  (bus.vptr['emit'] as void Function(EventBusValue, String))(bus, 'hello');
-  (bus.vptr['emit'] as void Function(EventBusValue, String))(bus, 'world');
+  (bus.vptr['on'] as void Function(dynamic, void Function(String)))(bus, ClosureEnv_testClosureBoxing_8(received).call);
+  (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
+  (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
   log.add('received=${received.value}');
   return log;
 }
@@ -1150,15 +1368,15 @@ List<String> testClosureBoxing() {
 String testExceptionChain() {
   try {
     try {
-      throw (() { final _obj = AppErrorValue(); AppError_new(_obj, 'not found', 'E404'); return _obj; })();
+      throw AppError_new(AppErrorValue(), 'not found', 'E404');
     }
  catch (e) {
-      throw (() { final _obj = AppErrorValue(); AppError_new(_obj, 'service failed', 'E500', (e as AppErrorValue)); return _obj; })();
+      throw AppError_new(AppErrorValue(), 'service failed', 'E500', (e as AppErrorValue));
     }
   }
  catch (e) {
     try {
-      throw (() { final _obj = AppErrorValue(); AppError_new(_obj, 'gateway error', 'E502', (e as AppErrorValue)); return _obj; })();
+      throw AppError_new(AppErrorValue(), 'gateway error', 'E502', (e as AppErrorValue));
     }
  catch (e2) {
       return e2.toString();
@@ -1181,12 +1399,12 @@ String greetAll(String greeting, [String name = 'World', String suffix = '!']) {
 
 String describeShape(ShapeValue shape) {
   if ((shape is CircleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(CircleValue))(shape)}: r=${shape.radius}, area=${(shape.vptr['area'] as Function)(shape).toStringAsFixed(2)}';
+    return '${(shape.vptr['get_shapeName'] as String Function(dynamic))(shape)}: r=${shape.radius}, area=${(shape.vptr['area'] as double Function(dynamic))(shape).toStringAsFixed(2)}';
   }
  else   if ((shape is RectangleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(RectangleValue))(shape)}: ${shape.width}x${shape.height}, area=${(shape.vptr['area'] as Function)(shape).toStringAsFixed(2)}';
+    return '${(shape.vptr['get_shapeName'] as String Function(dynamic))(shape)}: ${shape.width}x${shape.height}, area=${(shape.vptr['area'] as double Function(dynamic))(shape).toStringAsFixed(2)}';
   }
-  return 'Unknown shape: area=${(shape.vptr['area'] as double Function(ShapeValue))(shape)}';
+  return 'Unknown shape: area=${(shape.vptr['area'] as double Function(dynamic))(shape)}';
 }
 
 String evaluateGrade(int score) {
@@ -1225,86 +1443,86 @@ String evaluateGrade(int score) {
 
 void main() {
   print('--- 1. typedef + Function ---');
-  final int doubled = applyTransform(21, (int x) => (x * 2));
+  final int doubled = applyTransform<int>(21, (int x) => (x * 2));
   print('applyTransform: ${doubled}');
-  final List<int> evens = filterWith(<int>[1, 2, 3, 4, 5, 6], (int x) => ((x % 2) == 0));
+  final List<int> evens = filterWith<int>(<int>[1, 2, 3, 4, 5, 6], (int x) => ((x % 2) == 0));
   print('filterWith: ${evens}');
-  final int sum = reduceList(<int>[1, 2, 3, 4, 5], (int a, int b) => (a + b));
+  final int sum = reduceList<int>(<int>[1, 2, 3, 4, 5], (int a, int b) => (a + b));
   print('reduceList: ${sum}');
   print('\n--- 2. 枚举类 ---');
   print('red hex: ${Color_get_hex(Color.red)}');
   print('green isWarm: ${Color_get_isWarm(Color.green)}');
   print('priorities: ${const [Priority.low, Priority.medium, Priority.high, Priority.critical].map((Priority p) => '${p}'.split('.').last).toList()}');
   print('\n--- 3. 运算符重载 ---');
-  final MoneyValue price1 = (() { final _obj = MoneyValue(); Money_new(_obj, 1099, 'USD'); return _obj; })();
-  final MoneyValue price2 = (() { final _obj = MoneyValue(); Money_new_fromDollars(_obj, 5.5); return _obj; })();
-  final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(MoneyValue, MoneyValue))(price1, price2);
-  final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(MoneyValue))(price2);
-  print('price1: ${(price1.vptr['toPrettyString'] as Function)(price1)}');
+  final MoneyValue price1 = Money_new(MoneyValue(), 1099, 'USD');
+  final MoneyValue price2 = Money_new_fromDollars(MoneyValue(), 5.5);
+  final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(dynamic, MoneyValue))(price1, price2);
+  final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(dynamic))(price2);
+  print('price1: ${(price1.vptr['toPrettyString'] as String Function(dynamic))(price1)}');
   print('price2: ${price2}');
   print('total: ${total}');
   print('negated: ${negated}');
-  print('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(MoneyValue, MoneyValue))(price1, price2)}');
-  print('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(MoneyValue, MoneyValue))(price1, price2)}');
-  print('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(MoneyValue, int))(price1, 3)}');
+  print('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
+  print('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
+  print('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(dynamic, int))(price1, 3)}');
   print('\n--- 4. 多层泛型继承 ---');
-  final EntityValue<int> entity = (() { final _obj = EntityValue<int>(); Entity_new(_obj, 1, 'alice'); return _obj; })();
+  final EntityValue<int> entity = Entity_new<int>(EntityValue<int>(), 1, 'alice');
   print('entity: ${entity}');
-  print('entity label: ${(entity.vptr['toPrettyString'] as Function)(entity)}');
-  (entity.vptr['cacheValue'] as Function)(entity, 'cached_data');
-  print('cached: ${(entity.vptr['getCachedValue'] as Function)(entity)}');
-  final TimestampedEntityValue<String> tsEntity = (() { final _obj = TimestampedEntityValue<String>(); TimestampedEntity_new(_obj, 'u1', 'bob', 1000, 2000); return _obj; })();
-  print('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as Function)(tsEntity)}');
-  final VersionedEntityValue<int> vEntity = (() { final _obj = VersionedEntityValue<int>(); VersionedEntity_new(_obj, 42, 'project', 1000, 5000); return _obj; })();
-  (vEntity.vptr['bump'] as Function)(vEntity, 'initial release');
-  (vEntity.vptr['bump'] as Function)(vEntity, 'bug fix');
-  print('vEntity label: ${(vEntity.vptr['toPrettyString'] as Function)(vEntity)}');
-  print('vEntity version: ${(vEntity.vptr['get_version'] as int Function(VersionedEntityValue<int>))(vEntity)}');
-  print('vEntity changelog: ${(vEntity.vptr['get_changelog'] as List<String> Function(VersionedEntityValue<int>))(vEntity)}');
-  print('vEntity serialize: ${(vEntity.vptr['serialize'] as Function)(vEntity)}');
-  print('vEntity toJson: ${(vEntity.vptr['toJson'] as Function)(vEntity)}');
-  print('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(VersionedEntityValue<int>))(vEntity)}');
-  print('vEntity validate: ${(vEntity.vptr['validate'] as Function)(vEntity)}');
+  print('entity label: ${(entity.vptr['toPrettyString'] as String Function(dynamic))(entity)}');
+  (entity.vptr['cacheValue'] as void Function(dynamic, dynamic))(entity, 'cached_data');
+  print('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(dynamic))(entity)}');
+  final TimestampedEntityValue<String> tsEntity = TimestampedEntity_new<String>(TimestampedEntityValue<String>(), 'u1', 'bob', 1000, 2000);
+  print('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(dynamic))(tsEntity)}');
+  final VersionedEntityValue<int> vEntity = VersionedEntity_new<int>(VersionedEntityValue<int>(), 42, 'project', 1000, 5000);
+  (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'initial release');
+  (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'bug fix');
+  print('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(dynamic))(vEntity)}');
+  print('vEntity version: ${(vEntity.vptr['get_version'] as int Function(dynamic))(vEntity)}');
+  print('vEntity changelog: ${(vEntity.vptr['get_changelog'] as List<String> Function(dynamic))(vEntity)}');
+  print('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(dynamic))(vEntity)}');
+  print('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(dynamic))(vEntity)}');
+  print('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(dynamic))(vEntity)}');
+  print('vEntity validate: ${(vEntity.vptr['validate'] as List<String> Function(dynamic))(vEntity)}');
   print('\n--- 5. 工厂构造 ---');
-  final ConfigValue cfg1 = (() { final _obj = ConfigValue(); Config_new_empty(_obj); return _obj; })();
-  (cfg1.vptr['operatorIndexSet'] as void Function(ConfigValue, String, dynamic))(cfg1, 'host', 'localhost');
+  final ConfigValue cfg1 = Config_new_empty(ConfigValue());
+  (cfg1.vptr['operatorIndexSet'] as void Function(dynamic, String, dynamic))(cfg1, 'host', 'localhost');
   print('cfg1: ${cfg1}');
-  final ConfigValue cfg2 = (() { final _obj = ConfigValue(); Config_new_fromPairs(_obj, <List<dynamic>>[['a', 1], ['b', 2]]); return _obj; })();
+  final ConfigValue cfg2 = Config_new_fromPairs(ConfigValue(), <List<dynamic>>[['a', 1], ['b', 2]]);
   print('cfg2: ${cfg2}');
   final ConfigValue cfg3 = Config_new_withDefaults(<String, dynamic>{'debug': true, 'name': 'prod'});
   print('cfg3: ${cfg3}');
-  print('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(ConfigValue, String))(cfg3, 'maxRetries')}');
+  print('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
   print('\n--- 6. 闭包 Box 化 ---');
   final List<String> closureLog = testClosureBoxing();
   for (final line in closureLog) {
     print(line);
   }
   print('\n--- 7. 多重 implements ---');
-  final WidgetValue widget = (() { final _obj = WidgetValue(); Widget_new(_obj); return _obj; })();
-  (widget.vptr['draw'] as Function)(widget);
-  (widget.vptr['resize'] as Function)(widget, 1.5);
-  (widget.vptr['onClick'] as Function)(widget);
-  (widget.vptr['onClick'] as Function)(widget);
-  print('widget: ${(widget.vptr['get_info'] as String Function(WidgetValue))(widget)}');
+  final WidgetValue widget = Widget_new(WidgetValue());
+  (widget.vptr['draw'] as void Function(dynamic))(widget);
+  (widget.vptr['resize'] as void Function(dynamic, double))(widget, 1.5);
+  (widget.vptr['onClick'] as void Function(dynamic))(widget);
+  (widget.vptr['onClick'] as void Function(dynamic))(widget);
+  print('widget: ${(widget.vptr['get_info'] as String Function(dynamic))(widget)}');
   print('\n--- 8. 泛型 Pair ---');
-  final PairValue<int, String> pair = (() { final _obj = PairValue<int, String>(); Pair_new(_obj, 42, 'hello'); return _obj; })();
+  final PairValue<int, String> pair = Pair_new<int, String>(PairValue<int, String>(), 42, 'hello');
   print('pair: ${pair}');
-  print('swap: ${(pair.vptr['swap'] as Function)(pair)}');
-  print('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(PairValue<int, String>, int Function(int)))(pair, (int x) => (x * 2))}');
-  print('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(PairValue<int, String>, String Function(String)))(pair, (String s) => s.toUpperCase())}');
-  print('fold: ${(pair.vptr['fold_String'] as String Function(PairValue<int, String>, String Function(int, String)))(pair, (int a, String b) => '${b}=${a}')}');
-  final TripleValue<int, String, bool> triple = (() { final _obj = TripleValue<int, String, bool>(); Triple_new(_obj, 1, 'yes', true); return _obj; })();
+  print('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(dynamic))(pair)}');
+  print('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(dynamic, int Function(int)))(pair, (int x) => (x * 2))}');
+  print('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(dynamic, String Function(String)))(pair, (String s) => s.toUpperCase())}');
+  print('fold: ${(pair.vptr['fold_String'] as String Function(dynamic, String Function(int, String)))(pair, (int a, String b) => '${b}=${a}')}');
+  final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(TripleValue<int, String, bool>(), 1, 'yes', true);
   print('triple: ${triple}');
   print('\n--- 9. 级联操作 ---');
-  final StringBuilderValue sb = (() { final _let7 = (() { final _obj = StringBuilderValue(); StringBuilder_new(_obj); return _obj; })(); (_let7.vptr['withSeparator'] as StringBuilderValue Function(StringBuilderValue, String))(_let7, ', '); (_let7.vptr['add'] as StringBuilderValue Function(StringBuilderValue, String))(_let7, 'alpha'); (_let7.vptr['add'] as StringBuilderValue Function(StringBuilderValue, String))(_let7, 'beta'); (_let7.vptr['addAll'] as StringBuilderValue Function(StringBuilderValue, List<String>))(_let7, <String>['gamma', 'delta']); return _let7; })();
+  final StringBuilderValue sb = (() { final _let7 = StringBuilder_new(StringBuilderValue()); (_let7.vptr['withSeparator'] as StringBuilderValue Function(dynamic, String))(_let7, ', '); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'alpha'); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'beta'); (_let7.vptr['addAll'] as StringBuilderValue Function(dynamic, List<String>))(_let7, <String>['gamma', 'delta']); return _let7; })();
   print('builder: ${sb}');
-  print('length: ${(sb.vptr['get_length'] as int Function(StringBuilderValue))(sb)}');
+  print('length: ${(sb.vptr['get_length'] as int Function(dynamic))(sb)}');
   print('\n--- 10. 异常处理链 ---');
   print('chain: ${testExceptionChain()}');
   print('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = (((((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)).vptr['sorted'] as Function)(((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as Function)((((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)).vptr['sorted'] as Function)(((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)), (int a, int b) => (a - b)), 5).vptr['map_int'] as DataPipelineValue<int> Function(DataPipelineValue<int>, int Function(int)))(((((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)).vptr['sorted'] as Function)(((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as Function)((((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)).vptr['sorted'] as Function)(((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })().vptr['where'] as Function)((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]); return _obj; })(), (int x) => (x > 2)), (int a, int b) => (a - b)), 5), (int x) => (x * 10));
-  print('pipeline: ${(pipeline.vptr['toList'] as Function)(pipeline)}');
-  final int pipeSum = ((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[1, 2, 3, 4, 5]); return _obj; })().vptr['fold_int'] as int Function(DataPipelineValue<int>, int, int Function(int, int)))((() { final _obj = DataPipelineValue<int>(); DataPipeline_new(_obj, <int>[1, 2, 3, 4, 5]); return _obj; })(), 0, (int acc, int x) => (acc + x));
+  final DataPipelineValue<int> pipeline = ((((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)), 5).vptr['map_int'] as DataPipelineValue<int> Function(dynamic, int Function(int)))((((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)), 5), (int x) => (x * 10));
+  print('pipeline: ${(pipeline.vptr['toList'] as List<int> Function(dynamic))(pipeline)}');
+  final int pipeSum = (DataPipeline_new<int>(DataPipelineValue<int>(), <int>[1, 2, 3, 4, 5]).vptr['fold_int'] as int Function(dynamic, int, int Function(int, int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[1, 2, 3, 4, 5]), 0, (int acc, int x) => (acc + x));
   print('pipeSum: ${pipeSum}');
   print('\n--- 12. 可选参数 ---');
   print(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
@@ -1312,13 +1530,13 @@ void main() {
   print(greetAll('Hello'));
   print(greetAll('Hi', 'Dart', '!!'));
   print('\n--- 13. BoundedValue ---');
-  final BoundedValueValue bv = (() { final _obj = BoundedValueValue(); BoundedValue_new(_obj, 5.0, 0.0, 10.0); return _obj; })();
+  final BoundedValueValue bv = BoundedValue_new(BoundedValueValue(), 5.0, 0.0, 10.0);
   print('bv: ${bv}');
-  (bv.vptr['set_value'] as void Function(BoundedValueValue, double))(bv, 15.0);
+  (bv.vptr['set_value'] as void Function(dynamic, double))(bv, 15.0);
   print('after set 15: ${bv}');
-  (bv.vptr['set_value'] as void Function(BoundedValueValue, double))(bv, (-5.0));
+  (bv.vptr['set_value'] as void Function(dynamic, double))(bv, (-5.0));
   print('after set -5: ${bv}');
-  final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(BoundedValueValue, double))(bv, 7.0);
+  final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(dynamic, double))(bv, 7.0);
   print('bv + 7: ${bv2}');
   print('\n--- 14. 静态方法 ---');
   print('5! = ${MathUtils_factorial(5)}');
@@ -1326,33 +1544,33 @@ void main() {
   print('lerp(0,100,0.3): ${MathUtils_lerp(0.0, 100.0, 0.3)}');
   print('callCount: ${MathUtils_callCount()}');
   print('\n--- 15. ReactiveStore ---');
-  final ReactiveStoreValue<int> store = (() { final _obj = ReactiveStoreValue<int>(); ReactiveStore_new(_obj); return _obj; })();
+  final ReactiveStoreValue<int> store = ReactiveStore_new<int>(ReactiveStoreValue<int>());
   ObjectBox<List<int>> observed = ObjectBox<List<int>>(<int>[]);
-  (store.vptr['observe'] as Function)(store, ClosureEnv_main_10(observed).call);
-  (store.vptr['set'] as Function)(store, 'x', 10);
-  (store.vptr['set'] as Function)(store, 'y', 20);
+  (store.vptr['observe'] as void Function(dynamic, void Function(int)))(store, ClosureEnv_main_10(observed).call);
+  (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
+  (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
   print('store: ${store}');
-  print('store.get(x): ${(store.vptr['get'] as Function)(store, 'x')}');
-  print('store.size: ${(store.vptr['get_size'] as int Function(ReactiveStoreValue<int>))(store)}');
+  print('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
+  print('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
   print('observed: ${observed.value}');
-  print('logs: ${(store.vptr['get_logs'] as List<String> Function(ReactiveStoreValue<int>))(store)}');
+  print('logs: ${(store.vptr['get_logs'] as List<String> Function(dynamic))(store)}');
   print('\n--- 16. 类型转换 ---');
-  final List<ShapeValue> shapes = <ShapeValue>[(() { final _obj = CircleValue(); Circle_new(_obj, 5.0); return _obj; })(), (() { final _obj = RectangleValue(); Rectangle_new(_obj, 3.0, 4.0); return _obj; })(), (() { final _obj = CircleValue(); Circle_new(_obj, 1.0); return _obj; })()];
+  final List<ShapeValue> shapes = <ShapeValue>[Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new(CircleValue(), 1.0)];
   for (final s in shapes) {
     print(describeShape(s));
   }
   print('\n--- 17. 树结构 ---');
-  final NodeValue<int> tree = (() { final _obj = NodeValue<int>(); Node_new(_obj, 1, <NodeValue<int>>[(() { final _obj = NodeValue<int>(); Node_new(_obj, 2, <NodeValue<int>>[(() { final _obj = NodeValue<int>(); Node_new(_obj, 4); return _obj; })(), (() { final _obj = NodeValue<int>(); Node_new(_obj, 5); return _obj; })()]); return _obj; })(), (() { final _obj = NodeValue<int>(); Node_new(_obj, 3, <NodeValue<int>>[(() { final _obj = NodeValue<int>(); Node_new(_obj, 6); return _obj; })()]); return _obj; })()]); return _obj; })();
+  final NodeValue<int> tree = Node_new<int>(NodeValue<int>(), 1, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 2, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 4), Node_new<int>(NodeValue<int>(), 5)]), Node_new<int>(NodeValue<int>(), 3, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 6)])]);
   print('tree: ${tree}');
-  print('flatten: ${(tree.vptr['flatten'] as Function)(tree)}');
-  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(NodeValue<int>, String Function(int)))(tree, (int x) => 'N${x}');
+  print('flatten: ${(tree.vptr['flatten'] as List<int> Function(dynamic))(tree)}');
+  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(dynamic, String Function(int)))(tree, (int x) => 'N${x}');
   print('mapped: ${strTree}');
-  final LabeledNodeValue<int> labeled = (() { final _obj = LabeledNodeValue<int>(); LabeledNode_new(_obj, 'root', 100); return _obj; })();
-  (labeled.vptr['addChild'] as Function)(labeled, (() { final _obj = NodeValue<int>(); Node_new(_obj, 200); return _obj; })());
-  (labeled.vptr['addChild'] as Function)(labeled, (() { final _obj = NodeValue<int>(); Node_new(_obj, 300); return _obj; })());
+  final LabeledNodeValue<int> labeled = LabeledNode_new<int>(LabeledNodeValue<int>(), 'root', 100);
+  (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(NodeValue<int>(), 200));
+  (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(NodeValue<int>(), 300));
   print('labeled: ${labeled}');
-  print('labeled pretty: ${(labeled.vptr['toPrettyString'] as Function)(labeled)}');
-  print('labeled flatten: ${(labeled.vptr['flatten'] as Function)(labeled)}');
+  print('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(dynamic))(labeled)}');
+  print('labeled flatten: ${(labeled.vptr['flatten'] as List<int> Function(dynamic))(labeled)}');
   print('\n--- 18. 评分 ---');
   print(evaluateGrade(95));
   print(evaluateGrade(82));
