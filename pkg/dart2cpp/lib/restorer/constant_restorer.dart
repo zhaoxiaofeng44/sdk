@@ -208,11 +208,10 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
           ? '<${c.typeArguments.map(_restoreType).join(', ')}>'
           : '';
       final valueType = '${className}Value$typeArgs';
-      // 使用 IIFE 模式：构造函数返回 void，需要先创建对象再调用
-      final newCall = argsStr.isEmpty
-          ? '$funcName(_obj)'
-          : '$funcName(_obj, $argsStr)';
-      return '(() { final _obj = $valueType(); $newCall; return _obj; })()';
+      // X_new 返回 this_，可直接作为表达式使用
+      return argsStr.isEmpty
+          ? '$funcName($valueType())'
+          : '$funcName($valueType(), $argsStr)';
     }
 
     // 回退：使用字段名作为命名参数
@@ -223,7 +222,9 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
         ? '<${c.typeArguments.map(_restoreType).join(', ')}>'
         : '';
     final valueType = '${className}Value$typeArgs';
-    return '(() { final _obj = $valueType(); ${className}_new(_obj, $fields); return _obj; })()';
+    return fields.isEmpty
+        ? '${className}_new($valueType())'
+        : '${className}_new($valueType(), $fields)';
   }
 
   /// 计算构造函数与字段值的匹配分数

@@ -1,8 +1,15 @@
 class VPtr {
   late Map<String, dynamic> vptr;
+  VPtr() {
+    vptr = <String, dynamic>{
+      'toString': null,
+      'operatorEq': null,
+      'get_hashCode': null,
+    };
+  }
   @override
   String toString() {
-    final fn = vptr['toString_'];
+    final fn = vptr['toString'];
     if (fn != null) return (fn as Function)(this) as String;
     return super.toString();
   }
@@ -70,11 +77,9 @@ class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
 }
 
 void DiamondClass_new(DiamondClassValue this_, String name) {
-  this_.vptr = {
-    'get_prefix': DiamondClass_get_prefix,
-    'format': DiamondClass_format,
-    'display': DiamondClass_display,
-  };
+  this_.vptr['get_prefix'] = DiamondClass_get_prefix;
+  this_.vptr['format'] = DiamondClass_format;
+  this_.vptr['display'] = DiamondClass_display;
   this_.name = name;
 }
 
@@ -118,14 +123,12 @@ class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
 }
 
 void StatefulWidget_new(StatefulWidgetValue this_, String id) {
-  this_.vptr = {
-    'get_counter': StatefulWidget_get_counter,
-    'set_counter': StatefulWidget_set_counter,
-    'increment': StatefulWidget_increment,
-    'decrement': StatefulWidget_decrement,
-    'get_counterStatus': StatefulWidget_get_counterStatus,
-    'toString_': StatefulWidget_toString,
-  };
+  this_.vptr['get_counter'] = StatefulWidget_get_counter;
+  this_.vptr['set_counter'] = StatefulWidget_set_counter;
+  this_.vptr['increment'] = StatefulWidget_increment;
+  this_.vptr['decrement'] = StatefulWidget_decrement;
+  this_.vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
+  this_.vptr['toString'] = StatefulWidget_toString;
   this_.id = id;
   this_._counter = 0;
 }
@@ -189,13 +192,11 @@ class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValu
 }
 
 void DeepMixinClass_new(DeepMixinClassValue this_) {
-  this_.vptr = {
-    'layer': DeepMixinClass_layer,
-    'onlyA': DeepMixinClass_onlyA,
-    'onlyB': DeepMixinClass_onlyB,
-    'onlyC': DeepMixinClass_onlyC,
-    'allLayers': DeepMixinClass_allLayers,
-  };
+  this_.vptr['layer'] = DeepMixinClass_layer;
+  this_.vptr['onlyA'] = DeepMixinClass_onlyA;
+  this_.vptr['onlyB'] = DeepMixinClass_onlyB;
+  this_.vptr['onlyC'] = DeepMixinClass_onlyC;
+  this_.vptr['allLayers'] = DeepMixinClass_allLayers;
 }
 
 String DeepMixinClass_allLayers(DeepMixinClassValue this_) {
@@ -240,13 +241,12 @@ class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
 }
 
 void Box_new<T>(BoxValue<T> this_, T value) {
-  this_.vptr = {
-    'get_value': (self) => Box_get_value<T>(self),
-    'mapValue': (self, _a0) => Box_mapValue(self, _a0),
-    'describe': (self) => Box_describe<T>(self),
-    'test': (self, _a0) => Box_test<T>(self, _a0),
-    'toString_': (self) => Box_toString<T>(self),
-  };
+  this_.vptr['get_value'] = Box_get_value<T>;
+  this_.vptr['mapValue_int'] = Box_mapValue<T, int>;
+  this_.vptr['mapValue_String'] = Box_mapValue<T, String>;
+  this_.vptr['describe'] = Box_describe<T>;
+  this_.vptr['test'] = Box_test<T>;
+  this_.vptr['toString'] = Box_toString<T>;
   this_.value = value;
 }
 
@@ -275,9 +275,7 @@ class IdentifiableValue extends VPtr {
 }
 
 void Identifiable_new(IdentifiableValue this_) {
-  this_.vptr = {
-    'get_id': Identifiable_get_id,
-  };
+  this_.vptr['get_id'] = Identifiable_get_id;
 }
 
 String Identifiable_get_id(IdentifiableValue this_) {
@@ -289,9 +287,7 @@ class DescribableValue extends VPtr {
 }
 
 void Describable_new(DescribableValue this_) {
-  this_.vptr = {
-    'describe': Describable_describe,
-  };
+  this_.vptr['describe'] = Describable_describe;
 }
 
 String Describable_describe(DescribableValue this_) {
@@ -319,10 +315,8 @@ class ResourceValue extends VPtr implements IdentifiableValue, DescribableValue 
 }
 
 void Resource_new(ResourceValue this_, String id, String type) {
-  this_.vptr = {
-    'get_id': Resource_get_id,
-    'describe': Resource_describe,
-  };
+  this_.vptr['get_id'] = Resource_get_id;
+  this_.vptr['describe'] = Resource_describe;
   this_.id = id;
   this_.type = type;
 }
@@ -341,13 +335,11 @@ class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
 
 void TaggedResource_new(TaggedResourceValue this_, String id, String type) {
   Resource_new(this_, id, type);
-  this_.vptr = {
-    'get_id': TaggedResource_get_id,
-    'describe': TaggedResource_describe,
-    'tag': TaggedResource_tag,
-    'get_allTags': TaggedResource_get_allTags,
-    'hasTag': TaggedResource_hasTag,
-  };
+  this_.vptr['get_id'] = TaggedResource_get_id;
+  this_.vptr['describe'] = TaggedResource_describe;
+  this_.vptr['tag'] = TaggedResource_tag;
+  this_.vptr['get_allTags'] = TaggedResource_get_allTags;
+  this_.vptr['hasTag'] = TaggedResource_hasTag;
   this_._tags = <String>[];
 }
 
@@ -376,10 +368,8 @@ class BaseProcessorValue extends VPtr {
 }
 
 void BaseProcessor_new(BaseProcessorValue this_) {
-  this_.vptr = {
-    'process': BaseProcessor_process,
-    'get_processorName': BaseProcessor_get_processorName,
-  };
+  this_.vptr['process'] = BaseProcessor_process;
+  this_.vptr['get_processorName'] = BaseProcessor_get_processorName;
 }
 
 String BaseProcessor_process(BaseProcessorValue this_, String input) {
@@ -396,11 +386,8 @@ class UpperProcessorValue extends BaseProcessorValue {
 
 void UpperProcessor_new(UpperProcessorValue this_) {
   BaseProcessor_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'process': UpperProcessor_process,
-    'get_processorName': UpperProcessor_get_processorName,
-  };
+  this_.vptr['process'] = UpperProcessor_process;
+  this_.vptr['get_processorName'] = UpperProcessor_get_processorName;
 }
 
 String UpperProcessor_process(BaseProcessorValue this__, String input) {
@@ -420,11 +407,8 @@ class PrefixProcessorValue extends UpperProcessorValue {
 
 void PrefixProcessor_new(PrefixProcessorValue this_, String prefix) {
   UpperProcessor_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'process': PrefixProcessor_process,
-    'get_processorName': PrefixProcessor_get_processorName,
-  };
+  this_.vptr['process'] = PrefixProcessor_process;
+  this_.vptr['get_processorName'] = PrefixProcessor_get_processorName;
   this_.prefix = prefix;
 }
 
@@ -454,16 +438,14 @@ class AmountValue extends Amount_Object_AddableValue {
 }
 
 void Amount_new(AmountValue this_, int numericValue) {
-  this_.vptr = {
-    'get_numericValue': Amount_get_numericValue,
-    'addValues': Amount_addValues,
-    'doubleValue': Amount_doubleValue,
-    'operatorPlus': Amount_operatorPlus,
-    'operatorMinus': Amount_operatorMinus,
-    'operatorLt': Amount_operatorLt,
-    'operatorGt': Amount_operatorGt,
-    'toString_': Amount_toString,
-  };
+  this_.vptr['get_numericValue'] = Amount_get_numericValue;
+  this_.vptr['addValues'] = Amount_addValues;
+  this_.vptr['doubleValue'] = Amount_doubleValue;
+  this_.vptr['operatorPlus'] = Amount_operatorPlus;
+  this_.vptr['operatorMinus'] = Amount_operatorMinus;
+  this_.vptr['operatorLt'] = Amount_operatorLt;
+  this_.vptr['operatorGt'] = Amount_operatorGt;
+  this_.vptr['toString'] = Amount_toString;
   this_.numericValue = numericValue;
 }
 
@@ -512,9 +494,7 @@ class VehicleValue extends VPtr {
 }
 
 void Vehicle_new(VehicleValue this_, String make, int year) {
-  this_.vptr = {
-    'toString_': Vehicle_toString,
-  };
+  this_.vptr['toString'] = Vehicle_toString;
   this_.make = make;
   this_.year = year;
 }
@@ -530,11 +510,9 @@ class CarValue extends Car_Vehicle_Printable2Value {
 
 void Car_new(CarValue this_, String make, int year, int doors) {
   Vehicle_new(this_, make, year);
-  this_.vptr = {
-    'toString_': Car_toString,
-    'toPrettyString': Car_toPrettyString,
-    'prettyPrint': Car_prettyPrint,
-  };
+  this_.vptr['toString'] = Car_toString;
+  this_.vptr['toPrettyString'] = Car_toPrettyString;
+  this_.vptr['prettyPrint'] = Car_prettyPrint;
   this_.doors = doors;
 }
 
@@ -558,12 +536,9 @@ class ElectricCarValue extends CarValue {
 
 void ElectricCar_new(ElectricCarValue this_, String make, int year, int doors, int range) {
   Car_new(this_, make, year, doors);
-  this_.vptr = {
-    ...this_.vptr,
-    'toString_': ElectricCar_toString,
-    'toPrettyString': ElectricCar_toPrettyString,
-    'prettyPrint': ElectricCar_prettyPrint,
-  };
+  this_.vptr['toString'] = ElectricCar_toString;
+  this_.vptr['toPrettyString'] = ElectricCar_toPrettyString;
+  this_.vptr['prettyPrint'] = ElectricCar_prettyPrint;
   this_.range = range;
 }
 
@@ -585,9 +560,7 @@ class MeasurableValue extends VPtr {
 }
 
 void Measurable_new(MeasurableValue this_) {
-  this_.vptr = {
-    'measure': Measurable_measure,
-  };
+  this_.vptr['measure'] = Measurable_measure;
 }
 
 double Measurable_measure(MeasurableValue this_) {
@@ -611,12 +584,10 @@ class SegmentValue extends Segment_Measurable_ScalableValue {
 
 void Segment_new(SegmentValue this_, double length) {
   Measurable_new(this_);
-  this_.vptr = {
-    'measure': Segment_measure,
-    'scale': Segment_scale,
-    'measureInfo': Segment_measureInfo,
-    'toString_': Segment_toString,
-  };
+  this_.vptr['measure'] = Segment_measure;
+  this_.vptr['scale'] = Segment_scale;
+  this_.vptr['measureInfo'] = Segment_measureInfo;
+  this_.vptr['toString'] = Segment_toString;
   this_.length = length;
 }
 
@@ -644,13 +615,10 @@ class WeightedSegmentValue extends SegmentValue {
 
 void WeightedSegment_new(WeightedSegmentValue this_, double length, double weight) {
   Segment_new(this_, length);
-  this_.vptr = {
-    ...this_.vptr,
-    'measure': WeightedSegment_measure,
-    'scale': WeightedSegment_scale,
-    'measureInfo': WeightedSegment_measureInfo,
-    'toString_': WeightedSegment_toString,
-  };
+  this_.vptr['measure'] = WeightedSegment_measure;
+  this_.vptr['scale'] = WeightedSegment_scale;
+  this_.vptr['measureInfo'] = WeightedSegment_measureInfo;
+  this_.vptr['toString'] = WeightedSegment_toString;
   this_.weight = weight;
 }
 
@@ -697,12 +665,10 @@ class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_Described
 }
 
 void MultiMixinEntity_new(MultiMixinEntityValue this_) {
-  this_.vptr = {
-    'get_label': MultiMixinEntity_get_label,
-    'greet': MultiMixinEntity_greet,
-    'info': MultiMixinEntity_info,
-    'fullInfo': MultiMixinEntity_fullInfo,
-  };
+  this_.vptr['get_label'] = MultiMixinEntity_get_label;
+  this_.vptr['greet'] = MultiMixinEntity_greet;
+  this_.vptr['info'] = MultiMixinEntity_info;
+  this_.vptr['fullInfo'] = MultiMixinEntity_fullInfo;
 }
 
 String MultiMixinEntity_get_label(MultiMixinEntityValue this_) {
@@ -726,9 +692,7 @@ class EncoderValue extends VPtr {
 }
 
 void Encoder_new(EncoderValue this_) {
-  this_.vptr = {
-    'encode': Encoder_encode,
-  };
+  this_.vptr['encode'] = Encoder_encode;
 }
 
 String Encoder_encode(EncoderValue this_, String input) {
@@ -752,10 +716,8 @@ class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
 }
 
 void MultiEncoder_new(MultiEncoderValue this_) {
-  this_.vptr = {
-    'encode': MultiEncoder_encode,
-    'encodeAll': MultiEncoder_encodeAll,
-  };
+  this_.vptr['encode'] = MultiEncoder_encode;
+  this_.vptr['encodeAll'] = MultiEncoder_encodeAll;
 }
 
 String MultiEncoder_encodeAll(MultiEncoderValue this_, String input) {
@@ -772,11 +734,8 @@ class CustomEncoderValue extends MultiEncoderValue {
 
 void CustomEncoder_new(CustomEncoderValue this_) {
   MultiEncoder_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'encode': CustomEncoder_encode,
-    'encodeAll': CustomEncoder_encodeAll,
-  };
+  this_.vptr['encode'] = CustomEncoder_encode;
+  this_.vptr['encodeAll'] = CustomEncoder_encodeAll;
 }
 
 String CustomEncoder_encode(CustomEncoderValue this_, String input) {
@@ -793,10 +752,8 @@ class ContainerValue<T> extends VPtr {
 }
 
 void Container_new<T>(ContainerValue<T> this_, T item) {
-  this_.vptr = {
-    'describe': (self) => Container_describe<T>(self),
-    'get_content': (self) => Container_get_content<T>(self),
-  };
+  this_.vptr['describe'] = Container_describe<T>;
+  this_.vptr['get_content'] = Container_get_content<T>;
   this_.item = item;
 }
 
@@ -815,11 +772,8 @@ class LabeledContainerValue<T> extends ContainerValue<T> {
 
 void LabeledContainer_new<T>(LabeledContainerValue<T> this_, T item, String label) {
   Container_new(this_, item);
-  this_.vptr = {
-    ...this_.vptr,
-    'describe': (self) => LabeledContainer_describe<T>(self),
-    'get_content': (self) => LabeledContainer_get_content<T>(self),
-  };
+  this_.vptr['describe'] = LabeledContainer_describe<T>;
+  this_.vptr['get_content'] = LabeledContainer_get_content<T>;
   this_.label = label;
 }
 
@@ -839,11 +793,8 @@ class PriorityContainerValue<T> extends LabeledContainerValue<T> {
 
 void PriorityContainer_new<T>(PriorityContainerValue<T> this_, T item, String label, int priority) {
   LabeledContainer_new(this_, item, label);
-  this_.vptr = {
-    ...this_.vptr,
-    'describe': (self) => PriorityContainer_describe<T>(self),
-    'get_content': (self) => PriorityContainer_get_content<T>(self),
-  };
+  this_.vptr['describe'] = PriorityContainer_describe<T>;
+  this_.vptr['get_content'] = PriorityContainer_get_content<T>;
   this_.priority = priority;
 }
 
@@ -879,12 +830,10 @@ class ChainClassValue extends ChainClass_Object_ChainMixinValue {
 }
 
 void ChainClass_new(ChainClassValue this_) {
-  this_.vptr = {
-    'step1': ChainClass_step1,
-    'step2': ChainClass_step2,
-    'step3': ChainClass_step3,
-    'fullChain': ChainClass_fullChain,
-  };
+  this_.vptr['step1'] = ChainClass_step1;
+  this_.vptr['step2'] = ChainClass_step2;
+  this_.vptr['step3'] = ChainClass_step3;
+  this_.vptr['fullChain'] = ChainClass_fullChain;
 }
 
 String ChainClass_step1(ChainClassValue this_) {
@@ -909,13 +858,10 @@ class ChainSubClassValue extends ChainClassValue {
 
 void ChainSubClass_new(ChainSubClassValue this_) {
   ChainClass_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'step1': ChainSubClass_step1,
-    'step2': ChainSubClass_step2,
-    'step3': ChainSubClass_step3,
-    'fullChain': ChainSubClass_fullChain,
-  };
+  this_.vptr['step1'] = ChainSubClass_step1;
+  this_.vptr['step2'] = ChainSubClass_step2;
+  this_.vptr['step3'] = ChainSubClass_step3;
+  this_.vptr['fullChain'] = ChainSubClass_fullChain;
 }
 
 String ChainSubClass_step2(ChainSubClassValue this_) {
@@ -939,10 +885,8 @@ class Expression2Value extends VPtr {
 }
 
 void Expression2_new(Expression2Value this_) {
-  this_.vptr = {
-    'evaluate': Expression2_evaluate,
-    'display': Expression2_display,
-  };
+  this_.vptr['evaluate'] = Expression2_evaluate;
+  this_.vptr['display'] = Expression2_display;
 }
 
 double Expression2_evaluate(Expression2Value this_) {
@@ -960,11 +904,8 @@ class NumberExprValue extends Expression2Value {
 
 void NumberExpr_new(NumberExprValue this_, double value) {
   Expression2_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'evaluate': NumberExpr_evaluate,
-    'display': NumberExpr_display,
-  };
+  this_.vptr['evaluate'] = NumberExpr_evaluate;
+  this_.vptr['display'] = NumberExpr_display;
   this_.value = value;
 }
 
@@ -988,11 +929,8 @@ class BinaryExprValue extends Expression2Value {
 
 void BinaryExpr_new(BinaryExprValue this_, Expression2Value left, Expression2Value right, String op, double Function(double, double) _compute) {
   Expression2_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'evaluate': BinaryExpr_evaluate,
-    'display': BinaryExpr_display,
-  };
+  this_.vptr['evaluate'] = BinaryExpr_evaluate;
+  this_.vptr['display'] = BinaryExpr_display;
   this_.left = left;
   this_.right = right;
   this_.op = op;
@@ -1065,18 +1003,16 @@ class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_Stam
 }
 
 void GameCharacter_new(GameCharacterValue this_, String name) {
-  this_.vptr = {
-    'get_maxHealth': GameCharacter_get_maxHealth,
-    'get_health': GameCharacter_get_health,
-    'healthBar': GameCharacter_healthBar,
-    'get_maxMana': GameCharacter_get_maxMana,
-    'get_mana': GameCharacter_get_mana,
-    'manaBar': GameCharacter_manaBar,
-    'get_maxStamina': GameCharacter_get_maxStamina,
-    'get_stamina': GameCharacter_get_stamina,
-    'staminaBar': GameCharacter_staminaBar,
-    'statusBars': GameCharacter_statusBars,
-  };
+  this_.vptr['get_maxHealth'] = GameCharacter_get_maxHealth;
+  this_.vptr['get_health'] = GameCharacter_get_health;
+  this_.vptr['healthBar'] = GameCharacter_healthBar;
+  this_.vptr['get_maxMana'] = GameCharacter_get_maxMana;
+  this_.vptr['get_mana'] = GameCharacter_get_mana;
+  this_.vptr['manaBar'] = GameCharacter_manaBar;
+  this_.vptr['get_maxStamina'] = GameCharacter_get_maxStamina;
+  this_.vptr['get_stamina'] = GameCharacter_get_stamina;
+  this_.vptr['staminaBar'] = GameCharacter_staminaBar;
+  this_.vptr['statusBars'] = GameCharacter_statusBars;
   this_.name = name;
 }
 
@@ -1126,19 +1062,16 @@ class WarriorValue extends GameCharacterValue {
 
 void Warrior_new(WarriorValue this_, String name) {
   GameCharacter_new(this_, name);
-  this_.vptr = {
-    ...this_.vptr,
-    'get_maxHealth': Warrior_get_maxHealth,
-    'get_health': Warrior_get_health,
-    'healthBar': Warrior_healthBar,
-    'get_maxMana': Warrior_get_maxMana,
-    'get_mana': Warrior_get_mana,
-    'manaBar': Warrior_manaBar,
-    'get_maxStamina': Warrior_get_maxStamina,
-    'get_stamina': Warrior_get_stamina,
-    'staminaBar': Warrior_staminaBar,
-    'statusBars': Warrior_statusBars,
-  };
+  this_.vptr['get_maxHealth'] = Warrior_get_maxHealth;
+  this_.vptr['get_health'] = Warrior_get_health;
+  this_.vptr['healthBar'] = Warrior_healthBar;
+  this_.vptr['get_maxMana'] = Warrior_get_maxMana;
+  this_.vptr['get_mana'] = Warrior_get_mana;
+  this_.vptr['manaBar'] = Warrior_manaBar;
+  this_.vptr['get_maxStamina'] = Warrior_get_maxStamina;
+  this_.vptr['get_stamina'] = Warrior_get_stamina;
+  this_.vptr['staminaBar'] = Warrior_staminaBar;
+  this_.vptr['statusBars'] = Warrior_statusBars;
 }
 
 int Warrior_get_maxHealth(WarriorValue this_) {
@@ -1187,19 +1120,16 @@ class MageValue extends GameCharacterValue {
 
 void Mage_new(MageValue this_, String name) {
   GameCharacter_new(this_, name);
-  this_.vptr = {
-    ...this_.vptr,
-    'get_maxHealth': Mage_get_maxHealth,
-    'get_health': Mage_get_health,
-    'healthBar': Mage_healthBar,
-    'get_maxMana': Mage_get_maxMana,
-    'get_mana': Mage_get_mana,
-    'manaBar': Mage_manaBar,
-    'get_maxStamina': Mage_get_maxStamina,
-    'get_stamina': Mage_get_stamina,
-    'staminaBar': Mage_staminaBar,
-    'statusBars': Mage_statusBars,
-  };
+  this_.vptr['get_maxHealth'] = Mage_get_maxHealth;
+  this_.vptr['get_health'] = Mage_get_health;
+  this_.vptr['healthBar'] = Mage_healthBar;
+  this_.vptr['get_maxMana'] = Mage_get_maxMana;
+  this_.vptr['get_mana'] = Mage_get_mana;
+  this_.vptr['manaBar'] = Mage_manaBar;
+  this_.vptr['get_maxStamina'] = Mage_get_maxStamina;
+  this_.vptr['get_stamina'] = Mage_get_stamina;
+  this_.vptr['staminaBar'] = Mage_staminaBar;
+  this_.vptr['statusBars'] = Mage_statusBars;
 }
 
 int Mage_get_maxMana(MageValue this_) {
@@ -1351,11 +1281,11 @@ void main() {
   final BoxValue<int> intBox = (() { final _obj = BoxValue<int>(); Box_new(_obj, 42); return _obj; })();
   print('intBox: ${intBox}');
   print('describe: ${(intBox.vptr['describe'] as Function)(intBox)}');
-  print('mapValue: ${Box_mapValue<int, int>(intBox, (int v) => (v * 2))}');
+  print('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(BoxValue<int>, int Function(int)))(intBox, (int v) => (v * 2))}');
   print('test >10: ${(intBox.vptr['test'] as Function)(intBox, (int v) => (v > 10))}');
   print('test >100: ${(intBox.vptr['test'] as Function)(intBox, (int v) => (v > 100))}');
   final BoxValue<String> strBox = (() { final _obj = BoxValue<String>(); Box_new(_obj, 'dart'); return _obj; })();
-  print('strBox mapValue: ${Box_mapValue<String, String>(strBox, (String s) => s.toUpperCase())}');
+  print('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(BoxValue<String>, String Function(String)))(strBox, (String s) => s.toUpperCase())}');
   print('\n--- 5. 抽象+mixin+implements ---');
   final TaggedResourceValue res = (() { final _obj = TaggedResourceValue(); TaggedResource_new(_obj, 'r1', 'file'); return _obj; })();
   (res.vptr['tag'] as Function)(res, 'important');
@@ -1414,7 +1344,7 @@ void main() {
   print('c2: ${(c2.vptr['describe'] as Function)(c2)}');
   final PriorityContainerValue<double> c3 = (() { final _obj = PriorityContainerValue<double>(); PriorityContainer_new(_obj, 3.14, 'pi', 1); return _obj; })();
   print('c3: ${(c3.vptr['describe'] as Function)(c3)}');
-  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(PriorityContainerValue))(c3)}');
+  print('c3.content: ${(c3.vptr['get_content'] as dynamic Function(PriorityContainerValue<double>))(c3)}');
   print('\n--- 13. mixin 调用链 ---');
   final ChainClassValue chain1 = (() { final _obj = ChainClassValue(); ChainClass_new(_obj); return _obj; })();
   print('chain1.fullChain: ${(chain1.vptr['fullChain'] as Function)(chain1)}');

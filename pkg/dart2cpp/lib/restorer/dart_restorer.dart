@@ -18,6 +18,27 @@ String restoreDartFromComponent(Component component) {
 }
 
 // ============================================================================
+// 方法级泛型特化条目
+// ============================================================================
+
+/// 记录一个方法级泛型调用的特化信息。
+/// [vptrSuffix] 用于生成 vptr key（如 'String'、'int'），
+/// [typeArgStrs] 是原始类型字符串列表（如 ['String']、['int']），用于生成调用类型实参。
+class MethodSpecEntry {
+  final String vptrSuffix;
+  final List<String> typeArgStrs;
+
+  MethodSpecEntry(this.vptrSuffix, this.typeArgStrs);
+
+  @override
+  bool operator ==(Object other) =>
+      other is MethodSpecEntry && other.vptrSuffix == vptrSuffix;
+
+  @override
+  int get hashCode => vptrSuffix.hashCode;
+}
+
+// ============================================================================
 // 共享状态基类
 // ============================================================================
 
@@ -80,6 +101,74 @@ abstract class _DartRestorerBase {
 
   /// 待输出的闭包类和静态函数定义（延迟到顶层输出）
   final List<String> _pendingClosureDecls = [];
+
+  /// 待输出的顶层声明：如类级共享的 vtable 常量
+  /// `final Map<String, dynamic> _XX_vtable = <String, dynamic>{ ... };`
+  /// 这些声明会在所有类/函数输出之后、_pendingClosureDecls 之前写到 _buf。
+  final List<String> _pendingTopLevelDecls = [];
+
+  /// 已经登记过共享 vtable 常量的类名集合，避免同类多构造函数（如 .named）重复输出。
+  final Set<String> _emittedSharedVTableClasses = {};
+
+  /// 方法级泛型特化收集：className → { methodName → { 特化条目 } }
+  /// 预扫描 AST 收集所有调用处的方法级类型实参，用于在构造函数中按特化 key 注册。
+  /// 每个特化条目包含：vptrSuffix（用于 vptr key）和 typeArgStrs（用于生成调用类型实参）。
+  /// 例如 Either.fold<String> → { 'Either': { 'fold': { MethodSpecEntry('String', ['String']) } } }
+  final Map<String, Map<String, Set<MethodSpecEntry>>> _methodTypeSpecializations = {};
+
+  /// 检查 DartType 是否包含（或就是）TypeParameterType。
+  /// 用于过滤泛型上下文中的调用（如递归调用），这类调用不应该生成特化条目。
+  bool _containsTypeParameter(DartType type) {
+    if (type is TypeParameterType) return true;
+    if (type is InterfaceType) {
+      return type.typeArguments.any((t) => _containsTypeParameter(t));
+    }
+    if (type is FunctionType) {
+      if (_containsTypeParameter(type.returnType)) return true;
+      return type.positionalParameters.any((t) => _containsTypeParameter(t));
+    }
+    if (type is FutureOrType) {
+      return _containsTypeParameter(type.typeArgument);
+    }
+    return false;
+  }
+
+  /// 将 DartType 转为还原后的类型字符串（用于生成调用类型实参）。
+  /// 与 _typeToSpecSuffix 不同，此方法保留完整的泛型语法。
+  /// 例如：String → 'String', int → 'int', List<int> → 'List<int>'
+  String _typeToSpecRestoreStr(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      if (type.typeArguments.isEmpty) return name;
+      final args = type.typeArguments.map((t) => _typeToSpecRestoreStr(t)).join(', ');
+      return '$name<$args>';
+    }
+    if (type is TypeParameterType) {
+      return type.parameter.name ?? 'T';
+    }
+    if (type is DynamicType) return 'dynamic';
+    if (type is VoidType) return 'void';
+    if (type is FunctionType) return 'Function';
+    return 'dynamic';
+  }
+
+  /// 将 DartType 转为特化后缀字符串（用于 vptr key）。
+  /// 例如：String → 'String', int → 'int', List<int> → 'List_int'
+  String _typeToSpecSuffix(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      if (type.typeArguments.isEmpty) return name;
+      final args = type.typeArguments.map((t) => _typeToSpecSuffix(t)).join('_');
+      return '${name}_$args';
+    }
+    if (type is TypeParameterType) {
+      return type.parameter.name ?? 'T';
+    }
+    if (type is DynamicType) return 'dynamic';
+    if (type is VoidType) return 'void';
+    if (type is FunctionType) return 'Function';
+    return 'dynamic';
+  }
 
   /// 当前闭包体内，被捕获变量 → env 前缀的映射
   /// key: VariableDeclaration (identity), value: env 字段访问前缀（如 'env.'）
@@ -629,10 +718,6 @@ abstract class _DartRestorerBase {
   /// 将方法名转换为 VTable 字段名
   /// 特殊处理：避免与 Object 内置方法冲突（如 toString、hashCode、noSuchMethod）
   String _vtableFieldName(String methodName) {
-    const conflictingNames = {'toString', 'hashCode', 'noSuchMethod', 'runtimeType'};
-    if (conflictingNames.contains(methodName)) {
-      return '${methodName}_';
-    }
     return methodName;
   }
 
@@ -1247,6 +1332,14 @@ class DartRestorer extends _DartRestorerBase
       _collectClassInfo(lib);
     }
 
+    // 第二遍：预扫描 AST 收集方法级泛型调用的具体类型实参
+    _methodTypeSpecializations.clear();
+    for (final lib in component.libraries) {
+      final uri = lib.importUri.toString();
+      if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
+      _collectMethodTypeSpecializations(lib);
+    }
+
     // 输出 VPtr 基类：所有无基类的 Value 类都继承自它
     _emitVPtrBaseClass();
 
@@ -1348,6 +1441,301 @@ class DartRestorer extends _DartRestorerBase
       visit(entry.$1);
     }
     return sorted;
+  }
+
+  // ---- 第二遍：预扫描方法级泛型特化 ----
+
+  /// 遍历 Library 中所有 AST 节点，收集带方法级泛型参数的 InstanceInvocation，
+  /// 记录每个类每个方法的所有具体类型实参后缀到 _methodTypeSpecializations。
+  void _collectMethodTypeSpecializations(Library lib) {
+    for (final cls in lib.classes) {
+      for (final proc in cls.procedures) {
+        if (proc.function.body != null) {
+          _scanNodeForMethodTypeSpecs(proc.function.body!);
+        }
+      }
+      for (final ctor in cls.constructors) {
+        if (ctor.function.body != null) {
+          _scanNodeForMethodTypeSpecs(ctor.function.body!);
+        }
+        for (final init in ctor.initializers) {
+          if (init is FieldInitializer) {
+            _scanNodeForMethodTypeSpecs(init.value);
+          }
+        }
+      }
+      for (final field in cls.fields) {
+        if (field.initializer != null) {
+          _scanNodeForMethodTypeSpecs(field.initializer!);
+        }
+      }
+    }
+    for (final proc in lib.procedures) {
+      if (proc.function.body != null) {
+        _scanNodeForMethodTypeSpecs(proc.function.body!);
+      }
+    }
+    for (final field in lib.fields) {
+      if (field.initializer != null) {
+        _scanNodeForMethodTypeSpecs(field.initializer!);
+      }
+    }
+  }
+
+  /// 递归扫描 AST 节点，查找带方法级泛型的 InstanceInvocation 并记录特化信息。
+  void _scanNodeForMethodTypeSpecs(TreeNode node) {
+    if (node is InstanceInvocation) {
+      _checkAndRecordMethodTypeSpec(node);
+      // 继续扫描子节点
+      _scanNodeForMethodTypeSpecs(node.receiver);
+      for (final a in node.arguments.positional) {
+        _scanNodeForMethodTypeSpecs(a);
+      }
+      for (final a in node.arguments.named) {
+        _scanNodeForMethodTypeSpecs(a.value);
+      }
+      return;
+    }
+    // 通用子节点遍历
+    _scanChildrenForMethodTypeSpecs(node);
+  }
+
+  /// 检查一个 InstanceInvocation 是否是带方法级泛型的调用，
+  /// 如果是，将其具体类型后缀记录到 _methodTypeSpecializations。
+  void _checkAndRecordMethodTypeSpec(InstanceInvocation node) {
+    final target = node.interfaceTarget;
+    final methodTypeParams = target.function.typeParameters;
+    if (methodTypeParams.isEmpty) return;
+
+    // 确定 receiver 的类名
+    final enclosingClass = target.enclosingClass;
+    if (enclosingClass == null) return;
+
+    var className = enclosingClass.name;
+    if (className.contains('&')) {
+      className = _sanitizeSyntheticName(className);
+    }
+    // 只处理用户自定义类
+    if (!_userClasses.contains(className)) return;
+    // 合成中间类 → 找到实际用户类
+    if (_syntheticLoweredNames.contains(className)) {
+      className = _findUserClassForSynthetic(className);
+    }
+
+    // 去重方法级泛型：与类同名的被去除
+    final classTpNames = enclosingClass.typeParameters.map((tp) => tp.name).toSet();
+    final dedupedMethodTps = methodTypeParams
+        .where((tp) => !classTpNames.contains(tp.name))
+        .toList();
+    if (dedupedMethodTps.isEmpty) return;
+
+    // 从 arguments.types 中提取方法级泛型的实际类型实参
+    // 在 Kernel AST 中，InstanceInvocation.arguments.types 仅包含方法的类型实参
+    // （类的类型参数已通过 receiver 的静态类型携带）
+    final methodTypeArgs = node.arguments.types;
+    if (methodTypeArgs.isEmpty) return;
+
+    // 关键过滤：只有当所有方法级类型实参都是**具体类型**（非 TypeParameterType）时
+    // 才生成特化条目。如果任意类型实参仍然是类型参数引用（如递归调用中的 R），
+    // 说明调用在泛型上下文中，无法在 vptr 中以具体类型注册。
+    final hasAbstractTypeArg = methodTypeArgs.any((ta) => _containsTypeParameter(ta));
+    if (hasAbstractTypeArg) return;
+
+    // 生成特化后缀：用所有方法级类型实参的名称连接
+    final methodName = target.name.text;
+    final typeSuffix = methodTypeArgs.map((ta) => _typeToSpecSuffix(ta)).join('_');
+    if (typeSuffix.isEmpty) return;
+
+    // 同时记录原始类型字符串（用于生成正确的调用类型实参）
+    final typeArgStrs = methodTypeArgs.map((ta) => _typeToSpecRestoreStr(ta)).toList();
+
+    // 记录到 _methodTypeSpecializations
+    _methodTypeSpecializations
+        .putIfAbsent(className, () => {})
+        .putIfAbsent(methodName, () => {})
+        .add(MethodSpecEntry(typeSuffix, typeArgStrs));
+  }
+
+  /// 通用子节点遍历（用于预扫描方法级泛型特化）
+  void _scanChildrenForMethodTypeSpecs(TreeNode node) {
+    if (node is Block) {
+      for (final s in node.statements) _scanNodeForMethodTypeSpecs(s);
+      return;
+    }
+    if (node is ExpressionStatement) {
+      _scanNodeForMethodTypeSpecs(node.expression);
+      return;
+    }
+    if (node is ReturnStatement) {
+      if (node.expression != null) _scanNodeForMethodTypeSpecs(node.expression!);
+      return;
+    }
+    if (node is VariableDeclaration) {
+      if (node.initializer != null) _scanNodeForMethodTypeSpecs(node.initializer!);
+      return;
+    }
+    if (node is VariableSet) {
+      _scanNodeForMethodTypeSpecs(node.value);
+      return;
+    }
+    if (node is VariableGet) return;
+    if (node is IfStatement) {
+      _scanNodeForMethodTypeSpecs(node.condition);
+      _scanNodeForMethodTypeSpecs(node.then);
+      if (node.otherwise != null) _scanNodeForMethodTypeSpecs(node.otherwise!);
+      return;
+    }
+    if (node is ForStatement) {
+      for (final v in node.variables) _scanNodeForMethodTypeSpecs(v);
+      if (node.condition != null) _scanNodeForMethodTypeSpecs(node.condition!);
+      for (final u in node.updates) _scanNodeForMethodTypeSpecs(u);
+      _scanNodeForMethodTypeSpecs(node.body);
+      return;
+    }
+    if (node is ForInStatement) {
+      _scanNodeForMethodTypeSpecs(node.variable);
+      _scanNodeForMethodTypeSpecs(node.iterable);
+      _scanNodeForMethodTypeSpecs(node.body);
+      return;
+    }
+    if (node is WhileStatement) {
+      _scanNodeForMethodTypeSpecs(node.condition);
+      _scanNodeForMethodTypeSpecs(node.body);
+      return;
+    }
+    if (node is DoStatement) {
+      _scanNodeForMethodTypeSpecs(node.body);
+      _scanNodeForMethodTypeSpecs(node.condition);
+      return;
+    }
+    if (node is TryCatch) {
+      _scanNodeForMethodTypeSpecs(node.body);
+      for (final c in node.catches) {
+        _scanNodeForMethodTypeSpecs(c.body);
+      }
+      return;
+    }
+    if (node is TryFinally) {
+      _scanNodeForMethodTypeSpecs(node.body);
+      _scanNodeForMethodTypeSpecs(node.finalizer);
+      return;
+    }
+    if (node is SwitchStatement) {
+      _scanNodeForMethodTypeSpecs(node.expression);
+      for (final c in node.cases) {
+        _scanNodeForMethodTypeSpecs(c.body);
+      }
+      return;
+    }
+    if (node is Let) {
+      _scanNodeForMethodTypeSpecs(node.variable);
+      _scanNodeForMethodTypeSpecs(node.body);
+      return;
+    }
+    if (node is BlockExpression) {
+      _scanNodeForMethodTypeSpecs(node.body);
+      _scanNodeForMethodTypeSpecs(node.value);
+      return;
+    }
+    if (node is StaticInvocation) {
+      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
+      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
+      return;
+    }
+    if (node is ConstructorInvocation) {
+      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
+      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
+      return;
+    }
+    if (node is InstanceGet) {
+      _scanNodeForMethodTypeSpecs(node.receiver);
+      return;
+    }
+    if (node is InstanceSet) {
+      _scanNodeForMethodTypeSpecs(node.receiver);
+      _scanNodeForMethodTypeSpecs(node.value);
+      return;
+    }
+    if (node is ConditionalExpression) {
+      _scanNodeForMethodTypeSpecs(node.condition);
+      _scanNodeForMethodTypeSpecs(node.then);
+      _scanNodeForMethodTypeSpecs(node.otherwise);
+      return;
+    }
+    if (node is LogicalExpression) {
+      _scanNodeForMethodTypeSpecs(node.left);
+      _scanNodeForMethodTypeSpecs(node.right);
+      return;
+    }
+    if (node is Not) {
+      _scanNodeForMethodTypeSpecs(node.operand);
+      return;
+    }
+    if (node is StringConcatenation) {
+      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
+      return;
+    }
+    if (node is AsExpression) {
+      _scanNodeForMethodTypeSpecs(node.operand);
+      return;
+    }
+    if (node is IsExpression) {
+      _scanNodeForMethodTypeSpecs(node.operand);
+      return;
+    }
+    if (node is NullCheck) {
+      _scanNodeForMethodTypeSpecs(node.operand);
+      return;
+    }
+    if (node is Throw) {
+      _scanNodeForMethodTypeSpecs(node.expression);
+      return;
+    }
+    if (node is AwaitExpression) {
+      _scanNodeForMethodTypeSpecs(node.operand);
+      return;
+    }
+    if (node is FunctionExpression) {
+      if (node.function.body != null) _scanNodeForMethodTypeSpecs(node.function.body!);
+      return;
+    }
+    if (node is FunctionDeclaration) {
+      if (node.function.body != null) _scanNodeForMethodTypeSpecs(node.function.body!);
+      return;
+    }
+    if (node is ListLiteral) {
+      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
+      return;
+    }
+    if (node is MapLiteral) {
+      for (final e in node.entries) {
+        _scanNodeForMethodTypeSpecs(e.key);
+        _scanNodeForMethodTypeSpecs(e.value);
+      }
+      return;
+    }
+    if (node is SetLiteral) {
+      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
+      return;
+    }
+    if (node is FunctionInvocation) {
+      _scanNodeForMethodTypeSpecs(node.receiver);
+      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
+      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
+      return;
+    }
+    if (node is DynamicInvocation) {
+      _scanNodeForMethodTypeSpecs(node.receiver);
+      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
+      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
+      return;
+    }
+    if (node is SuperMethodInvocation) {
+      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
+      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
+      return;
+    }
+    // 其他节点类型不处理
   }
 
   void _collectVTableEntries(Class cls, {String? overrideName}) {
@@ -1499,6 +1887,17 @@ class DartRestorer extends _DartRestorerBase
     }
     for (final field in lib.fields) _restoreField(field);
 
+    // 输出所有延迟的顶层声明：类级共享 vtable 常量
+    if (_pendingTopLevelDecls.isNotEmpty) {
+      _buf.write('// ---- Class-level shared vtables ----\n');
+      for (final decl in _pendingTopLevelDecls) {
+        _buf.write(decl);
+      }
+      _buf.write('\n');
+    }
+    _pendingTopLevelDecls.clear();
+    _emittedSharedVTableClasses.clear();
+
     // 输出所有延迟的闭包类和静态函数定义
     for (final decl in _pendingClosureDecls) {
       _buf.write(decl);
@@ -1512,9 +1911,16 @@ class DartRestorer extends _DartRestorerBase
   void _emitVPtrBaseClass() {
     _buf.write('class VPtr {\n');
     _buf.write('  late Map<String, dynamic> vptr;\n');
+    _buf.write('  VPtr() {\n');
+    _buf.write('    vptr = <String, dynamic>{\n');
+    _buf.write("      'toString': null,\n");
+    _buf.write("      'operatorEq': null,\n");
+    _buf.write("      'get_hashCode': null,\n");
+    _buf.write('    };\n');
+    _buf.write('  }\n');
     _buf.write('  @override\n');
     _buf.write('  String toString() {\n');
-    _buf.write("    final fn = vptr['toString_'];\n");
+    _buf.write("    final fn = vptr['toString'];\n");
     _buf.write('    if (fn != null) return (fn as Function)(this) as String;\n');
     _buf.write('    return super.toString();\n');
     _buf.write('  }\n');

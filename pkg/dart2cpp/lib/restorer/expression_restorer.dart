@@ -26,6 +26,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         // 检查是否有对应的 setter（非下划线字段）
         // 下划线字段直接赋值，非下划线字段通过 vptr setter
         if (!fieldName.startsWith('_')) {
+          // DynamicSet 没有 interfaceTarget，无法获取精确类型信息
+          // mixin 内部 this_ 是 dynamic，使用 Function cast
           return "($recv.vptr['set_$fieldName'] as Function)($recv, $value)";
         }
       }
@@ -234,7 +236,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         if (insideMixin) {
           return "($recv.vptr['get_$fieldName'] as Function)($recv)";
         }
-        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName);
+        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
         return "($recv.vptr['get_$fieldName'] as $sig)($recv)";
       }
     }
@@ -280,7 +282,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         if (insideMixin) {
           return "($recv.vptr['set_$fieldName'] as Function)($recv, ${_restoreExpr(expr.value)})";
         }
-        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName);
+        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
         return "($recv.vptr['set_$fieldName'] as $sig)($recv, ${_restoreExpr(expr.value)})";
       }
     }
@@ -320,7 +322,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         // 解析声明类：合成中间类需要找到真正的用户类
         var resolvedClassName = actualClassName ?? receiverClassName;
         if (_syntheticLoweredNames.contains(resolvedClassName)) {
-          resolvedClassName = _findUserClassForSynthetic(resolvedClassName)!;
+          resolvedClassName = _findUserClassForSynthetic(resolvedClassName);
         }
         final staticFuncName = '${resolvedClassName}_$name';
 
@@ -359,8 +361,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
       // this_ 类型需要和函数定义处保持一致
       // 使用 receiverClassName 解析（而非 target.enclosingClass，后者可能是合成中间类）
+      // 带上从 receiver 提取的类型参数，使 cast 签名精确匹配静态函数的 this_ 参数类型
       final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
-      final thisType = insideMixin ? 'dynamic' : _resolveThisTypeForReceiver(receiverClassName, name, expr.interfaceTarget);
+      final thisType = insideMixin ? 'dynamic' : _resolveThisTypeForReceiverWithTypeArgs(receiverClassName, expr.receiver);
 
       // mixin 内部的 vptr 调用：使用 Function 类型 cast（不带参数签名）
       // 因为 mixin 内部 this_ 是 dynamic，但注册的函数参数是具体类型，
@@ -372,7 +375,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
             : name == '[]' ? 'operatorIndex'
             : name == '[]=' ? 'operatorIndexSet'
             : _vtableFieldName(name);
-        final allArgs = _restoreArgs(expr.arguments);
         // 补齐缺省的默认参数值
         final targetFunc = expr.interfaceTarget.function;
         final fullArgParts = <String>[];
@@ -450,35 +452,77 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         return parts.join(', ');
       }
 
-      // 检查是否有命名参数：如果有，不能使用精确 Function 类型 cast
-      // 因为 Dart 的 Function 类型签名不支持命名参数语法
-      final hasNamedArgs = expr.arguments.named.isNotEmpty;
-
-      if (hasNamedArgs) {
-        // 有命名参数时，使用 Function 类型 cast（不带参数签名）
-        final args = _buildArgsWithDefaults();
-        if (args.isEmpty) {
-          return "($recv.vptr['$vtableField'] as Function)($recv)";
-        }
-        return "($recv.vptr['$vtableField'] as Function)($recv, $args)";
-      }
-      
-      // 检查方法是否有方法级类型参数（如 then<TNewOutput>）
-      // 如果有，vptr 中的 lambda 无法保留类型参数，直接调用静态函数
+      // 检查方法是否有方法级类型参数（如 fold<T>、mapRight<R2>）
+      // 如果有，通过 vptr 特化名调用：'methodName_TypeSuffix'
+      // 注意：必须在命名参数检查之前，因为带命名参数的方法级泛型方法也走特化路径
       final hasMethodTypeParams = expr.interfaceTarget.function.typeParameters.isNotEmpty;
       if (hasMethodTypeParams) {
-        // 合成中间类 → 找到实际用户类名
+        final enclosingClass = expr.interfaceTarget.enclosingClass;
+        final classTpNames = enclosingClass != null
+            ? enclosingClass.typeParameters.map((tp) => tp.name).toSet()
+            : <String?>{};
+        final dedupedMethodTps = expr.interfaceTarget.function.typeParameters
+            .where((tp) => !classTpNames.contains(tp.name))
+            .toList();
+
+        // 只有去重后仍有方法级泛型参数，且类型实参全部为具体类型（非 TypeParameterType）时，
+        // 才走 vptr 特化调用。如果类型实参包含类型参数（泛型上下文中的调用，如递归），
+        // 则回退到直接静态函数调用。
+        final hasConcreteTypeArgs = dedupedMethodTps.isNotEmpty &&
+            expr.arguments.types.isNotEmpty &&
+            !expr.arguments.types.any((ta) => _containsTypeParameter(ta));
+        if (hasConcreteTypeArgs) {
+          // 生成特化后缀（与预扫描阶段 _typeToSpecSuffix 一致）
+          final typeSuffix = expr.arguments.types.map((ta) => _typeToSpecSuffix(ta)).join('_');
+          final baseKey = _isBinaryOp(name) ? 'operator${_operatorFuncName(name)}'
+              : name == 'unary-' ? 'operatorNeg'
+              : name == '~' ? 'operatorBitwiseNot'
+              : name == '[]' ? 'operatorIndex'
+              : name == '[]=' ? 'operatorIndexSet'
+              : _vtableFieldName(name);
+          final specKey = '${baseKey}_$typeSuffix';
+          final args = _buildArgsWithDefaults();
+
+          // 声明类有泛型参数或有命名参数时，this_ 类型可能因逆变不精确匹配
+          // 使用 Function cast 避免类型不兼容
+          final hasNamedArgs = expr.arguments.named.isNotEmpty;
+          final declClassHasTypeParams = enclosingClass != null && enclosingClass.typeParameters.isNotEmpty;
+          if (hasNamedArgs || declClassHasTypeParams) {
+            if (args.isEmpty) {
+              return "($recv.vptr['$specKey'] as Function)($recv)";
+            }
+            return "($recv.vptr['$specKey'] as Function)($recv, $args)";
+          }
+
+          // 无命名参数且声明类无泛型参数时，使用精确的函数类型签名
+          final specReturnType = _restoreTypeForSignature(expr.functionType.returnType);
+          final specSigParams = <String>[thisType];
+          final targetFunc = expr.interfaceTarget.function;
+          for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
+            if (i < expr.functionType.positionalParameters.length) {
+              specSigParams.add(_restoreTypeForSignature(expr.functionType.positionalParameters[i]));
+            } else {
+              specSigParams.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
+            }
+          }
+          final specSig = '$specReturnType Function(${specSigParams.join(', ')})';
+
+          if (args.isEmpty) {
+            return "($recv.vptr['$specKey'] as $specSig)($recv)";
+          }
+          return "($recv.vptr['$specKey'] as $specSig)($recv, $args)";
+        }
+
+        // 去重后无方法级泛型（如 Triple.mapFirst<C> 中 C 与类泛型同名）
+        // 或者无类型实参：回退到直接静态函数调用
         var resolvedClassName = actualClassName ?? receiverClassName;
-        if (resolvedClassName != null && _syntheticLoweredNames.contains(resolvedClassName)) {
+        if (_syntheticLoweredNames.contains(resolvedClassName)) {
           resolvedClassName = _findUserClassForSynthetic(resolvedClassName);
         }
         final staticFuncName = '${resolvedClassName}_$name';
-        // 构建完整的类型参数列表：类的类型参数 + 方法的类型参数
         final allTypeArgs = <String>[];
-        // 类的类型参数：从 receiver 的静态类型中提取
         final receiverClassTypeArgs = _extractClassTypeArgsFromReceiver(expr.receiver);
         allTypeArgs.addAll(receiverClassTypeArgs);
-        // 方法的类型参数：从 arguments.types 中获取
         for (final ta in expr.arguments.types) {
           allTypeArgs.add(_restoreType(ta));
         }
@@ -490,10 +534,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
 
       // 如果方法定义在不同于 receiver 的父类中，或声明类有泛型参数，
-      // 或方法通过 implements 链进入 vtable（Bug 15），
-      // 使用 Function 类型 cast 避免签名不匹配的运行时错误
-      // （Dart 函数参数类型逆变 + 泛型具体化导致精确签名不安全）
-      //
       // Bug 15：class Score implements Printable3; class WeightedScore extends Score
       //   WeightedScore_prettyPrint 的 this_ 类型是 WeightedScoreValue（子类）
       //   调用点若 cast 为 Function(ScoreValue)，逆变规则下 (Sub)=>X 不是 (Super)=>X 的子类
@@ -503,6 +543,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final fromImplements = _isMethodFromImplementsChain(receiverClassName, name, expr.interfaceTarget);
       if (actualClassName != null && (actualClassName != receiverClassName || declHasTypeParams || fromImplements)) {
         // 使用补齐默认值的参数列表，因为静态函数签名是固定的
+        // 使用 Function cast 避免逆变问题（子类 this_ 类型与父类不兼容）
         final args = _buildArgsWithDefaults();
         if (args.isEmpty) {
           return "($recv.vptr['$vtableField'] as Function)($recv)";
@@ -585,9 +626,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// 从 Procedure AST 构建精确的函数签名字符串，用于 vptr Map 的类型转换
   /// [receiverClassName] 指定接收者的类名，用于解析 this_ 类型
   /// 如果未指定，则使用 target.enclosingClass 解析
-  String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName}) {
+  String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName, Expression? receiver}) {
     final String thisType;
-    if (receiverClassName != null) {
+    if (receiverClassName != null && receiver != null) {
+      thisType = _resolveThisTypeForReceiverWithTypeArgs(receiverClassName, receiver);
+    } else if (receiverClassName != null) {
       thisType = _resolveThisTypeForReceiver(receiverClassName, proc.name.text, proc);
     } else {
       thisType = _resolveThisTypeForSignature(proc);
@@ -597,10 +640,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     for (final param in proc.function.positionalParameters) {
       paramTypes.add(_restoreTypeForSignature(param.type));
     }
+    final namedParts = <String>[];
     for (final param in proc.function.namedParameters) {
-      paramTypes.add(_restoreTypeForSignature(param.type));
+      final typeStr = _restoreTypeForSignature(param.type);
+      final requiredPrefix = param.isRequired ? 'required ' : '';
+      namedParts.add('$requiredPrefix$typeStr ${param.name}');
     }
-    return '$returnType Function(${paramTypes.join(', ')})';
+    if (namedParts.isEmpty) {
+      return '$returnType Function(${paramTypes.join(', ')})';
+    }
+    final positionalPart = paramTypes.join(', ');
+    final namedPart = '{${namedParts.join(', ')}}';
+    return '$returnType Function($positionalPart, $namedPart)';
   }
 
   /// 从 InstanceInvocation.functionType 构建精确的函数签名字符串
@@ -614,10 +665,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     for (final paramType in functionType.positionalParameters) {
       paramTypes.add(_restoreTypeForSignature(paramType));
     }
+    final namedParts = <String>[];
     for (final namedParam in functionType.namedParameters) {
-      paramTypes.add(_restoreTypeForSignature(namedParam.type));
+      final typeStr = _restoreTypeForSignature(namedParam.type);
+      final requiredPrefix = namedParam.isRequired ? 'required ' : '';
+      namedParts.add('$requiredPrefix$typeStr ${namedParam.name}');
     }
-    return '$returnType Function(${paramTypes.join(', ')})';
+    if (namedParts.isEmpty) {
+      return '$returnType Function(${paramTypes.join(', ')})';
+    }
+    final positionalPart = paramTypes.join(', ');
+    final namedPart = '{${namedParts.join(', ')}}';
+    return '$returnType Function($positionalPart, $namedPart)';
   }
 
   /// 解析方法的 this_ 参数类型，用于签名生成
@@ -652,6 +711,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 因为委托方法定义中 this_ 也使用了当前类的 Value 类型
     // 两边签名必须一致，否则 Dart 的函数类型 cast 会失败
     return '${receiverClassName}Value';
+  }
+
+  /// 构建带类型参数的 thisType，从 receiver 表达式的静态类型中提取泛型参数。
+  /// 例如：TreeNodeValue<int>、EitherValue<String, int>
+  /// 这样 cast 签名可以精确匹配静态函数的 this_ 参数类型，避免逆变冲突。
+  String _resolveThisTypeForReceiverWithTypeArgs(String receiverClassName, Expression receiver) {
+    if (_isMixinName(receiverClassName)) {
+      return 'dynamic';
+    }
+    final typeArgs = _extractClassTypeArgsFromReceiver(receiver);
+    if (typeArgs.isEmpty) {
+      return '${receiverClassName}Value';
+    }
+    return '${receiverClassName}Value<${typeArgs.join(', ')}>';
   }
 
   /// 检查方法是否通过 implements 链进入 vtable（而非 extends 链）
@@ -789,6 +862,27 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         return retType.typeArguments.map((ta) => _restoreType(ta)).toList();
       }
     }
+    // NullCheck：如 this_.left! → 递归提取 operand 的类型参数
+    if (receiver is NullCheck) {
+      return _extractClassTypeArgsFromReceiver(receiver.operand);
+    }
+    // InstanceGet：如 this_.left → 从属性访问的结果类型中提取
+    if (receiver is InstanceGet) {
+      final resultType = receiver.resultType;
+      if (resultType is InterfaceType && resultType.typeArguments.isNotEmpty) {
+        return resultType.typeArguments.map((ta) => _restoreType(ta)).toList();
+      }
+      // 对于 nullable 类型（如 TreeNodeValue<T>?），unwrap nullable
+      if (resultType is NullType) return [];
+    }
+    // AsExpression：如 (x as SomeType) → 递归提取
+    if (receiver is AsExpression) {
+      final castType = receiver.type;
+      if (castType is InterfaceType && castType.typeArguments.isNotEmpty) {
+        return castType.typeArguments.map((ta) => _restoreType(ta)).toList();
+      }
+      return _extractClassTypeArgsFromReceiver(receiver.operand);
+    }
     // 尝试从 Let 表达式的 body 中提取
     if (receiver is Let) {
       return _extractClassTypeArgsFromReceiver(receiver.body);
@@ -796,6 +890,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 尝试从 BlockExpression 的 value 中提取
     if (receiver is BlockExpression) {
       return _extractClassTypeArgsFromReceiver(receiver.value);
+    }
+    // ThisExpression：从当前类的类型参数提取
+    if (receiver is ThisExpression && _currentClass != null) {
+      final tps = _currentClass!.typeParameters;
+      if (tps.isNotEmpty) {
+        return tps.map((tp) => tp.name ?? 'dynamic').toList();
+      }
     }
     return [];
   }
@@ -913,7 +1014,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       if (_isUserClass(className) || _isMixinName(className)) {
         // 静态字段和静态 getter 都被提升为顶层函数/变量 ClassName_memberName
         // 静态 getter 生成为 ClassName_memberName() 函数
-        if (target is Procedure && (target as Procedure).isGetter) {
+        if (target is Procedure && target.isGetter) {
           return '${className}_$memberName()';
         }
         // 静态字段 → 顶层变量 ClassName_memberName
@@ -971,8 +1072,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     
     final allArgs = _restoreArgs(expr.arguments);
 
-    // OOP Lowering: 用户自定义类的构造调用 → 先创建 Value，再调用 new(this_, args)
-    // 生成内联表达式：(() { final _obj = XValue(); X_new(_obj, args); return _obj; })()
+    // OOP Lowering: 用户自定义类的构造调用 → X_new(XValue(), args)
+    // X_new 返回 this_，可直接作为表达式使用
     if (_isUserClass(className)) {
       final funcName = ctorName.isEmpty
           ? '${className}_new'
@@ -982,10 +1083,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
           ? '<${expr.arguments.types.map(_restoreType).join(', ')}>'
           : '';
       final valueType = '${className}Value$typeArgs';
-      final newCall = allArgs.isEmpty
-          ? '$funcName(_obj)'
-          : '$funcName(_obj, $allArgs)';
-      return '(() { final _obj = $valueType(); $newCall; return _obj; })()';
+      return allArgs.isEmpty
+          ? '$funcName($valueType())'
+          : '$funcName($valueType(), $allArgs)';
     }
 
     final prefix = expr.isConst ? 'const ' : '';

@@ -1,8 +1,15 @@
 class VPtr {
   late Map<String, dynamic> vptr;
+  VPtr() {
+    vptr = <String, dynamic>{
+      'toString': null,
+      'operatorEq': null,
+      'get_hashCode': null,
+    };
+  }
   @override
   String toString() {
-    final fn = vptr['toString_'];
+    final fn = vptr['toString'];
     if (fn != null) return (fn as Function)(this) as String;
     return super.toString();
   }
@@ -49,12 +56,10 @@ class ShapeValue extends VPtr {
 }
 
 void Shape_new(ShapeValue this_) {
-  this_.vptr = {
-    'get_name': Shape_get_name,
-    'area': Shape_area,
-    'perimeter': Shape_perimeter,
-    'toString_': Shape_toString,
-  };
+  this_.vptr['get_name'] = Shape_get_name;
+  this_.vptr['area'] = Shape_area;
+  this_.vptr['perimeter'] = Shape_perimeter;
+  this_.vptr['toString'] = Shape_toString;
 }
 
 String Shape_get_name(ShapeValue this_) {
@@ -80,10 +85,8 @@ class PairValue<A, B> extends VPtr {
 }
 
 void Pair_new<A, B>(PairValue<A, B> this_, A first, B second) {
-  this_.vptr = {
-    'swap': (self) => Pair_swap<A, B>(self),
-    'toString_': (self) => Pair_toString<A, B>(self),
-  };
+  this_.vptr['swap'] = Pair_swap<A, B>;
+  this_.vptr['toString'] = Pair_toString<A, B>;
   this_.first = first;
   this_.second = second;
 }
@@ -103,29 +106,23 @@ class CircleValue extends ShapeValue {
 
 void Circle_new(CircleValue this_, double _radius) {
   Shape_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'get_name': Circle_get_name,
-    'area': Circle_area,
-    'perimeter': Circle_perimeter,
-    'toString_': Circle_toString,
-    'get_radius': Circle_get_radius,
-    'set_radius': Circle_set_radius,
-  };
+  this_.vptr['get_name'] = Circle_get_name;
+  this_.vptr['area'] = Circle_area;
+  this_.vptr['perimeter'] = Circle_perimeter;
+  this_.vptr['toString'] = Circle_toString;
+  this_.vptr['get_radius'] = Circle_get_radius;
+  this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = _radius;
 }
 
 void Circle_new_unit(CircleValue this_) {
   Shape_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'get_name': Circle_get_name,
-    'area': Circle_area,
-    'perimeter': Circle_perimeter,
-    'toString_': Circle_toString,
-    'get_radius': Circle_get_radius,
-    'set_radius': Circle_set_radius,
-  };
+  this_.vptr['get_name'] = Circle_get_name;
+  this_.vptr['area'] = Circle_area;
+  this_.vptr['perimeter'] = Circle_perimeter;
+  this_.vptr['toString'] = Circle_toString;
+  this_.vptr['get_radius'] = Circle_get_radius;
+  this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = 1.0;
 }
 
@@ -165,13 +162,10 @@ class RectangleValue extends ShapeValue {
 
 void Rectangle_new(RectangleValue this_, double width, double height) {
   Shape_new(this_);
-  this_.vptr = {
-    ...this_.vptr,
-    'get_name': Rectangle_get_name,
-    'area': Rectangle_area,
-    'perimeter': Rectangle_perimeter,
-    'toString_': Rectangle_toString,
-  };
+  this_.vptr['get_name'] = Rectangle_get_name;
+  this_.vptr['area'] = Rectangle_area;
+  this_.vptr['perimeter'] = Rectangle_perimeter;
+  this_.vptr['toString'] = Rectangle_toString;
   this_.width = width;
   this_.height = height;
 }

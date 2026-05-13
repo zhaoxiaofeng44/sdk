@@ -202,7 +202,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   void _emitDelegateMethodAsStatic(Class cls, _VTableEntry entry, String className) {
     final methodName = entry.name;
     final proc = entry.proc;
-    
+
     // 如果有原始 Procedure 引用，直接使用其参数信息生成正确的委托函数
     if (proc != null) {
       _emitDelegateFromProc(cls, proc, entry, className);
@@ -1064,8 +1064,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 获取所有 VTable 条目（包括从父类和 mixin 继承的）
     final entries = _collectAllVTableEntries(className);
 
-    // 返回类型为 void，第一个参数为 this_
-    _buf.write('void $funcName');
+    // 返回类型为 XValue，第一个参数为 this_，函数返回 this_ 以支持内联构造表达式
+    final typeParamNamesForReturn = cls.typeParameters.isNotEmpty
+        ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
+        : '';
+    final returnType = '${className}Value$typeParamNamesForReturn';
+    _buf.write('$returnType $funcName');
     // 构造函数也需要类型参数（如 Pair_new<A, B>），声明位置用完整约束
     _writeTypeParams(cls.typeParameters);
     _buf.write('(${className}Value');
@@ -1098,6 +1102,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           _buf.write(');\n');
         }
       }
+      _buf.write('${_pad}return this_;\n');
       _indent--;
       _buf.write('}\n\n');
       return;
@@ -1111,42 +1116,36 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
 
     // vptr 设置 - 在父类构造之后设置
-    // 只有当父类是非合成的用户自定义类时，才用 ...this_.vptr 展开父类的 vptr
-    // 根类（直接继承 VPtr/Object 的类）或父类是合成 mixin 中间类时不展开，
-    // 因为这些类没有构造函数来初始化 vptr
-    final hasUserParent = parentName != null && _isUserClass(parentName) &&
-        !_isSyntheticMixinClassName(parentName) && !_isSyntheticLoweredName(parentName);
+    //
+    // VPtr 构造函数已初始化 vptr map（含 toString_/operatorEq/get_hashCode 三个 null slot）。
+    // 根类通过 Dart 隐式 super() 调用 VPtr 构造；子类通过父类构造链调用。
+    // 所有类统一使用逐 slot 覆盖策略，不整表替换，以保证 VPtr 构造注册的 key 始终存在。
     final hasClassTypeParams = cls.typeParameters.isNotEmpty;
     final typeParamNames = cls.typeParameters.map((tp) => tp.name ?? 'T').toList();
     final typeParamStr = hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '';
 
-    _buf.write('${_pad}this_.vptr = {\n');
-    _indent++;
-
-    // 展开父类 vptr（仅当父类是用户自定义类，即父类构造函数已初始化 vptr）
-    if (hasUserParent) {
-      _buf.write('${_pad}...this_.vptr,\n');
-    }
-
-    if (entries.isNotEmpty) {
-      for (final entry in entries) {
-        String fieldName;
-        if (entry.kind == 'getter') {
-          fieldName = 'get_${entry.name}';
-        } else if (entry.kind == 'setter') {
-          fieldName = 'set_${entry.name}';
-        } else if (entry.kind == 'operator') {
-          fieldName = 'operator${_operatorFuncName(entry.name)}';
-        } else {
-          fieldName = _vtableFieldName(entry.name);
+    // VPtr 构造函数已初始化 vptr map（含 toString/operatorEq/get_hashCode 三个 null slot）。
+    // 根类通过 Dart 隐式 super() 调用 VPtr 构造；子类通过父类构造链调用。
+    // 统一使用逐 slot 赋值，在构造函数内注册所有方法。
+    // 带独立方法级泛型的方法：按预扫描收集的具体类型生成特化注册条目。
+    final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
+    for (final entry in entries) {
+      if (entry.proc != null) {
+        final dedupedMethodTps = entry.proc!.function.typeParameters
+            .where((tp) => !classTpNames.contains(tp.name))
+            .toList();
+        if (dedupedMethodTps.isNotEmpty) {
+          // 方法级泛型特化注册：按预扫描收集的具体类型生成 'methodName_TypeSuffix' 条目
+          // 这类方法的泛型参数（如 R）在构造函数作用域内不存在，无法直接 tear-off，
+          // 只能通过特化条目按具体类型注册
+          _emitSpecializedVptrEntries(cls, entry, className, typeParamStr, classTpNames, dedupedMethodTps);
+          continue;
         }
-
-        final wrapperStr = _buildVptrLambdaWrapper(cls, entry, className, typeParamStr);
-        _buf.write("$_pad'$fieldName': $wrapperStr,\n");
       }
+      final key = _vptrEntryKey(entry);
+      final rhs = _buildVptrLambdaWrapper(cls, entry, className, typeParamStr);
+      _buf.write("${_pad}this_.vptr['$key'] = $rhs;\n");
     }
-    _indent--;
-    _buf.write('${_pad}};\n');
 
     // 字段初始化（展开初始化列表）
     for (final init in ctor.initializers) {
@@ -1186,6 +1185,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _insideMethodBody = false;
     }
 
+    _buf.write('${_pad}return this_;\n');
     _indent--;
     _buf.write('}\n\n');
   }
@@ -1193,6 +1193,56 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// 判断构造函数是否有参数（排除 this. 参数）
   bool _hasParams(FunctionNode func) {
     return func.positionalParameters.isNotEmpty || func.namedParameters.isNotEmpty;
+  }
+
+  /// 根据 VTable 条目类型生成 vptr Map 的 key 字符串
+  /// - getter → 'get_xxx'
+  /// - setter → 'set_xxx'
+  /// - operator → 'operatorXxx'（由 _operatorFuncName 决定后缀）
+  /// - 普通 method → 由 _vtableFieldName 决定（保留特殊命名如 toString_）
+  String _vptrEntryKey(_VTableEntry entry) {
+    if (entry.kind == 'getter') return 'get_${entry.name}';
+    if (entry.kind == 'setter') return 'set_${entry.name}';
+    if (entry.kind == 'operator') return 'operator${_operatorFuncName(entry.name)}';
+    return _vtableFieldName(entry.name);
+  }
+
+  /// 类级共享 vtable 常量的全局变量名：`_XX_vtable`
+  String _sharedVTableName(String className) => '_${className}_vtable';
+
+  /// 在顶层缓冲区注册类级共享 vtable 常量。
+  /// 同一个类有多个构造函数（如 X.named）也只会输出一次。
+  /// 形如：
+  ///   final Map<String, dynamic> _XX_vtable = <String, dynamic>{
+  ///     'k1': v1,
+  ///     'k2': v2,
+  ///   };
+  void _emitSharedVTableConstant(String className, List<(String, String)> keyRhsList) {
+    if (_emittedSharedVTableClasses.contains(className)) return;
+    _emittedSharedVTableClasses.add(className);
+
+    final sb = StringBuffer();
+    sb.write('final Map<String, dynamic> ${_sharedVTableName(className)} = <String, dynamic>{\n');
+    for (final kv in keyRhsList) {
+      sb.write("  '${kv.$1}': ${kv.$2},\n");
+    }
+    sb.write('};\n');
+    _pendingTopLevelDecls.add(sb.toString());
+  }
+
+  /// 判断给定的直接父类名沿合成链向上是否能找到真实的非合成用户类。
+  /// 与 _emitSuperInit 中查找真实父类构造函数的行为保持一致：
+  /// 跳过合成 mixin 中间类（带 '&'）和合成 lowered 类，
+  /// 只要顶端能找到非合成用户类，就视为"有真实用户父类构造"。
+  bool _hasRealUserAncestor(String? parentName) {
+    if (parentName == null || !_isUserClass(parentName)) return false;
+    String current = parentName;
+    while (_isSyntheticMixinClassName(current) || _isSyntheticLoweredName(current)) {
+      final next = _getParentClassName(current);
+      if (next == null || !_isUserClass(next)) return false;
+      current = next;
+    }
+    return !_isSyntheticLoweredName(current) && !_isSyntheticMixinClassName(current);
   }
 
   /// 调用父类 new 函数（传入 this_）实现基类构造
@@ -1335,10 +1385,63 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
   /// 为 vptr 条目生成注册值
   /// 默认参数在调用处补齐，所以注册时按全部参数注册，直接使用静态函数引用。
-  /// 仅在以下场景使用 lambda wrapper：
-  /// - 泛型类：需要绑定类型参数，如 Pair_swap<A, B>
-  /// - 命名参数：lambda 无法声明命名参数语法
-  /// - 方法级类型参数：需要特殊处理
+  /// 为带方法级泛型的方法生成特化 vptr 注册条目。
+  /// 根据 _methodTypeSpecializations 中预扫描收集的具体类型，
+  /// 为每个特化类型组合生成 'methodName_TypeSuffix' 的 vptr 条目。
+  /// 闭包内直接调用原始泛型函数并传入具体类型。
+  void _emitSpecializedVptrEntries(
+    Class cls,
+    _VTableEntry entry,
+    String className,
+    String typeParamStr,
+    Set<String?> classTpNames,
+    List<TypeParameter> dedupedMethodTps,
+  ) {
+    final methodName = entry.name;
+
+    // 查找该类该方法的所有特化条目
+    // 需要沿继承链查找：子类可能继承父类的方法，特化注册可能记录在父类名下
+    final specEntries = <MethodSpecEntry>{};
+    // 先查当前类名
+    final classSpecs = _methodTypeSpecializations[className];
+    if (classSpecs != null && classSpecs[methodName] != null) {
+      specEntries.addAll(classSpecs[methodName]!);
+    }
+    // 再沿继承链向上查找（方法可能定义在父类中）
+    var parentName = _classHierarchy[className];
+    while (parentName != null) {
+      final parentSpecs = _methodTypeSpecializations[parentName];
+      if (parentSpecs != null && parentSpecs[methodName] != null) {
+        specEntries.addAll(parentSpecs[methodName]!);
+      }
+      parentName = _classHierarchy[parentName];
+    }
+
+    if (specEntries.isEmpty) return;
+
+    // 为每个特化条目生成 vptr 条目
+    final proc = entry.proc!;
+    for (final specEntry in specEntries) {
+      final specKey = '${_vptrEntryKey(entry)}_${specEntry.vptrSuffix}';
+
+      // 构建调用处类型实参：类的类型参数 + 特化的具体类型
+      // 类的类型参数保持原样（如 L, R），方法级泛型替换为具体类型（如 String）
+      final callTypeArgsList = <String>[
+        ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
+        ...specEntry.typeArgStrs,
+      ];
+      final callTypeArgsStr = '<${callTypeArgsList.join(', ')}>';
+
+      // 直接使用 tear-off 形式：Box_mapValue<T, int>
+      // 特化方法的 lambda wrapper 只是原样转发参数，语义等价于直接函数引用
+      final rhs = '${entry.staticFuncName}$callTypeArgsStr';
+      _buf.write("${_pad}this_.vptr['$specKey'] = $rhs;\n");
+    }
+  }
+
+  /// 生成 vptr 注册的右值表达式。
+  /// 调用点已负责补全命名参数和可选参数，注册端只需要绑定类型参数。
+  /// 所有情况都直接使用函数引用（tear-off），不需要 lambda wrapper。
   String _buildVptrLambdaWrapper(Class cls, _VTableEntry entry, String className, String typeParamStr) {
     final proc = entry.proc;
     if (proc == null) {
@@ -1346,84 +1449,28 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
 
     final hasClassTypeParams = typeParamStr.isNotEmpty;
-    final hasMethodTypeParams = proc.function.typeParameters.isNotEmpty;
-    final hasNamedParams = proc.function.namedParameters.isNotEmpty;
+    // 与静态函数签名生成器 `_writeCombinedTypeParams` 完全一致的去重逻辑：
+    // 类参数优先，方法参数中与类同名的被去除（避免 `<A,B,C,C>` 这种重复声明）。
+    // 例：Triple<A,B,C>.mapFirst<C> → method=[C] 与 cls 中的 C 同名 → dedup 后为空。
+    //     TreeNode<T>.map<R>      → method=[R] 不与 cls 同名 → dedup 后 [R]。
+    final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
+    final dedupedMethodTps = proc.function.typeParameters
+        .where((tp) => !classTpNames.contains(tp.name))
+        .toList();
 
-    // 当 declaringClassName 在 extends 继承链上时，所有静态函数的 this_ 参数类型一致，
-    // 可以直接使用静态函数引用。接口 implements 的情况下 this_ 类型是当前类，也一致。
-    // 因此非泛型、非命名参数时可以直接使用静态函数引用。
-
-    // 场景 0: 无泛型、无命名参数 → 直接使用静态函数引用
-    if (!hasClassTypeParams && !hasMethodTypeParams && !hasNamedParams) {
+    // 无泛型 → 直接使用静态函数引用
+    if (!hasClassTypeParams && dedupedMethodTps.isEmpty) {
       return entry.staticFuncName;
     }
 
-    // 场景 1: 有命名参数 → 生成带命名参数的内联函数
-    if (hasNamedParams) {
-      final effectiveTypeParamStr = hasMethodTypeParams ? '' : typeParamStr;
-      final methodTypeParamNames = proc.function.typeParameters.map((tp) => tp.name ?? 'T').toSet();
-      final wrapperParams = <String>['self'];
-      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
-        wrapperParams.add('_a$i');
-      }
-      final namedParts = <String>[];
-      for (final p in proc.function.namedParameters) {
-        final cleanName = _cleanVarName(p.name ?? '_n');
-        var paramType = _restoreType(p.type);
-        for (final tpName in methodTypeParamNames) {
-          paramType = _replaceTypeParam(paramType, tpName, 'dynamic');
-        }
-        if (p.isRequired) {
-          namedParts.add('required $paramType $cleanName');
-        } else {
-          var part = '$paramType $cleanName';
-          if (p.initializer != null) {
-            part += ' = ${_restoreExpr(p.initializer!)}';
-          }
-          namedParts.add(part);
-        }
-      }
-      final posParamStr = wrapperParams.join(', ');
-      final namedParamStr = namedParts.join(', ');
-      final fullParamStr = '$posParamStr, {$namedParamStr}';
-      final forwardParts = <String>['self'];
-      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
-        forwardParts.add('_a$i');
-      }
-      for (final p in proc.function.namedParameters) {
-        final cleanName = _cleanVarName(p.name ?? '_n');
-        forwardParts.add('${p.name}: $cleanName');
-      }
-      return '($fullParamStr) => ${entry.staticFuncName}$effectiveTypeParamStr(${forwardParts.join(', ')})';
-    }
-
-    // 场景 2/3: 泛型类或方法级类型参数 → lambda wrapper（需要绑定类型参数）
-    final lambdaParams = <String>['self'];
-    if (entry.kind == 'setter') {
-      if (proc.function.positionalParameters.isNotEmpty) {
-        lambdaParams.add('val');
-      }
-    } else if (entry.kind != 'getter') {
-      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
-        lambdaParams.add('_a$i');
-      }
-    }
-
-    final lambdaParamStr = lambdaParams.join(', ');
-    final effectiveTypeParamStr = hasMethodTypeParams ? '' : typeParamStr;
-
-    final forwardParts = <String>['self'];
-    if (entry.kind == 'setter') {
-      if (proc.function.positionalParameters.isNotEmpty) {
-        forwardParts.add('val');
-      }
-    } else if (entry.kind != 'getter') {
-      for (var i = 0; i < proc.function.positionalParameters.length; i++) {
-        forwardParts.add('_a$i');
-      }
-    }
-
-    return '($lambdaParamStr) => ${entry.staticFuncName}$effectiveTypeParamStr(${forwardParts.join(', ')})';
+    // 有泛型 → 带类型参数的函数引用（tear-off）
+    // 类型实参：类的类型参数 + 去重后的方法级类型参数
+    final callTypeArgsList = <String>[
+      ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
+      ...dedupedMethodTps.map((tp) => tp.name ?? 'T'),
+    ];
+    final callTypeArgsStr = '<${callTypeArgsList.join(', ')}>';
+    return '${entry.staticFuncName}$callTypeArgsStr';
   }
 
   // _defaultValueForType 已移至 _DartRestorerBase 基类中
