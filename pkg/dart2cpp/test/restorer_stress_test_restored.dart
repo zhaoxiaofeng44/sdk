@@ -1167,10 +1167,9 @@ List<T> Node_flatten<T>(dynamic this__) {
   return result;
 }
 
-NodeValue<R> Node_mapTree<T, R>(dynamic this__, R Function(T) transform_raw) {
+NodeValue<R> Node_mapTree<T, R>(dynamic this__, R Function(T) transform) {
   final this_ = this__ as NodeValue<T>;
-  ObjectBox<R Function(T)> transform = ObjectBox<R Function(T)>(transform_raw);
-  return Node_new<R>(NodeValue<R>(), transform.value(this_.value), this_.children.map(ClosureEnv_anon_1(transform).call).toList());
+  return Node_new<R>(NodeValue<R>(), transform(this_.value), this_.children.map(ClosureEnv_anon_1(transform).call).toList());
 }
 
 String Node_toString<T>(dynamic this__) {
@@ -1357,11 +1356,11 @@ List<String> testClosureBoxing() {
 
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(EventBusValue());
-  ObjectBox<List<String>> received = ObjectBox<List<String>>(<String>[]);
+  List<String> received = <String>[];
   (bus.vptr['on'] as void Function(dynamic, void Function(String)))(bus, ClosureEnv_testClosureBoxing_8(received).call);
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
-  log.add('received=${received.value}');
+  log.add('received=${received}');
   return log;
 }
 
@@ -1545,14 +1544,14 @@ void main() {
   print('callCount: ${MathUtils_callCount()}');
   print('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(ReactiveStoreValue<int>());
-  ObjectBox<List<int>> observed = ObjectBox<List<int>>(<int>[]);
+  final List<int> observed = <int>[];
   (store.vptr['observe'] as void Function(dynamic, void Function(int)))(store, ClosureEnv_main_10(observed).call);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
   print('store: ${store}');
   print('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
   print('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
-  print('observed: ${observed.value}');
+  print('observed: ${observed}');
   print('logs: ${(store.vptr['get_logs'] as List<String> Function(dynamic))(store)}');
   print('\n--- 16. 类型转换 ---');
   final List<ShapeValue> shapes = <ShapeValue>[Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new(CircleValue(), 1.0)];
@@ -1589,12 +1588,12 @@ String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, String k) {
 }
 
 class ClosureEnv_anon_1<R, T> {
-  ObjectBox<R Function(T)> transform;
+  R Function(T) transform;
   ClosureEnv_anon_1(this.transform);
   NodeValue<R> call(NodeValue<T> c) => ClosureEnv_anon_1_call<R, T>(this, c);
 }
 NodeValue<R> ClosureEnv_anon_1_call<R, T>(ClosureEnv_anon_1<R, T> env, NodeValue<T> c) {
-  return Node_mapTree<T, R>(c, env.transform.value);
+  return Node_mapTree<T, R>(c, env.transform);
 }
 
 class ClosureEnv_testClosureBoxing_2 {
@@ -1650,38 +1649,38 @@ String ClosureEnv_testClosureBoxing_6_call(ClosureEnv_testClosureBoxing_6 env) {
     }
 
 class ClosureEnv_testClosureBoxing_7 {
-  ObjectBox<List<String>> received;
+  List<String> received;
   ClosureEnv_testClosureBoxing_7(this.received);
   void call(String event) => ClosureEnv_testClosureBoxing_7_call(this, event);
 }
 void ClosureEnv_testClosureBoxing_7_call(ClosureEnv_testClosureBoxing_7 env, String event) {
-    env.received.value.add(event);
+    env.received.add(event);
   }
 
 class ClosureEnv_testClosureBoxing_8 {
-  ObjectBox<List<String>> received;
+  List<String> received;
   ClosureEnv_testClosureBoxing_8(this.received);
   void call(String event) => ClosureEnv_testClosureBoxing_8_call(this, event);
 }
 void ClosureEnv_testClosureBoxing_8_call(ClosureEnv_testClosureBoxing_8 env, String event) {
-    env.received.value.add(event);
+    env.received.add(event);
   }
 
 class ClosureEnv_main_9 {
-  ObjectBox<List<int>> observed;
+  List<int> observed;
   ClosureEnv_main_9(this.observed);
   void call(int v) => ClosureEnv_main_9_call(this, v);
 }
 void ClosureEnv_main_9_call(ClosureEnv_main_9 env, int v) {
-    env.observed.value.add(v);
+    env.observed.add(v);
   }
 
 class ClosureEnv_main_10 {
-  ObjectBox<List<int>> observed;
+  List<int> observed;
   ClosureEnv_main_10(this.observed);
   void call(int v) => ClosureEnv_main_10_call(this, v);
 }
 void ClosureEnv_main_10_call(ClosureEnv_main_10 env, int v) {
-    env.observed.value.add(v);
+    env.observed.add(v);
   }
 

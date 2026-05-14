@@ -878,9 +878,8 @@ TOutput Pipeline_execute<TInput, TOutput>(dynamic this__, TInput input) {
   return (() { final _let4 = input; return this_._transform(_let4); })();
 }
 
-PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dynamic this__, TNewOutput Function(TOutput) next_raw) {
+PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dynamic this__, TNewOutput Function(TOutput) next) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
-  ObjectBox<TNewOutput Function(TOutput)> next = ObjectBox<TNewOutput Function(TOutput)>(next_raw);
   return Pipeline_new<TInput, TNewOutput>(PipelineValue<TInput, TNewOutput>(), ClosureEnv_anon_0(this_, next).call);
 }
 
@@ -1291,15 +1290,11 @@ String multiLineExample() {
   return nested;
 }
 
-C Function(A) compose<A, B, C>(B Function(A) f_raw, C Function(B) g_raw) {
-  ObjectBox<B Function(A)> f = ObjectBox<B Function(A)>(f_raw);
-  ObjectBox<C Function(B)> g = ObjectBox<C Function(B)>(g_raw);
+C Function(A) compose<A, B, C>(B Function(A) f, C Function(B) g) {
   return ClosureEnv_compose_1(g, f).call;
 }
 
-bool Function(T) and<T>(bool Function(T) p1_raw, bool Function(T) p2_raw) {
-  ObjectBox<bool Function(T)> p1 = ObjectBox<bool Function(T)>(p1_raw);
-  ObjectBox<bool Function(T)> p2 = ObjectBox<bool Function(T)>(p2_raw);
+bool Function(T) and<T>(bool Function(T) p1, bool Function(T) p2) {
   return ClosureEnv_and_2(p1, p2).call;
 }
 
@@ -1672,31 +1667,31 @@ void main() async {
 
 class ClosureEnv_anon_0<TNewOutput, TOutput, TInput> {
   PipelineValue<TInput, TOutput> this_;
-  ObjectBox<TNewOutput Function(TOutput)> next;
+  TNewOutput Function(TOutput) next;
   ClosureEnv_anon_0(this.this_, this.next);
   TNewOutput call(TInput input) => ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(this, input);
 }
 TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(ClosureEnv_anon_0<TNewOutput, TOutput, TInput> env, TInput input) {
-  return env.next.value((() { final _let5 = input; return env.this_._transform(_let5); })());
+  return env.next((() { final _let5 = input; return env.this_._transform(_let5); })());
 }
 
 class ClosureEnv_compose_1<C, B, A> {
-  ObjectBox<C Function(B)> g;
-  ObjectBox<B Function(A)> f;
+  C Function(B) g;
+  B Function(A) f;
   ClosureEnv_compose_1(this.g, this.f);
   C call(A input) => ClosureEnv_compose_1_call<C, B, A>(this, input);
 }
 C ClosureEnv_compose_1_call<C, B, A>(ClosureEnv_compose_1<C, B, A> env, A input) {
-  return env.g.value(env.f.value(input));
+  return env.g(env.f(input));
 }
 
 class ClosureEnv_and_2<T> {
-  ObjectBox<bool Function(T)> p1;
-  ObjectBox<bool Function(T)> p2;
+  bool Function(T) p1;
+  bool Function(T) p2;
   ClosureEnv_and_2(this.p1, this.p2);
   bool call(T value) => ClosureEnv_and_2_call<T>(this, value);
 }
 bool ClosureEnv_and_2_call<T>(ClosureEnv_and_2<T> env, T value) {
-  return (env.p1.value(value) && env.p2.value(value));
+  return (env.p1(value) && env.p2(value));
 }
 

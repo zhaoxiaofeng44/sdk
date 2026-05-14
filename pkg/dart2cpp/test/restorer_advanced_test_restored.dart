@@ -1187,14 +1187,11 @@ List<Function> makeClosureList(int count) {
   return closures;
 }
 
-C Function(A) composeFunc<A, B, C>(C Function(B) funcBC_raw, B Function(A) funcAB_raw) {
-  ObjectBox<C Function(B)> funcBC = ObjectBox<C Function(B)>(funcBC_raw);
-  ObjectBox<B Function(A)> funcAB = ObjectBox<B Function(A)>(funcAB_raw);
+C Function(A) composeFunc<A, B, C>(C Function(B) funcBC, B Function(A) funcAB) {
   return ClosureEnv_composeFunc_7(funcBC, funcAB).call;
 }
 
-C Function(B) Function(A) curry<A, B, C>(C Function(A, B) biFunc_raw) {
-  ObjectBox<C Function(A, B)> biFunc = ObjectBox<C Function(A, B)>(biFunc_raw);
+C Function(B) Function(A) curry<A, B, C>(C Function(A, B) biFunc) {
   return ClosureEnv_curry_8(biFunc).call;
 }
 
@@ -1206,9 +1203,8 @@ T pipe<T>(T value, List<T Function(T)> transforms) {
   return result;
 }
 
-B Function(A) memoize<A, B>(B Function(A) func_raw) {
-  ObjectBox<B Function(A)> func = ObjectBox<B Function(A)>(func_raw);
-  ObjectBox<Map<A, B>> cache = ObjectBox<Map<A, B>>(<A, B>{});
+B Function(A) memoize<A, B>(B Function(A) func) {
+  final Map<A, B> cache = <A, B>{};
   return ClosureEnv_memoize_10(cache, func).call;
 }
 
@@ -1588,27 +1584,27 @@ String ClosureEnv_makeClosureList_6_call(ClosureEnv_makeClosureList_6 env) {
 }
 
 class ClosureEnv_composeFunc_7<C, B, A> {
-  ObjectBox<C Function(B)> funcBC;
-  ObjectBox<B Function(A)> funcAB;
+  C Function(B) funcBC;
+  B Function(A) funcAB;
   ClosureEnv_composeFunc_7(this.funcBC, this.funcAB);
   C call(A a) => ClosureEnv_composeFunc_7_call<C, B, A>(this, a);
 }
 C ClosureEnv_composeFunc_7_call<C, B, A>(ClosureEnv_composeFunc_7<C, B, A> env, A a) {
-  return env.funcBC.value(env.funcAB.value(a));
+  return env.funcBC(env.funcAB(a));
 }
 
 class ClosureEnv_ClosureEnv_curry_8_9<C, A, B> {
-  ObjectBox<C Function(A, B)> biFunc;
+  C Function(A, B) biFunc;
   ObjectBox<A> a;
   ClosureEnv_ClosureEnv_curry_8_9(this.biFunc, this.a);
   C call(B b) => ClosureEnv_ClosureEnv_curry_8_9_call<C, A, B>(this, b);
 }
 C ClosureEnv_ClosureEnv_curry_8_9_call<C, A, B>(ClosureEnv_ClosureEnv_curry_8_9<C, A, B> env, B b) {
-  return env.biFunc.value(env.a.value, b);
+  return env.biFunc(env.a.value, b);
 }
 
 class ClosureEnv_curry_8<C, A, B> {
-  ObjectBox<C Function(A, B)> biFunc;
+  C Function(A, B) biFunc;
   ClosureEnv_curry_8(this.biFunc);
   C Function(B) call(A a_raw) => ClosureEnv_curry_8_call<C, A, B>(this, a_raw);
 }
@@ -1618,15 +1614,15 @@ C Function(B) ClosureEnv_curry_8_call<C, A, B>(ClosureEnv_curry_8<C, A, B> env, 
 }
 
 class ClosureEnv_memoize_10<A, B> {
-  ObjectBox<Map<A, B>> cache;
-  ObjectBox<B Function(A)> func;
+  Map<A, B> cache;
+  B Function(A) func;
   ClosureEnv_memoize_10(this.cache, this.func);
   B call(A arg) => ClosureEnv_memoize_10_call<A, B>(this, arg);
 }
 B ClosureEnv_memoize_10_call<A, B>(ClosureEnv_memoize_10<A, B> env, A arg) {
-    if (env.cache.value.containsKey(arg))     return (env.cache.value[arg] as B);
-    final B result = env.func.value(arg);
-    env.cache.value[arg] = result;
+    if (env.cache.containsKey(arg))     return (env.cache[arg] as B);
+    final B result = env.func(arg);
+    env.cache[arg] = result;
     return result;
   }
 

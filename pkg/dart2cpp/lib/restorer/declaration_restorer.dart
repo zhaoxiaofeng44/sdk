@@ -1645,10 +1645,10 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
           : '';
       _buf.write('${_pad}final this_ = this__ as ${className}Value$classTypeParamStr;\n');
-      // Bug 11: 参数 Box 包装
+      // Bug 11: 参数 Box 包装（仅基础值类型）
       for (final p in boxedParamsForMethod) {
         final baseName = p.name!;
-        final boxType = _boxTypeNameFor(p.type);
+        final boxType = _boxTypeNameFor(p.type)!;
         _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
       }
       final body = proc.function.body!;
@@ -2302,10 +2302,10 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
     _buf.write('{\n');
     _indent++;
-    // 写入参数 Box 包装
+    // 写入参数 Box 包装（仅基础值类型）
     for (final p in boxedParams) {
       final baseName = p.name!;
-      final boxType = _boxTypeNameFor(p.type);
+      final boxType = _boxTypeNameFor(p.type)!;
       _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
     }
     // 写入原 body 内容

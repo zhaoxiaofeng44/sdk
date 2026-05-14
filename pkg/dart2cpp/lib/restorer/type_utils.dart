@@ -4,14 +4,19 @@ part of 'dart_restorer.dart';
 
 mixin _TypeUtils on _DartRestorerBase {
   /// 根据 DartType 选择合适的 Box 类型名称（Bug 11 闭包引用语义）
-  /// 返回形如 'IntBox'、'DoubleBox'、'StringBox'、'BoolBox'、'ObjectBox<T>' 的字符串
-  String _boxTypeNameFor(DartType type) {
+  /// - int/double/bool/String → IntBox/DoubleBox/BoolBox/StringBox
+  /// - TypeParameterType（泛型参数如 T）→ ObjectBox<T>（运行时可能是值类型）
+  /// - 其他确定的引用类型（List、Map、函数、用户类等）→ null（不装箱）
+  String? _boxTypeNameFor(DartType type) {
     final primitive = _primitiveBoxName(type);
     if (primitive != null) return primitive;
-    // 其他类型统一用 ObjectBox<T>
-    // 使用 _restoreType 保留泛型类型参数名（_restoreTypeForSignature 会把 TypeParameterType 降级为 dynamic）
-    final inner = _restoreType(type);
-    return 'ObjectBox<$inner>';
+    // 泛型参数类型运行时可能是值类型，需要用 ObjectBox<T> 装箱
+    if (type is TypeParameterType) {
+      final paramName = type.parameter.name ?? 'T';
+      final replacement = _activeTypeParamSubstitution[paramName];
+      return 'ObjectBox<${replacement ?? paramName}>';
+    }
+    return null;
   }
 
   // ---- Arguments ----

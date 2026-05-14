@@ -197,9 +197,19 @@ abstract class _DartRestorerBase {
   /// 在进入函数/方法/闭包前填充，退出时清理。
   final Set<VariableDeclaration> _currentFunctionParams = {};
 
+  /// 判断类型是否需要装箱：
+  /// - int/double/bool/String 基础值类型需要装箱
+  /// - TypeParameterType 泛型参数运行时可能是值类型，也需要装箱
+  /// - 其他确定的引用类型（List、Map、函数、用户类等）不需要装箱
+  bool _needsBoxing(DartType type) {
+    if (_primitiveBoxName(type) != null) return true;
+    if (type is TypeParameterType) return true;
+    return false;
+  }
+
   /// 根据 DartType 选择合适的 Box 类型名称（基础类型识别）
-  /// 返回形如 'IntBox'、'DoubleBox'、'StringBox'、'BoolBox' 的字符串；
-  /// 对其他类型返回 null，由 _TypeUtils 中的 _boxTypeNameFor 完整版生成 ObjectBox<T>。
+  /// 仅对 int/double/bool/String 返回 IntBox/DoubleBox/BoolBox/StringBox；
+  /// 其他类型（函数、对象、泛型参数等）为引用类型，不需要装箱，返回 null。
   String? _primitiveBoxName(DartType type) {
     if (type is InterfaceType) {
       final name = type.classNode.name;
@@ -249,6 +259,9 @@ abstract class _DartRestorerBase {
         // for 循环变量：parent 为 ForStatement，且位于 variables 列表
         final parent = captured.parent;
         if (parent is ForStatement && parent.variables.contains(captured)) continue;
+        // 只对基础值类型和泛型参数类型装箱；
+        // 函数类型、对象类型（List、Map、用户类等确定的引用类型）不需要装箱
+        if (!_needsBoxing(captured.type)) continue;
         _boxedVars.add(captured);
       }
     }
@@ -1944,9 +1957,8 @@ class DartRestorer extends _DartRestorerBase
   }
 
   /// 输出 Box 类型定义（Bug 11 闭包引用语义）
-  /// 提供基础类型的装箱类，使闭包能通过引用共享读写状态。
-  /// - IntBox/DoubleBox/StringBox/BoolBox 针对非空基础类型
-  /// - ObjectBox<T> 针对其他任意类型（含可空类型、用户类、集合、函数类型等）
+  /// - IntBox/DoubleBox/StringBox/BoolBox 针对非空基础值类型
+  /// - ObjectBox<T> 针对泛型参数类型（运行时可能是值类型）
   void _emitBoxClasses() {
     _buf.write('class IntBox {\n');
     _buf.write('  int value;\n');

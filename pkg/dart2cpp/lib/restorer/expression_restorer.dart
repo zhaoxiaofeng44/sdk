@@ -1483,7 +1483,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final varName = _cleanVarName(decl.name ?? '_cap${_varCounter++}');
       decl.name = varName;
       final isBoxed = _boxedVars.contains(decl);
-      final typeStr = isBoxed ? _boxTypeNameFor(decl.type) : _restoreType(decl.type);
+      final typeStr = isBoxed ? _boxTypeNameFor(decl.type)! : _restoreType(decl.type);
       capturedFields.add(_CapturedVar(
         name: varName,
         typeStr: typeStr,
@@ -1592,7 +1592,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final paramBoxInitLines = <String>[];
     for (final p in boxedParams) {
       final baseName = p.name!;
-      final boxType = _boxTypeNameFor(p.type);
+      final boxType = _boxTypeNameFor(p.type)!;
       paramBoxInitLines.add('  $boxType $baseName = $boxType(${baseName}_raw);\n');
     }
 

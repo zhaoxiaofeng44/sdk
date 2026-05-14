@@ -29,9 +29,9 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
         final v = stmt.variables.first;
         final vName = _cleanVarName(v.name ?? '_i');
         v.name = vName;
-        // Bug 11: 若 for 循环变量被内部闭包捕获，需要 Box 化
+        // Bug 11: 若 for 循环变量被内部闭包捕获，需要 Box 化（仅基础值类型）
         if (_boxedVars.contains(v)) {
-          final boxType = _boxTypeNameFor(v.type);
+          final boxType = _boxTypeNameFor(v.type)!;
           final initStr = v.initializer != null
               ? _restoreExpr(v.initializer!)
               : _defaultValueForType(v.type);
@@ -160,10 +160,10 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       return;
     }
 
-    // Bug 11: 被 Box 化的局部变量——生成 Box 声明
+    // Bug 11: 被 Box 化的局部变量——生成 Box 声明（仅基础值类型）
     // 形式：`BoxType v = BoxType(初始值);`，未初始化时使用类型默认值
     if (_boxedVars.contains(v)) {
-      final boxType = _boxTypeNameFor(v.type);
+      final boxType = _boxTypeNameFor(v.type)!;
       _buf.write(_pad);
       _buf.write('$boxType $name = $boxType(');
       if (v.initializer != null) {
