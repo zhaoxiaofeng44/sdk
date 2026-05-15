@@ -1353,11 +1353,8 @@ class DartRestorer extends _DartRestorerBase
       _collectMethodTypeSpecializations(lib);
     }
 
-    // 输出 VPtr 基类：所有无基类的 Value 类都继承自它
-    _emitVPtrBaseClass();
-
-    // 输出 Box 类型定义（用于闭包引用语义，Bug 11）
-    _emitBoxClasses();
+    // 引入运行时基础类（VPtr、Box 类型）
+    _emitRuntimeImport();
 
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
@@ -1918,71 +1915,14 @@ class DartRestorer extends _DartRestorerBase
     _pendingClosureDecls.clear();
   }
 
-  /// 输出 VPtr 基类定义
-  /// 所有无基类（或继承自 Object）的 Value 类都继承自它
-  /// 提供 vptr 字段和 toString/operator==/hashCode 的桥接覆写
-  void _emitVPtrBaseClass() {
-    _buf.write('class VPtr {\n');
-    _buf.write('  late Map<String, dynamic> vptr;\n');
-    _buf.write('  VPtr() {\n');
-    _buf.write('    vptr = <String, dynamic>{\n');
-    _buf.write("      'toString': null,\n");
-    _buf.write("      'operatorEq': null,\n");
-    _buf.write("      'get_hashCode': null,\n");
-    _buf.write('    };\n');
-    _buf.write('  }\n');
-    _buf.write('  @override\n');
-    _buf.write('  String toString() {\n');
-    _buf.write("    final fn = vptr['toString'];\n");
-    _buf.write('    if (fn != null) return (fn as Function)(this) as String;\n');
-    _buf.write('    return super.toString();\n');
-    _buf.write('  }\n');
-    _buf.write('  @override\n');
-    _buf.write('  bool operator ==(Object other) {\n');
-    _buf.write("    final fn = vptr['operatorEq'];\n");
-    _buf.write('    if (fn != null) return (fn as Function)(this, other) as bool;\n');
-    _buf.write('    return identical(this, other);\n');
-    _buf.write('  }\n');
-    _buf.write('  @override\n');
-    _buf.write('  int get hashCode {\n');
-    _buf.write("    final fn = vptr['get_hashCode'];\n");
-    _buf.write('    if (fn != null) return (fn as Function)(this) as int;\n');
-    _buf.write('    return super.hashCode;\n');
-    _buf.write('  }\n');
-    _buf.write('}\n\n');
+  /// 输出运行时基础类的 import 语句
+  /// VPtr 基类和 Box 类型已抽取到 runtime_classes.dart
+  void _emitRuntimeImport() {
+    _buf.write("import 'package:dart2cpp/restorer/runtime_classes.dart';\n\n");
   }
 
   bool _isSyntheticMixinClass(Class cls) {
     return cls.name.contains('&');
   }
 
-  /// 输出 Box 类型定义（Bug 11 闭包引用语义）
-  /// - IntBox/DoubleBox/StringBox/BoolBox 针对非空基础值类型
-  /// - ObjectBox<T> 针对泛型参数类型（运行时可能是值类型）
-  void _emitBoxClasses() {
-    _buf.write('class IntBox {\n');
-    _buf.write('  int value;\n');
-    _buf.write('  IntBox(this.value);\n');
-    _buf.write('}\n\n');
-
-    _buf.write('class DoubleBox {\n');
-    _buf.write('  double value;\n');
-    _buf.write('  DoubleBox(this.value);\n');
-    _buf.write('}\n\n');
-
-    _buf.write('class StringBox {\n');
-    _buf.write('  String value;\n');
-    _buf.write('  StringBox(this.value);\n');
-    _buf.write('}\n\n');
-
-    _buf.write('class BoolBox {\n');
-    _buf.write('  bool value;\n');
-    _buf.write('  BoolBox(this.value);\n');
-    _buf.write('}\n\n');
-
-    _buf.write('class ObjectBox<T> {\n');
-    _buf.write('  T value;\n');
-    _buf.write('  ObjectBox(this.value);\n');
-    _buf.write('}\n\n');
-  }
 }
