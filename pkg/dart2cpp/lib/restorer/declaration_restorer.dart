@@ -168,10 +168,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 1. 生成 XValue 类（只存储实例数据）
     _emitValueClass(cls, className, parentName, isSyntheticMixinClass);
 
-    // 2. 生成 XVTable 类（虚表）
-    // 所有类都生成 VTable，用于继承链
-    _emitVTableClass(cls, className);
-
     // 合成中间类：生成 X_init 函数来注册该层 mixin 引入的方法到 vptr
     if (isSyntheticMixinClass) {
       _emitSyntheticMixinInit(cls, className, parentName);
@@ -933,11 +929,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
   }
 
-  /// 生成 XVTable 类 → 已废弃，vptr 改为 Map<String, dynamic>，不再需要独立的 VTable 类
-  void _emitVTableClass(Class cls, String className) {
-    // 不再生成 VTable 类，vptr 已改为 Map<String, dynamic>
-  }
-  
   /// 收集所有 VTable 条目（包括从父类和 mixin 继承的）
   List<_VTableEntry> _collectAllVTableEntries(String className) {
     final entries = <_VTableEntry>[];
@@ -1000,21 +991,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     return false;
   }
 
-  /// 根据 declaringClassName 解析 this_ 参数的类型字符串
-  /// - className 本身是 mixin → dynamic（mixin 自身的静态函数）
-  /// - extends 链上的非合成父类 → declaringClassName + Value
-  /// - 其他情况（mixin/合成中间类/接口声明的方法）→ 当前类名 + Value
-  ///
-  /// 注意：implements 链上的接口方法不使用 declaringClassName，因为接口 Value 类与
-  /// 实现类 Value 类是兄弟关系（都 extends VPtr），无继承关系。此场景下保持使用
-  /// 当前类名 + Value 作为 this_ 类型，调用点通过 Function 类型 cast 处理类型兼容性
-  /// （见 _isMethodFromImplementsChain 和 _restoreInstanceInvocation 中的 Bug 15 修复）。
-  String _resolveThisParamType(String className, String declaringClass, Class cls) {
-    // 统一返回 dynamic：所有注册到 vptr 的函数的 this_ 参数类型为 dynamic
-    // 这样 vptr 中存储的函数类型统一为 ReturnType Function(dynamic, ...)
-    // 调用侧可以用精确签名 cast，消除 as Function
-    return 'dynamic';
-  }
 
   /// 从当前类 cls 的继承链中，解析出祖先类 ancestorCls 的具体类型参数
   /// 例如：StringToIntTransformer extends DataTransformer<String, int>
@@ -1075,19 +1051,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
   }
 
-  /// 更新 VTable 条目签名，将 this 参数类型替换为当前类的实际类型
-  String _updateVTableSignature(String signature, String className) {
-    // 签名格式如: String Function(Dog_Animal_PrintableValue this_)
-    // 或: void Function(Dog_Animal_PrintableValue this_, String value)
-    // 将第一个参数类型替换为当前类的实际类型
-    final pattern = RegExp(r'(\w+\??)\s+Function\((\w+Value)\s+this_');
-    final match = pattern.firstMatch(signature);
-    if (match != null) {
-      final returnType = match.group(1);
-      return '$returnType Function(${className}Value this_${signature.substring(match.end)}';
-    }
-    return signature;
-  }
 
   /// 生成静态字段（提升到模块级）
   void _emitStaticFields(Class cls, String className) {

@@ -50,6 +50,11 @@ abstract class _DartRestorerBase {
 
   String get _pad => '  ' * _indent;
 
+  /// 判断是否是运算符名称
+  bool _isOperatorName(String name) {
+    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
+  }
+
   // ---- OOP Lowering 状态 ----
 
   /// 所有用户自定义类名集合（排除 dart: / package: 中的类）
@@ -133,42 +138,29 @@ abstract class _DartRestorerBase {
     return false;
   }
 
-  /// 将 DartType 转为还原后的类型字符串（用于生成调用类型实参）。
-  /// 与 _typeToSpecSuffix 不同，此方法保留完整的泛型语法。
-  /// 例如：String → 'String', int → 'int', List<int> → 'List<int>'
-  String _typeToSpecRestoreStr(DartType type) {
+  /// 将 DartType 转为简化的类型字符串。
+  /// [asSuffix] 为 true 时用 '_' 分隔（用于 vptr key 后缀，如 'List_int'）；
+  /// 为 false 时保留完整泛型语法（用于类型实参，如 'List<int>'）。
+  String _typeToSpecStr(DartType type, {bool asSuffix = false}) {
     if (type is InterfaceType) {
       final name = type.classNode.name;
       if (type.typeArguments.isEmpty) return name;
-      final args = type.typeArguments.map((t) => _typeToSpecRestoreStr(t)).join(', ');
-      return '$name<$args>';
+      final separator = asSuffix ? '_' : ', ';
+      final args = type.typeArguments.map((t) => _typeToSpecStr(t, asSuffix: asSuffix)).join(separator);
+      return asSuffix ? '${name}_$args' : '$name<$args>';
     }
-    if (type is TypeParameterType) {
-      return type.parameter.name ?? 'T';
-    }
+    if (type is TypeParameterType) return type.parameter.name ?? 'T';
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';
     if (type is FunctionType) return 'Function';
     return 'dynamic';
   }
 
-  /// 将 DartType 转为特化后缀字符串（用于 vptr key）。
-  /// 例如：String → 'String', int → 'int', List<int> → 'List_int'
-  String _typeToSpecSuffix(DartType type) {
-    if (type is InterfaceType) {
-      final name = type.classNode.name;
-      if (type.typeArguments.isEmpty) return name;
-      final args = type.typeArguments.map((t) => _typeToSpecSuffix(t)).join('_');
-      return '${name}_$args';
-    }
-    if (type is TypeParameterType) {
-      return type.parameter.name ?? 'T';
-    }
-    if (type is DynamicType) return 'dynamic';
-    if (type is VoidType) return 'void';
-    if (type is FunctionType) return 'Function';
-    return 'dynamic';
-  }
+  /// 便捷方法：生成 vptr key 后缀（如 'String', 'List_int'）
+  String _typeToSpecSuffix(DartType type) => _typeToSpecStr(type, asSuffix: true);
+
+  /// 便捷方法：生成类型实参字符串（如 'String', 'List<int>'）
+  String _typeToSpecRestoreStr(DartType type) => _typeToSpecStr(type, asSuffix: false);
 
   /// 当前闭包体内，被捕获变量 → env 前缀的映射
   /// key: VariableDeclaration (identity), value: env 字段访问前缀（如 'env.'）
@@ -287,202 +279,143 @@ abstract class _DartRestorerBase {
     _visitChildrenForLocalDecl(node, out);
   }
 
-  void _visitChildrenForLocalDecl(TreeNode node, Set<VariableDeclaration> out) {
+  /// 通用 AST 子节点遍历器。
+  /// 对 [node] 的每个直接子节点调用 [visit]。
+  /// [onTryCatchVar]：TryCatch 中的 exception/stackTrace 变量声明回调（可选）。
+  /// [onLetVar]：Let 表达式中的变量声明回调（可选）。
+  void _forEachChildNode(
+    TreeNode node,
+    void Function(TreeNode) visit, {
+    void Function(VariableDeclaration)? onTryCatchVar,
+    void Function(VariableDeclaration)? onLetVar,
+  }) {
     if (node is Block) {
-      for (final s in node.statements) _collectShallowDecls(s, out);
-      return;
-    }
-    if (node is ExpressionStatement) {
-      _collectShallowDecls(node.expression, out);
-      return;
-    }
-    if (node is ReturnStatement) {
-      if (node.expression != null) _collectShallowDecls(node.expression!, out);
-      return;
-    }
-    if (node is IfStatement) {
-      _collectShallowDecls(node.condition, out);
-      _collectShallowDecls(node.then, out);
-      if (node.otherwise != null) _collectShallowDecls(node.otherwise!, out);
-      return;
-    }
-    if (node is ForStatement) {
-      for (final v in node.variables) _collectShallowDecls(v, out);
-      if (node.condition != null) _collectShallowDecls(node.condition!, out);
-      for (final u in node.updates) _collectShallowDecls(u, out);
-      _collectShallowDecls(node.body, out);
-      return;
-    }
-    if (node is ForInStatement) {
-      _collectShallowDecls(node.variable, out);
-      _collectShallowDecls(node.iterable, out);
-      _collectShallowDecls(node.body, out);
-      return;
-    }
-    if (node is WhileStatement) {
-      _collectShallowDecls(node.condition, out);
-      _collectShallowDecls(node.body, out);
-      return;
-    }
-    if (node is DoStatement) {
-      _collectShallowDecls(node.body, out);
-      _collectShallowDecls(node.condition, out);
-      return;
-    }
-    if (node is TryCatch) {
-      _collectShallowDecls(node.body, out);
+      for (final s in node.statements) visit(s);
+    } else if (node is ExpressionStatement) {
+      visit(node.expression);
+    } else if (node is ReturnStatement) {
+      if (node.expression != null) visit(node.expression!);
+    } else if (node is IfStatement) {
+      visit(node.condition);
+      visit(node.then);
+      if (node.otherwise != null) visit(node.otherwise!);
+    } else if (node is ForStatement) {
+      for (final v in node.variables) visit(v);
+      if (node.condition != null) visit(node.condition!);
+      for (final u in node.updates) visit(u);
+      visit(node.body);
+    } else if (node is ForInStatement) {
+      visit(node.variable);
+      visit(node.iterable);
+      visit(node.body);
+    } else if (node is WhileStatement) {
+      visit(node.condition);
+      visit(node.body);
+    } else if (node is DoStatement) {
+      visit(node.body);
+      visit(node.condition);
+    } else if (node is TryCatch) {
+      visit(node.body);
       for (final c in node.catches) {
-        if (c.exception != null) out.add(c.exception!);
-        if (c.stackTrace != null) out.add(c.stackTrace!);
-        _collectShallowDecls(c.body, out);
+        if (onTryCatchVar != null) {
+          if (c.exception != null) onTryCatchVar(c.exception!);
+          if (c.stackTrace != null) onTryCatchVar(c.stackTrace!);
+        }
+        visit(c.body);
       }
-      return;
-    }
-    if (node is TryFinally) {
-      _collectShallowDecls(node.body, out);
-      _collectShallowDecls(node.finalizer, out);
-      return;
-    }
-    if (node is SwitchStatement) {
-      _collectShallowDecls(node.expression, out);
-      for (final c in node.cases) _collectShallowDecls(c.body, out);
-      return;
-    }
-    if (node is LabeledStatement) {
-      _collectShallowDecls(node.body, out);
-      return;
-    }
-    if (node is YieldStatement) {
-      _collectShallowDecls(node.expression, out);
-      return;
-    }
-    if (node is AssertStatement) {
-      _collectShallowDecls(node.condition, out);
-      if (node.message != null) _collectShallowDecls(node.message!, out);
-      return;
-    }
-    if (node is Let) {
-      out.add(node.variable);
-      _collectShallowDecls(node.variable, out);
-      _collectShallowDecls(node.body, out);
-      return;
-    }
-    if (node is BlockExpression) {
-      _collectShallowDecls(node.body, out);
-      _collectShallowDecls(node.value, out);
-      return;
-    }
-    // 表达式节点常规分派：继续走子节点
-    if (node is InstanceInvocation) {
-      _collectShallowDecls(node.receiver, out);
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    if (node is StaticInvocation) {
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    if (node is ConstructorInvocation) {
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    if (node is InstanceGet) {
-      _collectShallowDecls(node.receiver, out);
-      return;
-    }
-    if (node is InstanceSet) {
-      _collectShallowDecls(node.receiver, out);
-      _collectShallowDecls(node.value, out);
-      return;
-    }
-    if (node is VariableSet) {
-      _collectShallowDecls(node.value, out);
-      return;
-    }
-    if (node is ConditionalExpression) {
-      _collectShallowDecls(node.condition, out);
-      _collectShallowDecls(node.then, out);
-      _collectShallowDecls(node.otherwise, out);
-      return;
-    }
-    if (node is LogicalExpression) {
-      _collectShallowDecls(node.left, out);
-      _collectShallowDecls(node.right, out);
-      return;
-    }
-    if (node is Not) {
-      _collectShallowDecls(node.operand, out);
-      return;
-    }
-    if (node is StringConcatenation) {
-      for (final e in node.expressions) _collectShallowDecls(e, out);
-      return;
-    }
-    if (node is AsExpression) {
-      _collectShallowDecls(node.operand, out);
-      return;
-    }
-    if (node is IsExpression) {
-      _collectShallowDecls(node.operand, out);
-      return;
-    }
-    if (node is NullCheck) {
-      _collectShallowDecls(node.operand, out);
-      return;
-    }
-    if (node is AwaitExpression) {
-      _collectShallowDecls(node.operand, out);
-      return;
-    }
-    if (node is ListLiteral) {
-      for (final e in node.expressions) _collectShallowDecls(e, out);
-      return;
-    }
-    if (node is SetLiteral) {
-      for (final e in node.expressions) _collectShallowDecls(e, out);
-      return;
-    }
-    if (node is MapLiteral) {
+    } else if (node is TryFinally) {
+      visit(node.body);
+      visit(node.finalizer);
+    } else if (node is SwitchStatement) {
+      visit(node.expression);
+      for (final c in node.cases) visit(c.body);
+    } else if (node is LabeledStatement) {
+      visit(node.body);
+    } else if (node is YieldStatement) {
+      visit(node.expression);
+    } else if (node is AssertStatement) {
+      visit(node.condition);
+      if (node.message != null) visit(node.message!);
+    } else if (node is VariableDeclaration) {
+      if (node.initializer != null) visit(node.initializer!);
+    } else if (node is Let) {
+      if (onLetVar != null) onLetVar(node.variable);
+      if (node.variable.initializer != null) visit(node.variable.initializer!);
+      visit(node.body);
+    } else if (node is BlockExpression) {
+      visit(node.body);
+      visit(node.value);
+    } else if (node is InstanceInvocation) {
+      visit(node.receiver);
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
+    } else if (node is StaticInvocation) {
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
+    } else if (node is ConstructorInvocation) {
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
+    } else if (node is InstanceGet) {
+      visit(node.receiver);
+    } else if (node is InstanceSet) {
+      visit(node.receiver);
+      visit(node.value);
+    } else if (node is VariableSet) {
+      visit(node.value);
+    } else if (node is ConditionalExpression) {
+      visit(node.condition);
+      visit(node.then);
+      visit(node.otherwise);
+    } else if (node is LogicalExpression) {
+      visit(node.left);
+      visit(node.right);
+    } else if (node is Not) {
+      visit(node.operand);
+    } else if (node is StringConcatenation) {
+      for (final e in node.expressions) visit(e);
+    } else if (node is AsExpression) {
+      visit(node.operand);
+    } else if (node is IsExpression) {
+      visit(node.operand);
+    } else if (node is NullCheck) {
+      visit(node.operand);
+    } else if (node is AwaitExpression) {
+      visit(node.operand);
+    } else if (node is ListLiteral) {
+      for (final e in node.expressions) visit(e);
+    } else if (node is SetLiteral) {
+      for (final e in node.expressions) visit(e);
+    } else if (node is MapLiteral) {
       for (final e in node.entries) {
-        _collectShallowDecls(e.key, out);
-        _collectShallowDecls(e.value, out);
+        visit(e.key);
+        visit(e.value);
       }
-      return;
+    } else if (node is Throw) {
+      visit(node.expression);
+    } else if (node is EqualsCall) {
+      visit(node.left);
+      visit(node.right);
+    } else if (node is EqualsNull) {
+      visit(node.expression);
+    } else if (node is FunctionInvocation) {
+      visit(node.receiver);
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
+    } else if (node is DynamicInvocation) {
+      visit(node.receiver);
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
+    } else if (node is LocalFunctionInvocation) {
+      for (final a in node.arguments.positional) visit(a);
+      for (final a in node.arguments.named) visit(a.value);
     }
-    if (node is Throw) {
-      _collectShallowDecls(node.expression, out);
-      return;
-    }
-    if (node is EqualsCall) {
-      _collectShallowDecls(node.left, out);
-      _collectShallowDecls(node.right, out);
-      return;
-    }
-    if (node is EqualsNull) {
-      _collectShallowDecls(node.expression, out);
-      return;
-    }
-    if (node is FunctionInvocation) {
-      _collectShallowDecls(node.receiver, out);
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    if (node is DynamicInvocation) {
-      _collectShallowDecls(node.receiver, out);
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    if (node is LocalFunctionInvocation) {
-      for (final a in node.arguments.positional) _collectShallowDecls(a, out);
-      for (final a in node.arguments.named) _collectShallowDecls(a.value, out);
-      return;
-    }
-    // 其他节点默认跳过（字面量、VariableGet、ThisExpression 等无需继续）
+    // 其他叶子节点（字面量、VariableGet、ThisExpression 等）无子节点，跳过
+  }
+
+  void _visitChildrenForLocalDecl(TreeNode node, Set<VariableDeclaration> out) {
+    _forEachChildNode(node, (child) => _collectShallowDecls(child, out),
+        onTryCatchVar: (v) => out.add(v),
+        onLetVar: (v) => out.add(v));
   }
 
   /// 深层收集：任意嵌套层级的 FunctionExpression 都收集
@@ -503,204 +436,7 @@ abstract class _DartRestorerBase {
       return;
     }
     // 通用递归：遍历所有子节点
-    _visitChildrenForFuncExpr(node, out);
-  }
-
-  void _visitChildrenForFuncExpr(TreeNode node, List<FunctionExpression> out) {
-    if (node is Block) {
-      for (final s in node.statements) _collectAllFunctionExpressions(s, out);
-      return;
-    }
-    if (node is ExpressionStatement) {
-      _collectAllFunctionExpressions(node.expression, out);
-      return;
-    }
-    if (node is ReturnStatement) {
-      if (node.expression != null) _collectAllFunctionExpressions(node.expression!, out);
-      return;
-    }
-    if (node is IfStatement) {
-      _collectAllFunctionExpressions(node.condition, out);
-      _collectAllFunctionExpressions(node.then, out);
-      if (node.otherwise != null) _collectAllFunctionExpressions(node.otherwise!, out);
-      return;
-    }
-    if (node is ForStatement) {
-      for (final v in node.variables) _collectAllFunctionExpressions(v, out);
-      if (node.condition != null) _collectAllFunctionExpressions(node.condition!, out);
-      for (final u in node.updates) _collectAllFunctionExpressions(u, out);
-      _collectAllFunctionExpressions(node.body, out);
-      return;
-    }
-    if (node is ForInStatement) {
-      _collectAllFunctionExpressions(node.variable, out);
-      _collectAllFunctionExpressions(node.iterable, out);
-      _collectAllFunctionExpressions(node.body, out);
-      return;
-    }
-    if (node is WhileStatement) {
-      _collectAllFunctionExpressions(node.condition, out);
-      _collectAllFunctionExpressions(node.body, out);
-      return;
-    }
-    if (node is DoStatement) {
-      _collectAllFunctionExpressions(node.body, out);
-      _collectAllFunctionExpressions(node.condition, out);
-      return;
-    }
-    if (node is TryCatch) {
-      _collectAllFunctionExpressions(node.body, out);
-      for (final c in node.catches) _collectAllFunctionExpressions(c.body, out);
-      return;
-    }
-    if (node is TryFinally) {
-      _collectAllFunctionExpressions(node.body, out);
-      _collectAllFunctionExpressions(node.finalizer, out);
-      return;
-    }
-    if (node is SwitchStatement) {
-      _collectAllFunctionExpressions(node.expression, out);
-      for (final c in node.cases) _collectAllFunctionExpressions(c.body, out);
-      return;
-    }
-    if (node is LabeledStatement) {
-      _collectAllFunctionExpressions(node.body, out);
-      return;
-    }
-    if (node is YieldStatement) {
-      _collectAllFunctionExpressions(node.expression, out);
-      return;
-    }
-    if (node is AssertStatement) {
-      _collectAllFunctionExpressions(node.condition, out);
-      if (node.message != null) _collectAllFunctionExpressions(node.message!, out);
-      return;
-    }
-    if (node is VariableDeclaration) {
-      if (node.initializer != null) _collectAllFunctionExpressions(node.initializer!, out);
-      return;
-    }
-    if (node is Let) {
-      if (node.variable.initializer != null) {
-        _collectAllFunctionExpressions(node.variable.initializer!, out);
-      }
-      _collectAllFunctionExpressions(node.body, out);
-      return;
-    }
-    if (node is BlockExpression) {
-      _collectAllFunctionExpressions(node.body, out);
-      _collectAllFunctionExpressions(node.value, out);
-      return;
-    }
-    if (node is InstanceInvocation) {
-      _collectAllFunctionExpressions(node.receiver, out);
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
-    if (node is StaticInvocation) {
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
-    if (node is ConstructorInvocation) {
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
-    if (node is InstanceGet) {
-      _collectAllFunctionExpressions(node.receiver, out);
-      return;
-    }
-    if (node is InstanceSet) {
-      _collectAllFunctionExpressions(node.receiver, out);
-      _collectAllFunctionExpressions(node.value, out);
-      return;
-    }
-    if (node is VariableSet) {
-      _collectAllFunctionExpressions(node.value, out);
-      return;
-    }
-    if (node is ConditionalExpression) {
-      _collectAllFunctionExpressions(node.condition, out);
-      _collectAllFunctionExpressions(node.then, out);
-      _collectAllFunctionExpressions(node.otherwise, out);
-      return;
-    }
-    if (node is LogicalExpression) {
-      _collectAllFunctionExpressions(node.left, out);
-      _collectAllFunctionExpressions(node.right, out);
-      return;
-    }
-    if (node is Not) {
-      _collectAllFunctionExpressions(node.operand, out);
-      return;
-    }
-    if (node is StringConcatenation) {
-      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
-      return;
-    }
-    if (node is AsExpression) {
-      _collectAllFunctionExpressions(node.operand, out);
-      return;
-    }
-    if (node is IsExpression) {
-      _collectAllFunctionExpressions(node.operand, out);
-      return;
-    }
-    if (node is NullCheck) {
-      _collectAllFunctionExpressions(node.operand, out);
-      return;
-    }
-    if (node is AwaitExpression) {
-      _collectAllFunctionExpressions(node.operand, out);
-      return;
-    }
-    if (node is ListLiteral) {
-      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
-      return;
-    }
-    if (node is SetLiteral) {
-      for (final e in node.expressions) _collectAllFunctionExpressions(e, out);
-      return;
-    }
-    if (node is MapLiteral) {
-      for (final e in node.entries) {
-        _collectAllFunctionExpressions(e.key, out);
-        _collectAllFunctionExpressions(e.value, out);
-      }
-      return;
-    }
-    if (node is Throw) {
-      _collectAllFunctionExpressions(node.expression, out);
-      return;
-    }
-    if (node is EqualsCall) {
-      _collectAllFunctionExpressions(node.left, out);
-      _collectAllFunctionExpressions(node.right, out);
-      return;
-    }
-    if (node is EqualsNull) {
-      _collectAllFunctionExpressions(node.expression, out);
-      return;
-    }
-    if (node is FunctionInvocation) {
-      _collectAllFunctionExpressions(node.receiver, out);
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
-    if (node is DynamicInvocation) {
-      _collectAllFunctionExpressions(node.receiver, out);
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
-    if (node is LocalFunctionInvocation) {
-      for (final a in node.arguments.positional) _collectAllFunctionExpressions(a, out);
-      for (final a in node.arguments.named) _collectAllFunctionExpressions(a.value, out);
-      return;
-    }
+    _forEachChildNode(node, (child) => _collectAllFunctionExpressions(child, out));
   }
 
   /// 清理闭包上下文名称，确保是合法的 Dart 标识符
@@ -831,14 +567,9 @@ abstract class _DartRestorerBase {
     return mapping[operatorSymbol] ?? operatorSymbol;
   }
 
-  /// 判断是否是运算符名称（基类版本，供 lowering 辅助方法使用）
-  bool _isOperatorNameBase(String name) {
-    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
-  }
-
   /// 生成方法的静态函数名
   String _staticMethodName(String className, String methodName) {
-    if (_isOperatorNameBase(methodName)) {
+    if (_isOperatorName(methodName)) {
       return '${className}_operator${_operatorFuncName(methodName)}';
     }
     return '${className}_$methodName';
@@ -1835,7 +1566,7 @@ class DartRestorer extends _DartRestorerBase
           ? _restoreTypeForSignature(proc.function.positionalParameters.first.type)
           : 'dynamic';
       signature = 'void Function(${className}Value this_, $paramType value)';
-    } else if (_isOperatorNameBase(methodName)) {
+    } else if (_isOperatorName(methodName)) {
       kind = 'operator';
       staticFuncName = _staticMethodName(className, methodName);
       final retType = _restoreTypeForSignature(proc.function.returnType);

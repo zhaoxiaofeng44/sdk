@@ -362,7 +362,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
 
       // this_ 类型：声明侧统一为 dynamic，调用侧签名直接使用 dynamic
-      final thisType = _resolveThisTypeForReceiverWithTypeArgs(receiverClassName, expr.receiver);
+      final thisType = _thisParamType;
 
       // 二元运算符 → Map 查找精确类型转换调用
       if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
@@ -595,16 +595,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// [receiverClassName] 指定接收者的类名，用于解析 this_ 类型
   /// 如果未指定，则使用 target.enclosingClass 解析
   String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName, Expression? receiver}) {
-    final String thisType;
-    if (receiverClassName != null && receiver != null) {
-      thisType = _resolveThisTypeForReceiverWithTypeArgs(receiverClassName, receiver);
-    } else if (receiverClassName != null) {
-      thisType = _resolveThisTypeForReceiver(receiverClassName, proc.name.text, proc);
-    } else {
-      thisType = _resolveThisTypeForSignature(proc);
-    }
     final returnType = _restoreTypeForSignature(proc.function.returnType);
-    final paramTypes = <String>[thisType];
+    final paramTypes = <String>[_thisParamType];
     for (final param in proc.function.positionalParameters) {
       paramTypes.add(_restoreTypeForSignature(param.type));
     }
@@ -622,96 +614,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return '$returnType Function($positionalPart, $namedPart)';
   }
 
-  /// 从 InstanceInvocation.functionType 构建精确的函数签名字符串
-  /// functionType 已包含接收者类型实参替换后的实际类型
-  /// this_ 参数使用 declaringClassName 的类型，确保和静态函数定义一致
-  /// 包含所有位置参数（含可选的）和命名参数
-  String _buildPreciseFuncSignatureFromFunctionType(FunctionType functionType, Procedure proc) {
-    final thisType = _resolveThisTypeForSignature(proc);
-    final returnType = _restoreTypeForSignature(functionType.returnType);
-    final paramTypes = <String>[thisType];
-    for (final paramType in functionType.positionalParameters) {
-      paramTypes.add(_restoreTypeForSignature(paramType));
-    }
-    final namedParts = <String>[];
-    for (final namedParam in functionType.namedParameters) {
-      final typeStr = _restoreTypeForSignature(namedParam.type);
-      final requiredPrefix = namedParam.isRequired ? 'required ' : '';
-      namedParts.add('$requiredPrefix$typeStr ${namedParam.name}');
-    }
-    if (namedParts.isEmpty) {
-      return '$returnType Function(${paramTypes.join(', ')})';
-    }
-    final positionalPart = paramTypes.join(', ');
-    final namedPart = '{${namedParts.join(', ')}}';
-    return '$returnType Function($positionalPart, $namedPart)';
-  }
+  /// this_ 参数统一为 dynamic（声明侧和调用侧一致，消除 as Function 转换）
+  static const String _thisParamType = 'dynamic';
 
-  /// 解析方法的 this_ 参数类型，用于签名生成
-  /// 声明侧已统一为 dynamic，调用侧签名也统一使用 dynamic
-  String _resolveThisTypeForSignature(Procedure proc) {
-    return 'dynamic';
-  }
-
-  /// 判断 declaringClass 是否在 className 的 extends 继承链上
-  bool _isDeclaringClassInExtendsChain(String className, String declaringClass) {
-    var current = _getParentClassName(className);
-    while (current != null) {
-      if (current == declaringClass) return true;
-      current = _getParentClassName(current);
-    }
-    return false;
-  }
-
-  /// 根据接收者类名解析 vptr 调用处的 this_ 类型
-  /// 声明侧已统一为 dynamic，调用侧签名也统一使用 dynamic
-  String _resolveThisTypeForReceiver(String receiverClassName, String methodName, Member target) {
-    return 'dynamic';
-  }
-
-  /// 构建带类型参数的 thisType
-  /// 声明侧已统一为 dynamic，调用侧签名也统一使用 dynamic
-  String _resolveThisTypeForReceiverWithTypeArgs(String receiverClassName, Expression receiver) {
-    return 'dynamic';
-  }
-
-  /// 检查方法是否通过 implements 链进入 vtable（而非 extends 链）
-  /// 场景：class Score implements Printable3 → prettyPrint 的 declaringClassName='Printable3'
-  /// 此时 Printable3 不在 Score 的 extends 链上，而在 implements 链上
-  /// 返回 true 表示：静态函数的 this_ 类型与调用点 receiver 类型 Value 类无继承关系
-  /// 调用点必须使用 Function 类型 cast（不带参数签名）避免 Dart 编译器静态类型检查失败
-  bool _isMethodFromImplementsChain(String receiverClassName, String methodName, Member target) {
-    final kind = target is Procedure
-        ? (target.isGetter ? 'getter' : target.isSetter ? 'setter' : 'method')
-        : 'method';
-    final entries = _classVTableEntries[receiverClassName];
-    if (entries == null) return false;
-    for (final entry in entries) {
-      if (entry.name == methodName && entry.kind == kind) {
-        final declClassName = entry.declaringClassName;
-        if (declClassName == null
-            || declClassName == receiverClassName
-            || _isMixinName(declClassName)
-            || _syntheticLoweredNames.contains(declClassName)) {
-          return false;
-        }
-        // declaringClass 不在 receiverClassName 的 extends 链上 → 来自 implements 链
-        var current = receiverClassName;
-        final parentMap = <String>{};
-        while (true) {
-          final parent = _getParentClassName(current);
-          if (parent == null || parentMap.contains(parent)) break;
-          parentMap.add(parent);
-          current = parent;
-        }
-        if (!parentMap.contains(declClassName)) {
-          return true;
-        }
-        return false;
-      }
-    }
-    return false;
-  }
 
   /// 获取类的实际规范化名称（处理合成 mixin 中间类名）
   String _getActualClassName(String rawName) {

@@ -143,9 +143,6 @@ mixin _TypeUtils on _DartRestorerBase {
     return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>'}.contains(name);
   }
 
-  bool _isOperatorName(String name) {
-    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
-  }
 
   /// 判断参数是否需要 covariant 关键字
   bool _needsCovariant(VariableDeclaration param, FunctionNode func, Procedure? proc) {
