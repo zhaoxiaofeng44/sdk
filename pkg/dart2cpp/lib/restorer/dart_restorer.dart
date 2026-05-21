@@ -96,6 +96,12 @@ abstract class _DartRestorerBase {
   /// this 的替换名称（在方法体内为 'this_'，在构造函数体内为 'obj'）
   String _thisReplacementName = 'this_';
 
+  /// 是否在 async 函数体内（用于 return 语句包装为 Promise.value）
+  bool _insideAsyncFunction = false;
+
+  /// 当前 async 函数的内部返回类型（Future<T> 中的 T）
+  String _asyncInnerReturnType = 'dynamic';
+
   // ---- 闭包 Lowering 状态 ----
 
   /// 全局闭包计数器（用于生成唯一名称）

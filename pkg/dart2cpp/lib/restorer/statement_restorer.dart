@@ -9,7 +9,15 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     } else if (stmt is ReturnStatement) {
       _buf.write('${_pad}return');
       if (stmt.expression != null) {
-        _buf.write(' ${_restoreExpr(stmt.expression!)}');
+        final exprStr = _restoreExpr(stmt.expression!);
+        // async 函数内：return expr → return Promise.value<T>(expr)
+        // 表达式已经是 Promise 类型（如直接调用另一个 async 函数且未 await）不需包装
+        // smAwait(...) 返回的是 T（已解包），仍需包装
+        if (_insideAsyncFunction && !exprStr.startsWith('Promise')) {
+          _buf.write(' Promise.value<$_asyncInnerReturnType>($exprStr)');
+        } else {
+          _buf.write(' $exprStr');
+        }
       }
       _buf.write(';\n');
     } else if (stmt is ExpressionStatement) {
@@ -244,7 +252,7 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     _writeParams(stmt.function);
     _buf.write(')');
     final marker = stmt.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
     if (stmt.function.body != null) {

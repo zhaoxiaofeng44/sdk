@@ -9,7 +9,7 @@ import 'package:front_end/src/api_prototype/kernel_generator.dart' show kernelFo
 import '../lib/dart_to_dart_restorer.dart';
 
 const String _sdkPlatformDill =
-    '/Users/tbsg/Project/MyProject.bundle/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
+    '/Users/tbsg/Project/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
 
 Future<void> main(List<String> args) async {
   final scriptDir = File(Platform.script.toFilePath()).parent.path;

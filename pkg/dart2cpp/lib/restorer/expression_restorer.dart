@@ -181,7 +181,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
     if (expr is InvalidExpression) return '/* invalid */';
     if (expr is NullCheck) return '${_restoreExpr(expr.operand)}!';
-    if (expr is AwaitExpression) return 'await ${_restoreExpr(expr.operand)}';
+    if (expr is AwaitExpression) return 'smAwait(${_restoreExpr(expr.operand)})';
     if (expr is CheckLibraryIsLoaded) return 'true';
     if (expr is LoadLibrary) return '${expr.import.name}';
     if (expr is LocalFunctionInvocation) {
@@ -828,6 +828,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // factory 构造函数
     if (target.isFactory && target.enclosingClass != null) {
       final className = target.enclosingClass!.name;
+
+      // 状态机协程替代：Future/_Future 的 factory → Promise
+      if (className == 'Future' || className == '_Future') {
+        final typeArgs = expr.arguments.types;
+        final typeArgStr = typeArgs.isNotEmpty
+            ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
+            : '';
+        if (name.isEmpty) return 'Promise$typeArgStr($args)';
+        return 'Promise$typeArgStr.$name($args)';
+      }
+
       // OOP Lowering: 用户自定义类的 factory → X_new / X_new_name
       if (_isUserClass(className)) {
         final funcName = name.isEmpty
@@ -1584,10 +1595,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         ? '$envClassWithTypeParams env'
         : '$envClassWithTypeParams env, $callParamStr';
 
-    // async marker
+    // async marker: Async 已由状态机替代，不输出；保留 async*/sync*
     final marker = func.asyncMarker;
     String asyncStr = '';
-    if (marker == AsyncMarker.Async) asyncStr = ' async';
     if (marker == AsyncMarker.AsyncStar) asyncStr = ' async*';
     if (marker == AsyncMarker.SyncStar) asyncStr = ' sync*';
 

@@ -50,7 +50,15 @@ mixin _TypeUtils on _DartRestorerBase {
     if (type is InterfaceType) {
       final rawName = type.classNode.name;
       // OOP Lowering: 用户自定义类的实例类型引用改为 XValue
-      final name = _isUserClass(rawName) ? '${rawName}Value' : rawName;
+      // Future<T> → Promise<T>（状态机协程替代）
+      String name;
+      if (rawName == 'Future' || rawName == '_Future') {
+        name = 'Promise';
+      } else if (_isUserClass(rawName)) {
+        name = '${rawName}Value';
+      } else {
+        name = rawName;
+      }
       if (type.typeArguments.isEmpty) return '$name$suffix';
       final args = type.typeArguments.map((t) => _restoreType(t)).join(', ');
       return '$name<$args>$suffix';

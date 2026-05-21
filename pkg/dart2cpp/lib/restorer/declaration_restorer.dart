@@ -94,7 +94,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     
     // async marker
     final marker = proc.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
     
@@ -1593,7 +1593,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     // async marker
     final marker = proc.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
 
@@ -1601,6 +1601,20 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     if (proc.function.body != null) {
       _buf.write(' ');
       _insideMethodBody = true;
+
+      // 设置 async 上下文标志
+      final savedInsideAsync = _insideAsyncFunction;
+      final savedAsyncInnerType = _asyncInnerReturnType;
+      if (marker == AsyncMarker.Async) {
+        _insideAsyncFunction = true;
+        final retType = proc.function.returnType;
+        if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
+          _asyncInnerReturnType = _restoreType(retType.typeArguments.first);
+        } else {
+          _asyncInnerReturnType = 'dynamic';
+        }
+      }
+
       // this_ 统一为 dynamic，函数体开头 cast 为当前类类型
       _buf.write('{\n');
       _indent++;
@@ -1636,6 +1650,10 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _indent--;
       _buf.write('$_pad}\n');
       _insideMethodBody = false;
+
+      // 恢复 async 上下文
+      _insideAsyncFunction = savedInsideAsync;
+      _asyncInnerReturnType = savedAsyncInnerType;
     } else {
       _buf.write(';\n');
     }
@@ -1709,7 +1727,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(')');
 
       final marker = proc.function.asyncMarker;
-      if (marker == AsyncMarker.Async) _buf.write(' async');
+      // async marker removed: replaced by state machine smAwait
 
       if (proc.function.body != null) {
         _buf.write(' ');
@@ -1729,7 +1747,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(')');
 
       final marker = proc.function.asyncMarker;
-      if (marker == AsyncMarker.Async) _buf.write(' async');
+      // async marker removed: replaced by state machine smAwait
       if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
       if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
 
@@ -1912,7 +1930,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     // async marker
     final marker = proc.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
 
@@ -2119,7 +2137,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     // async marker
     final marker = proc.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
 
@@ -2127,6 +2145,21 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     if (proc.function.body != null) {
       _buf.write(' ');
       final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
+
+      // 设置 async 上下文标志：async 函数内的 return 需要包装为 Promise.value
+      final savedInsideAsync = _insideAsyncFunction;
+      final savedAsyncInnerType = _asyncInnerReturnType;
+      if (marker == AsyncMarker.Async) {
+        _insideAsyncFunction = true;
+        // 提取 Future<T> 中的 T 作为内部返回类型
+        final retType = proc.function.returnType;
+        if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
+          _asyncInnerReturnType = _restoreType(retType.typeArguments.first);
+        } else {
+          _asyncInnerReturnType = 'dynamic';
+        }
+      }
+
       if (isVoidReturn) {
         _restoreSetterBody(proc.function.body!);
       } else {
@@ -2137,6 +2170,10 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           _restoreBody(proc.function.body!);
         }
       }
+
+      // 恢复 async 上下文
+      _insideAsyncFunction = savedInsideAsync;
+      _asyncInnerReturnType = savedAsyncInnerType;
     } else {
       _buf.write(';\n');
     }
@@ -2169,12 +2206,26 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write(')');
 
     final marker = proc.function.asyncMarker;
-    if (marker == AsyncMarker.Async) _buf.write(' async');
+    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
 
     _buf.write(' ');
     _insideMethodBody = true;
+
+    // 设置 async 上下文标志
+    final savedInsideAsync = _insideAsyncFunction;
+    final savedAsyncInnerType = _asyncInnerReturnType;
+    if (marker == AsyncMarker.Async) {
+      _insideAsyncFunction = true;
+      final retType = proc.function.returnType;
+      if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
+        _asyncInnerReturnType = _restoreType(retType.typeArguments.first);
+      } else {
+        _asyncInnerReturnType = 'dynamic';
+      }
+    }
+
     // 推入闭包上下文，确保函数体内生成的闭包以当前扩展方法名命名
     _pushClosureContext(cleanedFuncName);
     final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
@@ -2185,6 +2236,10 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
     _popClosureContext();
     _insideMethodBody = false;
+
+    // 恢复 async 上下文
+    _insideAsyncFunction = savedInsideAsync;
+    _asyncInnerReturnType = savedAsyncInnerType;
     _buf.write('\n');
   }
 
