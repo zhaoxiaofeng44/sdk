@@ -90,6 +90,11 @@ abstract class _DartRestorerBase {
   /// 例如：Observable<T> → ReactiveStore<V> 时，映射 {T → V}
   Map<String, String> _activeTypeParamSubstitution = {};
 
+  /// 精确替换：存储应该被替换的 TypeParameter 对象引用
+  /// 只有在此集合中的 TypeParameter 才会被 _activeTypeParamSubstitution 替换
+  /// 为空时表示按名称匹配（向后兼容 mixin 场景）
+  Set<TypeParameter> _activeTypeParamTargets = {};
+
   /// 是否在实例方法体内（用于 this → this_ 转换）
   bool _insideMethodBody = false;
 
@@ -500,10 +505,19 @@ abstract class _DartRestorerBase {
       // 在 vptr 签名中，类型参数可能在调用处不可用（如 main 函数中调用泛型类的方法）
       // 检查类型参数是否来自类的声明（而非方法的局部类型参数）
       // 如果在方法体内（_insideMethodBody），类型参数可能可用；否则替换为 dynamic
+      final paramName = type.parameter.name ?? 'T';
+      // 先检查活跃的类型参数替换映射（如子类具体化了父类类型参数 T → int）
+      // 精确匹配：如果 _activeTypeParamTargets 非空，只替换属于目标集合中的 TypeParameter
+      final replacement = _activeTypeParamSubstitution[paramName];
+      if (replacement != null) {
+        if (_activeTypeParamTargets.isEmpty || _activeTypeParamTargets.contains(type.parameter)) {
+          return '$replacement$suffix';
+        }
+      }
       if (!_insideMethodBody) {
         return 'dynamic';
       }
-      return '${type.parameter.name ?? 'T'}$suffix';
+      return '$paramName$suffix';
     }
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';
@@ -1632,7 +1646,7 @@ class DartRestorer extends _DartRestorerBase
       _restoreProcedure(proc);
       _popClosureContext();
     }
-    for (final field in lib.fields) _restoreField(field);
+    for (final field in lib.fields) _restoreField(field, isTopLevel: true);
 
     // 输出所有延迟的顶层声明：类级共享 vtable 常量
     if (_pendingTopLevelDecls.isNotEmpty) {

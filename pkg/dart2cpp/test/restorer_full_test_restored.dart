@@ -1107,11 +1107,10 @@ Iterable<int> fibonacci(int count) sync* {
   }
 }
 
-Stream<String> countDown(int from) async* {
-  for (var i = from; (i >= 0); i = (i - 1)) {
-    await Future.delayed(Duration(milliseconds: 1));
-    yield ((i == 0) ? 'Go!' : '${i}...');
-  }
+Promise<List<String>> countDown(int from) {
+  final env = ClosureEnv_countDown_1(from);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 (String, int) getPersonRecord() {
@@ -1239,11 +1238,11 @@ String multiLineExample() {
 }
 
 C Function(A) compose<A, B, C>(B Function(A) f, C Function(B) g) {
-  return ClosureEnv_compose_1(g, f).call;
+  return ClosureEnv_compose_2(g, f).call;
 }
 
 bool Function(T) and<T>(bool Function(T) p1, bool Function(T) p2) {
-  return ClosureEnv_and_2(p1, p2).call;
+  return ClosureEnv_and_3(p1, p2).call;
 }
 
 List<B> flatMap<A, B>(List<A> list, List<B> Function(A) f) {
@@ -1371,7 +1370,7 @@ String dayType(int day) {
   } while (false);
 }
 
-void main() async {
+void main() {
   print('=== 全面语法节点还原测试 ===\n');
   print('--- 1. mixin + implements ---');
   final DogValue dog1 = Dog_new(DogValue(), 'Rex', 3, 'Labrador');
@@ -1422,8 +1421,8 @@ void main() async {
   print('range(0,10,2): ${r}');
   final List<int> fib = fibonacci(8).toList();
   print('fibonacci(8): ${fib}');
-  print('\n--- 7. async* 生成器 ---');
-  final List<String> countdown = await countDown(3).toList();
+  print('\n--- 7. async countdown ---');
+  final List<String> countdown = smAwait(countDown(3));
   print('countdown: ${countdown}');
   print('\n--- 8. record 类型 ---');
   final (String, int) person = getPersonRecord();
@@ -1547,7 +1546,7 @@ void main() async {
   (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 3);
   (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 2);
   print('sorted: ${sortedList}');
-  print('first: ${(sortedList.vptr['get_first'] as dynamic Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as dynamic Function(dynamic))(sortedList)}');
+  print('first: ${(sortedList.vptr['get_first'] as int Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as int Function(dynamic))(sortedList)}');
   final int maxVal = findMax<int>(<int>[3, 7, 1, 9, 4]);
   print('findMax: ${maxVal}');
   final String result = applyTwice<int, String>(5, (int x) => 'n=${x}', (String s) => '${s}!');
@@ -1623,23 +1622,38 @@ TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(ClosureEnv_anon_0
   return env.next((() { final _let5 = input; return env.this_._transform(_let5); })());
 }
 
-class ClosureEnv_compose_1<C, B, A> {
+class ClosureEnv_countDown_1 {
+  IntBox from;
+  Promise<List<String>> _promise;
+  ClosureEnv_countDown_1(int from) : _promise = Promise<List<String>>(), from = IntBox(from);
+  void call() => ClosureEnv_countDown_1_call(this);
+}
+void ClosureEnv_countDown_1_call(ClosureEnv_countDown_1 env) {
+  final List<String> result = <String>[];
+  for (var i = env.from.value; (i >= 0); i = (i - 1)) {
+    smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 1)));
+    result.add(((i == 0) ? 'Go!' : '${i}...'));
+  }
+  env._promise.complete(result);
+  return;
+}
+class ClosureEnv_compose_2<C, B, A> {
   C Function(B) g;
   B Function(A) f;
-  ClosureEnv_compose_1(this.g, this.f);
-  C call(A input) => ClosureEnv_compose_1_call<C, B, A>(this, input);
+  ClosureEnv_compose_2(this.g, this.f);
+  C call(A input) => ClosureEnv_compose_2_call<C, B, A>(this, input);
 }
-C ClosureEnv_compose_1_call<C, B, A>(ClosureEnv_compose_1<C, B, A> env, A input) {
+C ClosureEnv_compose_2_call<C, B, A>(ClosureEnv_compose_2<C, B, A> env, A input) {
   return env.g(env.f(input));
 }
 
-class ClosureEnv_and_2<T> {
+class ClosureEnv_and_3<T> {
   bool Function(T) p1;
   bool Function(T) p2;
-  ClosureEnv_and_2(this.p1, this.p2);
-  bool call(T value) => ClosureEnv_and_2_call<T>(this, value);
+  ClosureEnv_and_3(this.p1, this.p2);
+  bool call(T value) => ClosureEnv_and_3_call<T>(this, value);
 }
-bool ClosureEnv_and_2_call<T>(ClosureEnv_and_2<T> env, T value) {
+bool ClosureEnv_and_3_call<T>(ClosureEnv_and_3<T> env, T value) {
   return (env.p1(value) && env.p2(value));
 }
 

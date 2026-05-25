@@ -7,19 +7,20 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     if (stmt is Block) {
       _restoreBlock(stmt);
     } else if (stmt is ReturnStatement) {
-      _buf.write('${_pad}return');
-      if (stmt.expression != null) {
-        final exprStr = _restoreExpr(stmt.expression!);
-        // async 函数内：return expr → return Promise.value<T>(expr)
-        // 表达式已经是 Promise 类型（如直接调用另一个 async 函数且未 await）不需包装
-        // smAwait(...) 返回的是 T（已解包），仍需包装
-        if (_insideAsyncFunction && !exprStr.startsWith('Promise')) {
-          _buf.write(' Promise.value<$_asyncInnerReturnType>($exprStr)');
-        } else {
-          _buf.write(' $exprStr');
+      if (_insideAsyncFunction) {
+        // async ClosureEnv 模式：return expr → env._promise.complete(expr); return;
+        if (stmt.expression != null) {
+          final exprStr = _restoreExpr(stmt.expression!);
+          _buf.write('${_pad}env._promise.complete($exprStr);\n');
         }
+        _buf.write('${_pad}return;\n');
+      } else {
+        _buf.write('${_pad}return');
+        if (stmt.expression != null) {
+          _buf.write(' ${_restoreExpr(stmt.expression!)}');
+        }
+        _buf.write(';\n');
       }
-      _buf.write(';\n');
     } else if (stmt is ExpressionStatement) {
       _restoreExprStmt(stmt);
     } else if (stmt is VariableDeclaration) {

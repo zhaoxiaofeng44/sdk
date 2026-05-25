@@ -2,9 +2,9 @@
 ///
 /// 用纯 Dart 模拟单线程状态机协程，验证将 async/await 替换为状态机的可行性。
 /// 核心设计：
-///   - Promise<T>: 统一的异步结果容器（状态+结果+complete+工厂方法+链式调用）
-///   - IStateMachine: 状态机接口，自带 _checkedThisRound 标记
-///   - GlobalScheduler: 每轮 tick 重置标记→推进状态机（推完打标防重入）
+///   - Promise<T>: 统一的异步结果容器 + 调度单元（通过 _onTick 驱动）
+///   - GlobalScheduler: 每轮 tick 驱动所有 activePromises 的 _onTick
+///   - AsyncStateMachine: 通过 Promise._onTick = step 注册驱动
 ///   - smAwait(): 循环调 tick() 直到 promise 完成
 
 /// 日志开关
@@ -78,87 +78,49 @@ class Promise<T> {
     return promise;
   }
 
+  /// 链式调用：当本 Promise 完成时，执行 onValue 并将结果传递给新 Promise
   Promise<R> then<R>(R Function(T) onValue) {
     final nextPromise = Promise<R>();
-    GlobalScheduler.instance.registerStateMachine(
-      _ThenStateMachine<T, R>(this, onValue, nextPromise),
-    );
+    nextPromise._onTick = () {
+      if (isCompleted) {
+        try {
+          nextPromise.complete(onValue(result));
+        } catch (e) {
+          nextPromise.completeError(e);
+        }
+        return true;
+      }
+      if (isError) {
+        nextPromise.completeError(error!);
+        return true;
+      }
+      return false;
+    };
+    GlobalScheduler.instance.registerActivePromise(nextPromise);
     return nextPromise;
   }
+
+  /// 每 tick 被 GlobalScheduler 调用来推进此 Promise 的逻辑。
+  /// 返回 true 表示已完成，应从活跃列表移除。
+  bool Function()? _onTick;
 }
 
 // ============================================================================
-// 4. IStateMachine — 状态机接口，_checkedThisRound 在此
-// ============================================================================
-
-abstract class IStateMachine {
-  /// 本轮 tick 是否已被推进过（防止同一轮 step 两次）
-  bool _checkedThisRound = false;
-
-  /// 状态机名称（用于日志）
-  String get debugName => runtimeType.toString();
-
-  /// 推进一步，返回 true 表示状态机已结束
-  bool step();
-
-  /// 重置本轮标记
-  void resetRoundFlag() {
-    _checkedThisRound = false;
-  }
-
-  /// 尝试打标，返回 true 表示本轮首次被检查，false 表示已检查过
-  bool markChecked() {
-    if (_checkedThisRound) return false;
-    _checkedThisRound = true;
-    return true;
-  }
-}
-
-/// then 链式调用的状态机
-class _ThenStateMachine<T, R> extends IStateMachine {
-  final Promise<T> _source;
-  final R Function(T) _onValue;
-  final Promise<R> _target;
-
-  _ThenStateMachine(this._source, this._onValue, this._target);
-
-  @override
-  String get debugName => '_ThenSM<$T→$R>';
-
-  @override
-  bool step() {
-    if (_source.isCompleted) {
-      try {
-        final result = _onValue(_source.result);
-        _target.complete(result);
-      } catch (e) {
-        _target.completeError(e);
-      }
-      return true;
-    }
-    if (_source.isError) {
-      _target.completeError(_source.error!);
-      return true;
-    }
-    return false;
-  }
-}
-
-// ============================================================================
-// 5. GlobalScheduler — 全局状态机调度器
+// 4. GlobalScheduler — 全局调度器，统一通过 Promise 驱动
 // ============================================================================
 
 class GlobalScheduler {
   static final GlobalScheduler instance = GlobalScheduler._();
   GlobalScheduler._();
 
-  final List<IStateMachine> smStateMachines = [];
+  final List<Promise> _activePromises = [];
   final List<_DelayedTask> _delayedTasks = [];
   int _currentTick = 0;
 
-  void registerStateMachine(IStateMachine sm) {
-    log('registerSM: ${sm.debugName}');
-    smStateMachines.add(sm);
+  /// 注册一个有 _onTick 的活跃 Promise，每 tick 被驱动
+  void registerActivePromise(Promise promise) {
+    log('registerActivePromise');
+    _activePromises.add(promise);
   }
 
   void registerDelayedTask(int delayTicks, void Function() callback) {
@@ -168,19 +130,13 @@ class GlobalScheduler {
   }
 
   /// 执行一轮 tick：
-  /// 1. 重置所有状态机的本轮标记
-  /// 2. 触发到期的延迟任务
-  /// 3. 快照遍历状态机，逐个推进（markChecked 防重入）
+  /// 1. 触发到期的延迟任务
+  /// 2. 驱动所有活跃 Promise
   void tick() {
     _currentTick++;
-    log('--- tick #$_currentTick start (SMs=${smStateMachines.length}, delayed=${_delayedTasks.length}) ---');
+    log('--- tick #$_currentTick start (active=${_activePromises.length}, delayed=${_delayedTasks.length}) ---');
 
-    // 1. 重置所有状态机的标记 → 新一轮开始
-    for (final sm in smStateMachines) {
-      sm.resetRoundFlag();
-    }
-
-    // 2. 触发到期的延迟任务（先摘出来再执行，回调可能注册新任务）
+    // 1. 触发到期的延迟任务
     final expired = _delayedTasks.where((t) => t.targetTick <= _currentTick).toList();
     _delayedTasks.removeWhere((t) => t.targetTick <= _currentTick);
     for (final task in expired) {
@@ -188,32 +144,29 @@ class GlobalScheduler {
       task.callback();
     }
 
-    // 3. 快照遍历，逐个推进（step 内可能 start 新状态机，快照保证不乱）
-    final snapshot = List.of(smStateMachines);
-    final finished = <IStateMachine>{};
-    for (final sm in snapshot) {
-      if (!sm.markChecked()) {
-        log('  skip ${sm.debugName} (already checked this round)');
+    // 2. 驱动所有活跃 Promise
+    final snapshot = List.of(_activePromises);
+    final finished = <Promise>{};
+    for (final promise in snapshot) {
+      if (promise.isCompleted || promise.isError) {
+        finished.add(promise);
         continue;
       }
-      log('  step ${sm.debugName}...');
-      if (sm.step()) {
-        log('  → ${sm.debugName} FINISHED');
-        finished.add(sm);
-      } else {
-        log('  → ${sm.debugName} still pending');
+      final onTick = promise._onTick;
+      if (onTick != null && onTick()) {
+        finished.add(promise);
       }
     }
-    smStateMachines.removeWhere((sm) => finished.contains(sm));
+    _activePromises.removeWhere((p) => finished.contains(p));
 
-    log('--- tick #$_currentTick end (remaining SMs=${smStateMachines.length}) ---');
+    log('--- tick #$_currentTick end (remaining active=${_activePromises.length}) ---');
   }
 
   bool get hasActiveTasks =>
-      smStateMachines.isNotEmpty || _delayedTasks.isNotEmpty;
+      _activePromises.isNotEmpty || _delayedTasks.isNotEmpty;
 
   void reset() {
-    smStateMachines.clear();
+    _activePromises.clear();
     _delayedTasks.clear();
     _currentTick = 0;
   }
@@ -255,13 +208,14 @@ T smAwait<T>(Promise<T> future) {
 
 // ============================================================================
 // 7. AsyncStateMachine<T> — 异步函数转状态机的基类
+//    通过 Promise._onTick 驱动，不再依赖独立的 _stateMachines 列表
 // ============================================================================
 
-abstract class AsyncStateMachine<T> extends IStateMachine {
+abstract class AsyncStateMachine<T> {
   int smState = 0;
   final Promise<T> promise = Promise<T>();
 
-  @override
+  /// 子类实现：推进状态机一步。返回 true 表示已完成。
   bool step();
 
   void completeWith(T value) {
@@ -273,7 +227,8 @@ abstract class AsyncStateMachine<T> extends IStateMachine {
   }
 
   Promise<T> start() {
-    GlobalScheduler.instance.registerStateMachine(this);
+    promise._onTick = step;
+    GlobalScheduler.instance.registerActivePromise(promise);
     return promise;
   }
 }

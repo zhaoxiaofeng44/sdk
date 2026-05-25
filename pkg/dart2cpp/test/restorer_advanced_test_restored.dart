@@ -1231,24 +1231,22 @@ List<int> parseNumbers(List<String> inputs) {
   return results;
 }
 
-Future<int> asyncAdd(int a, int b) async {
-  await Future.delayed(Duration(milliseconds: 1));
-  return (a + b);
+Promise<int> asyncAdd(int a, int b) {
+  final env = ClosureEnv_asyncAdd_11(a, b);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
-Future<String> asyncTransform(int value) async {
-  final int doubled = await asyncAdd(value, value);
-  final int tripled = await asyncAdd(doubled, value);
-  return 'value=${value}, doubled=${doubled}, tripled=${tripled}';
+Promise<String> asyncTransform(int value) {
+  final env = ClosureEnv_asyncTransform_12(value);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
-Future<List<int>> asyncSequence(int count) async {
-  final List<int> results = <int>[];
-  for (var i = 0; (i < count); i = (i + 1)) {
-    final int value = await asyncAdd(i, (i * i));
-    results.add(value);
-  }
-  return results;
+Promise<List<int>> asyncSequence(int count) {
+  final env = ClosureEnv_asyncSequence_13(count);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 bool IntMathExtension_get_isPrime(final int this_) {
@@ -1298,7 +1296,7 @@ T IterableStats_get_min<T extends num>(final Iterable<T> this_) {
   return this_.reduce((T a, T b) => ((a < b) ? a : b));
 }
 
-void main() async {
+void main() {
   print('=== 高级语法还原测试 ===\n');
   print('--- 1. 嵌套闭包 ---');
   final Function counter = makeCounter(start: 5, step: 3);
@@ -1418,9 +1416,9 @@ void main() async {
   print('word frequency: ${freq}');
   print('truncate: ${TextProcessor_truncate('Hello, World! This is a long string.', 20)}');
   print('\n--- 15. async 链 ---');
-  final String asyncResult = await asyncTransform(5);
+  final String asyncResult = smAwait(asyncTransform(5));
   print('asyncTransform(5): ${asyncResult}');
-  final List<int> asyncSeq = await asyncSequence(5);
+  final List<int> asyncSeq = smAwait(asyncSequence(5));
   print('asyncSequence(5): ${asyncSeq}');
   print('\n--- 16. 增强枚举 ---');
   for (final s in const [Season.spring, Season.summer, Season.autumn, Season.winter]) {
@@ -1574,3 +1572,42 @@ B ClosureEnv_memoize_10_call<A, B>(ClosureEnv_memoize_10<A, B> env, A arg) {
     return result;
   }
 
+class ClosureEnv_asyncAdd_11 {
+  int a;
+  int b;
+  Promise<int> _promise;
+  ClosureEnv_asyncAdd_11(this.a, this.b) : _promise = Promise<int>();
+  void call() => ClosureEnv_asyncAdd_11_call(this);
+}
+void ClosureEnv_asyncAdd_11_call(ClosureEnv_asyncAdd_11 env) {
+  smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 1)));
+  env._promise.complete((env.a + env.b));
+  return;
+}
+class ClosureEnv_asyncTransform_12 {
+  int value;
+  Promise<String> _promise;
+  ClosureEnv_asyncTransform_12(this.value) : _promise = Promise<String>();
+  void call() => ClosureEnv_asyncTransform_12_call(this);
+}
+void ClosureEnv_asyncTransform_12_call(ClosureEnv_asyncTransform_12 env) {
+  final int doubled = smAwait(asyncAdd(env.value, env.value));
+  final int tripled = smAwait(asyncAdd(doubled, env.value));
+  env._promise.complete('value=${env.value}, doubled=${doubled}, tripled=${tripled}');
+  return;
+}
+class ClosureEnv_asyncSequence_13 {
+  int count;
+  Promise<List<int>> _promise;
+  ClosureEnv_asyncSequence_13(this.count) : _promise = Promise<List<int>>();
+  void call() => ClosureEnv_asyncSequence_13_call(this);
+}
+void ClosureEnv_asyncSequence_13_call(ClosureEnv_asyncSequence_13 env) {
+  final List<int> results = <int>[];
+  for (var i = 0; (i < env.count); i = (i + 1)) {
+    final int value = smAwait(asyncAdd(i, (i * i)));
+    results.add(value);
+  }
+  env._promise.complete(results);
+  return;
+}

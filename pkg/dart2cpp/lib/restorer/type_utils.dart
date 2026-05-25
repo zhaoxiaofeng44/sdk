@@ -77,8 +77,14 @@ mixin _TypeUtils on _DartRestorerBase {
     if (type is TypeParameterType) {
       final paramName = type.parameter.name ?? 'T';
       // Bug 21: 如果有活跃的类型参数替换映射，使用替换后的名称
+      // 精确匹配：如果 _activeTypeParamTargets 非空，只替换属于目标集合中的 TypeParameter
       final replacement = _activeTypeParamSubstitution[paramName];
-      return '${replacement ?? paramName}$suffix';
+      if (replacement != null) {
+        if (_activeTypeParamTargets.isEmpty || _activeTypeParamTargets.contains(type.parameter)) {
+          return '$replacement$suffix';
+        }
+      }
+      return '$paramName$suffix';
     }
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';

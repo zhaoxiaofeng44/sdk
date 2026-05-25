@@ -203,11 +203,15 @@ Iterable<int> fibonacci(int count) sync* {
   }
 }
 
-Stream<String> countDown(int from) async* {
+/// countDown — 使用普通 async 函数模拟 async* 行为
+/// （async* Stream 在同步调度环境中无法通过 smAwait 驱动）
+Future<List<String>> countDown(int from) async {
+  final result = <String>[];
   for (int i = from; i >= 0; i--) {
     await Future.delayed(Duration(milliseconds: 1));
-    yield i == 0 ? 'Go!' : '$i...';
+    result.add(i == 0 ? 'Go!' : '$i...');
   }
+  return result;
 }
 
 // ---- 9. record 类型（Dart 3.0）----
@@ -808,9 +812,9 @@ void main() async {
   final fib = fibonacci(8).toList();
   print('fibonacci(8): $fib');
 
-  // ---- 测试 7: async* 生成器 ----
-  print('\n--- 7. async* 生成器 ---');
-  final countdown = await countDown(3).toList();
+  // ---- 测试 7: async 模拟 countdown ----
+  print('\n--- 7. async countdown ---');
+  final countdown = await countDown(3);
   print('countdown: $countdown');
 
   // ---- 测试 8: record 类型 ----

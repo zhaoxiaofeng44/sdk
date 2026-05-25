@@ -1,40 +1,33 @@
 import 'package:dart2cpp/restorer/runtime_classes.dart';
 
 Promise<String> greetAsync(String name) {
-  return Promise.value<String>('hello ${name}');
+  final env = ClosureEnv_greetAsync_0(name);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 Promise<String> chainAsync(String prefix) {
-  final String greeting = smAwait(greetAsync('world'));
-  return Promise.value<String>('${prefix}: ${greeting}');
+  final env = ClosureEnv_chainAsync_1(prefix);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 Promise<String> multiAwait(String a, String b) {
-  final String r1 = smAwait(greetAsync(a));
-  final String r2 = smAwait(greetAsync(b));
-  return Promise.value<String>('${r1} and ${r2}');
+  final env = ClosureEnv_multiAwait_2(a, b);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 Promise<String> tryCatchAsync(String input) {
-  try {
-    if ((input == 'fail')) {
-      throw Exception('expected failure');
-    }
-    final String result = smAwait(greetAsync(input));
-    return Promise.value<String>('ok: ${result}');
-  }
- catch (e) {
-    return Promise.value<String>('caught: ${e}');
-  }
+  final env = ClosureEnv_tryCatchAsync_3(input);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 Promise<String> conditionalAsync(bool flag) {
-  if (flag) {
-    return Promise.value<String>(smAwait(greetAsync('yes')));
-  }
- else {
-    return Promise.value<String>(smAwait(greetAsync('no')));
-  }
+  final env = ClosureEnv_conditionalAsync_4(flag);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 void main() {
@@ -68,3 +61,73 @@ void main() {
   print('\n=== ✅ 全部 5 个 async/await 测试通过！ ===');
 }
 
+class ClosureEnv_greetAsync_0 {
+  StringBox name;
+  Promise<String> _promise;
+  ClosureEnv_greetAsync_0(String name) : _promise = Promise<String>(), name = StringBox(name);
+  void call() => ClosureEnv_greetAsync_0_call(this);
+}
+void ClosureEnv_greetAsync_0_call(ClosureEnv_greetAsync_0 env) {
+  env._promise.complete('hello ${env.name.value}');
+  return;
+}
+class ClosureEnv_chainAsync_1 {
+  StringBox prefix;
+  Promise<String> _promise;
+  ClosureEnv_chainAsync_1(String prefix) : _promise = Promise<String>(), prefix = StringBox(prefix);
+  void call() => ClosureEnv_chainAsync_1_call(this);
+}
+void ClosureEnv_chainAsync_1_call(ClosureEnv_chainAsync_1 env) {
+  final String greeting = smAwait(greetAsync('world'));
+  env._promise.complete('${env.prefix.value}: ${greeting}');
+  return;
+}
+class ClosureEnv_multiAwait_2 {
+  StringBox a;
+  StringBox b;
+  Promise<String> _promise;
+  ClosureEnv_multiAwait_2(String a, String b) : _promise = Promise<String>(), a = StringBox(a), b = StringBox(b);
+  void call() => ClosureEnv_multiAwait_2_call(this);
+}
+void ClosureEnv_multiAwait_2_call(ClosureEnv_multiAwait_2 env) {
+  final String r1 = smAwait(greetAsync(env.a.value));
+  final String r2 = smAwait(greetAsync(env.b.value));
+  env._promise.complete('${r1} and ${r2}');
+  return;
+}
+class ClosureEnv_tryCatchAsync_3 {
+  StringBox input;
+  Promise<String> _promise;
+  ClosureEnv_tryCatchAsync_3(String input) : _promise = Promise<String>(), input = StringBox(input);
+  void call() => ClosureEnv_tryCatchAsync_3_call(this);
+}
+void ClosureEnv_tryCatchAsync_3_call(ClosureEnv_tryCatchAsync_3 env) {
+  try {
+    if ((env.input.value == 'fail')) {
+      throw Exception('expected failure');
+    }
+    final String result = smAwait(greetAsync(env.input.value));
+    env._promise.complete('ok: ${result}');
+    return;
+  }
+ catch (e) {
+    env._promise.complete('caught: ${e}');
+    return;
+  }
+}
+class ClosureEnv_conditionalAsync_4 {
+  BoolBox flag;
+  Promise<String> _promise;
+  ClosureEnv_conditionalAsync_4(bool flag) : _promise = Promise<String>(), flag = BoolBox(flag);
+  void call() => ClosureEnv_conditionalAsync_4_call(this);
+}
+void ClosureEnv_conditionalAsync_4_call(ClosureEnv_conditionalAsync_4 env) {
+  if (env.flag.value) {
+    env._promise.complete(smAwait(greetAsync('yes')));
+    return;
+  }
+ else {
+    env._promise.complete(smAwait(greetAsync('no')));
+    return;
+  }
+}

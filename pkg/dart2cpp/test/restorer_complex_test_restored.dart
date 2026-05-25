@@ -202,18 +202,16 @@ List<int> mapList(List<int> items, int Function(int) transform) {
   return items.map(transform).toList();
 }
 
-Future<String> fetchData(String url) async {
-  await Future.delayed(Duration(milliseconds: 10));
-  return 'data from ${url}';
+Promise<String> fetchData(String url) {
+  final env = ClosureEnv_fetchData_4(url);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
-Future<List<String>> fetchAll(List<String> urls) async {
-  final List<String> results = <String>[];
-  for (final url in urls) {
-    final String data = await fetchData(url);
-    results.add(data);
-  }
-  return results;
+Promise<List<String>> fetchAll(List<String> urls) {
+  final env = ClosureEnv_fetchAll_5(urls);
+  env._promise.setStartCallback(env.call);
+  return env._promise;
 }
 
 String? findFirst(List<String> items, bool Function(String) predicate) {
@@ -300,7 +298,7 @@ void main() {
   final List<int> doubled = mapList(<int>[1, 2, 3, 4], (int x) => (x * 2));
   print('doubled: ${doubled}');
   IntBox counter = IntBox(0);
-  final int Function() increment = ClosureEnv_main_4(counter).call;
+  final int Function() increment = ClosureEnv_main_6(counter).call;
   print('counter: ${increment()}, ${increment()}, ${increment()}');
   print('\n--- 8. 可空类型 ---');
   final List<String> items = <String>['apple', 'banana', 'cherry'];
@@ -404,12 +402,38 @@ int ClosureEnv_makeAdder_3_call(ClosureEnv_makeAdder_3 env, int x) {
   return (env.base.value + x);
 }
 
-class ClosureEnv_main_4 {
-  IntBox counter;
-  ClosureEnv_main_4(this.counter);
-  int call() => ClosureEnv_main_4_call(this);
+class ClosureEnv_fetchData_4 {
+  String url;
+  Promise<String> _promise;
+  ClosureEnv_fetchData_4(this.url) : _promise = Promise<String>();
+  void call() => ClosureEnv_fetchData_4_call(this);
 }
-int ClosureEnv_main_4_call(ClosureEnv_main_4 env) {
+void ClosureEnv_fetchData_4_call(ClosureEnv_fetchData_4 env) {
+  smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 10)));
+  env._promise.complete('data from ${env.url}');
+  return;
+}
+class ClosureEnv_fetchAll_5 {
+  List<String> urls;
+  Promise<List<String>> _promise;
+  ClosureEnv_fetchAll_5(this.urls) : _promise = Promise<List<String>>();
+  void call() => ClosureEnv_fetchAll_5_call(this);
+}
+void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
+  final List<String> results = <String>[];
+  for (final url in env.urls) {
+    final String data = smAwait(fetchData(url));
+    results.add(data);
+  }
+  env._promise.complete(results);
+  return;
+}
+class ClosureEnv_main_6 {
+  IntBox counter;
+  ClosureEnv_main_6(this.counter);
+  int call() => ClosureEnv_main_6_call(this);
+}
+int ClosureEnv_main_6_call(ClosureEnv_main_6 env) {
     env.counter.value = (env.counter.value + 1);
     return env.counter.value;
   }

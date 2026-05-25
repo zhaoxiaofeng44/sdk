@@ -241,8 +241,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isGetter) {
-        // this_ 统一为 dynamic，精确签名始终安全
-        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
+        // 方法定义在非用户类基类中 → 直接属性访问
+        final declClass = target.enclosingClass;
+        final declClassName = declClass != null ? _getActualClassName(declClass.name) : null;
+        if (declClassName != null && !_isUserClass(declClassName) && !_isMixinName(declClassName)) {
+          return '$recv.$fieldName';
+        }
+        // 使用 expr.resultType 获取调用处已具体化的返回类型（避免泛型 T 未替换问题）
+        final returnType = _restoreTypeForSignature(expr.resultType);
+        final sig = '$returnType Function($_thisParamType)';
         return "($recv.vptr['get_$fieldName'] as $sig)($recv)";
       }
     }
@@ -314,6 +321,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final returnType = _restoreTypeForSignature(expr.functionType.returnType);
       final enclosingClass = expr.interfaceTarget.enclosingClass;
       final actualClassName = enclosingClass != null ? _getActualClassName(enclosingClass.name) : null;
+
+      // 方法定义在非用户类基类中（如 AsyncStateMachine.completeWith）→ 直接调用，不走 vptr
+      if (actualClassName != null && !_isUserClass(actualClassName) && !_isMixinName(actualClassName)) {
+        final args = _restoreArgs(expr.arguments);
+        if (args.isEmpty) return '$recv.$name()';
+        return '$recv.$name($args)';
+      }
 
       // Bug 14: 私有实例方法（name 以 _ 开头）不在 vtable 中
       // _collectVTableEntries（dart_restorer.dart）跳过 startsWith('_') 的方法，
@@ -763,6 +777,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String _restoreDynamicInvocation(DynamicInvocation expr) {
     final recv = _restoreExpr(expr.receiver);
     final name = expr.name.text;
+    // 处理下标操作符 []
+    if (name == '[]') {
+      final idx = _restoreExpr(expr.arguments.positional[0]);
+      return '$recv[$idx]';
+    }
+    // 处理下标赋值操作符 []=
+    if (name == '[]=') {
+      final idx = _restoreExpr(expr.arguments.positional[0]);
+      final val = _restoreExpr(expr.arguments.positional[1]);
+      return '$recv[$idx] = $val';
+    }
     final args = _restoreArgs(expr.arguments);
     return '$recv.$name($args)';
   }
@@ -835,6 +860,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final typeArgStr = typeArgs.isNotEmpty
             ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
             : '';
+        // Future.delayed(Duration, [computation]) → promiseDelayed(duration, [computation])
+        if (name == 'delayed') {
+          return 'promiseDelayed$typeArgStr($args)';
+        }
         if (name.isEmpty) return 'Promise$typeArgStr($args)';
         return 'Promise$typeArgStr.$name($args)';
       }
