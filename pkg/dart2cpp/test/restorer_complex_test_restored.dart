@@ -1,14 +1,16 @@
 import 'package:dart2cpp/restorer/runtime_classes.dart';
 
 class ShapeValue extends VPtr {
+  ShapeValue() {
+    vptr['get_name'] = Shape_get_name;
+    vptr['area'] = Shape_area;
+    vptr['perimeter'] = Shape_perimeter;
+    vptr['toString'] = Shape_toString;
+  }
 }
 
 ShapeValue Shape_new(dynamic this__) {
   final this_ = this__ as ShapeValue;
-  this_.vptr['get_name'] = Shape_get_name;
-  this_.vptr['area'] = Shape_area;
-  this_.vptr['perimeter'] = Shape_perimeter;
-  this_.vptr['toString'] = Shape_toString;
   return this_;
 }
 
@@ -33,12 +35,14 @@ String Shape_toString(dynamic this__) {
 class PairValue<A, B> extends VPtr {
   late A first;
   late B second;
+  PairValue() {
+    vptr['swap'] = Pair_swap<A, B>;
+    vptr['toString'] = Pair_toString<A, B>;
+  }
 }
 
 PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
   final this_ = this__ as PairValue<A, B>;
-  this_.vptr['swap'] = Pair_swap<A, B>;
-  this_.vptr['toString'] = Pair_toString<A, B>;
   this_.first = first;
   this_.second = second;
   return this_;
@@ -57,17 +61,25 @@ String Pair_toString<A, B>(dynamic this__) {
 
 class CircleValue extends ShapeValue {
   late double _radius;
+  CircleValue() {
+    vptr['get_name'] = Circle_get_name;
+    vptr['area'] = Circle_area;
+    vptr['perimeter'] = Circle_perimeter;
+    vptr['toString'] = Circle_toString;
+    vptr['get_radius'] = Circle_get_radius;
+    vptr['set_radius'] = Circle_set_radius;
+    vptr['get_name'] = Circle_get_name;
+    vptr['area'] = Circle_area;
+    vptr['perimeter'] = Circle_perimeter;
+    vptr['toString'] = Circle_toString;
+    vptr['get_radius'] = Circle_get_radius;
+    vptr['set_radius'] = Circle_set_radius;
+  }
 }
 
 CircleValue Circle_new(dynamic this__, double _radius) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);
-  this_.vptr['get_name'] = Circle_get_name;
-  this_.vptr['area'] = Circle_area;
-  this_.vptr['perimeter'] = Circle_perimeter;
-  this_.vptr['toString'] = Circle_toString;
-  this_.vptr['get_radius'] = Circle_get_radius;
-  this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = _radius;
   return this_;
 }
@@ -75,12 +87,6 @@ CircleValue Circle_new(dynamic this__, double _radius) {
 CircleValue Circle_new_unit(dynamic this__) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);
-  this_.vptr['get_name'] = Circle_get_name;
-  this_.vptr['area'] = Circle_area;
-  this_.vptr['perimeter'] = Circle_perimeter;
-  this_.vptr['toString'] = Circle_toString;
-  this_.vptr['get_radius'] = Circle_get_radius;
-  this_.vptr['set_radius'] = Circle_set_radius;
   this_._radius = 1.0;
   return this_;
 }
@@ -120,15 +126,17 @@ String Circle_toString(dynamic this__) {
 class RectangleValue extends ShapeValue {
   late double width;
   late double height;
+  RectangleValue() {
+    vptr['get_name'] = Rectangle_get_name;
+    vptr['area'] = Rectangle_area;
+    vptr['perimeter'] = Rectangle_perimeter;
+    vptr['toString'] = Rectangle_toString;
+  }
 }
 
 RectangleValue Rectangle_new(dynamic this__, double width, double height) {
   final this_ = this__ as RectangleValue;
   Shape_new(this_);
-  this_.vptr['get_name'] = Rectangle_get_name;
-  this_.vptr['area'] = Rectangle_area;
-  this_.vptr['perimeter'] = Rectangle_perimeter;
-  this_.vptr['toString'] = Rectangle_toString;
   this_.width = width;
   this_.height = height;
   return this_;

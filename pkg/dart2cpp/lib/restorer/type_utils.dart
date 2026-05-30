@@ -51,9 +51,16 @@ mixin _TypeUtils on _DartRestorerBase {
       final rawName = type.classNode.name;
       // OOP Lowering: 用户自定义类的实例类型引用改为 XValue
       // Future<T> → Promise<T>（状态机协程替代）
+      // 集合静态化: List→StaticList, Map→StaticMap, Set→StaticSet
       String name;
       if (rawName == 'Future' || rawName == '_Future') {
         name = 'Promise';
+      } else if (rawName == 'List' || rawName == '_GrowableList' || rawName == '_List') {
+        name = 'StaticList';
+      } else if (rawName == 'Map' || rawName == '_Map' || rawName == 'LinkedHashMap' || rawName == '_InternalLinkedHashMap') {
+        name = 'StaticMap';
+      } else if (rawName == 'Set' || rawName == '_Set' || rawName == 'LinkedHashSet' || rawName == '_CompactLinkedHashSet') {
+        name = 'StaticSet';
       } else if (_isUserClass(rawName)) {
         name = '${rawName}Value';
       } else {

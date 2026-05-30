@@ -28,12 +28,14 @@ bool Orderable_isGreaterThan<T>(dynamic this__, T other) {
 class AnimalValue extends VPtr {
   late String name;
   late int age;
+  AnimalValue() {
+    vptr['speak'] = Animal_speak;
+    vptr['toString'] = Animal_toString;
+  }
 }
 
 AnimalValue Animal_new(dynamic this__, String name, int age) {
   final this_ = this__ as AnimalValue;
-  this_.vptr['speak'] = Animal_speak;
-  this_.vptr['toString'] = Animal_toString;
   this_.name = name;
   this_.age = age;
   return this_;
@@ -51,19 +53,20 @@ String Animal_toString(dynamic this__) {
 
 class DogValue extends Dog_Animal_Printable_OrderableValue {
   late String breed;
+  DogValue() {
+    vptr['speak'] = Dog_speak;
+    vptr['toString'] = Dog_toString;
+    vptr['get_displayName'] = Dog_get_displayName;
+    vptr['printInfo'] = Dog_printInfo;
+    vptr['compareTo'] = Dog_compareTo;
+    vptr['isLessThan'] = Dog_isLessThan;
+    vptr['isGreaterThan'] = Dog_isGreaterThan;
+  }
 }
 
 DogValue Dog_new(dynamic this__, String name, int age, String breed) {
   final this_ = this__ as DogValue;
   Animal_new(this_, name, age);
-  Dog_Animal_Printable_Orderable_init(this_);
-  this_.vptr['speak'] = Dog_speak;
-  this_.vptr['toString'] = Dog_toString;
-  this_.vptr['get_displayName'] = Dog_get_displayName;
-  this_.vptr['printInfo'] = Dog_printInfo;
-  this_.vptr['compareTo'] = Dog_compareTo;
-  this_.vptr['isLessThan'] = Dog_isLessThan;
-  this_.vptr['isGreaterThan'] = Dog_isGreaterThan;
   this_.breed = breed;
   return this_;
 }
@@ -106,18 +109,19 @@ bool Dog_isGreaterThan(dynamic this__, DogValue other) {
 
 class CatValue extends Cat_Animal_PrintableValue {
   late String _mood;
+  CatValue() {
+    vptr['speak'] = Cat_speak;
+    vptr['toString'] = Cat_toString;
+    vptr['get_displayName'] = Cat_get_displayName;
+    vptr['printInfo'] = Cat_printInfo;
+    vptr['get_mood'] = Cat_get_mood;
+    vptr['set_mood'] = Cat_set_mood;
+  }
 }
 
 CatValue Cat_new(dynamic this__, String name, int age) {
   final this_ = this__ as CatValue;
   Animal_new(this_, name, age);
-  Cat_Animal_Printable_init(this_);
-  this_.vptr['speak'] = Cat_speak;
-  this_.vptr['toString'] = Cat_toString;
-  this_.vptr['get_displayName'] = Cat_get_displayName;
-  this_.vptr['printInfo'] = Cat_printInfo;
-  this_.vptr['get_mood'] = Cat_get_mood;
-  this_.vptr['set_mood'] = Cat_set_mood;
   this_._mood = 'happy';
   return this_;
 }
@@ -156,16 +160,18 @@ void Cat_printInfo(dynamic this__) {
 class Vector2DValue extends VPtr {
   late double x;
   late double y;
+  Vector2DValue() {
+    vptr['operatorPlus'] = Vector2D_operatorPlus;
+    vptr['operatorMinus'] = Vector2D_operatorMinus;
+    vptr['operatorStar'] = Vector2D_operatorStar;
+    vptr['operatorEq'] = Vector2D_operatorEq;
+    vptr['get_length'] = Vector2D_get_length;
+    vptr['toString'] = Vector2D_toString;
+  }
 }
 
 Vector2DValue Vector2D_new(dynamic this__, double x, double y) {
   final this_ = this__ as Vector2DValue;
-  this_.vptr['operatorPlus'] = Vector2D_operatorPlus;
-  this_.vptr['operatorMinus'] = Vector2D_operatorMinus;
-  this_.vptr['operatorStar'] = Vector2D_operatorStar;
-  this_.vptr['operatorEq'] = Vector2D_operatorEq;
-  this_.vptr['get_length'] = Vector2D_get_length;
-  this_.vptr['toString'] = Vector2D_toString;
   this_.x = x;
   this_.y = y;
   return this_;
@@ -214,16 +220,18 @@ String Vector2D_toString(dynamic this__) {
 class CounterValue extends VPtr {
   late int _value;
   late String label;
+  CounterValue() {
+    vptr['increment'] = Counter_increment;
+    vptr['decrement'] = Counter_decrement;
+    vptr['get_value'] = Counter_get_value;
+    vptr['toString'] = Counter_toString;
+  }
 }
 
 int Counter__instanceCount = 0;
 const int Counter_maxValue = 100;
 CounterValue Counter_new__(dynamic this__, String label, int _value) {
   final this_ = this__ as CounterValue;
-  this_.vptr['increment'] = Counter_increment;
-  this_.vptr['decrement'] = Counter_decrement;
-  this_.vptr['get_value'] = Counter_get_value;
-  this_.vptr['toString'] = Counter_toString;
   this_.label = label;
   this_._value = _value;
   Counter__instanceCount = (Counter__instanceCount + 1);
@@ -268,12 +276,14 @@ class ResultValue<T> extends VPtr {
   late T? data;
   late String? error;
   late bool isSuccess;
+  ResultValue() {
+    vptr['fold_String'] = Result_fold<T, String>;
+    vptr['toString'] = Result_toString<T>;
+  }
 }
 
 ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
   final this_ = this__ as ResultValue<T>;
-  this_.vptr['fold_String'] = Result_fold<T, String>;
-  this_.vptr['toString'] = Result_toString<T>;
   this_.data = value;
   this_.error = null;
   this_.isSuccess = true;
@@ -282,8 +292,6 @@ ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
 
 ResultValue<T> Result_new_failure<T>(dynamic this__, String message) {
   final this_ = this__ as ResultValue<T>;
-  this_.vptr['fold_String'] = Result_fold<T, String>;
-  this_.vptr['toString'] = Result_toString<T>;
   this_.data = null;
   this_.error = message;
   this_.isSuccess = false;
@@ -308,13 +316,15 @@ class LazyLoaderValue extends VPtr {
   late String _data;
   late int _computedValue;
   late bool _initialized;
+  LazyLoaderValue() {
+    vptr['initialize'] = LazyLoader_initialize;
+    vptr['get_data'] = LazyLoader_get_data;
+    vptr['get_computedValue'] = LazyLoader_get_computedValue;
+  }
 }
 
 LazyLoaderValue LazyLoader_new(dynamic this__) {
   final this_ = this__ as LazyLoaderValue;
-  this_.vptr['initialize'] = LazyLoader_initialize;
-  this_.vptr['get_data'] = LazyLoader_get_data;
-  this_.vptr['get_computedValue'] = LazyLoader_get_computedValue;
   this_._initialized = false;
   return this_;
 }
@@ -341,12 +351,14 @@ class BoundedValueValue extends VPtr {
   late double min;
   late double max;
   late double _current;
+  BoundedValueValue() {
+    vptr['set'] = BoundedValue_set;
+    vptr['get_current'] = BoundedValue_get_current;
+  }
 }
 
 BoundedValueValue BoundedValue_new(dynamic this__, double min, double max, double initial) {
   final this_ = this__ as BoundedValueValue;
-  this_.vptr['set'] = BoundedValue_set;
-  this_.vptr['get_current'] = BoundedValue_get_current;
   this_.min = min;
   this_.max = max;
   this_._current = initial;
@@ -354,6 +366,8 @@ BoundedValueValue BoundedValue_new(dynamic this__, double min, double max, doubl
   assert(((initial >= this_.min) && (initial <= this_.max)), 'initial must be in [min, max]');
   return this_;
 }
+
+
 
 void BoundedValue_set(dynamic this__, double value) {
   final this_ = this__ as BoundedValueValue;
@@ -370,11 +384,13 @@ double BoundedValue_get_current(dynamic this__) {
 class ShapeValue extends VPtr {
   late String color;
   late double opacity;
+  ShapeValue() {
+    vptr['describe'] = Shape_describe;
+  }
 }
 
 ShapeValue Shape_new(dynamic this__, String color, {double opacity = 1.0}) {
   final this_ = this__ as ShapeValue;
-  this_.vptr['describe'] = Shape_describe;
   this_.color = color;
   this_.opacity = opacity;
   return this_;
@@ -394,13 +410,15 @@ String Shape_describe(dynamic this__) {
 
 class PolygonValue extends ShapeValue {
   late int sides;
+  PolygonValue() {
+    vptr['describe'] = Polygon_describe;
+    vptr['perimeter'] = Polygon_perimeter;
+  }
 }
 
 PolygonValue Polygon_new(dynamic this__, String color, int sides, {double opacity = 1.0}) {
   final this_ = this__ as PolygonValue;
   Shape_new(this_, color, opacity: opacity);
-  this_.vptr['describe'] = Polygon_describe;
-  this_.vptr['perimeter'] = Polygon_perimeter;
   this_.sides = sides;
   return this_;
 }
@@ -418,14 +436,16 @@ double Polygon_perimeter(dynamic this__, double sideLength) {
 
 class RegularPolygonValue extends PolygonValue {
   late double sideLength;
+  RegularPolygonValue() {
+    vptr['describe'] = RegularPolygon_describe;
+    vptr['perimeter'] = RegularPolygon_perimeter;
+    vptr['area'] = RegularPolygon_area;
+  }
 }
 
 RegularPolygonValue RegularPolygon_new(dynamic this__, String color, int sides, double sideLength, {double opacity = 1.0}) {
   final this_ = this__ as RegularPolygonValue;
   Polygon_new(this_, color, sides, opacity: opacity);
-  this_.vptr['describe'] = RegularPolygon_describe;
-  this_.vptr['perimeter'] = RegularPolygon_perimeter;
-  this_.vptr['area'] = RegularPolygon_area;
   this_.sideLength = sideLength;
   return this_;
 }
@@ -447,14 +467,16 @@ double RegularPolygon_area(dynamic this__) {
 
 
 class SquareValue extends RegularPolygonValue {
+  SquareValue() {
+    vptr['describe'] = Square_describe;
+    vptr['perimeter'] = Square_perimeter;
+    vptr['area'] = Square_area;
+  }
 }
 
 SquareValue Square_new(dynamic this__, String color, double size, {double opacity = 1.0}) {
   final this_ = this__ as SquareValue;
   RegularPolygon_new(this_, color, 4, size, opacity: opacity);
-  this_.vptr['describe'] = Square_describe;
-  this_.vptr['perimeter'] = Square_perimeter;
-  this_.vptr['area'] = Square_area;
   return this_;
 }
 
@@ -475,11 +497,13 @@ double Square_area(dynamic this__) {
 
 
 class SerializableValue extends VPtr {
+  SerializableValue() {
+    vptr['serialize'] = Serializable_serialize;
+  }
 }
 
 SerializableValue Serializable_new(dynamic this__) {
   final this_ = this__ as SerializableValue;
-  this_.vptr['serialize'] = Serializable_serialize;
   return this_;
 }
 
@@ -489,11 +513,13 @@ String Serializable_serialize(dynamic this_) {
 
 
 class CloneableValue<T> extends VPtr {
+  CloneableValue() {
+    vptr['clone'] = Cloneable_clone<T>;
+  }
 }
 
 CloneableValue<T> Cloneable_new<T>(dynamic this__) {
   final this_ = this__ as CloneableValue<T>;
-  this_.vptr['clone'] = Cloneable_clone<T>;
   return this_;
 }
 
@@ -503,11 +529,13 @@ T Cloneable_clone<T>(dynamic this_) {
 
 
 class Comparable2Value<T> extends VPtr {
+  Comparable2Value() {
+    vptr['compareTo2'] = Comparable2_compareTo2<T>;
+  }
 }
 
 Comparable2Value<T> Comparable2_new<T>(dynamic this__) {
   final this_ = this__ as Comparable2Value<T>;
-  this_.vptr['compareTo2'] = Comparable2_compareTo2<T>;
   return this_;
 }
 
@@ -520,14 +548,16 @@ class DataPointValue extends VPtr implements SerializableValue, CloneableValue<D
   late double x;
   late double y;
   late String label;
+  DataPointValue() {
+    vptr['serialize'] = DataPoint_serialize;
+    vptr['clone'] = DataPoint_clone;
+    vptr['compareTo2'] = DataPoint_compareTo2;
+    vptr['toString'] = DataPoint_toString;
+  }
 }
 
 DataPointValue DataPoint_new(dynamic this__, double x, double y, String label) {
   final this_ = this__ as DataPointValue;
-  this_.vptr['serialize'] = DataPoint_serialize;
-  this_.vptr['clone'] = DataPoint_clone;
-  this_.vptr['compareTo2'] = DataPoint_compareTo2;
-  this_.vptr['toString'] = DataPoint_toString;
   this_.x = x;
   this_.y = y;
   this_.label = label;
@@ -574,19 +604,20 @@ bool Validatable_validate(dynamic this__) {
 
 
 class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_ValidatableValue {
+  LoggedDataPointValue() {
+    vptr['serialize'] = LoggedDataPoint_serialize;
+    vptr['clone'] = LoggedDataPoint_clone;
+    vptr['compareTo2'] = LoggedDataPoint_compareTo2;
+    vptr['toString'] = LoggedDataPoint_toString;
+    vptr['get_logTag'] = LoggedDataPoint_get_logTag;
+    vptr['log'] = LoggedDataPoint_log;
+    vptr['validate'] = LoggedDataPoint_validate;
+  }
 }
 
 LoggedDataPointValue LoggedDataPoint_new(dynamic this__, double x, double y, String label) {
   final this_ = this__ as LoggedDataPointValue;
   DataPoint_new(this_, x, y, label);
-  LoggedDataPoint_DataPoint_Loggable_Validatable_init(this_);
-  this_.vptr['serialize'] = LoggedDataPoint_serialize;
-  this_.vptr['clone'] = LoggedDataPoint_clone;
-  this_.vptr['compareTo2'] = LoggedDataPoint_compareTo2;
-  this_.vptr['toString'] = LoggedDataPoint_toString;
-  this_.vptr['get_logTag'] = LoggedDataPoint_get_logTag;
-  this_.vptr['log'] = LoggedDataPoint_log;
-  this_.vptr['validate'] = LoggedDataPoint_validate;
   return this_;
 }
 
@@ -666,11 +697,13 @@ class ConfigValue extends VPtr {
   late int port;
   late bool secure;
   late String baseUrl;
+  ConfigValue() {
+    vptr['toString'] = Config_toString;
+  }
 }
 
 ConfigValue Config_new(dynamic this__, String host, int port, {bool secure = false}) {
   final this_ = this__ as ConfigValue;
-  this_.vptr['toString'] = Config_toString;
   this_.host = host;
   this_.port = port;
   this_.secure = secure;
@@ -747,11 +780,13 @@ String SortedList_toString<T extends Comparable<dynamic>>(dynamic this__) {
 class NullSafetyDemoValue extends VPtr {
   late String? nullableField;
   late String nonNullField;
+  NullSafetyDemoValue() {
+    vptr['demonstrate'] = NullSafetyDemo_demonstrate;
+  }
 }
 
 NullSafetyDemoValue NullSafetyDemo_new(dynamic this__, String nonNullField, [String? nullableField = null]) {
   final this_ = this__ as NullSafetyDemoValue;
-  this_.vptr['demonstrate'] = NullSafetyDemo_demonstrate;
   this_.nonNullField = nonNullField;
   this_.nullableField = nullableField;
   return this_;
@@ -768,12 +803,14 @@ String NullSafetyDemo_demonstrate(dynamic this__) {
 
 
 class RendererValue extends VPtr {
+  RendererValue() {
+    vptr['render'] = Renderer_render;
+    vptr['get_name'] = Renderer_get_name;
+  }
 }
 
 RendererValue Renderer_new(dynamic this__) {
   final this_ = this__ as RendererValue;
-  this_.vptr['render'] = Renderer_render;
-  this_.vptr['get_name'] = Renderer_get_name;
   return this_;
 }
 
@@ -787,13 +824,15 @@ String Renderer_get_name(dynamic this_) {
 
 
 class CircleRendererValue extends RendererValue {
+  CircleRendererValue() {
+    vptr['render'] = CircleRenderer_render;
+    vptr['get_name'] = CircleRenderer_get_name;
+  }
 }
 
 CircleRendererValue CircleRenderer_new(dynamic this__) {
   final this_ = this__ as CircleRendererValue;
   Renderer_new(this_);
-  this_.vptr['render'] = CircleRenderer_render;
-  this_.vptr['get_name'] = CircleRenderer_get_name;
   return this_;
 }
 
@@ -810,13 +849,15 @@ String CircleRenderer_get_name(dynamic this__) {
 
 class PipelineValue<TInput, TOutput> extends VPtr {
   late TOutput Function(TInput) _transform;
+  PipelineValue() {
+    vptr['execute'] = Pipeline_execute<TInput, TOutput>;
+    vptr['then_String'] = Pipeline_then<TInput, TOutput, String>;
+    vptr['then_int'] = Pipeline_then<TInput, TOutput, int>;
+  }
 }
 
 PipelineValue<TInput, TOutput> Pipeline_new<TInput, TOutput>(dynamic this__, TOutput Function(TInput) _transform) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
-  this_.vptr['execute'] = Pipeline_execute<TInput, TOutput>;
-  this_.vptr['then_String'] = Pipeline_then<TInput, TOutput, String>;
-  this_.vptr['then_int'] = Pipeline_then<TInput, TOutput, int>;
   this_._transform = _transform;
   return this_;
 }
@@ -834,6 +875,12 @@ PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dyn
 
 class BitFlagsValue extends VPtr {
   late int _flags;
+  BitFlagsValue() {
+    vptr['set'] = BitFlags_set;
+    vptr['clear'] = BitFlags_clear;
+    vptr['has'] = BitFlags_has;
+    vptr['toString'] = BitFlags_toString;
+  }
 }
 
 const int BitFlags_read = 1;
@@ -841,10 +888,6 @@ const int BitFlags_write = 2;
 const int BitFlags_execute = 4;
 BitFlagsValue BitFlags_new(dynamic this__, [int _flags = 0]) {
   final this_ = this__ as BitFlagsValue;
-  this_.vptr['set'] = BitFlags_set;
-  this_.vptr['clear'] = BitFlags_clear;
-  this_.vptr['has'] = BitFlags_has;
-  this_.vptr['toString'] = BitFlags_toString;
   this_._flags = _flags;
   return this_;
 }
@@ -900,16 +943,17 @@ List<String> Tagged_get_tags(dynamic this__) {
 
 class EventValue extends Event_Object_Timestamped_TaggedValue {
   late String name;
+  EventValue() {
+    vptr['get_timestamp'] = Event_get_timestamp;
+    vptr['get_timeStr'] = Event_get_timeStr;
+    vptr['addTag'] = Event_addTag;
+    vptr['get_tags'] = Event_get_tags;
+    vptr['toString'] = Event_toString;
+  }
 }
 
 EventValue Event_new(dynamic this__, String name) {
   final this_ = this__ as EventValue;
-  Event_Object_Timestamped_Tagged_init(this_);
-  this_.vptr['get_timestamp'] = Event_get_timestamp;
-  this_.vptr['get_timeStr'] = Event_get_timeStr;
-  this_.vptr['addTag'] = Event_addTag;
-  this_.vptr['get_tags'] = Event_get_tags;
-  this_.vptr['toString'] = Event_toString;
   this_.name = name;
   this_._tags = <String>[];
   return this_;
@@ -943,19 +987,20 @@ List<String> Event_get_tags(dynamic this__) {
 
 class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
   late Priority priority;
+  ImportantEventValue() {
+    vptr['get_timestamp'] = ImportantEvent_get_timestamp;
+    vptr['get_timeStr'] = ImportantEvent_get_timeStr;
+    vptr['addTag'] = ImportantEvent_addTag;
+    vptr['get_tags'] = ImportantEvent_get_tags;
+    vptr['toString'] = ImportantEvent_toString;
+    vptr['get_logTag'] = ImportantEvent_get_logTag;
+    vptr['log'] = ImportantEvent_log;
+  }
 }
 
 ImportantEventValue ImportantEvent_new(dynamic this__, String name, Priority priority) {
   final this_ = this__ as ImportantEventValue;
   Event_new(this_, name);
-  ImportantEvent_Event_Loggable_init(this_);
-  this_.vptr['get_timestamp'] = ImportantEvent_get_timestamp;
-  this_.vptr['get_timeStr'] = ImportantEvent_get_timeStr;
-  this_.vptr['addTag'] = ImportantEvent_addTag;
-  this_.vptr['get_tags'] = ImportantEvent_get_tags;
-  this_.vptr['toString'] = ImportantEvent_toString;
-  this_.vptr['get_logTag'] = ImportantEvent_get_logTag;
-  this_.vptr['log'] = ImportantEvent_log;
   this_.priority = priority;
   this_._tags = <String>[];
   return this_;
@@ -998,83 +1043,56 @@ void ImportantEvent_log(dynamic this__, String message) {
 
 
 class Dog_Animal_PrintableValue extends AnimalValue {
+  Dog_Animal_PrintableValue() {
+    vptr['printInfo'] = Printable_printInfo;
+  }
 }
-
-void Dog_Animal_Printable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['printInfo'] = Printable_printInfo;
-}
-
 
 class Dog_Animal_Printable_OrderableValue extends Dog_Animal_PrintableValue {
+  Dog_Animal_Printable_OrderableValue() {
+    vptr['isLessThan'] = Orderable_isLessThan;
+    vptr['isGreaterThan'] = Orderable_isGreaterThan;
+  }
 }
-
-void Dog_Animal_Printable_Orderable_init(dynamic this__) {
-  Dog_Animal_Printable_init(this__);
-  final this_ = this__;
-  this_.vptr['isLessThan'] = Orderable_isLessThan;
-  this_.vptr['isGreaterThan'] = Orderable_isGreaterThan;
-}
-
 
 class Cat_Animal_PrintableValue extends AnimalValue {
+  Cat_Animal_PrintableValue() {
+    vptr['printInfo'] = Printable_printInfo;
+  }
 }
-
-void Cat_Animal_Printable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['printInfo'] = Printable_printInfo;
-}
-
 
 class LoggedDataPoint_DataPoint_LoggableValue extends DataPointValue {
+  LoggedDataPoint_DataPoint_LoggableValue() {
+    vptr['log'] = Loggable_log;
+  }
 }
-
-void LoggedDataPoint_DataPoint_Loggable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['log'] = Loggable_log;
-}
-
 
 class LoggedDataPoint_DataPoint_Loggable_ValidatableValue extends LoggedDataPoint_DataPoint_LoggableValue {
+  LoggedDataPoint_DataPoint_Loggable_ValidatableValue() {
+    vptr['validate'] = Validatable_validate;
+  }
 }
-
-void LoggedDataPoint_DataPoint_Loggable_Validatable_init(dynamic this__) {
-  LoggedDataPoint_DataPoint_Loggable_init(this__);
-  final this_ = this__;
-  this_.vptr['validate'] = Validatable_validate;
-}
-
 
 class Event_Object_TimestampedValue extends VPtr {
+  Event_Object_TimestampedValue() {
+    vptr['get_timestamp'] = Timestamped_get_timestamp;
+    vptr['get_timeStr'] = Timestamped_get_timeStr;
+  }
 }
-
-void Event_Object_Timestamped_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['get_timestamp'] = Timestamped_get_timestamp;
-  this_.vptr['get_timeStr'] = Timestamped_get_timeStr;
-}
-
 
 class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue {
   late List<String> _tags;
+  Event_Object_Timestamped_TaggedValue() {
+    vptr['addTag'] = Tagged_addTag;
+    vptr['get_tags'] = Tagged_get_tags;
+  }
 }
-
-void Event_Object_Timestamped_Tagged_init(dynamic this__) {
-  Event_Object_Timestamped_init(this__);
-  final this_ = this__;
-  this_.vptr['addTag'] = Tagged_addTag;
-  this_.vptr['get_tags'] = Tagged_get_tags;
-}
-
 
 class ImportantEvent_Event_LoggableValue extends EventValue {
+  ImportantEvent_Event_LoggableValue() {
+    vptr['log'] = Loggable_log;
+  }
 }
-
-void ImportantEvent_Event_Loggable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['log'] = Loggable_log;
-}
-
 
 String formatMessage(String template, [String? subject = null, int? count = null]) {
   String result = template;

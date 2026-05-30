@@ -9,11 +9,13 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  FibStateMachineValue() {
+    vptr['step'] = FibStateMachine_step;
+  }
 }
 
 FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
   final this_ = this__ as FibStateMachineValue;
-  this_.vptr['step'] = FibStateMachine_step;
   this_.n = n;
   this_._a = 0;
   this_._pending = null;
@@ -63,11 +65,14 @@ class Level3SMValue extends AsyncStateMachine<int> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  Level3SMValue() {
+    vptr['step'] = Level3SM_step;
+  }
+
 }
 
 Level3SMValue Level3SM_new(dynamic this__) {
   final this_ = this__ as Level3SMValue;
-  this_.vptr['step'] = Level3SM_step;
   return this_;
 }
 
@@ -85,11 +90,14 @@ class Level2SMValue extends AsyncStateMachine<int> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  Level2SMValue() {
+    vptr['step'] = Level2SM_step;
+  }
+
 }
 
 Level2SMValue Level2SM_new(dynamic this__) {
   final this_ = this__ as Level2SMValue;
-  this_.vptr['step'] = Level2SM_step;
   this_._pending = null;
   return this_;
 }
@@ -130,11 +138,14 @@ class Level1SMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  Level1SMValue() {
+    vptr['step'] = Level1SM_step;
+  }
+
 }
 
 Level1SMValue Level1SM_new(dynamic this__) {
   final this_ = this__ as Level1SMValue;
-  this_.vptr['step'] = Level1SM_step;
   this_._pending = null;
   return this_;
 }
@@ -176,11 +187,14 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  ConditionalAwaitSMValue() {
+    vptr['step'] = ConditionalAwaitSM_step;
+  }
+
 }
 
 ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
   final this_ = this__ as ConditionalAwaitSMValue;
-  this_.vptr['step'] = ConditionalAwaitSM_step;
   this_.flag = flag;
   this_._pending = null;
   return this_;
@@ -232,11 +246,14 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  FindFirstSMValue() {
+    vptr['step'] = FindFirstSM_step;
+  }
+
 }
 
 FindFirstSMValue FindFirstSM_new(dynamic this__, List<int> items) {
   final this_ = this__ as FindFirstSMValue;
-  this_.vptr['step'] = FindFirstSM_step;
   this_.items = items;
   this_._index = 0;
   this_._pending = null;
@@ -286,11 +303,14 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  TryCatchSMValue() {
+    vptr['step'] = TryCatchSM_step;
+  }
+
 }
 
 TryCatchSMValue TryCatchSM_new(dynamic this__) {
   final this_ = this__ as TryCatchSMValue;
-  this_.vptr['step'] = TryCatchSM_step;
   this_._log = '';
   this_._pending = null;
   return this_;
@@ -342,11 +362,14 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  FutureAnySMValue() {
+    vptr['step'] = FutureAnySM_step;
+  }
+
 }
 
 FutureAnySMValue FutureAnySM_new(dynamic this__) {
   final this_ = this__ as FutureAnySMValue;
-  this_.vptr['step'] = FutureAnySM_step;
   return this_;
 }
 
@@ -389,11 +412,14 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  TimeoutSMValue() {
+    vptr['step'] = TimeoutSM_step;
+  }
+
 }
 
 TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required int timeoutDelay}) {
   final this_ = this__ as TimeoutSMValue;
-  this_.vptr['step'] = TimeoutSM_step;
   this_.taskDelay = taskDelay;
   this_.timeoutDelay = timeoutDelay;
   return this_;
@@ -441,11 +467,14 @@ class AsyncMapSMValue extends AsyncStateMachine<List<String>> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  AsyncMapSMValue() {
+    vptr['step'] = AsyncMapSM_step;
+  }
+
 }
 
 AsyncMapSMValue AsyncMapSM_new(dynamic this__, List<int> items) {
   final this_ = this__ as AsyncMapSMValue;
-  this_.vptr['step'] = AsyncMapSM_step;
   this_.items = items;
   this_._results = <String>[];
   this_._index = 0;
@@ -496,11 +525,14 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  AsyncReduceSMValue() {
+    vptr['step'] = AsyncReduceSM_step;
+  }
+
 }
 
 AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
-  this_.vptr['step'] = AsyncReduceSM_step;
   this_._reducePending = null;
   this_._items = <String>[];
   this_._index = 0;
@@ -554,11 +586,13 @@ bool AsyncReduceSM_step(dynamic this__) {
 
 class ClosureEnv_process_0Value extends VPtr {
   late int factor;
+  ClosureEnv_process_0Value() {
+    vptr['call'] = ClosureEnv_process_0_call;
+  }
 }
 
 ClosureEnv_process_0Value ClosureEnv_process_0_new(dynamic this__, int factor) {
   final this_ = this__ as ClosureEnv_process_0Value;
-  this_.vptr['call'] = ClosureEnv_process_0_call;
   this_.factor = factor;
   return this_;
 }
@@ -580,11 +614,14 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<List<int>> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  ProcessWithClosureSMValue() {
+    vptr['step'] = ProcessWithClosureSM_step;
+  }
+
 }
 
 ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, List<int> items) {
   final this_ = this__ as ProcessWithClosureSMValue;
-  this_.vptr['step'] = ProcessWithClosureSM_step;
   this_.items = items;
   this_._results = <int>[];
   this_._index = 0;
@@ -647,11 +684,14 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<List<int>> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  AsyncGeneratorSMValue() {
+    vptr['step'] = AsyncGeneratorSM_step;
+  }
+
 }
 
 AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
   final this_ = this__ as AsyncGeneratorSMValue;
-  this_.vptr['step'] = AsyncGeneratorSM_step;
   this_.max = max;
   this_._i = 0;
   this_._yielded = <int>[];
@@ -698,11 +738,14 @@ class ComplexBusinessSMValue extends AsyncStateMachine<Map<String, dynamic>> {
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
+  ComplexBusinessSMValue() {
+    vptr['step'] = ComplexBusinessSM_step;
+  }
+
 }
 
 ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
   final this_ = this__ as ComplexBusinessSMValue;
-  this_.vptr['step'] = ComplexBusinessSM_step;
   this_.depth = depth;
   this_._pending = null;
   return this_;

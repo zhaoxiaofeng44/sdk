@@ -24,7 +24,10 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
     if (c is NullConstant) return 'null';
     if (c is ListConstant) {
       final items = c.entries.map((e) => _restoreConstant(e)).join(', ');
-      return 'const [${items}]';
+      // 常量 List 保留为原生 const [] 字面量
+      // 参数默认值等 compile-time constant 上下文要求 const 表达式，
+      // StaticList.of() 非 const，无法替换
+      return 'const [$items]';
     }
     if (c is SetConstant) {
       final items = c.entries.map((e) => _restoreConstant(e)).join(', ');

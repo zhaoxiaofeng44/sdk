@@ -3,6 +3,8 @@
 /// 包含 VPtr 虚函数表基类和 Box 类型（闭包引用语义）。
 /// 由 dart_restorer 生成的还原代码通过 import 引入本文件。
 
+import 'dart:collection';
+
 /// VPtr 基类 - 所有无基类（或继承自 Object）的 Value 类都继承自它。
 /// 提供 vptr 字段和 toString/operator==/hashCode 的桥接覆写。
 class VPtr {
@@ -60,6 +62,386 @@ class BoolBox {
 class ObjectBox<T> {
   T value;
   ObjectBox(this.value);
+}
+
+// ============================================================================
+// 静态集合类 — 不继承原生 List/Map/Set，基于 Array 统一管理内部存储
+// ============================================================================
+
+/// Array<T> — 底层存储容器，所有静态集合类的基础。
+/// 提供固定大小和动态增长两种模式的元素管理。
+class Array<T> {
+  final List<T> _storage;
+  int _length;
+
+  /// 创建固定大小的 Array，元素为 null（需要 T 为 nullable）或通过 fill 指定默认值
+  Array(int size, {T? fill})
+      : _storage = List<T>.filled(size, fill as T),
+        _length = size;
+
+  /// 从现有可迭代对象创建 Array
+  Array.from(Iterable<T> elements)
+      : _storage = List<T>.from(elements),
+        _length = elements.length;
+
+  /// 创建空的动态 Array
+  Array.empty()
+      : _storage = <T>[],
+        _length = 0;
+
+  int get length => _length;
+
+  T operator [](int index) {
+    if (index < 0 || index >= _length) {
+      throw RangeError.index(index, this, 'index', null, _length);
+    }
+    return _storage[index];
+  }
+
+  void operator []=(int index, T value) {
+    if (index < 0 || index >= _length) {
+      throw RangeError.index(index, this, 'index', null, _length);
+    }
+    _storage[index] = value;
+  }
+
+  void add(T element) {
+    _storage.add(element);
+    _length++;
+  }
+
+  void insert(int index, T element) {
+    _storage.insert(index, element);
+    _length++;
+  }
+
+  T removeAt(int index) {
+    if (index < 0 || index >= _length) {
+      throw RangeError.index(index, this, 'index', null, _length);
+    }
+    final removed = _storage.removeAt(index);
+    _length--;
+    return removed;
+  }
+
+  bool remove(T element) {
+    final idx = indexOf(element);
+    if (idx == -1) return false;
+    removeAt(idx);
+    return true;
+  }
+
+  int indexOf(T element) {
+    for (int i = 0; i < _length; i++) {
+      if (_storage[i] == element) return i;
+    }
+    return -1;
+  }
+
+  bool contains(T element) => indexOf(element) != -1;
+
+  void clear() {
+    _storage.clear();
+    _length = 0;
+  }
+
+  Iterable<T> get iterable => _storage.take(_length);
+
+  List<T> toList() => List<T>.from(_storage.take(_length));
+
+  @override
+  String toString() => 'Array(${_storage.take(_length).join(', ')})';
+}
+
+/// StaticList<T> — 静态列表，implements List<T> 接口，内部基于 Array<T> 独立管理数据。
+class StaticList<T> with ListMixin<T> {
+  final Array<T> _data;
+
+  StaticList._internal(this._data);
+
+  StaticList() : _data = Array<T>.empty();
+
+  StaticList.of(Iterable<T> elements) : _data = Array<T>.from(elements);
+
+  StaticList.filled(int length, T fill) : _data = Array<T>(length, fill: fill);
+
+  StaticList.unmodifiable(Iterable<T> elements) : _data = Array<T>.from(elements);
+
+  StaticList.empty({bool growable = true}) : _data = Array<T>.empty();
+
+  StaticList.generate(int length, T Function(int index) generator)
+      : _data = Array<T>.empty() {
+    for (int i = 0; i < length; i++) {
+      _data.add(generator(i));
+    }
+  }
+
+  StaticList.from(Iterable elements) : _data = Array<T>.from(elements.cast<T>());
+
+  // -- List<T> 核心接口 --
+
+  @override
+  int get length => _data.length;
+
+  @override
+  set length(int newLength) {
+    if (newLength < _data.length) {
+      while (_data.length > newLength) {
+        _data.removeAt(_data.length - 1);
+      }
+    } else {
+      while (_data.length < newLength) {
+        _data.add(null as T);
+      }
+    }
+  }
+
+  @override
+  T operator [](int index) => _data[index];
+
+  @override
+  void operator []=(int index, T value) => _data[index] = value;
+
+  @override
+  void add(T element) => _data.add(element);
+
+  @override
+  void addAll(Iterable<T> elements) {
+    for (final element in elements) {
+      _data.add(element);
+    }
+  }
+
+  @override
+  StaticList<T> sublist(int start, [int? end]) {
+    final actualEnd = end ?? length;
+    return StaticList<T>.of(super.sublist(start, actualEnd));
+  }
+
+  @override
+  StaticList<T> toList({bool growable = true}) {
+    return StaticList<T>.of(this);
+  }
+
+  @override
+  StaticList<R> cast<R>() {
+    return StaticList<R>.of(super.cast<R>());
+  }
+
+  @override
+  StaticList<T> operator +(List<T> other) {
+    final result = StaticList<T>.of(this);
+    result.addAll(other);
+    return result;
+  }
+
+  @override
+  String toString() => '[${join(', ')}]';
+}
+
+/// StaticMap<K, V> — implements Map<K,V>，内部基于 Array 独立管理键值对。
+class StaticMap<K, V> with MapMixin<K, V> {
+  final Array<K> _keys;
+  final Array<V> _values;
+
+  StaticMap()
+      : _keys = Array<K>.empty(),
+        _values = Array<V>.empty();
+
+  StaticMap.of(Map<K, V> entries)
+      : _keys = Array<K>.from(entries.keys),
+        _values = Array<V>.from(entries.values);
+
+  StaticMap.from(Map entries)
+      : _keys = Array<K>.from(entries.keys.cast<K>()),
+        _values = Array<V>.from(entries.values.cast<V>());
+
+  StaticMap.fromEntries(Iterable<MapEntry<K, V>> entries)
+      : _keys = Array<K>.empty(),
+        _values = Array<V>.empty() {
+    for (final entry in entries) {
+      _keys.add(entry.key);
+      _values.add(entry.value);
+    }
+  }
+
+  StaticMap.fromIterables(Iterable<K> keys, Iterable<V> values)
+      : _keys = Array<K>.from(keys),
+        _values = Array<V>.from(values);
+
+  // -- Map<K,V> 核心接口 --
+
+  @override
+  V? operator [](Object? key) {
+    final idx = _keys.indexOf(key as K);
+    if (idx == -1) return null;
+    return _values[idx];
+  }
+
+  @override
+  void operator []=(K key, V value) {
+    final idx = _keys.indexOf(key);
+    if (idx != -1) {
+      _values[idx] = value;
+    } else {
+      _keys.add(key);
+      _values.add(value);
+    }
+  }
+
+  @override
+  Iterable<K> get keys => StaticList<K>._internal(_keys);
+
+  @override
+  V? remove(Object? key) {
+    final idx = _keys.indexOf(key as K);
+    if (idx == -1) return null;
+    _keys.removeAt(idx);
+    return _values.removeAt(idx);
+  }
+
+  @override
+  void clear() {
+    _keys.clear();
+    _values.clear();
+  }
+
+  @override
+  StaticMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K key, V value) convert) {
+    final result = StaticMap<K2, V2>();
+    for (int i = 0; i < _keys.length; i++) {
+      final entry = convert(_keys[i], _values[i]);
+      result[entry.key] = entry.value;
+    }
+    return result;
+  }
+
+  @override
+  StaticMap<RK, RV> cast<RK, RV>() {
+    return StaticMap<RK, RV>.of(super.cast<RK, RV>());
+  }
+}
+
+/// StaticSet<T> — implements Set<T>，内部基于 Array<T> 管理元素（保证唯一性）。
+class StaticSet<T> with SetMixin<T> {
+  final Array<T> _data;
+
+  StaticSet() : _data = Array<T>.empty();
+
+  StaticSet.of(Iterable<T> elements) : _data = Array<T>.empty() {
+    for (final element in elements) {
+      add(element);
+    }
+  }
+
+  StaticSet.from(Iterable elements) : _data = Array<T>.empty() {
+    for (final element in elements) {
+      add(element as T);
+    }
+  }
+
+  // -- Set<T> 核心接口 --
+
+  @override
+  bool add(T element) {
+    if (_data.contains(element)) return false;
+    _data.add(element);
+    return true;
+  }
+
+  @override
+  bool contains(Object? element) {
+    try {
+      return _data.contains(element as T);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  T? lookup(Object? element) {
+    try {
+      final idx = _data.indexOf(element as T);
+      if (idx == -1) return null;
+      return _data[idx];
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  bool remove(Object? element) {
+    try {
+      return _data.remove(element as T);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Iterator<T> get iterator => _StaticSetIterator<T>(this);
+
+  @override
+  int get length => _data.length;
+
+  @override
+  StaticSet<T> toSet() => StaticSet<T>.of(this);
+
+  @override
+  StaticSet<T> union(Set<T> other) {
+    final result = StaticSet<T>.of(this);
+    for (final element in other) {
+      result.add(element);
+    }
+    return result;
+  }
+
+  @override
+  StaticSet<T> intersection(Set<Object?> other) {
+    final result = StaticSet<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (other.contains(_data[i])) {
+        result.add(_data[i]);
+      }
+    }
+    return result;
+  }
+
+  @override
+  StaticSet<T> difference(Set<Object?> other) {
+    final result = StaticSet<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (!other.contains(_data[i])) {
+        result.add(_data[i]);
+      }
+    }
+    return result;
+  }
+
+  @override
+  StaticSet<R> cast<R>() {
+    return StaticSet<R>.of(super.cast<R>());
+  }
+
+  @override
+  String toString() => '{${join(', ')}}';
+}
+
+/// StaticSet 的迭代器实现
+class _StaticSetIterator<T> implements Iterator<T> {
+  final StaticSet<T> _set;
+  int _index = -1;
+
+  _StaticSetIterator(this._set);
+
+  @override
+  T get current => _set._data[_index];
+
+  @override
+  bool moveNext() {
+    _index++;
+    return _index < _set._data.length;
+  }
 }
 
 // ============================================================================

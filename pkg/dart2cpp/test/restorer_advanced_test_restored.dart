@@ -6,15 +6,17 @@ class TreeNodeValue<T> extends VPtr {
   late T value;
   late TreeNodeValue<T>? left;
   late TreeNodeValue<T>? right;
+  TreeNodeValue() {
+    vptr['preorder'] = TreeNode_preorder<T>;
+    vptr['inorder'] = TreeNode_inorder<T>;
+    vptr['get_depth'] = TreeNode_get_depth<T>;
+    vptr['map_String'] = TreeNode_map<T, String>;
+    vptr['toString'] = TreeNode_toString<T>;
+  }
 }
 
 TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
   final this_ = this__ as TreeNodeValue<T>;
-  this_.vptr['preorder'] = TreeNode_preorder<T>;
-  this_.vptr['inorder'] = TreeNode_inorder<T>;
-  this_.vptr['get_depth'] = TreeNode_get_depth<T>;
-  this_.vptr['map_String'] = TreeNode_map<T, String>;
-  this_.vptr['toString'] = TreeNode_toString<T>;
   this_.value = value;
   this_.left = left;
   this_.right = right;
@@ -59,14 +61,16 @@ String TreeNode_toString<T>(dynamic this__) {
 class LinkedNodeValue<T> extends VPtr {
   late T data;
   late LinkedNodeValue<T>? next;
+  LinkedNodeValue() {
+    vptr['reversed'] = LinkedNode_reversed<T>;
+    vptr['toList'] = LinkedNode_toList<T>;
+    vptr['get_length'] = LinkedNode_get_length<T>;
+    vptr['toString'] = LinkedNode_toString<T>;
+  }
 }
 
 LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>? next = null]) {
   final this_ = this__ as LinkedNodeValue<T>;
-  this_.vptr['reversed'] = LinkedNode_reversed<T>;
-  this_.vptr['toList'] = LinkedNode_toList<T>;
-  this_.vptr['get_length'] = LinkedNode_get_length<T>;
-  this_.vptr['toString'] = LinkedNode_toString<T>;
   this_.data = data;
   this_.next = next;
   return this_;
@@ -116,18 +120,28 @@ class EitherValue<L, R> extends VPtr {
   late L? _left;
   late R? _right;
   late bool _isRight;
+  EitherValue() {
+    vptr['get_isLeft'] = Either_get_isLeft<L, R>;
+    vptr['get_isRight'] = Either_get_isRight<L, R>;
+    vptr['get_leftValue'] = Either_get_leftValue<L, R>;
+    vptr['get_rightValue'] = Either_get_rightValue<L, R>;
+    vptr['fold_String'] = Either_fold<L, R, String>;
+    vptr['mapRight_int'] = Either_mapRight<L, R, int>;
+    vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
+    vptr['toString'] = Either_toString<L, R>;
+    vptr['get_isLeft'] = Either_get_isLeft<L, R>;
+    vptr['get_isRight'] = Either_get_isRight<L, R>;
+    vptr['get_leftValue'] = Either_get_leftValue<L, R>;
+    vptr['get_rightValue'] = Either_get_rightValue<L, R>;
+    vptr['fold_String'] = Either_fold<L, R, String>;
+    vptr['mapRight_int'] = Either_mapRight<L, R, int>;
+    vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
+    vptr['toString'] = Either_toString<L, R>;
+  }
 }
 
 EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['get_isLeft'] = Either_get_isLeft<L, R>;
-  this_.vptr['get_isRight'] = Either_get_isRight<L, R>;
-  this_.vptr['get_leftValue'] = Either_get_leftValue<L, R>;
-  this_.vptr['get_rightValue'] = Either_get_rightValue<L, R>;
-  this_.vptr['fold_String'] = Either_fold<L, R, String>;
-  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
-  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
-  this_.vptr['toString'] = Either_toString<L, R>;
   this_._left = value;
   this_._right = null;
   this_._isRight = false;
@@ -136,14 +150,6 @@ EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
 
 EitherValue<L, R> Either_new_right<L, R>(dynamic this__, R value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['get_isLeft'] = Either_get_isLeft<L, R>;
-  this_.vptr['get_isRight'] = Either_get_isRight<L, R>;
-  this_.vptr['get_leftValue'] = Either_get_leftValue<L, R>;
-  this_.vptr['get_rightValue'] = Either_get_rightValue<L, R>;
-  this_.vptr['fold_String'] = Either_fold<L, R, String>;
-  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
-  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
-  this_.vptr['toString'] = Either_toString<L, R>;
   this_._left = null;
   this_._right = value;
   this_._isRight = true;
@@ -226,17 +232,18 @@ class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue 
   late String name;
   late String email;
   late int age;
+  UserProfileValue() {
+    vptr['toMap'] = UserProfile_toMap;
+    vptr['serialize'] = UserProfile_serialize;
+    vptr['validate'] = UserProfile_validate;
+    vptr['get_isValid'] = UserProfile_get_isValid;
+    vptr['get_validationSummary'] = UserProfile_get_validationSummary;
+    vptr['toString'] = UserProfile_toString;
+  }
 }
 
 UserProfileValue UserProfile_new(dynamic this__, String name, String email, int age) {
   final this_ = this__ as UserProfileValue;
-  UserProfile_Object_Serializable_Validatable_init(this_);
-  this_.vptr['toMap'] = UserProfile_toMap;
-  this_.vptr['serialize'] = UserProfile_serialize;
-  this_.vptr['validate'] = UserProfile_validate;
-  this_.vptr['get_isValid'] = UserProfile_get_isValid;
-  this_.vptr['get_validationSummary'] = UserProfile_get_validationSummary;
-  this_.vptr['toString'] = UserProfile_toString;
   this_.name = name;
   this_.email = email;
   this_.age = age;
@@ -279,14 +286,16 @@ String UserProfile_get_validationSummary(dynamic this__) {
 
 
 class DataTransformerValue<TInput, TOutput> extends VPtr {
+  DataTransformerValue() {
+    vptr['transform'] = DataTransformer_transform<TInput, TOutput>;
+    vptr['preValidate'] = DataTransformer_preValidate<TInput, TOutput>;
+    vptr['process'] = DataTransformer_process<TInput, TOutput>;
+    vptr['postProcess'] = DataTransformer_postProcess<TInput, TOutput>;
+  }
 }
 
 DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(dynamic this__) {
   final this_ = this__ as DataTransformerValue<TInput, TOutput>;
-  this_.vptr['transform'] = DataTransformer_transform<TInput, TOutput>;
-  this_.vptr['preValidate'] = DataTransformer_preValidate<TInput, TOutput>;
-  this_.vptr['process'] = DataTransformer_process<TInput, TOutput>;
-  this_.vptr['postProcess'] = DataTransformer_postProcess<TInput, TOutput>;
   return this_;
 }
 
@@ -313,15 +322,17 @@ TOutput DataTransformer_postProcess<TInput, TOutput>(dynamic this__, TOutput out
 
 
 class StringToIntTransformerValue extends DataTransformerValue<String, int> {
+  StringToIntTransformerValue() {
+    vptr['transform'] = StringToIntTransformer_transform;
+    vptr['preValidate'] = StringToIntTransformer_preValidate;
+    vptr['process'] = StringToIntTransformer_process;
+    vptr['postProcess'] = StringToIntTransformer_postProcess;
+  }
 }
 
 StringToIntTransformerValue StringToIntTransformer_new(dynamic this__) {
   final this_ = this__ as StringToIntTransformerValue;
   DataTransformer_new(this_);
-  this_.vptr['transform'] = StringToIntTransformer_transform;
-  this_.vptr['preValidate'] = StringToIntTransformer_preValidate;
-  this_.vptr['process'] = StringToIntTransformer_process;
-  this_.vptr['postProcess'] = StringToIntTransformer_postProcess;
   return this_;
 }
 
@@ -348,15 +359,17 @@ int StringToIntTransformer_postProcess(dynamic this__, int output) {
 
 class IntToStringTransformerValue extends DataTransformerValue<int, String> {
   late String prefix;
+  IntToStringTransformerValue() {
+    vptr['transform'] = IntToStringTransformer_transform;
+    vptr['preValidate'] = IntToStringTransformer_preValidate;
+    vptr['process'] = IntToStringTransformer_process;
+    vptr['postProcess'] = IntToStringTransformer_postProcess;
+  }
 }
 
 IntToStringTransformerValue IntToStringTransformer_new(dynamic this__, [String prefix = '']) {
   final this_ = this__ as IntToStringTransformerValue;
   DataTransformer_new(this_);
-  this_.vptr['transform'] = IntToStringTransformer_transform;
-  this_.vptr['preValidate'] = IntToStringTransformer_preValidate;
-  this_.vptr['process'] = IntToStringTransformer_process;
-  this_.vptr['postProcess'] = IntToStringTransformer_postProcess;
   this_.prefix = prefix;
   return this_;
 }
@@ -385,15 +398,17 @@ int IntToStringTransformer_preValidate(dynamic this__, int input) {
 class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
   late DataTransformerValue<A, B> first;
   late DataTransformerValue<B, C> second;
+  ChainedTransformerValue() {
+    vptr['transform'] = ChainedTransformer_transform<A, B, C>;
+    vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
+    vptr['process'] = ChainedTransformer_process<A, B, C>;
+    vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
+  }
 }
 
 ChainedTransformerValue<A, B, C> ChainedTransformer_new<A, B, C>(dynamic this__, DataTransformerValue<A, B> first, DataTransformerValue<B, C> second) {
   final this_ = this__ as ChainedTransformerValue<A, B, C>;
   DataTransformer_new(this_);
-  this_.vptr['transform'] = ChainedTransformer_transform<A, B, C>;
-  this_.vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
-  this_.vptr['process'] = ChainedTransformer_process<A, B, C>;
-  this_.vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
   this_.first = first;
   this_.second = second;
   return this_;
@@ -424,19 +439,21 @@ C ChainedTransformer_postProcess<A, B, C>(dynamic this__, C output) {
 class RegistryValue extends VPtr {
   late Map<String, dynamic> _store;
   late int _accessCount;
+  RegistryValue() {
+    vptr['register'] = Registry_register;
+    vptr['lookup'] = Registry_lookup;
+    vptr['contains'] = Registry_contains;
+    vptr['get_size'] = Registry_get_size;
+    vptr['get_accessCount'] = Registry_get_accessCount;
+    vptr['get_keys'] = Registry_get_keys;
+    vptr['clear'] = Registry_clear;
+    vptr['toString'] = Registry_toString;
+  }
 }
 
 final RegistryValue Registry__instance = Registry_new__internal(RegistryValue());
 RegistryValue Registry_new__internal(dynamic this__) {
   final this_ = this__ as RegistryValue;
-  this_.vptr['register'] = Registry_register;
-  this_.vptr['lookup'] = Registry_lookup;
-  this_.vptr['contains'] = Registry_contains;
-  this_.vptr['get_size'] = Registry_get_size;
-  this_.vptr['get_accessCount'] = Registry_get_accessCount;
-  this_.vptr['get_keys'] = Registry_get_keys;
-  this_.vptr['clear'] = Registry_clear;
-  this_.vptr['toString'] = Registry_toString;
   this_._store = <String, dynamic>{};
   this_._accessCount = 0;
   return this_;
@@ -534,12 +551,14 @@ class ExpensiveComputationValue extends VPtr {
   late int seed;
   late int computedValue;
   late String description;
+  ExpensiveComputationValue() {
+    vptr['initialize'] = ExpensiveComputation_initialize;
+    vptr['toString'] = ExpensiveComputation_toString;
+  }
 }
 
 ExpensiveComputationValue ExpensiveComputation_new(dynamic this__, int seed) {
   final this_ = this__ as ExpensiveComputationValue;
-  this_.vptr['initialize'] = ExpensiveComputation_initialize;
-  this_.vptr['toString'] = ExpensiveComputation_toString;
   this_.seed = seed;
   this_.computedValue = ExpensiveComputation__computeExpensive(this_);
   return this_;
@@ -618,11 +637,13 @@ int MathUtils_lcm(int a, int b) {
 
 
 class Printable3Value extends VPtr {
+  Printable3Value() {
+    vptr['prettyPrint'] = Printable3_prettyPrint;
+  }
 }
 
 Printable3Value Printable3_new(dynamic this__) {
   final this_ = this__ as Printable3Value;
-  this_.vptr['prettyPrint'] = Printable3_prettyPrint;
   return this_;
 }
 
@@ -634,15 +655,17 @@ String Printable3_prettyPrint(dynamic this_) {
 class ScoreValue extends VPtr implements Printable3Value {
   late String subject;
   late int points;
+  ScoreValue() {
+    vptr['prettyPrint'] = Score_prettyPrint;
+    vptr['compareTo2'] = Score_compareTo2;
+    vptr['isLessThan'] = Score_isLessThan;
+    vptr['isGreaterThan'] = Score_isGreaterThan;
+    vptr['toString'] = Score_toString;
+  }
 }
 
 ScoreValue Score_new(dynamic this__, String subject, int points) {
   final this_ = this__ as ScoreValue;
-  this_.vptr['prettyPrint'] = Score_prettyPrint;
-  this_.vptr['compareTo2'] = Score_compareTo2;
-  this_.vptr['isLessThan'] = Score_isLessThan;
-  this_.vptr['isGreaterThan'] = Score_isGreaterThan;
-  this_.vptr['toString'] = Score_toString;
   this_.subject = subject;
   this_.points = points;
   return this_;
@@ -676,17 +699,19 @@ String Score_toString(dynamic this__) {
 
 class WeightedScoreValue extends ScoreValue {
   late double weight;
+  WeightedScoreValue() {
+    vptr['prettyPrint'] = WeightedScore_prettyPrint;
+    vptr['compareTo2'] = WeightedScore_compareTo2;
+    vptr['isLessThan'] = WeightedScore_isLessThan;
+    vptr['isGreaterThan'] = WeightedScore_isGreaterThan;
+    vptr['toString'] = WeightedScore_toString;
+    vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
+  }
 }
 
 WeightedScoreValue WeightedScore_new(dynamic this__, String subject, int points, double weight) {
   final this_ = this__ as WeightedScoreValue;
   Score_new(this_, subject, points);
-  this_.vptr['prettyPrint'] = WeightedScore_prettyPrint;
-  this_.vptr['compareTo2'] = WeightedScore_compareTo2;
-  this_.vptr['isLessThan'] = WeightedScore_isLessThan;
-  this_.vptr['isGreaterThan'] = WeightedScore_isGreaterThan;
-  this_.vptr['toString'] = WeightedScore_toString;
-  this_.vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
   this_.weight = weight;
   return this_;
 }
@@ -865,15 +890,27 @@ class Matrix2DValue extends VPtr {
   late List<List<double>> _data;
   late int rows;
   late int cols;
+  Matrix2DValue() {
+    vptr['get'] = Matrix2D_get;
+    vptr['operatorPlus'] = Matrix2D_operatorPlus;
+    vptr['operatorStar'] = Matrix2D_operatorStar;
+    vptr['get_trace'] = Matrix2D_get_trace;
+    vptr['toString'] = Matrix2D_toString;
+    vptr['get'] = Matrix2D_get;
+    vptr['operatorPlus'] = Matrix2D_operatorPlus;
+    vptr['operatorStar'] = Matrix2D_operatorStar;
+    vptr['get_trace'] = Matrix2D_get_trace;
+    vptr['toString'] = Matrix2D_toString;
+    vptr['get'] = Matrix2D_get;
+    vptr['operatorPlus'] = Matrix2D_operatorPlus;
+    vptr['operatorStar'] = Matrix2D_operatorStar;
+    vptr['get_trace'] = Matrix2D_get_trace;
+    vptr['toString'] = Matrix2D_toString;
+  }
 }
 
 Matrix2DValue Matrix2D_new(dynamic this__, List<List<double>> _data) {
   final this_ = this__ as Matrix2DValue;
-  this_.vptr['get'] = Matrix2D_get;
-  this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
-  this_.vptr['operatorStar'] = Matrix2D_operatorStar;
-  this_.vptr['get_trace'] = Matrix2D_get_trace;
-  this_.vptr['toString'] = Matrix2D_toString;
   this_._data = _data;
   this_.rows = _data.length;
   this_.cols = (_data.isEmpty ? 0 : _data[0].length);
@@ -882,11 +919,6 @@ Matrix2DValue Matrix2D_new(dynamic this__, List<List<double>> _data) {
 
 Matrix2DValue Matrix2D_new_zeros(dynamic this__, int rows, int cols) {
   final this_ = this__ as Matrix2DValue;
-  this_.vptr['get'] = Matrix2D_get;
-  this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
-  this_.vptr['operatorStar'] = Matrix2D_operatorStar;
-  this_.vptr['get_trace'] = Matrix2D_get_trace;
-  this_.vptr['toString'] = Matrix2D_toString;
   this_.rows = rows;
   this_.cols = cols;
   this_._data = List.generate(rows, ClosureEnv_anon_0(cols).call);
@@ -895,11 +927,6 @@ Matrix2DValue Matrix2D_new_zeros(dynamic this__, int rows, int cols) {
 
 Matrix2DValue Matrix2D_new_identity(dynamic this__, int size) {
   final this_ = this__ as Matrix2DValue;
-  this_.vptr['get'] = Matrix2D_get;
-  this_.vptr['operatorPlus'] = Matrix2D_operatorPlus;
-  this_.vptr['operatorStar'] = Matrix2D_operatorStar;
-  this_.vptr['get_trace'] = Matrix2D_get_trace;
-  this_.vptr['toString'] = Matrix2D_toString;
   this_.rows = size;
   this_.cols = size;
   this_._data = List.generate(size, ClosureEnv_anon_1(size).call);
@@ -955,11 +982,13 @@ String Matrix2D_toString(dynamic this__) {
 
 
 class EntityValue extends VPtr {
+  EntityValue() {
+    vptr['get_entityId'] = Entity_get_entityId;
+  }
 }
 
 EntityValue Entity_new(dynamic this__) {
   final this_ = this__ as EntityValue;
-  this_.vptr['get_entityId'] = Entity_get_entityId;
   return this_;
 }
 
@@ -1007,20 +1036,21 @@ class ProductValue extends Product_Entity_Auditable_CacheableValue {
   late String entityId;
   late String name;
   late double price;
+  ProductValue() {
+    vptr['get_entityId'] = Product_get_entityId;
+    vptr['audit'] = Product_audit;
+    vptr['get_auditLog'] = Product_get_auditLog;
+    vptr['markDirty'] = Product_markDirty;
+    vptr['markCached'] = Product_markCached;
+    vptr['get_isDirty'] = Product_get_isDirty;
+    vptr['get_cacheStatus'] = Product_get_cacheStatus;
+    vptr['toString'] = Product_toString;
+  }
 }
 
 ProductValue Product_new(dynamic this__, String entityId, String name, double price) {
   final this_ = this__ as ProductValue;
   Entity_new(this_);
-  Product_Entity_Auditable_Cacheable_init(this_);
-  this_.vptr['get_entityId'] = Product_get_entityId;
-  this_.vptr['audit'] = Product_audit;
-  this_.vptr['get_auditLog'] = Product_get_auditLog;
-  this_.vptr['markDirty'] = Product_markDirty;
-  this_.vptr['markCached'] = Product_markCached;
-  this_.vptr['get_isDirty'] = Product_get_isDirty;
-  this_.vptr['get_cacheStatus'] = Product_get_cacheStatus;
-  this_.vptr['toString'] = Product_toString;
   this_.entityId = entityId;
   this_.name = name;
   this_.price = price;
@@ -1072,50 +1102,36 @@ String Product_get_cacheStatus(dynamic this__) {
 
 
 class UserProfile_Object_SerializableValue extends VPtr {
+  UserProfile_Object_SerializableValue() {
+    vptr['serialize'] = Serializable_serialize;
+  }
 }
-
-void UserProfile_Object_Serializable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['serialize'] = Serializable_serialize;
-}
-
 
 class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Object_SerializableValue {
+  UserProfile_Object_Serializable_ValidatableValue() {
+    vptr['get_isValid'] = Validatable_get_isValid;
+    vptr['get_validationSummary'] = Validatable_get_validationSummary;
+  }
 }
-
-void UserProfile_Object_Serializable_Validatable_init(dynamic this__) {
-  UserProfile_Object_Serializable_init(this__);
-  final this_ = this__;
-  this_.vptr['get_isValid'] = Validatable_get_isValid;
-  this_.vptr['get_validationSummary'] = Validatable_get_validationSummary;
-}
-
 
 class Product_Entity_AuditableValue extends EntityValue {
   late List<String> _auditLog;
+  Product_Entity_AuditableValue() {
+    vptr['audit'] = Auditable_audit;
+    vptr['get_auditLog'] = Auditable_get_auditLog;
+  }
 }
-
-void Product_Entity_Auditable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['audit'] = Auditable_audit;
-  this_.vptr['get_auditLog'] = Auditable_get_auditLog;
-}
-
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
   late DateTime? _cachedAt;
   late bool _isDirty;
+  Product_Entity_Auditable_CacheableValue() {
+    vptr['markDirty'] = Cacheable_markDirty;
+    vptr['markCached'] = Cacheable_markCached;
+    vptr['get_isDirty'] = Cacheable_get_isDirty;
+    vptr['get_cacheStatus'] = Cacheable_get_cacheStatus;
+  }
 }
-
-void Product_Entity_Auditable_Cacheable_init(dynamic this__) {
-  Product_Entity_Auditable_init(this__);
-  final this_ = this__;
-  this_.vptr['markDirty'] = Cacheable_markDirty;
-  this_.vptr['markCached'] = Cacheable_markCached;
-  this_.vptr['get_isDirty'] = Cacheable_get_isDirty;
-  this_.vptr['get_cacheStatus'] = Cacheable_get_cacheStatus;
-}
-
 
 Function makeCounter({int start = 0, int step = 1}) {
   IntBox current = IntBox(start);

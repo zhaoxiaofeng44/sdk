@@ -223,9 +223,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 1. 生成 XValue 类（只存储实例数据）
     _emitValueClass(cls, className, parentName, isSyntheticMixinClass);
 
-    // 合成中间类：生成 X_init 函数来注册该层 mixin 引入的方法到 vptr
+    // 合成中间类：vptr 赋值已在 Value 类构造方法中完成，无需生成 X_init 函数
     if (isSyntheticMixinClass) {
-      _emitSyntheticMixinInit(cls, className, parentName);
       _buf.write('\n');
       return;
     }
@@ -275,70 +274,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   
   /// 为合成中间类生成 X_init 函数
   /// X_init 只注册该层 mixin 引入的方法到 vptr，并调用 super 的 X_init（如果有）
-  void _emitSyntheticMixinInit(Class cls, String className, String? parentName) {
-    // 获取该层 mixin 引入的方法名集合
-    final mixinMethodNames = <String>{};
-    if (cls.mixedInType != null) {
-      final mixinCls = cls.mixedInType!.classNode;
-      for (final p in mixinCls.procedures) {
-        if (p.isStatic || p.isFactory || p.isAbstract) continue;
-        mixinMethodNames.add(p.name.text);
-      }
-    }
-
-    // 如果没有 mixin 方法，不生成 init 函数
-    if (mixinMethodNames.isEmpty) return;
-
-    // 从 _classVTableEntries 中找到对应的 VTable 条目
-    final allEntries = _classVTableEntries[className] ?? [];
-    final mixinEntries = allEntries.where((entry) {
-      return mixinMethodNames.contains(entry.name);
-    }).toList();
-
-    if (mixinEntries.isEmpty) return;
-
-    // 生成 X_init 函数
-    final funcName = '${className}_init';
-    _buf.write('void $funcName(dynamic this__) {\n');
-    _indent++;
-
-    // 如果 super 也是合成中间类，先调用 super 的 init
-    if (parentName != null && _syntheticLoweredNames.contains(parentName)) {
-      _buf.write('${_pad}${parentName}_init(this__);\n');
-    }
-
-    // 注册该层 mixin 引入的方法到 vptr
-    // 使用 this__ 而不是 cast，因为 init 函数只做 vptr 注册，不需要访问具体类型的字段
-    _buf.write('${_pad}final this_ = this__;\n');
-    for (final entry in mixinEntries) {
-      final key = _vptrEntryKey(entry);
-      // 找到该方法的原始 mixin 静态函数名
-      final mixinName = cls.mixedInType!.classNode.name;
-      String rhs;
-      if (entry.kind == 'getter') {
-        rhs = _staticGetterName(mixinName, entry.name);
-      } else if (entry.kind == 'setter') {
-        rhs = _staticSetterName(mixinName, entry.name);
-      } else {
-        rhs = _staticMethodName(mixinName, entry.name);
-      }
-      _buf.write("${_pad}this_.vptr['$key'] = $rhs;\n");
-    }
-
-    _indent--;
-    _buf.write('}\n\n');
-  }
-
-  /// 在用户类构造函数中，调用直接父合成中间类的 X_init（如果有）
-  /// 找到继承链上最顶层的合成中间类（即直接父类链中最靠近用户类的合成中间类）
-  void _emitSyntheticParentInitCall(Class cls, String? parentName) {
-    if (parentName == null) return;
-    // 检查直接父类是否是合成中间类
-    if (!_syntheticLoweredNames.contains(parentName)) return;
-    // 找到继承链上最顶层的合成中间类（离用户类最远的那个）
-    // 因为 X_init 内部会自动调用 super 的 X_init，所以我们只需调用直接父类的 X_init
-    _buf.write('${_pad}${parentName}_init(this_);\n');
-  }
+  // _emitSyntheticMixinInit 和 _emitSyntheticParentInitCall 已废弃：
+  // vptr 赋值已迁移到 Value 类构造方法中（通过 Dart 构造链自动调用），
+  // 不再需要单独的 X_init 函数和显式调用。
 
   /// 生成委托静态函数（用于从父类/mixin继承但未在当前类定义的方法）
   /// 使用原始 Procedure 的参数信息来生成正确的函数签名
@@ -800,8 +738,106 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // vptr 字段和 toString/operator==/hashCode 覆写由 VPtr 基类统一提供
     // 不再在每个 Value 类中重复生成（仅对继承 VPtr 的类有效）
 
+    // 生成构造方法，在其中注册 vptr 条目
+    _emitValueClassConstructor(cls, className, parentName, isSyntheticMixinClass);
+
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  /// 在 Value 类中生成构造方法，注册 vptr 条目
+  /// 非合成类：注册当前类所有的 vtable 条目（含继承，使用当前类的委托函数名）
+  /// 合成 mixin 中间类：注册该层 mixin 引入的 vtable 条目
+  void _emitValueClassConstructor(Class cls, String className, String? parentName, bool isSyntheticMixinClass) {
+    if (isSyntheticMixinClass) {
+      _emitSyntheticMixinValueConstructor(cls, className, parentName);
+      return;
+    }
+
+    // 非合成类：收集所有 vtable 条目
+    final entries = _collectAllVTableEntries(className);
+    if (entries.isEmpty) return;
+
+    final hasClassTypeParams = cls.typeParameters.isNotEmpty;
+    final typeParamNames = cls.typeParameters.map((tp) => tp.name ?? 'T').toList();
+    final typeParamStr = hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '';
+    final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
+
+    // 检查是否存在方法级泛型特化条目（这些仍需在 _new 函数中注册）
+    // 构造方法中只注册非特化条目
+    final normalEntries = <_VTableEntry>[];
+    for (final entry in entries) {
+      if (entry.proc != null) {
+        final dedupedMethodTps = entry.proc!.function.typeParameters
+            .where((tp) => !classTpNames.contains(tp.name))
+            .toList();
+        if (dedupedMethodTps.isNotEmpty) {
+          // 方法级泛型特化条目，跳过（在 _new 函数中处理）
+          continue;
+        }
+      }
+      normalEntries.add(entry);
+    }
+
+    if (normalEntries.isEmpty) return;
+
+    // 生成构造方法
+    _buf.write('$_pad${className}Value() {\n');
+    _indent++;
+
+    for (final entry in normalEntries) {
+      final key = _vptrEntryKey(entry);
+      final rhs = _buildVptrLambdaWrapper(cls, entry, className, typeParamStr);
+      _buf.write("${_pad}vptr['$key'] = $rhs;\n");
+    }
+
+    _indent--;
+    _buf.write('$_pad}\n');
+  }
+
+  /// 合成 mixin 中间类的 Value 构造方法：注册该层 mixin 引入的 vptr 条目
+  void _emitSyntheticMixinValueConstructor(Class cls, String className, String? parentName) {
+    // 获取该层 mixin 引入的方法名集合
+    final mixinMethodNames = <String>{};
+    if (cls.mixedInType != null) {
+      final mixinCls = cls.mixedInType!.classNode;
+      for (final p in mixinCls.procedures) {
+        if (p.isStatic || p.isFactory || p.isAbstract) continue;
+        mixinMethodNames.add(p.name.text);
+      }
+    }
+
+    if (mixinMethodNames.isEmpty) return;
+
+    // 从 _classVTableEntries 中找到对应的 VTable 条目
+    final allEntries = _classVTableEntries[className] ?? [];
+    final mixinEntries = allEntries.where((entry) {
+      return mixinMethodNames.contains(entry.name);
+    }).toList();
+
+    if (mixinEntries.isEmpty) return;
+
+    // 生成构造方法
+    _buf.write('$_pad${className}Value() {\n');
+    _indent++;
+
+    for (final entry in mixinEntries) {
+      final key = _vptrEntryKey(entry);
+      // 找到该方法的原始 mixin 静态函数名
+      final mixinName = cls.mixedInType!.classNode.name;
+      String rhs;
+      if (entry.kind == 'getter') {
+        rhs = _staticGetterName(mixinName, entry.name);
+      } else if (entry.kind == 'setter') {
+        rhs = _staticSetterName(mixinName, entry.name);
+      } else {
+        rhs = _staticMethodName(mixinName, entry.name);
+      }
+      _buf.write("${_pad}vptr['$key'] = $rhs;\n");
+    }
+
+    _indent--;
+    _buf.write('$_pad}\n');
   }
 
   /// 为继承非用户类基类的 Value 类生成桥接方法
@@ -1259,23 +1295,12 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
     }
 
-    // 调用直接父合成中间类的 X_init（如果有）
-    // 合成中间类的 X_init 负责注册 mixin 引入的方法到 vptr
-    _emitSyntheticParentInitCall(cls, parentName);
-
-    // vptr 设置 - 在父类构造之后设置
-    //
-    // VPtr 构造函数已初始化 vptr map（含 toString_/operatorEq/get_hashCode 三个 null slot）。
-    // 根类通过 Dart 隐式 super() 调用 VPtr 构造；子类通过父类构造链调用。
-    // 所有类统一使用逐 slot 覆盖策略，不整表替换，以保证 VPtr 构造注册的 key 始终存在。
+    // vptr 普通条目已由 Value 类构造方法注册（通过 Dart 构造链自动调用）。
+    // 此处只处理方法级泛型特化条目（如 fold_String、then_int），
+    // 因为这些条目依赖预扫描收集的具体类型，无法在 Value 类构造方法中静态注册。
     final hasClassTypeParams = cls.typeParameters.isNotEmpty;
     final typeParamNames = cls.typeParameters.map((tp) => tp.name ?? 'T').toList();
     final typeParamStr = hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '';
-
-    // VPtr 构造函数已初始化 vptr map（含 toString/operatorEq/get_hashCode 三个 null slot）。
-    // 根类通过 Dart 隐式 super() 调用 VPtr 构造；子类通过父类构造链调用。
-    // 统一使用逐 slot 赋值，在构造函数内注册所有方法。
-    // 带独立方法级泛型的方法：按预扫描收集的具体类型生成特化注册条目。
     final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
     for (final entry in entries) {
       if (entry.proc != null) {
@@ -1283,16 +1308,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
             .where((tp) => !classTpNames.contains(tp.name))
             .toList();
         if (dedupedMethodTps.isNotEmpty) {
-          // 方法级泛型特化注册：按预扫描收集的具体类型生成 'methodName_TypeSuffix' 条目
-          // 这类方法的泛型参数（如 R）在构造函数作用域内不存在，无法直接 tear-off，
-          // 只能通过特化条目按具体类型注册
           _emitSpecializedVptrEntries(cls, entry, className, typeParamStr, classTpNames, dedupedMethodTps);
-          continue;
         }
       }
-      final key = _vptrEntryKey(entry);
-      final rhs = _buildVptrLambdaWrapper(cls, entry, className, typeParamStr);
-      _buf.write("${_pad}this_.vptr['$key'] = $rhs;\n");
     }
 
     // 字段初始化（展开初始化列表）

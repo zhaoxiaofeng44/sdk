@@ -55,6 +55,7 @@ abstract class _DartRestorerBase {
     return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
   }
 
+
   // ---- OOP Lowering 状态 ----
 
   /// 所有用户自定义类名集合（排除 dart: / package: 中的类）
@@ -488,7 +489,21 @@ abstract class _DartRestorerBase {
     final suffix = nullable ? '?' : '';
     if (type is InterfaceType) {
       final name = type.classNode.name;
-      final mappedName = _isUserClass(name) ? '${name}Value' : name;
+      // 集合静态化映射（与 _restoreType 保持一致）
+      String mappedName;
+      if (_isUserClass(name)) {
+        mappedName = '${name}Value';
+      } else if (name == 'List' || name == '_GrowableList' || name == '_List') {
+        mappedName = 'StaticList';
+      } else if (name == 'Map' || name == '_Map' || name == 'LinkedHashMap' || name == '_InternalLinkedHashMap') {
+        mappedName = 'StaticMap';
+      } else if (name == 'Set' || name == '_Set' || name == 'LinkedHashSet' || name == '_CompactLinkedHashSet') {
+        mappedName = 'StaticSet';
+      } else if (name == 'Future' || name == '_Future') {
+        mappedName = 'Promise';
+      } else {
+        mappedName = name;
+      }
       if (type.typeArguments.isEmpty) return '$mappedName$suffix';
       final args = type.typeArguments.map((t) => _restoreTypeForSignature(t)).join(', ');
       return '$mappedName<$args>$suffix';

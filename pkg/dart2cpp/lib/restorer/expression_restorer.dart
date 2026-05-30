@@ -588,6 +588,16 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return "($recv.vptr['$vtableField'] as $sig)($recv, $allArgs)";
     }
 
+    // 静态集合: 拦截集合类返回 List/Set 的方法，包装为 StaticList/StaticSet
+    if (receiverClassName != null && _isCollectionClass(receiverClassName)) {
+      if (name == 'toList') {
+        return 'StaticList.of($recv.$name())';
+      }
+      if (name == 'toSet') {
+        return 'StaticSet.of($recv.$name().toList())';
+      }
+    }
+
     // 非用户自定义类：保持原始调用方式
     if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
       final right = _restoreExpr(expr.arguments.positional[0]);
@@ -803,30 +813,32 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final name = target.name.text;
     final args = _restoreArgs(expr.arguments);
 
-    // 特殊处理：_GrowableList 转换为 List 字面量
+    // 静态集合: _GrowableList → StaticList
     if (target.enclosingClass != null && target.enclosingClass!.name == '_GrowableList') {
       final typeArgs = expr.arguments.types;
-      final typePrefix = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
+      final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
       if (name.startsWith('_literal')) {
         final items = expr.arguments.positional.map((e) => _restoreExpr(e)).join(', ');
-        if (expr.isConst) return 'const $typePrefix[$items]';
-        return '$typePrefix[$items]';
+        return 'StaticList$typeArgStr.of([$items])';
       }
-      return '$typePrefix[]';
+      return 'StaticList$typeArgStr()';
     }
 
-    // 特殊处理：Set 内部实现类的静态工厂方法 → {} 字面量
+    // 静态集合: Set 内部实现类 → StaticSet
     if (target.enclosingClass != null && _isSetInternalClass(target.enclosingClass!.name)) {
       final typeArgs = expr.arguments.types;
-      final typePrefix = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
-      return '$typePrefix{}';
+      final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
+      if (name == 'from' || name == 'of') return 'StaticSet$typeArgStr.of($args)';
+      if (name.isEmpty || name == '_default') return 'StaticSet$typeArgStr()';
+      return 'StaticSet$typeArgStr.$name($args)';
     }
 
-    // 特殊处理：Map 内部实现类（LinkedHashMap 等）→ Map
+    // 静态集合: Map 内部实现类（LinkedHashMap 等）→ StaticMap
     if (target.enclosingClass != null && _isMapInternalClass(target.enclosingClass!.name)) {
-      final publicName = 'Map';
-      if (name.isEmpty) return '$publicName($args)';
-      return '$publicName.$name($args)';
+      final typeArgs = expr.arguments.types;
+      final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
+      if (name.isEmpty || name == '_default') return 'StaticMap$typeArgStr()';
+      return 'StaticMap$typeArgStr.$name($args)';
     }
 
     // 扩展方法调用：函数名包含 | 字符（如 "StringExtensions|capitalize"）
@@ -866,6 +878,36 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         }
         if (name.isEmpty) return 'Promise$typeArgStr($args)';
         return 'Promise$typeArgStr.$name($args)';
+      }
+
+      // 静态集合: List/Map/Set 的 factory 构造 → StaticList/StaticMap/StaticSet
+      if (className == 'List' || className == '_GrowableList' || className == '_List') {
+        final typeArgs = expr.arguments.types;
+        final typeArgStr = typeArgs.isNotEmpty
+            ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
+            : '';
+        if (name == 'filled') return 'StaticList$typeArgStr.filled($args)';
+        if (name == 'from' || name == 'of') return 'StaticList$typeArgStr.of($args)';
+        if (name.isEmpty) return 'StaticList$typeArgStr()';
+        return 'StaticList$typeArgStr.$name($args)';
+      }
+      if (className == 'Map' || _isMapInternalClass(className)) {
+        final typeArgs = expr.arguments.types;
+        final typeArgStr = typeArgs.isNotEmpty
+            ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
+            : '';
+        if (name == 'from' || name == 'of') return 'StaticMap$typeArgStr.of($args)';
+        if (name.isEmpty || name == '_default') return 'StaticMap$typeArgStr()';
+        return 'StaticMap$typeArgStr.$name($args)';
+      }
+      if (className == 'Set' || _isSetInternalClass(className)) {
+        final typeArgs = expr.arguments.types;
+        final typeArgStr = typeArgs.isNotEmpty
+            ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
+            : '';
+        if (name == 'from' || name == 'of') return 'StaticSet$typeArgStr.of($args)';
+        if (name.isEmpty) return 'StaticSet$typeArgStr()';
+        return 'StaticSet$typeArgStr.$name($args)';
       }
 
       // OOP Lowering: 用户自定义类的 factory → X_new / X_new_name
@@ -958,25 +1000,23 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final className = expr.target.enclosingClass.name;
     final ctorName = expr.target.name.text;
     
-    // 特殊处理：_GrowableList 转换为列表字面量
+    // 静态集合: _GrowableList → StaticList
     if (className == '_GrowableList') {
+      final typeArgs = expr.arguments.types;
+      final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
       if (ctorName.startsWith('_literal')) {
         final items = expr.arguments.positional.map((e) => _restoreExpr(e)).join(', ');
-        return '[$items]';
+        return 'StaticList$typeArgStr.of([$items])';
       } else if (ctorName.isEmpty) {
-        return '[]';
+        return 'StaticList$typeArgStr()';
       }
     }
 
-    // 特殊处理：Set 内部实现类 → {} 字面量
-    // Kernel 将 {1, 2, 3} 脱糖为 _CompactLinkedHashSet / _Set 等内部类的构造
+    // 静态集合: Set 内部实现类 → StaticSet
     if (_isSetInternalClass(className)) {
-      // 从类型参数获取实际元素类型
-      if (expr.arguments.types.isNotEmpty) {
-        final elemType = _restoreType(expr.arguments.types.first);
-        return '<$elemType>{}';
-      }
-      return '<dynamic>{}';
+      final typeArgs = expr.arguments.types;
+      final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
+      return 'StaticSet$typeArgStr()';
     }
     
     final allArgs = _restoreArgs(expr.arguments);
@@ -1021,6 +1061,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         className == '_CompactLinkedHashMap' ||
         className == '_InternalLinkedHashMap' ||
         className == '_LinkedHashMap';
+  }
+
+  /// 判断是否是集合类（List/Map/Set 及其内部实现类）
+  bool _isCollectionClass(String className) {
+    return className == 'List' || className == '_GrowableList' || className == '_List' ||
+        className == 'Iterable' || className == '_Iterable' ||
+        className == 'Map' || _isMapInternalClass(className) ||
+        className == 'Set' || _isSetInternalClass(className);
   }
 
   String _restoreConditional(ConditionalExpression expr) {
@@ -1105,9 +1153,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String _restoreListLiteral(ListLiteral expr) {
     final typeArg = _restoreType(expr.typeArgument);
     final items = expr.expressions.map((e) => _restoreExpr(e)).join(', ');
-    if (expr.isConst) return 'const <$typeArg>[$items]';
-    if (typeArg == 'dynamic') return '[$items]';
-    return '<$typeArg>[$items]';
+    // 静态集合: ListLiteral → StaticList<T>.of([...])
+    if (expr.isConst) {
+      return 'StaticList<$typeArg>.of([$items])';
+    }
+    if (typeArg == 'dynamic') {
+      return 'StaticList.of([$items])';
+    }
+    return 'StaticList<$typeArg>.of([$items])';
   }
 
   String _restoreMapLiteral(MapLiteral expr) {
@@ -1116,16 +1169,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final entries = expr.entries.map((e) {
       return '${_restoreExpr(e.key)}: ${_restoreExpr(e.value)}';
     }).join(', ');
-    if (expr.isConst) return 'const <$keyType, $valueType>{$entries}';
-    if (keyType == 'dynamic' && valueType == 'dynamic') return '{$entries}';
-    return '<$keyType, $valueType>{$entries}';
+    // 静态集合: MapLiteral → StaticMap<K, V>.of({...})
+    if (keyType == 'dynamic' && valueType == 'dynamic') {
+      return 'StaticMap.of({$entries})';
+    }
+    return 'StaticMap<$keyType, $valueType>.of({$entries})';
   }
 
   String _restoreSetLiteral(SetLiteral expr) {
     final typeArg = _restoreType(expr.typeArgument);
     final items = expr.expressions.map((e) => _restoreExpr(e)).join(', ');
-    if (expr.isConst) return 'const <$typeArg>{$items}';
-    return '<$typeArg>{$items}';
+    // 静态集合: SetLiteral → StaticSet<T>.of([...])
+    return 'StaticSet<$typeArg>.of([$items])';
   }
 
   String _restoreIsExpr(IsExpression expr) {

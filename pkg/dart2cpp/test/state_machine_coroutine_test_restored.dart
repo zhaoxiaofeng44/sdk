@@ -10,20 +10,22 @@ class PromiseValue<T> extends VPtr {
   late CompleterState _state;
   late T? _result;
   late Object? _error;
+  PromiseValue() {
+    vptr['get_state'] = Promise_get_state<T>;
+    vptr['get_isCompleted'] = Promise_get_isCompleted<T>;
+    vptr['get_isError'] = Promise_get_isError<T>;
+    vptr['get_isPending'] = Promise_get_isPending<T>;
+    vptr['get_error'] = Promise_get_error<T>;
+    vptr['get_result'] = Promise_get_result<T>;
+    vptr['complete'] = Promise_complete<T>;
+    vptr['completeError'] = Promise_completeError<T>;
+    vptr['then_String'] = Promise_then<T, String>;
+    vptr['then_int'] = Promise_then<T, int>;
+  }
 }
 
 PromiseValue<T> Promise_new<T>(dynamic this__) {
   final this_ = this__ as PromiseValue<T>;
-  this_.vptr['get_state'] = Promise_get_state<T>;
-  this_.vptr['get_isCompleted'] = Promise_get_isCompleted<T>;
-  this_.vptr['get_isError'] = Promise_get_isError<T>;
-  this_.vptr['get_isPending'] = Promise_get_isPending<T>;
-  this_.vptr['get_error'] = Promise_get_error<T>;
-  this_.vptr['get_result'] = Promise_get_result<T>;
-  this_.vptr['complete'] = Promise_complete<T>;
-  this_.vptr['completeError'] = Promise_completeError<T>;
-  this_.vptr['then_String'] = Promise_then<T, String>;
-  this_.vptr['then_int'] = Promise_then<T, int>;
   this_._state = CompleterState.pending;
   this_._result = null;
   this_._error = null;
@@ -104,14 +106,16 @@ PromiseValue<R> Promise_then<T, R>(dynamic this__, R Function(T) onValue) {
 
 class IStateMachineValue extends VPtr {
   late bool _checkedThisRound;
+  IStateMachineValue() {
+    vptr['get_debugName'] = IStateMachine_get_debugName;
+    vptr['step'] = IStateMachine_step;
+    vptr['resetRoundFlag'] = IStateMachine_resetRoundFlag;
+    vptr['markChecked'] = IStateMachine_markChecked;
+  }
 }
 
 IStateMachineValue IStateMachine_new(dynamic this__) {
   final this_ = this__ as IStateMachineValue;
-  this_.vptr['get_debugName'] = IStateMachine_get_debugName;
-  this_.vptr['step'] = IStateMachine_step;
-  this_.vptr['resetRoundFlag'] = IStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = IStateMachine_markChecked;
   this_._checkedThisRound = false;
   return this_;
 }
@@ -142,15 +146,17 @@ class _ThenStateMachineValue<T, R> extends IStateMachineValue {
   late PromiseValue<T> _source;
   late R Function(T) _onValue;
   late PromiseValue<R> _target;
+  _ThenStateMachineValue() {
+    vptr['get_debugName'] = _ThenStateMachine_get_debugName<T, R>;
+    vptr['step'] = _ThenStateMachine_step<T, R>;
+    vptr['resetRoundFlag'] = _ThenStateMachine_resetRoundFlag<T, R>;
+    vptr['markChecked'] = _ThenStateMachine_markChecked<T, R>;
+  }
 }
 
 _ThenStateMachineValue<T, R> _ThenStateMachine_new<T, R>(dynamic this__, PromiseValue<T> _source, R Function(T) _onValue, PromiseValue<R> _target) {
   final this_ = this__ as _ThenStateMachineValue<T, R>;
   IStateMachine_new(this_);
-  this_.vptr['get_debugName'] = _ThenStateMachine_get_debugName<T, R>;
-  this_.vptr['step'] = _ThenStateMachine_step<T, R>;
-  this_.vptr['resetRoundFlag'] = _ThenStateMachine_resetRoundFlag<T, R>;
-  this_.vptr['markChecked'] = _ThenStateMachine_markChecked<T, R>;
   this_._source = _source;
   this_._onValue = _onValue;
   this_._target = _target;
@@ -197,16 +203,18 @@ class GlobalSchedulerValue extends VPtr {
   late List<IStateMachineValue> smStateMachines;
   late List<_DelayedTaskValue> _delayedTasks;
   late int _currentTick;
+  GlobalSchedulerValue() {
+    vptr['registerStateMachine'] = GlobalScheduler_registerStateMachine;
+    vptr['registerDelayedTask'] = GlobalScheduler_registerDelayedTask;
+    vptr['tick'] = GlobalScheduler_tick;
+    vptr['get_hasActiveTasks'] = GlobalScheduler_get_hasActiveTasks;
+    vptr['reset'] = GlobalScheduler_reset;
+  }
 }
 
 final GlobalSchedulerValue GlobalScheduler_instance = GlobalScheduler_new__(GlobalSchedulerValue());
 GlobalSchedulerValue GlobalScheduler_new__(dynamic this__) {
   final this_ = this__ as GlobalSchedulerValue;
-  this_.vptr['registerStateMachine'] = GlobalScheduler_registerStateMachine;
-  this_.vptr['registerDelayedTask'] = GlobalScheduler_registerDelayedTask;
-  this_.vptr['tick'] = GlobalScheduler_tick;
-  this_.vptr['get_hasActiveTasks'] = GlobalScheduler_get_hasActiveTasks;
-  this_.vptr['reset'] = GlobalScheduler_reset;
   this_.smStateMachines = <IStateMachineValue>[];
   this_._delayedTasks = <_DelayedTaskValue>[];
   this_._currentTick = 0;
@@ -290,18 +298,20 @@ _DelayedTaskValue _DelayedTask_new(dynamic this__, int targetTick, void Function
 class AsyncStateMachineValue<T> extends IStateMachineValue {
   late int smState;
   late PromiseValue<T> promise;
+  AsyncStateMachineValue() {
+    vptr['get_debugName'] = AsyncStateMachine_get_debugName<T>;
+    vptr['step'] = AsyncStateMachine_step<T>;
+    vptr['resetRoundFlag'] = AsyncStateMachine_resetRoundFlag<T>;
+    vptr['markChecked'] = AsyncStateMachine_markChecked<T>;
+    vptr['completeWith'] = AsyncStateMachine_completeWith<T>;
+    vptr['completeWithError'] = AsyncStateMachine_completeWithError<T>;
+    vptr['start'] = AsyncStateMachine_start<T>;
+  }
 }
 
 AsyncStateMachineValue<T> AsyncStateMachine_new<T>(dynamic this__) {
   final this_ = this__ as AsyncStateMachineValue<T>;
   IStateMachine_new(this_);
-  this_.vptr['get_debugName'] = AsyncStateMachine_get_debugName<T>;
-  this_.vptr['step'] = AsyncStateMachine_step<T>;
-  this_.vptr['resetRoundFlag'] = AsyncStateMachine_resetRoundFlag<T>;
-  this_.vptr['markChecked'] = AsyncStateMachine_markChecked<T>;
-  this_.vptr['completeWith'] = AsyncStateMachine_completeWith<T>;
-  this_.vptr['completeWithError'] = AsyncStateMachine_completeWithError<T>;
-  this_.vptr['start'] = AsyncStateMachine_start<T>;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<T>(PromiseValue<T>());
@@ -350,18 +360,20 @@ class AddAsyncStateMachineValue extends AsyncStateMachineValue<int> {
   late int _x;
   late int _y;
   late PromiseValue<int>? _pendingFuture;
+  AddAsyncStateMachineValue() {
+    vptr['get_debugName'] = AddAsyncStateMachine_get_debugName;
+    vptr['step'] = AddAsyncStateMachine_step;
+    vptr['resetRoundFlag'] = AddAsyncStateMachine_resetRoundFlag;
+    vptr['markChecked'] = AddAsyncStateMachine_markChecked;
+    vptr['completeWith'] = AddAsyncStateMachine_completeWith;
+    vptr['completeWithError'] = AddAsyncStateMachine_completeWithError;
+    vptr['start'] = AddAsyncStateMachine_start;
+  }
 }
 
 AddAsyncStateMachineValue AddAsyncStateMachine_new(dynamic this__, int a, int b) {
   final this_ = this__ as AddAsyncStateMachineValue;
   AsyncStateMachine_new<int>(this_);
-  this_.vptr['get_debugName'] = AddAsyncStateMachine_get_debugName;
-  this_.vptr['step'] = AddAsyncStateMachine_step;
-  this_.vptr['resetRoundFlag'] = AddAsyncStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = AddAsyncStateMachine_markChecked;
-  this_.vptr['completeWith'] = AddAsyncStateMachine_completeWith;
-  this_.vptr['completeWithError'] = AddAsyncStateMachine_completeWithError;
-  this_.vptr['start'] = AddAsyncStateMachine_start;
   this_.a = a;
   this_.b = b;
   this_._checkedThisRound = false;
@@ -442,18 +454,20 @@ PromiseValue<int> AddAsyncStateMachine_start(dynamic this__) {
 
 class InnerAsyncStateMachineValue extends AsyncStateMachineValue<String> {
   late PromiseValue<String>? _pendingFuture;
+  InnerAsyncStateMachineValue() {
+    vptr['get_debugName'] = InnerAsyncStateMachine_get_debugName;
+    vptr['step'] = InnerAsyncStateMachine_step;
+    vptr['resetRoundFlag'] = InnerAsyncStateMachine_resetRoundFlag;
+    vptr['markChecked'] = InnerAsyncStateMachine_markChecked;
+    vptr['completeWith'] = InnerAsyncStateMachine_completeWith;
+    vptr['completeWithError'] = InnerAsyncStateMachine_completeWithError;
+    vptr['start'] = InnerAsyncStateMachine_start;
+  }
 }
 
 InnerAsyncStateMachineValue InnerAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as InnerAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.vptr['get_debugName'] = InnerAsyncStateMachine_get_debugName;
-  this_.vptr['step'] = InnerAsyncStateMachine_step;
-  this_.vptr['resetRoundFlag'] = InnerAsyncStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = InnerAsyncStateMachine_markChecked;
-  this_.vptr['completeWith'] = InnerAsyncStateMachine_completeWith;
-  this_.vptr['completeWithError'] = InnerAsyncStateMachine_completeWithError;
-  this_.vptr['start'] = InnerAsyncStateMachine_start;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<String>(PromiseValue<String>());
@@ -522,18 +536,20 @@ PromiseValue<String> InnerAsyncStateMachine_start(dynamic this__) {
 class OuterAsyncStateMachineValue extends AsyncStateMachineValue<String> {
   late String _prefix;
   late PromiseValue<String>? _pendingFuture;
+  OuterAsyncStateMachineValue() {
+    vptr['get_debugName'] = OuterAsyncStateMachine_get_debugName;
+    vptr['step'] = OuterAsyncStateMachine_step;
+    vptr['resetRoundFlag'] = OuterAsyncStateMachine_resetRoundFlag;
+    vptr['markChecked'] = OuterAsyncStateMachine_markChecked;
+    vptr['completeWith'] = OuterAsyncStateMachine_completeWith;
+    vptr['completeWithError'] = OuterAsyncStateMachine_completeWithError;
+    vptr['start'] = OuterAsyncStateMachine_start;
+  }
 }
 
 OuterAsyncStateMachineValue OuterAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as OuterAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.vptr['get_debugName'] = OuterAsyncStateMachine_get_debugName;
-  this_.vptr['step'] = OuterAsyncStateMachine_step;
-  this_.vptr['resetRoundFlag'] = OuterAsyncStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = OuterAsyncStateMachine_markChecked;
-  this_.vptr['completeWith'] = OuterAsyncStateMachine_completeWith;
-  this_.vptr['completeWithError'] = OuterAsyncStateMachine_completeWithError;
-  this_.vptr['start'] = OuterAsyncStateMachine_start;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<String>(PromiseValue<String>());
@@ -612,18 +628,20 @@ PromiseValue<String> OuterAsyncStateMachine_start(dynamic this__) {
 
 class ErrorStateMachineValue extends AsyncStateMachineValue<String> {
   late PromiseValue<int>? _pendingFuture;
+  ErrorStateMachineValue() {
+    vptr['get_debugName'] = ErrorStateMachine_get_debugName;
+    vptr['step'] = ErrorStateMachine_step;
+    vptr['resetRoundFlag'] = ErrorStateMachine_resetRoundFlag;
+    vptr['markChecked'] = ErrorStateMachine_markChecked;
+    vptr['completeWith'] = ErrorStateMachine_completeWith;
+    vptr['completeWithError'] = ErrorStateMachine_completeWithError;
+    vptr['start'] = ErrorStateMachine_start;
+  }
 }
 
 ErrorStateMachineValue ErrorStateMachine_new(dynamic this__) {
   final this_ = this__ as ErrorStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.vptr['get_debugName'] = ErrorStateMachine_get_debugName;
-  this_.vptr['step'] = ErrorStateMachine_step;
-  this_.vptr['resetRoundFlag'] = ErrorStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = ErrorStateMachine_markChecked;
-  this_.vptr['completeWith'] = ErrorStateMachine_completeWith;
-  this_.vptr['completeWithError'] = ErrorStateMachine_completeWithError;
-  this_.vptr['start'] = ErrorStateMachine_start;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<String>(PromiseValue<String>());
@@ -697,18 +715,20 @@ PromiseValue<String> ErrorStateMachine_start(dynamic this__) {
 
 class ParallelAwaitStateMachineValue extends AsyncStateMachineValue<List<int>> {
   late List<PromiseValue<int>> _futures;
+  ParallelAwaitStateMachineValue() {
+    vptr['get_debugName'] = ParallelAwaitStateMachine_get_debugName;
+    vptr['step'] = ParallelAwaitStateMachine_step;
+    vptr['resetRoundFlag'] = ParallelAwaitStateMachine_resetRoundFlag;
+    vptr['markChecked'] = ParallelAwaitStateMachine_markChecked;
+    vptr['completeWith'] = ParallelAwaitStateMachine_completeWith;
+    vptr['completeWithError'] = ParallelAwaitStateMachine_completeWithError;
+    vptr['start'] = ParallelAwaitStateMachine_start;
+  }
 }
 
 ParallelAwaitStateMachineValue ParallelAwaitStateMachine_new(dynamic this__) {
   final this_ = this__ as ParallelAwaitStateMachineValue;
   AsyncStateMachine_new<List<int>>(this_);
-  this_.vptr['get_debugName'] = ParallelAwaitStateMachine_get_debugName;
-  this_.vptr['step'] = ParallelAwaitStateMachine_step;
-  this_.vptr['resetRoundFlag'] = ParallelAwaitStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = ParallelAwaitStateMachine_markChecked;
-  this_.vptr['completeWith'] = ParallelAwaitStateMachine_completeWith;
-  this_.vptr['completeWithError'] = ParallelAwaitStateMachine_completeWithError;
-  this_.vptr['start'] = ParallelAwaitStateMachine_start;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<List<int>>(PromiseValue<List<int>>());
@@ -777,18 +797,20 @@ PromiseValue<List<int>> ParallelAwaitStateMachine_start(dynamic this__) {
 class ComputeStepStateMachineValue extends AsyncStateMachineValue<int> {
   late int input;
   late PromiseValue<int>? _pendingFuture;
+  ComputeStepStateMachineValue() {
+    vptr['get_debugName'] = ComputeStepStateMachine_get_debugName;
+    vptr['step'] = ComputeStepStateMachine_step;
+    vptr['resetRoundFlag'] = ComputeStepStateMachine_resetRoundFlag;
+    vptr['markChecked'] = ComputeStepStateMachine_markChecked;
+    vptr['completeWith'] = ComputeStepStateMachine_completeWith;
+    vptr['completeWithError'] = ComputeStepStateMachine_completeWithError;
+    vptr['start'] = ComputeStepStateMachine_start;
+  }
 }
 
 ComputeStepStateMachineValue ComputeStepStateMachine_new(dynamic this__, int input) {
   final this_ = this__ as ComputeStepStateMachineValue;
   AsyncStateMachine_new<int>(this_);
-  this_.vptr['get_debugName'] = ComputeStepStateMachine_get_debugName;
-  this_.vptr['step'] = ComputeStepStateMachine_step;
-  this_.vptr['resetRoundFlag'] = ComputeStepStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = ComputeStepStateMachine_markChecked;
-  this_.vptr['completeWith'] = ComputeStepStateMachine_completeWith;
-  this_.vptr['completeWithError'] = ComputeStepStateMachine_completeWithError;
-  this_.vptr['start'] = ComputeStepStateMachine_start;
   this_.input = input;
   this_._checkedThisRound = false;
   this_.smState = 0;
@@ -860,18 +882,20 @@ class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
   late int _b;
   late int _c;
   late PromiseValue<int>? _pendingFuture;
+  PipelineStateMachineValue() {
+    vptr['get_debugName'] = PipelineStateMachine_get_debugName;
+    vptr['step'] = PipelineStateMachine_step;
+    vptr['resetRoundFlag'] = PipelineStateMachine_resetRoundFlag;
+    vptr['markChecked'] = PipelineStateMachine_markChecked;
+    vptr['completeWith'] = PipelineStateMachine_completeWith;
+    vptr['completeWithError'] = PipelineStateMachine_completeWithError;
+    vptr['start'] = PipelineStateMachine_start;
+  }
 }
 
 PipelineStateMachineValue PipelineStateMachine_new(dynamic this__) {
   final this_ = this__ as PipelineStateMachineValue;
   AsyncStateMachine_new<int>(this_);
-  this_.vptr['get_debugName'] = PipelineStateMachine_get_debugName;
-  this_.vptr['step'] = PipelineStateMachine_step;
-  this_.vptr['resetRoundFlag'] = PipelineStateMachine_resetRoundFlag;
-  this_.vptr['markChecked'] = PipelineStateMachine_markChecked;
-  this_.vptr['completeWith'] = PipelineStateMachine_completeWith;
-  this_.vptr['completeWithError'] = PipelineStateMachine_completeWithError;
-  this_.vptr['start'] = PipelineStateMachine_start;
   this_._checkedThisRound = false;
   this_.smState = 0;
   this_.promise = Promise_new<int>(PromiseValue<int>());

@@ -26,14 +26,15 @@ String Formatter_format(dynamic this__, String msg) {
 
 class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
   late String name;
+  DiamondClassValue() {
+    vptr['get_prefix'] = DiamondClass_get_prefix;
+    vptr['format'] = DiamondClass_format;
+    vptr['display'] = DiamondClass_display;
+  }
 }
 
 DiamondClassValue DiamondClass_new(dynamic this__, String name) {
   final this_ = this__ as DiamondClassValue;
-  DiamondClass_Object_Logger_Formatter_init(this_);
-  this_.vptr['get_prefix'] = DiamondClass_get_prefix;
-  this_.vptr['format'] = DiamondClass_format;
-  this_.vptr['display'] = DiamondClass_display;
   this_.name = name;
   return this_;
 }
@@ -83,17 +84,18 @@ String StatefulMixin_get_counterStatus(dynamic this__) {
 
 class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
   late String id;
+  StatefulWidgetValue() {
+    vptr['get_counter'] = StatefulWidget_get_counter;
+    vptr['set_counter'] = StatefulWidget_set_counter;
+    vptr['increment'] = StatefulWidget_increment;
+    vptr['decrement'] = StatefulWidget_decrement;
+    vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
+    vptr['toString'] = StatefulWidget_toString;
+  }
 }
 
 StatefulWidgetValue StatefulWidget_new(dynamic this__, String id) {
   final this_ = this__ as StatefulWidgetValue;
-  StatefulWidget_Object_StatefulMixin_init(this_);
-  this_.vptr['get_counter'] = StatefulWidget_get_counter;
-  this_.vptr['set_counter'] = StatefulWidget_set_counter;
-  this_.vptr['increment'] = StatefulWidget_increment;
-  this_.vptr['decrement'] = StatefulWidget_decrement;
-  this_.vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
-  this_.vptr['toString'] = StatefulWidget_toString;
   this_.id = id;
   this_._counter = 0;
   return this_;
@@ -167,16 +169,17 @@ String LayerC_onlyC(dynamic this__) {
 
 
 class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValue {
+  DeepMixinClassValue() {
+    vptr['layer'] = DeepMixinClass_layer;
+    vptr['onlyA'] = DeepMixinClass_onlyA;
+    vptr['onlyB'] = DeepMixinClass_onlyB;
+    vptr['onlyC'] = DeepMixinClass_onlyC;
+    vptr['allLayers'] = DeepMixinClass_allLayers;
+  }
 }
 
 DeepMixinClassValue DeepMixinClass_new(dynamic this__) {
   final this_ = this__ as DeepMixinClassValue;
-  DeepMixinClass_Object_LayerA_LayerB_LayerC_init(this_);
-  this_.vptr['layer'] = DeepMixinClass_layer;
-  this_.vptr['onlyA'] = DeepMixinClass_onlyA;
-  this_.vptr['onlyB'] = DeepMixinClass_onlyB;
-  this_.vptr['onlyC'] = DeepMixinClass_onlyC;
-  this_.vptr['allLayers'] = DeepMixinClass_allLayers;
   return this_;
 }
 
@@ -227,17 +230,18 @@ bool Filterable_test<T>(dynamic this__, bool Function(T) predicate) {
 
 class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
   late T value;
+  BoxValue() {
+    vptr['get_value'] = Box_get_value<T>;
+    vptr['mapValue_int'] = Box_mapValue<T, int>;
+    vptr['mapValue_String'] = Box_mapValue<T, String>;
+    vptr['describe'] = Box_describe<T>;
+    vptr['test'] = Box_test<T>;
+    vptr['toString'] = Box_toString<T>;
+  }
 }
 
 BoxValue<T> Box_new<T>(dynamic this__, T value) {
   final this_ = this__ as BoxValue<T>;
-  Box_Object_Mappable_Filterable_init(this_);
-  this_.vptr['get_value'] = Box_get_value<T>;
-  this_.vptr['mapValue_int'] = Box_mapValue<T, int>;
-  this_.vptr['mapValue_String'] = Box_mapValue<T, String>;
-  this_.vptr['describe'] = Box_describe<T>;
-  this_.vptr['test'] = Box_test<T>;
-  this_.vptr['toString'] = Box_toString<T>;
   this_.value = value;
   return this_;
 }
@@ -269,11 +273,13 @@ bool Box_test<T>(dynamic this__, bool Function(T) predicate) {
 
 
 class IdentifiableValue extends VPtr {
+  IdentifiableValue() {
+    vptr['get_id'] = Identifiable_get_id;
+  }
 }
 
 IdentifiableValue Identifiable_new(dynamic this__) {
   final this_ = this__ as IdentifiableValue;
-  this_.vptr['get_id'] = Identifiable_get_id;
   return this_;
 }
 
@@ -283,11 +289,13 @@ String Identifiable_get_id(dynamic this_) {
 
 
 class DescribableValue extends VPtr {
+  DescribableValue() {
+    vptr['describe'] = Describable_describe;
+  }
 }
 
 DescribableValue Describable_new(dynamic this__) {
   final this_ = this__ as DescribableValue;
-  this_.vptr['describe'] = Describable_describe;
   return this_;
 }
 
@@ -316,12 +324,14 @@ bool Taggable_hasTag(dynamic this__, String t) {
 class ResourceValue extends VPtr implements IdentifiableValue, DescribableValue {
   late String id;
   late String type;
+  ResourceValue() {
+    vptr['get_id'] = Resource_get_id;
+    vptr['describe'] = Resource_describe;
+  }
 }
 
 ResourceValue Resource_new(dynamic this__, String id, String type) {
   final this_ = this__ as ResourceValue;
-  this_.vptr['get_id'] = Resource_get_id;
-  this_.vptr['describe'] = Resource_describe;
   this_.id = id;
   this_.type = type;
   return this_;
@@ -338,17 +348,18 @@ dynamic Resource_get_id(ResourceValue this_) {
 
 
 class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
+  TaggedResourceValue() {
+    vptr['get_id'] = TaggedResource_get_id;
+    vptr['describe'] = TaggedResource_describe;
+    vptr['tag'] = TaggedResource_tag;
+    vptr['get_allTags'] = TaggedResource_get_allTags;
+    vptr['hasTag'] = TaggedResource_hasTag;
+  }
 }
 
 TaggedResourceValue TaggedResource_new(dynamic this__, String id, String type) {
   final this_ = this__ as TaggedResourceValue;
   Resource_new(this_, id, type);
-  TaggedResource_Resource_Taggable_init(this_);
-  this_.vptr['get_id'] = TaggedResource_get_id;
-  this_.vptr['describe'] = TaggedResource_describe;
-  this_.vptr['tag'] = TaggedResource_tag;
-  this_.vptr['get_allTags'] = TaggedResource_get_allTags;
-  this_.vptr['hasTag'] = TaggedResource_hasTag;
   this_._tags = <String>[];
   return this_;
 }
@@ -379,12 +390,14 @@ bool TaggedResource_hasTag(dynamic this__, String t) {
 
 
 class BaseProcessorValue extends VPtr {
+  BaseProcessorValue() {
+    vptr['process'] = BaseProcessor_process;
+    vptr['get_processorName'] = BaseProcessor_get_processorName;
+  }
 }
 
 BaseProcessorValue BaseProcessor_new(dynamic this__) {
   final this_ = this__ as BaseProcessorValue;
-  this_.vptr['process'] = BaseProcessor_process;
-  this_.vptr['get_processorName'] = BaseProcessor_get_processorName;
   return this_;
 }
 
@@ -400,13 +413,15 @@ String BaseProcessor_get_processorName(dynamic this__) {
 
 
 class UpperProcessorValue extends BaseProcessorValue {
+  UpperProcessorValue() {
+    vptr['process'] = UpperProcessor_process;
+    vptr['get_processorName'] = UpperProcessor_get_processorName;
+  }
 }
 
 UpperProcessorValue UpperProcessor_new(dynamic this__) {
   final this_ = this__ as UpperProcessorValue;
   BaseProcessor_new(this_);
-  this_.vptr['process'] = UpperProcessor_process;
-  this_.vptr['get_processorName'] = UpperProcessor_get_processorName;
   return this_;
 }
 
@@ -423,13 +438,15 @@ String UpperProcessor_get_processorName(dynamic this__) {
 
 class PrefixProcessorValue extends UpperProcessorValue {
   late String prefix;
+  PrefixProcessorValue() {
+    vptr['process'] = PrefixProcessor_process;
+    vptr['get_processorName'] = PrefixProcessor_get_processorName;
+  }
 }
 
 PrefixProcessorValue PrefixProcessor_new(dynamic this__, String prefix) {
   final this_ = this__ as PrefixProcessorValue;
   UpperProcessor_new(this_);
-  this_.vptr['process'] = PrefixProcessor_process;
-  this_.vptr['get_processorName'] = PrefixProcessor_get_processorName;
   this_.prefix = prefix;
   return this_;
 }
@@ -459,19 +476,20 @@ int Addable_doubleValue(dynamic this__) {
 
 class AmountValue extends Amount_Object_AddableValue {
   late int numericValue;
+  AmountValue() {
+    vptr['get_numericValue'] = Amount_get_numericValue;
+    vptr['addValues'] = Amount_addValues;
+    vptr['doubleValue'] = Amount_doubleValue;
+    vptr['operatorPlus'] = Amount_operatorPlus;
+    vptr['operatorMinus'] = Amount_operatorMinus;
+    vptr['operatorLt'] = Amount_operatorLt;
+    vptr['operatorGt'] = Amount_operatorGt;
+    vptr['toString'] = Amount_toString;
+  }
 }
 
 AmountValue Amount_new(dynamic this__, int numericValue) {
   final this_ = this__ as AmountValue;
-  Amount_Object_Addable_init(this_);
-  this_.vptr['get_numericValue'] = Amount_get_numericValue;
-  this_.vptr['addValues'] = Amount_addValues;
-  this_.vptr['doubleValue'] = Amount_doubleValue;
-  this_.vptr['operatorPlus'] = Amount_operatorPlus;
-  this_.vptr['operatorMinus'] = Amount_operatorMinus;
-  this_.vptr['operatorLt'] = Amount_operatorLt;
-  this_.vptr['operatorGt'] = Amount_operatorGt;
-  this_.vptr['toString'] = Amount_toString;
   this_.numericValue = numericValue;
   return this_;
 }
@@ -527,11 +545,13 @@ void Printable2_prettyPrint(dynamic this__) {
 class VehicleValue extends VPtr {
   late String make;
   late int year;
+  VehicleValue() {
+    vptr['toString'] = Vehicle_toString;
+  }
 }
 
 VehicleValue Vehicle_new(dynamic this__, String make, int year) {
   final this_ = this__ as VehicleValue;
-  this_.vptr['toString'] = Vehicle_toString;
   this_.make = make;
   this_.year = year;
   return this_;
@@ -545,15 +565,16 @@ String Vehicle_toString(dynamic this__) {
 
 class CarValue extends Car_Vehicle_Printable2Value {
   late int doors;
+  CarValue() {
+    vptr['toString'] = Car_toString;
+    vptr['toPrettyString'] = Car_toPrettyString;
+    vptr['prettyPrint'] = Car_prettyPrint;
+  }
 }
 
 CarValue Car_new(dynamic this__, String make, int year, int doors) {
   final this_ = this__ as CarValue;
   Vehicle_new(this_, make, year);
-  Car_Vehicle_Printable2_init(this_);
-  this_.vptr['toString'] = Car_toString;
-  this_.vptr['toPrettyString'] = Car_toPrettyString;
-  this_.vptr['prettyPrint'] = Car_prettyPrint;
   this_.doors = doors;
   return this_;
 }
@@ -576,14 +597,16 @@ void Car_prettyPrint(dynamic this__) {
 
 class ElectricCarValue extends CarValue {
   late int range;
+  ElectricCarValue() {
+    vptr['toString'] = ElectricCar_toString;
+    vptr['toPrettyString'] = ElectricCar_toPrettyString;
+    vptr['prettyPrint'] = ElectricCar_prettyPrint;
+  }
 }
 
 ElectricCarValue ElectricCar_new(dynamic this__, String make, int year, int doors, int range) {
   final this_ = this__ as ElectricCarValue;
   Car_new(this_, make, year, doors);
-  this_.vptr['toString'] = ElectricCar_toString;
-  this_.vptr['toPrettyString'] = ElectricCar_toPrettyString;
-  this_.vptr['prettyPrint'] = ElectricCar_prettyPrint;
   this_.range = range;
   return this_;
 }
@@ -605,11 +628,13 @@ void ElectricCar_prettyPrint(dynamic this__) {
 
 
 class MeasurableValue extends VPtr {
+  MeasurableValue() {
+    vptr['measure'] = Measurable_measure;
+  }
 }
 
 MeasurableValue Measurable_new(dynamic this__) {
   final this_ = this__ as MeasurableValue;
-  this_.vptr['measure'] = Measurable_measure;
   return this_;
 }
 
@@ -632,16 +657,17 @@ String Scalable_measureInfo(dynamic this__) {
 
 class SegmentValue extends Segment_Measurable_ScalableValue {
   late double length;
+  SegmentValue() {
+    vptr['measure'] = Segment_measure;
+    vptr['scale'] = Segment_scale;
+    vptr['measureInfo'] = Segment_measureInfo;
+    vptr['toString'] = Segment_toString;
+  }
 }
 
 SegmentValue Segment_new(dynamic this__, double length) {
   final this_ = this__ as SegmentValue;
   Measurable_new(this_);
-  Segment_Measurable_Scalable_init(this_);
-  this_.vptr['measure'] = Segment_measure;
-  this_.vptr['scale'] = Segment_scale;
-  this_.vptr['measureInfo'] = Segment_measureInfo;
-  this_.vptr['toString'] = Segment_toString;
   this_.length = length;
   return this_;
 }
@@ -669,15 +695,17 @@ String Segment_measureInfo(dynamic this__) {
 
 class WeightedSegmentValue extends SegmentValue {
   late double weight;
+  WeightedSegmentValue() {
+    vptr['measure'] = WeightedSegment_measure;
+    vptr['scale'] = WeightedSegment_scale;
+    vptr['measureInfo'] = WeightedSegment_measureInfo;
+    vptr['toString'] = WeightedSegment_toString;
+  }
 }
 
 WeightedSegmentValue WeightedSegment_new(dynamic this__, double length, double weight) {
   final this_ = this__ as WeightedSegmentValue;
   Segment_new(this_, length);
-  this_.vptr['measure'] = WeightedSegment_measure;
-  this_.vptr['scale'] = WeightedSegment_scale;
-  this_.vptr['measureInfo'] = WeightedSegment_measureInfo;
-  this_.vptr['toString'] = WeightedSegment_toString;
   this_.weight = weight;
   return this_;
 }
@@ -728,15 +756,16 @@ String DescribedMixin_info(dynamic this__) {
 
 
 class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_DescribedMixinValue {
+  MultiMixinEntityValue() {
+    vptr['get_label'] = MultiMixinEntity_get_label;
+    vptr['greet'] = MultiMixinEntity_greet;
+    vptr['info'] = MultiMixinEntity_info;
+    vptr['fullInfo'] = MultiMixinEntity_fullInfo;
+  }
 }
 
 MultiMixinEntityValue MultiMixinEntity_new(dynamic this__) {
   final this_ = this__ as MultiMixinEntityValue;
-  MultiMixinEntity_Object_NamedMixin_DescribedMixin_init(this_);
-  this_.vptr['get_label'] = MultiMixinEntity_get_label;
-  this_.vptr['greet'] = MultiMixinEntity_greet;
-  this_.vptr['info'] = MultiMixinEntity_info;
-  this_.vptr['fullInfo'] = MultiMixinEntity_fullInfo;
   return this_;
 }
 
@@ -762,11 +791,13 @@ String MultiMixinEntity_info(dynamic this__) {
 
 
 class EncoderValue extends VPtr {
+  EncoderValue() {
+    vptr['encode'] = Encoder_encode;
+  }
 }
 
 EncoderValue Encoder_new(dynamic this__) {
   final this_ = this__ as EncoderValue;
-  this_.vptr['encode'] = Encoder_encode;
   return this_;
 }
 
@@ -790,13 +821,14 @@ String HexMixin_encode(dynamic this__, String input) {
 
 
 class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
+  MultiEncoderValue() {
+    vptr['encode'] = MultiEncoder_encode;
+    vptr['encodeAll'] = MultiEncoder_encodeAll;
+  }
 }
 
 MultiEncoderValue MultiEncoder_new(dynamic this__) {
   final this_ = this__ as MultiEncoderValue;
-  MultiEncoder_Object_Base64Mixin_HexMixin_init(this_);
-  this_.vptr['encode'] = MultiEncoder_encode;
-  this_.vptr['encodeAll'] = MultiEncoder_encodeAll;
   return this_;
 }
 
@@ -812,13 +844,15 @@ String MultiEncoder_encode(dynamic this__, String input) {
 
 
 class CustomEncoderValue extends MultiEncoderValue {
+  CustomEncoderValue() {
+    vptr['encode'] = CustomEncoder_encode;
+    vptr['encodeAll'] = CustomEncoder_encodeAll;
+  }
 }
 
 CustomEncoderValue CustomEncoder_new(dynamic this__) {
   final this_ = this__ as CustomEncoderValue;
   MultiEncoder_new(this_);
-  this_.vptr['encode'] = CustomEncoder_encode;
-  this_.vptr['encodeAll'] = CustomEncoder_encodeAll;
   return this_;
 }
 
@@ -835,12 +869,14 @@ String CustomEncoder_encodeAll(dynamic this__, String input) {
 
 class ContainerValue<T> extends VPtr {
   late T item;
+  ContainerValue() {
+    vptr['describe'] = Container_describe<T>;
+    vptr['get_content'] = Container_get_content<T>;
+  }
 }
 
 ContainerValue<T> Container_new<T>(dynamic this__, T item) {
   final this_ = this__ as ContainerValue<T>;
-  this_.vptr['describe'] = Container_describe<T>;
-  this_.vptr['get_content'] = Container_get_content<T>;
   this_.item = item;
   return this_;
 }
@@ -858,13 +894,15 @@ T Container_get_content<T>(dynamic this__) {
 
 class LabeledContainerValue<T> extends ContainerValue<T> {
   late String label;
+  LabeledContainerValue() {
+    vptr['describe'] = LabeledContainer_describe<T>;
+    vptr['get_content'] = LabeledContainer_get_content<T>;
+  }
 }
 
 LabeledContainerValue<T> LabeledContainer_new<T>(dynamic this__, T item, String label) {
   final this_ = this__ as LabeledContainerValue<T>;
   Container_new(this_, item);
-  this_.vptr['describe'] = LabeledContainer_describe<T>;
-  this_.vptr['get_content'] = LabeledContainer_get_content<T>;
   this_.label = label;
   return this_;
 }
@@ -882,13 +920,15 @@ T LabeledContainer_get_content<T>(dynamic this__) {
 
 class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   late int priority;
+  PriorityContainerValue() {
+    vptr['describe'] = PriorityContainer_describe<T>;
+    vptr['get_content'] = PriorityContainer_get_content<T>;
+  }
 }
 
 PriorityContainerValue<T> PriorityContainer_new<T>(dynamic this__, T item, String label, int priority) {
   final this_ = this__ as PriorityContainerValue<T>;
   LabeledContainer_new(this_, item, label);
-  this_.vptr['describe'] = PriorityContainer_describe<T>;
-  this_.vptr['get_content'] = PriorityContainer_get_content<T>;
   this_.priority = priority;
   return this_;
 }
@@ -927,15 +967,16 @@ String ChainMixin_fullChain(dynamic this__) {
 
 
 class ChainClassValue extends ChainClass_Object_ChainMixinValue {
+  ChainClassValue() {
+    vptr['step1'] = ChainClass_step1;
+    vptr['step2'] = ChainClass_step2;
+    vptr['step3'] = ChainClass_step3;
+    vptr['fullChain'] = ChainClass_fullChain;
+  }
 }
 
 ChainClassValue ChainClass_new(dynamic this__) {
   final this_ = this__ as ChainClassValue;
-  ChainClass_Object_ChainMixin_init(this_);
-  this_.vptr['step1'] = ChainClass_step1;
-  this_.vptr['step2'] = ChainClass_step2;
-  this_.vptr['step3'] = ChainClass_step3;
-  this_.vptr['fullChain'] = ChainClass_fullChain;
   return this_;
 }
 
@@ -961,15 +1002,17 @@ String ChainClass_fullChain(dynamic this__) {
 
 
 class ChainSubClassValue extends ChainClassValue {
+  ChainSubClassValue() {
+    vptr['step1'] = ChainSubClass_step1;
+    vptr['step2'] = ChainSubClass_step2;
+    vptr['step3'] = ChainSubClass_step3;
+    vptr['fullChain'] = ChainSubClass_fullChain;
+  }
 }
 
 ChainSubClassValue ChainSubClass_new(dynamic this__) {
   final this_ = this__ as ChainSubClassValue;
   ChainClass_new(this_);
-  this_.vptr['step1'] = ChainSubClass_step1;
-  this_.vptr['step2'] = ChainSubClass_step2;
-  this_.vptr['step3'] = ChainSubClass_step3;
-  this_.vptr['fullChain'] = ChainSubClass_fullChain;
   return this_;
 }
 
@@ -995,12 +1038,14 @@ String ChainSubClass_fullChain(dynamic this__) {
 
 
 class Expression2Value extends VPtr {
+  Expression2Value() {
+    vptr['evaluate'] = Expression2_evaluate;
+    vptr['display'] = Expression2_display;
+  }
 }
 
 Expression2Value Expression2_new(dynamic this__) {
   final this_ = this__ as Expression2Value;
-  this_.vptr['evaluate'] = Expression2_evaluate;
-  this_.vptr['display'] = Expression2_display;
   return this_;
 }
 
@@ -1015,13 +1060,15 @@ String Expression2_display(dynamic this_) {
 
 class NumberExprValue extends Expression2Value {
   late double value;
+  NumberExprValue() {
+    vptr['evaluate'] = NumberExpr_evaluate;
+    vptr['display'] = NumberExpr_display;
+  }
 }
 
 NumberExprValue NumberExpr_new(dynamic this__, double value) {
   final this_ = this__ as NumberExprValue;
   Expression2_new(this_);
-  this_.vptr['evaluate'] = NumberExpr_evaluate;
-  this_.vptr['display'] = NumberExpr_display;
   this_.value = value;
   return this_;
 }
@@ -1042,13 +1089,15 @@ class BinaryExprValue extends Expression2Value {
   late Expression2Value right;
   late String op;
   late double Function(double, double) _compute;
+  BinaryExprValue() {
+    vptr['evaluate'] = BinaryExpr_evaluate;
+    vptr['display'] = BinaryExpr_display;
+  }
 }
 
 BinaryExprValue BinaryExpr_new(dynamic this__, Expression2Value left, Expression2Value right, String op, double Function(double, double) _compute) {
   final this_ = this__ as BinaryExprValue;
   Expression2_new(this_);
-  this_.vptr['evaluate'] = BinaryExpr_evaluate;
-  this_.vptr['display'] = BinaryExpr_display;
   this_.left = left;
   this_.right = right;
   this_.op = op;
@@ -1128,21 +1177,22 @@ String StaminaMixin_staminaBar(dynamic this__) {
 
 class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue {
   late String name;
+  GameCharacterValue() {
+    vptr['get_maxHealth'] = GameCharacter_get_maxHealth;
+    vptr['get_health'] = GameCharacter_get_health;
+    vptr['healthBar'] = GameCharacter_healthBar;
+    vptr['get_maxMana'] = GameCharacter_get_maxMana;
+    vptr['get_mana'] = GameCharacter_get_mana;
+    vptr['manaBar'] = GameCharacter_manaBar;
+    vptr['get_maxStamina'] = GameCharacter_get_maxStamina;
+    vptr['get_stamina'] = GameCharacter_get_stamina;
+    vptr['staminaBar'] = GameCharacter_staminaBar;
+    vptr['statusBars'] = GameCharacter_statusBars;
+  }
 }
 
 GameCharacterValue GameCharacter_new(dynamic this__, String name) {
   final this_ = this__ as GameCharacterValue;
-  GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixin_init(this_);
-  this_.vptr['get_maxHealth'] = GameCharacter_get_maxHealth;
-  this_.vptr['get_health'] = GameCharacter_get_health;
-  this_.vptr['healthBar'] = GameCharacter_healthBar;
-  this_.vptr['get_maxMana'] = GameCharacter_get_maxMana;
-  this_.vptr['get_mana'] = GameCharacter_get_mana;
-  this_.vptr['manaBar'] = GameCharacter_manaBar;
-  this_.vptr['get_maxStamina'] = GameCharacter_get_maxStamina;
-  this_.vptr['get_stamina'] = GameCharacter_get_stamina;
-  this_.vptr['staminaBar'] = GameCharacter_staminaBar;
-  this_.vptr['statusBars'] = GameCharacter_statusBars;
   this_.name = name;
   return this_;
 }
@@ -1199,21 +1249,23 @@ String GameCharacter_staminaBar(dynamic this__) {
 
 
 class WarriorValue extends GameCharacterValue {
+  WarriorValue() {
+    vptr['get_maxHealth'] = Warrior_get_maxHealth;
+    vptr['get_health'] = Warrior_get_health;
+    vptr['healthBar'] = Warrior_healthBar;
+    vptr['get_maxMana'] = Warrior_get_maxMana;
+    vptr['get_mana'] = Warrior_get_mana;
+    vptr['manaBar'] = Warrior_manaBar;
+    vptr['get_maxStamina'] = Warrior_get_maxStamina;
+    vptr['get_stamina'] = Warrior_get_stamina;
+    vptr['staminaBar'] = Warrior_staminaBar;
+    vptr['statusBars'] = Warrior_statusBars;
+  }
 }
 
 WarriorValue Warrior_new(dynamic this__, String name) {
   final this_ = this__ as WarriorValue;
   GameCharacter_new(this_, name);
-  this_.vptr['get_maxHealth'] = Warrior_get_maxHealth;
-  this_.vptr['get_health'] = Warrior_get_health;
-  this_.vptr['healthBar'] = Warrior_healthBar;
-  this_.vptr['get_maxMana'] = Warrior_get_maxMana;
-  this_.vptr['get_mana'] = Warrior_get_mana;
-  this_.vptr['manaBar'] = Warrior_manaBar;
-  this_.vptr['get_maxStamina'] = Warrior_get_maxStamina;
-  this_.vptr['get_stamina'] = Warrior_get_stamina;
-  this_.vptr['staminaBar'] = Warrior_staminaBar;
-  this_.vptr['statusBars'] = Warrior_statusBars;
   return this_;
 }
 
@@ -1269,21 +1321,23 @@ String Warrior_statusBars(dynamic this__) {
 
 
 class MageValue extends GameCharacterValue {
+  MageValue() {
+    vptr['get_maxHealth'] = Mage_get_maxHealth;
+    vptr['get_health'] = Mage_get_health;
+    vptr['healthBar'] = Mage_healthBar;
+    vptr['get_maxMana'] = Mage_get_maxMana;
+    vptr['get_mana'] = Mage_get_mana;
+    vptr['manaBar'] = Mage_manaBar;
+    vptr['get_maxStamina'] = Mage_get_maxStamina;
+    vptr['get_stamina'] = Mage_get_stamina;
+    vptr['staminaBar'] = Mage_staminaBar;
+    vptr['statusBars'] = Mage_statusBars;
+  }
 }
 
 MageValue Mage_new(dynamic this__, String name) {
   final this_ = this__ as MageValue;
   GameCharacter_new(this_, name);
-  this_.vptr['get_maxHealth'] = Mage_get_maxHealth;
-  this_.vptr['get_health'] = Mage_get_health;
-  this_.vptr['healthBar'] = Mage_healthBar;
-  this_.vptr['get_maxMana'] = Mage_get_maxMana;
-  this_.vptr['get_mana'] = Mage_get_mana;
-  this_.vptr['manaBar'] = Mage_manaBar;
-  this_.vptr['get_maxStamina'] = Mage_get_maxStamina;
-  this_.vptr['get_stamina'] = Mage_get_stamina;
-  this_.vptr['staminaBar'] = Mage_staminaBar;
-  this_.vptr['statusBars'] = Mage_statusBars;
   return this_;
 }
 
@@ -1339,219 +1393,151 @@ String Mage_statusBars(dynamic this__) {
 
 
 class DiamondClass_Object_LoggerValue extends VPtr {
+  DiamondClass_Object_LoggerValue() {
+    vptr['get_prefix'] = Logger_get_prefix;
+    vptr['format'] = Logger_format;
+  }
 }
-
-void DiamondClass_Object_Logger_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['get_prefix'] = Logger_get_prefix;
-  this_.vptr['format'] = Logger_format;
-}
-
 
 class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_LoggerValue {
+  DiamondClass_Object_Logger_FormatterValue() {
+    vptr['get_prefix'] = Formatter_get_prefix;
+    vptr['format'] = Formatter_format;
+  }
 }
-
-void DiamondClass_Object_Logger_Formatter_init(dynamic this__) {
-  DiamondClass_Object_Logger_init(this__);
-  final this_ = this__;
-  this_.vptr['get_prefix'] = Formatter_get_prefix;
-  this_.vptr['format'] = Formatter_format;
-}
-
 
 class StatefulWidget_Object_StatefulMixinValue extends VPtr {
   late int _counter;
+  StatefulWidget_Object_StatefulMixinValue() {
+    vptr['get_counter'] = StatefulMixin_get_counter;
+    vptr['set_counter'] = StatefulMixin_set_counter;
+    vptr['increment'] = StatefulMixin_increment;
+    vptr['decrement'] = StatefulMixin_decrement;
+    vptr['get_counterStatus'] = StatefulMixin_get_counterStatus;
+  }
 }
-
-void StatefulWidget_Object_StatefulMixin_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['get_counter'] = StatefulMixin_get_counter;
-  this_.vptr['set_counter'] = StatefulMixin_set_counter;
-  this_.vptr['increment'] = StatefulMixin_increment;
-  this_.vptr['decrement'] = StatefulMixin_decrement;
-  this_.vptr['get_counterStatus'] = StatefulMixin_get_counterStatus;
-}
-
 
 class DeepMixinClass_Object_LayerAValue extends VPtr {
+  DeepMixinClass_Object_LayerAValue() {
+    vptr['layer'] = LayerA_layer;
+    vptr['onlyA'] = LayerA_onlyA;
+  }
 }
-
-void DeepMixinClass_Object_LayerA_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['layer'] = LayerA_layer;
-  this_.vptr['onlyA'] = LayerA_onlyA;
-}
-
 
 class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_LayerAValue {
+  DeepMixinClass_Object_LayerA_LayerBValue() {
+    vptr['layer'] = LayerB_layer;
+    vptr['onlyB'] = LayerB_onlyB;
+  }
 }
-
-void DeepMixinClass_Object_LayerA_LayerB_init(dynamic this__) {
-  DeepMixinClass_Object_LayerA_init(this__);
-  final this_ = this__;
-  this_.vptr['layer'] = LayerB_layer;
-  this_.vptr['onlyB'] = LayerB_onlyB;
-}
-
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Object_LayerA_LayerBValue {
+  DeepMixinClass_Object_LayerA_LayerB_LayerCValue() {
+    vptr['layer'] = LayerC_layer;
+    vptr['onlyC'] = LayerC_onlyC;
+  }
 }
-
-void DeepMixinClass_Object_LayerA_LayerB_LayerC_init(dynamic this__) {
-  DeepMixinClass_Object_LayerA_LayerB_init(this__);
-  final this_ = this__;
-  this_.vptr['layer'] = LayerC_layer;
-  this_.vptr['onlyC'] = LayerC_onlyC;
-}
-
 
 class Box_Object_MappableValue<T> extends VPtr {
+  Box_Object_MappableValue() {
+    vptr['mapValue'] = Mappable_mapValue;
+    vptr['describe'] = Mappable_describe;
+  }
 }
-
-void Box_Object_Mappable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['mapValue'] = Mappable_mapValue;
-  this_.vptr['describe'] = Mappable_describe;
-}
-
 
 class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
+  Box_Object_Mappable_FilterableValue() {
+    vptr['test'] = Filterable_test;
+  }
 }
-
-void Box_Object_Mappable_Filterable_init(dynamic this__) {
-  Box_Object_Mappable_init(this__);
-  final this_ = this__;
-  this_.vptr['test'] = Filterable_test;
-}
-
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
   late List<String> _tags;
+  TaggedResource_Resource_TaggableValue() {
+    vptr['tag'] = Taggable_tag;
+    vptr['get_allTags'] = Taggable_get_allTags;
+    vptr['hasTag'] = Taggable_hasTag;
+  }
 }
-
-void TaggedResource_Resource_Taggable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['tag'] = Taggable_tag;
-  this_.vptr['get_allTags'] = Taggable_get_allTags;
-  this_.vptr['hasTag'] = Taggable_hasTag;
-}
-
 
 class Amount_Object_AddableValue extends VPtr {
+  Amount_Object_AddableValue() {
+    vptr['addValues'] = Addable_addValues;
+    vptr['doubleValue'] = Addable_doubleValue;
+  }
 }
-
-void Amount_Object_Addable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['addValues'] = Addable_addValues;
-  this_.vptr['doubleValue'] = Addable_doubleValue;
-}
-
 
 class Car_Vehicle_Printable2Value extends VehicleValue {
+  Car_Vehicle_Printable2Value() {
+    vptr['prettyPrint'] = Printable2_prettyPrint;
+  }
 }
-
-void Car_Vehicle_Printable2_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['prettyPrint'] = Printable2_prettyPrint;
-}
-
 
 class Segment_Measurable_ScalableValue extends MeasurableValue {
+  Segment_Measurable_ScalableValue() {
+    vptr['scale'] = Scalable_scale;
+    vptr['measureInfo'] = Scalable_measureInfo;
+  }
 }
-
-void Segment_Measurable_Scalable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['scale'] = Scalable_scale;
-  this_.vptr['measureInfo'] = Scalable_measureInfo;
-}
-
 
 class MultiMixinEntity_Object_NamedMixinValue extends VPtr {
+  MultiMixinEntity_Object_NamedMixinValue() {
+    vptr['get_label'] = NamedMixin_get_label;
+    vptr['greet'] = NamedMixin_greet;
+  }
 }
-
-void MultiMixinEntity_Object_NamedMixin_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['get_label'] = NamedMixin_get_label;
-  this_.vptr['greet'] = NamedMixin_greet;
-}
-
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinEntity_Object_NamedMixinValue {
+  MultiMixinEntity_Object_NamedMixin_DescribedMixinValue() {
+    vptr['get_label'] = DescribedMixin_get_label;
+    vptr['info'] = DescribedMixin_info;
+  }
 }
-
-void MultiMixinEntity_Object_NamedMixin_DescribedMixin_init(dynamic this__) {
-  MultiMixinEntity_Object_NamedMixin_init(this__);
-  final this_ = this__;
-  this_.vptr['get_label'] = DescribedMixin_get_label;
-  this_.vptr['info'] = DescribedMixin_info;
-}
-
 
 class MultiEncoder_Object_Base64MixinValue extends VPtr {
+  MultiEncoder_Object_Base64MixinValue() {
+    vptr['encode'] = Base64Mixin_encode;
+  }
 }
-
-void MultiEncoder_Object_Base64Mixin_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['encode'] = Base64Mixin_encode;
-}
-
 
 class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_Base64MixinValue {
+  MultiEncoder_Object_Base64Mixin_HexMixinValue() {
+    vptr['encode'] = HexMixin_encode;
+  }
 }
-
-void MultiEncoder_Object_Base64Mixin_HexMixin_init(dynamic this__) {
-  MultiEncoder_Object_Base64Mixin_init(this__);
-  final this_ = this__;
-  this_.vptr['encode'] = HexMixin_encode;
-}
-
 
 class ChainClass_Object_ChainMixinValue extends VPtr {
+  ChainClass_Object_ChainMixinValue() {
+    vptr['step1'] = ChainMixin_step1;
+    vptr['step2'] = ChainMixin_step2;
+    vptr['step3'] = ChainMixin_step3;
+    vptr['fullChain'] = ChainMixin_fullChain;
+  }
 }
-
-void ChainClass_Object_ChainMixin_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['step1'] = ChainMixin_step1;
-  this_.vptr['step2'] = ChainMixin_step2;
-  this_.vptr['step3'] = ChainMixin_step3;
-  this_.vptr['fullChain'] = ChainMixin_fullChain;
-}
-
 
 class GameCharacter_Object_HealthMixinValue extends VPtr {
+  GameCharacter_Object_HealthMixinValue() {
+    vptr['get_maxHealth'] = HealthMixin_get_maxHealth;
+    vptr['get_health'] = HealthMixin_get_health;
+    vptr['healthBar'] = HealthMixin_healthBar;
+  }
 }
-
-void GameCharacter_Object_HealthMixin_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['get_maxHealth'] = HealthMixin_get_maxHealth;
-  this_.vptr['get_health'] = HealthMixin_get_health;
-  this_.vptr['healthBar'] = HealthMixin_healthBar;
-}
-
 
 class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Object_HealthMixinValue {
+  GameCharacter_Object_HealthMixin_ManaMixinValue() {
+    vptr['get_maxMana'] = ManaMixin_get_maxMana;
+    vptr['get_mana'] = ManaMixin_get_mana;
+    vptr['manaBar'] = ManaMixin_manaBar;
+  }
 }
-
-void GameCharacter_Object_HealthMixin_ManaMixin_init(dynamic this__) {
-  GameCharacter_Object_HealthMixin_init(this__);
-  final this_ = this__;
-  this_.vptr['get_maxMana'] = ManaMixin_get_maxMana;
-  this_.vptr['get_mana'] = ManaMixin_get_mana;
-  this_.vptr['manaBar'] = ManaMixin_manaBar;
-}
-
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameCharacter_Object_HealthMixin_ManaMixinValue {
+  GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue() {
+    vptr['get_maxStamina'] = StaminaMixin_get_maxStamina;
+    vptr['get_stamina'] = StaminaMixin_get_stamina;
+    vptr['staminaBar'] = StaminaMixin_staminaBar;
+  }
 }
-
-void GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixin_init(dynamic this__) {
-  GameCharacter_Object_HealthMixin_ManaMixin_init(this__);
-  final this_ = this__;
-  this_.vptr['get_maxStamina'] = StaminaMixin_get_maxStamina;
-  this_.vptr['get_stamina'] = StaminaMixin_get_stamina;
-  this_.vptr['staminaBar'] = StaminaMixin_staminaBar;
-}
-
 
 void main() {
   print('=== 复杂 OOP 边界测试 ===\n');

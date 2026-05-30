@@ -202,6 +202,47 @@ class CppConstants {
     'Timer': 'Timer',
   };
 
+  /// Kernel 内部实现类 → 公开类名映射
+  /// Dart 编译器会将 List/Set/Map 等公开类型替换为内部实现类，
+  /// 转换器需要将它们还原为公开类名以生成正确的 C++ 代码
+  static const Map<String, String> internalClassMapping = {
+    '_GrowableList': 'List',
+    '_List': 'List',
+    '_ImmutableList': 'List',
+    '_Set': 'Set',
+    '_CompactLinkedHashSet': 'Set',
+    'LinkedHashSet': 'Set',
+    '_Map': 'Map',
+    '_CompactLinkedHashMap': 'Map',
+    'LinkedHashMap': 'Map',
+  };
+
+  /// 容器类型需要的泛型参数个数
+  static const Map<String, int> containerTypeArgCount = {
+    'List': 1,
+    'Set': 1,
+    'Map': 2,
+  };
+
+  /// 判断一个类名是否是内部容器实现类
+  static bool isInternalContainerClass(String className) {
+    return internalClassMapping.containsKey(className);
+  }
+
+  /// 将内部类名还原为公开类名，非内部类返回原名
+  static String resolveClassName(String className) {
+    return internalClassMapping[className] ?? className;
+  }
+
+  /// 修复内部类型名称（用于已 sanitize 过的类名字符串）
+  static String fixInternalClassName(String className) {
+    var result = className;
+    for (final entry in internalClassMapping.entries) {
+      result = result.replaceAll(entry.key, entry.value);
+    }
+    return result;
+  }
+
   // 类型构造宏
   static const Map<String, String> constructorMapping = {
     'int': 'dart_int',
@@ -1092,17 +1133,16 @@ class ExpressionConverter {
 
   /// 将Dart基础类型名称转换为C++类型名称
   /// 修复: int.parse -> Int::parse, double.parse -> Double::parse等
+  /// 将 Dart 基础类型名称转换为 C++ 类型名称
+  /// 先查 typeMapping（int→Int 等），再查 internalClassMapping（_Set→Set 等）
   String _convertBasicTypeName(String dartTypeName) {
-    const typeMapping = {
-      'int': 'Int',
-      'double': 'Double',
-      'bool': 'Bool',
-      'num': 'Any',
-      'LinkedHashSet': 'Set', // LinkedHashSet 映射到 Set
-      'LinkedHashMap': 'Map', // LinkedHashMap 映射到 Map
-      // 'String' 保持不变
-    };
-    return typeMapping[dartTypeName] ?? dartTypeName;
+    // 额外的基础类型映射（typeMapping 中没有的）
+    if (dartTypeName == 'num') return 'Any';
+    // 优先使用 CppConstants.typeMapping
+    final mapped = CppConstants.typeMapping[dartTypeName];
+    if (mapped != null) return mapped;
+    // 再查内部类映射
+    return CppConstants.resolveClassName(dartTypeName);
   }
 
   /// 带类型推断的整数字面量转换
@@ -1246,166 +1286,11 @@ class ExpressionConverter {
       // 这个检查已经被上面的 | 分隔符检查替代了，所以这里不需要再处理
     }
 
-    // 修复问题1A: 处理_GrowableList等内部类型 - 必须在工厂构造函数检测之前
-    if (enclosingClassName == '_GrowableList' ||
-        enclosingClassName == '_List' ||
-        enclosingClassName == '_ImmutableList' ||
-        (enclosingClassName.startsWith('_') &&
-            (methodName.startsWith('_literal') || methodName == 'create'))) {
-      // 推断List的元素类型
-      String elementType = 'Any'; // 默认类型
-
-      // 0. 首先尝试从 Arguments.types 获取类型
-      if (expr.arguments.types.isNotEmpty) {
-        final typeArg = expr.arguments.types.first;
-        if (typeArg is! TypeParameterType) {
-          elementType = CppTypeConverter.convertType(typeArg);
-        }
-      }
-
-      // 1. 如果还没有,尝试从返回类型推断
-      if (elementType == 'Any') {
-        final returnType = target.function.returnType;
-        if (returnType is InterfaceType &&
-            returnType.typeArguments.isNotEmpty) {
-          final typeArg = returnType.typeArguments.first;
-          // 检查类型参数是否仍然是泛型
-          if (typeArg is! TypeParameterType) {
-            elementType = CppTypeConverter.convertType(typeArg);
-          }
-        }
-      }
-      // 2. 如果还是泛型,尝试从第一个参数推断(跳过容量参数)
-      if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
-        final firstArg = expr.arguments.positional.first;
-        // 检查第一个参数是否是容量参数(整数字面量 0)
-        final isCapacityArg = firstArg is IntLiteral && firstArg.value == 0;
-
-        if (!isCapacityArg) {
-          elementType = _inferExpressionType(firstArg);
-          // 统一转换到C++类型
-          if (elementType == 'int')
-            elementType = 'Int';
-          else if (elementType == 'double')
-            elementType = 'Double';
-          else if (elementType == 'bool')
-            elementType = 'Bool';
-          else if (elementType == 'dynamic') elementType = 'Any';
-        }
-      }
-
-      // 混合类型检测：当元素类型是 Object 或 ObjectPtr<Object> 时，检查是否包含值类型
-      // 如果包含值类型，应使用 Any 而不是 ObjectPtr<Object>
-      if (elementType == 'ObjectPtr<Object>' || elementType == 'Object') {
-        final nonCapacityArgs = expr.arguments.positional.where((arg) =>
-            !(arg is IntLiteral &&
-                arg.value == 0 &&
-                expr.arguments.positional.first == arg));
-        if (nonCapacityArgs.isNotEmpty) {
-          bool hasValueType = false;
-          for (final e in nonCapacityArgs) {
-            final inferredType = _inferExpressionType(e);
-            if (_isCppValueType(inferredType)) {
-              hasValueType = true;
-              break;
-            }
-          }
-          // 如果包含值类型，应该使用 Any
-          if (hasValueType) {
-            elementType = 'Any';
-          }
-        }
-      }
-
-      // 过滤掉容量参数(第一个整数字面量 0)
-      final args = expr.arguments.positional
-          .where((arg) => !(arg is IntLiteral &&
-              arg.value == 0 &&
-              expr.arguments.positional.first == arg))
-          .map((arg) => convertExpression(arg))
-          .join(', ');
-      // 转换为带类型参数的dart_literal调用
-      if (args.isEmpty) {
-        return 'dart_literal<$elementType>()';
-      }
-      return 'dart_literal<$elementType>($args)';
-    }
-
-    // 也处理直接调用 _literalN 的情况
-    if (methodName.startsWith('_literal')) {
-      // 推断元素类型
-      String elementType = 'Any';
-
-      // 0. 首先尝试从 Arguments.types 获取类型
-      if (expr.arguments.types.isNotEmpty) {
-        final typeArg = expr.arguments.types.first;
-        if (typeArg is! TypeParameterType) {
-          elementType = CppTypeConverter.convertType(typeArg);
-        }
-      }
-
-      // 1. 如果还没有,尝试从返回类型推断
-      if (elementType == 'Any') {
-        final returnType = target.function.returnType;
-        if (returnType is InterfaceType &&
-            returnType.typeArguments.isNotEmpty) {
-          final typeArg = returnType.typeArguments.first;
-          if (typeArg is! TypeParameterType) {
-            elementType = CppTypeConverter.convertType(typeArg);
-          }
-        }
-      }
-      // 2. 如果还是泛型，尝试从第一个参数推断(跳过容量参数)
-      if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
-        final firstArg = expr.arguments.positional.first;
-        final isCapacityArg = firstArg is IntLiteral && firstArg.value == 0;
-
-        if (!isCapacityArg) {
-          elementType = _inferExpressionType(firstArg);
-          if (elementType == 'int')
-            elementType = 'Int';
-          else if (elementType == 'double')
-            elementType = 'Double';
-          else if (elementType == 'bool')
-            elementType = 'Bool';
-          else if (elementType == 'dynamic') elementType = 'Any';
-        }
-      }
-
-      // 混合类型检测：当元素类型是 Object 或 ObjectPtr<Object> 时，检查是否包含值类型
-      // 如果包含值类型，应使用 Any 而不是 ObjectPtr<Object>
-      if (elementType == 'ObjectPtr<Object>' || elementType == 'Object') {
-        final nonCapacityArgs = expr.arguments.positional.where((arg) =>
-            !(arg is IntLiteral &&
-                arg.value == 0 &&
-                expr.arguments.positional.first == arg));
-        if (nonCapacityArgs.isNotEmpty) {
-          bool hasValueType = false;
-          for (final e in nonCapacityArgs) {
-            final inferredType = _inferExpressionType(e);
-            if (_isCppValueType(inferredType)) {
-              hasValueType = true;
-              break;
-            }
-          }
-          // 如果包含值类型，应该使用 Any
-          if (hasValueType) {
-            elementType = 'Any';
-          }
-        }
-      }
-
-      // 过滤掉容量参数
-      final args = expr.arguments.positional
-          .where((arg) => !(arg is IntLiteral &&
-              arg.value == 0 &&
-              expr.arguments.positional.first == arg))
-          .map((arg) => convertExpression(arg))
-          .join(', ');
-      if (args.isEmpty) {
-        return 'dart_literal<$elementType>()';
-      }
-      return 'dart_literal<$elementType>($args)';
+    // 统一处理内部容器类（_GrowableList, _List, _Set, _Map 等）
+    final internalContainerResult =
+        _tryConvertInternalContainerStaticCall(expr);
+    if (internalContainerResult != null) {
+      return internalContainerResult;
     }
 
     // 修复问题2: 处理Object.hash调用，用Null填充而不是SentinelValue
@@ -1504,218 +1389,18 @@ class ExpressionConverter {
       final originalClassName = target.enclosingClass!.name;
 
       // 特殊处理 RegExp 工厂构造函数，转换为 String
-      // RegExp 已合并到 String 类型，构造时直接使用 dart_string
       if (originalClassName == 'RegExp') {
         if (expr.arguments.positional.isNotEmpty) {
           final pattern = convertExpression(expr.arguments.positional.first);
-          // 直接返回参数表达式，它已经是 String 类型
           return pattern;
         }
         return 'dart_string("")';
       }
 
-      // 特殊处理 List 工厂构造函数：List.from, List.of, List.filled, List.generate
-      // 需要忽略 growable 参数，并正确添加泛型类型参数
-      if (originalClassName == 'List' || originalClassName == '_GrowableList') {
-        // 推断元素类型
-        String elementType = 'Any';
-        if (expr.arguments.types.isNotEmpty) {
-          final typeArg = expr.arguments.types.first;
-          if (typeArg is! TypeParameterType) {
-            elementType = CppTypeConverter.convertType(typeArg);
-          }
-        }
-        // 尝试从返回类型推断
-        if (elementType == 'Any') {
-          final returnType = target.function.returnType;
-          if (returnType is InterfaceType &&
-              returnType.typeArguments.isNotEmpty) {
-            final typeArg = returnType.typeArguments.first;
-            if (typeArg is! TypeParameterType) {
-              elementType = CppTypeConverter.convertType(typeArg);
-            }
-          }
-        }
-        // 尝试从第一个参数推断
-        if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
-          final firstArg = expr.arguments.positional.first;
-          final inferredType = _inferExpressionType(firstArg);
-          if (inferredType == 'int')
-            elementType = 'Int';
-          else if (inferredType == 'double')
-            elementType = 'Double';
-          else if (inferredType == 'bool')
-            elementType = 'Bool';
-          else if (inferredType != 'dynamic') elementType = inferredType;
-        }
-
-        // List.from(iterable, {growable = true}) -> List<T>::from(iterable)
-        // List.of(iterable, {growable = true}) -> List<T>::of(iterable)
-        // 忽略 growable 命名参数，C++ 端不需要
-        if (methodName == 'from' || methodName == 'of') {
-          if (expr.arguments.positional.isNotEmpty) {
-            final source = convertExpression(expr.arguments.positional.first);
-            return 'List<$elementType>::$methodName($source)';
-          }
-          return 'List<$elementType>::create()';
-        }
-
-        // List.filled(length, fill, {growable = false}) -> List<T>::filled(length, fill)
-        if (methodName == 'filled') {
-          if (expr.arguments.positional.length >= 2) {
-            final length = convertExpression(expr.arguments.positional[0]);
-            final fill = convertExpression(expr.arguments.positional[1]);
-            return 'List<$elementType>::filled($length, $fill)';
-          }
-        }
-
-        // List.generate(length, generator, {growable = true}) -> List<T>::generate(length, generator)
-        if (methodName == 'generate') {
-          if (expr.arguments.positional.length >= 2) {
-            final length = convertExpression(expr.arguments.positional[0]);
-            final generator = convertExpression(expr.arguments.positional[1]);
-            return 'List<$elementType>::generate($length, $generator)';
-          }
-        }
-      }
-
-      // 特殊处理 Set 工厂构造函数：Set.of, Set.from
-      // LinkedHashSet 已映射为 Set，需要补全泛型参数
-      if (originalClassName == 'Set' ||
-          originalClassName == 'LinkedHashSet' ||
-          originalClassName == '_Set' ||
-          originalClassName == '_CompactLinkedHashSet') {
-        // 推断元素类型
-        String elementType = 'Any';
-
-        // 1. 首先尝试从 Arguments.types 获取类型
-        if (expr.arguments.types.isNotEmpty) {
-          final typeArg = expr.arguments.types.first;
-          if (typeArg is! TypeParameterType) {
-            elementType = CppTypeConverter.convertType(typeArg);
-          }
-        }
-
-        // 2. 尝试从返回类型推断
-        if (elementType == 'Any') {
-          final returnType = target.function.returnType;
-          if (returnType is InterfaceType &&
-              returnType.typeArguments.isNotEmpty) {
-            final typeArg = returnType.typeArguments.first;
-            if (typeArg is! TypeParameterType) {
-              elementType = CppTypeConverter.convertType(typeArg);
-            }
-          }
-        }
-
-        // 3. 尝试从第一个参数的类型推断（参数应该是 Set<T> 或 Iterable<T>）
-        if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
-          final firstArg = expr.arguments.positional.first;
-          // 使用 _inferExpressionType 来推断参数类型
-          final inferredType = _inferExpressionType(firstArg);
-
-          // 如果推断出的类型是 ObjectPtr<Set<T>> 或 Set<T>，提取 T
-          if (inferredType.startsWith('ObjectPtr<Set<') &&
-              inferredType.endsWith('>>')) {
-            elementType = inferredType.substring(
-                'ObjectPtr<Set<'.length, inferredType.length - 2);
-          } else if (inferredType.startsWith('Set<') &&
-              inferredType.endsWith('>')) {
-            elementType =
-                inferredType.substring('Set<'.length, inferredType.length - 1);
-          } else if (inferredType != 'dynamic' && inferredType != 'Any') {
-            // 如果是其他类型，可能是 Iterable<T>
-            if (inferredType.contains('<') && inferredType.contains('>')) {
-              final startIdx = inferredType.indexOf('<');
-              final endIdx = inferredType.lastIndexOf('>');
-              if (startIdx >= 0 && endIdx > startIdx) {
-                elementType = inferredType.substring(startIdx + 1, endIdx);
-              }
-            }
-          }
-        }
-
-        // Set.of(elements) -> Set<T>::of(elements)
-        // Set.from(elements) -> Set<T>::from(elements)
-        if (methodName == 'of' || methodName == 'from') {
-          if (expr.arguments.positional.isNotEmpty) {
-            final source = convertExpression(expr.arguments.positional.first);
-            return 'Set<$elementType>::$methodName($source)';
-          }
-          return 'Set<$elementType>::create()';
-        }
-      }
-
-      // 特殊处理 Map 工厂构造函数：Map.of, Map.from
-      // LinkedHashMap 已映射为 Map，需要补全泛型参数
-      if (originalClassName == 'Map' ||
-          originalClassName == 'LinkedHashMap' ||
-          originalClassName == '_Map' ||
-          originalClassName == '_CompactLinkedHashMap') {
-        // 推断键值类型
-        String keyType = 'Any';
-        String valueType = 'Any';
-
-        // 1. 首先尝试从 Arguments.types 获取类型
-        if (expr.arguments.types.length >= 2) {
-          final keyTypeArg = expr.arguments.types[0];
-          final valueTypeArg = expr.arguments.types[1];
-          if (keyTypeArg is! TypeParameterType) {
-            keyType = CppTypeConverter.convertType(keyTypeArg);
-          }
-          if (valueTypeArg is! TypeParameterType) {
-            valueType = CppTypeConverter.convertType(valueTypeArg);
-          }
-        }
-
-        // 2. 尝试从返回类型推断
-        if (keyType == 'Any' || valueType == 'Any') {
-          final returnType = target.function.returnType;
-          if (returnType is InterfaceType &&
-              returnType.typeArguments.length >= 2) {
-            if (keyType == 'Any') {
-              final keyTypeArg = returnType.typeArguments[0];
-              if (keyTypeArg is! TypeParameterType) {
-                keyType = CppTypeConverter.convertType(keyTypeArg);
-              }
-            }
-            if (valueType == 'Any') {
-              final valueTypeArg = returnType.typeArguments[1];
-              if (valueTypeArg is! TypeParameterType) {
-                valueType = CppTypeConverter.convertType(valueTypeArg);
-              }
-            }
-          }
-        }
-
-        // 3. 尝试从第一个参数的类型推断（参数应该是 Map<K, V>）
-        if ((keyType == 'Any' || valueType == 'Any') &&
-            expr.arguments.positional.isNotEmpty) {
-          final firstArg = expr.arguments.positional.first;
-          // 使用 _inferExpressionType 来推断参数类型
-          final inferredType = _inferExpressionType(firstArg);
-
-          // 如果推断出的类型是 Map<K, V>，提取 K 和 V
-          if (inferredType.startsWith('Map<') && inferredType.endsWith('>')) {
-            final typeParams =
-                inferredType.substring('Map<'.length, inferredType.length - 1);
-            final parts = _splitTypeParameters(typeParams);
-            if (parts.length >= 2) {
-              if (keyType == 'Any') keyType = parts[0];
-              if (valueType == 'Any') valueType = parts[1];
-            }
-          }
-        }
-
-        // Map.of(other) -> Map<K, V>::of(other)
-        // Map.from(other) -> Map<K, V>::from(other)
-        if (methodName == 'of' || methodName == 'from') {
-          if (expr.arguments.positional.isNotEmpty) {
-            final source = convertExpression(expr.arguments.positional.first);
-            return 'Map<$keyType, $valueType>::$methodName($source)';
-          }
-          return 'Map<$keyType, $valueType>::create()';
-        }
+      // 统一处理容器类工厂构造函数（List/Set/Map 及其内部类）
+      final containerFactoryResult = _tryConvertContainerFactoryCall(expr);
+      if (containerFactoryResult != null) {
+        return containerFactoryResult;
       }
 
       // 修复: 将Dart基础类型名称转换为C++类型名称
@@ -1767,12 +1452,6 @@ class ExpressionConverter {
           .map((arg) => convertExpression(arg))
           .join(', ');
       return 'dart_math_$methodName($args)';
-    }
-
-    // 处理内部Set构造函数调用
-    if (target.enclosingClass?.name == '_Set') {
-      // 转换为标准的Set创建
-      return 'Set<Any>::create()';
     }
 
     // 特殊处理 parse 静态方法：过滤掉 Null 参数
@@ -2566,6 +2245,389 @@ class ExpressionConverter {
     return cppValueTypes.contains(typeName);
   }
 
+  // ============================================================================
+  // 统一的 Kernel 内部容器类处理
+  // ============================================================================
+
+  /// 将 Dart 类型推断结果统一转换为 C++ 类型名
+  String _normalizeToCppType(String inferredType) {
+    switch (inferredType) {
+      case 'int':
+        return 'Int';
+      case 'double':
+        return 'Double';
+      case 'bool':
+        return 'Bool';
+      case 'dynamic':
+        return 'Any';
+      default:
+        return inferredType;
+    }
+  }
+
+  /// 推断容器的单个泛型参数类型（用于 List<T>、Set<T>）
+  String _inferSingleTypeArg(Arguments arguments, Procedure? target) {
+    // 1. 从 Arguments.types 获取
+    if (arguments.types.isNotEmpty) {
+      final typeArg = arguments.types.first;
+      if (typeArg is! TypeParameterType) {
+        return CppTypeConverter.convertType(typeArg);
+      }
+    }
+
+    // 2. 从目标函数的返回类型推断
+    if (target != null) {
+      final returnType = target.function.returnType;
+      if (returnType is InterfaceType && returnType.typeArguments.isNotEmpty) {
+        final typeArg = returnType.typeArguments.first;
+        if (typeArg is! TypeParameterType) {
+          return CppTypeConverter.convertType(typeArg);
+        }
+      }
+    }
+
+    // 3. 从第一个非容量参数推断
+    if (arguments.positional.isNotEmpty) {
+      final firstArg = arguments.positional.first;
+      final isCapacityArg = firstArg is IntLiteral && firstArg.value == 0;
+      if (!isCapacityArg) {
+        return _normalizeToCppType(_inferExpressionType(firstArg));
+      }
+    }
+
+    return 'Any';
+  }
+
+  /// 推断容器的双泛型参数类型（用于 Map<K,V>）
+  List<String> _inferDoubleTypeArgs(Arguments arguments, Procedure? target) {
+    String keyType = 'Any';
+    String valueType = 'Any';
+
+    // 1. 从 Arguments.types 获取
+    if (arguments.types.length >= 2) {
+      final keyTypeArg = arguments.types[0];
+      final valueTypeArg = arguments.types[1];
+      if (keyTypeArg is! TypeParameterType) {
+        keyType = CppTypeConverter.convertType(keyTypeArg);
+      }
+      if (valueTypeArg is! TypeParameterType) {
+        valueType = CppTypeConverter.convertType(valueTypeArg);
+      }
+    }
+
+    // 2. 从返回类型推断
+    if (keyType == 'Any' && valueType == 'Any' && target != null) {
+      final returnType = target.function.returnType;
+      if (returnType is InterfaceType && returnType.typeArguments.length >= 2) {
+        final kt = returnType.typeArguments[0];
+        final vt = returnType.typeArguments[1];
+        if (kt is! TypeParameterType) {
+          keyType = CppTypeConverter.convertType(kt);
+        }
+        if (vt is! TypeParameterType) {
+          valueType = CppTypeConverter.convertType(vt);
+        }
+      }
+    }
+
+    return [keyType, valueType];
+  }
+
+  /// 检测混合类型：当元素类型是 Object 时，检查参数中是否包含值类型，
+  /// 如果包含值类型，则应使用 Any 而不是 ObjectPtr<Object>
+  String _adjustObjectElementType(
+      String elementType, List<Expression> positionalArgs) {
+    if (elementType != 'ObjectPtr<Object>' && elementType != 'Object') {
+      return elementType;
+    }
+    final nonCapacityArgs = positionalArgs.where((arg) => !(arg is IntLiteral &&
+        arg.value == 0 &&
+        positionalArgs.first == arg));
+    for (final element in nonCapacityArgs) {
+      if (_isCppValueType(_inferExpressionType(element))) {
+        return 'Any';
+      }
+    }
+    return elementType;
+  }
+
+  /// 过滤掉容量参数（第一个 IntLiteral(0)），转换并连接其余参数
+  String _convertContainerArgs(List<Expression> positionalArgs) {
+    return positionalArgs
+        .where((arg) => !(arg is IntLiteral &&
+            arg.value == 0 &&
+            positionalArgs.first == arg))
+        .map((arg) => convertExpression(arg))
+        .join(', ');
+  }
+
+  /// 统一处理 StaticInvocation 中的内部容器类调用
+  /// 覆盖场景：_GrowableList._literal1~8, _List.create, _Set 构造,
+  /// _Map 构造, 以及对应的工厂方法 from/of/filled/generate 等
+  /// 返回 null 表示不是内部容器类调用
+  String? _tryConvertInternalContainerStaticCall(StaticInvocation expr) {
+    final target = expr.target;
+    final methodName = target.name.text;
+    final enclosingClassName = target.enclosingClass?.name ?? '';
+
+    // 检查是否是内部容器类
+    final publicName = CppConstants.internalClassMapping[enclosingClassName];
+
+    // 也处理 enclosingClassName 以 _ 开头且方法名是 _literal* 或 create 的情况
+    final isInternalLiteralCall = publicName != null ||
+        (enclosingClassName.startsWith('_') &&
+            (methodName.startsWith('_literal') || methodName == 'create'));
+
+    if (!isInternalLiteralCall) return null;
+
+    final resolvedName = publicName ?? 'List'; // 以 _ 开头的未知类默认视为 List
+    final argCount = CppConstants.containerTypeArgCount[resolvedName] ?? 1;
+
+    // 推断泛型参数
+    if (argCount == 2) {
+      // Map 类型
+      final typeArgs = _inferDoubleTypeArgs(expr.arguments, target);
+      final keyType = typeArgs[0];
+      final valueType = typeArgs[1];
+      final typeParam = '$keyType, $valueType';
+
+      // 处理 _literal 或 create 方法
+      if (methodName.startsWith('_literal') || methodName == 'create') {
+        final args = _convertContainerArgs(expr.arguments.positional);
+        if (args.isEmpty) {
+          return '$resolvedName<$typeParam>::create()';
+        }
+        return '$resolvedName<$typeParam>::create($args)';
+      }
+
+      // of/from 等工厂方法
+      if (methodName == 'of' || methodName == 'from') {
+        if (expr.arguments.positional.isNotEmpty) {
+          final source = convertExpression(expr.arguments.positional.first);
+          return '$resolvedName<$typeParam>::$methodName($source)';
+        }
+        return '$resolvedName<$typeParam>::create()';
+      }
+
+      // 其他方法
+      final args = _convertContainerArgs(expr.arguments.positional);
+      return '$resolvedName<$typeParam>::$methodName($args)';
+    } else {
+      // List/Set 类型（单泛型参数）
+      var elementType = _inferSingleTypeArg(expr.arguments, target);
+
+      // 混合类型检测
+      elementType = _adjustObjectElementType(
+          elementType, expr.arguments.positional);
+
+      // 处理 _literal 或 create 方法 -> dart_literal<T>(...)
+      if (methodName.startsWith('_literal') || methodName == 'create') {
+        final args = _convertContainerArgs(expr.arguments.positional);
+        if (args.isEmpty) {
+          return 'dart_literal<$elementType>()';
+        }
+        return 'dart_literal<$elementType>($args)';
+      }
+
+      // of/from 等工厂方法
+      if (methodName == 'of' || methodName == 'from') {
+        if (expr.arguments.positional.isNotEmpty) {
+          final source = convertExpression(expr.arguments.positional.first);
+          return '$resolvedName<$elementType>::$methodName($source)';
+        }
+        return '$resolvedName<$elementType>::create()';
+      }
+
+      // filled/generate（List 特有）
+      if (methodName == 'filled' &&
+          expr.arguments.positional.length >= 2) {
+        final length = convertExpression(expr.arguments.positional[0]);
+        final fill = convertExpression(expr.arguments.positional[1]);
+        return '$resolvedName<$elementType>::filled($length, $fill)';
+      }
+      if (methodName == 'generate' &&
+          expr.arguments.positional.length >= 2) {
+        final length = convertExpression(expr.arguments.positional[0]);
+        final generator = convertExpression(expr.arguments.positional[1]);
+        return '$resolvedName<$elementType>::generate($length, $generator)';
+      }
+
+      // 其他方法
+      final args = _convertContainerArgs(expr.arguments.positional);
+      return '$resolvedName<$elementType>::$methodName($args)';
+    }
+  }
+
+  /// 统一处理 StaticInvocation 中工厂构造函数的内部容器类调用
+  /// 覆盖场景：List.from/of/filled/generate, Set.of/from, Map.of/from
+  /// 以及对应的内部类名（_GrowableList, _Set, _Map 等）
+  /// 返回 null 表示不是内部容器类的工厂调用
+  String? _tryConvertContainerFactoryCall(StaticInvocation expr) {
+    final target = expr.target;
+    if (!target.isFactory) return null;
+
+    final originalClassName = target.enclosingClass?.name ?? '';
+    final methodName = target.name.text;
+
+    // 检查是否是容器类（公开类或内部类）
+    final resolvedName = CppConstants.resolveClassName(originalClassName);
+    final argCount = CppConstants.containerTypeArgCount[resolvedName];
+    if (argCount == null) return null; // 不是容器类
+
+    if (argCount == 2) {
+      // Map 类型
+      final typeArgs = _inferDoubleTypeArgs(expr.arguments, target);
+      final typeParam = '${typeArgs[0]}, ${typeArgs[1]}';
+
+      if (methodName == 'of' || methodName == 'from') {
+        if (expr.arguments.positional.isNotEmpty) {
+          final source = convertExpression(expr.arguments.positional.first);
+          return '$resolvedName<$typeParam>::$methodName($source)';
+        }
+        return '$resolvedName<$typeParam>::create()';
+      }
+
+      // 其他工厂方法
+      final args =
+          expr.arguments.positional.map((a) => convertExpression(a)).join(', ');
+      final factoryName =
+          methodName.isEmpty ? 'create' : _sanitizeIdentifier(methodName);
+      return '$resolvedName<$typeParam>::$factoryName($args)';
+    } else {
+      // List/Set 类型
+      var elementType = _inferSingleTypeArg(expr.arguments, target);
+
+      // of/from
+      if (methodName == 'of' || methodName == 'from') {
+        // 对于 Set，还需要从参数类型中提取泛型
+        if (resolvedName == 'Set' &&
+            elementType == 'Any' &&
+            expr.arguments.positional.isNotEmpty) {
+          final firstArg = expr.arguments.positional.first;
+          final inferredType = _inferExpressionType(firstArg);
+          elementType =
+              _extractInnerTypeFromContainer(inferredType, resolvedName);
+        }
+
+        if (expr.arguments.positional.isNotEmpty) {
+          final source = convertExpression(expr.arguments.positional.first);
+          return '$resolvedName<$elementType>::$methodName($source)';
+        }
+        return '$resolvedName<$elementType>::create()';
+      }
+
+      // filled（List 特有）
+      if (methodName == 'filled' &&
+          expr.arguments.positional.length >= 2) {
+        final length = convertExpression(expr.arguments.positional[0]);
+        final fill = convertExpression(expr.arguments.positional[1]);
+        return '$resolvedName<$elementType>::filled($length, $fill)';
+      }
+
+      // generate（List 特有）
+      if (methodName == 'generate' &&
+          expr.arguments.positional.length >= 2) {
+        final length = convertExpression(expr.arguments.positional[0]);
+        final generator = convertExpression(expr.arguments.positional[1]);
+        return '$resolvedName<$elementType>::generate($length, $generator)';
+      }
+
+      // 默认工厂方法
+      final args =
+          expr.arguments.positional.map((a) => convertExpression(a)).join(', ');
+      final factoryName =
+          methodName.isEmpty ? 'create' : _sanitizeIdentifier(methodName);
+      return '$resolvedName<$elementType>::$factoryName($args)';
+    }
+  }
+
+  /// 从推断的容器类型字符串中提取内部泛型参数
+  /// 例如 'ObjectPtr<Set<Int>>' -> 'Int', 'Set<Int>' -> 'Int'
+  String _extractInnerTypeFromContainer(
+      String inferredType, String containerName) {
+    // ObjectPtr<Container<T>> 格式
+    final objPtrPrefix = 'ObjectPtr<$containerName<';
+    if (inferredType.startsWith(objPtrPrefix) && inferredType.endsWith('>>')) {
+      return inferredType.substring(
+          objPtrPrefix.length, inferredType.length - 2);
+    }
+    // Container<T> 格式
+    final prefix = '$containerName<';
+    if (inferredType.startsWith(prefix) && inferredType.endsWith('>')) {
+      return inferredType.substring(prefix.length, inferredType.length - 1);
+    }
+    // 其他容器类型 (Iterable<T> 等)
+    if (inferredType.contains('<') && inferredType.contains('>')) {
+      final startIdx = inferredType.indexOf('<');
+      final endIdx = inferredType.lastIndexOf('>');
+      if (startIdx >= 0 && endIdx > startIdx) {
+        return inferredType.substring(startIdx + 1, endIdx);
+      }
+    }
+    return 'Any';
+  }
+
+  /// 统一处理 ConstructorInvocation 中的内部容器类
+  /// 覆盖场景：_GrowableList._literalN, _List 构造等
+  /// 返回 null 表示不是内部容器类构造
+  String? _tryConvertInternalContainerConstructor(ConstructorInvocation expr) {
+    final originalClassName = expr.target.enclosingClass.name;
+    final constructorName = expr.target.name.text;
+
+    // 检查是否是内部容器类
+    final resolvedName = CppConstants.resolveClassName(originalClassName);
+    final isInternalClass =
+        CppConstants.isInternalContainerClass(originalClassName);
+    if (!isInternalClass) return null;
+
+    final argCount = CppConstants.containerTypeArgCount[resolvedName] ?? 1;
+
+    if (argCount == 2) {
+      // Map 类型
+      final typeArgs = _inferDoubleTypeArgs(expr.arguments, null);
+      final typeParam = '${typeArgs[0]}, ${typeArgs[1]}';
+
+      if (constructorName.isNotEmpty && constructorName != '_') {
+        final sanitizedCtorName = _sanitizeIdentifier(constructorName);
+        return '$resolvedName<$typeParam>::$sanitizedCtorName(${_convertContainerArgs(expr.arguments.positional)})';
+      }
+      final args = _convertContainerArgs(expr.arguments.positional);
+      return 'ObjectPtr<$resolvedName<$typeParam>>(new $resolvedName<$typeParam>($args))';
+    } else {
+      // List/Set 类型
+      var elementType = _inferSingleTypeArg(expr.arguments, null);
+
+      // 从构造函数的类型参数补充推断
+      if (elementType == 'Any' && expr.arguments.types.isNotEmpty) {
+        final typeArg = expr.arguments.types.first;
+        if (typeArg is! TypeParameterType) {
+          elementType = CppTypeConverter.convertType(typeArg);
+        }
+      }
+
+      // 混合类型检测
+      elementType = _adjustObjectElementType(
+          elementType, expr.arguments.positional);
+
+      // _literal 系列或 create
+      if (constructorName.startsWith('_literal') ||
+          constructorName == 'create' ||
+          constructorName == '' ||
+          constructorName == '_') {
+        final args = _convertContainerArgs(expr.arguments.positional);
+        if (args.isEmpty) {
+          return 'dart_literal<$elementType>()';
+        }
+        return 'dart_literal<$elementType>($args)';
+      }
+
+      // 命名构造函数
+      final sanitizedCtorName = _sanitizeIdentifier(constructorName);
+      final args = _convertContainerArgs(expr.arguments.positional);
+      return '$resolvedName<$elementType>::$sanitizedCtorName($args)';
+    }
+  }
+
   String _convertSetLiteral(SetLiteral expr) {
     final elementType = CppTypeConverter.convertType(expr.typeArgument);
     if (expr.expressions.isEmpty) {
@@ -3274,112 +3336,55 @@ class ExpressionConverter {
       return 'dart_string("")';
     }
 
-    // 特殊处理 List 工厂构造函数：List.from, List.of, List.filled 等
-    if (originalClassName == 'List' || originalClassName == '_GrowableList') {
-      // 推断元素类型
-      String elementType = 'Any';
-      if (expr.arguments.types.isNotEmpty) {
-        final typeArg = expr.arguments.types.first;
-        if (typeArg is! TypeParameterType) {
-          elementType = CppTypeConverter.convertType(typeArg);
-        }
-      }
-
-      // List.from(iterable, {growable = true}) -> List<T>::from(iterable)
-      // 忽略 growable 参数，C++ 端不需要
-      if (constructorName == 'from' || constructorName == 'of') {
-        if (expr.arguments.positional.isNotEmpty) {
-          final source = convertExpression(expr.arguments.positional.first);
-          return 'List<$elementType>::$constructorName($source)';
-        }
-        return 'List<$elementType>::create()';
-      }
-
-      // List.filled(length, fill, {growable = false}) -> List<T>::filled(length, fill)
-      if (constructorName == 'filled') {
-        if (expr.arguments.positional.length >= 2) {
-          final length = convertExpression(expr.arguments.positional[0]);
-          final fill = convertExpression(expr.arguments.positional[1]);
-          return 'List<$elementType>::filled($length, $fill)';
-        }
-      }
-
-      // List.generate(length, generator, {growable = true}) -> List<T>::generate(length, generator)
-      if (constructorName == 'generate') {
-        if (expr.arguments.positional.length >= 2) {
-          final length = convertExpression(expr.arguments.positional[0]);
-          final generator = convertExpression(expr.arguments.positional[1]);
-          return 'List<$elementType>::generate($length, $generator)';
-        }
-      }
+    // 统一处理内部容器类构造（_GrowableList, _List, _Set, _Map 等）
+    // 以及公开容器类的命名构造函数（List.from, Set.of, Map.from 等）
+    final containerCtorResult =
+        _tryConvertInternalContainerConstructor(expr);
+    if (containerCtorResult != null) {
+      return containerCtorResult;
     }
 
-    // 修复问题1A: 处理_GrowableList::_literalN调用
-    if (originalClassName == '_GrowableList' ||
-        originalClassName == '_List' ||
-        (originalClassName.startsWith('_') &&
-            expr.target.name.text.startsWith('_literal'))) {
-      // 推断元素类型
-      String elementType = 'Any';
-
-      // 1. 尝试从构造函数的类型参数推断
-      if (expr.arguments.types.isNotEmpty) {
-        final typeArg = expr.arguments.types.first;
-        if (typeArg is! TypeParameterType) {
-          elementType = CppTypeConverter.convertType(typeArg);
-        }
-      }
-      // 2. 如果还是泛型,尝试从第一个参数推断(跳过容量参数)
-      if (elementType == 'Any' && expr.arguments.positional.isNotEmpty) {
-        final firstArg = expr.arguments.positional.first;
-        final isCapacityArg = firstArg is IntLiteral && firstArg.value == 0;
-
-        if (!isCapacityArg) {
-          elementType = _inferExpressionType(firstArg);
-          if (elementType == 'int')
-            elementType = 'Int';
-          else if (elementType == 'double')
-            elementType = 'Double';
-          else if (elementType == 'bool')
-            elementType = 'Bool';
-          else if (elementType == 'dynamic') elementType = 'Any';
-        }
-      }
-
-      // 混合类型检测：当元素类型是 Object 或 ObjectPtr<Object> 时，检查是否包含值类型
-      // 如果包含值类型，应使用 Any 而不是 ObjectPtr<Object>
-      if (elementType == 'ObjectPtr<Object>' || elementType == 'Object') {
-        final nonCapacityArgs = expr.arguments.positional.where((arg) =>
-            !(arg is IntLiteral &&
-                arg.value == 0 &&
-                expr.arguments.positional.first == arg));
-        if (nonCapacityArgs.isNotEmpty) {
-          bool hasValueType = false;
-          for (final e in nonCapacityArgs) {
-            final inferredType = _inferExpressionType(e);
-            if (_isCppValueType(inferredType)) {
-              hasValueType = true;
-              break;
-            }
+    // 公开容器类的命名构造函数（List.from/of/filled/generate 等）
+    final resolvedContainerName =
+        CppConstants.resolveClassName(originalClassName);
+    final containerArgCount =
+        CppConstants.containerTypeArgCount[resolvedContainerName];
+    if (containerArgCount != null) {
+      if (containerArgCount == 2) {
+        final typeArgs = _inferDoubleTypeArgs(expr.arguments, null);
+        final typeParam = '${typeArgs[0]}, ${typeArgs[1]}';
+        if (constructorName == 'from' || constructorName == 'of') {
+          if (expr.arguments.positional.isNotEmpty) {
+            final source =
+                convertExpression(expr.arguments.positional.first);
+            return '$resolvedContainerName<$typeParam>::$constructorName($source)';
           }
-          // 如果包含值类型，应该使用 Any
-          if (hasValueType) {
-            elementType = 'Any';
+          return '$resolvedContainerName<$typeParam>::create()';
+        }
+      } else {
+        var elementType = _inferSingleTypeArg(expr.arguments, null);
+        if (constructorName == 'from' || constructorName == 'of') {
+          if (expr.arguments.positional.isNotEmpty) {
+            final source =
+                convertExpression(expr.arguments.positional.first);
+            return '$resolvedContainerName<$elementType>::$constructorName($source)';
           }
+          return '$resolvedContainerName<$elementType>::create()';
+        }
+        if (constructorName == 'filled' &&
+            expr.arguments.positional.length >= 2) {
+          final length = convertExpression(expr.arguments.positional[0]);
+          final fill = convertExpression(expr.arguments.positional[1]);
+          return '$resolvedContainerName<$elementType>::filled($length, $fill)';
+        }
+        if (constructorName == 'generate' &&
+            expr.arguments.positional.length >= 2) {
+          final length = convertExpression(expr.arguments.positional[0]);
+          final generator =
+              convertExpression(expr.arguments.positional[1]);
+          return '$resolvedContainerName<$elementType>::generate($length, $generator)';
         }
       }
-
-      // 过滤掉容量参数
-      final args = expr.arguments.positional
-          .where((arg) => !(arg is IntLiteral &&
-              arg.value == 0 &&
-              expr.arguments.positional.first == arg))
-          .map((arg) => convertExpression(arg))
-          .join(', ');
-      if (args.isEmpty) {
-        return 'dart_literal<$elementType>()';
-      }
-      return 'dart_literal<$elementType>($args)';
     }
 
     // 对于已知的 C++ 异常类，只使用实际提供的参数，不进行可选参数补全
@@ -3478,10 +3483,7 @@ class ExpressionConverter {
     if (constructorName.isNotEmpty) {
       final sanitizedCtorName = _sanitizeIdentifier(constructorName);
       // 修复内部类型名称
-      final fixedClassName = className
-          .replaceAll('_Set', 'Set')
-          .replaceAll('_Map', 'Map')
-          .replaceAll('_List', 'List');
+      final fixedClassName = CppConstants.fixInternalClassName(className);
       if (needsObjectPtr) {
         return '$fixedClassName::$sanitizedCtorName($args)';
       } else {
@@ -3491,12 +3493,9 @@ class ExpressionConverter {
 
     if (expr.isConst) {
       // 只有 List/Set/Map 支持 createConst，其他类型使用普通构造函数
-      final isContainerType = className == 'List' ||
-          className == 'Set' ||
-          className == 'Map' ||
-          className == '_List' ||
-          className == '_Set' ||
-          className == '_Map';
+      final resolvedName = CppConstants.resolveClassName(className);
+      final isContainerType =
+          CppConstants.containerTypeArgCount.containsKey(resolvedName);
 
       if (isContainerType) {
         if (needsObjectPtr) {
@@ -3515,10 +3514,7 @@ class ExpressionConverter {
     }
 
     // 修复内部类型名称
-    final fixedClassName = className
-        .replaceAll('_Set', 'Set')
-        .replaceAll('_Map', 'Map')
-        .replaceAll('_List', 'List');
+    final fixedClassName = CppConstants.fixInternalClassName(className);
 
     // 修复问题3A: 推导泛型参数
     // 对于 Set、List、Map 等容器类型，需要推导泛型参数

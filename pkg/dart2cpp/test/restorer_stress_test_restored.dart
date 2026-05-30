@@ -43,15 +43,17 @@ bool Color_get_isWarm(Color this_) {
 }
 
 class Comparable2Value<T> extends VPtr {
+  Comparable2Value() {
+    vptr['compareTo'] = Comparable2_compareTo<T>;
+    vptr['operatorLt'] = Comparable2_operatorLt<T>;
+    vptr['operatorGt'] = Comparable2_operatorGt<T>;
+    vptr['operatorLte'] = Comparable2_operatorLte<T>;
+    vptr['operatorGte'] = Comparable2_operatorGte<T>;
+  }
 }
 
 Comparable2Value<T> Comparable2_new<T>(dynamic this__) {
   final this_ = this__ as Comparable2Value<T>;
-  this_.vptr['compareTo'] = Comparable2_compareTo<T>;
-  this_.vptr['operatorLt'] = Comparable2_operatorLt<T>;
-  this_.vptr['operatorGt'] = Comparable2_operatorGt<T>;
-  this_.vptr['operatorLte'] = Comparable2_operatorLte<T>;
-  this_.vptr['operatorGte'] = Comparable2_operatorGte<T>;
   return this_;
 }
 
@@ -95,7 +97,7 @@ String Serializable_toJson<T>(dynamic this__) {
 
 
 // mixin Cacheable → static functions for delegation
-final Map<String, dynamic> Cacheable__cache = <String, dynamic>{};
+final StaticMap<String, dynamic> Cacheable__cache = StaticMap<String, dynamic>.of({});
 void Cacheable_cacheValue<K>(dynamic this__, dynamic value) {
   final this_ = this__;
   Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(dynamic))(this_)}'] = value;
@@ -110,24 +112,25 @@ dynamic Cacheable_getCachedValue<K>(dynamic this__) {
 // mixin Validatable → static functions for delegation
 bool Validatable_get_isValid(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['validate'] as List<String> Function(dynamic))(this_).isEmpty;
+  return (this_.vptr['validate'] as StaticList<String> Function(dynamic))(this_).isEmpty;
 }
 
 
 class EntityValue<ID> extends Entity_Object_Printable_CacheableValue<ID> {
   late ID id;
   late String name;
+  EntityValue() {
+    vptr['get_label'] = Entity_get_label<ID>;
+    vptr['toPrettyString'] = Entity_toPrettyString<ID>;
+    vptr['get_cacheKey'] = Entity_get_cacheKey<ID>;
+    vptr['cacheValue'] = Entity_cacheValue<ID>;
+    vptr['getCachedValue'] = Entity_getCachedValue<ID>;
+    vptr['toString'] = Entity_toString<ID>;
+  }
 }
 
 EntityValue<ID> Entity_new<ID>(dynamic this__, ID id, String name) {
   final this_ = this__ as EntityValue<ID>;
-  Entity_Object_Printable_Cacheable_init(this_);
-  this_.vptr['get_label'] = Entity_get_label<ID>;
-  this_.vptr['toPrettyString'] = Entity_toPrettyString<ID>;
-  this_.vptr['get_cacheKey'] = Entity_get_cacheKey<ID>;
-  this_.vptr['cacheValue'] = Entity_cacheValue<ID>;
-  this_.vptr['getCachedValue'] = Entity_getCachedValue<ID>;
-  this_.vptr['toString'] = Entity_toString<ID>;
   this_.id = id;
   this_.name = name;
   return this_;
@@ -167,18 +170,20 @@ dynamic Entity_getCachedValue<ID>(dynamic this__) {
 class TimestampedEntityValue<ID> extends EntityValue<ID> {
   late int createdAt;
   late int updatedAt;
+  TimestampedEntityValue() {
+    vptr['get_label'] = TimestampedEntity_get_label<ID>;
+    vptr['toPrettyString'] = TimestampedEntity_toPrettyString<ID>;
+    vptr['get_cacheKey'] = TimestampedEntity_get_cacheKey<ID>;
+    vptr['cacheValue'] = TimestampedEntity_cacheValue<ID>;
+    vptr['getCachedValue'] = TimestampedEntity_getCachedValue<ID>;
+    vptr['toString'] = TimestampedEntity_toString<ID>;
+    vptr['get_age'] = TimestampedEntity_get_age<ID>;
+  }
 }
 
 TimestampedEntityValue<ID> TimestampedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  Entity_new(this_, id, name);
-  this_.vptr['get_label'] = TimestampedEntity_get_label<ID>;
-  this_.vptr['toPrettyString'] = TimestampedEntity_toPrettyString<ID>;
-  this_.vptr['get_cacheKey'] = TimestampedEntity_get_cacheKey<ID>;
-  this_.vptr['cacheValue'] = TimestampedEntity_cacheValue<ID>;
-  this_.vptr['getCachedValue'] = TimestampedEntity_getCachedValue<ID>;
-  this_.vptr['toString'] = TimestampedEntity_toString<ID>;
-  this_.vptr['get_age'] = TimestampedEntity_get_age<ID>;
+  Entity_new<ID>(this_, id, name);
   this_.createdAt = createdAt;
   this_.updatedAt = updatedAt;
   return this_;
@@ -222,29 +227,30 @@ String TimestampedEntity_toString<ID>(dynamic this__) {
 
 class VersionedEntityValue<ID> extends VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> {
   late int _version;
-  late List<String> _changelog;
+  late StaticList<String> _changelog;
+  VersionedEntityValue() {
+    vptr['get_label'] = VersionedEntity_get_label<ID>;
+    vptr['toPrettyString'] = VersionedEntity_toPrettyString<ID>;
+    vptr['get_cacheKey'] = VersionedEntity_get_cacheKey<ID>;
+    vptr['cacheValue'] = VersionedEntity_cacheValue<ID>;
+    vptr['getCachedValue'] = VersionedEntity_getCachedValue<ID>;
+    vptr['toString'] = VersionedEntity_toString<ID>;
+    vptr['get_age'] = VersionedEntity_get_age<ID>;
+    vptr['serialize'] = VersionedEntity_serialize<ID>;
+    vptr['toJson'] = VersionedEntity_toJson<ID>;
+    vptr['validate'] = VersionedEntity_validate<ID>;
+    vptr['get_isValid'] = VersionedEntity_get_isValid<ID>;
+    vptr['get_version'] = VersionedEntity_get_version<ID>;
+    vptr['bump'] = VersionedEntity_bump<ID>;
+    vptr['get_changelog'] = VersionedEntity_get_changelog<ID>;
+  }
 }
 
 VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
   final this_ = this__ as VersionedEntityValue<ID>;
-  TimestampedEntity_new(this_, id, name, createdAt, updatedAt);
-  VersionedEntity_TimestampedEntity_Serializable_Validatable_init(this_);
-  this_.vptr['get_label'] = VersionedEntity_get_label<ID>;
-  this_.vptr['toPrettyString'] = VersionedEntity_toPrettyString<ID>;
-  this_.vptr['get_cacheKey'] = VersionedEntity_get_cacheKey<ID>;
-  this_.vptr['cacheValue'] = VersionedEntity_cacheValue<ID>;
-  this_.vptr['getCachedValue'] = VersionedEntity_getCachedValue<ID>;
-  this_.vptr['toString'] = VersionedEntity_toString<ID>;
-  this_.vptr['get_age'] = VersionedEntity_get_age<ID>;
-  this_.vptr['serialize'] = VersionedEntity_serialize<ID>;
-  this_.vptr['toJson'] = VersionedEntity_toJson<ID>;
-  this_.vptr['validate'] = VersionedEntity_validate<ID>;
-  this_.vptr['get_isValid'] = VersionedEntity_get_isValid<ID>;
-  this_.vptr['get_version'] = VersionedEntity_get_version<ID>;
-  this_.vptr['bump'] = VersionedEntity_bump<ID>;
-  this_.vptr['get_changelog'] = VersionedEntity_get_changelog<ID>;
+  TimestampedEntity_new<ID>(this_, id, name, createdAt, updatedAt);
   this_._version = 1;
-  this_._changelog = <String>[];
+  this_._changelog = StaticList<String>.of([]);
   return this_;
 }
 
@@ -259,9 +265,9 @@ void VersionedEntity_bump<ID>(dynamic this__, String change) {
   this_._changelog.add('v${this_._version}: ${change}');
 }
 
-List<String> VersionedEntity_get_changelog<ID>(dynamic this__) {
+StaticList<String> VersionedEntity_get_changelog<ID>(dynamic this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
-  return List.unmodifiable(this_._changelog);
+  return StaticList<String>.unmodifiable(this_._changelog);
 }
 
 String VersionedEntity_serialize<ID>(dynamic this__) {
@@ -269,9 +275,9 @@ String VersionedEntity_serialize<ID>(dynamic this__) {
   return '${this_.id}:${this_.name}:v${this_._version}';
 }
 
-List<String> VersionedEntity_validate<ID>(dynamic this__) {
+StaticList<String> VersionedEntity_validate<ID>(dynamic this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
-  final List<String> errors = <String>[];
+  final StaticList<String> errors = StaticList<String>.of([]);
   if (this_.name.isEmpty)   errors.add('name is empty');
   if ((this_._version < 1))   errors.add('invalid version');
   return errors;
@@ -326,24 +332,37 @@ bool VersionedEntity_get_isValid<ID>(dynamic this__) {
 class MoneyValue extends Money_Comparable2_PrintableValue {
   late int cents;
   late String currency;
+  MoneyValue() {
+    vptr['compareTo'] = Money_compareTo;
+    vptr['operatorLt'] = Money_operatorLt;
+    vptr['operatorGt'] = Money_operatorGt;
+    vptr['operatorLte'] = Money_operatorLte;
+    vptr['operatorGte'] = Money_operatorGte;
+    vptr['get_label'] = Money_get_label;
+    vptr['toPrettyString'] = Money_toPrettyString;
+    vptr['operatorPlus'] = Money_operatorPlus;
+    vptr['operatorMinus'] = Money_operatorMinus;
+    vptr['operatorStar'] = Money_operatorStar;
+    vptr['operatorNeg'] = Money_operatorNeg;
+    vptr['toString'] = Money_toString;
+    vptr['compareTo'] = Money_compareTo;
+    vptr['operatorLt'] = Money_operatorLt;
+    vptr['operatorGt'] = Money_operatorGt;
+    vptr['operatorLte'] = Money_operatorLte;
+    vptr['operatorGte'] = Money_operatorGte;
+    vptr['get_label'] = Money_get_label;
+    vptr['toPrettyString'] = Money_toPrettyString;
+    vptr['operatorPlus'] = Money_operatorPlus;
+    vptr['operatorMinus'] = Money_operatorMinus;
+    vptr['operatorStar'] = Money_operatorStar;
+    vptr['operatorNeg'] = Money_operatorNeg;
+    vptr['toString'] = Money_toString;
+  }
 }
 
 MoneyValue Money_new(dynamic this__, int cents, [String currency = 'USD']) {
   final this_ = this__ as MoneyValue;
-  Comparable2_new(this_);
-  Money_Comparable2_Printable_init(this_);
-  this_.vptr['compareTo'] = Money_compareTo;
-  this_.vptr['operatorLt'] = Money_operatorLt;
-  this_.vptr['operatorGt'] = Money_operatorGt;
-  this_.vptr['operatorLte'] = Money_operatorLte;
-  this_.vptr['operatorGte'] = Money_operatorGte;
-  this_.vptr['get_label'] = Money_get_label;
-  this_.vptr['toPrettyString'] = Money_toPrettyString;
-  this_.vptr['operatorPlus'] = Money_operatorPlus;
-  this_.vptr['operatorMinus'] = Money_operatorMinus;
-  this_.vptr['operatorStar'] = Money_operatorStar;
-  this_.vptr['operatorNeg'] = Money_operatorNeg;
-  this_.vptr['toString'] = Money_toString;
+  Comparable2_new<MoneyValue>(this_);
   this_.cents = cents;
   this_.currency = currency;
   return this_;
@@ -351,20 +370,7 @@ MoneyValue Money_new(dynamic this__, int cents, [String currency = 'USD']) {
 
 MoneyValue Money_new_fromDollars(dynamic this__, double dollars, [String currency = 'USD']) {
   final this_ = this__ as MoneyValue;
-  Comparable2_new(this_);
-  Money_Comparable2_Printable_init(this_);
-  this_.vptr['compareTo'] = Money_compareTo;
-  this_.vptr['operatorLt'] = Money_operatorLt;
-  this_.vptr['operatorGt'] = Money_operatorGt;
-  this_.vptr['operatorLte'] = Money_operatorLte;
-  this_.vptr['operatorGte'] = Money_operatorGte;
-  this_.vptr['get_label'] = Money_get_label;
-  this_.vptr['toPrettyString'] = Money_toPrettyString;
-  this_.vptr['operatorPlus'] = Money_operatorPlus;
-  this_.vptr['operatorMinus'] = Money_operatorMinus;
-  this_.vptr['operatorStar'] = Money_operatorStar;
-  this_.vptr['operatorNeg'] = Money_operatorNeg;
-  this_.vptr['toString'] = Money_toString;
+  Comparable2_new<MoneyValue>(this_);
   this_.cents = (dollars * 100).round();
   this_.currency = currency;
   return this_;
@@ -434,46 +440,48 @@ String Money_toPrettyString(dynamic this__) {
 
 
 class ConfigValue extends VPtr {
-  late Map<String, dynamic> _data;
+  late StaticMap<String, dynamic> _data;
+  ConfigValue() {
+    vptr['operatorIndex'] = Config_operatorIndex;
+    vptr['operatorIndexSet'] = Config_operatorIndexSet;
+    vptr['containsKey'] = Config_containsKey;
+    vptr['get_length'] = Config_get_length;
+    vptr['toString'] = Config_toString;
+    vptr['operatorIndex'] = Config_operatorIndex;
+    vptr['operatorIndexSet'] = Config_operatorIndexSet;
+    vptr['containsKey'] = Config_containsKey;
+    vptr['get_length'] = Config_get_length;
+    vptr['toString'] = Config_toString;
+    vptr['operatorIndex'] = Config_operatorIndex;
+    vptr['operatorIndexSet'] = Config_operatorIndexSet;
+    vptr['containsKey'] = Config_containsKey;
+    vptr['get_length'] = Config_get_length;
+    vptr['toString'] = Config_toString;
+  }
 }
 
-ConfigValue Config_new(dynamic this__, Map<String, dynamic> _data) {
+ConfigValue Config_new(dynamic this__, StaticMap<String, dynamic> _data) {
   final this_ = this__ as ConfigValue;
-  this_.vptr['operatorIndex'] = Config_operatorIndex;
-  this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
-  this_.vptr['containsKey'] = Config_containsKey;
-  this_.vptr['get_length'] = Config_get_length;
-  this_.vptr['toString'] = Config_toString;
   this_._data = _data;
   return this_;
 }
 
 ConfigValue Config_new_empty(dynamic this__) {
   final this_ = this__ as ConfigValue;
-  this_.vptr['operatorIndex'] = Config_operatorIndex;
-  this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
-  this_.vptr['containsKey'] = Config_containsKey;
-  this_.vptr['get_length'] = Config_get_length;
-  this_.vptr['toString'] = Config_toString;
-  this_._data = <String, dynamic>{};
+  this_._data = StaticMap<String, dynamic>.of({});
   return this_;
 }
 
-ConfigValue Config_new_fromPairs(dynamic this__, List<List<dynamic>> pairs) {
+ConfigValue Config_new_fromPairs(dynamic this__, StaticList<StaticList<dynamic>> pairs) {
   final this_ = this__ as ConfigValue;
-  this_.vptr['operatorIndex'] = Config_operatorIndex;
-  this_.vptr['operatorIndexSet'] = Config_operatorIndexSet;
-  this_.vptr['containsKey'] = Config_containsKey;
-  this_.vptr['get_length'] = Config_get_length;
-  this_.vptr['toString'] = Config_toString;
-  this_._data = (() {   final Map<String, dynamic> _v0 = <String, dynamic>{};
+  this_._data = (() {   final StaticMap<String, dynamic> _v0 = StaticMap<String, dynamic>.of({});
   for (final p in pairs)   _v0[(p[0] as String)] = p[1];
  return _v0; })();
   return this_;
 }
 
-ConfigValue Config_new_withDefaults(Map<String, dynamic> overrides) {
-  final Map<String, dynamic> defaults = <String, dynamic>{'debug': false, 'maxRetries': 3, 'timeout': 30, 'name': 'default'};
+ConfigValue Config_new_withDefaults(StaticMap<String, dynamic> overrides) {
+  final StaticMap<String, dynamic> defaults = StaticMap<String, dynamic>.of({'debug': false, 'maxRetries': 3, 'timeout': 30, 'name': 'default'});
   defaults.addAll(overrides);
   return Config_new(ConfigValue(), defaults);
 }
@@ -500,21 +508,23 @@ int Config_get_length(dynamic this__) {
 
 String Config_toString(dynamic this__) {
   final this_ = this__ as ConfigValue;
-  final List<String> sorted = (this_._data.keys.toList()..sort());
+  final StaticList<String> sorted = (StaticList.of(this_._data.keys.toList())..sort());
   final Iterable<String> entries = sorted.map(ClosureEnv_anon_0(this_).call);
   return 'Config{${entries.join(', ')}}';
 }
 
 
 class EventBusValue extends VPtr {
-  late List<void Function(String)> _listeners;
+  late StaticList<void Function(String)> _listeners;
+  EventBusValue() {
+    vptr['on'] = EventBus_on;
+    vptr['emit'] = EventBus_emit;
+  }
 }
 
 EventBusValue EventBus_new(dynamic this__) {
   final this_ = this__ as EventBusValue;
-  this_.vptr['on'] = EventBus_on;
-  this_.vptr['emit'] = EventBus_emit;
-  this_._listeners = <void Function(String)>[];
+  this_._listeners = StaticList<void Function(String)>.of([]);
   return this_;
 }
 
@@ -532,11 +542,13 @@ void EventBus_emit(dynamic this__, String event) {
 
 
 class DrawableValue extends VPtr {
+  DrawableValue() {
+    vptr['draw'] = Drawable_draw;
+  }
 }
 
 DrawableValue Drawable_new(dynamic this__) {
   final this_ = this__ as DrawableValue;
-  this_.vptr['draw'] = Drawable_draw;
   return this_;
 }
 
@@ -546,11 +558,13 @@ void Drawable_draw(dynamic this_) {
 
 
 class ResizableValue extends VPtr {
+  ResizableValue() {
+    vptr['resize'] = Resizable_resize;
+  }
 }
 
 ResizableValue Resizable_new(dynamic this__) {
   final this_ = this__ as ResizableValue;
-  this_.vptr['resize'] = Resizable_resize;
   return this_;
 }
 
@@ -560,11 +574,13 @@ void Resizable_resize(dynamic this_, double factor) {
 
 
 class ClickableValue extends VPtr {
+  ClickableValue() {
+    vptr['onClick'] = Clickable_onClick;
+  }
 }
 
 ClickableValue Clickable_new(dynamic this__) {
   final this_ = this__ as ClickableValue;
-  this_.vptr['onClick'] = Clickable_onClick;
   return this_;
 }
 
@@ -577,14 +593,16 @@ class WidgetValue extends VPtr implements DrawableValue, ResizableValue, Clickab
   late String _state;
   late double _scale;
   late int _clickCount;
+  WidgetValue() {
+    vptr['draw'] = Widget_draw;
+    vptr['resize'] = Widget_resize;
+    vptr['onClick'] = Widget_onClick;
+    vptr['get_info'] = Widget_get_info;
+  }
 }
 
 WidgetValue Widget_new(dynamic this__) {
   final this_ = this__ as WidgetValue;
-  this_.vptr['draw'] = Widget_draw;
-  this_.vptr['resize'] = Widget_resize;
-  this_.vptr['onClick'] = Widget_onClick;
-  this_.vptr['get_info'] = Widget_get_info;
   this_._state = 'idle';
   this_._scale = 1.0;
   this_._clickCount = 0;
@@ -616,15 +634,17 @@ String Widget_get_info(dynamic this__) {
 class PairValue<A, B> extends VPtr {
   late A first;
   late B second;
+  PairValue() {
+    vptr['swap'] = Pair_swap<A, B>;
+    vptr['mapFirst_int'] = Pair_mapFirst<A, B, int>;
+    vptr['mapSecond_String'] = Pair_mapSecond<A, B, String>;
+    vptr['fold_String'] = Pair_fold<A, B, String>;
+    vptr['toString'] = Pair_toString<A, B>;
+  }
 }
 
 PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
   final this_ = this__ as PairValue<A, B>;
-  this_.vptr['swap'] = Pair_swap<A, B>;
-  this_.vptr['mapFirst_int'] = Pair_mapFirst<A, B, int>;
-  this_.vptr['mapSecond_String'] = Pair_mapSecond<A, B, String>;
-  this_.vptr['fold_String'] = Pair_fold<A, B, String>;
-  this_.vptr['toString'] = Pair_toString<A, B>;
   this_.first = first;
   this_.second = second;
   return this_;
@@ -658,16 +678,18 @@ String Pair_toString<A, B>(dynamic this__) {
 
 class TripleValue<A, B, C> extends PairValue<A, B> {
   late C third;
+  TripleValue() {
+    vptr['swap'] = Triple_swap<A, B, C>;
+    vptr['mapFirst'] = Triple_mapFirst<A, B, C>;
+    vptr['mapSecond'] = Triple_mapSecond<A, B, C>;
+    vptr['fold_String'] = Triple_fold<A, B, C, String>;
+    vptr['toString'] = Triple_toString<A, B, C>;
+  }
 }
 
 TripleValue<A, B, C> Triple_new<A, B, C>(dynamic this__, A first, B second, C third) {
   final this_ = this__ as TripleValue<A, B, C>;
-  Pair_new(this_, first, second);
-  this_.vptr['swap'] = Triple_swap<A, B, C>;
-  this_.vptr['mapFirst'] = Triple_mapFirst<A, B, C>;
-  this_.vptr['mapSecond'] = Triple_mapSecond<A, B, C>;
-  this_.vptr['fold_String'] = Triple_fold<A, B, C, String>;
-  this_.vptr['toString'] = Triple_toString<A, B, C>;
+  Pair_new<A, B>(this_, first, second);
   this_.third = third;
   return this_;
 }
@@ -701,15 +723,17 @@ R Triple_fold<A, B, C, R>(dynamic this__, R Function(A, B) combine) {
 class StringBuilderValue extends VPtr {
   late StringBuffer _buf;
   late String _separator;
+  StringBuilderValue() {
+    vptr['withSeparator'] = StringBuilder_withSeparator;
+    vptr['add'] = StringBuilder_add;
+    vptr['addAll'] = StringBuilder_addAll;
+    vptr['get_length'] = StringBuilder_get_length;
+    vptr['toString'] = StringBuilder_toString;
+  }
 }
 
 StringBuilderValue StringBuilder_new(dynamic this__) {
   final this_ = this__ as StringBuilderValue;
-  this_.vptr['withSeparator'] = StringBuilder_withSeparator;
-  this_.vptr['add'] = StringBuilder_add;
-  this_.vptr['addAll'] = StringBuilder_addAll;
-  this_.vptr['get_length'] = StringBuilder_get_length;
-  this_.vptr['toString'] = StringBuilder_toString;
   this_._buf = StringBuffer();
   this_._separator = '';
   return this_;
@@ -730,7 +754,7 @@ StringBuilderValue StringBuilder_add(dynamic this__, String text) {
   return this_;
 }
 
-StringBuilderValue StringBuilder_addAll(dynamic this__, List<String> texts) {
+StringBuilderValue StringBuilder_addAll(dynamic this__, StaticList<String> texts) {
   final this_ = this__ as StringBuilderValue;
   for (final t in texts) {
     (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
@@ -753,11 +777,13 @@ class AppErrorValue extends VPtr {
   late String message;
   late String code;
   late AppErrorValue? cause;
+  AppErrorValue() {
+    vptr['toString'] = AppError_toString;
+  }
 }
 
 AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErrorValue? cause = null]) {
   final this_ = this__ as AppErrorValue;
-  this_.vptr['toString'] = AppError_toString;
   this_.message = message;
   this_.code = code;
   this_.cause = cause;
@@ -766,7 +792,7 @@ AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErro
 
 String AppError_toString(dynamic this__) {
   final this_ = this__ as AppErrorValue;
-  final List<String> chain = <String>[];
+  final StaticList<String> chain = StaticList<String>.of([]);
   AppErrorValue? current = this_;
   while (!((current == null))) {
     chain.add('${current.code}:${current.message}');
@@ -777,42 +803,44 @@ String AppError_toString(dynamic this__) {
 
 
 class DataPipelineValue<T> extends VPtr {
-  late List<T> _data;
+  late StaticList<T> _data;
+  DataPipelineValue() {
+    vptr['where'] = DataPipeline_where<T>;
+    vptr['map_int'] = DataPipeline_map<T, int>;
+    vptr['sorted'] = DataPipeline_sorted<T>;
+    vptr['take'] = DataPipeline_take<T>;
+    vptr['fold_int'] = DataPipeline_fold<T, int>;
+    vptr['toList'] = DataPipeline_toList<T>;
+    vptr['toString'] = DataPipeline_toString<T>;
+  }
 }
 
-DataPipelineValue<T> DataPipeline_new<T>(dynamic this__, List<T> _data) {
+DataPipelineValue<T> DataPipeline_new<T>(dynamic this__, StaticList<T> _data) {
   final this_ = this__ as DataPipelineValue<T>;
-  this_.vptr['where'] = DataPipeline_where<T>;
-  this_.vptr['map_int'] = DataPipeline_map<T, int>;
-  this_.vptr['sorted'] = DataPipeline_sorted<T>;
-  this_.vptr['take'] = DataPipeline_take<T>;
-  this_.vptr['fold_int'] = DataPipeline_fold<T, int>;
-  this_.vptr['toList'] = DataPipeline_toList<T>;
-  this_.vptr['toString'] = DataPipeline_toString<T>;
   this_._data = _data;
   return this_;
 }
 
 DataPipelineValue<T> DataPipeline_where<T>(dynamic this__, bool Function(T) test) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<T>(DataPipelineValue<T>(), this_._data.where(test).toList());
+  return DataPipeline_new<T>(DataPipelineValue<T>(), StaticList.of(this_._data.where(test).toList()));
 }
 
 DataPipelineValue<R> DataPipeline_map<T, R>(dynamic this__, R Function(T) transform) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<R>(DataPipelineValue<R>(), this_._data.map(transform).toList());
+  return DataPipeline_new<R>(DataPipelineValue<R>(), StaticList.of(this_._data.map(transform).toList()));
 }
 
 DataPipelineValue<T> DataPipeline_sorted<T>(dynamic this__, int Function(T, T) compare) {
   final this_ = this__ as DataPipelineValue<T>;
-  final List<T> copy = List.from(this_._data);
+  final StaticList<T> copy = StaticList<T>.of(this_._data);
   copy.sort(compare);
   return DataPipeline_new<T>(DataPipelineValue<T>(), copy);
 }
 
 DataPipelineValue<T> DataPipeline_take<T>(dynamic this__, int count) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<T>(DataPipelineValue<T>(), this_._data.take(count).toList());
+  return DataPipeline_new<T>(DataPipelineValue<T>(), StaticList.of(this_._data.take(count).toList()));
 }
 
 R DataPipeline_fold<T, R>(dynamic this__, R initial, R Function(R, T) combine) {
@@ -820,9 +848,9 @@ R DataPipeline_fold<T, R>(dynamic this__, R initial, R Function(R, T) combine) {
   return this_._data.fold(initial, combine);
 }
 
-List<T> DataPipeline_toList<T>(dynamic this__) {
+StaticList<T> DataPipeline_toList<T>(dynamic this__) {
   final this_ = this__ as DataPipelineValue<T>;
-  return List.unmodifiable(this_._data);
+  return StaticList<T>.unmodifiable(this_._data);
 }
 
 String DataPipeline_toString<T>(dynamic this__) {
@@ -835,14 +863,16 @@ class BoundedValueValue extends VPtr {
   late double _value;
   late double _min;
   late double _max;
+  BoundedValueValue() {
+    vptr['get_value'] = BoundedValue_get_value;
+    vptr['set_value'] = BoundedValue_set_value;
+    vptr['operatorPlus'] = BoundedValue_operatorPlus;
+    vptr['toString'] = BoundedValue_toString;
+  }
 }
 
 BoundedValueValue BoundedValue_new(dynamic this__, double _value, double _min, double _max) {
   final this_ = this__ as BoundedValueValue;
-  this_.vptr['get_value'] = BoundedValue_get_value;
-  this_.vptr['set_value'] = BoundedValue_set_value;
-  this_.vptr['operatorPlus'] = BoundedValue_operatorPlus;
-  this_.vptr['toString'] = BoundedValue_toString;
   this_._value = _value;
   this_._min = _min;
   this_._max = _max;
@@ -898,11 +928,11 @@ int MathUtils_factorial(int n) {
   return (n * MathUtils_factorial((n - 1)));
 }
 
-List<int> MathUtils_fibonacci(int count) {
+StaticList<int> MathUtils_fibonacci(int count) {
   MathUtils__callCount = (MathUtils__callCount + 1);
-  if ((count <= 0))   return <int>[];
-  if ((count == 1))   return <int>[0];
-  final List<int> fibs = <int>[0, 1];
+  if ((count <= 0))   return StaticList<int>.of([]);
+  if ((count == 1))   return StaticList<int>.of([0]);
+  final StaticList<int> fibs = StaticList<int>.of([0, 1]);
   for (var i = 2; (i < count); i = (i + 1)) {
     fibs.add((fibs[(i - 1)] + fibs[(i - 2)]));
   }
@@ -921,9 +951,9 @@ void Loggable_log(dynamic this__, String message) {
   this_._logs.add(message);
 }
 
-List<String> Loggable_get_logs(dynamic this__) {
+StaticList<String> Loggable_get_logs(dynamic this__) {
   final this_ = this__;
-  return List.unmodifiable(this_._logs);
+  return StaticList<String>.unmodifiable(this_._logs);
 }
 
 
@@ -942,23 +972,24 @@ void Observable_notify<T>(dynamic this__, T value) {
 
 
 class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValue<V> {
-  late Map<String, V> _store;
+  late StaticMap<String, V> _store;
+  ReactiveStoreValue() {
+    vptr['log'] = ReactiveStore_log<V>;
+    vptr['get_logs'] = ReactiveStore_get_logs<V>;
+    vptr['observe'] = ReactiveStore_observe<V>;
+    vptr['notify'] = ReactiveStore_notify<V>;
+    vptr['get'] = ReactiveStore_get<V>;
+    vptr['set'] = ReactiveStore_set<V>;
+    vptr['get_size'] = ReactiveStore_get_size<V>;
+    vptr['toString'] = ReactiveStore_toString<V>;
+  }
 }
 
 ReactiveStoreValue<V> ReactiveStore_new<V>(dynamic this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  ReactiveStore_Object_Loggable_Observable_init(this_);
-  this_.vptr['log'] = ReactiveStore_log<V>;
-  this_.vptr['get_logs'] = ReactiveStore_get_logs<V>;
-  this_.vptr['observe'] = ReactiveStore_observe<V>;
-  this_.vptr['notify'] = ReactiveStore_notify<V>;
-  this_.vptr['get'] = ReactiveStore_get<V>;
-  this_.vptr['set'] = ReactiveStore_set<V>;
-  this_.vptr['get_size'] = ReactiveStore_get_size<V>;
-  this_.vptr['toString'] = ReactiveStore_toString<V>;
-  this_._logs = <String>[];
-  this_._observers = <void Function(V)>[];
-  this_._store = <String, V>{};
+  this_._logs = StaticList<String>.of([]);
+  this_._observers = StaticList<void Function(V)>.of([]);
+  this_._store = StaticMap<String, V>.of({});
   return this_;
 }
 
@@ -990,7 +1021,7 @@ void ReactiveStore_log<V>(dynamic this__, String message) {
   Loggable_log(this_, message);
 }
 
-List<String> ReactiveStore_get_logs<V>(dynamic this__) {
+StaticList<String> ReactiveStore_get_logs<V>(dynamic this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
   return Loggable_get_logs(this_);
 }
@@ -1007,12 +1038,14 @@ void ReactiveStore_notify<V>(dynamic this__, V value) {
 
 
 class ShapeValue extends VPtr {
+  ShapeValue() {
+    vptr['area'] = Shape_area;
+    vptr['get_shapeName'] = Shape_get_shapeName;
+  }
 }
 
 ShapeValue Shape_new(dynamic this__) {
   final this_ = this__ as ShapeValue;
-  this_.vptr['area'] = Shape_area;
-  this_.vptr['get_shapeName'] = Shape_get_shapeName;
   return this_;
 }
 
@@ -1027,13 +1060,15 @@ String Shape_get_shapeName(dynamic this_) {
 
 class CircleValue extends VPtr implements ShapeValue {
   late double radius;
+  CircleValue() {
+    vptr['area'] = Circle_area;
+    vptr['get_shapeName'] = Circle_get_shapeName;
+    vptr['toString'] = Circle_toString;
+  }
 }
 
 CircleValue Circle_new(dynamic this__, double radius) {
   final this_ = this__ as CircleValue;
-  this_.vptr['area'] = Circle_area;
-  this_.vptr['get_shapeName'] = Circle_get_shapeName;
-  this_.vptr['toString'] = Circle_toString;
   this_.radius = radius;
   return this_;
 }
@@ -1057,13 +1092,15 @@ String Circle_toString(dynamic this__) {
 class RectangleValue extends VPtr implements ShapeValue {
   late double width;
   late double height;
+  RectangleValue() {
+    vptr['area'] = Rectangle_area;
+    vptr['get_shapeName'] = Rectangle_get_shapeName;
+    vptr['toString'] = Rectangle_toString;
+  }
 }
 
 RectangleValue Rectangle_new(dynamic this__, double width, double height) {
   final this_ = this__ as RectangleValue;
-  this_.vptr['area'] = Rectangle_area;
-  this_.vptr['get_shapeName'] = Rectangle_get_shapeName;
-  this_.vptr['toString'] = Rectangle_toString;
   this_.width = width;
   this_.height = height;
   return this_;
@@ -1087,17 +1124,19 @@ String Rectangle_toString(dynamic this__) {
 
 class NodeValue<T> extends VPtr {
   late T value;
-  late List<NodeValue<T>> children;
+  late StaticList<NodeValue<T>> children;
+  NodeValue() {
+    vptr['addChild'] = Node_addChild<T>;
+    vptr['flatten'] = Node_flatten<T>;
+    vptr['mapTree_String'] = Node_mapTree<T, String>;
+    vptr['toString'] = Node_toString<T>;
+  }
 }
 
-NodeValue<T> Node_new<T>(dynamic this__, T value, [List<NodeValue<T>>? children = null]) {
+NodeValue<T> Node_new<T>(dynamic this__, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as NodeValue<T>;
-  this_.vptr['addChild'] = Node_addChild<T>;
-  this_.vptr['flatten'] = Node_flatten<T>;
-  this_.vptr['mapTree_String'] = Node_mapTree<T, String>;
-  this_.vptr['toString'] = Node_toString<T>;
   this_.value = value;
-  this_.children = (children ?? <NodeValue<T>>[]);
+  this_.children = (children ?? StaticList<NodeValue<T>>.of([]));
   return this_;
 }
 
@@ -1106,18 +1145,18 @@ void Node_addChild<T>(dynamic this__, NodeValue<T> child) {
   this_.children.add(child);
 }
 
-List<T> Node_flatten<T>(dynamic this__) {
+StaticList<T> Node_flatten<T>(dynamic this__) {
   final this_ = this__ as NodeValue<T>;
-  final List<T> result = <T>[this_.value];
+  final StaticList<T> result = StaticList<T>.of([this_.value]);
   for (final child in this_.children) {
-    result.addAll((child.vptr['flatten'] as List<T> Function(dynamic))(child));
+    result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
   }
   return result;
 }
 
 NodeValue<R> Node_mapTree<T, R>(dynamic this__, R Function(T) transform) {
   final this_ = this__ as NodeValue<T>;
-  return Node_new<R>(NodeValue<R>(), transform(this_.value), this_.children.map(ClosureEnv_anon_1(transform).call).toList());
+  return Node_new<R>(NodeValue<R>(), transform(this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1(transform).call).toList()));
 }
 
 String Node_toString<T>(dynamic this__) {
@@ -1129,18 +1168,19 @@ String Node_toString<T>(dynamic this__) {
 
 class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   late String nodeLabel;
+  LabeledNodeValue() {
+    vptr['addChild'] = LabeledNode_addChild<T>;
+    vptr['flatten'] = LabeledNode_flatten<T>;
+    vptr['mapTree_String'] = LabeledNode_mapTree<T, String>;
+    vptr['toString'] = LabeledNode_toString<T>;
+    vptr['get_label'] = LabeledNode_get_label<T>;
+    vptr['toPrettyString'] = LabeledNode_toPrettyString<T>;
+  }
 }
 
-LabeledNodeValue<T> LabeledNode_new<T>(dynamic this__, String nodeLabel, T value, [List<NodeValue<T>>? children = null]) {
+LabeledNodeValue<T> LabeledNode_new<T>(dynamic this__, String nodeLabel, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as LabeledNodeValue<T>;
-  Node_new(this_, value, children);
-  LabeledNode_Node_Printable_init(this_);
-  this_.vptr['addChild'] = LabeledNode_addChild<T>;
-  this_.vptr['flatten'] = LabeledNode_flatten<T>;
-  this_.vptr['mapTree_String'] = LabeledNode_mapTree<T, String>;
-  this_.vptr['toString'] = LabeledNode_toString<T>;
-  this_.vptr['get_label'] = LabeledNode_get_label<T>;
-  this_.vptr['toPrettyString'] = LabeledNode_toPrettyString<T>;
+  Node_new<T>(this_, value, children);
   this_.nodeLabel = nodeLabel;
   return this_;
 }
@@ -1160,7 +1200,7 @@ void LabeledNode_addChild<T>(dynamic this__, NodeValue<T> child) {
   Node_addChild<T>(this_, child);
 }
 
-List<T> LabeledNode_flatten<T>(dynamic this__) {
+StaticList<T> LabeledNode_flatten<T>(dynamic this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return Node_flatten<T>(this_);
 }
@@ -1177,98 +1217,71 @@ String LabeledNode_toPrettyString<T>(dynamic this__) {
 
 
 class Entity_Object_PrintableValue extends VPtr {
+  Entity_Object_PrintableValue() {
+    vptr['toPrettyString'] = Printable_toPrettyString;
+  }
 }
-
-void Entity_Object_Printable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['toPrettyString'] = Printable_toPrettyString;
-}
-
 
 class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_PrintableValue {
+  Entity_Object_Printable_CacheableValue() {
+    vptr['cacheValue'] = Cacheable_cacheValue;
+    vptr['getCachedValue'] = Cacheable_getCachedValue;
+  }
 }
-
-void Entity_Object_Printable_Cacheable_init(dynamic this__) {
-  Entity_Object_Printable_init(this__);
-  final this_ = this__;
-  this_.vptr['cacheValue'] = Cacheable_cacheValue;
-  this_.vptr['getCachedValue'] = Cacheable_getCachedValue;
-}
-
 
 class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends TimestampedEntityValue<ID> {
+  VersionedEntity_TimestampedEntity_SerializableValue() {
+    vptr['toJson'] = Serializable_toJson;
+  }
 }
-
-void VersionedEntity_TimestampedEntity_Serializable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['toJson'] = Serializable_toJson;
-}
-
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extends VersionedEntity_TimestampedEntity_SerializableValue<ID> {
+  VersionedEntity_TimestampedEntity_Serializable_ValidatableValue() {
+    vptr['get_isValid'] = Validatable_get_isValid;
+  }
 }
-
-void VersionedEntity_TimestampedEntity_Serializable_Validatable_init(dynamic this__) {
-  VersionedEntity_TimestampedEntity_Serializable_init(this__);
-  final this_ = this__;
-  this_.vptr['get_isValid'] = Validatable_get_isValid;
-}
-
 
 class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
+  Money_Comparable2_PrintableValue() {
+    vptr['toPrettyString'] = Printable_toPrettyString;
+  }
 }
-
-void Money_Comparable2_Printable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['toPrettyString'] = Printable_toPrettyString;
-}
-
 
 class ReactiveStore_Object_LoggableValue extends VPtr {
-  late List<String> _logs;
+  late StaticList<String> _logs;
+  ReactiveStore_Object_LoggableValue() {
+    vptr['log'] = Loggable_log;
+    vptr['get_logs'] = Loggable_get_logs;
+  }
 }
-
-void ReactiveStore_Object_Loggable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['log'] = Loggable_log;
-  this_.vptr['get_logs'] = Loggable_get_logs;
-}
-
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
-  late List<void Function(V)> _observers;
+  late StaticList<void Function(V)> _observers;
+  ReactiveStore_Object_Loggable_ObservableValue() {
+    vptr['observe'] = Observable_observe;
+    vptr['notify'] = Observable_notify;
+  }
 }
-
-void ReactiveStore_Object_Loggable_Observable_init(dynamic this__) {
-  ReactiveStore_Object_Loggable_init(this__);
-  final this_ = this__;
-  this_.vptr['observe'] = Observable_observe;
-  this_.vptr['notify'] = Observable_notify;
-}
-
 
 class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
+  LabeledNode_Node_PrintableValue() {
+    vptr['toPrettyString'] = Printable_toPrettyString;
+  }
 }
-
-void LabeledNode_Node_Printable_init(dynamic this__) {
-  final this_ = this__;
-  this_.vptr['toPrettyString'] = Printable_toPrettyString;
-}
-
 
 T applyTransform<T>(T value, T Function(T) transform) {
   return transform(value);
 }
 
-List<T> filterWith<T>(List<T> items, bool Function(T) predicate) {
-  final List<T> result = <T>[];
+StaticList<T> filterWith<T>(StaticList<T> items, bool Function(T) predicate) {
+  final StaticList<T> result = StaticList<T>.of([]);
   for (final item in items) {
     if (predicate(item))     result.add(item);
   }
   return result;
 }
 
-T reduceList<T>(List<T> items, T Function(T, T) reducer) {
+T reduceList<T>(StaticList<T> items, T Function(T, T) reducer) {
   T acc = items.first;
   for (var i = 1; (i < items.length); i = (i + 1)) {
     acc = reducer(acc, items[i]);
@@ -1276,18 +1289,18 @@ T reduceList<T>(List<T> items, T Function(T, T) reducer) {
   return acc;
 }
 
-List<String> testClosureBoxing() {
-  final List<String> log = <String>[];
+StaticList<String> testClosureBoxing() {
+  final StaticList<String> log = StaticList<String>.of([]);
   IntBox counter = IntBox(0);
   final int Function() increment = ClosureEnv_testClosureBoxing_2(counter).call;
   increment();
   increment();
   log.add('counter=${counter.value}');
-  final List<int Function()> fns = <int Function()>[];
+  final StaticList<int Function()> fns = StaticList<int Function()>.of([]);
   for (var i = 0; (i < 3); i = (i + 1)) {
     fns.add(ClosureEnv_testClosureBoxing_3(i).call);
   }
-  log.add('fns=${fns.map((int Function() f) => f()).toList()}');
+  log.add('fns=${StaticList.of(fns.map((int Function() f) => f()).toList())}');
   IntBox outer = IntBox(0);
   final int Function(int) Function(int) makeAdder = ClosureEnv_testClosureBoxing_4(outer).call;
   final int Function(int) adder = makeAdder(100);
@@ -1304,7 +1317,7 @@ List<String> testClosureBoxing() {
 
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(EventBusValue());
-  List<String> received = <String>[];
+  StaticList<String> received = StaticList<String>.of([]);
   (bus.vptr['on'] as void Function(dynamic, void Function(String)))(bus, ClosureEnv_testClosureBoxing_8(received).call);
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
@@ -1332,7 +1345,7 @@ String testExceptionChain() {
 }
 
 String formatRecord({required String name, int age = 0, String? email = null, bool active = true, List<String> tags = const []}) {
-  final List<String> parts = <String>[name];
+  final StaticList<String> parts = StaticList<String>.of([name]);
   if ((age > 0))   parts.add('age=${age}');
   if (!((email == null)))   parts.add('email=${email}');
   parts.add('active=${active}');
@@ -1392,14 +1405,14 @@ void main() {
   print('--- 1. typedef + Function ---');
   final int doubled = applyTransform<int>(21, (int x) => (x * 2));
   print('applyTransform: ${doubled}');
-  final List<int> evens = filterWith<int>(<int>[1, 2, 3, 4, 5, 6], (int x) => ((x % 2) == 0));
+  final StaticList<int> evens = filterWith<int>(StaticList<int>.of([1, 2, 3, 4, 5, 6]), (int x) => ((x % 2) == 0));
   print('filterWith: ${evens}');
-  final int sum = reduceList<int>(<int>[1, 2, 3, 4, 5], (int a, int b) => (a + b));
+  final int sum = reduceList<int>(StaticList<int>.of([1, 2, 3, 4, 5]), (int a, int b) => (a + b));
   print('reduceList: ${sum}');
   print('\n--- 2. 枚举类 ---');
   print('red hex: ${Color_get_hex(Color.red)}');
   print('green isWarm: ${Color_get_isWarm(Color.green)}');
-  print('priorities: ${const [Priority.low, Priority.medium, Priority.high, Priority.critical].map((Priority p) => '${p}'.split('.').last).toList()}');
+  print('priorities: ${StaticList.of(const [Priority.low, Priority.medium, Priority.high, Priority.critical].map((Priority p) => '${p}'.split('.').last).toList())}');
   print('\n--- 3. 运算符重载 ---');
   final MoneyValue price1 = Money_new(MoneyValue(), 1099, 'USD');
   final MoneyValue price2 = Money_new_fromDollars(MoneyValue(), 5.5);
@@ -1425,22 +1438,22 @@ void main() {
   (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'bug fix');
   print('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(dynamic))(vEntity)}');
   print('vEntity version: ${(vEntity.vptr['get_version'] as int Function(dynamic))(vEntity)}');
-  print('vEntity changelog: ${(vEntity.vptr['get_changelog'] as List<String> Function(dynamic))(vEntity)}');
+  print('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(dynamic))(vEntity)}');
   print('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(dynamic))(vEntity)}');
   print('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(dynamic))(vEntity)}');
   print('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(dynamic))(vEntity)}');
-  print('vEntity validate: ${(vEntity.vptr['validate'] as List<String> Function(dynamic))(vEntity)}');
+  print('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(dynamic))(vEntity)}');
   print('\n--- 5. 工厂构造 ---');
   final ConfigValue cfg1 = Config_new_empty(ConfigValue());
   (cfg1.vptr['operatorIndexSet'] as void Function(dynamic, String, dynamic))(cfg1, 'host', 'localhost');
   print('cfg1: ${cfg1}');
-  final ConfigValue cfg2 = Config_new_fromPairs(ConfigValue(), <List<dynamic>>[['a', 1], ['b', 2]]);
+  final ConfigValue cfg2 = Config_new_fromPairs(ConfigValue(), StaticList<StaticList<dynamic>>.of([StaticList.of(['a', 1]), StaticList.of(['b', 2])]));
   print('cfg2: ${cfg2}');
-  final ConfigValue cfg3 = Config_new_withDefaults(<String, dynamic>{'debug': true, 'name': 'prod'});
+  final ConfigValue cfg3 = Config_new_withDefaults(StaticMap<String, dynamic>.of({'debug': true, 'name': 'prod'}));
   print('cfg3: ${cfg3}');
   print('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
   print('\n--- 6. 闭包 Box 化 ---');
-  final List<String> closureLog = testClosureBoxing();
+  final StaticList<String> closureLog = testClosureBoxing();
   for (final line in closureLog) {
     print(line);
   }
@@ -1461,19 +1474,19 @@ void main() {
   final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(TripleValue<int, String, bool>(), 1, 'yes', true);
   print('triple: ${triple}');
   print('\n--- 9. 级联操作 ---');
-  final StringBuilderValue sb = (() { final _let7 = StringBuilder_new(StringBuilderValue()); (_let7.vptr['withSeparator'] as StringBuilderValue Function(dynamic, String))(_let7, ', '); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'alpha'); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'beta'); (_let7.vptr['addAll'] as StringBuilderValue Function(dynamic, List<String>))(_let7, <String>['gamma', 'delta']); return _let7; })();
+  final StringBuilderValue sb = (() { final _let7 = StringBuilder_new(StringBuilderValue()); (_let7.vptr['withSeparator'] as StringBuilderValue Function(dynamic, String))(_let7, ', '); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'alpha'); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'beta'); (_let7.vptr['addAll'] as StringBuilderValue Function(dynamic, StaticList<String>))(_let7, StaticList<String>.of(['gamma', 'delta'])); return _let7; })();
   print('builder: ${sb}');
   print('length: ${(sb.vptr['get_length'] as int Function(dynamic))(sb)}');
   print('\n--- 10. 异常处理链 ---');
   print('chain: ${testExceptionChain()}');
   print('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = ((((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)), 5).vptr['map_int'] as DataPipelineValue<int> Function(dynamic, int Function(int)))((((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[5, 3, 8, 1, 9, 2, 7, 4, 6]), (int x) => (x > 2)), (int a, int b) => (a - b)), 5), (int x) => (x * 10));
-  print('pipeline: ${(pipeline.vptr['toList'] as List<int> Function(dynamic))(pipeline)}');
-  final int pipeSum = (DataPipeline_new<int>(DataPipelineValue<int>(), <int>[1, 2, 3, 4, 5]).vptr['fold_int'] as int Function(dynamic, int, int Function(int, int)))(DataPipeline_new<int>(DataPipelineValue<int>(), <int>[1, 2, 3, 4, 5]), 0, (int acc, int x) => (acc + x));
+  final DataPipelineValue<int> pipeline = ((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)), 5).vptr['map_int'] as DataPipelineValue<int> Function(dynamic, int Function(int)))((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)), 5), (int x) => (x * 10));
+  print('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(dynamic))(pipeline)}');
+  final int pipeSum = (DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])).vptr['fold_int'] as int Function(dynamic, int, int Function(int, int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])), 0, (int acc, int x) => (acc + x));
   print('pipeSum: ${pipeSum}');
   print('\n--- 12. 可选参数 ---');
   print(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
-  print(formatRecord(name: 'Bob', tags: <String>['admin', 'vip']));
+  print(formatRecord(name: 'Bob', tags: StaticList<String>.of(['admin', 'vip'])));
   print(greetAll('Hello'));
   print(greetAll('Hi', 'Dart', '!!'));
   print('\n--- 13. BoundedValue ---');
@@ -1492,7 +1505,7 @@ void main() {
   print('callCount: ${MathUtils_callCount()}');
   print('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(ReactiveStoreValue<int>());
-  final List<int> observed = <int>[];
+  final StaticList<int> observed = StaticList<int>.of([]);
   (store.vptr['observe'] as void Function(dynamic, void Function(int)))(store, ClosureEnv_main_10(observed).call);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
@@ -1500,16 +1513,16 @@ void main() {
   print('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
   print('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
   print('observed: ${observed}');
-  print('logs: ${(store.vptr['get_logs'] as List<String> Function(dynamic))(store)}');
+  print('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(dynamic))(store)}');
   print('\n--- 16. 类型转换 ---');
-  final List<ShapeValue> shapes = <ShapeValue>[Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new(CircleValue(), 1.0)];
+  final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new(CircleValue(), 1.0)]);
   for (final s in shapes) {
     print(describeShape(s));
   }
   print('\n--- 17. 树结构 ---');
-  final NodeValue<int> tree = Node_new<int>(NodeValue<int>(), 1, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 2, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 4), Node_new<int>(NodeValue<int>(), 5)]), Node_new<int>(NodeValue<int>(), 3, <NodeValue<int>>[Node_new<int>(NodeValue<int>(), 6)])]);
+  final NodeValue<int> tree = Node_new<int>(NodeValue<int>(), 1, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 2, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 4), Node_new<int>(NodeValue<int>(), 5)])), Node_new<int>(NodeValue<int>(), 3, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 6)]))]));
   print('tree: ${tree}');
-  print('flatten: ${(tree.vptr['flatten'] as List<int> Function(dynamic))(tree)}');
+  print('flatten: ${(tree.vptr['flatten'] as StaticList<int> Function(dynamic))(tree)}');
   final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(dynamic, String Function(int)))(tree, (int x) => 'N${x}');
   print('mapped: ${strTree}');
   final LabeledNodeValue<int> labeled = LabeledNode_new<int>(LabeledNodeValue<int>(), 'root', 100);
@@ -1517,7 +1530,7 @@ void main() {
   (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(NodeValue<int>(), 300));
   print('labeled: ${labeled}');
   print('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(dynamic))(labeled)}');
-  print('labeled flatten: ${(labeled.vptr['flatten'] as List<int> Function(dynamic))(labeled)}');
+  print('labeled flatten: ${(labeled.vptr['flatten'] as StaticList<int> Function(dynamic))(labeled)}');
   print('\n--- 18. 评分 ---');
   print(evaluateGrade(95));
   print(evaluateGrade(82));
@@ -1597,7 +1610,7 @@ String ClosureEnv_testClosureBoxing_6_call(ClosureEnv_testClosureBoxing_6 env) {
     }
 
 class ClosureEnv_testClosureBoxing_7 {
-  List<String> received;
+  StaticList<String> received;
   ClosureEnv_testClosureBoxing_7(this.received);
   void call(String event) => ClosureEnv_testClosureBoxing_7_call(this, event);
 }
@@ -1606,7 +1619,7 @@ void ClosureEnv_testClosureBoxing_7_call(ClosureEnv_testClosureBoxing_7 env, Str
   }
 
 class ClosureEnv_testClosureBoxing_8 {
-  List<String> received;
+  StaticList<String> received;
   ClosureEnv_testClosureBoxing_8(this.received);
   void call(String event) => ClosureEnv_testClosureBoxing_8_call(this, event);
 }
@@ -1615,7 +1628,7 @@ void ClosureEnv_testClosureBoxing_8_call(ClosureEnv_testClosureBoxing_8 env, Str
   }
 
 class ClosureEnv_main_9 {
-  List<int> observed;
+  StaticList<int> observed;
   ClosureEnv_main_9(this.observed);
   void call(int v) => ClosureEnv_main_9_call(this, v);
 }
@@ -1624,7 +1637,7 @@ void ClosureEnv_main_9_call(ClosureEnv_main_9 env, int v) {
   }
 
 class ClosureEnv_main_10 {
-  List<int> observed;
+  StaticList<int> observed;
   ClosureEnv_main_10(this.observed);
   void call(int v) => ClosureEnv_main_10_call(this, v);
 }
