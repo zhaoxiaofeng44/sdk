@@ -32,6 +32,50 @@ mixin _TypeUtils on _DartRestorerBase {
     return parts.join(', ');
   }
 
+  /// 按目标 lowered 静态函数的「全 positional」ABI 还原实参列表：
+  ///   [positional_0, positional_1, ..., named_0, named_1, ...]
+  ///
+  /// - positional 缺失（即调用点传的少于声明的）→ 用 initializer 或类型默认值
+  ///   补齐；
+  /// - named 按 [target.namedParameters] 的声明顺序输出，未传的一律由调用方
+  ///   补齐（initializer 优先，否则按类型默认值）；
+  /// - 不会输出 `name: value` 语法。
+  String _restoreFlattenedArgs(FunctionNode target, Arguments args) {
+    final parts = <String>[];
+
+    // positional：先用调用点的，缺的用默认值补齐
+    final pos = target.positionalParameters;
+    for (var i = 0; i < pos.length; i++) {
+      if (i < args.positional.length) {
+        parts.add(_restoreExpr(args.positional[i]));
+      } else {
+        final p = pos[i];
+        parts.add(p.initializer != null
+            ? _restoreExpr(p.initializer!)
+            : _defaultValueForType(p.type));
+      }
+    }
+
+    // named：按目标声明顺序，调用点的 name→expr 映射查找
+    if (target.namedParameters.isNotEmpty) {
+      final supplied = <String, Expression>{
+        for (final n in args.named) n.name: n.value,
+      };
+      for (final p in target.namedParameters) {
+        final name = p.name;
+        if (name != null && supplied.containsKey(name)) {
+          parts.add(_restoreExpr(supplied[name]!));
+        } else {
+          parts.add(p.initializer != null
+              ? _restoreExpr(p.initializer!)
+              : _defaultValueForType(p.type));
+        }
+      }
+    }
+
+    return parts.join(', ');
+  }
+
   // ---- Supertype ----
 
   String _restoreSupertype(Supertype s) {
@@ -61,6 +105,11 @@ mixin _TypeUtils on _DartRestorerBase {
         name = 'StaticMap';
       } else if (rawName == 'Set' || rawName == '_Set' || rawName == 'LinkedHashSet' || rawName == '_CompactLinkedHashSet') {
         name = 'StaticSet';
+      } else if (rawName == 'Function') {
+        // dart:core 的 `Function` 顶层类型缺少 arity 信息，无法选具体的
+        // TypeFunctionN；退化到 `dynamic`（变量仍能被动态派发调用，且产物
+        // 中不再出现 `Function` 字面量）。
+        return 'dynamic';
       } else if (_isUserClass(rawName)) {
         name = '${rawName}Value';
       } else {
@@ -71,15 +120,7 @@ mixin _TypeUtils on _DartRestorerBase {
       return '$name<$args>$suffix';
     }
     if (type is FunctionType) {
-      final ret = _restoreType(type.returnType);
-      final params = <String>[];
-      for (final p in type.positionalParameters) {
-        params.add(_restoreType(p));
-      }
-      for (final n in type.namedParameters) {
-        params.add('${_restoreType(n.type)} ${n.name}');
-      }
-      return '$ret Function(${params.join(', ')})$suffix';
+      return _restoreFunctionTypeAsTypeFunction(type, suffix);
     }
     if (type is TypeParameterType) {
       final paramName = type.parameter.name ?? 'T';
@@ -160,6 +201,27 @@ mixin _TypeUtils on _DartRestorerBase {
     return cleaned;
   }
 
+  /// arity 上限；与 runtime_classes.dart 的 TypeFunctionN 一致。
+  static const int kMaxArity = 16;
+
+  /// 把 kernel FunctionType 还原成 `TypeFunctionN<R, T1..Tn>$suffix`。
+  /// 当存在命名/可选位置参数或 arity 超限时，回退到 `TypeFunction<R>$suffix`
+  /// 基类（仍然不出现 `Function` 字面量）。
+  String _restoreFunctionTypeAsTypeFunction(FunctionType type, String suffix) {
+    final ret = _restoreType(type.returnType);
+    final hasNamed = type.namedParameters.isNotEmpty;
+    final positional = type.positionalParameters;
+    final required = type.requiredParameterCount;
+    final hasOptionalPositional = positional.length > required;
+    if (hasNamed || hasOptionalPositional || positional.length > kMaxArity) {
+      return 'TypeFunction<$ret>$suffix';
+    }
+    final arity = positional.length;
+    final paramTexts = [for (final p in positional) _restoreType(p)];
+    final args = [ret, ...paramTexts].join(', ');
+    return 'TypeFunction$arity<$args>$suffix';
+  }
+
   bool _isBinaryOp(String name) {
     return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>'}.contains(name);
   }
@@ -178,6 +240,56 @@ mixin _TypeUtils on _DartRestorerBase {
       return _resolveRealSuperclass(cls.supertype!.classNode);
     }
     return 'Object';
+  }
+
+  /// 把单个 kernel TypeParameter 还原成带 `extends Bound` 的形式。
+  /// 与 _writeTypeParams 的策略一致：bound 是 Object/Object?/dynamic 时省略。
+  String _formatTypeParamDecl(TypeParameter tp) {
+    final name = tp.name ?? 'T';
+    final bound = _restoreType(tp.bound);
+    if (bound == 'Object' || bound == 'Object?' || bound == 'dynamic') {
+      return name;
+    }
+    return '$name extends $bound';
+  }
+
+  /// 闭包参数侧的类型还原：在常规 _restoreType 基础上，把容器类型
+  /// (List/Map/Set) 的类型实参中出现的 `Object` / `Object?` 归一为
+  /// `dynamic`。仅作用于闭包参数（不影响返回类型 / 普通声明），用于
+  /// 把 kernel 推断出的 `Map<K, Object>` 归一回 `Map<K, dynamic>`，与
+  /// 调用点上下文（如 `List<Map<K, dynamic>>.sort`）保持兼容。
+  String _restoreClosureParamType(DartType type) {
+    final nullable = type.nullability == Nullability.nullable;
+    final suffix = nullable ? '?' : '';
+    if (type is InterfaceType) {
+      final raw = type.classNode.name;
+      final isContainer = raw == 'List' || raw == '_List' || raw == '_GrowableList'
+          || raw == 'Map' || raw == '_Map' || raw == 'LinkedHashMap' || raw == '_InternalLinkedHashMap'
+          || raw == 'Set' || raw == '_Set' || raw == 'LinkedHashSet' || raw == '_CompactLinkedHashSet'
+          || raw == 'Iterable';
+      if (!isContainer) {
+        return _restoreType(type);
+      }
+      String mapped;
+      if (raw == 'List' || raw == '_List' || raw == '_GrowableList') {
+        mapped = 'StaticList';
+      } else if (raw == 'Map' || raw == '_Map' || raw == 'LinkedHashMap' || raw == '_InternalLinkedHashMap') {
+        mapped = 'StaticMap';
+      } else if (raw == 'Set' || raw == '_Set' || raw == 'LinkedHashSet' || raw == '_CompactLinkedHashSet') {
+        mapped = 'StaticSet';
+      } else {
+        mapped = 'Iterable';
+      }
+      if (type.typeArguments.isEmpty) return '$mapped$suffix';
+      final args = type.typeArguments.map((t) {
+        if (t is InterfaceType && t.classNode.name == 'Object') {
+          return 'dynamic';
+        }
+        return _restoreClosureParamType(t);
+      }).join(', ');
+      return '$mapped<$args>$suffix';
+    }
+    return _restoreType(type);
   }
 
   /// 递归收集所有 mixin 名称（保留泛型参数）

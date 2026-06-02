@@ -821,17 +821,74 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write('$_pad${className}Value() {\n');
     _indent++;
 
+    final mixinSupertype = cls.mixedInType!;
+    final mixinClass = mixinSupertype.classNode;
+    // 检查 mixin 在合成中间类中是否已被实参化为具体类型。
+    // - 实参里有任何非 TypeParameterType（如 DogValue、int）→ 已实参化；
+    // - 全是 TypeParameterType（不论 parameter 来自哪个类）→ 只是 pass-through，
+    //   wrapper 应保留对应的 type 形参。
+    final mixinIsSpecialized =
+        mixinSupertype.typeArguments.any((t) => t is! TypeParameterType);
+    final mixinTypeArgStrs = mixinSupertype.typeArguments
+        .map((t) => _restoreTypeForSignature(t))
+        .toList();
     for (final entry in mixinEntries) {
       final key = _vptrEntryKey(entry);
       // 找到该方法的原始 mixin 静态函数名
-      final mixinName = cls.mixedInType!.classNode.name;
-      String rhs;
+      final mixinName = mixinClass.name;
+      String staticFuncName;
       if (entry.kind == 'getter') {
-        rhs = _staticGetterName(mixinName, entry.name);
+        staticFuncName = _staticGetterName(mixinName, entry.name);
       } else if (entry.kind == 'setter') {
-        rhs = _staticSetterName(mixinName, entry.name);
+        staticFuncName = _staticSetterName(mixinName, entry.name);
       } else {
-        rhs = _staticMethodName(mixinName, entry.name);
+        staticFuncName = _staticMethodName(mixinName, entry.name);
+      }
+      String rhs;
+      if (entry.proc != null) {
+        final mixinClassTpNames =
+            mixinClass.typeParameters.map((tp) => tp.name).toSet();
+        final methodTpsDedup = entry.proc!.function.typeParameters
+            .where((tp) => !mixinClassTpNames.contains(tp.name))
+            .toList();
+        // wrapper 类形参：若 mixin 在合成类里已实参化（如 Orderable<DogValue>），
+        // 留空；否则按 mixin 自身的 type params 声明（保留 bound）。
+        // 方法级 TPs 在 vptr 注册的 constructor 上下文里取不到，统一映射为 dynamic。
+        final wrapperTpDecls = mixinIsSpecialized
+            ? <String>[]
+            : <String>[...mixinClass.typeParameters.map(_typeParamDecl)];
+        // forwarder 内部调静态函数时使用具体实参（已实参化的场景）或 mixin TP
+        // 名（未实参化时）；方法级 TP 一律用 dynamic。
+        final callTypeArgsList = <String>[
+          if (mixinIsSpecialized)
+            ...mixinTypeArgStrs
+          else
+            ...mixinClass.typeParameters.map((tp) => tp.name ?? 'T'),
+          ...methodTpsDedup.map((_) => 'dynamic'),
+        ];
+        final callTypeArgsStr = callTypeArgsList.isEmpty
+            ? ''
+            : '<${callTypeArgsList.join(', ')}>';
+        final methodTpToDynamic = <String, String>{
+          for (final tp in methodTpsDedup)
+            if (tp.name != null) tp.name!: 'dynamic',
+        };
+        // 实例化时如果 wrapper 类已无形参（实参化场景），实参列表也为空；
+        // 否则用 mixin 自身 TP 名透传。
+        final instantiateArgs = wrapperTpDecls.isEmpty
+            ? ''
+            : '<${wrapperTpDecls.map(_extractTypeFormalName).join(', ')}>';
+        rhs = _buildTearOffWrapperExpr(
+          staticFuncName: staticFuncName,
+          callTypeArgsStr: callTypeArgsStr,
+          functionNode: entry.proc!.function,
+          hostingCls: mixinClass,
+          methodTpNames: wrapperTpDecls,
+          additionalSubstitution: methodTpToDynamic,
+          explicitInstantiation: instantiateArgs,
+        );
+      } else {
+        rhs = staticFuncName;
       }
       _buf.write("${_pad}vptr['$key'] = $rhs;\n");
     }
@@ -858,7 +915,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write('${_pad}@override\n');
       _buf.write('${_pad}$returnType $methodName($paramStr) {\n');
       _indent++;
-      _buf.write('${_pad}return (vptr[\'$methodName\'] as $returnType Function(dynamic))(this);\n');
+      _buf.write('${_pad}return (vptr[\'$methodName\'] as TypeFunction1<$returnType, dynamic>)(this);\n');
       _indent--;
       _buf.write('${_pad}}\n');
     }
@@ -989,7 +1046,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write('${_pad}String toString() {\n');
       _indent++;
       _buf.write("${_pad}final toStringFn = vptr['toString_'];\n");
-      _buf.write('${_pad}if (toStringFn != null) return (toStringFn as Function)(this) as String;\n');
+      _buf.write('${_pad}if (toStringFn != null) return (toStringFn as TypeFunction1<String, dynamic>)(this);\n');
       _buf.write('${_pad}return super.toString();\n');
       _indent--;
       _buf.write('$_pad}\n');
@@ -1000,7 +1057,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write('${_pad}bool operator ==(Object other) {\n');
       _indent++;
       _buf.write("${_pad}final eqFn = vptr['operatorEq'];\n");
-      _buf.write('${_pad}if (eqFn != null) return (eqFn as Function)(this, other) as bool;\n');
+      _buf.write('${_pad}if (eqFn != null) return (eqFn as TypeFunction2<bool, dynamic, dynamic>)(this, other);\n');
       _buf.write('${_pad}return identical(this, other);\n');
       _indent--;
       _buf.write('$_pad}\n');
@@ -1011,7 +1068,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write('${_pad}int get hashCode {\n');
       _indent++;
       _buf.write("${_pad}final hashFn = vptr['get_hashCode'];\n");
-      _buf.write('${_pad}if (hashFn != null) return (hashFn as Function)(this) as int;\n');
+      _buf.write('${_pad}if (hashFn != null) return (hashFn as TypeFunction1<int, dynamic>)(this);\n');
       _buf.write('${_pad}return super.hashCode;\n');
       _indent--;
       _buf.write('$_pad}\n');
@@ -1605,56 +1662,237 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
     // 为每个特化条目生成 vptr 条目
     final proc = entry.proc!;
+    // 与 _buildVptrLambdaWrapper 一致的方法级 type param 去重逻辑
+    final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
+    final dedupedMethodTps = proc.function.typeParameters
+        .where((tp) => !classTpNames.contains(tp.name))
+        .toList();
     for (final specEntry in specEntries) {
       final specKey = '${_vptrEntryKey(entry)}_${specEntry.vptrSuffix}';
 
       // 构建调用处类型实参：类的类型参数 + 特化的具体类型
-      // 类的类型参数保持原样（如 L, R），方法级泛型替换为具体类型（如 String）
       final callTypeArgsList = <String>[
         ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
         ...specEntry.typeArgStrs,
       ];
       final callTypeArgsStr = '<${callTypeArgsList.join(', ')}>';
 
-      // 直接使用 tear-off 形式：Box_mapValue<T, int>
-      // 特化方法的 lambda wrapper 只是原样转发参数，语义等价于直接函数引用
-      final rhs = '${entry.staticFuncName}$callTypeArgsStr';
+      // wrapper 自己的类型形参 = 宿主类的 type params（特化的方法级 type
+      // params 在 wrapper 内部被替换为具体实参，不再是 wrapper 的形参）。
+      final wrapperTpNames =
+          cls.typeParameters.map(_typeParamDecl).toList();
+
+      // 方法级被特化的 type param 名 → 具体实参 的映射，emit wrapper 期间
+      // 让 _restoreTypeForSignature 把方法体里出现的 R/T 印成实参。
+      final extraSub = <String, String>{};
+      for (var i = 0;
+          i < dedupedMethodTps.length && i < specEntry.typeArgStrs.length;
+          i++) {
+        final name = dedupedMethodTps[i].name;
+        if (name != null) {
+          extraSub[name] = specEntry.typeArgStrs[i];
+        }
+      }
+
+      // 把特化的静态函数 tear-off 包成 TypeFunctionN 子类实例。
+      final rhs = _buildTearOffWrapperExpr(
+        staticFuncName: entry.staticFuncName,
+        callTypeArgsStr: callTypeArgsStr,
+        functionNode: proc.function,
+        hostingCls: cls,
+        methodTpNames: wrapperTpNames,
+        nameSuffix: '_${specEntry.vptrSuffix}',
+        additionalSubstitution: extraSub,
+      );
       _buf.write("${_pad}this_.vptr['$specKey'] = $rhs;\n");
     }
   }
 
   /// 生成 vptr 注册的右值表达式。
-  /// 调用点已负责补全命名参数和可选参数，注册端只需要绑定类型参数。
-  /// 所有情况都直接使用函数引用（tear-off），不需要 lambda wrapper。
+  /// 静态函数 tear-off 自身是 Dart 原生 `Function` 子类型，无法直接通过
+  /// `as TypeFunctionN<...>` 强转 — 这里把它包成 `_TearOff_<staticFuncName>`
+  /// 具名子类（继承自 TypeFunctionN）的实例，使读取端的 cast 合法。
   String _buildVptrLambdaWrapper(Class cls, _VTableEntry entry, String className, String typeParamStr) {
     final proc = entry.proc;
+    final hasClassTypeParams = typeParamStr.isNotEmpty;
     if (proc == null) {
+      // 没有 FunctionNode 信息 → 无法重构 wrapper 的 call 签名；保持旧行为，
+      // 由读取端的 _emitFuncSig 在 named/超 arity 路径上回退为 dynamic。
       return entry.staticFuncName;
     }
 
-    final hasClassTypeParams = typeParamStr.isNotEmpty;
     // 与静态函数签名生成器 `_writeCombinedTypeParams` 完全一致的去重逻辑：
     // 类参数优先，方法参数中与类同名的被去除（避免 `<A,B,C,C>` 这种重复声明）。
-    // 例：Triple<A,B,C>.mapFirst<C> → method=[C] 与 cls 中的 C 同名 → dedup 后为空。
-    //     TreeNode<T>.map<R>      → method=[R] 不与 cls 同名 → dedup 后 [R]。
     final classTpNames = cls.typeParameters.map((tp) => tp.name).toSet();
     final dedupedMethodTps = proc.function.typeParameters
         .where((tp) => !classTpNames.contains(tp.name))
         .toList();
 
-    // 无泛型 → 直接使用静态函数引用
-    if (!hasClassTypeParams && dedupedMethodTps.isEmpty) {
-      return entry.staticFuncName;
-    }
-
-    // 有泛型 → 带类型参数的函数引用（tear-off）
     // 类型实参：类的类型参数 + 去重后的方法级类型参数
     final callTypeArgsList = <String>[
       ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
       ...dedupedMethodTps.map((tp) => tp.name ?? 'T'),
     ];
-    final callTypeArgsStr = '<${callTypeArgsList.join(', ')}>';
-    return '${entry.staticFuncName}$callTypeArgsStr';
+    final callTypeArgsStr =
+        callTypeArgsList.isEmpty ? '' : '<${callTypeArgsList.join(', ')}>';
+
+    return _buildTearOffWrapperExpr(
+      staticFuncName: entry.staticFuncName,
+      callTypeArgsStr: callTypeArgsStr,
+      functionNode: proc.function,
+      hostingCls: hasClassTypeParams || dedupedMethodTps.isNotEmpty ? cls : null,
+      methodTpNames: [
+        ...cls.typeParameters.map(_typeParamDecl),
+        ...dedupedMethodTps.map(_typeParamDecl),
+      ],
+    );
+  }
+
+  /// 把 TypeParameter 还原成 wrapper 类的形参声明字符串（含 bound）。
+  /// 例：`T extends Comparable<dynamic>`、`R`、`K`。
+  String _typeParamDecl(TypeParameter tp) {
+    final name = tp.name ?? 'T';
+    final bound = tp.bound;
+    if (bound is InterfaceType && bound.classNode.name == 'Object') {
+      return name;
+    }
+    return '$name extends ${_restoreTypeForSignature(bound)}';
+  }
+
+  /// 为静态函数 tear-off 生成 `extends TypeFunctionN<R, T...>` 的具名 wrapper
+  /// 类，并返回该 wrapper 的实例化表达式。
+  ///
+  /// - `methodTpNames` 是 wrapper 类自身的类型形参列表（如 `['A','B']`）；
+  /// - `callTypeArgsStr` 是 forwarder 内部调用 staticFuncName 时的实参字符串
+  ///   （如 `'<A,B>'` 或特化场景 `'<A,String>'`）；
+  /// - `nameSuffix` 用于把同一 staticFuncName 的不同特化区分开，附加到
+  ///   wrapper 类名末尾（默认空）；
+  /// - `additionalSubstitution` 仅在 emit wrapper 期间生效——把方法级被特化
+  ///   的 TypeParameter 名映射成具体实参，让 `_restoreTypeForSignature` 在
+  ///   wrapper 的基类 / 形参 / 返回类型里印出正确的实参；
+  /// - 无 wrapper 类型参数 → 返回 `const _TearOff_X()`；
+  /// - 有 wrapper 类型参数 → 返回 `_TearOff_X<A, B>()`；
+  /// - 命名参数 / arity 超限 → 退化到 `extends TypeFunction<R>` 基类。
+  String _buildTearOffWrapperExpr({
+    required String staticFuncName,
+    required String callTypeArgsStr,
+    required FunctionNode functionNode,
+    required Class? hostingCls,
+    required List<String> methodTpNames,
+    String nameSuffix = '',
+    Map<String, String> additionalSubstitution = const {},
+    String? explicitInstantiation,
+  }) {
+    // methodTpNames 元素允许带 bound（如 'T extends Comparable<dynamic>'）。
+    // 类声明用带 bound 的形式；实例化引用只用裸名（取每项的首段标识符）。
+    final wrapperTpDeclStr =
+        methodTpNames.isEmpty ? '' : '<${methodTpNames.join(', ')}>';
+    final wrapperTpRefStr = methodTpNames.isEmpty
+        ? ''
+        : '<${methodTpNames.map(_extractTypeFormalName).join(', ')}>';
+    final wrapperName = '_TearOff_$staticFuncName$nameSuffix';
+    final emissionKey = '$wrapperName::$wrapperTpDeclStr';
+
+    if (!_emittedTearOffWrappers.contains(emissionKey)) {
+      _emittedTearOffWrappers.add(emissionKey);
+
+      // wrapper 类是文件顶层声明：保留外层「父类→子类实参化」substitution
+      // （让 StringToIntTransformer extends DataTransformer<String,int> 这种
+      // 场景里 TOutput/TInput 在 wrapper 基类签名里能印出 int/String），同时
+      // 合并 additionalSubstitution（spec 路径用，把方法级被特化的 type
+      // params 替换为具体实参）。把 _insideMethodBody 设为 true，避免
+      // _restoreTypeForSignature 在 declaration context 下把所有
+      // TypeParameter 强行降为 dynamic。
+      final savedSub = _activeTypeParamSubstitution;
+      final savedTargets = _activeTypeParamTargets;
+      final savedInsideMethodBody = _insideMethodBody;
+      // 把 wrapper 自己声明的 type formal 名字从外层 substitution 中剔除，
+      // 否则 `T` 形参会被外层 `{T: DogValue}` 这类映射覆盖，wrapper 形参就
+      // 形同虚设。
+      final shadowed = methodTpNames.map(_extractTypeFormalName).toSet();
+      _activeTypeParamSubstitution = {
+        for (final e in savedSub.entries)
+          if (!shadowed.contains(e.key)) e.key: e.value,
+        ...additionalSubstitution,
+      };
+      _activeTypeParamTargets =
+          additionalSubstitution.isEmpty ? savedTargets : const {};
+      _insideMethodBody = true;
+
+      // Lowered ABI：named 全部铺平为 positional，没有可选/默认值。call 签名
+      // 就是 [dynamic this_, ...positional, ...named]，统一走 TypeFunctionN。
+      final returnText = _restoreTypeForSignature(functionNode.returnType);
+      final argTexts = <String>['dynamic'];
+      final argNames = <String>['this_'];
+      for (var i = 0; i < functionNode.positionalParameters.length; i++) {
+        final p = functionNode.positionalParameters[i];
+        argTexts.add(_restoreTypeForSignature(p.type));
+        argNames.add(p.name ?? 'a${i + 1}');
+      }
+      for (var i = 0; i < functionNode.namedParameters.length; i++) {
+        final np = functionNode.namedParameters[i];
+        argTexts.add(_restoreTypeForSignature(np.type));
+        argNames.add(np.name ?? 'n${i + 1}');
+      }
+      final arity = argTexts.length;
+      // 仅在极端 arity 超 ceiling 时退化到 TypeFunction<R> 基类。
+      String baseClause;
+      bool callIsOverride;
+      if (arity <= _TypeUtils.kMaxArity) {
+        final args = [returnText, ...argTexts].join(', ');
+        baseClause = ' extends TypeFunction$arity<$args>';
+        callIsOverride = true;
+      } else {
+        baseClause = ' extends TypeFunction<$returnText>';
+        callIsOverride = false;
+      }
+
+      final declBuf = StringBuffer();
+      declBuf.write('class $wrapperName$wrapperTpDeclStr$baseClause {\n');
+      declBuf.write(wrapperTpDeclStr.isEmpty
+          ? '  const $wrapperName();\n'
+          : '  $wrapperName();\n');
+      if (!callIsOverride) {
+        // arity 超 ceiling 的兜底：基类没有 call，但仍需 arity getter。
+        declBuf.write('  @override\n');
+        declBuf.write('  int get arity => $arity;\n');
+      } else {
+        declBuf.write('  @override\n');
+      }
+      final callParams = <String>[
+        for (var i = 0; i < argTexts.length; i++) '${argTexts[i]} ${argNames[i]}',
+      ];
+      final fwdArgs = argNames.join(', ');
+      declBuf.write(
+          '  $returnText call(${callParams.join(', ')}) => $staticFuncName$callTypeArgsStr($fwdArgs);\n');
+      declBuf.write('}\n');
+      _pendingClosureDecls.add(declBuf.toString());
+
+      _activeTypeParamSubstitution = savedSub;
+      _activeTypeParamTargets = savedTargets;
+      _insideMethodBody = savedInsideMethodBody;
+    }
+
+    if (explicitInstantiation != null) {
+      // 调用方明确指定实例化时的 type 实参（例如合成中间类已经把 mixin
+      // type params 实参化）。如果实参全空（''）+ wrapper 形参也空 → 用
+      // const ctor；否则用普通 ctor（const 不能跟运行期 type 形参混用）。
+      if (explicitInstantiation.isEmpty) {
+        return wrapperTpRefStr.isEmpty
+            ? 'const $wrapperName()'
+            : '$wrapperName()';
+      }
+      return '$wrapperName$explicitInstantiation()';
+    }
+    return wrapperTpRefStr.isEmpty
+        ? 'const $wrapperName()'
+        : '$wrapperName$wrapperTpRefStr()';
+  }
+
+  /// 从形参声明（如 `T extends Comparable<dynamic>` 或 `T`）里取裸名 `T`。
+  String _extractTypeFormalName(String decl) {
+    final i = decl.indexOf(' ');
+    return i < 0 ? decl : decl.substring(0, i);
   }
 
   // _defaultValueForType 已移至 _DartRestorerBase 基类中
@@ -2640,7 +2878,26 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       parts.add(sb.toString());
     }
 
-    if (!flattenOptional && openedBracket) {
+    if (flattenOptional) {
+      // flattenOptional：named 也按声明顺序铺平为 positional，没有 `{...}`
+      // 块、没有 `required`、没有默认值（调用方补齐）。
+      for (final p in named) {
+        final sb = StringBuffer();
+        if (p.isFinal) sb.write('final ');
+        sb.write(_restoreType(p.type));
+        sb.write(' ');
+        final cleanName = _cleanVarName(p.name ?? '_n');
+        p.name = cleanName;
+        final displayName =
+            _boxedVars.contains(p) ? '${cleanName}_raw' : cleanName;
+        sb.write(displayName);
+        parts.add(sb.toString());
+      }
+      _buf.write(parts.join(', '));
+      return;
+    }
+
+    if (openedBracket) {
       final reqParts = parts.sublist(0, reqCount);
       final optParts = parts.sublist(reqCount);
       final allParts = <String>[...reqParts, '[${optParts.join(', ')}]'];

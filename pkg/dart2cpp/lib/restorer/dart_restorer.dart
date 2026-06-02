@@ -119,6 +119,10 @@ abstract class _DartRestorerBase {
   /// 待输出的闭包类和静态函数定义（延迟到顶层输出）
   final List<String> _pendingClosureDecls = [];
 
+  /// 已生成过的 tear-off wrapper 类（dedup key = wrapperName::wrapperTpStr）。
+  /// 用于把 vptr 槽里的静态函数 tear-off 包成 TypeFunctionN 子类实例。
+  final Set<String> _emittedTearOffWrappers = <String>{};
+
   /// 待输出的顶层声明：如类级共享的 vtable 常量
   /// `final Map<String, dynamic> _XX_vtable = <String, dynamic>{ ... };`
   /// 这些声明会在所有类/函数输出之后、_pendingClosureDecls 之前写到 _buf。
@@ -164,7 +168,12 @@ abstract class _DartRestorerBase {
     if (type is TypeParameterType) return type.parameter.name ?? 'T';
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';
-    if (type is FunctionType) return 'Function';
+    if (type is FunctionType) {
+      // vptr key / spec 后缀里不带 `<...>`，否则会污染 key 命名空间；这里
+      // 只用一个稳定的标记词，使用 `TypeFunction` 即可（不出现 `Function`
+      // 字面量）。
+      return 'TypeFunction';
+    }
     return 'dynamic';
   }
 
@@ -501,6 +510,9 @@ abstract class _DartRestorerBase {
         mappedName = 'StaticSet';
       } else if (name == 'Future' || name == '_Future') {
         mappedName = 'Promise';
+      } else if (name == 'Function') {
+        // dart:core 的 `Function` interface type 缺少 arity → 退化到 `dynamic`
+        return 'dynamic';
       } else {
         mappedName = name;
       }
@@ -509,12 +521,22 @@ abstract class _DartRestorerBase {
       return '$mappedName<$args>$suffix';
     }
     if (type is FunctionType) {
+      // 与 _TypeUtils._restoreFunctionTypeAsTypeFunction 等价的本地版本：
+      // 复用 signature 上下文的递归 `_restoreTypeForSignature` 解析子类型。
       final ret = _restoreTypeForSignature(type.returnType);
-      final params = <String>[];
-      for (final p in type.positionalParameters) {
-        params.add(_restoreTypeForSignature(p));
+      final hasNamed = type.namedParameters.isNotEmpty;
+      final positional = type.positionalParameters;
+      final required = type.requiredParameterCount;
+      final hasOptional = positional.length > required;
+      const kMax = _TypeUtils.kMaxArity;
+      if (hasNamed || hasOptional || positional.length > kMax) {
+        return 'TypeFunction<$ret>$suffix';
       }
-      return '$ret Function(${params.join(', ')})$suffix';
+      final arity = positional.length;
+      final paramTexts =
+          [for (final p in positional) _restoreTypeForSignature(p)];
+      final args = [ret, ...paramTexts].join(', ');
+      return 'TypeFunction$arity<$args>$suffix';
     }
     if (type is TypeParameterType) {
       // 在 vptr 签名中，类型参数可能在调用处不可用（如 main 函数中调用泛型类的方法）

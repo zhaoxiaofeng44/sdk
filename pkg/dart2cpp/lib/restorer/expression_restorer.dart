@@ -26,8 +26,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         // 检查是否有对应的 setter（非下划线字段）
         // 下划线字段直接赋值，非下划线字段通过 vptr setter
         if (!fieldName.startsWith('_')) {
-          // DynamicSet 没有 interfaceTarget，使用安全的 void Function(dynamic, dynamic) 签名
-          return "($recv.vptr['set_$fieldName'] as void Function(dynamic, dynamic))($recv, $value)";
+          // DynamicSet 没有 interfaceTarget，使用 TypeFunction2<void, dynamic, dynamic> 签名
+          return "($recv.vptr['set_$fieldName'] as TypeFunction2<void, dynamic, dynamic>)($recv, $value)";
         }
       }
       return '$recv.$fieldName = $value';
@@ -133,18 +133,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // OOP Lowering: 泛型方法调用 → 通过虚表或静态函数
       final receiverClassName = _getReceiverClassNameFromReceiver(expr.receiver, expr.interfaceTarget);
       if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
-        // 泛型方法调用：还原为 vptr 调用
-        final args = _restoreArgs(expr.arguments);
-        // 使用精确签名（this_ 统一为 dynamic，无逆变问题）
         final target = expr.interfaceTarget;
         if (target is Procedure) {
-          final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
+          final sig = _buildPreciseFuncSignature(target,
+              receiverClassName: receiverClassName, receiver: expr.receiver);
+          // Lowered ABI：named 全部铺平为 positional，缺省值由调用方补齐
+          final args =
+              _restoreFlattenedArgs(target.function, expr.arguments);
           if (args.isEmpty) {
             return "($recv.vptr['$methodName'] as $sig)($recv)";
           }
           return "($recv.vptr['$methodName'] as $sig)($recv, $args)";
         }
         // fallback: 非 Procedure 类型的 target
+        final args = _restoreArgs(expr.arguments);
         if (args.isEmpty) {
           return "$recv.$methodName()";
         }
@@ -249,7 +251,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         }
         // 使用 expr.resultType 获取调用处已具体化的返回类型（避免泛型 T 未替换问题）
         final returnType = _restoreTypeForSignature(expr.resultType);
-        final sig = '$returnType Function($_thisParamType)';
+        final sig = _emitFuncSig(returnType, [_thisParamType]);
         return "($recv.vptr['get_$fieldName'] as $sig)($recv)";
       }
     }
@@ -382,23 +384,23 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
         final right = _restoreExpr(expr.arguments.positional[0]);
         final rightType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
-        final sig = '$returnType Function($thisType, $rightType)';
+        final sig = _emitFuncSig(returnType, [thisType, rightType]);
         final vtableField = 'operator${_operatorFuncName(name)}';
         return "($recv.vptr['$vtableField'] as $sig)($recv, $right)";
       }
       // 一元运算符
       if (name == 'unary-') {
-        final sig = '$returnType Function($thisType)';
+        final sig = _emitFuncSig(returnType, [thisType]);
         return "($recv.vptr['operatorNeg'] as $sig)($recv)";
       }
       if (name == '~') {
-        final sig = '$returnType Function($thisType)';
+        final sig = _emitFuncSig(returnType, [thisType]);
         return "($recv.vptr['operatorBitNot'] as $sig)($recv)";
       }
       if (name == '[]') {
         final idx = _restoreExpr(expr.arguments.positional[0]);
         final idxType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
-        final sig = '$returnType Function($thisType, $idxType)';
+        final sig = _emitFuncSig(returnType, [thisType, idxType]);
         return "($recv.vptr['operatorIndex'] as $sig)($recv, $idx)";
       }
       if (name == '[]=') {
@@ -408,35 +410,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final valType = expr.functionType.positionalParameters.length > 1
             ? _restoreTypeForSignature(expr.functionType.positionalParameters[1])
             : 'dynamic';
-        final sig = '$returnType Function($thisType, $idxType, $valType)';
+        final sig = _emitFuncSig(returnType, [thisType, idxType, valType]);
         return "($recv.vptr['operatorIndexSet'] as $sig)($recv, $idx, $val)";
       }
       // 普通方法 → Map 查找精确类型转换调用
       final vtableField = _vtableFieldName(name);
       final allArgs = _restoreArgs(expr.arguments);
 
-      // 补齐缺失的可选位置参数默认值
-      // Kernel 中如果调用未传可选参数，arguments.positional 不会包含它们，
-      // 但生成的静态函数签名是固定的，必须传齐
+      // Lowered ABI：positional 缺省值 + named 全部按声明顺序铺平为 positional，
+      // 调用方负责补齐缺省值。
       String _buildArgsWithDefaults() {
-        final tFunc = expr.interfaceTarget.function;
-        final parts = <String>[];
-        for (var i = 0; i < expr.arguments.positional.length; i++) {
-          parts.add(_restoreExpr(expr.arguments.positional[i]));
-        }
-        for (var i = expr.arguments.positional.length; i < tFunc.positionalParameters.length; i++) {
-          final p = tFunc.positionalParameters[i];
-          if (p.initializer != null) {
-            parts.add(_restoreExpr(p.initializer!));
-          } else {
-            // 可选参数无 initializer：如果可空，传 null；否则跳过（按 Dart 规范应该是 null）
-            parts.add('null');
-          }
-        }
-        for (final n in expr.arguments.named) {
-          parts.add('${n.name}: ${_restoreExpr(n.value)}');
-        }
-        return parts.join(', ');
+        return _restoreFlattenedArgs(
+            expr.interfaceTarget.function, expr.arguments);
       }
 
       // 检查方法是否有方法级类型参数（如 fold<T>、mapRight<R2>）
@@ -481,19 +466,21 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
               specSigParams.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
             }
           }
-          // 包含命名参数（使用 functionType 中已替换泛型的具体类型）
-          final specNamedParts = <String>[];
-          for (final namedParam in expr.functionType.namedParameters) {
-            final typeStr = _restoreTypeForSignature(namedParam.type);
-            final requiredPrefix = namedParam.isRequired ? 'required ' : '';
-            specNamedParts.add('$requiredPrefix$typeStr ${namedParam.name}');
-          }
-          String specSig;
-          if (specNamedParts.isEmpty) {
-            specSig = '$specReturnType Function(${specSigParams.join(', ')})';
-          } else {
-            specSig = '$specReturnType Function(${specSigParams.join(', ')}, {${specNamedParts.join(', ')}})';
-          }
+          // Lowered ABI：named 已铺平到 positional，按 **target 的声明顺序**
+          // 取，不能用 expr.functionType.namedParameters 因为后者是 kernel 在
+          // call-site 处的视角顺序，与 target 声明顺序可能不一致。
+          // 类型仍要走 functionType（含具体化后的 R/T 实参），因此按名字索引
+          // 到 functionType.namedParameters 的对应类型。
+          final ftNamedByName = <String, DartType>{
+            for (final np in expr.functionType.namedParameters)
+              np.name: np.type,
+          };
+          final specNamedTypes = <String>[
+            for (final np in targetFunc.namedParameters)
+              _restoreTypeForSignature(ftNamedByName[np.name] ?? np.type),
+          ];
+          final specSig = _emitFuncSig(specReturnType, specSigParams,
+              namedTypes: specNamedTypes);
 
           if (args.isEmpty) {
             return "($recv.vptr['$specKey'] as $specSig)($recv)";
@@ -532,34 +519,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
           sigParamTypes.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
         }
       }
-      // 包含命名参数（使用 functionType 中已替换泛型的具体类型）
-      final namedParts = <String>[];
-      for (final namedParam in expr.functionType.namedParameters) {
-        final typeStr = _restoreTypeForSignature(namedParam.type);
-        final requiredPrefix = namedParam.isRequired ? 'required ' : '';
-        namedParts.add('$requiredPrefix$typeStr ${namedParam.name}');
-      }
-      String sig;
-      if (namedParts.isEmpty) {
-        sig = '$returnType Function(${sigParamTypes.join(', ')})';
-      } else {
-        sig = '$returnType Function(${sigParamTypes.join(', ')}, {${namedParts.join(', ')}})';
-      }
+      // Lowered ABI：named 已铺平到 positional，这里只把类型透传给 sig
+      // builder，由它接到 positional 列表末尾。
+      final namedTypes = <String>[
+        for (final np in expr.functionType.namedParameters)
+          _restoreTypeForSignature(np.type),
+      ];
+      final sig =
+          _emitFuncSig(returnType, sigParamTypes, namedTypes: namedTypes);
 
-      // 补齐缺省的默认参数值
-      final fullArgParts = <String>[];
-      for (var i = 0; i < expr.arguments.positional.length; i++) {
-        fullArgParts.add(_restoreExpr(expr.arguments.positional[i]));
-      }
-      for (var i = expr.arguments.positional.length; i < targetFunc.positionalParameters.length; i++) {
-        final param = targetFunc.positionalParameters[i];
-        if (param.initializer != null) {
-          fullArgParts.add(_restoreExpr(param.initializer!));
-        } else {
-          fullArgParts.add(_defaultValueForType(param.type));
-        }
-      }
-      final fullArgs = fullArgParts.join(', ');
+      // Lowered ABI：positional 缺省值 + named 都按声明顺序铺平为 positional，
+      // 调用方补默认值。
+      final fullArgs = _restoreFlattenedArgs(targetFunc, expr.arguments);
       if (fullArgs.isEmpty) {
         return "($recv.vptr['$vtableField'] as $sig)($recv)";
       }
@@ -581,7 +552,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final target = expr.interfaceTarget;
       final sig = _buildPreciseFuncSignature(target);
       final vtableField = _vtableFieldName(name);
-      final allArgs = _restoreArgs(expr.arguments);
+      final allArgs = _restoreFlattenedArgs(target.function, expr.arguments);
       if (allArgs.isEmpty) {
         return "($recv.vptr['$vtableField'] as $sig)($recv)";
       }
@@ -618,28 +589,43 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// 从 Procedure AST 构建精确的函数签名字符串，用于 vptr Map 的类型转换
   /// [receiverClassName] 指定接收者的类名，用于解析 this_ 类型
   /// 如果未指定，则使用 target.enclosingClass 解析
+  ///
+  /// Lowered ABI：named 已铺平为 positional，没有可选参数。这里直接把
+  /// proc.function 的全部参数（this_ + positional + named）按顺序当成
+  /// positional 传给 [_emitFuncSig]。
   String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName, Expression? receiver}) {
     final returnType = _restoreTypeForSignature(proc.function.returnType);
     final paramTypes = <String>[_thisParamType];
     for (final param in proc.function.positionalParameters) {
       paramTypes.add(_restoreTypeForSignature(param.type));
     }
-    final namedParts = <String>[];
-    for (final param in proc.function.namedParameters) {
-      final typeStr = _restoreTypeForSignature(param.type);
-      final requiredPrefix = param.isRequired ? 'required ' : '';
-      namedParts.add('$requiredPrefix$typeStr ${param.name}');
-    }
-    if (namedParts.isEmpty) {
-      return '$returnType Function(${paramTypes.join(', ')})';
-    }
-    final positionalPart = paramTypes.join(', ');
-    final namedPart = '{${namedParts.join(', ')}}';
-    return '$returnType Function($positionalPart, $namedPart)';
+    final namedTypes = <String>[
+      for (final np in proc.function.namedParameters)
+        _restoreTypeForSignature(np.type),
+    ];
+    return _emitFuncSig(returnType, paramTypes, namedTypes: namedTypes);
   }
 
   /// this_ 参数统一为 dynamic（声明侧和调用侧一致，消除 as Function 转换）
   static const String _thisParamType = 'dynamic';
+
+  /// 将函数签名构造为 `TypeFunctionN<R, T1..Tn>` 字符串，用于 vptr 槽位的
+  /// 静态类型 cast。
+  ///
+  /// Lowered ABI：所有原 named 参数都已铺平为 positional，没有可选参数，
+  /// 默认值由调用点补齐。`namedTypes` 应是**纯类型字符串**，会顺次接到
+  /// positional 列表末尾；`required` 关键字与参数名都不属于函数类型。
+  /// 仅当 arity 超过 [_TypeUtils.kMaxArity] 时，兜底成 `dynamic`。
+  String _emitFuncSig(String returnType, List<String> positional,
+      {List<String> namedTypes = const []}) {
+    final all = [...positional, ...namedTypes];
+    if (all.length > _TypeUtils.kMaxArity) {
+      return 'dynamic';
+    }
+    final arity = all.length;
+    final args = [returnType, ...all].join(', ');
+    return 'TypeFunction$arity<$args>';
+  }
 
 
   /// 获取类的实际规范化名称（处理合成 mixin 中间类名）
@@ -814,6 +800,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final args = _restoreArgs(expr.arguments);
 
     // 静态集合: _GrowableList → StaticList
+    // 只在这里处理 *字面量*（_literal* 系列，没有真实命名构造的入口）和
+    // 真正的空构造（name 为空）。其它带名 factory（generate / filled / of /
+    // from / unmodifiable …）必须落到下面 `target.isFactory` 分支统一处理，
+    // 否则参数和构造名都会被丢掉（曾导致 `List.generate(rows, gen)` 被还原
+    // 成 `StaticList<T>()` 这种空表）。
     if (target.enclosingClass != null && target.enclosingClass!.name == '_GrowableList') {
       final typeArgs = expr.arguments.types;
       final typeArgStr = typeArgs.isNotEmpty ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>' : '';
@@ -821,7 +812,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final items = expr.arguments.positional.map((e) => _restoreExpr(e)).join(', ');
         return 'StaticList$typeArgStr.of([$items])';
       }
-      return 'StaticList$typeArgStr()';
+      if (name.isEmpty) {
+        return 'StaticList$typeArgStr()';
+      }
+      // fallthrough to factory handler
     }
 
     // 静态集合: Set 内部实现类 → StaticSet
@@ -1202,6 +1196,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 识别 null-coalescing 模式（?? 操作符）：
     // Let(tmp = expr, tmp == null ? fallback : tmp)
     // 这是 Dart 编译器将 `expr ?? fallback` 脱糖后的形式
+    //
+    // 例外：kernel 还会把 `expr as L`（L 非空、expr 可空）脱糖成形如
+    //   Let(tmp = expr, tmp == null ? (tmp as L) : tmp)
+    // 这种形式 fallback 引用了 tmp 自身（其实是用于触发 TypeError）。
+    // 若我们仍按 `??` 还原，fallback 会保留 `_letN`，但 `_letN` 永远不
+    // 会被声明，从而产生 undefined_identifier。优先识别它并还原成
+    // `(expr as L)`。
     if (v.initializer != null) {
       final body = expr.body;
       if (body is ConditionalExpression) {
@@ -1209,8 +1210,19 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         if (condition is EqualsNull) {
           final condExpr = condition.expression;
           if (condExpr is VariableGet && condExpr.variable == v) {
-            // 检查 otherwise 分支是否也引用同一个变量（即 tmp != null 时返回 tmp）
+            // 优先：`expr as L` 的脱糖形式
+            final thenBranch = body.then;
             final otherwise = body.otherwise;
+            if (thenBranch is AsExpression &&
+                thenBranch.operand is VariableGet &&
+                (thenBranch.operand as VariableGet).variable == v &&
+                otherwise is VariableGet &&
+                otherwise.variable == v) {
+              final lhs = _restoreExpr(v.initializer!);
+              final castType = _restoreType(thenBranch.type);
+              return '($lhs as $castType)';
+            }
+            // 检查 otherwise 分支是否也引用同一个变量（即 tmp != null 时返回 tmp）
             if (otherwise is VariableGet && otherwise.variable == v) {
               // 匹配到 expr ?? fallback 模式
               final lhs = _restoreExpr(v.initializer!);
@@ -1384,16 +1396,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final capturedDecls = analysis.capturedDecls;
     final capturesThis = analysis.capturesThis;
 
-    // 如果没有捕获任何变量，保持原有的 lambda 输出
-    if (capturedDecls.isEmpty && !capturesThis) {
-      return _restoreFuncExprAsLambda(func);
-    }
-
-    // 有捕获变量 → 生成 ClosureEnv callable class
+    // 全部走 ClosureEnv 路径：即使无捕获，也要把闭包包成 `extends TypeFunctionN`
+    // 的具名子类实例，否则推断出来仍是 Dart 原生 `Function`。
     return _restoreFuncExprAsClosure(func, capturedDecls, capturesThis);
   }
 
-  /// 原始的 lambda 输出（无捕获变量时使用）
+  /// 原始的 lambda 输出（已被 closure 路径替代，保留以便回滚）。
+  // ignore: unused_element
   String _restoreFuncExprAsLambda(FunctionNode func) {
     final sb = StringBuffer();
     sb.write('(');
@@ -1516,16 +1525,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     // 构建参数列表字符串（用于 call 方法和静态函数）
     // 被 Box 化的参数在外部接口上仍是原类型，参数名加 _raw 后缀
+    //
+    // Object/dynamic 兼容性：kernel 对闭包参数有时会推断出 `Map<K, Object>` 而上下
+    // 文期望 `Map<K, dynamic>`（典型场景：map literal 推断成 `Map<String, Object>`
+    // 然后做为 sort 的比较函数参数）。对闭包参数侧把容器类型实参中的 `Object`
+    // 归一为 `dynamic`，可让 `TypeFunctionN`/`call`/静态函数三处签名保持自洽，
+    // 也能匹配调用点的期望签名。Static 集合 + 用户类型 + 基础类型均不受影响。
     final callParams = <String>[];
     for (final p in func.positionalParameters) {
       final baseName = p.name!;
       final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callParams.add('${_restoreType(p.type)} $pName');
+      callParams.add('${_restoreClosureParamType(p.type)} $pName');
     }
     for (final p in func.namedParameters) {
       final baseName = p.name!;
       final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callParams.add('${_restoreType(p.type)} $pName');
+      callParams.add('${_restoreClosureParamType(p.type)} $pName');
     }
     final callParamStr = callParams.join(', ');
 
@@ -1561,10 +1576,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
     _collectTypeParameters(func.returnType, typeParams);
 
-    // 生成泛型参数声明字符串，如 "<T>" 或 "<K, V>"
-    final typeParamStr = typeParams.isEmpty
+    // 泛型参数串：
+    // - typeParamNameStr：仅名称（`<T>`），用于类型引用 / 实例化 / 转发调用。
+    // - typeParamDeclStr：带 `extends Bound`（`<T extends num>`），用于
+    //   闭包类与静态 _call 函数的声明位。若 bound 是 Object/Object?/dynamic，
+    //   保持仅名称形式（与 _writeTypeParams 一致）。
+    //   修复点：之前两处都只写名称，导致 `extends Iterable<num>` 这种带约束的
+    //   闭包（如 IterableStats.sum/max/min）丢失 `T extends num` 约束，闭包体
+    //   `(a + b)` / `a > b` 因 T 可空而报 unchecked_use_of_nullable_value。
+    final typeParamNameStr = typeParams.isEmpty
         ? ''
         : '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
+    final typeParamDeclStr = typeParams.isEmpty
+        ? ''
+        : '<${typeParams.map(_formatTypeParamDecl).join(', ')}>';
+    // 兼容旧变量名（其余引用仍用 typeParamStr 时也指仅名称形式）
+    final typeParamStr = typeParamNameStr;
 
     // ---- 生成闭包体（在 env 上下文中还原） ----
     // 设置 env 映射，让 _restoreVarGet/Set 知道哪些变量需要加 env. 前缀
@@ -1652,10 +1679,31 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     _thisIsCapturedInEnv = savedThisInEnv;
 
     // ---- 生成 ClosureEnv 类定义 ----
+    // ClosureEnv 现在是 TypeFunctionN 的具名子类：值本身就是 callable class
+    // 实例，不再需要 `.call` tear-off 把它适配成 Function。
     final declBuf = StringBuffer();
 
-    // class ClosureEnv_xxx<T> {
-    declBuf.write('class $envClassName$typeParamStr {\n');
+    // 选择 base：无命名参数且 arity ≤ 上限 → TypeFunctionN<R, T1..Tn>
+    // 否则 → TypeFunction<R> 基类（仍由本类自带的 call 方法提供 callable 语义）
+    final positionalParamTypes = <String>[
+      for (final p in func.positionalParameters) _restoreClosureParamType(p.type),
+    ];
+    final hasNamedParam = func.namedParameters.isNotEmpty;
+    String baseClause;
+    bool callIsOverride;
+    if (!hasNamedParam &&
+        positionalParamTypes.length <= _TypeUtils.kMaxArity) {
+      final arity = positionalParamTypes.length;
+      final args = [returnType, ...positionalParamTypes].join(', ');
+      baseClause = ' extends TypeFunction$arity<$args>';
+      callIsOverride = true;
+    } else {
+      baseClause = ' extends TypeFunction<$returnType>';
+      callIsOverride = false;
+    }
+
+    // class ClosureEnv_xxx<T extends Bound> extends TypeFunctionN<...> {
+    declBuf.write('class $envClassName$typeParamDeclStr$baseClause {\n');
 
     // 字段
     for (final field in capturedFields) {
@@ -1669,6 +1717,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // call 方法 → 转发到静态函数
     final staticCallName = '${envClassName}_call';
     final forwardArgs = callArgStr.isEmpty ? 'this' : 'this, $callArgStr';
+    if (callIsOverride) {
+      declBuf.write('  @override\n');
+    }
     declBuf.write('  $returnType call($callParamStr) => $staticCallName$typeParamStr($forwardArgs);\n');
 
     declBuf.write('}\n');
@@ -1685,7 +1736,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (marker == AsyncMarker.AsyncStar) asyncStr = ' async*';
     if (marker == AsyncMarker.SyncStar) asyncStr = ' sync*';
 
-    declBuf.write('$returnType $staticCallName$typeParamStr($staticParams)$asyncStr$bodyStr\n');
+    declBuf.write('$returnType $staticCallName$typeParamDeclStr($staticParams)$asyncStr$bodyStr\n');
 
     // 将闭包声明添加到待输出列表
     _pendingClosureDecls.add(declBuf.toString());
@@ -1722,10 +1773,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
     }
     final constructArgs = constructArgsList.join(', ');
-    // Bug 27: 闭包环境类虽然有 call 方法，但不能直接 cast 为 Function 类型
-    // 需要追加 .call 将其转为函数引用（tear-off），
-    // 这样 ClosureEnv_xxx(args).call 就是合法的 void Function(params)
-    return '$envClassName($constructArgs).call';
+    // ClosureEnv 是 TypeFunctionN 子类，实例本身就是合法的函数值，
+    // 不需要再追加 `.call` 做 tear-off。显式带上 type 实参，让 Dart 把闭包
+    // 的类型参数与外层方法的 T 绑定（否则 ClosureEnv<T>() 会被推断为
+    // ClosureEnv<dynamic>，导致传给 reduce/sort 等期望 `T Function(T, T)`
+    // 的位置发生类型不兼容）。
+    return '$envClassName$typeParamStr($constructArgs)';
   }
 
   /// 递归收集 DartType 中引用的所有 TypeParameter

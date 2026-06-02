@@ -1,0 +1,52 @@
+// Regenerate a `*_restored.dart` file from a kernel `.dill` produced by
+// `dart compile kernel <test>.dart -o <test>.dill`.
+//
+// Usage: dart run tool/regen_restored.dart <baseName>
+//   where <baseName> matches `test/<baseName>.dart`; writes to
+//   `test/<baseName>_restored.dart`.
+
+import 'dart:io';
+import 'package:kernel/kernel.dart' as k;
+import '../lib/dart_to_dart_restorer.dart';
+
+Future<void> main(List<String> args) async {
+  if (args.isEmpty) {
+    stderr.writeln('usage: dart run tool/regen_restored.dart <baseName>');
+    exit(2);
+  }
+  final base = args.first;
+  final scriptDir = File(Platform.script.toFilePath()).parent.parent.path;
+  final srcPath = '$scriptDir/test/$base.dart';
+  final dillPath = '/tmp/${base}_regen.dill';
+  final outPath = '$scriptDir/test/${base}_restored.dart';
+
+  if (!File(srcPath).existsSync()) {
+    stderr.writeln('source not found: $srcPath');
+    exit(2);
+  }
+
+  // Use the in-repo dart SDK so the produced .dill's kernel format matches
+  // the version this restorer's `package:kernel` was built against.
+  const inRepoDart =
+      '/Users/tbsg/Project/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/bin/dart';
+  final dartExe = File(inRepoDart).existsSync()
+      ? inRepoDart
+      : Platform.resolvedExecutable;
+  stdout.writeln('compiling $srcPath -> $dillPath');
+  stdout.writeln('  using: $dartExe');
+  final compile = await Process.run(
+    dartExe,
+    ['compile', 'kernel', srcPath, '-o', dillPath],
+  );
+  if (compile.exitCode != 0) {
+    stderr.writeln('dart compile kernel failed (exit=${compile.exitCode}):');
+    stderr.writeln(compile.stderr);
+    exit(compile.exitCode);
+  }
+
+  stdout.writeln('reading kernel and restoring');
+  final component = k.loadComponentFromBinary(dillPath);
+  final restored = restoreDartFromComponent(component);
+  File(outPath).writeAsStringSync(restored);
+  stdout.writeln('wrote $outPath (${restored.length} chars)');
+}

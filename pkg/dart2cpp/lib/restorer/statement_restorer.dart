@@ -194,9 +194,46 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     _buf.write(_restoreType(v.type));
     _buf.write(' $name');
     if (v.initializer != null) {
-      _buf.write(' = ${_restoreExpr(v.initializer!)}');
+      final initStr = _restoreExpr(v.initializer!);
+      _buf.write(' = ${_adaptInitForStaticCollection(v, initStr)}');
     }
     _buf.write(';\n');
+  }
+
+  /// 当声明类型还原为 `StaticList/StaticMap/StaticSet<...>`，但 initializer
+  /// 是 dart-core 集合（例如 `String.split` 返回 `List<String>`、
+  /// `Iterable.toList()` 返回 `_GrowableList<T>`）时，用 `Static*.of(...)`
+  /// 包一层，否则会触发 `invalid_assignment: List<String> can't be assigned
+  /// to StaticList<String>`。变量初始化器若本身已经是 `Static*` 表达式
+  /// （或 `(Static* ... ..xxx)` 这种级联）/ 直接的变量引用，则跳过包装。
+  String _adaptInitForStaticCollection(VariableDeclaration v, String initStr) {
+    final declType = v.type;
+    if (declType is! InterfaceType) return initStr;
+    final raw = declType.classNode.name;
+    String? staticName;
+    if (raw == 'List' || raw == '_List' || raw == '_GrowableList') {
+      staticName = 'StaticList';
+    } else if (raw == 'Map' || raw == '_Map' || raw == 'LinkedHashMap' || raw == '_InternalLinkedHashMap') {
+      staticName = 'StaticMap';
+    } else if (raw == 'Set' || raw == '_Set' || raw == 'LinkedHashSet' || raw == '_CompactLinkedHashSet') {
+      staticName = 'StaticSet';
+    }
+    if (staticName == null) return initStr;
+
+    final init = v.initializer;
+    if (init is VariableGet) return initStr;
+
+    var probe = initStr.trimLeft();
+    while (probe.startsWith('(')) {
+      probe = probe.substring(1).trimLeft();
+    }
+    if (probe.startsWith(staticName)) return initStr;
+
+    final typeArgs = declType.typeArguments.map(_restoreType).join(', ');
+    if (typeArgs.isEmpty) {
+      return '$staticName.of($initStr)';
+    }
+    return '$staticName<$typeArgs>.of($initStr)';
   }
 
   void _restoreCatch(Catch c) {

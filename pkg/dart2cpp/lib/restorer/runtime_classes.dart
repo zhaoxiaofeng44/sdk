@@ -1,12 +1,153 @@
 /// Dart2Cpp restorer 运行时基础类定义
 ///
-/// 包含 VPtr 虚函数表基类和 Box 类型（闭包引用语义）。
+/// 包含 VPtr 虚函数表基类、TypeFunction 函数值基类族、Box 类型（闭包引用语义）。
 /// 由 dart_restorer 生成的还原代码通过 import 引入本文件。
 
 import 'dart:collection';
 
+// ============================================================================
+// TypeFunction 基类族 — 替代 Dart 内建 Function 类型
+// ----------------------------------------------------------------------------
+// Dart 不支持 variadic generics，因此按 arity 索引展开 TypeFunction0..N。
+// 还原后的代码：
+//   * 所有函数类型注解（包括 vptr cast）使用 `TypeFunctionN<R, T1..Tn>`，
+//     不再出现裸 `Function`；
+//   * 所有闭包（含捕获 / 无捕获）和 tear-off 都被还原器生成为
+//     `extends TypeFunctionN<...>` 的具名子类实例，而不是 inline lambda。
+// 调用语法保持 Dart 原生 `f(a, b, c)` — 因为 TypeFunctionN 是 callable
+// class（声明了具名 `call` 方法）。
+//
+// arity ceiling 当前为 16；超出请在此文件追加 TypeFunction17..N 并同步
+// 还原器侧的 ARITY 上限常量。
+// ============================================================================
+
+abstract class TypeFunction<R> {
+  const TypeFunction();
+  int get arity;
+}
+
+abstract class TypeFunction0<R> extends TypeFunction<R> {
+  const TypeFunction0();
+  @override int get arity => 0;
+  R call();
+}
+
+abstract class TypeFunction1<R, T1> extends TypeFunction<R> {
+  const TypeFunction1();
+  @override int get arity => 1;
+  R call(T1 a1);
+}
+
+abstract class TypeFunction2<R, T1, T2> extends TypeFunction<R> {
+  const TypeFunction2();
+  @override int get arity => 2;
+  R call(T1 a1, T2 a2);
+}
+
+abstract class TypeFunction3<R, T1, T2, T3> extends TypeFunction<R> {
+  const TypeFunction3();
+  @override int get arity => 3;
+  R call(T1 a1, T2 a2, T3 a3);
+}
+
+abstract class TypeFunction4<R, T1, T2, T3, T4> extends TypeFunction<R> {
+  const TypeFunction4();
+  @override int get arity => 4;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4);
+}
+
+abstract class TypeFunction5<R, T1, T2, T3, T4, T5> extends TypeFunction<R> {
+  const TypeFunction5();
+  @override int get arity => 5;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5);
+}
+
+abstract class TypeFunction6<R, T1, T2, T3, T4, T5, T6> extends TypeFunction<R> {
+  const TypeFunction6();
+  @override int get arity => 6;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6);
+}
+
+abstract class TypeFunction7<R, T1, T2, T3, T4, T5, T6, T7> extends TypeFunction<R> {
+  const TypeFunction7();
+  @override int get arity => 7;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7);
+}
+
+abstract class TypeFunction8<R, T1, T2, T3, T4, T5, T6, T7, T8> extends TypeFunction<R> {
+  const TypeFunction8();
+  @override int get arity => 8;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8);
+}
+
+abstract class TypeFunction9<R, T1, T2, T3, T4, T5, T6, T7, T8, T9>
+    extends TypeFunction<R> {
+  const TypeFunction9();
+  @override int get arity => 9;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9);
+}
+
+abstract class TypeFunction10<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+    extends TypeFunction<R> {
+  const TypeFunction10();
+  @override int get arity => 10;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10);
+}
+
+abstract class TypeFunction11<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
+    extends TypeFunction<R> {
+  const TypeFunction11();
+  @override int get arity => 11;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11);
+}
+
+abstract class TypeFunction12<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
+    extends TypeFunction<R> {
+  const TypeFunction12();
+  @override int get arity => 12;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11, T12 a12);
+}
+
+abstract class TypeFunction13<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
+    extends TypeFunction<R> {
+  const TypeFunction13();
+  @override int get arity => 13;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11, T12 a12, T13 a13);
+}
+
+abstract class TypeFunction14<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+    extends TypeFunction<R> {
+  const TypeFunction14();
+  @override int get arity => 14;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11, T12 a12, T13 a13, T14 a14);
+}
+
+abstract class TypeFunction15<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>
+    extends TypeFunction<R> {
+  const TypeFunction15();
+  @override int get arity => 15;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11, T12 a12, T13 a13, T14 a14, T15 a15);
+}
+
+abstract class TypeFunction16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>
+    extends TypeFunction<R> {
+  const TypeFunction16();
+  @override int get arity => 16;
+  R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
+      T11 a11, T12 a12, T13 a13, T14 a14, T15 a15, T16 a16);
+}
+
 /// VPtr 基类 - 所有无基类（或继承自 Object）的 Value 类都继承自它。
 /// 提供 vptr 字段和 toString/operator==/hashCode 的桥接覆写。
+///
+/// 注：vptr 槽里存的函数现在统一是 TypeFunctionN 子类实例（由还原器生成的
+/// 各种 _Closure_ / _TearOff_ 类）。这里用对应 arity 的 TypeFunctionN 做
+/// cast，避免出现 `Function` 字面量。
 class VPtr {
   late Map<String, dynamic> vptr;
   VPtr() {
@@ -19,19 +160,21 @@ class VPtr {
   @override
   String toString() {
     final fn = vptr['toString'];
-    if (fn != null) return (fn as Function)(this) as String;
+    if (fn != null) return (fn as TypeFunction1<String, dynamic>)(this);
     return super.toString();
   }
   @override
   bool operator ==(Object other) {
     final fn = vptr['operatorEq'];
-    if (fn != null) return (fn as Function)(this, other) as bool;
+    if (fn != null) {
+      return (fn as TypeFunction2<bool, dynamic, dynamic>)(this, other);
+    }
     return identical(this, other);
   }
   @override
   int get hashCode {
     final fn = vptr['get_hashCode'];
-    if (fn != null) return (fn as Function)(this) as int;
+    if (fn != null) return (fn as TypeFunction1<int, dynamic>)(this);
     return super.hashCode;
   }
 }

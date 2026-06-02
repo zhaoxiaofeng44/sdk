@@ -2,10 +2,10 @@ import 'package:dart2cpp/restorer/runtime_classes.dart';
 
 class ShapeValue extends VPtr {
   ShapeValue() {
-    vptr['get_name'] = Shape_get_name;
-    vptr['area'] = Shape_area;
-    vptr['perimeter'] = Shape_perimeter;
-    vptr['toString'] = Shape_toString;
+    vptr['get_name'] = const _TearOff_Shape_get_name();
+    vptr['area'] = const _TearOff_Shape_area();
+    vptr['perimeter'] = const _TearOff_Shape_perimeter();
+    vptr['toString'] = const _TearOff_Shape_toString();
   }
 }
 
@@ -28,7 +28,7 @@ double Shape_perimeter(dynamic this_) {
 
 String Shape_toString(dynamic this__) {
   final this_ = this__ as ShapeValue;
-  return '${(this_.vptr['get_name'] as String Function(dynamic))(this_)}(area=${(this_.vptr['area'] as double Function(dynamic))(this_).toStringAsFixed(2)})';
+  return '${(this_.vptr['get_name'] as TypeFunction1<String, dynamic>)(this_)}(area=${(this_.vptr['area'] as TypeFunction1<double, dynamic>)(this_).toStringAsFixed(2)})';
 }
 
 
@@ -36,8 +36,8 @@ class PairValue<A, B> extends VPtr {
   late A first;
   late B second;
   PairValue() {
-    vptr['swap'] = Pair_swap<A, B>;
-    vptr['toString'] = Pair_toString<A, B>;
+    vptr['swap'] = _TearOff_Pair_swap<A, B>();
+    vptr['toString'] = _TearOff_Pair_toString<A, B>();
   }
 }
 
@@ -62,18 +62,12 @@ String Pair_toString<A, B>(dynamic this__) {
 class CircleValue extends ShapeValue {
   late double _radius;
   CircleValue() {
-    vptr['get_name'] = Circle_get_name;
-    vptr['area'] = Circle_area;
-    vptr['perimeter'] = Circle_perimeter;
-    vptr['toString'] = Circle_toString;
-    vptr['get_radius'] = Circle_get_radius;
-    vptr['set_radius'] = Circle_set_radius;
-    vptr['get_name'] = Circle_get_name;
-    vptr['area'] = Circle_area;
-    vptr['perimeter'] = Circle_perimeter;
-    vptr['toString'] = Circle_toString;
-    vptr['get_radius'] = Circle_get_radius;
-    vptr['set_radius'] = Circle_set_radius;
+    vptr['get_name'] = const _TearOff_Circle_get_name();
+    vptr['area'] = const _TearOff_Circle_area();
+    vptr['perimeter'] = const _TearOff_Circle_perimeter();
+    vptr['toString'] = const _TearOff_Circle_toString();
+    vptr['get_radius'] = const _TearOff_Circle_get_radius();
+    vptr['set_radius'] = const _TearOff_Circle_set_radius();
   }
 }
 
@@ -127,10 +121,10 @@ class RectangleValue extends ShapeValue {
   late double width;
   late double height;
   RectangleValue() {
-    vptr['get_name'] = Rectangle_get_name;
-    vptr['area'] = Rectangle_area;
-    vptr['perimeter'] = Rectangle_perimeter;
-    vptr['toString'] = Rectangle_toString;
+    vptr['get_name'] = const _TearOff_Rectangle_get_name();
+    vptr['area'] = const _TearOff_Rectangle_area();
+    vptr['perimeter'] = const _TearOff_Rectangle_perimeter();
+    vptr['toString'] = const _TearOff_Rectangle_toString();
   }
 }
 
@@ -175,8 +169,8 @@ String StringExtensions_capitalize(final String this_) {
   return '${this_[0].toUpperCase()}${this_.substring(1)}';
 }
 
-String Function() StringExtensions_get_capitalize(final String this_) {
-  return ClosureEnv_StringExtensions_get_capitalize_0(this_).call;
+TypeFunction0<String> StringExtensions_get_capitalize(final String this_) {
+  return ClosureEnv_StringExtensions_get_capitalize_0(this_);
 }
 
 bool StringExtensions_get_isPalindrome(final String this_) {
@@ -184,30 +178,30 @@ bool StringExtensions_get_isPalindrome(final String this_) {
   return (this_ == reversed);
 }
 
-List<T> ListExtensions_filterWhere<T>(final List<T> this_, bool Function(T) predicate) {
-  return this_.where(predicate).toList();
+StaticList<T> ListExtensions_filterWhere<T>(final StaticList<T> this_, TypeFunction1<bool, T> predicate) {
+  return StaticList.of(this_.where(predicate).toList());
 }
 
-List<T> Function(bool Function(T)) ListExtensions_get_filterWhere<T>(final List<T> this_) {
-  return ClosureEnv_ListExtensions_get_filterWhere_1(this_).call;
+TypeFunction1<StaticList<T>, TypeFunction1<bool, T>> ListExtensions_get_filterWhere<T>(final StaticList<T> this_) {
+  return ClosureEnv_ListExtensions_get_filterWhere_1<T>(this_);
 }
 
 T identity<T>(T value) {
   return value;
 }
 
-List<T> repeat<T>(T item_raw, int count) {
+StaticList<T> repeat<T>(T item_raw, int count) {
   ObjectBox<T> item = ObjectBox<T>(item_raw);
-  return List.generate(count, ClosureEnv_repeat_2(item).call);
+  return StaticList<T>.generate(count, ClosureEnv_repeat_2<T>(item));
 }
 
-Function makeAdder(int base_raw) {
+dynamic makeAdder(int base_raw) {
   IntBox base = IntBox(base_raw);
-  return ClosureEnv_makeAdder_3(base).call;
+  return ClosureEnv_makeAdder_3(base);
 }
 
-List<int> mapList(List<int> items, int Function(int) transform) {
-  return items.map(transform).toList();
+StaticList<int> mapList(StaticList<int> items, TypeFunction1<int, int> transform) {
+  return StaticList.of(items.map(transform).toList());
 }
 
 Promise<String> fetchData(String url) {
@@ -216,13 +210,13 @@ Promise<String> fetchData(String url) {
   return env._promise;
 }
 
-Promise<List<String>> fetchAll(List<String> urls) {
+Promise<StaticList<String>> fetchAll(StaticList<String> urls) {
   final env = ClosureEnv_fetchAll_5(urls);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-String? findFirst(List<String> items, bool Function(String) predicate) {
+String? findFirst(StaticList<String> items, TypeFunction1<bool, String> predicate) {
   for (final item in items) {
     if (predicate(item))     return item;
   }
@@ -237,29 +231,29 @@ void main() {
   print('=== 复杂语法节点还原测试 ===\n');
   print('--- 1. 泛型类 Pair ---');
   final PairValue<String, int> pair = Pair_new<String, int>(PairValue<String, int>(), 'hello', 42);
-  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(dynamic))(pair);
+  final PairValue<int, String> swapped = (pair.vptr['swap'] as TypeFunction1<PairValue<int, String>, dynamic>)(pair);
   print('pair: ${pair}');
   print('swapped: ${swapped}');
   assert((pair.first == 'hello'));
   assert((swapped.first == 42));
   print('\n--- 2. 继承 + 多态 ---');
-  final List<ShapeValue> shapes = <ShapeValue>[Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new_unit(CircleValue())];
+  final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new_unit(CircleValue())]);
   for (final shape in shapes) {
-    print('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
+    print('  ${shape}, perimeter=${(shape.vptr['perimeter'] as TypeFunction1<double, dynamic>)(shape).toStringAsFixed(2)}');
   }
   print('\n--- 3. getter/setter + 异常 ---');
   final CircleValue circle = Circle_new(CircleValue(), 3.0);
-  (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, 5.0);
-  print('radius after set: ${(circle.vptr['get_radius'] as double Function(dynamic))(circle)}');
+  (circle.vptr['set_radius'] as TypeFunction2<void, dynamic, double>)(circle, 5.0);
+  print('radius after set: ${(circle.vptr['get_radius'] as TypeFunction1<double, dynamic>)(circle)}');
   try {
-    (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, (-1.0));
+    (circle.vptr['set_radius'] as TypeFunction2<void, dynamic, double>)(circle, (-1.0));
     print('ERROR: should have thrown');
   }
  on ArgumentError catch (e) {
     print('Caught expected error: ${e}');
   }
   print('\n--- 4. 枚举 + switch ---');
-  final List<Direction> directions = <Direction>[Direction.north, Direction.east, Direction.south];
+  final StaticList<Direction> directions = StaticList<Direction>.of([Direction.north, Direction.east, Direction.south]);
   for (final dir in directions) {
     final String label = (() {     late String _v2;
     do {
@@ -294,35 +288,35 @@ void main() {
   print('capitalize: ${StringExtensions_capitalize(word)}');
   print('isPalindrome("racecar"): ${StringExtensions_get_isPalindrome('racecar')}');
   print('isPalindrome("hello"): ${StringExtensions_get_isPalindrome('hello')}');
-  final List<int> numbers = <int>[1, 2, 3, 4, 5, 6];
-  final List<int> evens = ListExtensions_filterWhere(numbers, (int n) => ((n % 2) == 0));
+  final StaticList<int> numbers = StaticList<int>.of([1, 2, 3, 4, 5, 6]);
+  final StaticList<int> evens = ListExtensions_filterWhere(numbers, ClosureEnv_main_6());
   print('evens: ${evens}');
   print('\n--- 6. 泛型函数 ---');
   print('identity<int>(99): ${identity<int>(99)}');
   print('repeat("x", 3): ${repeat<String>('x', 3)}');
   print('\n--- 7. 高阶函数 + 闭包 ---');
-  final Function add10 = makeAdder(10);
+  final dynamic add10 = makeAdder(10);
   print('add10(5): ${add10(5)}');
-  final List<int> doubled = mapList(<int>[1, 2, 3, 4], (int x) => (x * 2));
+  final StaticList<int> doubled = mapList(StaticList<int>.of([1, 2, 3, 4]), ClosureEnv_main_7());
   print('doubled: ${doubled}');
   IntBox counter = IntBox(0);
-  final int Function() increment = ClosureEnv_main_6(counter).call;
+  final TypeFunction0<int> increment = ClosureEnv_main_8(counter);
   print('counter: ${increment()}, ${increment()}, ${increment()}');
   print('\n--- 8. 可空类型 ---');
-  final List<String> items = <String>['apple', 'banana', 'cherry'];
-  final String? found = findFirst(items, (String s) => s.startsWith('b'));
+  final StaticList<String> items = StaticList<String>.of(['apple', 'banana', 'cherry']);
+  final String? found = findFirst(items, ClosureEnv_main_9());
   print('found: ${found}');
-  final String? notFound = findFirst(items, (String s) => s.startsWith('z'));
+  final String? notFound = findFirst(items, ClosureEnv_main_10());
   print('notFound: ${notFound}');
   print('safeLength(null): ${safeLength(null)}');
   print('safeLength("dart"): ${safeLength('dart')}');
   print('\n--- 9. 集合操作 ---');
-  final Map<String, int> map = <String, int>{'a': 1, 'b': 2, 'c': 3};
-  final Map<String, int> filtered = Map.fromEntries(map.entries.where((MapEntry<String, int> e) => (e.value > 1)));
+  final StaticMap<String, int> map = StaticMap<String, int>.of({'a': 1, 'b': 2, 'c': 3});
+  final StaticMap<String, int> filtered = StaticMap<String, int>.fromEntries(map.entries.where(ClosureEnv_main_11()));
   print('filtered map: ${filtered}');
-  final Set<int> set1 = <int>{1, 2, 3, 4};
-  final Set<int> set2 = <int>{3, 4, 5, 6};
-  final Set<int> intersection = set1.intersection(set2);
+  final StaticSet<int> set1 = StaticSet<int>.of([1, 2, 3, 4]);
+  final StaticSet<int> set2 = StaticSet<int>.of([3, 4, 5, 6]);
+  final StaticSet<int> intersection = set1.intersection(set2);
   print('intersection: ${intersection}');
   print('\n--- 10. 字符串插值 ---');
   final String name = 'Dart';
@@ -374,36 +368,120 @@ void main() {
   print('\n=== 所有测试通过 ✅ ===');
 }
 
-class ClosureEnv_StringExtensions_get_capitalize_0 {
+class _TearOff_Shape_get_name extends TypeFunction1<String, dynamic> {
+  const _TearOff_Shape_get_name();
+  @override
+  String call(dynamic this_) => Shape_get_name(this_);
+}
+class _TearOff_Shape_area extends TypeFunction1<double, dynamic> {
+  const _TearOff_Shape_area();
+  @override
+  double call(dynamic this_) => Shape_area(this_);
+}
+class _TearOff_Shape_perimeter extends TypeFunction1<double, dynamic> {
+  const _TearOff_Shape_perimeter();
+  @override
+  double call(dynamic this_) => Shape_perimeter(this_);
+}
+class _TearOff_Shape_toString extends TypeFunction1<String, dynamic> {
+  const _TearOff_Shape_toString();
+  @override
+  String call(dynamic this_) => Shape_toString(this_);
+}
+class _TearOff_Pair_swap<A, B> extends TypeFunction1<PairValue<B, A>, dynamic> {
+  _TearOff_Pair_swap();
+  @override
+  PairValue<B, A> call(dynamic this_) => Pair_swap<A, B>(this_);
+}
+class _TearOff_Pair_toString<A, B> extends TypeFunction1<String, dynamic> {
+  _TearOff_Pair_toString();
+  @override
+  String call(dynamic this_) => Pair_toString<A, B>(this_);
+}
+class _TearOff_Circle_get_name extends TypeFunction1<String, dynamic> {
+  const _TearOff_Circle_get_name();
+  @override
+  String call(dynamic this_) => Circle_get_name(this_);
+}
+class _TearOff_Circle_area extends TypeFunction1<double, dynamic> {
+  const _TearOff_Circle_area();
+  @override
+  double call(dynamic this_) => Circle_area(this_);
+}
+class _TearOff_Circle_perimeter extends TypeFunction1<double, dynamic> {
+  const _TearOff_Circle_perimeter();
+  @override
+  double call(dynamic this_) => Circle_perimeter(this_);
+}
+class _TearOff_Circle_toString extends TypeFunction1<String, dynamic> {
+  const _TearOff_Circle_toString();
+  @override
+  String call(dynamic this_) => Circle_toString(this_);
+}
+class _TearOff_Circle_get_radius extends TypeFunction1<double, dynamic> {
+  const _TearOff_Circle_get_radius();
+  @override
+  double call(dynamic this_) => Circle_get_radius(this_);
+}
+class _TearOff_Circle_set_radius extends TypeFunction2<void, dynamic, double> {
+  const _TearOff_Circle_set_radius();
+  @override
+  void call(dynamic this_, double value) => Circle_set_radius(this_, value);
+}
+class _TearOff_Rectangle_get_name extends TypeFunction1<String, dynamic> {
+  const _TearOff_Rectangle_get_name();
+  @override
+  String call(dynamic this_) => Rectangle_get_name(this_);
+}
+class _TearOff_Rectangle_area extends TypeFunction1<double, dynamic> {
+  const _TearOff_Rectangle_area();
+  @override
+  double call(dynamic this_) => Rectangle_area(this_);
+}
+class _TearOff_Rectangle_perimeter extends TypeFunction1<double, dynamic> {
+  const _TearOff_Rectangle_perimeter();
+  @override
+  double call(dynamic this_) => Rectangle_perimeter(this_);
+}
+class _TearOff_Rectangle_toString extends TypeFunction1<String, dynamic> {
+  const _TearOff_Rectangle_toString();
+  @override
+  String call(dynamic this_) => Rectangle_toString(this_);
+}
+class ClosureEnv_StringExtensions_get_capitalize_0 extends TypeFunction0<String> {
   String this_;
   ClosureEnv_StringExtensions_get_capitalize_0(this.this_);
+  @override
   String call() => ClosureEnv_StringExtensions_get_capitalize_0_call(this);
 }
 String ClosureEnv_StringExtensions_get_capitalize_0_call(ClosureEnv_StringExtensions_get_capitalize_0 env) {
   return StringExtensions_capitalize(env.this_);
 }
 
-class ClosureEnv_ListExtensions_get_filterWhere_1<T> {
-  List<T> this_;
+class ClosureEnv_ListExtensions_get_filterWhere_1<T> extends TypeFunction1<StaticList<T>, TypeFunction1<bool, T>> {
+  StaticList<T> this_;
   ClosureEnv_ListExtensions_get_filterWhere_1(this.this_);
-  List<T> call(bool Function(T) predicate) => ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(this, predicate);
+  @override
+  StaticList<T> call(TypeFunction1<bool, T> predicate) => ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(this, predicate);
 }
-List<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env, bool Function(T) predicate) {
+StaticList<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env, TypeFunction1<bool, T> predicate) {
   return ListExtensions_filterWhere(env.this_, predicate);
 }
 
-class ClosureEnv_repeat_2<T> {
+class ClosureEnv_repeat_2<T> extends TypeFunction1<T, int> {
   ObjectBox<T> item;
   ClosureEnv_repeat_2(this.item);
+  @override
   T call(int _) => ClosureEnv_repeat_2_call<T>(this, _);
 }
 T ClosureEnv_repeat_2_call<T>(ClosureEnv_repeat_2<T> env, int _) {
   return env.item.value;
 }
 
-class ClosureEnv_makeAdder_3 {
+class ClosureEnv_makeAdder_3 extends TypeFunction1<int, int> {
   IntBox base;
   ClosureEnv_makeAdder_3(this.base);
+  @override
   int call(int x) => ClosureEnv_makeAdder_3_call(this, x);
 }
 int ClosureEnv_makeAdder_3_call(ClosureEnv_makeAdder_3 env, int x) {
@@ -411,24 +489,24 @@ int ClosureEnv_makeAdder_3_call(ClosureEnv_makeAdder_3 env, int x) {
 }
 
 class ClosureEnv_fetchData_4 {
-  String url;
+  StringBox url;
   Promise<String> _promise;
-  ClosureEnv_fetchData_4(this.url) : _promise = Promise<String>();
+  ClosureEnv_fetchData_4(String url) : _promise = Promise<String>(), url = StringBox(url);
   void call() => ClosureEnv_fetchData_4_call(this);
 }
 void ClosureEnv_fetchData_4_call(ClosureEnv_fetchData_4 env) {
   smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 10)));
-  env._promise.complete('data from ${env.url}');
+  env._promise.complete('data from ${env.url.value}');
   return;
 }
 class ClosureEnv_fetchAll_5 {
-  List<String> urls;
-  Promise<List<String>> _promise;
-  ClosureEnv_fetchAll_5(this.urls) : _promise = Promise<List<String>>();
+  StaticList<String> urls;
+  Promise<StaticList<String>> _promise;
+  ClosureEnv_fetchAll_5(this.urls) : _promise = Promise<StaticList<String>>();
   void call() => ClosureEnv_fetchAll_5_call(this);
 }
 void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
-  final List<String> results = <String>[];
+  final StaticList<String> results = StaticList<String>.of([]);
   for (final url in env.urls) {
     final String data = smAwait(fetchData(url));
     results.add(data);
@@ -436,13 +514,59 @@ void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
   env._promise.complete(results);
   return;
 }
-class ClosureEnv_main_6 {
-  IntBox counter;
-  ClosureEnv_main_6(this.counter);
-  int call() => ClosureEnv_main_6_call(this);
+class ClosureEnv_main_6 extends TypeFunction1<bool, int> {
+  ClosureEnv_main_6();
+  @override
+  bool call(int n) => ClosureEnv_main_6_call(this, n);
 }
-int ClosureEnv_main_6_call(ClosureEnv_main_6 env) {
+bool ClosureEnv_main_6_call(ClosureEnv_main_6 env, int n) {
+  return ((n % 2) == 0);
+}
+
+class ClosureEnv_main_7 extends TypeFunction1<int, int> {
+  ClosureEnv_main_7();
+  @override
+  int call(int x) => ClosureEnv_main_7_call(this, x);
+}
+int ClosureEnv_main_7_call(ClosureEnv_main_7 env, int x) {
+  return (x * 2);
+}
+
+class ClosureEnv_main_8 extends TypeFunction0<int> {
+  IntBox counter;
+  ClosureEnv_main_8(this.counter);
+  @override
+  int call() => ClosureEnv_main_8_call(this);
+}
+int ClosureEnv_main_8_call(ClosureEnv_main_8 env) {
     env.counter.value = (env.counter.value + 1);
     return env.counter.value;
   }
+
+class ClosureEnv_main_9 extends TypeFunction1<bool, String> {
+  ClosureEnv_main_9();
+  @override
+  bool call(String s) => ClosureEnv_main_9_call(this, s);
+}
+bool ClosureEnv_main_9_call(ClosureEnv_main_9 env, String s) {
+  return s.startsWith('b');
+}
+
+class ClosureEnv_main_10 extends TypeFunction1<bool, String> {
+  ClosureEnv_main_10();
+  @override
+  bool call(String s) => ClosureEnv_main_10_call(this, s);
+}
+bool ClosureEnv_main_10_call(ClosureEnv_main_10 env, String s) {
+  return s.startsWith('z');
+}
+
+class ClosureEnv_main_11 extends TypeFunction1<bool, MapEntry<String, int>> {
+  ClosureEnv_main_11();
+  @override
+  bool call(MapEntry<String, int> e) => ClosureEnv_main_11_call(this, e);
+}
+bool ClosureEnv_main_11_call(ClosureEnv_main_11 env, MapEntry<String, int> e) {
+  return (e.value > 1);
+}
 
