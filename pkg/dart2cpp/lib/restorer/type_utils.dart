@@ -110,6 +110,18 @@ mixin _TypeUtils on _DartRestorerBase {
         // TypeFunctionN；退化到 `dynamic`（变量仍能被动态派发调用，且产物
         // 中不再出现 `Function` 字面量）。
         return 'dynamic';
+      } else if (rawName == 'StringBuffer') {
+        name = 'StaticStringBuffer';
+      } else if (rawName == 'Iterator' || rawName == '_ListIterator') {
+        name = 'StaticIterator';
+      } else if (rawName == 'MapEntry') {
+        name = 'StaticMapEntry';
+      } else if (rawName == 'Duration') {
+        name = 'StaticDuration';
+      } else if (rawName == 'DateTime') {
+        name = 'StaticDateTime';
+      } else if (rawName == 'RegExp' || rawName == '_RegExp') {
+        name = 'StaticRegExp';
       } else if (_isUserClass(rawName)) {
         name = '${rawName}Value';
       } else {

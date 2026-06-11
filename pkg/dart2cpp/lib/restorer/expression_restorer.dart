@@ -26,8 +26,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         // 检查是否有对应的 setter（非下划线字段）
         // 下划线字段直接赋值，非下划线字段通过 vptr setter
         if (!fieldName.startsWith('_')) {
-          // DynamicSet 没有 interfaceTarget，使用 TypeFunction2<void, dynamic, dynamic> 签名
-          return "($recv.vptr['set_$fieldName'] as TypeFunction2<void, dynamic, dynamic>)($recv, $value)";
+          // DynamicSet 没有 interfaceTarget，签名退化为 (dynamic, dynamic) → void
+          return "($recv.vptr['set_$fieldName'] as void Function(dynamic, dynamic))($recv, $value)";
         }
       }
       return '$recv.$fieldName = $value';
@@ -191,7 +191,69 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final args = _restoreArgs(expr.arguments);
       return '$funcName($args)';
     }
+    if (expr is InstanceTearOff) return _restoreInstanceTearOff(expr);
     return '/* unknown: ${expr.runtimeType} */';
+  }
+
+  /// `obj.method`（不带括号）实例方法 tear-off。
+  /// OOP lowering 后用户方法都是按 vptr 分发的静态函数，tear-off 必须捕获
+  /// receiver 并保留虚分发语义。这里合成一个 `ClosureEnv_*` 子类（继承
+  /// `TypeFunctionN<R, T...>`），把 receiver 存为字段，`call(...)` 体内
+  /// 走 `(_r.vptr['name'] as R Function(dynamic, T...))(...)`。
+  String _restoreInstanceTearOff(InstanceTearOff expr) {
+    final target = expr.interfaceTarget;
+    final func = target.function;
+    final methodName = expr.name.text;
+    final recv = _restoreExpr(expr.receiver);
+    final receiverClassName =
+        _getReceiverClassNameFromReceiver(expr.receiver, target);
+
+    // Lowered ABI：named 铺平为 positional。
+    final returnType = _restoreTypeForSignature(func.returnType);
+    final paramTypes = <String>[];
+    for (final p in func.positionalParameters) {
+      paramTypes.add(_restoreTypeForSignature(p.type));
+    }
+    for (final p in func.namedParameters) {
+      paramTypes.add(_restoreTypeForSignature(p.type));
+    }
+    final arity = paramTypes.length;
+    if (arity > _TypeUtils.kMaxArity) {
+      return "/* unsupported InstanceTearOff arity=$arity for $methodName */";
+    }
+
+    final closureId = _closureCounter++;
+    final envClassName = 'ClosureEnv_${_closureContext}_$closureId';
+    final paramNames = [for (var i = 0; i < arity; i++) 'a${i + 1}'];
+    final callSig = [
+      for (var i = 0; i < arity; i++) '${paramTypes[i]} ${paramNames[i]}',
+    ].join(', ');
+
+    final isVptrTarget = receiverClassName != null &&
+        (_isUserClass(receiverClassName) || _isMixinName(receiverClassName));
+    final String callBody;
+    if (isVptrTarget) {
+      final vptrSigParams = [_thisParamType, ...paramTypes].join(', ');
+      final invokeArgs = ['_r', ...paramNames].join(', ');
+      callBody =
+          "(_r.vptr['$methodName'] as $returnType Function($vptrSigParams))($invokeArgs)";
+    } else {
+      // 非 vptr 场景：保留普通方法调用形式（Dart 原生能解析）。
+      final invokeArgs = paramNames.join(', ');
+      callBody = '_r.$methodName($invokeArgs)';
+    }
+
+    final typeArgs = [returnType, ...paramTypes].join(', ');
+    final decl = StringBuffer()
+      ..writeln('class $envClassName extends TypeFunction$arity<$typeArgs> {')
+      ..writeln('  final dynamic _r;')
+      ..writeln('  $envClassName(this._r);')
+      ..writeln('  @override')
+      ..writeln('  $returnType call($callSig) => $callBody;')
+      ..writeln('}');
+    _pendingClosureDecls.add(decl.toString());
+
+    return '$envClassName($recv)';
   }
 
   String _restoreVarGet(VariableGet expr) {
@@ -609,22 +671,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// this_ 参数统一为 dynamic（声明侧和调用侧一致，消除 as Function 转换）
   static const String _thisParamType = 'dynamic';
 
-  /// 将函数签名构造为 `TypeFunctionN<R, T1..Tn>` 字符串，用于 vptr 槽位的
-  /// 静态类型 cast。
+  /// 将函数签名构造为 `R Function(T1, T2, ...)` 字符串，用于把 vptr 槽里
+  /// 保存的静态函数 tear-off 强转为可调用的 Function。
   ///
   /// Lowered ABI：所有原 named 参数都已铺平为 positional，没有可选参数，
   /// 默认值由调用点补齐。`namedTypes` 应是**纯类型字符串**，会顺次接到
   /// positional 列表末尾；`required` 关键字与参数名都不属于函数类型。
-  /// 仅当 arity 超过 [_TypeUtils.kMaxArity] 时，兜底成 `dynamic`。
+  /// 函数类型无 arity 限制，不再有 dynamic 兜底。
   String _emitFuncSig(String returnType, List<String> positional,
       {List<String> namedTypes = const []}) {
     final all = [...positional, ...namedTypes];
-    if (all.length > _TypeUtils.kMaxArity) {
-      return 'dynamic';
-    }
-    final arity = all.length;
-    final args = [returnType, ...all].join(', ');
-    return 'TypeFunction$arity<$args>';
+    return '$returnType Function(${all.join(', ')})';
   }
 
 
@@ -916,8 +973,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
             : '';
         return '$funcName$typeArgStr($args)';
       }
-      if (name.isEmpty) return '$className($args)';
-      return '$className.$name($args)';
+      // 语义脱钩: SDK 类 factory 构造函数映射
+      final mappedFactoryClass = _mapSdkClassName(className);
+      if (name.isEmpty) return '$mappedFactoryClass($args)';
+      return '$mappedFactoryClass.$name($args)';
     }
 
     // 静态方法
@@ -938,16 +997,25 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
             : '';
         return '${className}_$name$typeArgStr($args)';
       }
-      return '$className.$name($args)';
+      // 语义脱钩: SDK 静态方法映射
+      return '${_mapSdkClassName(className)}.$name($args)';
     }
 
     // 顶层函数（包括 mixin lowering 后提升的构造函数和方法）
+    // 语义脱钩: print → staticPrint
+    final mappedName = _mapTopLevelFuncName(name);
     // 显式传递泛型类型参数（this_ 为 dynamic 后编译器可能无法从参数推断）
     final typeArgs = expr.arguments.types;
     final typeArgStr = typeArgs.isNotEmpty
         ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
         : '';
-    return '$name$typeArgStr($args)';
+    return '$mappedName$typeArgStr($args)';
+  }
+
+  /// 顶层函数名称映射（语义脱钩）
+  static String _mapTopLevelFuncName(String name) {
+    if (name == 'print') return 'staticPrint';
+    return name;
   }
 
   String _restoreStaticGet(StaticGet expr) {
@@ -1033,11 +1101,33 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
           : '$funcName$typeArgs($valueType(), $allArgs)';
     }
 
+    // 语义脱钩: SDK 类构造函数映射到包装类型
+    final mappedClassName = _mapSdkClassName(className);
     final prefix = expr.isConst ? 'const ' : '';
-    if (ctorName.isEmpty) return '$prefix$className($allArgs)';
+    if (ctorName.isEmpty) return '$prefix$mappedClassName($allArgs)';
     // SDK 类的私有构造函数（如 MapEntry._）应还原为无名构造函数形式
-    if (ctorName.startsWith('_')) return '$prefix$className($allArgs)';
-    return '$prefix$className.$ctorName($allArgs)';
+    if (ctorName.startsWith('_')) return '$prefix$mappedClassName($allArgs)';
+    return '$prefix$mappedClassName.$ctorName($allArgs)';
+  }
+
+  /// SDK 类名 → 包装类名映射（语义脱钩）
+  static const _sdkClassNameMap = <String, String>{
+    'StringBuffer': 'StaticStringBuffer',
+    'MapEntry': 'StaticMapEntry',
+    'RegExp': 'StaticRegExp',
+    '_RegExp': 'StaticRegExp',
+    'Duration': 'StaticDuration',
+    'DateTime': 'StaticDateTime',
+    'StateError': 'DartStateError',
+    'ArgumentError': 'DartArgumentError',
+    'RangeError': 'DartRangeError',
+    'FormatException': 'DartFormatException',
+    'UnsupportedError': 'DartUnsupportedError',
+    'UnimplementedError': 'DartUnimplementedError',
+  };
+
+  static String _mapSdkClassName(String name) {
+    return _sdkClassNameMap[name] ?? name;
   }
 
   /// 判断是否是 Set 的内部实现类（Kernel 脱糖后的内部类名）

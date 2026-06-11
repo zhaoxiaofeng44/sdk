@@ -1,10 +1,10 @@
 import 'package:dart2cpp/restorer/runtime_classes.dart';
 
-typedef Predicate<T> = bool Function(T);
+typedef Predicate<T> = TypeFunction1<bool, T>;
 
-typedef Transformer<A, B> = B Function(A);
+typedef Transformer<A, B> = TypeFunction1<B, A>;
 
-typedef Reducer<T> = T Function(T, T);
+typedef Reducer<T> = TypeFunction2<T, T, T>;
 
 enum Priority {
   low,
@@ -189,14 +189,14 @@ TimestampedEntityValue<ID> TimestampedEntity_new<ID>(dynamic this__, ID id, Stri
   return this_;
 }
 
-Duration TimestampedEntity_get_age<ID>(dynamic this__) {
+StaticDuration TimestampedEntity_get_age<ID>(dynamic this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  return Duration(milliseconds: (this_.updatedAt - this_.createdAt));
+  return StaticDuration(milliseconds: (this_.updatedAt - this_.createdAt));
 }
 
 String TimestampedEntity_get_label<ID>(dynamic this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as Duration Function(dynamic))(this_).inMilliseconds}ms)';
+  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as StaticDuration Function(dynamic))(this_).inMilliseconds}ms)';
 }
 
 String TimestampedEntity_toPrettyString<ID>(dynamic this__) {
@@ -250,7 +250,7 @@ VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String n
   final this_ = this__ as VersionedEntityValue<ID>;
   TimestampedEntity_new<ID>(this_, id, name, createdAt, updatedAt);
   this_._version = 1;
-  this_._changelog = StaticList<String>.of([]);
+  this_._changelog = StaticList<String>();
   return this_;
 }
 
@@ -277,7 +277,7 @@ String VersionedEntity_serialize<ID>(dynamic this__) {
 
 StaticList<String> VersionedEntity_validate<ID>(dynamic this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
-  final StaticList<String> errors = StaticList<String>.of([]);
+  final StaticList<String> errors = StaticList<String>();
   if (this_.name.isEmpty)   errors.add('name is empty');
   if ((this_._version < 1))   errors.add('invalid version');
   return errors;
@@ -313,7 +313,7 @@ String VersionedEntity_toString<ID>(dynamic this__) {
   return Entity_toString<ID>(this_);
 }
 
-Duration VersionedEntity_get_age<ID>(dynamic this__) {
+StaticDuration VersionedEntity_get_age<ID>(dynamic this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return TimestampedEntity_get_age<ID>(this_);
 }
@@ -333,18 +333,6 @@ class MoneyValue extends Money_Comparable2_PrintableValue {
   late int cents;
   late String currency;
   MoneyValue() {
-    vptr['compareTo'] = Money_compareTo;
-    vptr['operatorLt'] = Money_operatorLt;
-    vptr['operatorGt'] = Money_operatorGt;
-    vptr['operatorLte'] = Money_operatorLte;
-    vptr['operatorGte'] = Money_operatorGte;
-    vptr['get_label'] = Money_get_label;
-    vptr['toPrettyString'] = Money_toPrettyString;
-    vptr['operatorPlus'] = Money_operatorPlus;
-    vptr['operatorMinus'] = Money_operatorMinus;
-    vptr['operatorStar'] = Money_operatorStar;
-    vptr['operatorNeg'] = Money_operatorNeg;
-    vptr['toString'] = Money_toString;
     vptr['compareTo'] = Money_compareTo;
     vptr['operatorLt'] = Money_operatorLt;
     vptr['operatorGt'] = Money_operatorGt;
@@ -378,13 +366,13 @@ MoneyValue Money_new_fromDollars(dynamic this__, double dollars, [String currenc
 
 MoneyValue Money_operatorPlus(dynamic this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
-  if (!((this_.currency == other.currency)))   throw ArgumentError('Currency mismatch');
+  if (!((this_.currency == other.currency)))   throw DartArgumentError('Currency mismatch');
   return Money_new(MoneyValue(), (this_.cents + other.cents), this_.currency);
 }
 
 MoneyValue Money_operatorMinus(dynamic this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
-  if (!((this_.currency == other.currency)))   throw ArgumentError('Currency mismatch');
+  if (!((this_.currency == other.currency)))   throw DartArgumentError('Currency mismatch');
   return Money_new(MoneyValue(), (this_.cents - other.cents), this_.currency);
 }
 
@@ -447,16 +435,6 @@ class ConfigValue extends VPtr {
     vptr['containsKey'] = Config_containsKey;
     vptr['get_length'] = Config_get_length;
     vptr['toString'] = Config_toString;
-    vptr['operatorIndex'] = Config_operatorIndex;
-    vptr['operatorIndexSet'] = Config_operatorIndexSet;
-    vptr['containsKey'] = Config_containsKey;
-    vptr['get_length'] = Config_get_length;
-    vptr['toString'] = Config_toString;
-    vptr['operatorIndex'] = Config_operatorIndex;
-    vptr['operatorIndexSet'] = Config_operatorIndexSet;
-    vptr['containsKey'] = Config_containsKey;
-    vptr['get_length'] = Config_get_length;
-    vptr['toString'] = Config_toString;
   }
 }
 
@@ -475,7 +453,13 @@ ConfigValue Config_new_empty(dynamic this__) {
 ConfigValue Config_new_fromPairs(dynamic this__, StaticList<StaticList<dynamic>> pairs) {
   final this_ = this__ as ConfigValue;
   this_._data = (() {   final StaticMap<String, dynamic> _v0 = StaticMap<String, dynamic>.of({});
-  for (final p in pairs)   _v0[(p[0] as String)] = p[1];
+{
+    StaticIterator<StaticList<dynamic>> sync_for_iterator = StaticIterator(pairs.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final StaticList<dynamic> p = StaticList<dynamic>.of(sync_for_iterator.current);
+      _v0[(p[0] as String)] = p[1];
+    }
+  }
  return _v0; })();
   return this_;
 }
@@ -509,13 +493,13 @@ int Config_get_length(dynamic this__) {
 String Config_toString(dynamic this__) {
   final this_ = this__ as ConfigValue;
   final StaticList<String> sorted = (StaticList.of(this_._data.keys.toList())..sort());
-  final Iterable<String> entries = sorted.map(ClosureEnv_anon_0(this_).call);
+  final Iterable<String> entries = sorted.map(ClosureEnv_anon_0(this_));
   return 'Config{${entries.join(', ')}}';
 }
 
 
 class EventBusValue extends VPtr {
-  late StaticList<void Function(String)> _listeners;
+  late StaticList<TypeFunction1<void, String>> _listeners;
   EventBusValue() {
     vptr['on'] = EventBus_on;
     vptr['emit'] = EventBus_emit;
@@ -524,19 +508,25 @@ class EventBusValue extends VPtr {
 
 EventBusValue EventBus_new(dynamic this__) {
   final this_ = this__ as EventBusValue;
-  this_._listeners = StaticList<void Function(String)>.of([]);
+  this_._listeners = StaticList<TypeFunction1<void, String>>();
   return this_;
 }
 
-void EventBus_on(dynamic this__, void Function(String) listener) {
+void EventBus_on(dynamic this__, TypeFunction1<void, String> listener) {
   final this_ = this__ as EventBusValue;
   this_._listeners.add(listener);
 }
 
 void EventBus_emit(dynamic this__, String event) {
   final this_ = this__ as EventBusValue;
-  for (final listener in this_._listeners) {
-    listener(event);
+{
+    StaticIterator<TypeFunction1<void, String>> sync_for_iterator = StaticIterator(this_._listeners.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final TypeFunction1<void, String> listener = sync_for_iterator.current;
+{
+        listener(event);
+      }
+    }
   }
 }
 
@@ -636,15 +626,15 @@ class PairValue<A, B> extends VPtr {
   late B second;
   PairValue() {
     vptr['swap'] = Pair_swap<A, B>;
-    vptr['mapFirst_int'] = Pair_mapFirst<A, B, int>;
-    vptr['mapSecond_String'] = Pair_mapSecond<A, B, String>;
-    vptr['fold_String'] = Pair_fold<A, B, String>;
     vptr['toString'] = Pair_toString<A, B>;
   }
 }
 
 PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
   final this_ = this__ as PairValue<A, B>;
+  this_.vptr['mapFirst_int'] = Pair_mapFirst<A, B, int>;
+  this_.vptr['mapSecond_String'] = Pair_mapSecond<A, B, String>;
+  this_.vptr['fold_String'] = Pair_fold<A, B, String>;
   this_.first = first;
   this_.second = second;
   return this_;
@@ -655,17 +645,17 @@ PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
   return Pair_new<B, A>(PairValue<B, A>(), this_.second, this_.first);
 }
 
-PairValue<C, B> Pair_mapFirst<A, B, C>(dynamic this__, C Function(A) transform) {
+PairValue<C, B> Pair_mapFirst<A, B, C>(dynamic this__, TypeFunction1<C, A> transform) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<C, B>(PairValue<C, B>(), transform(this_.first), this_.second);
 }
 
-PairValue<A, C> Pair_mapSecond<A, B, C>(dynamic this__, C Function(B) transform) {
+PairValue<A, C> Pair_mapSecond<A, B, C>(dynamic this__, TypeFunction1<C, B> transform) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<A, C>(PairValue<A, C>(), this_.first, transform(this_.second));
 }
 
-R Pair_fold<A, B, R>(dynamic this__, R Function(A, B) combine) {
+R Pair_fold<A, B, R>(dynamic this__, TypeFunction2<R, A, B> combine) {
   final this_ = this__ as PairValue<A, B>;
   return combine(this_.first, this_.second);
 }
@@ -682,7 +672,6 @@ class TripleValue<A, B, C> extends PairValue<A, B> {
     vptr['swap'] = Triple_swap<A, B, C>;
     vptr['mapFirst'] = Triple_mapFirst<A, B, C>;
     vptr['mapSecond'] = Triple_mapSecond<A, B, C>;
-    vptr['fold_String'] = Triple_fold<A, B, C, String>;
     vptr['toString'] = Triple_toString<A, B, C>;
   }
 }
@@ -690,6 +679,7 @@ class TripleValue<A, B, C> extends PairValue<A, B> {
 TripleValue<A, B, C> Triple_new<A, B, C>(dynamic this__, A first, B second, C third) {
   final this_ = this__ as TripleValue<A, B, C>;
   Pair_new<A, B>(this_, first, second);
+  this_.vptr['fold_String'] = Triple_fold<A, B, C, String>;
   this_.third = third;
   return this_;
 }
@@ -704,24 +694,24 @@ PairValue<B, A> Triple_swap<A, B, C>(dynamic this__) {
   return Pair_swap<A, B>(this_);
 }
 
-PairValue<C, B> Triple_mapFirst<A, B, C>(dynamic this__, C Function(A) transform) {
+PairValue<C, B> Triple_mapFirst<A, B, C>(dynamic this__, TypeFunction1<C, A> transform) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapFirst<A, B, C>(this_, transform);
 }
 
-PairValue<A, C> Triple_mapSecond<A, B, C>(dynamic this__, C Function(B) transform) {
+PairValue<A, C> Triple_mapSecond<A, B, C>(dynamic this__, TypeFunction1<C, B> transform) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapSecond<A, B, C>(this_, transform);
 }
 
-R Triple_fold<A, B, C, R>(dynamic this__, R Function(A, B) combine) {
+R Triple_fold<A, B, C, R>(dynamic this__, TypeFunction2<R, A, B> combine) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_fold<A, B, R>(this_, combine);
 }
 
 
 class StringBuilderValue extends VPtr {
-  late StringBuffer _buf;
+  late StaticStringBuffer _buf;
   late String _separator;
   StringBuilderValue() {
     vptr['withSeparator'] = StringBuilder_withSeparator;
@@ -734,7 +724,7 @@ class StringBuilderValue extends VPtr {
 
 StringBuilderValue StringBuilder_new(dynamic this__) {
   final this_ = this__ as StringBuilderValue;
-  this_._buf = StringBuffer();
+  this_._buf = StaticStringBuffer();
   this_._separator = '';
   return this_;
 }
@@ -756,8 +746,14 @@ StringBuilderValue StringBuilder_add(dynamic this__, String text) {
 
 StringBuilderValue StringBuilder_addAll(dynamic this__, StaticList<String> texts) {
   final this_ = this__ as StringBuilderValue;
-  for (final t in texts) {
-    (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(texts.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String t = sync_for_iterator.current;
+{
+        (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
+      }
+    }
   }
   return this_;
 }
@@ -792,7 +788,7 @@ AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErro
 
 String AppError_toString(dynamic this__) {
   final this_ = this__ as AppErrorValue;
-  final StaticList<String> chain = StaticList<String>.of([]);
+  final StaticList<String> chain = StaticList<String>();
   AppErrorValue? current = this_;
   while (!((current == null))) {
     chain.add('${current.code}:${current.message}');
@@ -806,10 +802,8 @@ class DataPipelineValue<T> extends VPtr {
   late StaticList<T> _data;
   DataPipelineValue() {
     vptr['where'] = DataPipeline_where<T>;
-    vptr['map_int'] = DataPipeline_map<T, int>;
     vptr['sorted'] = DataPipeline_sorted<T>;
     vptr['take'] = DataPipeline_take<T>;
-    vptr['fold_int'] = DataPipeline_fold<T, int>;
     vptr['toList'] = DataPipeline_toList<T>;
     vptr['toString'] = DataPipeline_toString<T>;
   }
@@ -817,21 +811,23 @@ class DataPipelineValue<T> extends VPtr {
 
 DataPipelineValue<T> DataPipeline_new<T>(dynamic this__, StaticList<T> _data) {
   final this_ = this__ as DataPipelineValue<T>;
+  this_.vptr['map_int'] = DataPipeline_map<T, int>;
+  this_.vptr['fold_int'] = DataPipeline_fold<T, int>;
   this_._data = _data;
   return this_;
 }
 
-DataPipelineValue<T> DataPipeline_where<T>(dynamic this__, bool Function(T) test) {
+DataPipelineValue<T> DataPipeline_where<T>(dynamic this__, TypeFunction1<bool, T> test) {
   final this_ = this__ as DataPipelineValue<T>;
   return DataPipeline_new<T>(DataPipelineValue<T>(), StaticList.of(this_._data.where(test).toList()));
 }
 
-DataPipelineValue<R> DataPipeline_map<T, R>(dynamic this__, R Function(T) transform) {
+DataPipelineValue<R> DataPipeline_map<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as DataPipelineValue<T>;
   return DataPipeline_new<R>(DataPipelineValue<R>(), StaticList.of(this_._data.map(transform).toList()));
 }
 
-DataPipelineValue<T> DataPipeline_sorted<T>(dynamic this__, int Function(T, T) compare) {
+DataPipelineValue<T> DataPipeline_sorted<T>(dynamic this__, TypeFunction2<int, T, T> compare) {
   final this_ = this__ as DataPipelineValue<T>;
   final StaticList<T> copy = StaticList<T>.of(this_._data);
   copy.sort(compare);
@@ -843,7 +839,7 @@ DataPipelineValue<T> DataPipeline_take<T>(dynamic this__, int count) {
   return DataPipeline_new<T>(DataPipelineValue<T>(), StaticList.of(this_._data.take(count).toList()));
 }
 
-R DataPipeline_fold<T, R>(dynamic this__, R initial, R Function(R, T) combine) {
+R DataPipeline_fold<T, R>(dynamic this__, R initial, TypeFunction2<R, R, T> combine) {
   final this_ = this__ as DataPipelineValue<T>;
   return this_._data.fold(initial, combine);
 }
@@ -930,7 +926,7 @@ int MathUtils_factorial(int n) {
 
 StaticList<int> MathUtils_fibonacci(int count) {
   MathUtils__callCount = (MathUtils__callCount + 1);
-  if ((count <= 0))   return StaticList<int>.of([]);
+  if ((count <= 0))   return StaticList<int>();
   if ((count == 1))   return StaticList<int>.of([0]);
   final StaticList<int> fibs = StaticList<int>.of([0, 1]);
   for (var i = 2; (i < count); i = (i + 1)) {
@@ -958,15 +954,21 @@ StaticList<String> Loggable_get_logs(dynamic this__) {
 
 
 // mixin Observable → static functions for delegation
-void Observable_observe<T>(dynamic this__, void Function(T) callback) {
+void Observable_observe<T>(dynamic this__, TypeFunction1<void, T> callback) {
   final this_ = this__;
   this_._observers.add(callback);
 }
 
 void Observable_notify<T>(dynamic this__, T value) {
   final this_ = this__;
-  for (final cb in this_._observers) {
-    cb(value);
+{
+    StaticIterator<TypeFunction1<void, T>> sync_for_iterator = StaticIterator(this_._observers.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final TypeFunction1<void, T> cb = sync_for_iterator.current;
+{
+        cb(value);
+      }
+    }
   }
 }
 
@@ -987,8 +989,8 @@ class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValu
 
 ReactiveStoreValue<V> ReactiveStore_new<V>(dynamic this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  this_._logs = StaticList<String>.of([]);
-  this_._observers = StaticList<void Function(V)>.of([]);
+  this_._logs = StaticList<String>();
+  this_._observers = StaticList<TypeFunction1<void, V>>();
   this_._store = StaticMap<String, V>.of({});
   return this_;
 }
@@ -1026,7 +1028,7 @@ StaticList<String> ReactiveStore_get_logs<V>(dynamic this__) {
   return Loggable_get_logs(this_);
 }
 
-void ReactiveStore_observe<V>(dynamic this__, void Function(V) callback) {
+void ReactiveStore_observe<V>(dynamic this__, TypeFunction1<void, V> callback) {
   final this_ = this__ as ReactiveStoreValue<V>;
   Observable_observe<V>(this_, callback);
 }
@@ -1128,15 +1130,15 @@ class NodeValue<T> extends VPtr {
   NodeValue() {
     vptr['addChild'] = Node_addChild<T>;
     vptr['flatten'] = Node_flatten<T>;
-    vptr['mapTree_String'] = Node_mapTree<T, String>;
     vptr['toString'] = Node_toString<T>;
   }
 }
 
 NodeValue<T> Node_new<T>(dynamic this__, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as NodeValue<T>;
+  this_.vptr['mapTree_String'] = Node_mapTree<T, String>;
   this_.value = value;
-  this_.children = (children ?? StaticList<NodeValue<T>>.of([]));
+  this_.children = (children ?? StaticList<NodeValue<T>>());
   return this_;
 }
 
@@ -1148,15 +1150,21 @@ void Node_addChild<T>(dynamic this__, NodeValue<T> child) {
 StaticList<T> Node_flatten<T>(dynamic this__) {
   final this_ = this__ as NodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
-  for (final child in this_.children) {
-    result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
+{
+    StaticIterator<NodeValue<T>> sync_for_iterator = StaticIterator(this_.children.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final NodeValue<T> child = sync_for_iterator.current;
+{
+        result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
+      }
+    }
   }
   return result;
 }
 
-NodeValue<R> Node_mapTree<T, R>(dynamic this__, R Function(T) transform) {
+NodeValue<R> Node_mapTree<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as NodeValue<T>;
-  return Node_new<R>(NodeValue<R>(), transform(this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1(transform).call).toList()));
+  return Node_new<R>(NodeValue<R>(), transform(this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1<R, T>(transform)).toList()));
 }
 
 String Node_toString<T>(dynamic this__) {
@@ -1171,7 +1179,6 @@ class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   LabeledNodeValue() {
     vptr['addChild'] = LabeledNode_addChild<T>;
     vptr['flatten'] = LabeledNode_flatten<T>;
-    vptr['mapTree_String'] = LabeledNode_mapTree<T, String>;
     vptr['toString'] = LabeledNode_toString<T>;
     vptr['get_label'] = LabeledNode_get_label<T>;
     vptr['toPrettyString'] = LabeledNode_toPrettyString<T>;
@@ -1181,6 +1188,7 @@ class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
 LabeledNodeValue<T> LabeledNode_new<T>(dynamic this__, String nodeLabel, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as LabeledNodeValue<T>;
   Node_new<T>(this_, value, children);
+  this_.vptr['mapTree_String'] = LabeledNode_mapTree<T, String>;
   this_.nodeLabel = nodeLabel;
   return this_;
 }
@@ -1205,7 +1213,7 @@ StaticList<T> LabeledNode_flatten<T>(dynamic this__) {
   return Node_flatten<T>(this_);
 }
 
-NodeValue<R> LabeledNode_mapTree<T, R>(dynamic this__, R Function(T) transform) {
+NodeValue<R> LabeledNode_mapTree<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as LabeledNodeValue<T>;
   return Node_mapTree<T, R>(this_, transform);
 }
@@ -1217,71 +1225,58 @@ String LabeledNode_toPrettyString<T>(dynamic this__) {
 
 
 class Entity_Object_PrintableValue extends VPtr {
-  Entity_Object_PrintableValue() {
-    vptr['toPrettyString'] = Printable_toPrettyString;
-  }
 }
+
 
 class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_PrintableValue {
-  Entity_Object_Printable_CacheableValue() {
-    vptr['cacheValue'] = Cacheable_cacheValue;
-    vptr['getCachedValue'] = Cacheable_getCachedValue;
-  }
 }
+
 
 class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends TimestampedEntityValue<ID> {
-  VersionedEntity_TimestampedEntity_SerializableValue() {
-    vptr['toJson'] = Serializable_toJson;
-  }
 }
+
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extends VersionedEntity_TimestampedEntity_SerializableValue<ID> {
-  VersionedEntity_TimestampedEntity_Serializable_ValidatableValue() {
-    vptr['get_isValid'] = Validatable_get_isValid;
-  }
 }
 
+
 class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
-  Money_Comparable2_PrintableValue() {
-    vptr['toPrettyString'] = Printable_toPrettyString;
-  }
 }
+
 
 class ReactiveStore_Object_LoggableValue extends VPtr {
   late StaticList<String> _logs;
-  ReactiveStore_Object_LoggableValue() {
-    vptr['log'] = Loggable_log;
-    vptr['get_logs'] = Loggable_get_logs;
-  }
 }
+
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
-  late StaticList<void Function(V)> _observers;
-  ReactiveStore_Object_Loggable_ObservableValue() {
-    vptr['observe'] = Observable_observe;
-    vptr['notify'] = Observable_notify;
-  }
+  late StaticList<TypeFunction1<void, V>> _observers;
 }
+
 
 class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
-  LabeledNode_Node_PrintableValue() {
-    vptr['toPrettyString'] = Printable_toPrettyString;
-  }
 }
 
-T applyTransform<T>(T value, T Function(T) transform) {
+
+T applyTransform<T>(T value, TypeFunction1<T, T> transform) {
   return transform(value);
 }
 
-StaticList<T> filterWith<T>(StaticList<T> items, bool Function(T) predicate) {
-  final StaticList<T> result = StaticList<T>.of([]);
-  for (final item in items) {
-    if (predicate(item))     result.add(item);
+StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicate) {
+  final StaticList<T> result = StaticList<T>();
+{
+    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final T item = sync_for_iterator.current;
+{
+        if (predicate(item))         result.add(item);
+      }
+    }
   }
   return result;
 }
 
-T reduceList<T>(StaticList<T> items, T Function(T, T) reducer) {
+T reduceList<T>(StaticList<T> items, TypeFunction2<T, T, T> reducer) {
   T acc = items.first;
   for (var i = 1; (i < items.length); i = (i + 1)) {
     acc = reducer(acc, items[i]);
@@ -1290,26 +1285,26 @@ T reduceList<T>(StaticList<T> items, T Function(T, T) reducer) {
 }
 
 StaticList<String> testClosureBoxing() {
-  final StaticList<String> log = StaticList<String>.of([]);
+  final StaticList<String> log = StaticList<String>();
   IntBox counter = IntBox(0);
-  final int Function() increment = ClosureEnv_testClosureBoxing_2(counter).call;
+  final TypeFunction0<int> increment = ClosureEnv_testClosureBoxing_2(counter);
   increment();
   increment();
   log.add('counter=${counter.value}');
-  final StaticList<int Function()> fns = StaticList<int Function()>.of([]);
+  final StaticList<TypeFunction0<int>> fns = StaticList<TypeFunction0<int>>();
   for (var i = 0; (i < 3); i = (i + 1)) {
-    fns.add(ClosureEnv_testClosureBoxing_3(i).call);
+    fns.add(ClosureEnv_testClosureBoxing_3(i));
   }
-  log.add('fns=${StaticList.of(fns.map((int Function() f) => f()).toList())}');
+  log.add('fns=${StaticList.of(fns.map(ClosureEnv_testClosureBoxing_4()).toList())}');
   IntBox outer = IntBox(0);
-  final int Function(int) Function(int) makeAdder = ClosureEnv_testClosureBoxing_4(outer).call;
-  final int Function(int) adder = makeAdder(100);
+  final TypeFunction1<TypeFunction1<int, int>, int> makeAdder = ClosureEnv_testClosureBoxing_5(outer);
+  final TypeFunction1<int, int> adder = makeAdder(100);
   adder(5);
   adder(10);
   log.add('outer=${outer.value}, adder(0)=${adder(0)}');
   String captureParam(String prefix) {
     int count = 0;
-    final String Function() fn = ClosureEnv_testClosureBoxing_6(count, prefix).call;
+    final TypeFunction0<String> fn = ClosureEnv_testClosureBoxing_7(count, prefix);
     fn();
     fn();
     return fn();
@@ -1317,8 +1312,8 @@ StaticList<String> testClosureBoxing() {
 
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(EventBusValue());
-  StaticList<String> received = StaticList<String>.of([]);
-  (bus.vptr['on'] as void Function(dynamic, void Function(String)))(bus, ClosureEnv_testClosureBoxing_8(received).call);
+  StaticList<String> received = StaticList<String>();
+  (bus.vptr['on'] as void Function(dynamic, TypeFunction1<void, String>))(bus, ClosureEnv_testClosureBoxing_9(received));
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
   log.add('received=${received}');
@@ -1344,7 +1339,7 @@ String testExceptionChain() {
   }
 }
 
-String formatRecord({required String name, int age = 0, String? email = null, bool active = true, List<String> tags = const []}) {
+String formatRecord({required String name, int age = 0, String? email = null, bool active = true, Iterable<String> tags = const []}) {
   final StaticList<String> parts = StaticList<String>.of([name]);
   if ((age > 0))   parts.add('age=${age}');
   if (!((email == null)))   parts.add('email=${email}');
@@ -1402,164 +1397,179 @@ String evaluateGrade(int score) {
 }
 
 void main() {
-  print('--- 1. typedef + Function ---');
-  final int doubled = applyTransform<int>(21, (int x) => (x * 2));
-  print('applyTransform: ${doubled}');
-  final StaticList<int> evens = filterWith<int>(StaticList<int>.of([1, 2, 3, 4, 5, 6]), (int x) => ((x % 2) == 0));
-  print('filterWith: ${evens}');
-  final int sum = reduceList<int>(StaticList<int>.of([1, 2, 3, 4, 5]), (int a, int b) => (a + b));
-  print('reduceList: ${sum}');
-  print('\n--- 2. 枚举类 ---');
-  print('red hex: ${Color_get_hex(Color.red)}');
-  print('green isWarm: ${Color_get_isWarm(Color.green)}');
-  print('priorities: ${StaticList.of(const [Priority.low, Priority.medium, Priority.high, Priority.critical].map((Priority p) => '${p}'.split('.').last).toList())}');
-  print('\n--- 3. 运算符重载 ---');
+  staticPrint('--- 1. typedef + Function ---');
+  final int doubled = applyTransform<int>(21, ClosureEnv_main_10());
+  staticPrint('applyTransform: ${doubled}');
+  final StaticList<int> evens = StaticList<int>.of(filterWith<int>(StaticList<int>.of([1, 2, 3, 4, 5, 6]), ClosureEnv_main_11()));
+  staticPrint('filterWith: ${evens}');
+  final int sum = reduceList<int>(StaticList<int>.of([1, 2, 3, 4, 5]), ClosureEnv_main_12());
+  staticPrint('reduceList: ${sum}');
+  staticPrint('\n--- 2. 枚举类 ---');
+  staticPrint('red hex: ${Color_get_hex(Color.red)}');
+  staticPrint('green isWarm: ${Color_get_isWarm(Color.green)}');
+  staticPrint('priorities: ${StaticList.of(const [Priority.low, Priority.medium, Priority.high, Priority.critical].map(ClosureEnv_main_13()).toList())}');
+  staticPrint('\n--- 3. 运算符重载 ---');
   final MoneyValue price1 = Money_new(MoneyValue(), 1099, 'USD');
   final MoneyValue price2 = Money_new_fromDollars(MoneyValue(), 5.5);
   final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(dynamic, MoneyValue))(price1, price2);
   final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(dynamic))(price2);
-  print('price1: ${(price1.vptr['toPrettyString'] as String Function(dynamic))(price1)}');
-  print('price2: ${price2}');
-  print('total: ${total}');
-  print('negated: ${negated}');
-  print('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
-  print('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
-  print('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(dynamic, int))(price1, 3)}');
-  print('\n--- 4. 多层泛型继承 ---');
+  staticPrint('price1: ${(price1.vptr['toPrettyString'] as String Function(dynamic))(price1)}');
+  staticPrint('price2: ${price2}');
+  staticPrint('total: ${total}');
+  staticPrint('negated: ${negated}');
+  staticPrint('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
+  staticPrint('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
+  staticPrint('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(dynamic, int))(price1, 3)}');
+  staticPrint('\n--- 4. 多层泛型继承 ---');
   final EntityValue<int> entity = Entity_new<int>(EntityValue<int>(), 1, 'alice');
-  print('entity: ${entity}');
-  print('entity label: ${(entity.vptr['toPrettyString'] as String Function(dynamic))(entity)}');
+  staticPrint('entity: ${entity}');
+  staticPrint('entity label: ${(entity.vptr['toPrettyString'] as String Function(dynamic))(entity)}');
   (entity.vptr['cacheValue'] as void Function(dynamic, dynamic))(entity, 'cached_data');
-  print('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(dynamic))(entity)}');
+  staticPrint('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(dynamic))(entity)}');
   final TimestampedEntityValue<String> tsEntity = TimestampedEntity_new<String>(TimestampedEntityValue<String>(), 'u1', 'bob', 1000, 2000);
-  print('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(dynamic))(tsEntity)}');
+  staticPrint('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(dynamic))(tsEntity)}');
   final VersionedEntityValue<int> vEntity = VersionedEntity_new<int>(VersionedEntityValue<int>(), 42, 'project', 1000, 5000);
   (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'initial release');
   (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'bug fix');
-  print('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(dynamic))(vEntity)}');
-  print('vEntity version: ${(vEntity.vptr['get_version'] as int Function(dynamic))(vEntity)}');
-  print('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(dynamic))(vEntity)}');
-  print('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(dynamic))(vEntity)}');
-  print('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(dynamic))(vEntity)}');
-  print('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(dynamic))(vEntity)}');
-  print('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(dynamic))(vEntity)}');
-  print('\n--- 5. 工厂构造 ---');
+  staticPrint('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(dynamic))(vEntity)}');
+  staticPrint('vEntity version: ${(vEntity.vptr['get_version'] as int Function(dynamic))(vEntity)}');
+  staticPrint('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(dynamic))(vEntity)}');
+  staticPrint('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(dynamic))(vEntity)}');
+  staticPrint('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(dynamic))(vEntity)}');
+  staticPrint('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(dynamic))(vEntity)}');
+  staticPrint('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(dynamic))(vEntity)}');
+  staticPrint('\n--- 5. 工厂构造 ---');
   final ConfigValue cfg1 = Config_new_empty(ConfigValue());
   (cfg1.vptr['operatorIndexSet'] as void Function(dynamic, String, dynamic))(cfg1, 'host', 'localhost');
-  print('cfg1: ${cfg1}');
-  final ConfigValue cfg2 = Config_new_fromPairs(ConfigValue(), StaticList<StaticList<dynamic>>.of([StaticList.of(['a', 1]), StaticList.of(['b', 2])]));
-  print('cfg2: ${cfg2}');
+  staticPrint('cfg1: ${cfg1}');
+  final ConfigValue cfg2 = Config_new_fromPairs(ConfigValue(), StaticList<StaticList<dynamic>>.of([StaticList<dynamic>.of(['a', 1]), StaticList<dynamic>.of(['b', 2])]));
+  staticPrint('cfg2: ${cfg2}');
   final ConfigValue cfg3 = Config_new_withDefaults(StaticMap<String, dynamic>.of({'debug': true, 'name': 'prod'}));
-  print('cfg3: ${cfg3}');
-  print('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
-  print('\n--- 6. 闭包 Box 化 ---');
-  final StaticList<String> closureLog = testClosureBoxing();
-  for (final line in closureLog) {
-    print(line);
+  staticPrint('cfg3: ${cfg3}');
+  staticPrint('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
+  staticPrint('\n--- 6. 闭包 Box 化 ---');
+  final StaticList<String> closureLog = StaticList<String>.of(testClosureBoxing());
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(closureLog.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String line = sync_for_iterator.current;
+{
+        staticPrint(line);
+      }
+    }
   }
-  print('\n--- 7. 多重 implements ---');
+  staticPrint('\n--- 7. 多重 implements ---');
   final WidgetValue widget = Widget_new(WidgetValue());
   (widget.vptr['draw'] as void Function(dynamic))(widget);
   (widget.vptr['resize'] as void Function(dynamic, double))(widget, 1.5);
   (widget.vptr['onClick'] as void Function(dynamic))(widget);
   (widget.vptr['onClick'] as void Function(dynamic))(widget);
-  print('widget: ${(widget.vptr['get_info'] as String Function(dynamic))(widget)}');
-  print('\n--- 8. 泛型 Pair ---');
+  staticPrint('widget: ${(widget.vptr['get_info'] as String Function(dynamic))(widget)}');
+  staticPrint('\n--- 8. 泛型 Pair ---');
   final PairValue<int, String> pair = Pair_new<int, String>(PairValue<int, String>(), 42, 'hello');
-  print('pair: ${pair}');
-  print('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(dynamic))(pair)}');
-  print('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(dynamic, int Function(int)))(pair, (int x) => (x * 2))}');
-  print('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(dynamic, String Function(String)))(pair, (String s) => s.toUpperCase())}');
-  print('fold: ${(pair.vptr['fold_String'] as String Function(dynamic, String Function(int, String)))(pair, (int a, String b) => '${b}=${a}')}');
+  staticPrint('pair: ${pair}');
+  staticPrint('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(dynamic))(pair)}');
+  staticPrint('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(dynamic, TypeFunction1<int, int>))(pair, ClosureEnv_main_15())}');
+  staticPrint('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(dynamic, TypeFunction1<String, String>))(pair, ClosureEnv_main_17())}');
+  staticPrint('fold: ${(pair.vptr['fold_String'] as String Function(dynamic, TypeFunction2<String, int, String>))(pair, ClosureEnv_main_19())}');
   final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(TripleValue<int, String, bool>(), 1, 'yes', true);
-  print('triple: ${triple}');
-  print('\n--- 9. 级联操作 ---');
+  staticPrint('triple: ${triple}');
+  staticPrint('\n--- 9. 级联操作 ---');
   final StringBuilderValue sb = (() { final _let7 = StringBuilder_new(StringBuilderValue()); (_let7.vptr['withSeparator'] as StringBuilderValue Function(dynamic, String))(_let7, ', '); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'alpha'); (_let7.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let7, 'beta'); (_let7.vptr['addAll'] as StringBuilderValue Function(dynamic, StaticList<String>))(_let7, StaticList<String>.of(['gamma', 'delta'])); return _let7; })();
-  print('builder: ${sb}');
-  print('length: ${(sb.vptr['get_length'] as int Function(dynamic))(sb)}');
-  print('\n--- 10. 异常处理链 ---');
-  print('chain: ${testExceptionChain()}');
-  print('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = ((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)), 5).vptr['map_int'] as DataPipelineValue<int> Function(dynamic, int Function(int)))((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, int Function(int, int)))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, bool Function(int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), (int x) => (x > 2)), (int a, int b) => (a - b)), 5), (int x) => (x * 10));
-  print('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(dynamic))(pipeline)}');
-  final int pipeSum = (DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])).vptr['fold_int'] as int Function(dynamic, int, int Function(int, int)))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])), 0, (int acc, int x) => (acc + x));
-  print('pipeSum: ${pipeSum}');
-  print('\n--- 12. 可选参数 ---');
-  print(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
-  print(formatRecord(name: 'Bob', tags: StaticList<String>.of(['admin', 'vip'])));
-  print(greetAll('Hello'));
-  print(greetAll('Hi', 'Dart', '!!'));
-  print('\n--- 13. BoundedValue ---');
+  staticPrint('builder: ${sb}');
+  staticPrint('length: ${(sb.vptr['get_length'] as int Function(dynamic))(sb)}');
+  staticPrint('\n--- 10. 异常处理链 ---');
+  staticPrint('chain: ${testExceptionChain()}');
+  staticPrint('\n--- 11. 集合操作 ---');
+  final DataPipelineValue<int> pipeline = ((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, TypeFunction2<int, int, int>))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()), ClosureEnv_main_23()).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, TypeFunction2<int, int, int>))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()), ClosureEnv_main_23()), 5).vptr['map_int'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<int, int>))((((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, TypeFunction2<int, int, int>))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()), ClosureEnv_main_23()).vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()).vptr['sorted'] as DataPipelineValue<int> Function(dynamic, TypeFunction2<int, int, int>))((DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])).vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])), ClosureEnv_main_21()), ClosureEnv_main_23()), 5), ClosureEnv_main_25());
+  staticPrint('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(dynamic))(pipeline)}');
+  final int pipeSum = (DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])).vptr['fold_int'] as int Function(dynamic, int, TypeFunction2<int, int, int>))(DataPipeline_new<int>(DataPipelineValue<int>(), StaticList<int>.of([1, 2, 3, 4, 5])), 0, ClosureEnv_main_27());
+  staticPrint('pipeSum: ${pipeSum}');
+  staticPrint('\n--- 12. 可选参数 ---');
+  staticPrint(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
+  staticPrint(formatRecord(name: 'Bob', tags: StaticList<String>.of(['admin', 'vip'])));
+  staticPrint(greetAll('Hello'));
+  staticPrint(greetAll('Hi', 'Dart', '!!'));
+  staticPrint('\n--- 13. BoundedValue ---');
   final BoundedValueValue bv = BoundedValue_new(BoundedValueValue(), 5.0, 0.0, 10.0);
-  print('bv: ${bv}');
+  staticPrint('bv: ${bv}');
   (bv.vptr['set_value'] as void Function(dynamic, double))(bv, 15.0);
-  print('after set 15: ${bv}');
+  staticPrint('after set 15: ${bv}');
   (bv.vptr['set_value'] as void Function(dynamic, double))(bv, (-5.0));
-  print('after set -5: ${bv}');
+  staticPrint('after set -5: ${bv}');
   final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(dynamic, double))(bv, 7.0);
-  print('bv + 7: ${bv2}');
-  print('\n--- 14. 静态方法 ---');
-  print('5! = ${MathUtils_factorial(5)}');
-  print('fib(8): ${MathUtils_fibonacci(8)}');
-  print('lerp(0,100,0.3): ${MathUtils_lerp(0.0, 100.0, 0.3)}');
-  print('callCount: ${MathUtils_callCount()}');
-  print('\n--- 15. ReactiveStore ---');
+  staticPrint('bv + 7: ${bv2}');
+  staticPrint('\n--- 14. 静态方法 ---');
+  staticPrint('5! = ${MathUtils_factorial(5)}');
+  staticPrint('fib(8): ${MathUtils_fibonacci(8)}');
+  staticPrint('lerp(0,100,0.3): ${MathUtils_lerp(0.0, 100.0, 0.3)}');
+  staticPrint('callCount: ${MathUtils_callCount()}');
+  staticPrint('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(ReactiveStoreValue<int>());
-  final StaticList<int> observed = StaticList<int>.of([]);
-  (store.vptr['observe'] as void Function(dynamic, void Function(int)))(store, ClosureEnv_main_10(observed).call);
+  final StaticList<int> observed = StaticList<int>();
+  (store.vptr['observe'] as void Function(dynamic, TypeFunction1<void, int>))(store, ClosureEnv_main_29(observed));
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
-  print('store: ${store}');
-  print('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
-  print('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
-  print('observed: ${observed}');
-  print('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(dynamic))(store)}');
-  print('\n--- 16. 类型转换 ---');
+  staticPrint('store: ${store}');
+  staticPrint('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
+  staticPrint('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
+  staticPrint('observed: ${observed}');
+  staticPrint('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(dynamic))(store)}');
+  staticPrint('\n--- 16. 类型转换 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new(CircleValue(), 1.0)]);
-  for (final s in shapes) {
-    print(describeShape(s));
+{
+    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final ShapeValue s = sync_for_iterator.current;
+{
+        staticPrint(describeShape(s));
+      }
+    }
   }
-  print('\n--- 17. 树结构 ---');
+  staticPrint('\n--- 17. 树结构 ---');
   final NodeValue<int> tree = Node_new<int>(NodeValue<int>(), 1, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 2, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 4), Node_new<int>(NodeValue<int>(), 5)])), Node_new<int>(NodeValue<int>(), 3, StaticList<NodeValue<int>>.of([Node_new<int>(NodeValue<int>(), 6)]))]));
-  print('tree: ${tree}');
-  print('flatten: ${(tree.vptr['flatten'] as StaticList<int> Function(dynamic))(tree)}');
-  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(dynamic, String Function(int)))(tree, (int x) => 'N${x}');
-  print('mapped: ${strTree}');
+  staticPrint('tree: ${tree}');
+  staticPrint('flatten: ${(tree.vptr['flatten'] as StaticList<int> Function(dynamic))(tree)}');
+  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_31());
+  staticPrint('mapped: ${strTree}');
   final LabeledNodeValue<int> labeled = LabeledNode_new<int>(LabeledNodeValue<int>(), 'root', 100);
   (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(NodeValue<int>(), 200));
   (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(NodeValue<int>(), 300));
-  print('labeled: ${labeled}');
-  print('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(dynamic))(labeled)}');
-  print('labeled flatten: ${(labeled.vptr['flatten'] as StaticList<int> Function(dynamic))(labeled)}');
-  print('\n--- 18. 评分 ---');
-  print(evaluateGrade(95));
-  print(evaluateGrade(82));
-  print(evaluateGrade(67));
-  print(evaluateGrade(55));
-  print('\n=== 所有压力测试通过 ✅ ===');
+  staticPrint('labeled: ${labeled}');
+  staticPrint('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(dynamic))(labeled)}');
+  staticPrint('labeled flatten: ${(labeled.vptr['flatten'] as StaticList<int> Function(dynamic))(labeled)}');
+  staticPrint('\n--- 18. 评分 ---');
+  staticPrint(evaluateGrade(95));
+  staticPrint(evaluateGrade(82));
+  staticPrint(evaluateGrade(67));
+  staticPrint(evaluateGrade(55));
+  staticPrint('\n=== 所有压力测试通过 ✅ ===');
 }
 
-class ClosureEnv_anon_0 {
+class ClosureEnv_anon_0 extends TypeFunction1<String, String> {
   ConfigValue this_;
   ClosureEnv_anon_0(this.this_);
+  @override
   String call(String k) => ClosureEnv_anon_0_call(this, k);
 }
 String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, String k) {
   return '${k}=${env.this_._data[k]}';
 }
 
-class ClosureEnv_anon_1<R, T> {
-  R Function(T) transform;
+class ClosureEnv_anon_1<R, T> extends TypeFunction1<NodeValue<R>, NodeValue<T>> {
+  TypeFunction1<R, T> transform;
   ClosureEnv_anon_1(this.transform);
+  @override
   NodeValue<R> call(NodeValue<T> c) => ClosureEnv_anon_1_call<R, T>(this, c);
 }
 NodeValue<R> ClosureEnv_anon_1_call<R, T>(ClosureEnv_anon_1<R, T> env, NodeValue<T> c) {
   return Node_mapTree<T, R>(c, env.transform);
 }
 
-class ClosureEnv_testClosureBoxing_2 {
+class ClosureEnv_testClosureBoxing_2 extends TypeFunction0<int> {
   IntBox counter;
   ClosureEnv_testClosureBoxing_2(this.counter);
+  @override
   int call() => ClosureEnv_testClosureBoxing_2_call(this);
 }
 int ClosureEnv_testClosureBoxing_2_call(ClosureEnv_testClosureBoxing_2 env) {
@@ -1567,81 +1577,278 @@ int ClosureEnv_testClosureBoxing_2_call(ClosureEnv_testClosureBoxing_2 env) {
     return env.counter.value;
   }
 
-class ClosureEnv_testClosureBoxing_3 {
+class ClosureEnv_testClosureBoxing_3 extends TypeFunction0<int> {
   int i;
   ClosureEnv_testClosureBoxing_3(this.i);
+  @override
   int call() => ClosureEnv_testClosureBoxing_3_call(this);
 }
 int ClosureEnv_testClosureBoxing_3_call(ClosureEnv_testClosureBoxing_3 env) {
   return (env.i * 10);
 }
 
-class ClosureEnv_ClosureEnv_testClosureBoxing_4_5 {
+class ClosureEnv_testClosureBoxing_4 extends TypeFunction1<int, TypeFunction0<int>> {
+  ClosureEnv_testClosureBoxing_4();
+  @override
+  int call(TypeFunction0<int> f) => ClosureEnv_testClosureBoxing_4_call(this, f);
+}
+int ClosureEnv_testClosureBoxing_4_call(ClosureEnv_testClosureBoxing_4 env, TypeFunction0<int> f) {
+  return f();
+}
+
+class ClosureEnv_ClosureEnv_testClosureBoxing_5_6 extends TypeFunction1<int, int> {
   IntBox inner;
   IntBox outer;
-  ClosureEnv_ClosureEnv_testClosureBoxing_4_5(this.inner, this.outer);
-  int call(int x) => ClosureEnv_ClosureEnv_testClosureBoxing_4_5_call(this, x);
+  ClosureEnv_ClosureEnv_testClosureBoxing_5_6(this.inner, this.outer);
+  @override
+  int call(int x) => ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call(this, x);
 }
-int ClosureEnv_ClosureEnv_testClosureBoxing_4_5_call(ClosureEnv_ClosureEnv_testClosureBoxing_4_5 env, int x) {
+int ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call(ClosureEnv_ClosureEnv_testClosureBoxing_5_6 env, int x) {
       env.inner.value = (env.inner.value + x);
       env.outer.value = (env.outer.value + x);
       return env.inner.value;
     }
 
-class ClosureEnv_testClosureBoxing_4 {
+class ClosureEnv_testClosureBoxing_5 extends TypeFunction1<TypeFunction1<int, int>, int> {
   IntBox outer;
-  ClosureEnv_testClosureBoxing_4(this.outer);
-  int Function(int) call(int base) => ClosureEnv_testClosureBoxing_4_call(this, base);
+  ClosureEnv_testClosureBoxing_5(this.outer);
+  @override
+  TypeFunction1<int, int> call(int base) => ClosureEnv_testClosureBoxing_5_call(this, base);
 }
-int Function(int) ClosureEnv_testClosureBoxing_4_call(ClosureEnv_testClosureBoxing_4 env, int base) {
+TypeFunction1<int, int> ClosureEnv_testClosureBoxing_5_call(ClosureEnv_testClosureBoxing_5 env, int base) {
     IntBox inner = IntBox(base);
-    return ClosureEnv_ClosureEnv_testClosureBoxing_4_5(inner, env.outer).call;
+    return ClosureEnv_ClosureEnv_testClosureBoxing_5_6(inner, env.outer);
   }
 
-class ClosureEnv_testClosureBoxing_6 {
+class ClosureEnv_testClosureBoxing_7 extends TypeFunction0<String> {
   int count;
   String prefix;
-  ClosureEnv_testClosureBoxing_6(this.count, this.prefix);
-  String call() => ClosureEnv_testClosureBoxing_6_call(this);
+  ClosureEnv_testClosureBoxing_7(this.count, this.prefix);
+  @override
+  String call() => ClosureEnv_testClosureBoxing_7_call(this);
 }
-String ClosureEnv_testClosureBoxing_6_call(ClosureEnv_testClosureBoxing_6 env) {
+String ClosureEnv_testClosureBoxing_7_call(ClosureEnv_testClosureBoxing_7 env) {
       env.count = (env.count + 1);
       return '${env.prefix}-${env.count}';
     }
 
-class ClosureEnv_testClosureBoxing_7 {
-  StaticList<String> received;
-  ClosureEnv_testClosureBoxing_7(this.received);
-  void call(String event) => ClosureEnv_testClosureBoxing_7_call(this, event);
-}
-void ClosureEnv_testClosureBoxing_7_call(ClosureEnv_testClosureBoxing_7 env, String event) {
-    env.received.add(event);
-  }
-
-class ClosureEnv_testClosureBoxing_8 {
+class ClosureEnv_testClosureBoxing_8 extends TypeFunction1<void, String> {
   StaticList<String> received;
   ClosureEnv_testClosureBoxing_8(this.received);
+  @override
   void call(String event) => ClosureEnv_testClosureBoxing_8_call(this, event);
 }
 void ClosureEnv_testClosureBoxing_8_call(ClosureEnv_testClosureBoxing_8 env, String event) {
     env.received.add(event);
   }
 
-class ClosureEnv_main_9 {
-  StaticList<int> observed;
-  ClosureEnv_main_9(this.observed);
-  void call(int v) => ClosureEnv_main_9_call(this, v);
+class ClosureEnv_testClosureBoxing_9 extends TypeFunction1<void, String> {
+  StaticList<String> received;
+  ClosureEnv_testClosureBoxing_9(this.received);
+  @override
+  void call(String event) => ClosureEnv_testClosureBoxing_9_call(this, event);
 }
-void ClosureEnv_main_9_call(ClosureEnv_main_9 env, int v) {
+void ClosureEnv_testClosureBoxing_9_call(ClosureEnv_testClosureBoxing_9 env, String event) {
+    env.received.add(event);
+  }
+
+class ClosureEnv_main_10 extends TypeFunction1<int, int> {
+  ClosureEnv_main_10();
+  @override
+  int call(int x) => ClosureEnv_main_10_call(this, x);
+}
+int ClosureEnv_main_10_call(ClosureEnv_main_10 env, int x) {
+  return (x * 2);
+}
+
+class ClosureEnv_main_11 extends TypeFunction1<bool, int> {
+  ClosureEnv_main_11();
+  @override
+  bool call(int x) => ClosureEnv_main_11_call(this, x);
+}
+bool ClosureEnv_main_11_call(ClosureEnv_main_11 env, int x) {
+  return ((x % 2) == 0);
+}
+
+class ClosureEnv_main_12 extends TypeFunction2<int, int, int> {
+  ClosureEnv_main_12();
+  @override
+  int call(int a, int b) => ClosureEnv_main_12_call(this, a, b);
+}
+int ClosureEnv_main_12_call(ClosureEnv_main_12 env, int a, int b) {
+  return (a + b);
+}
+
+class ClosureEnv_main_13 extends TypeFunction1<String, Priority> {
+  ClosureEnv_main_13();
+  @override
+  String call(Priority p) => ClosureEnv_main_13_call(this, p);
+}
+String ClosureEnv_main_13_call(ClosureEnv_main_13 env, Priority p) {
+  return '${p}'.split('.').last;
+}
+
+class ClosureEnv_main_14 extends TypeFunction1<int, int> {
+  ClosureEnv_main_14();
+  @override
+  int call(int x) => ClosureEnv_main_14_call(this, x);
+}
+int ClosureEnv_main_14_call(ClosureEnv_main_14 env, int x) {
+  return (x * 2);
+}
+
+class ClosureEnv_main_15 extends TypeFunction1<int, int> {
+  ClosureEnv_main_15();
+  @override
+  int call(int x) => ClosureEnv_main_15_call(this, x);
+}
+int ClosureEnv_main_15_call(ClosureEnv_main_15 env, int x) {
+  return (x * 2);
+}
+
+class ClosureEnv_main_16 extends TypeFunction1<String, String> {
+  ClosureEnv_main_16();
+  @override
+  String call(String s) => ClosureEnv_main_16_call(this, s);
+}
+String ClosureEnv_main_16_call(ClosureEnv_main_16 env, String s) {
+  return s.toUpperCase();
+}
+
+class ClosureEnv_main_17 extends TypeFunction1<String, String> {
+  ClosureEnv_main_17();
+  @override
+  String call(String s) => ClosureEnv_main_17_call(this, s);
+}
+String ClosureEnv_main_17_call(ClosureEnv_main_17 env, String s) {
+  return s.toUpperCase();
+}
+
+class ClosureEnv_main_18 extends TypeFunction2<String, int, String> {
+  ClosureEnv_main_18();
+  @override
+  String call(int a, String b) => ClosureEnv_main_18_call(this, a, b);
+}
+String ClosureEnv_main_18_call(ClosureEnv_main_18 env, int a, String b) {
+  return '${b}=${a}';
+}
+
+class ClosureEnv_main_19 extends TypeFunction2<String, int, String> {
+  ClosureEnv_main_19();
+  @override
+  String call(int a, String b) => ClosureEnv_main_19_call(this, a, b);
+}
+String ClosureEnv_main_19_call(ClosureEnv_main_19 env, int a, String b) {
+  return '${b}=${a}';
+}
+
+class ClosureEnv_main_20 extends TypeFunction1<bool, int> {
+  ClosureEnv_main_20();
+  @override
+  bool call(int x) => ClosureEnv_main_20_call(this, x);
+}
+bool ClosureEnv_main_20_call(ClosureEnv_main_20 env, int x) {
+  return (x > 2);
+}
+
+class ClosureEnv_main_21 extends TypeFunction1<bool, int> {
+  ClosureEnv_main_21();
+  @override
+  bool call(int x) => ClosureEnv_main_21_call(this, x);
+}
+bool ClosureEnv_main_21_call(ClosureEnv_main_21 env, int x) {
+  return (x > 2);
+}
+
+class ClosureEnv_main_22 extends TypeFunction2<int, int, int> {
+  ClosureEnv_main_22();
+  @override
+  int call(int a, int b) => ClosureEnv_main_22_call(this, a, b);
+}
+int ClosureEnv_main_22_call(ClosureEnv_main_22 env, int a, int b) {
+  return (a - b);
+}
+
+class ClosureEnv_main_23 extends TypeFunction2<int, int, int> {
+  ClosureEnv_main_23();
+  @override
+  int call(int a, int b) => ClosureEnv_main_23_call(this, a, b);
+}
+int ClosureEnv_main_23_call(ClosureEnv_main_23 env, int a, int b) {
+  return (a - b);
+}
+
+class ClosureEnv_main_24 extends TypeFunction1<int, int> {
+  ClosureEnv_main_24();
+  @override
+  int call(int x) => ClosureEnv_main_24_call(this, x);
+}
+int ClosureEnv_main_24_call(ClosureEnv_main_24 env, int x) {
+  return (x * 10);
+}
+
+class ClosureEnv_main_25 extends TypeFunction1<int, int> {
+  ClosureEnv_main_25();
+  @override
+  int call(int x) => ClosureEnv_main_25_call(this, x);
+}
+int ClosureEnv_main_25_call(ClosureEnv_main_25 env, int x) {
+  return (x * 10);
+}
+
+class ClosureEnv_main_26 extends TypeFunction2<int, int, int> {
+  ClosureEnv_main_26();
+  @override
+  int call(int acc, int x) => ClosureEnv_main_26_call(this, acc, x);
+}
+int ClosureEnv_main_26_call(ClosureEnv_main_26 env, int acc, int x) {
+  return (acc + x);
+}
+
+class ClosureEnv_main_27 extends TypeFunction2<int, int, int> {
+  ClosureEnv_main_27();
+  @override
+  int call(int acc, int x) => ClosureEnv_main_27_call(this, acc, x);
+}
+int ClosureEnv_main_27_call(ClosureEnv_main_27 env, int acc, int x) {
+  return (acc + x);
+}
+
+class ClosureEnv_main_28 extends TypeFunction1<void, int> {
+  StaticList<int> observed;
+  ClosureEnv_main_28(this.observed);
+  @override
+  void call(int v) => ClosureEnv_main_28_call(this, v);
+}
+void ClosureEnv_main_28_call(ClosureEnv_main_28 env, int v) {
     env.observed.add(v);
   }
 
-class ClosureEnv_main_10 {
+class ClosureEnv_main_29 extends TypeFunction1<void, int> {
   StaticList<int> observed;
-  ClosureEnv_main_10(this.observed);
-  void call(int v) => ClosureEnv_main_10_call(this, v);
+  ClosureEnv_main_29(this.observed);
+  @override
+  void call(int v) => ClosureEnv_main_29_call(this, v);
 }
-void ClosureEnv_main_10_call(ClosureEnv_main_10 env, int v) {
+void ClosureEnv_main_29_call(ClosureEnv_main_29 env, int v) {
     env.observed.add(v);
   }
+
+class ClosureEnv_main_30 extends TypeFunction1<String, int> {
+  ClosureEnv_main_30();
+  @override
+  String call(int x) => ClosureEnv_main_30_call(this, x);
+}
+String ClosureEnv_main_30_call(ClosureEnv_main_30 env, int x) {
+  return 'N${x}';
+}
+
+class ClosureEnv_main_31 extends TypeFunction1<String, int> {
+  ClosureEnv_main_31();
+  @override
+  String call(int x) => ClosureEnv_main_31_call(this, x);
+}
+String ClosureEnv_main_31_call(ClosureEnv_main_31 env, int x) {
+  return 'N${x}';
+}
 

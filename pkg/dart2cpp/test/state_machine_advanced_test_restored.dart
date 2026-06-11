@@ -68,7 +68,6 @@ class Level3SMValue extends AsyncStateMachine<int> {
   Level3SMValue() {
     vptr['step'] = Level3SM_step;
   }
-
 }
 
 Level3SMValue Level3SM_new(dynamic this__) {
@@ -93,7 +92,6 @@ class Level2SMValue extends AsyncStateMachine<int> {
   Level2SMValue() {
     vptr['step'] = Level2SM_step;
   }
-
 }
 
 Level2SMValue Level2SM_new(dynamic this__) {
@@ -141,7 +139,6 @@ class Level1SMValue extends AsyncStateMachine<String> {
   Level1SMValue() {
     vptr['step'] = Level1SM_step;
   }
-
 }
 
 Level1SMValue Level1SM_new(dynamic this__) {
@@ -190,7 +187,6 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   ConditionalAwaitSMValue() {
     vptr['step'] = ConditionalAwaitSM_step;
   }
-
 }
 
 ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
@@ -207,11 +203,11 @@ bool ConditionalAwaitSM_step(dynamic this__) {
       case 0:
 {
           if (this_.flag) {
-            this_._pending = Promise.delayed(2, () => 'branch_true');
+            this_._pending = Promise.delayed(2, ClosureEnv_anon_0());
             this_.smState = 1;
           }
  else {
-            this_._pending = Promise.delayed(1, () => 'branch_false');
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_1());
             this_.smState = 2;
           }
           return false;
@@ -238,7 +234,7 @@ bool ConditionalAwaitSM_step(dynamic this__) {
 
 
 class FindFirstSMValue extends AsyncStateMachine<int> {
-  late List<int> items;
+  late StaticList<int> items;
   late int _index;
   late Promise<int>? _pending;
   late Map<String, dynamic> vptr = <String, dynamic>{};
@@ -249,10 +245,9 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   FindFirstSMValue() {
     vptr['step'] = FindFirstSM_step;
   }
-
 }
 
-FindFirstSMValue FindFirstSM_new(dynamic this__, List<int> items) {
+FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as FindFirstSMValue;
   this_.items = items;
   this_._index = 0;
@@ -270,7 +265,7 @@ bool FindFirstSM_step(dynamic this__) {
             this_.completeWith((-1));
             return true;
           }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_0(this_).call);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_2(this_));
           this_.smState = 1;
           return false;
         }
@@ -306,7 +301,6 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   TryCatchSMValue() {
     vptr['step'] = TryCatchSM_step;
   }
-
 }
 
 TryCatchSMValue TryCatchSM_new(dynamic this__) {
@@ -323,7 +317,7 @@ bool TryCatchSM_step(dynamic this__) {
       case 0:
 {
           this_._log = (this_._log + 'try;');
-          this_._pending = Promise.delayed(1, () => throw 'boom');
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_3());
           this_.smState = 1;
           return false;
         }
@@ -332,7 +326,7 @@ bool TryCatchSM_step(dynamic this__) {
           if (this_._pending!.isPending)           return false;
           if (this_._pending!.isError) {
             this_._log = (this_._log + 'catch:${this_._pending!.error};');
-            this_._pending = Promise.delayed(1, () => 'recovered');
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_4());
             this_.smState = 2;
             return false;
           }
@@ -356,7 +350,7 @@ bool TryCatchSM_step(dynamic this__) {
 
 
 class FutureAnySMValue extends AsyncStateMachine<String> {
-  late List<Promise<String>> _futures;
+  late StaticList<Promise<String>> _futures;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -365,7 +359,6 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   FutureAnySMValue() {
     vptr['step'] = FutureAnySM_step;
   }
-
 }
 
 FutureAnySMValue FutureAnySM_new(dynamic this__) {
@@ -379,16 +372,22 @@ bool FutureAnySM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._futures = <Promise<String>>[Promise.delayed(5, () => 'slow'), Promise.delayed(2, () => 'fast'), Promise.delayed(8, () => 'slowest')];
+          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_8()), Promise.delayed(2, ClosureEnv_anon_9()), Promise.delayed(8, ClosureEnv_anon_10())]);
           this_.smState = 1;
           return false;
         }
       case 1:
 {
-          for (final f in this_._futures) {
-            if (f.isCompleted) {
-              this_.completeWith(f.result);
-              return true;
+{
+            StaticIterator<Promise<String>> sync_for_iterator = StaticIterator(this_._futures.iterator);
+            for (; sync_for_iterator.moveNext(); ) {
+              final Promise<String> f = sync_for_iterator.current;
+{
+                if (f.isCompleted) {
+                  this_.completeWith(f.result);
+                  return true;
+                }
+              }
             }
           }
           return false;
@@ -415,7 +414,6 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   TimeoutSMValue() {
     vptr['step'] = TimeoutSM_step;
   }
-
 }
 
 TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required int timeoutDelay}) {
@@ -431,8 +429,8 @@ bool TimeoutSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._taskFuture = Promise.delayed(this_.taskDelay, () => 'done');
-          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, () => 'TIMEOUT');
+          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_11());
+          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_12());
           this_.smState = 1;
           return false;
         }
@@ -457,9 +455,9 @@ bool TimeoutSM_step(dynamic this__) {
 }
 
 
-class AsyncMapSMValue extends AsyncStateMachine<List<String>> {
-  late List<int> items;
-  late List<String> _results;
+class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
+  late StaticList<int> items;
+  late StaticList<String> _results;
   late int _index;
   late Promise<String>? _pending;
   late Map<String, dynamic> vptr = <String, dynamic>{};
@@ -470,13 +468,12 @@ class AsyncMapSMValue extends AsyncStateMachine<List<String>> {
   AsyncMapSMValue() {
     vptr['step'] = AsyncMapSM_step;
   }
-
 }
 
-AsyncMapSMValue AsyncMapSM_new(dynamic this__, List<int> items) {
+AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as AsyncMapSMValue;
   this_.items = items;
-  this_._results = <String>[];
+  this_._results = StaticList<String>();
   this_._index = 0;
   this_._pending = null;
   return this_;
@@ -493,7 +490,7 @@ bool AsyncMapSM_step(dynamic this__) {
             return true;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_1(item).call);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_13(item));
           this_.smState = 1;
           return false;
         }
@@ -515,9 +512,9 @@ bool AsyncMapSM_step(dynamic this__) {
 
 
 class AsyncReduceSMValue extends AsyncStateMachine<String> {
-  late Promise<List<String>> _mapFuture;
+  late Promise<StaticList<String>> _mapFuture;
   late Promise<String>? _reducePending;
-  late List<String> _items;
+  late StaticList<String> _items;
   late int _index;
   late String _acc;
   late Map<String, dynamic> vptr = <String, dynamic>{};
@@ -528,13 +525,12 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   AsyncReduceSMValue() {
     vptr['step'] = AsyncReduceSM_step;
   }
-
 }
 
 AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
   this_._reducePending = null;
-  this_._items = <String>[];
+  this_._items = StaticList<String>();
   this_._index = 0;
   this_._acc = '';
   return this_;
@@ -546,7 +542,7 @@ bool AsyncReduceSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._mapFuture = AsyncMapSM_new(AsyncMapSMValue(), <int>[1, 2, 3, 4]).start();
+          this_._mapFuture = AsyncMapSM_new(AsyncMapSMValue(), StaticList<int>.of([1, 2, 3, 4])).start();
           this_.smState = 1;
           return false;
         }
@@ -563,7 +559,7 @@ bool AsyncReduceSM_step(dynamic this__) {
             this_.completeWith(this_._acc);
             return true;
           }
-          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_2(this_).call);
+          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_14(this_));
           this_.smState = 3;
           return false;
         }
@@ -603,10 +599,10 @@ int ClosureEnv_process_0_call(dynamic this__, int x) {
 }
 
 
-class ProcessWithClosureSMValue extends AsyncStateMachine<List<int>> {
+class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late ClosureEnv_process_0Value _env;
-  late List<int> items;
-  late List<int> _results;
+  late StaticList<int> items;
+  late StaticList<int> _results;
   late int _index;
   late Promise<int>? _pending;
   late Map<String, dynamic> vptr = <String, dynamic>{};
@@ -617,13 +613,12 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<List<int>> {
   ProcessWithClosureSMValue() {
     vptr['step'] = ProcessWithClosureSM_step;
   }
-
 }
 
-ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, List<int> items) {
+ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as ProcessWithClosureSMValue;
   this_.items = items;
-  this_._results = <int>[];
+  this_._results = StaticList<int>();
   this_._index = 0;
   this_._pending = null;
   return this_;
@@ -646,7 +641,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
             return false;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_3(this_, item).call);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_15(this_, item));
           this_.smState = 2;
           return false;
         }
@@ -674,10 +669,10 @@ bool ProcessWithClosureSM_step(dynamic this__) {
 }
 
 
-class AsyncGeneratorSMValue extends AsyncStateMachine<List<int>> {
+class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late int max;
   late int _i;
-  late List<int> _yielded;
+  late StaticList<int> _yielded;
   late Promise<int>? _pending;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
@@ -687,14 +682,13 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<List<int>> {
   AsyncGeneratorSMValue() {
     vptr['step'] = AsyncGeneratorSM_step;
   }
-
 }
 
 AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
   final this_ = this__ as AsyncGeneratorSMValue;
   this_.max = max;
   this_._i = 0;
-  this_._yielded = <int>[];
+  this_._yielded = StaticList<int>();
   this_._pending = null;
   return this_;
 }
@@ -709,7 +703,7 @@ bool AsyncGeneratorSM_step(dynamic this__) {
             this_.completeWith(this_._yielded);
             return true;
           }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_4(this_).call);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_16(this_));
           this_.smState = 1;
           return false;
         }
@@ -730,9 +724,9 @@ bool AsyncGeneratorSM_step(dynamic this__) {
 }
 
 
-class ComplexBusinessSMValue extends AsyncStateMachine<Map<String, dynamic>> {
+class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic>> {
   late int depth;
-  late Promise<Map<String, dynamic>>? _pending;
+  late Promise<StaticMap<String, dynamic>>? _pending;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -741,7 +735,6 @@ class ComplexBusinessSMValue extends AsyncStateMachine<Map<String, dynamic>> {
   ComplexBusinessSMValue() {
     vptr['step'] = ComplexBusinessSM_step;
   }
-
 }
 
 ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
@@ -769,10 +762,10 @@ bool ComplexBusinessSM_step(dynamic this__) {
 {
           if (this_._pending!.isPending)           return false;
           if (this_._pending!.isError) {
-            this_.completeWith(<String, dynamic>{'depth': this_.depth, 'error': '${this_._pending!.error}'});
+            this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'error': '${this_._pending!.error}'}));
             return true;
           }
-          this_.completeWith(<String, dynamic>{'depth': this_.depth, 'child': this_._pending!.result});
+          this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'child': this_._pending!.result}));
           return true;
         }
       default:
@@ -785,114 +778,114 @@ bool ComplexBusinessSM_step(dynamic this__) {
 
 
 void testRecursiveAsync() {
-  print('\n--- 1. 递归异步 fibonacci ---');
+  staticPrint('\n--- 1. 递归异步 fibonacci ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(FibStateMachine_new(FibStateMachineValue(), 7).start());
   assert((r == 13), 'fib(7) should be 13, got ${r}');
-  print('  ✓ asyncFib(7) = ${r}');
+  staticPrint('  ✓ asyncFib(7) = ${r}');
 }
 
 void testExceptionPropagation() {
-  print('\n--- 2. 异常传播链 (3层) ---');
+  staticPrint('\n--- 2. 异常传播链 (3层) ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(Level1SM_new(Level1SMValue()).start());
   assert((r.contains('deep error') as bool), 'Expected deep error, got: ${r}');
-  print('  ✓ level1() caught 3-level exception: "${r}"');
+  staticPrint('  ✓ level1() caught 3-level exception: "${r}"');
 }
 
 void testConditionalAwait() {
-  print('\n--- 3. 条件分支中的 await ---');
+  staticPrint('\n--- 3. 条件分支中的 await ---');
   GlobalScheduler.instance.reset();
   final dynamic r1 = smAwait<dynamic>(ConditionalAwaitSM_new(ConditionalAwaitSMValue(), true).start());
   assert((r1 == 'branch_true'), 'Expected branch_true, got ${r1}');
   GlobalScheduler.instance.reset();
   final dynamic r2 = smAwait<dynamic>(ConditionalAwaitSM_new(ConditionalAwaitSMValue(), false).start());
   assert((r2 == 'branch_false'), 'Expected branch_false, got ${r2}');
-  print('  ✓ conditionalAwait(true) = "${r1}"');
-  print('  ✓ conditionalAwait(false) = "${r2}"');
+  staticPrint('  ✓ conditionalAwait(true) = "${r1}"');
+  staticPrint('  ✓ conditionalAwait(false) = "${r2}"');
 }
 
 void testLoopBreakAwait() {
-  print('\n--- 4. 循环 + 提前 break 中的 await ---');
+  staticPrint('\n--- 4. 循环 + 提前 break 中的 await ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(FindFirstSM_new(FindFirstSMValue(), <int>[1, 2, 3, 4, 5]).start());
+  final dynamic r = smAwait<dynamic>(FindFirstSM_new(FindFirstSMValue(), StaticList<int>.of([1, 2, 3, 4, 5])).start());
   assert((r == 12), 'Expected 12, got ${r}');
-  print('  ✓ findFirst([1,2,3,4,5]) = ${r} (4*3=12 > 10)');
+  staticPrint('  ✓ findFirst([1,2,3,4,5]) = ${r} (4*3=12 > 10)');
 }
 
 void testTryCatchAwait() {
-  print('\n--- 5. try-catch 中的 await ---');
+  staticPrint('\n--- 5. try-catch 中的 await ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(TryCatchSM_new(TryCatchSMValue()).start());
   assert((r == 'try;catch:boom;recovered'), 'Unexpected: ${r}');
-  print('  ✓ tryCatchAwait() = "${r}"');
+  staticPrint('  ✓ tryCatchAwait() = "${r}"');
 }
 
 void testFutureAny() {
-  print('\n--- 6. Future.any 模拟（竞争取最先完成） ---');
+  staticPrint('\n--- 6. Future.any 模拟（竞争取最先完成） ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(FutureAnySM_new(FutureAnySMValue()).start());
   assert((r == 'fast'), 'Expected fast, got ${r}');
-  print('  ✓ Future.any([slow(5), fast(2), slowest(8)]) = "${r}"');
+  staticPrint('  ✓ Future.any([slow(5), fast(2), slowest(8)]) = "${r}"');
 }
 
 void testTimeout() {
-  print('\n--- 7. 超时控制模拟 ---');
+  staticPrint('\n--- 7. 超时控制模拟 ---');
   GlobalScheduler.instance.reset();
   final dynamic r1 = smAwait<dynamic>(TimeoutSM_new(TimeoutSMValue(), taskDelay: 2, timeoutDelay: 5).start());
   assert((r1 == 'done'), 'Expected done, got ${r1}');
-  print('  ✓ task(2) timeout(5) = "${r1}" (task wins)');
+  staticPrint('  ✓ task(2) timeout(5) = "${r1}" (task wins)');
   GlobalScheduler.instance.reset();
   final dynamic r2 = smAwait<dynamic>(TimeoutSM_new(TimeoutSMValue(), taskDelay: 10, timeoutDelay: 3).start());
   assert((r2 == 'TIMEOUT'), 'Expected TIMEOUT, got ${r2}');
-  print('  ✓ task(10) timeout(3) = "${r2}" (timeout wins)');
+  staticPrint('  ✓ task(10) timeout(3) = "${r2}" (timeout wins)');
 }
 
 void testAsyncPipeline() {
-  print('\n--- 8. 链式异步变换管道 (map → reduce) ---');
+  staticPrint('\n--- 8. 链式异步变换管道 (map → reduce) ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(AsyncReduceSM_new(AsyncReduceSMValue()).start());
   assert((r == 'item_2+item_4+item_6+item_8'), 'Unexpected: ${r}');
-  print('  ✓ asyncMap([1,2,3,4]).reduce(+) = "${r}"');
+  staticPrint('  ✓ asyncMap([1,2,3,4]).reduce(+) = "${r}"');
 }
 
 void testClosureCaptureAwait() {
-  print('\n--- 9. 闭包捕获 + await (ClosureEnv 模式) ---');
+  staticPrint('\n--- 9. 闭包捕获 + await (ClosureEnv 模式) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(ProcessWithClosureSM_new(ProcessWithClosureSMValue(), <int>[1, 2, 3]).start());
+  final dynamic r = smAwait<dynamic>(ProcessWithClosureSM_new(ProcessWithClosureSMValue(), StaticList<int>.of([1, 2, 3])).start());
   assert((r.length == 4), 'Expected 4 results');
   assert(((((r[0] == 3) && (r[1] == 6)) && (r[2] == 9)) && (r[3] == 500)), 'Unexpected: ${r}');
-  print('  ✓ processWithClosure([1,2,3]) = ${r}');
-  print('    (factor=3→[3,6,9], mutate factor=5→100*5=500)');
+  staticPrint('  ✓ processWithClosure([1,2,3]) = ${r}');
+  staticPrint('    (factor=3→[3,6,9], mutate factor=5→100*5=500)');
 }
 
 void testAsyncGenerator() {
-  print('\n--- 10. async* 生成器模拟 ---');
+  staticPrint('\n--- 10. async* 生成器模拟 ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(AsyncGeneratorSM_new(AsyncGeneratorSMValue(), 5).start());
   assert((r.length == 5), 'Expected 5 items');
   assert((((((r[0] == 0) && (r[1] == 1)) && (r[2] == 4)) && (r[3] == 9)) && (r[4] == 16)), 'Unexpected: ${r}');
-  print('  ✓ countUp(5) yields ${r}');
+  staticPrint('  ✓ countUp(5) yields ${r}');
 }
 
 void testComplexBusiness() {
-  print('\n--- 11. 复合场景：递归+异常+条件 ---');
+  staticPrint('\n--- 11. 复合场景：递归+异常+条件 ---');
   GlobalScheduler.instance.reset();
   final dynamic r = smAwait<dynamic>(ComplexBusinessSM_new(ComplexBusinessSMValue(), 3).start());
   assert((r['depth'] == 3), 'Top level depth should be 3');
-  final Map<String, dynamic> child2 = (r['child'] as Map<String, dynamic>);
+  final StaticMap<String, dynamic> child2 = StaticMap<String, dynamic>.of((r['child'] as StaticMap<String, dynamic>));
   assert((child2['depth'] == 2), 'Child depth should be 2');
-  final Map<String, dynamic> child1 = (child2['child'] as Map<String, dynamic>);
+  final StaticMap<String, dynamic> child1 = StaticMap<String, dynamic>.of((child2['child'] as StaticMap<String, dynamic>));
   assert((child1['depth'] == 1), 'Deepest depth should be 1');
   assert((child1['error'] as String).contains('max depth'), 'Should contain error');
-  print('  ✓ complexBusiness(3) = nested map with error at bottom');
-  print('    depth=3 → child(depth=2) → child(depth=1, error:"max depth")');
+  staticPrint('  ✓ complexBusiness(3) = nested map with error at bottom');
+  staticPrint('    depth=3 → child(depth=2) → child(depth=1, error:"max depth")');
 }
 
 void main() {
-  print('═══════════════════════════════════════════');
-  print(' 复杂协程场景验证测试');
-  print('═══════════════════════════════════════════');
+  staticPrint('═══════════════════════════════════════════');
+  staticPrint(' 复杂协程场景验证测试');
+  staticPrint('═══════════════════════════════════════════');
   testRecursiveAsync();
   testExceptionPropagation();
   testConditionalAwait();
@@ -904,55 +897,168 @@ void main() {
   testClosureCaptureAwait();
   testAsyncGenerator();
   testComplexBusiness();
-  print('\n═══════════════════════════════════════════');
-  print(' ✅ 全部 11 个复杂场景测试通过！');
-  print('═══════════════════════════════════════════');
+  staticPrint('\n═══════════════════════════════════════════');
+  staticPrint(' ✅ 全部 11 个复杂场景测试通过！');
+  staticPrint('═══════════════════════════════════════════');
 }
 
-class ClosureEnv_anon_0 {
-  FindFirstSMValue this_;
-  ClosureEnv_anon_0(this.this_);
-  int call() => ClosureEnv_anon_0_call(this);
+class ClosureEnv_anon_0 extends TypeFunction0<String> {
+  ClosureEnv_anon_0();
+  @override
+  String call() => ClosureEnv_anon_0_call(this);
 }
-int ClosureEnv_anon_0_call(ClosureEnv_anon_0 env) {
-  return (env.this_.items[env.this_._index] * 3);
+String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env) {
+  return 'branch_true';
 }
 
-class ClosureEnv_anon_1 {
-  IntBox item;
-  ClosureEnv_anon_1(this.item);
+class ClosureEnv_anon_1 extends TypeFunction0<String> {
+  ClosureEnv_anon_1();
+  @override
   String call() => ClosureEnv_anon_1_call(this);
 }
 String ClosureEnv_anon_1_call(ClosureEnv_anon_1 env) {
+  return 'branch_false';
+}
+
+class ClosureEnv_anon_2 extends TypeFunction0<int> {
+  FindFirstSMValue this_;
+  ClosureEnv_anon_2(this.this_);
+  @override
+  int call() => ClosureEnv_anon_2_call(this);
+}
+int ClosureEnv_anon_2_call(ClosureEnv_anon_2 env) {
+  return (env.this_.items[env.this_._index] * 3);
+}
+
+class ClosureEnv_anon_3 extends TypeFunction0<Never> {
+  ClosureEnv_anon_3();
+  @override
+  Never call() => ClosureEnv_anon_3_call(this);
+}
+Never ClosureEnv_anon_3_call(ClosureEnv_anon_3 env) {
+  return throw 'boom';
+}
+
+class ClosureEnv_anon_4 extends TypeFunction0<String> {
+  ClosureEnv_anon_4();
+  @override
+  String call() => ClosureEnv_anon_4_call(this);
+}
+String ClosureEnv_anon_4_call(ClosureEnv_anon_4 env) {
+  return 'recovered';
+}
+
+class ClosureEnv_anon_5 extends TypeFunction0<String> {
+  ClosureEnv_anon_5();
+  @override
+  String call() => ClosureEnv_anon_5_call(this);
+}
+String ClosureEnv_anon_5_call(ClosureEnv_anon_5 env) {
+  return 'slow';
+}
+
+class ClosureEnv_anon_6 extends TypeFunction0<String> {
+  ClosureEnv_anon_6();
+  @override
+  String call() => ClosureEnv_anon_6_call(this);
+}
+String ClosureEnv_anon_6_call(ClosureEnv_anon_6 env) {
+  return 'fast';
+}
+
+class ClosureEnv_anon_7 extends TypeFunction0<String> {
+  ClosureEnv_anon_7();
+  @override
+  String call() => ClosureEnv_anon_7_call(this);
+}
+String ClosureEnv_anon_7_call(ClosureEnv_anon_7 env) {
+  return 'slowest';
+}
+
+class ClosureEnv_anon_8 extends TypeFunction0<String> {
+  ClosureEnv_anon_8();
+  @override
+  String call() => ClosureEnv_anon_8_call(this);
+}
+String ClosureEnv_anon_8_call(ClosureEnv_anon_8 env) {
+  return 'slow';
+}
+
+class ClosureEnv_anon_9 extends TypeFunction0<String> {
+  ClosureEnv_anon_9();
+  @override
+  String call() => ClosureEnv_anon_9_call(this);
+}
+String ClosureEnv_anon_9_call(ClosureEnv_anon_9 env) {
+  return 'fast';
+}
+
+class ClosureEnv_anon_10 extends TypeFunction0<String> {
+  ClosureEnv_anon_10();
+  @override
+  String call() => ClosureEnv_anon_10_call(this);
+}
+String ClosureEnv_anon_10_call(ClosureEnv_anon_10 env) {
+  return 'slowest';
+}
+
+class ClosureEnv_anon_11 extends TypeFunction0<String> {
+  ClosureEnv_anon_11();
+  @override
+  String call() => ClosureEnv_anon_11_call(this);
+}
+String ClosureEnv_anon_11_call(ClosureEnv_anon_11 env) {
+  return 'done';
+}
+
+class ClosureEnv_anon_12 extends TypeFunction0<String> {
+  ClosureEnv_anon_12();
+  @override
+  String call() => ClosureEnv_anon_12_call(this);
+}
+String ClosureEnv_anon_12_call(ClosureEnv_anon_12 env) {
+  return 'TIMEOUT';
+}
+
+class ClosureEnv_anon_13 extends TypeFunction0<String> {
+  IntBox item;
+  ClosureEnv_anon_13(this.item);
+  @override
+  String call() => ClosureEnv_anon_13_call(this);
+}
+String ClosureEnv_anon_13_call(ClosureEnv_anon_13 env) {
   return 'item_${(env.item.value * 2)}';
 }
 
-class ClosureEnv_anon_2 {
+class ClosureEnv_anon_14 extends TypeFunction0<String> {
   AsyncReduceSMValue this_;
-  ClosureEnv_anon_2(this.this_);
-  String call() => ClosureEnv_anon_2_call(this);
+  ClosureEnv_anon_14(this.this_);
+  @override
+  String call() => ClosureEnv_anon_14_call(this);
 }
-String ClosureEnv_anon_2_call(ClosureEnv_anon_2 env) {
+String ClosureEnv_anon_14_call(ClosureEnv_anon_14 env) {
             final String sep = (env.this_._acc.isEmpty ? '' : '+');
             return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
           }
 
-class ClosureEnv_anon_3 {
+class ClosureEnv_anon_15 extends TypeFunction0<int> {
   ProcessWithClosureSMValue this_;
   IntBox item;
-  ClosureEnv_anon_3(this.this_, this.item);
-  int call() => ClosureEnv_anon_3_call(this);
+  ClosureEnv_anon_15(this.this_, this.item);
+  @override
+  int call() => ClosureEnv_anon_15_call(this);
 }
-int ClosureEnv_anon_3_call(ClosureEnv_anon_3 env) {
+int ClosureEnv_anon_15_call(ClosureEnv_anon_15 env) {
   return (env.this_._env.vptr['call'] as int Function(dynamic, int))(env.this_._env, env.item.value);
 }
 
-class ClosureEnv_anon_4 {
+class ClosureEnv_anon_16 extends TypeFunction0<int> {
   AsyncGeneratorSMValue this_;
-  ClosureEnv_anon_4(this.this_);
-  int call() => ClosureEnv_anon_4_call(this);
+  ClosureEnv_anon_16(this.this_);
+  @override
+  int call() => ClosureEnv_anon_16_call(this);
 }
-int ClosureEnv_anon_4_call(ClosureEnv_anon_4 env) {
+int ClosureEnv_anon_16_call(ClosureEnv_anon_16 env) {
   return (env.this_._i * env.this_._i);
 }
 

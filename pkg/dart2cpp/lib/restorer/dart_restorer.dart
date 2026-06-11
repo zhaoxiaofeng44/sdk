@@ -119,10 +119,6 @@ abstract class _DartRestorerBase {
   /// 待输出的闭包类和静态函数定义（延迟到顶层输出）
   final List<String> _pendingClosureDecls = [];
 
-  /// 已生成过的 tear-off wrapper 类（dedup key = wrapperName::wrapperTpStr）。
-  /// 用于把 vptr 槽里的静态函数 tear-off 包成 TypeFunctionN 子类实例。
-  final Set<String> _emittedTearOffWrappers = <String>{};
-
   /// 待输出的顶层声明：如类级共享的 vtable 常量
   /// `final Map<String, dynamic> _XX_vtable = <String, dynamic>{ ... };`
   /// 这些声明会在所有类/函数输出之后、_pendingClosureDecls 之前写到 _buf。
@@ -513,6 +509,18 @@ abstract class _DartRestorerBase {
       } else if (name == 'Function') {
         // dart:core 的 `Function` interface type 缺少 arity → 退化到 `dynamic`
         return 'dynamic';
+      } else if (name == 'StringBuffer') {
+        mappedName = 'StaticStringBuffer';
+      } else if (name == 'Iterator' || name == '_ListIterator') {
+        mappedName = 'StaticIterator';
+      } else if (name == 'MapEntry') {
+        mappedName = 'StaticMapEntry';
+      } else if (name == 'Duration') {
+        mappedName = 'StaticDuration';
+      } else if (name == 'DateTime') {
+        mappedName = 'StaticDateTime';
+      } else if (name == 'RegExp' || name == '_RegExp') {
+        mappedName = 'StaticRegExp';
       } else {
         mappedName = name;
       }

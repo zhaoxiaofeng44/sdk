@@ -8,7 +8,7 @@ String Logger_get_prefix(dynamic this__) {
 
 String Logger_format(dynamic this__, String msg) {
   final this_ = this__;
-  return '[${(this_.vptr['get_prefix'] as TypeFunction1<String, dynamic>)(this_)}] ${msg}';
+  return '[${(this_.vptr['get_prefix'] as String Function(dynamic))(this_)}] ${msg}';
 }
 
 
@@ -20,16 +20,16 @@ String Formatter_get_prefix(dynamic this__) {
 
 String Formatter_format(dynamic this__, String msg) {
   final this_ = this__;
-  return '{${(this_.vptr['get_prefix'] as TypeFunction1<String, dynamic>)(this_)}: ${msg}}';
+  return '{${(this_.vptr['get_prefix'] as String Function(dynamic))(this_)}: ${msg}}';
 }
 
 
 class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
   late String name;
   DiamondClassValue() {
-    vptr['get_prefix'] = const _TearOff_DiamondClass_get_prefix();
-    vptr['format'] = const _TearOff_DiamondClass_format();
-    vptr['display'] = const _TearOff_DiamondClass_display();
+    vptr['get_prefix'] = DiamondClass_get_prefix;
+    vptr['format'] = DiamondClass_format;
+    vptr['display'] = DiamondClass_display;
   }
 }
 
@@ -41,7 +41,7 @@ DiamondClassValue DiamondClass_new(dynamic this__, String name) {
 
 String DiamondClass_display(dynamic this__, String msg) {
   final this_ = this__ as DiamondClassValue;
-  return '${this_.name}: ${(this_.vptr['format'] as TypeFunction2<String, dynamic, String>)(this_, msg)}';
+  return '${this_.name}: ${(this_.vptr['format'] as String Function(dynamic, String))(this_, msg)}';
 }
 
 String DiamondClass_get_prefix(dynamic this__) {
@@ -68,29 +68,29 @@ void StatefulMixin_set_counter(dynamic this__, int value) {
 
 void StatefulMixin_increment(dynamic this__) {
   final this_ = this__;
-  (this_.vptr['set_counter'] as TypeFunction2<void, dynamic, int>)(this_, ((this_.vptr['get_counter'] as TypeFunction1<int, dynamic>)(this_) + 1));
+  (this_.vptr['set_counter'] as void Function(dynamic, int))(this_, ((this_.vptr['get_counter'] as int Function(dynamic))(this_) + 1));
 }
 
 void StatefulMixin_decrement(dynamic this__) {
   final this_ = this__;
-  (this_.vptr['set_counter'] as TypeFunction2<void, dynamic, int>)(this_, ((this_.vptr['get_counter'] as TypeFunction1<int, dynamic>)(this_) - 1));
+  (this_.vptr['set_counter'] as void Function(dynamic, int))(this_, ((this_.vptr['get_counter'] as int Function(dynamic))(this_) - 1));
 }
 
 String StatefulMixin_get_counterStatus(dynamic this__) {
   final this_ = this__;
-  return 'count=${(this_.vptr['get_counter'] as TypeFunction1<int, dynamic>)(this_)}';
+  return 'count=${(this_.vptr['get_counter'] as int Function(dynamic))(this_)}';
 }
 
 
 class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
   late String id;
   StatefulWidgetValue() {
-    vptr['get_counter'] = const _TearOff_StatefulWidget_get_counter();
-    vptr['set_counter'] = const _TearOff_StatefulWidget_set_counter();
-    vptr['increment'] = const _TearOff_StatefulWidget_increment();
-    vptr['decrement'] = const _TearOff_StatefulWidget_decrement();
-    vptr['get_counterStatus'] = const _TearOff_StatefulWidget_get_counterStatus();
-    vptr['toString'] = const _TearOff_StatefulWidget_toString();
+    vptr['get_counter'] = StatefulWidget_get_counter;
+    vptr['increment'] = StatefulWidget_increment;
+    vptr['decrement'] = StatefulWidget_decrement;
+    vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
+    vptr['set_counter'] = StatefulWidget_set_counter;
+    vptr['toString'] = StatefulWidget_toString;
   }
 }
 
@@ -103,17 +103,12 @@ StatefulWidgetValue StatefulWidget_new(dynamic this__, String id) {
 
 String StatefulWidget_toString(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
-  return 'Widget(${this_.id}, ${(this_.vptr['get_counterStatus'] as TypeFunction1<String, dynamic>)(this_)})';
+  return 'Widget(${this_.id}, ${(this_.vptr['get_counterStatus'] as String Function(dynamic))(this_)})';
 }
 
 int StatefulWidget_get_counter(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   return StatefulMixin_get_counter(this_);
-}
-
-void StatefulWidget_set_counter(dynamic this__, int value) {
-  final this_ = this__ as StatefulWidgetValue;
-  StatefulMixin_set_counter(this_, value);
 }
 
 void StatefulWidget_increment(dynamic this__) {
@@ -129,6 +124,11 @@ void StatefulWidget_decrement(dynamic this__) {
 String StatefulWidget_get_counterStatus(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   return StatefulMixin_get_counterStatus(this_);
+}
+
+void StatefulWidget_set_counter(dynamic this__, int value) {
+  final this_ = this__ as StatefulWidgetValue;
+  StatefulMixin_set_counter(this_, value);
 }
 
 
@@ -170,11 +170,11 @@ String LayerC_onlyC(dynamic this__) {
 
 class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValue {
   DeepMixinClassValue() {
-    vptr['layer'] = const _TearOff_DeepMixinClass_layer();
-    vptr['onlyA'] = const _TearOff_DeepMixinClass_onlyA();
-    vptr['onlyB'] = const _TearOff_DeepMixinClass_onlyB();
-    vptr['onlyC'] = const _TearOff_DeepMixinClass_onlyC();
-    vptr['allLayers'] = const _TearOff_DeepMixinClass_allLayers();
+    vptr['layer'] = DeepMixinClass_layer;
+    vptr['onlyA'] = DeepMixinClass_onlyA;
+    vptr['onlyB'] = DeepMixinClass_onlyB;
+    vptr['onlyC'] = DeepMixinClass_onlyC;
+    vptr['allLayers'] = DeepMixinClass_allLayers;
   }
 }
 
@@ -185,7 +185,7 @@ DeepMixinClassValue DeepMixinClass_new(dynamic this__) {
 
 String DeepMixinClass_allLayers(dynamic this__) {
   final this_ = this__ as DeepMixinClassValue;
-  return '${(this_.vptr['layer'] as TypeFunction1<String, dynamic>)(this_)}-${(this_.vptr['onlyA'] as TypeFunction1<String, dynamic>)(this_)}-${(this_.vptr['onlyB'] as TypeFunction1<String, dynamic>)(this_)}-${(this_.vptr['onlyC'] as TypeFunction1<String, dynamic>)(this_)}';
+  return '${(this_.vptr['layer'] as String Function(dynamic))(this_)}-${(this_.vptr['onlyA'] as String Function(dynamic))(this_)}-${(this_.vptr['onlyB'] as String Function(dynamic))(this_)}-${(this_.vptr['onlyC'] as String Function(dynamic))(this_)}';
 }
 
 String DeepMixinClass_layer(dynamic this__) {
@@ -212,36 +212,36 @@ String DeepMixinClass_onlyC(dynamic this__) {
 // mixin Mappable → static functions for delegation
 R Mappable_mapValue<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__;
-  return transform((this_.vptr['get_value'] as TypeFunction1<T, dynamic>)(this_));
+  return transform((this_.vptr['get_value'] as T Function(dynamic))(this_));
 }
 
 String Mappable_describe<T>(dynamic this__) {
   final this_ = this__;
-  return 'Mappable<${T}>(${(this_.vptr['get_value'] as TypeFunction1<T, dynamic>)(this_)})';
+  return 'Mappable<${T}>(${(this_.vptr['get_value'] as T Function(dynamic))(this_)})';
 }
 
 
 // mixin Filterable → static functions for delegation
 bool Filterable_test<T>(dynamic this__, TypeFunction1<bool, T> predicate) {
   final this_ = this__;
-  return predicate((this_.vptr['get_value'] as TypeFunction1<T, dynamic>)(this_));
+  return predicate((this_.vptr['get_value'] as T Function(dynamic))(this_));
 }
 
 
 class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
   late T value;
   BoxValue() {
-    vptr['get_value'] = _TearOff_Box_get_value<T>();
-    vptr['describe'] = _TearOff_Box_describe<T>();
-    vptr['test'] = _TearOff_Box_test<T>();
-    vptr['toString'] = _TearOff_Box_toString<T>();
+    vptr['get_value'] = Box_get_value<T>;
+    vptr['describe'] = Box_describe<T>;
+    vptr['test'] = Box_test<T>;
+    vptr['toString'] = Box_toString<T>;
   }
 }
 
 BoxValue<T> Box_new<T>(dynamic this__, T value) {
   final this_ = this__ as BoxValue<T>;
-  this_.vptr['mapValue_int'] = _TearOff_Box_mapValue_int<T>();
-  this_.vptr['mapValue_String'] = _TearOff_Box_mapValue_String<T>();
+  this_.vptr['mapValue_int'] = Box_mapValue<T, int>;
+  this_.vptr['mapValue_String'] = Box_mapValue<T, String>;
   this_.value = value;
   return this_;
 }
@@ -274,7 +274,7 @@ bool Box_test<T>(dynamic this__, TypeFunction1<bool, T> predicate) {
 
 class IdentifiableValue extends VPtr {
   IdentifiableValue() {
-    vptr['get_id'] = const _TearOff_Identifiable_get_id();
+    vptr['get_id'] = Identifiable_get_id;
   }
 }
 
@@ -290,7 +290,7 @@ String Identifiable_get_id(dynamic this_) {
 
 class DescribableValue extends VPtr {
   DescribableValue() {
-    vptr['describe'] = const _TearOff_Describable_describe();
+    vptr['describe'] = Describable_describe;
   }
 }
 
@@ -326,7 +326,7 @@ class ResourceValue extends VPtr implements IdentifiableValue, DescribableValue 
   late String type;
   ResourceValue() {
     vptr['get_id'] = Resource_get_id;
-    vptr['describe'] = const _TearOff_Resource_describe();
+    vptr['describe'] = Resource_describe;
   }
 }
 
@@ -350,23 +350,23 @@ dynamic Resource_get_id(ResourceValue this_) {
 class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
   TaggedResourceValue() {
     vptr['get_id'] = TaggedResource_get_id;
-    vptr['describe'] = const _TearOff_TaggedResource_describe();
-    vptr['tag'] = const _TearOff_TaggedResource_tag();
-    vptr['get_allTags'] = const _TearOff_TaggedResource_get_allTags();
-    vptr['hasTag'] = const _TearOff_TaggedResource_hasTag();
+    vptr['describe'] = TaggedResource_describe;
+    vptr['tag'] = TaggedResource_tag;
+    vptr['get_allTags'] = TaggedResource_get_allTags;
+    vptr['hasTag'] = TaggedResource_hasTag;
   }
 }
 
 TaggedResourceValue TaggedResource_new(dynamic this__, String id, String type) {
   final this_ = this__ as TaggedResourceValue;
   Resource_new(this_, id, type);
-  this_._tags = StaticList<String>.of([]);
+  this_._tags = StaticList<String>();
   return this_;
 }
 
 String TaggedResource_describe(dynamic this__) {
   final this_ = this__ as TaggedResourceValue;
-  return '${Resource_describe(this_)}, tags=${(this_.vptr['get_allTags'] as TypeFunction1<StaticList<String>, dynamic>)(this_)}';
+  return '${Resource_describe(this_)}, tags=${(this_.vptr['get_allTags'] as StaticList<String> Function(dynamic))(this_)}';
 }
 
 dynamic TaggedResource_get_id(TaggedResourceValue this_) {
@@ -391,8 +391,8 @@ bool TaggedResource_hasTag(dynamic this__, String t) {
 
 class BaseProcessorValue extends VPtr {
   BaseProcessorValue() {
-    vptr['process'] = const _TearOff_BaseProcessor_process();
-    vptr['get_processorName'] = const _TearOff_BaseProcessor_get_processorName();
+    vptr['process'] = BaseProcessor_process;
+    vptr['get_processorName'] = BaseProcessor_get_processorName;
   }
 }
 
@@ -414,8 +414,8 @@ String BaseProcessor_get_processorName(dynamic this__) {
 
 class UpperProcessorValue extends BaseProcessorValue {
   UpperProcessorValue() {
-    vptr['process'] = const _TearOff_UpperProcessor_process();
-    vptr['get_processorName'] = const _TearOff_UpperProcessor_get_processorName();
+    vptr['process'] = UpperProcessor_process;
+    vptr['get_processorName'] = UpperProcessor_get_processorName;
   }
 }
 
@@ -439,8 +439,8 @@ String UpperProcessor_get_processorName(dynamic this__) {
 class PrefixProcessorValue extends UpperProcessorValue {
   late String prefix;
   PrefixProcessorValue() {
-    vptr['process'] = const _TearOff_PrefixProcessor_process();
-    vptr['get_processorName'] = const _TearOff_PrefixProcessor_get_processorName();
+    vptr['process'] = PrefixProcessor_process;
+    vptr['get_processorName'] = PrefixProcessor_get_processorName;
   }
 }
 
@@ -465,26 +465,26 @@ String PrefixProcessor_get_processorName(dynamic this__) {
 // mixin Addable → static functions for delegation
 int Addable_addValues(dynamic this__, int other) {
   final this_ = this__;
-  return ((this_.vptr['get_numericValue'] as TypeFunction1<int, dynamic>)(this_) + other);
+  return ((this_.vptr['get_numericValue'] as int Function(dynamic))(this_) + other);
 }
 
 int Addable_doubleValue(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['addValues'] as TypeFunction2<int, dynamic, int>)(this_, (this_.vptr['get_numericValue'] as TypeFunction1<int, dynamic>)(this_));
+  return (this_.vptr['addValues'] as int Function(dynamic, int))(this_, (this_.vptr['get_numericValue'] as int Function(dynamic))(this_));
 }
 
 
 class AmountValue extends Amount_Object_AddableValue {
   late int numericValue;
   AmountValue() {
-    vptr['get_numericValue'] = const _TearOff_Amount_get_numericValue();
-    vptr['addValues'] = const _TearOff_Amount_addValues();
-    vptr['doubleValue'] = const _TearOff_Amount_doubleValue();
-    vptr['operatorPlus'] = const _TearOff_Amount_operatorPlus();
-    vptr['operatorMinus'] = const _TearOff_Amount_operatorMinus();
-    vptr['operatorLt'] = const _TearOff_Amount_operatorLt();
-    vptr['operatorGt'] = const _TearOff_Amount_operatorGt();
-    vptr['toString'] = const _TearOff_Amount_toString();
+    vptr['get_numericValue'] = Amount_get_numericValue;
+    vptr['addValues'] = Amount_addValues;
+    vptr['doubleValue'] = Amount_doubleValue;
+    vptr['operatorPlus'] = Amount_operatorPlus;
+    vptr['operatorMinus'] = Amount_operatorMinus;
+    vptr['operatorLt'] = Amount_operatorLt;
+    vptr['operatorGt'] = Amount_operatorGt;
+    vptr['toString'] = Amount_toString;
   }
 }
 
@@ -538,7 +538,7 @@ int Amount_doubleValue(dynamic this__) {
 // mixin Printable2 → static functions for delegation
 void Printable2_prettyPrint(dynamic this__) {
   final this_ = this__;
-  print('>> ${(this_.vptr['toPrettyString'] as TypeFunction1<String, dynamic>)(this_)}');
+  staticPrint('>> ${(this_.vptr['toPrettyString'] as String Function(dynamic))(this_)}');
 }
 
 
@@ -546,7 +546,7 @@ class VehicleValue extends VPtr {
   late String make;
   late int year;
   VehicleValue() {
-    vptr['toString'] = const _TearOff_Vehicle_toString();
+    vptr['toString'] = Vehicle_toString;
   }
 }
 
@@ -566,9 +566,9 @@ String Vehicle_toString(dynamic this__) {
 class CarValue extends Car_Vehicle_Printable2Value {
   late int doors;
   CarValue() {
-    vptr['toString'] = const _TearOff_Car_toString();
-    vptr['toPrettyString'] = const _TearOff_Car_toPrettyString();
-    vptr['prettyPrint'] = const _TearOff_Car_prettyPrint();
+    vptr['toString'] = Car_toString;
+    vptr['toPrettyString'] = Car_toPrettyString;
+    vptr['prettyPrint'] = Car_prettyPrint;
   }
 }
 
@@ -598,9 +598,9 @@ void Car_prettyPrint(dynamic this__) {
 class ElectricCarValue extends CarValue {
   late int range;
   ElectricCarValue() {
-    vptr['toString'] = const _TearOff_ElectricCar_toString();
-    vptr['toPrettyString'] = const _TearOff_ElectricCar_toPrettyString();
-    vptr['prettyPrint'] = const _TearOff_ElectricCar_prettyPrint();
+    vptr['toString'] = ElectricCar_toString;
+    vptr['toPrettyString'] = ElectricCar_toPrettyString;
+    vptr['prettyPrint'] = ElectricCar_prettyPrint;
   }
 }
 
@@ -629,7 +629,7 @@ void ElectricCar_prettyPrint(dynamic this__) {
 
 class MeasurableValue extends VPtr {
   MeasurableValue() {
-    vptr['measure'] = const _TearOff_Measurable_measure();
+    vptr['measure'] = Measurable_measure;
   }
 }
 
@@ -646,22 +646,22 @@ double Measurable_measure(dynamic this_) {
 // mixin Scalable → static functions for delegation
 double Scalable_scale(dynamic this__, double factor) {
   final this_ = this__;
-  return ((this_.vptr['measure'] as TypeFunction1<double, dynamic>)(this_) * factor);
+  return ((this_.vptr['measure'] as double Function(dynamic))(this_) * factor);
 }
 
 String Scalable_measureInfo(dynamic this__) {
   final this_ = this__;
-  return 'measure=${(this_.vptr['measure'] as TypeFunction1<double, dynamic>)(this_).toStringAsFixed(1)}';
+  return 'measure=${(this_.vptr['measure'] as double Function(dynamic))(this_).toStringAsFixed(1)}';
 }
 
 
 class SegmentValue extends Segment_Measurable_ScalableValue {
   late double length;
   SegmentValue() {
-    vptr['measure'] = const _TearOff_Segment_measure();
-    vptr['scale'] = const _TearOff_Segment_scale();
-    vptr['measureInfo'] = const _TearOff_Segment_measureInfo();
-    vptr['toString'] = const _TearOff_Segment_toString();
+    vptr['measure'] = Segment_measure;
+    vptr['scale'] = Segment_scale;
+    vptr['measureInfo'] = Segment_measureInfo;
+    vptr['toString'] = Segment_toString;
   }
 }
 
@@ -679,7 +679,7 @@ double Segment_measure(dynamic this__) {
 
 String Segment_toString(dynamic this__) {
   final this_ = this__ as SegmentValue;
-  return 'Segment(${this_.length}, ${(this_.vptr['measureInfo'] as TypeFunction1<String, dynamic>)(this_)})';
+  return 'Segment(${this_.length}, ${(this_.vptr['measureInfo'] as String Function(dynamic))(this_)})';
 }
 
 double Segment_scale(dynamic this__, double factor) {
@@ -696,10 +696,10 @@ String Segment_measureInfo(dynamic this__) {
 class WeightedSegmentValue extends SegmentValue {
   late double weight;
   WeightedSegmentValue() {
-    vptr['measure'] = const _TearOff_WeightedSegment_measure();
-    vptr['scale'] = const _TearOff_WeightedSegment_scale();
-    vptr['measureInfo'] = const _TearOff_WeightedSegment_measureInfo();
-    vptr['toString'] = const _TearOff_WeightedSegment_toString();
+    vptr['measure'] = WeightedSegment_measure;
+    vptr['scale'] = WeightedSegment_scale;
+    vptr['measureInfo'] = WeightedSegment_measureInfo;
+    vptr['toString'] = WeightedSegment_toString;
   }
 }
 
@@ -717,7 +717,7 @@ double WeightedSegment_measure(dynamic this__) {
 
 String WeightedSegment_toString(dynamic this__) {
   final this_ = this__ as WeightedSegmentValue;
-  return 'WeightedSegment(len=${this_.length}, w=${this_.weight}, ${(this_.vptr['measureInfo'] as TypeFunction1<String, dynamic>)(this_)})';
+  return 'WeightedSegment(len=${this_.length}, w=${this_.weight}, ${(this_.vptr['measureInfo'] as String Function(dynamic))(this_)})';
 }
 
 double WeightedSegment_scale(dynamic this__, double factor) {
@@ -739,7 +739,7 @@ String NamedMixin_get_label(dynamic this__) {
 
 String NamedMixin_greet(dynamic this__) {
   final this_ = this__;
-  return 'Hello from ${(this_.vptr['get_label'] as TypeFunction1<String, dynamic>)(this_)}';
+  return 'Hello from ${(this_.vptr['get_label'] as String Function(dynamic))(this_)}';
 }
 
 
@@ -751,16 +751,16 @@ String DescribedMixin_get_label(dynamic this__) {
 
 String DescribedMixin_info(dynamic this__) {
   final this_ = this__;
-  return 'Info: ${(this_.vptr['get_label'] as TypeFunction1<String, dynamic>)(this_)}';
+  return 'Info: ${(this_.vptr['get_label'] as String Function(dynamic))(this_)}';
 }
 
 
 class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_DescribedMixinValue {
   MultiMixinEntityValue() {
-    vptr['get_label'] = const _TearOff_MultiMixinEntity_get_label();
-    vptr['greet'] = const _TearOff_MultiMixinEntity_greet();
-    vptr['info'] = const _TearOff_MultiMixinEntity_info();
-    vptr['fullInfo'] = const _TearOff_MultiMixinEntity_fullInfo();
+    vptr['get_label'] = MultiMixinEntity_get_label;
+    vptr['greet'] = MultiMixinEntity_greet;
+    vptr['info'] = MultiMixinEntity_info;
+    vptr['fullInfo'] = MultiMixinEntity_fullInfo;
   }
 }
 
@@ -776,7 +776,7 @@ String MultiMixinEntity_get_label(dynamic this__) {
 
 String MultiMixinEntity_fullInfo(dynamic this__) {
   final this_ = this__ as MultiMixinEntityValue;
-  return '${(this_.vptr['greet'] as TypeFunction1<String, dynamic>)(this_)} | ${(this_.vptr['info'] as TypeFunction1<String, dynamic>)(this_)}';
+  return '${(this_.vptr['greet'] as String Function(dynamic))(this_)} | ${(this_.vptr['info'] as String Function(dynamic))(this_)}';
 }
 
 String MultiMixinEntity_greet(dynamic this__) {
@@ -792,7 +792,7 @@ String MultiMixinEntity_info(dynamic this__) {
 
 class EncoderValue extends VPtr {
   EncoderValue() {
-    vptr['encode'] = const _TearOff_Encoder_encode();
+    vptr['encode'] = Encoder_encode;
   }
 }
 
@@ -822,8 +822,8 @@ String HexMixin_encode(dynamic this__, String input) {
 
 class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
   MultiEncoderValue() {
-    vptr['encode'] = const _TearOff_MultiEncoder_encode();
-    vptr['encodeAll'] = const _TearOff_MultiEncoder_encodeAll();
+    vptr['encode'] = MultiEncoder_encode;
+    vptr['encodeAll'] = MultiEncoder_encodeAll;
   }
 }
 
@@ -834,7 +834,7 @@ MultiEncoderValue MultiEncoder_new(dynamic this__) {
 
 String MultiEncoder_encodeAll(dynamic this__, String input) {
   final this_ = this__ as MultiEncoderValue;
-  return (this_.vptr['encode'] as TypeFunction2<String, dynamic, String>)(this_, input);
+  return (this_.vptr['encode'] as String Function(dynamic, String))(this_, input);
 }
 
 String MultiEncoder_encode(dynamic this__, String input) {
@@ -845,8 +845,8 @@ String MultiEncoder_encode(dynamic this__, String input) {
 
 class CustomEncoderValue extends MultiEncoderValue {
   CustomEncoderValue() {
-    vptr['encode'] = const _TearOff_CustomEncoder_encode();
-    vptr['encodeAll'] = const _TearOff_CustomEncoder_encodeAll();
+    vptr['encode'] = CustomEncoder_encode;
+    vptr['encodeAll'] = CustomEncoder_encodeAll;
   }
 }
 
@@ -870,8 +870,8 @@ String CustomEncoder_encodeAll(dynamic this__, String input) {
 class ContainerValue<T> extends VPtr {
   late T item;
   ContainerValue() {
-    vptr['describe'] = _TearOff_Container_describe<T>();
-    vptr['get_content'] = _TearOff_Container_get_content<T>();
+    vptr['describe'] = Container_describe<T>;
+    vptr['get_content'] = Container_get_content<T>;
   }
 }
 
@@ -895,8 +895,8 @@ T Container_get_content<T>(dynamic this__) {
 class LabeledContainerValue<T> extends ContainerValue<T> {
   late String label;
   LabeledContainerValue() {
-    vptr['describe'] = _TearOff_LabeledContainer_describe<T>();
-    vptr['get_content'] = _TearOff_LabeledContainer_get_content<T>();
+    vptr['describe'] = LabeledContainer_describe<T>;
+    vptr['get_content'] = LabeledContainer_get_content<T>;
   }
 }
 
@@ -921,8 +921,8 @@ T LabeledContainer_get_content<T>(dynamic this__) {
 class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   late int priority;
   PriorityContainerValue() {
-    vptr['describe'] = _TearOff_PriorityContainer_describe<T>();
-    vptr['get_content'] = _TearOff_PriorityContainer_get_content<T>();
+    vptr['describe'] = PriorityContainer_describe<T>;
+    vptr['get_content'] = PriorityContainer_get_content<T>;
   }
 }
 
@@ -952,26 +952,26 @@ String ChainMixin_step1(dynamic this__) {
 
 String ChainMixin_step2(dynamic this__) {
   final this_ = this__;
-  return '${(this_.vptr['step1'] as TypeFunction1<String, dynamic>)(this_)}->S2';
+  return '${(this_.vptr['step1'] as String Function(dynamic))(this_)}->S2';
 }
 
 String ChainMixin_step3(dynamic this__) {
   final this_ = this__;
-  return '${(this_.vptr['step2'] as TypeFunction1<String, dynamic>)(this_)}->S3';
+  return '${(this_.vptr['step2'] as String Function(dynamic))(this_)}->S3';
 }
 
 String ChainMixin_fullChain(dynamic this__) {
   final this_ = this__;
-  return '${(this_.vptr['step3'] as TypeFunction1<String, dynamic>)(this_)}->done';
+  return '${(this_.vptr['step3'] as String Function(dynamic))(this_)}->done';
 }
 
 
 class ChainClassValue extends ChainClass_Object_ChainMixinValue {
   ChainClassValue() {
-    vptr['step1'] = const _TearOff_ChainClass_step1();
-    vptr['step2'] = const _TearOff_ChainClass_step2();
-    vptr['step3'] = const _TearOff_ChainClass_step3();
-    vptr['fullChain'] = const _TearOff_ChainClass_fullChain();
+    vptr['step1'] = ChainClass_step1;
+    vptr['step2'] = ChainClass_step2;
+    vptr['step3'] = ChainClass_step3;
+    vptr['fullChain'] = ChainClass_fullChain;
   }
 }
 
@@ -1003,10 +1003,10 @@ String ChainClass_fullChain(dynamic this__) {
 
 class ChainSubClassValue extends ChainClassValue {
   ChainSubClassValue() {
-    vptr['step1'] = const _TearOff_ChainSubClass_step1();
-    vptr['step2'] = const _TearOff_ChainSubClass_step2();
-    vptr['step3'] = const _TearOff_ChainSubClass_step3();
-    vptr['fullChain'] = const _TearOff_ChainSubClass_fullChain();
+    vptr['step1'] = ChainSubClass_step1;
+    vptr['step2'] = ChainSubClass_step2;
+    vptr['step3'] = ChainSubClass_step3;
+    vptr['fullChain'] = ChainSubClass_fullChain;
   }
 }
 
@@ -1018,7 +1018,7 @@ ChainSubClassValue ChainSubClass_new(dynamic this__) {
 
 String ChainSubClass_step2(dynamic this__) {
   final this_ = this__ as ChainSubClassValue;
-  return '${(this_.vptr['step1'] as TypeFunction1<String, dynamic>)(this_)}->Y2';
+  return '${(this_.vptr['step1'] as String Function(dynamic))(this_)}->Y2';
 }
 
 String ChainSubClass_step1(dynamic this__) {
@@ -1039,8 +1039,8 @@ String ChainSubClass_fullChain(dynamic this__) {
 
 class Expression2Value extends VPtr {
   Expression2Value() {
-    vptr['evaluate'] = const _TearOff_Expression2_evaluate();
-    vptr['display'] = const _TearOff_Expression2_display();
+    vptr['evaluate'] = Expression2_evaluate;
+    vptr['display'] = Expression2_display;
   }
 }
 
@@ -1061,8 +1061,8 @@ String Expression2_display(dynamic this_) {
 class NumberExprValue extends Expression2Value {
   late double value;
   NumberExprValue() {
-    vptr['evaluate'] = const _TearOff_NumberExpr_evaluate();
-    vptr['display'] = const _TearOff_NumberExpr_display();
+    vptr['evaluate'] = NumberExpr_evaluate;
+    vptr['display'] = NumberExpr_display;
   }
 }
 
@@ -1090,8 +1090,8 @@ class BinaryExprValue extends Expression2Value {
   late String op;
   late TypeFunction2<double, double, double> _compute;
   BinaryExprValue() {
-    vptr['evaluate'] = const _TearOff_BinaryExpr_evaluate();
-    vptr['display'] = const _TearOff_BinaryExpr_display();
+    vptr['evaluate'] = BinaryExpr_evaluate;
+    vptr['display'] = BinaryExpr_display;
   }
 }
 
@@ -1115,12 +1115,12 @@ BinaryExprValue BinaryExpr_new_mul(Expression2Value l, Expression2Value r) {
 
 double BinaryExpr_evaluate(dynamic this__) {
   final this_ = this__ as BinaryExprValue;
-  return (() { final _let0 = (this_.left.vptr['evaluate'] as TypeFunction1<double, dynamic>)(this_.left); return (() { final _let1 = (this_.right.vptr['evaluate'] as TypeFunction1<double, dynamic>)(this_.right); return this_._compute(_let0, _let1); })(); })();
+  return (() { final _let0 = (this_.left.vptr['evaluate'] as double Function(dynamic))(this_.left); return (() { final _let1 = (this_.right.vptr['evaluate'] as double Function(dynamic))(this_.right); return this_._compute(_let0, _let1); })(); })();
 }
 
 String BinaryExpr_display(dynamic this__) {
   final this_ = this__ as BinaryExprValue;
-  return '(${(this_.left.vptr['display'] as TypeFunction1<String, dynamic>)(this_.left)} ${this_.op} ${(this_.right.vptr['display'] as TypeFunction1<String, dynamic>)(this_.right)})';
+  return '(${(this_.left.vptr['display'] as String Function(dynamic))(this_.left)} ${this_.op} ${(this_.right.vptr['display'] as String Function(dynamic))(this_.right)})';
 }
 
 
@@ -1132,12 +1132,12 @@ int HealthMixin_get_maxHealth(dynamic this__) {
 
 int HealthMixin_get_health(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['get_maxHealth'] as TypeFunction1<int, dynamic>)(this_);
+  return (this_.vptr['get_maxHealth'] as int Function(dynamic))(this_);
 }
 
 String HealthMixin_healthBar(dynamic this__) {
   final this_ = this__;
-  return 'HP:${(this_.vptr['get_health'] as TypeFunction1<int, dynamic>)(this_)}/${(this_.vptr['get_maxHealth'] as TypeFunction1<int, dynamic>)(this_)}';
+  return 'HP:${(this_.vptr['get_health'] as int Function(dynamic))(this_)}/${(this_.vptr['get_maxHealth'] as int Function(dynamic))(this_)}';
 }
 
 
@@ -1149,12 +1149,12 @@ int ManaMixin_get_maxMana(dynamic this__) {
 
 int ManaMixin_get_mana(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['get_maxMana'] as TypeFunction1<int, dynamic>)(this_);
+  return (this_.vptr['get_maxMana'] as int Function(dynamic))(this_);
 }
 
 String ManaMixin_manaBar(dynamic this__) {
   final this_ = this__;
-  return 'MP:${(this_.vptr['get_mana'] as TypeFunction1<int, dynamic>)(this_)}/${(this_.vptr['get_maxMana'] as TypeFunction1<int, dynamic>)(this_)}';
+  return 'MP:${(this_.vptr['get_mana'] as int Function(dynamic))(this_)}/${(this_.vptr['get_maxMana'] as int Function(dynamic))(this_)}';
 }
 
 
@@ -1166,28 +1166,28 @@ int StaminaMixin_get_maxStamina(dynamic this__) {
 
 int StaminaMixin_get_stamina(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['get_maxStamina'] as TypeFunction1<int, dynamic>)(this_);
+  return (this_.vptr['get_maxStamina'] as int Function(dynamic))(this_);
 }
 
 String StaminaMixin_staminaBar(dynamic this__) {
   final this_ = this__;
-  return 'SP:${(this_.vptr['get_stamina'] as TypeFunction1<int, dynamic>)(this_)}/${(this_.vptr['get_maxStamina'] as TypeFunction1<int, dynamic>)(this_)}';
+  return 'SP:${(this_.vptr['get_stamina'] as int Function(dynamic))(this_)}/${(this_.vptr['get_maxStamina'] as int Function(dynamic))(this_)}';
 }
 
 
 class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue {
   late String name;
   GameCharacterValue() {
-    vptr['get_maxHealth'] = const _TearOff_GameCharacter_get_maxHealth();
-    vptr['get_health'] = const _TearOff_GameCharacter_get_health();
-    vptr['healthBar'] = const _TearOff_GameCharacter_healthBar();
-    vptr['get_maxMana'] = const _TearOff_GameCharacter_get_maxMana();
-    vptr['get_mana'] = const _TearOff_GameCharacter_get_mana();
-    vptr['manaBar'] = const _TearOff_GameCharacter_manaBar();
-    vptr['get_maxStamina'] = const _TearOff_GameCharacter_get_maxStamina();
-    vptr['get_stamina'] = const _TearOff_GameCharacter_get_stamina();
-    vptr['staminaBar'] = const _TearOff_GameCharacter_staminaBar();
-    vptr['statusBars'] = const _TearOff_GameCharacter_statusBars();
+    vptr['get_maxHealth'] = GameCharacter_get_maxHealth;
+    vptr['get_health'] = GameCharacter_get_health;
+    vptr['healthBar'] = GameCharacter_healthBar;
+    vptr['get_maxMana'] = GameCharacter_get_maxMana;
+    vptr['get_mana'] = GameCharacter_get_mana;
+    vptr['manaBar'] = GameCharacter_manaBar;
+    vptr['get_maxStamina'] = GameCharacter_get_maxStamina;
+    vptr['get_stamina'] = GameCharacter_get_stamina;
+    vptr['staminaBar'] = GameCharacter_staminaBar;
+    vptr['statusBars'] = GameCharacter_statusBars;
   }
 }
 
@@ -1199,7 +1199,7 @@ GameCharacterValue GameCharacter_new(dynamic this__, String name) {
 
 String GameCharacter_statusBars(dynamic this__) {
   final this_ = this__ as GameCharacterValue;
-  return '${this_.name}: ${(this_.vptr['healthBar'] as TypeFunction1<String, dynamic>)(this_)} ${(this_.vptr['manaBar'] as TypeFunction1<String, dynamic>)(this_)} ${(this_.vptr['staminaBar'] as TypeFunction1<String, dynamic>)(this_)}';
+  return '${this_.name}: ${(this_.vptr['healthBar'] as String Function(dynamic))(this_)} ${(this_.vptr['manaBar'] as String Function(dynamic))(this_)} ${(this_.vptr['staminaBar'] as String Function(dynamic))(this_)}';
 }
 
 int GameCharacter_get_maxHealth(dynamic this__) {
@@ -1250,16 +1250,16 @@ String GameCharacter_staminaBar(dynamic this__) {
 
 class WarriorValue extends GameCharacterValue {
   WarriorValue() {
-    vptr['get_maxHealth'] = const _TearOff_Warrior_get_maxHealth();
-    vptr['get_health'] = const _TearOff_Warrior_get_health();
-    vptr['healthBar'] = const _TearOff_Warrior_healthBar();
-    vptr['get_maxMana'] = const _TearOff_Warrior_get_maxMana();
-    vptr['get_mana'] = const _TearOff_Warrior_get_mana();
-    vptr['manaBar'] = const _TearOff_Warrior_manaBar();
-    vptr['get_maxStamina'] = const _TearOff_Warrior_get_maxStamina();
-    vptr['get_stamina'] = const _TearOff_Warrior_get_stamina();
-    vptr['staminaBar'] = const _TearOff_Warrior_staminaBar();
-    vptr['statusBars'] = const _TearOff_Warrior_statusBars();
+    vptr['get_maxHealth'] = Warrior_get_maxHealth;
+    vptr['get_health'] = Warrior_get_health;
+    vptr['healthBar'] = Warrior_healthBar;
+    vptr['get_maxMana'] = Warrior_get_maxMana;
+    vptr['get_mana'] = Warrior_get_mana;
+    vptr['manaBar'] = Warrior_manaBar;
+    vptr['get_maxStamina'] = Warrior_get_maxStamina;
+    vptr['get_stamina'] = Warrior_get_stamina;
+    vptr['staminaBar'] = Warrior_staminaBar;
+    vptr['statusBars'] = Warrior_statusBars;
   }
 }
 
@@ -1322,16 +1322,16 @@ String Warrior_statusBars(dynamic this__) {
 
 class MageValue extends GameCharacterValue {
   MageValue() {
-    vptr['get_maxHealth'] = const _TearOff_Mage_get_maxHealth();
-    vptr['get_health'] = const _TearOff_Mage_get_health();
-    vptr['healthBar'] = const _TearOff_Mage_healthBar();
-    vptr['get_maxMana'] = const _TearOff_Mage_get_maxMana();
-    vptr['get_mana'] = const _TearOff_Mage_get_mana();
-    vptr['manaBar'] = const _TearOff_Mage_manaBar();
-    vptr['get_maxStamina'] = const _TearOff_Mage_get_maxStamina();
-    vptr['get_stamina'] = const _TearOff_Mage_get_stamina();
-    vptr['staminaBar'] = const _TearOff_Mage_staminaBar();
-    vptr['statusBars'] = const _TearOff_Mage_statusBars();
+    vptr['get_maxHealth'] = Mage_get_maxHealth;
+    vptr['get_health'] = Mage_get_health;
+    vptr['healthBar'] = Mage_healthBar;
+    vptr['get_maxMana'] = Mage_get_maxMana;
+    vptr['get_mana'] = Mage_get_mana;
+    vptr['manaBar'] = Mage_manaBar;
+    vptr['get_maxStamina'] = Mage_get_maxStamina;
+    vptr['get_stamina'] = Mage_get_stamina;
+    vptr['staminaBar'] = Mage_staminaBar;
+    vptr['statusBars'] = Mage_statusBars;
   }
 }
 
@@ -1393,713 +1393,198 @@ String Mage_statusBars(dynamic this__) {
 
 
 class DiamondClass_Object_LoggerValue extends VPtr {
-  DiamondClass_Object_LoggerValue() {
-    vptr['get_prefix'] = const _TearOff_Logger_get_prefix();
-    vptr['format'] = const _TearOff_Logger_format();
-  }
 }
 
 
 class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_LoggerValue {
-  DiamondClass_Object_Logger_FormatterValue() {
-    vptr['get_prefix'] = const _TearOff_Formatter_get_prefix();
-    vptr['format'] = const _TearOff_Formatter_format();
-  }
 }
 
 
 class StatefulWidget_Object_StatefulMixinValue extends VPtr {
   late int _counter;
-  StatefulWidget_Object_StatefulMixinValue() {
-    vptr['get_counter'] = const _TearOff_StatefulMixin_get_counter();
-    vptr['set_counter'] = const _TearOff_StatefulMixin_set_counter();
-    vptr['increment'] = const _TearOff_StatefulMixin_increment();
-    vptr['decrement'] = const _TearOff_StatefulMixin_decrement();
-    vptr['get_counterStatus'] = const _TearOff_StatefulMixin_get_counterStatus();
-  }
 }
 
 
 class DeepMixinClass_Object_LayerAValue extends VPtr {
-  DeepMixinClass_Object_LayerAValue() {
-    vptr['layer'] = const _TearOff_LayerA_layer();
-    vptr['onlyA'] = const _TearOff_LayerA_onlyA();
-  }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_LayerAValue {
-  DeepMixinClass_Object_LayerA_LayerBValue() {
-    vptr['layer'] = const _TearOff_LayerB_layer();
-    vptr['onlyB'] = const _TearOff_LayerB_onlyB();
-  }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Object_LayerA_LayerBValue {
-  DeepMixinClass_Object_LayerA_LayerB_LayerCValue() {
-    vptr['layer'] = const _TearOff_LayerC_layer();
-    vptr['onlyC'] = const _TearOff_LayerC_onlyC();
-  }
 }
 
 
 class Box_Object_MappableValue<T> extends VPtr {
-  Box_Object_MappableValue() {
-    vptr['mapValue'] = _TearOff_Mappable_mapValue<T>();
-    vptr['describe'] = _TearOff_Mappable_describe<T>();
-  }
 }
 
 
 class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
-  Box_Object_Mappable_FilterableValue() {
-    vptr['test'] = _TearOff_Filterable_test<T>();
-  }
 }
 
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
   late StaticList<String> _tags;
-  TaggedResource_Resource_TaggableValue() {
-    vptr['tag'] = const _TearOff_Taggable_tag();
-    vptr['get_allTags'] = const _TearOff_Taggable_get_allTags();
-    vptr['hasTag'] = const _TearOff_Taggable_hasTag();
-  }
 }
 
 
 class Amount_Object_AddableValue extends VPtr {
-  Amount_Object_AddableValue() {
-    vptr['addValues'] = const _TearOff_Addable_addValues();
-    vptr['doubleValue'] = const _TearOff_Addable_doubleValue();
-  }
 }
 
 
 class Car_Vehicle_Printable2Value extends VehicleValue {
-  Car_Vehicle_Printable2Value() {
-    vptr['prettyPrint'] = const _TearOff_Printable2_prettyPrint();
-  }
 }
 
 
 class Segment_Measurable_ScalableValue extends MeasurableValue {
-  Segment_Measurable_ScalableValue() {
-    vptr['scale'] = const _TearOff_Scalable_scale();
-    vptr['measureInfo'] = const _TearOff_Scalable_measureInfo();
-  }
 }
 
 
 class MultiMixinEntity_Object_NamedMixinValue extends VPtr {
-  MultiMixinEntity_Object_NamedMixinValue() {
-    vptr['get_label'] = const _TearOff_NamedMixin_get_label();
-    vptr['greet'] = const _TearOff_NamedMixin_greet();
-  }
 }
 
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinEntity_Object_NamedMixinValue {
-  MultiMixinEntity_Object_NamedMixin_DescribedMixinValue() {
-    vptr['get_label'] = const _TearOff_DescribedMixin_get_label();
-    vptr['info'] = const _TearOff_DescribedMixin_info();
-  }
 }
 
 
 class MultiEncoder_Object_Base64MixinValue extends VPtr {
-  MultiEncoder_Object_Base64MixinValue() {
-    vptr['encode'] = const _TearOff_Base64Mixin_encode();
-  }
 }
 
 
 class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_Base64MixinValue {
-  MultiEncoder_Object_Base64Mixin_HexMixinValue() {
-    vptr['encode'] = const _TearOff_HexMixin_encode();
-  }
 }
 
 
 class ChainClass_Object_ChainMixinValue extends VPtr {
-  ChainClass_Object_ChainMixinValue() {
-    vptr['step1'] = const _TearOff_ChainMixin_step1();
-    vptr['step2'] = const _TearOff_ChainMixin_step2();
-    vptr['step3'] = const _TearOff_ChainMixin_step3();
-    vptr['fullChain'] = const _TearOff_ChainMixin_fullChain();
-  }
 }
 
 
 class GameCharacter_Object_HealthMixinValue extends VPtr {
-  GameCharacter_Object_HealthMixinValue() {
-    vptr['get_maxHealth'] = const _TearOff_HealthMixin_get_maxHealth();
-    vptr['get_health'] = const _TearOff_HealthMixin_get_health();
-    vptr['healthBar'] = const _TearOff_HealthMixin_healthBar();
-  }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Object_HealthMixinValue {
-  GameCharacter_Object_HealthMixin_ManaMixinValue() {
-    vptr['get_maxMana'] = const _TearOff_ManaMixin_get_maxMana();
-    vptr['get_mana'] = const _TearOff_ManaMixin_get_mana();
-    vptr['manaBar'] = const _TearOff_ManaMixin_manaBar();
-  }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameCharacter_Object_HealthMixin_ManaMixinValue {
-  GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue() {
-    vptr['get_maxStamina'] = const _TearOff_StaminaMixin_get_maxStamina();
-    vptr['get_stamina'] = const _TearOff_StaminaMixin_get_stamina();
-    vptr['staminaBar'] = const _TearOff_StaminaMixin_staminaBar();
-  }
 }
 
 
 void main() {
-  print('=== 复杂 OOP 边界测试 ===\n');
-  print('--- 1. 菱形继承 ---');
+  staticPrint('=== 复杂 OOP 边界测试 ===\n');
+  staticPrint('--- 1. 菱形继承 ---');
   final DiamondClassValue diamond = DiamondClass_new(DiamondClassValue(), 'DC');
-  print('prefix: ${(diamond.vptr['get_prefix'] as TypeFunction1<String, dynamic>)(diamond)}');
-  print('format: ${(diamond.vptr['format'] as TypeFunction2<String, dynamic, String>)(diamond, 'hello')}');
-  print('display: ${(diamond.vptr['display'] as TypeFunction2<String, dynamic, String>)(diamond, 'world')}');
-  print('\n--- 2. StatefulMixin ---');
+  staticPrint('prefix: ${(diamond.vptr['get_prefix'] as String Function(dynamic))(diamond)}');
+  staticPrint('format: ${(diamond.vptr['format'] as String Function(dynamic, String))(diamond, 'hello')}');
+  staticPrint('display: ${(diamond.vptr['display'] as String Function(dynamic, String))(diamond, 'world')}');
+  staticPrint('\n--- 2. StatefulMixin ---');
   final StatefulWidgetValue widget = StatefulWidget_new(StatefulWidgetValue(), 'btn1');
-  print('initial: ${widget}');
-  (widget.vptr['increment'] as TypeFunction1<void, dynamic>)(widget);
-  (widget.vptr['increment'] as TypeFunction1<void, dynamic>)(widget);
-  (widget.vptr['increment'] as TypeFunction1<void, dynamic>)(widget);
-  print('after 3 inc: ${widget}');
-  (widget.vptr['decrement'] as TypeFunction1<void, dynamic>)(widget);
-  print('after 1 dec: ${widget}');
-  (widget.vptr['set_counter'] as TypeFunction2<void, dynamic, int>)(widget, 10);
-  print('after set 10: ${widget}');
-  print('\n--- 3. 深层 mixin 链 ---');
+  staticPrint('initial: ${widget}');
+  (widget.vptr['increment'] as void Function(dynamic))(widget);
+  (widget.vptr['increment'] as void Function(dynamic))(widget);
+  (widget.vptr['increment'] as void Function(dynamic))(widget);
+  staticPrint('after 3 inc: ${widget}');
+  (widget.vptr['decrement'] as void Function(dynamic))(widget);
+  staticPrint('after 1 dec: ${widget}');
+  (widget.vptr['set_counter'] as void Function(dynamic, int))(widget, 10);
+  staticPrint('after set 10: ${widget}');
+  staticPrint('\n--- 3. 深层 mixin 链 ---');
   final DeepMixinClassValue deep = DeepMixinClass_new(DeepMixinClassValue());
-  print('layer: ${(deep.vptr['layer'] as TypeFunction1<String, dynamic>)(deep)}');
-  print('allLayers: ${(deep.vptr['allLayers'] as TypeFunction1<String, dynamic>)(deep)}');
-  print('\n--- 4. 泛型 mixin ---');
+  staticPrint('layer: ${(deep.vptr['layer'] as String Function(dynamic))(deep)}');
+  staticPrint('allLayers: ${(deep.vptr['allLayers'] as String Function(dynamic))(deep)}');
+  staticPrint('\n--- 4. 泛型 mixin ---');
   final BoxValue<int> intBox = Box_new<int>(BoxValue<int>(), 42);
-  print('intBox: ${intBox}');
-  print('describe: ${(intBox.vptr['describe'] as TypeFunction1<String, dynamic>)(intBox)}');
-  print('mapValue: ${(intBox.vptr['mapValue_int'] as TypeFunction2<int, dynamic, TypeFunction1<int, int>>)(intBox, ClosureEnv_main_3())}');
-  print('test >10: ${(intBox.vptr['test'] as TypeFunction2<bool, dynamic, TypeFunction1<bool, int>>)(intBox, ClosureEnv_main_5())}');
-  print('test >100: ${(intBox.vptr['test'] as TypeFunction2<bool, dynamic, TypeFunction1<bool, int>>)(intBox, ClosureEnv_main_7())}');
+  staticPrint('intBox: ${intBox}');
+  staticPrint('describe: ${(intBox.vptr['describe'] as String Function(dynamic))(intBox)}');
+  staticPrint('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(dynamic, TypeFunction1<int, int>))(intBox, ClosureEnv_main_3())}');
+  staticPrint('test >10: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_5())}');
+  staticPrint('test >100: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_7())}');
   final BoxValue<String> strBox = Box_new<String>(BoxValue<String>(), 'dart');
-  print('strBox mapValue: ${(strBox.vptr['mapValue_String'] as TypeFunction2<String, dynamic, TypeFunction1<String, String>>)(strBox, ClosureEnv_main_9())}');
-  print('\n--- 5. 抽象+mixin+implements ---');
+  staticPrint('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(dynamic, TypeFunction1<String, String>))(strBox, ClosureEnv_main_9())}');
+  staticPrint('\n--- 5. 抽象+mixin+implements ---');
   final TaggedResourceValue res = TaggedResource_new(TaggedResourceValue(), 'r1', 'file');
-  (res.vptr['tag'] as TypeFunction2<void, dynamic, String>)(res, 'important');
-  (res.vptr['tag'] as TypeFunction2<void, dynamic, String>)(res, 'v2');
-  print('describe: ${(res.vptr['describe'] as TypeFunction1<String, dynamic>)(res)}');
-  print('id: ${res.id}');
-  print('hasTag important: ${(res.vptr['hasTag'] as TypeFunction2<bool, dynamic, String>)(res, 'important')}');
-  print('hasTag draft: ${(res.vptr['hasTag'] as TypeFunction2<bool, dynamic, String>)(res, 'draft')}');
-  print('\n--- 6. super 调用链 ---');
+  (res.vptr['tag'] as void Function(dynamic, String))(res, 'important');
+  (res.vptr['tag'] as void Function(dynamic, String))(res, 'v2');
+  staticPrint('describe: ${(res.vptr['describe'] as String Function(dynamic))(res)}');
+  staticPrint('id: ${res.id}');
+  staticPrint('hasTag important: ${(res.vptr['hasTag'] as bool Function(dynamic, String))(res, 'important')}');
+  staticPrint('hasTag draft: ${(res.vptr['hasTag'] as bool Function(dynamic, String))(res, 'draft')}');
+  staticPrint('\n--- 6. super 调用链 ---');
   final BaseProcessorValue base = BaseProcessor_new(BaseProcessorValue());
-  print('base: ${(base.vptr['process'] as TypeFunction2<String, dynamic, String>)(base, '  hello  ')} (${(base.vptr['get_processorName'] as TypeFunction1<String, dynamic>)(base)})');
+  staticPrint('base: ${(base.vptr['process'] as String Function(dynamic, String))(base, '  hello  ')} (${(base.vptr['get_processorName'] as String Function(dynamic))(base)})');
   final UpperProcessorValue upper = UpperProcessor_new(UpperProcessorValue());
-  print('upper: ${(upper.vptr['process'] as TypeFunction2<String, dynamic, String>)(upper, '  hello  ')} (${(upper.vptr['get_processorName'] as TypeFunction1<String, dynamic>)(upper)})');
+  staticPrint('upper: ${(upper.vptr['process'] as String Function(dynamic, String))(upper, '  hello  ')} (${(upper.vptr['get_processorName'] as String Function(dynamic))(upper)})');
   final PrefixProcessorValue prefix = PrefixProcessor_new(PrefixProcessorValue(), 'PRE');
-  print('prefix: ${(prefix.vptr['process'] as TypeFunction2<String, dynamic, String>)(prefix, '  hello  ')} (${(prefix.vptr['get_processorName'] as TypeFunction1<String, dynamic>)(prefix)})');
-  print('\n--- 7. mixin + operator ---');
+  staticPrint('prefix: ${(prefix.vptr['process'] as String Function(dynamic, String))(prefix, '  hello  ')} (${(prefix.vptr['get_processorName'] as String Function(dynamic))(prefix)})');
+  staticPrint('\n--- 7. mixin + operator ---');
   final AmountValue a1 = Amount_new(AmountValue(), 10);
   final AmountValue a2 = Amount_new(AmountValue(), 5);
-  print('a1 + a2: ${(a1.vptr['operatorPlus'] as TypeFunction2<AmountValue, dynamic, AmountValue>)(a1, a2)}');
-  print('a1 - a2: ${(a1.vptr['operatorMinus'] as TypeFunction2<AmountValue, dynamic, AmountValue>)(a1, a2)}');
-  print('a1 < a2: ${(a1.vptr['operatorLt'] as TypeFunction2<bool, dynamic, AmountValue>)(a1, a2)}');
-  print('a1 > a2: ${(a1.vptr['operatorGt'] as TypeFunction2<bool, dynamic, AmountValue>)(a1, a2)}');
-  print('doubleValue: ${(a1.vptr['doubleValue'] as TypeFunction1<int, dynamic>)(a1)}');
-  print('addValues: ${(a1.vptr['addValues'] as TypeFunction2<int, dynamic, int>)(a1, 3)}');
-  print('\n--- 8. 多层继承+mixin ---');
+  staticPrint('a1 + a2: ${(a1.vptr['operatorPlus'] as AmountValue Function(dynamic, AmountValue))(a1, a2)}');
+  staticPrint('a1 - a2: ${(a1.vptr['operatorMinus'] as AmountValue Function(dynamic, AmountValue))(a1, a2)}');
+  staticPrint('a1 < a2: ${(a1.vptr['operatorLt'] as bool Function(dynamic, AmountValue))(a1, a2)}');
+  staticPrint('a1 > a2: ${(a1.vptr['operatorGt'] as bool Function(dynamic, AmountValue))(a1, a2)}');
+  staticPrint('doubleValue: ${(a1.vptr['doubleValue'] as int Function(dynamic))(a1)}');
+  staticPrint('addValues: ${(a1.vptr['addValues'] as int Function(dynamic, int))(a1, 3)}');
+  staticPrint('\n--- 8. 多层继承+mixin ---');
   final CarValue car = Car_new(CarValue(), 'Toyota', 2024, 4);
-  print('car: ${car}');
-  (car.vptr['prettyPrint'] as TypeFunction1<void, dynamic>)(car);
+  staticPrint('car: ${car}');
+  (car.vptr['prettyPrint'] as void Function(dynamic))(car);
   final ElectricCarValue ev = ElectricCar_new(ElectricCarValue(), 'Tesla', 2025, 4, 500);
-  print('ev: ${ev}');
-  (ev.vptr['prettyPrint'] as TypeFunction1<void, dynamic>)(ev);
-  print('\n--- 9. mixin on 约束 ---');
+  staticPrint('ev: ${ev}');
+  (ev.vptr['prettyPrint'] as void Function(dynamic))(ev);
+  staticPrint('\n--- 9. mixin on 约束 ---');
   final SegmentValue seg = Segment_new(SegmentValue(), 10.0);
-  print('seg: ${seg}');
-  print('scale(2): ${(seg.vptr['scale'] as TypeFunction2<double, dynamic, double>)(seg, 2.0)}');
+  staticPrint('seg: ${seg}');
+  staticPrint('scale(2): ${(seg.vptr['scale'] as double Function(dynamic, double))(seg, 2.0)}');
   final WeightedSegmentValue wseg = WeightedSegment_new(WeightedSegmentValue(), 10.0, 0.5);
-  print('wseg: ${wseg}');
-  print('wseg.scale(3): ${(wseg.vptr['scale'] as TypeFunction2<double, dynamic, double>)(wseg, 3.0)}');
-  print('\n--- 10. 多 mixin 同名 getter ---');
+  staticPrint('wseg: ${wseg}');
+  staticPrint('wseg.scale(3): ${(wseg.vptr['scale'] as double Function(dynamic, double))(wseg, 3.0)}');
+  staticPrint('\n--- 10. 多 mixin 同名 getter ---');
   final MultiMixinEntityValue entity = MultiMixinEntity_new(MultiMixinEntityValue());
-  print('label: ${(entity.vptr['get_label'] as TypeFunction1<String, dynamic>)(entity)}');
-  print('greet: ${(entity.vptr['greet'] as TypeFunction1<String, dynamic>)(entity)}');
-  print('info: ${(entity.vptr['info'] as TypeFunction1<String, dynamic>)(entity)}');
-  print('fullInfo: ${(entity.vptr['fullInfo'] as TypeFunction1<String, dynamic>)(entity)}');
-  print('\n--- 11. 接口+mixin 覆盖 ---');
+  staticPrint('label: ${(entity.vptr['get_label'] as String Function(dynamic))(entity)}');
+  staticPrint('greet: ${(entity.vptr['greet'] as String Function(dynamic))(entity)}');
+  staticPrint('info: ${(entity.vptr['info'] as String Function(dynamic))(entity)}');
+  staticPrint('fullInfo: ${(entity.vptr['fullInfo'] as String Function(dynamic))(entity)}');
+  staticPrint('\n--- 11. 接口+mixin 覆盖 ---');
   final MultiEncoderValue multi = MultiEncoder_new(MultiEncoderValue());
-  print('multi.encode: ${(multi.vptr['encode'] as TypeFunction2<String, dynamic, String>)(multi, 'abc')}');
-  print('multi.encodeAll: ${(multi.vptr['encodeAll'] as TypeFunction2<String, dynamic, String>)(multi, 'xyz')}');
+  staticPrint('multi.encode: ${(multi.vptr['encode'] as String Function(dynamic, String))(multi, 'abc')}');
+  staticPrint('multi.encodeAll: ${(multi.vptr['encodeAll'] as String Function(dynamic, String))(multi, 'xyz')}');
   final CustomEncoderValue custom = CustomEncoder_new(CustomEncoderValue());
-  print('custom.encode: ${(custom.vptr['encode'] as TypeFunction2<String, dynamic, String>)(custom, 'abc')}');
-  print('custom.encodeAll: ${(custom.vptr['encodeAll'] as TypeFunction2<String, dynamic, String>)(custom, 'xyz')}');
-  print('\n--- 12. 泛型继承链 ---');
+  staticPrint('custom.encode: ${(custom.vptr['encode'] as String Function(dynamic, String))(custom, 'abc')}');
+  staticPrint('custom.encodeAll: ${(custom.vptr['encodeAll'] as String Function(dynamic, String))(custom, 'xyz')}');
+  staticPrint('\n--- 12. 泛型继承链 ---');
   final ContainerValue<int> c1 = Container_new<int>(ContainerValue<int>(), 42);
-  print('c1: ${(c1.vptr['describe'] as TypeFunction1<String, dynamic>)(c1)}');
+  staticPrint('c1: ${(c1.vptr['describe'] as String Function(dynamic))(c1)}');
   final LabeledContainerValue<String> c2 = LabeledContainer_new<String>(LabeledContainerValue<String>(), 'hello', 'greeting');
-  print('c2: ${(c2.vptr['describe'] as TypeFunction1<String, dynamic>)(c2)}');
+  staticPrint('c2: ${(c2.vptr['describe'] as String Function(dynamic))(c2)}');
   final PriorityContainerValue<double> c3 = PriorityContainer_new<double>(PriorityContainerValue<double>(), 3.14, 'pi', 1);
-  print('c3: ${(c3.vptr['describe'] as TypeFunction1<String, dynamic>)(c3)}');
-  print('c3.content: ${(c3.vptr['get_content'] as TypeFunction1<double, dynamic>)(c3)}');
-  print('\n--- 13. mixin 调用链 ---');
+  staticPrint('c3: ${(c3.vptr['describe'] as String Function(dynamic))(c3)}');
+  staticPrint('c3.content: ${(c3.vptr['get_content'] as double Function(dynamic))(c3)}');
+  staticPrint('\n--- 13. mixin 调用链 ---');
   final ChainClassValue chain1 = ChainClass_new(ChainClassValue());
-  print('chain1.fullChain: ${(chain1.vptr['fullChain'] as TypeFunction1<String, dynamic>)(chain1)}');
-  print('chain1.step3: ${(chain1.vptr['step3'] as TypeFunction1<String, dynamic>)(chain1)}');
+  staticPrint('chain1.fullChain: ${(chain1.vptr['fullChain'] as String Function(dynamic))(chain1)}');
+  staticPrint('chain1.step3: ${(chain1.vptr['step3'] as String Function(dynamic))(chain1)}');
   final ChainSubClassValue chain2 = ChainSubClass_new(ChainSubClassValue());
-  print('chain2.fullChain: ${(chain2.vptr['fullChain'] as TypeFunction1<String, dynamic>)(chain2)}');
-  print('chain2.step3: ${(chain2.vptr['step3'] as TypeFunction1<String, dynamic>)(chain2)}');
-  print('\n--- 14. 表达式树 ---');
+  staticPrint('chain2.fullChain: ${(chain2.vptr['fullChain'] as String Function(dynamic))(chain2)}');
+  staticPrint('chain2.step3: ${(chain2.vptr['step3'] as String Function(dynamic))(chain2)}');
+  staticPrint('\n--- 14. 表达式树 ---');
   final BinaryExprValue expr = BinaryExpr_new_add(NumberExpr_new(NumberExprValue(), 3.0), BinaryExpr_new_mul(NumberExpr_new(NumberExprValue(), 4.0), NumberExpr_new(NumberExprValue(), 5.0)));
-  print('expr: ${(expr.vptr['display'] as TypeFunction1<String, dynamic>)(expr)}');
-  print('result: ${(expr.vptr['evaluate'] as TypeFunction1<double, dynamic>)(expr)}');
-  print('\n--- 15. 游戏角色 ---');
+  staticPrint('expr: ${(expr.vptr['display'] as String Function(dynamic))(expr)}');
+  staticPrint('result: ${(expr.vptr['evaluate'] as double Function(dynamic))(expr)}');
+  staticPrint('\n--- 15. 游戏角色 ---');
   final GameCharacterValue hero = GameCharacter_new(GameCharacterValue(), 'Hero');
-  print((hero.vptr['statusBars'] as TypeFunction1<String, dynamic>)(hero));
+  staticPrint((hero.vptr['statusBars'] as String Function(dynamic))(hero));
   final WarriorValue warrior = Warrior_new(WarriorValue(), 'Conan');
-  print((warrior.vptr['statusBars'] as TypeFunction1<String, dynamic>)(warrior));
+  staticPrint((warrior.vptr['statusBars'] as String Function(dynamic))(warrior));
   final MageValue mage = Mage_new(MageValue(), 'Gandalf');
-  print((mage.vptr['statusBars'] as TypeFunction1<String, dynamic>)(mage));
-  print('\n=== 所有复杂 OOP 测试通过 ✅ ===');
+  staticPrint((mage.vptr['statusBars'] as String Function(dynamic))(mage));
+  staticPrint('\n=== 所有复杂 OOP 测试通过 ✅ ===');
 }
 
-class _TearOff_DiamondClass_get_prefix extends TypeFunction1<String, dynamic> {
-  const _TearOff_DiamondClass_get_prefix();
-  @override
-  String call(dynamic this_) => DiamondClass_get_prefix(this_);
-}
-class _TearOff_DiamondClass_format extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_DiamondClass_format();
-  @override
-  String call(dynamic this_, String msg) => DiamondClass_format(this_, msg);
-}
-class _TearOff_DiamondClass_display extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_DiamondClass_display();
-  @override
-  String call(dynamic this_, String msg) => DiamondClass_display(this_, msg);
-}
-class _TearOff_StatefulWidget_get_counter extends TypeFunction1<int, dynamic> {
-  const _TearOff_StatefulWidget_get_counter();
-  @override
-  int call(dynamic this_) => StatefulWidget_get_counter(this_);
-}
-class _TearOff_StatefulWidget_set_counter extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_StatefulWidget_set_counter();
-  @override
-  void call(dynamic this_, int value) => StatefulWidget_set_counter(this_, value);
-}
-class _TearOff_StatefulWidget_increment extends TypeFunction1<void, dynamic> {
-  const _TearOff_StatefulWidget_increment();
-  @override
-  void call(dynamic this_) => StatefulWidget_increment(this_);
-}
-class _TearOff_StatefulWidget_decrement extends TypeFunction1<void, dynamic> {
-  const _TearOff_StatefulWidget_decrement();
-  @override
-  void call(dynamic this_) => StatefulWidget_decrement(this_);
-}
-class _TearOff_StatefulWidget_get_counterStatus extends TypeFunction1<String, dynamic> {
-  const _TearOff_StatefulWidget_get_counterStatus();
-  @override
-  String call(dynamic this_) => StatefulWidget_get_counterStatus(this_);
-}
-class _TearOff_StatefulWidget_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_StatefulWidget_toString();
-  @override
-  String call(dynamic this_) => StatefulWidget_toString(this_);
-}
-class _TearOff_DeepMixinClass_layer extends TypeFunction1<String, dynamic> {
-  const _TearOff_DeepMixinClass_layer();
-  @override
-  String call(dynamic this_) => DeepMixinClass_layer(this_);
-}
-class _TearOff_DeepMixinClass_onlyA extends TypeFunction1<String, dynamic> {
-  const _TearOff_DeepMixinClass_onlyA();
-  @override
-  String call(dynamic this_) => DeepMixinClass_onlyA(this_);
-}
-class _TearOff_DeepMixinClass_onlyB extends TypeFunction1<String, dynamic> {
-  const _TearOff_DeepMixinClass_onlyB();
-  @override
-  String call(dynamic this_) => DeepMixinClass_onlyB(this_);
-}
-class _TearOff_DeepMixinClass_onlyC extends TypeFunction1<String, dynamic> {
-  const _TearOff_DeepMixinClass_onlyC();
-  @override
-  String call(dynamic this_) => DeepMixinClass_onlyC(this_);
-}
-class _TearOff_DeepMixinClass_allLayers extends TypeFunction1<String, dynamic> {
-  const _TearOff_DeepMixinClass_allLayers();
-  @override
-  String call(dynamic this_) => DeepMixinClass_allLayers(this_);
-}
-class _TearOff_Box_get_value<T> extends TypeFunction1<T, dynamic> {
-  _TearOff_Box_get_value();
-  @override
-  T call(dynamic this_) => Box_get_value<T>(this_);
-}
-class _TearOff_Box_describe<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_Box_describe();
-  @override
-  String call(dynamic this_) => Box_describe<T>(this_);
-}
-class _TearOff_Box_test<T> extends TypeFunction2<bool, dynamic, TypeFunction1<bool, T>> {
-  _TearOff_Box_test();
-  @override
-  bool call(dynamic this_, TypeFunction1<bool, T> predicate) => Box_test<T>(this_, predicate);
-}
-class _TearOff_Box_toString<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_Box_toString();
-  @override
-  String call(dynamic this_) => Box_toString<T>(this_);
-}
-class _TearOff_Box_mapValue_int<T> extends TypeFunction2<int, dynamic, TypeFunction1<int, T>> {
-  _TearOff_Box_mapValue_int();
-  @override
-  int call(dynamic this_, TypeFunction1<int, T> transform) => Box_mapValue<T, int>(this_, transform);
-}
-class _TearOff_Box_mapValue_String<T> extends TypeFunction2<String, dynamic, TypeFunction1<String, T>> {
-  _TearOff_Box_mapValue_String();
-  @override
-  String call(dynamic this_, TypeFunction1<String, T> transform) => Box_mapValue<T, String>(this_, transform);
-}
-class _TearOff_Identifiable_get_id extends TypeFunction1<String, dynamic> {
-  const _TearOff_Identifiable_get_id();
-  @override
-  String call(dynamic this_) => Identifiable_get_id(this_);
-}
-class _TearOff_Describable_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_Describable_describe();
-  @override
-  String call(dynamic this_) => Describable_describe(this_);
-}
-class _TearOff_Resource_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_Resource_describe();
-  @override
-  String call(dynamic this_) => Resource_describe(this_);
-}
-class _TearOff_TaggedResource_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_TaggedResource_describe();
-  @override
-  String call(dynamic this_) => TaggedResource_describe(this_);
-}
-class _TearOff_TaggedResource_tag extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_TaggedResource_tag();
-  @override
-  void call(dynamic this_, String t) => TaggedResource_tag(this_, t);
-}
-class _TearOff_TaggedResource_get_allTags extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_TaggedResource_get_allTags();
-  @override
-  StaticList<String> call(dynamic this_) => TaggedResource_get_allTags(this_);
-}
-class _TearOff_TaggedResource_hasTag extends TypeFunction2<bool, dynamic, String> {
-  const _TearOff_TaggedResource_hasTag();
-  @override
-  bool call(dynamic this_, String t) => TaggedResource_hasTag(this_, t);
-}
-class _TearOff_BaseProcessor_process extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_BaseProcessor_process();
-  @override
-  String call(dynamic this_, String input) => BaseProcessor_process(this_, input);
-}
-class _TearOff_BaseProcessor_get_processorName extends TypeFunction1<String, dynamic> {
-  const _TearOff_BaseProcessor_get_processorName();
-  @override
-  String call(dynamic this_) => BaseProcessor_get_processorName(this_);
-}
-class _TearOff_UpperProcessor_process extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_UpperProcessor_process();
-  @override
-  String call(dynamic this_, String input) => UpperProcessor_process(this_, input);
-}
-class _TearOff_UpperProcessor_get_processorName extends TypeFunction1<String, dynamic> {
-  const _TearOff_UpperProcessor_get_processorName();
-  @override
-  String call(dynamic this_) => UpperProcessor_get_processorName(this_);
-}
-class _TearOff_PrefixProcessor_process extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_PrefixProcessor_process();
-  @override
-  String call(dynamic this_, String input) => PrefixProcessor_process(this_, input);
-}
-class _TearOff_PrefixProcessor_get_processorName extends TypeFunction1<String, dynamic> {
-  const _TearOff_PrefixProcessor_get_processorName();
-  @override
-  String call(dynamic this_) => PrefixProcessor_get_processorName(this_);
-}
-class _TearOff_Amount_get_numericValue extends TypeFunction1<int, dynamic> {
-  const _TearOff_Amount_get_numericValue();
-  @override
-  int call(dynamic this_) => Amount_get_numericValue(this_);
-}
-class _TearOff_Amount_addValues extends TypeFunction2<int, dynamic, int> {
-  const _TearOff_Amount_addValues();
-  @override
-  int call(dynamic this_, int other) => Amount_addValues(this_, other);
-}
-class _TearOff_Amount_doubleValue extends TypeFunction1<int, dynamic> {
-  const _TearOff_Amount_doubleValue();
-  @override
-  int call(dynamic this_) => Amount_doubleValue(this_);
-}
-class _TearOff_Amount_operatorPlus extends TypeFunction2<AmountValue, dynamic, AmountValue> {
-  const _TearOff_Amount_operatorPlus();
-  @override
-  AmountValue call(dynamic this_, AmountValue other) => Amount_operatorPlus(this_, other);
-}
-class _TearOff_Amount_operatorMinus extends TypeFunction2<AmountValue, dynamic, AmountValue> {
-  const _TearOff_Amount_operatorMinus();
-  @override
-  AmountValue call(dynamic this_, AmountValue other) => Amount_operatorMinus(this_, other);
-}
-class _TearOff_Amount_operatorLt extends TypeFunction2<bool, dynamic, AmountValue> {
-  const _TearOff_Amount_operatorLt();
-  @override
-  bool call(dynamic this_, AmountValue other) => Amount_operatorLt(this_, other);
-}
-class _TearOff_Amount_operatorGt extends TypeFunction2<bool, dynamic, AmountValue> {
-  const _TearOff_Amount_operatorGt();
-  @override
-  bool call(dynamic this_, AmountValue other) => Amount_operatorGt(this_, other);
-}
-class _TearOff_Amount_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Amount_toString();
-  @override
-  String call(dynamic this_) => Amount_toString(this_);
-}
-class _TearOff_Vehicle_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Vehicle_toString();
-  @override
-  String call(dynamic this_) => Vehicle_toString(this_);
-}
-class _TearOff_Car_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Car_toString();
-  @override
-  String call(dynamic this_) => Car_toString(this_);
-}
-class _TearOff_Car_toPrettyString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Car_toPrettyString();
-  @override
-  String call(dynamic this_) => Car_toPrettyString(this_);
-}
-class _TearOff_Car_prettyPrint extends TypeFunction1<void, dynamic> {
-  const _TearOff_Car_prettyPrint();
-  @override
-  void call(dynamic this_) => Car_prettyPrint(this_);
-}
-class _TearOff_ElectricCar_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_ElectricCar_toString();
-  @override
-  String call(dynamic this_) => ElectricCar_toString(this_);
-}
-class _TearOff_ElectricCar_toPrettyString extends TypeFunction1<String, dynamic> {
-  const _TearOff_ElectricCar_toPrettyString();
-  @override
-  String call(dynamic this_) => ElectricCar_toPrettyString(this_);
-}
-class _TearOff_ElectricCar_prettyPrint extends TypeFunction1<void, dynamic> {
-  const _TearOff_ElectricCar_prettyPrint();
-  @override
-  void call(dynamic this_) => ElectricCar_prettyPrint(this_);
-}
-class _TearOff_Measurable_measure extends TypeFunction1<double, dynamic> {
-  const _TearOff_Measurable_measure();
-  @override
-  double call(dynamic this_) => Measurable_measure(this_);
-}
-class _TearOff_Segment_measure extends TypeFunction1<double, dynamic> {
-  const _TearOff_Segment_measure();
-  @override
-  double call(dynamic this_) => Segment_measure(this_);
-}
-class _TearOff_Segment_scale extends TypeFunction2<double, dynamic, double> {
-  const _TearOff_Segment_scale();
-  @override
-  double call(dynamic this_, double factor) => Segment_scale(this_, factor);
-}
-class _TearOff_Segment_measureInfo extends TypeFunction1<String, dynamic> {
-  const _TearOff_Segment_measureInfo();
-  @override
-  String call(dynamic this_) => Segment_measureInfo(this_);
-}
-class _TearOff_Segment_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Segment_toString();
-  @override
-  String call(dynamic this_) => Segment_toString(this_);
-}
-class _TearOff_WeightedSegment_measure extends TypeFunction1<double, dynamic> {
-  const _TearOff_WeightedSegment_measure();
-  @override
-  double call(dynamic this_) => WeightedSegment_measure(this_);
-}
-class _TearOff_WeightedSegment_scale extends TypeFunction2<double, dynamic, double> {
-  const _TearOff_WeightedSegment_scale();
-  @override
-  double call(dynamic this_, double factor) => WeightedSegment_scale(this_, factor);
-}
-class _TearOff_WeightedSegment_measureInfo extends TypeFunction1<String, dynamic> {
-  const _TearOff_WeightedSegment_measureInfo();
-  @override
-  String call(dynamic this_) => WeightedSegment_measureInfo(this_);
-}
-class _TearOff_WeightedSegment_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_WeightedSegment_toString();
-  @override
-  String call(dynamic this_) => WeightedSegment_toString(this_);
-}
-class _TearOff_MultiMixinEntity_get_label extends TypeFunction1<String, dynamic> {
-  const _TearOff_MultiMixinEntity_get_label();
-  @override
-  String call(dynamic this_) => MultiMixinEntity_get_label(this_);
-}
-class _TearOff_MultiMixinEntity_greet extends TypeFunction1<String, dynamic> {
-  const _TearOff_MultiMixinEntity_greet();
-  @override
-  String call(dynamic this_) => MultiMixinEntity_greet(this_);
-}
-class _TearOff_MultiMixinEntity_info extends TypeFunction1<String, dynamic> {
-  const _TearOff_MultiMixinEntity_info();
-  @override
-  String call(dynamic this_) => MultiMixinEntity_info(this_);
-}
-class _TearOff_MultiMixinEntity_fullInfo extends TypeFunction1<String, dynamic> {
-  const _TearOff_MultiMixinEntity_fullInfo();
-  @override
-  String call(dynamic this_) => MultiMixinEntity_fullInfo(this_);
-}
-class _TearOff_Encoder_encode extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_Encoder_encode();
-  @override
-  String call(dynamic this_, String input) => Encoder_encode(this_, input);
-}
-class _TearOff_MultiEncoder_encode extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_MultiEncoder_encode();
-  @override
-  String call(dynamic this_, String input) => MultiEncoder_encode(this_, input);
-}
-class _TearOff_MultiEncoder_encodeAll extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_MultiEncoder_encodeAll();
-  @override
-  String call(dynamic this_, String input) => MultiEncoder_encodeAll(this_, input);
-}
-class _TearOff_CustomEncoder_encode extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_CustomEncoder_encode();
-  @override
-  String call(dynamic this_, String input) => CustomEncoder_encode(this_, input);
-}
-class _TearOff_CustomEncoder_encodeAll extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_CustomEncoder_encodeAll();
-  @override
-  String call(dynamic this_, String input) => CustomEncoder_encodeAll(this_, input);
-}
-class _TearOff_Container_describe<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_Container_describe();
-  @override
-  String call(dynamic this_) => Container_describe<T>(this_);
-}
-class _TearOff_Container_get_content<T> extends TypeFunction1<T, dynamic> {
-  _TearOff_Container_get_content();
-  @override
-  T call(dynamic this_) => Container_get_content<T>(this_);
-}
-class _TearOff_LabeledContainer_describe<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_LabeledContainer_describe();
-  @override
-  String call(dynamic this_) => LabeledContainer_describe<T>(this_);
-}
-class _TearOff_LabeledContainer_get_content<T> extends TypeFunction1<T, dynamic> {
-  _TearOff_LabeledContainer_get_content();
-  @override
-  T call(dynamic this_) => LabeledContainer_get_content<T>(this_);
-}
-class _TearOff_PriorityContainer_describe<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_PriorityContainer_describe();
-  @override
-  String call(dynamic this_) => PriorityContainer_describe<T>(this_);
-}
-class _TearOff_PriorityContainer_get_content<T> extends TypeFunction1<T, dynamic> {
-  _TearOff_PriorityContainer_get_content();
-  @override
-  T call(dynamic this_) => PriorityContainer_get_content<T>(this_);
-}
-class _TearOff_ChainClass_step1 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainClass_step1();
-  @override
-  String call(dynamic this_) => ChainClass_step1(this_);
-}
-class _TearOff_ChainClass_step2 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainClass_step2();
-  @override
-  String call(dynamic this_) => ChainClass_step2(this_);
-}
-class _TearOff_ChainClass_step3 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainClass_step3();
-  @override
-  String call(dynamic this_) => ChainClass_step3(this_);
-}
-class _TearOff_ChainClass_fullChain extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainClass_fullChain();
-  @override
-  String call(dynamic this_) => ChainClass_fullChain(this_);
-}
-class _TearOff_ChainSubClass_step1 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainSubClass_step1();
-  @override
-  String call(dynamic this_) => ChainSubClass_step1(this_);
-}
-class _TearOff_ChainSubClass_step2 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainSubClass_step2();
-  @override
-  String call(dynamic this_) => ChainSubClass_step2(this_);
-}
-class _TearOff_ChainSubClass_step3 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainSubClass_step3();
-  @override
-  String call(dynamic this_) => ChainSubClass_step3(this_);
-}
-class _TearOff_ChainSubClass_fullChain extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainSubClass_fullChain();
-  @override
-  String call(dynamic this_) => ChainSubClass_fullChain(this_);
-}
-class _TearOff_Expression2_evaluate extends TypeFunction1<double, dynamic> {
-  const _TearOff_Expression2_evaluate();
-  @override
-  double call(dynamic this_) => Expression2_evaluate(this_);
-}
-class _TearOff_Expression2_display extends TypeFunction1<String, dynamic> {
-  const _TearOff_Expression2_display();
-  @override
-  String call(dynamic this_) => Expression2_display(this_);
-}
-class _TearOff_NumberExpr_evaluate extends TypeFunction1<double, dynamic> {
-  const _TearOff_NumberExpr_evaluate();
-  @override
-  double call(dynamic this_) => NumberExpr_evaluate(this_);
-}
-class _TearOff_NumberExpr_display extends TypeFunction1<String, dynamic> {
-  const _TearOff_NumberExpr_display();
-  @override
-  String call(dynamic this_) => NumberExpr_display(this_);
-}
-class _TearOff_BinaryExpr_evaluate extends TypeFunction1<double, dynamic> {
-  const _TearOff_BinaryExpr_evaluate();
-  @override
-  double call(dynamic this_) => BinaryExpr_evaluate(this_);
-}
-class _TearOff_BinaryExpr_display extends TypeFunction1<String, dynamic> {
-  const _TearOff_BinaryExpr_display();
-  @override
-  String call(dynamic this_) => BinaryExpr_display(this_);
-}
 class ClosureEnv_anon_0 extends TypeFunction2<double, double, double> {
   ClosureEnv_anon_0();
   @override
@@ -2118,381 +1603,6 @@ double ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, double a, double b) {
   return (a * b);
 }
 
-class _TearOff_GameCharacter_get_maxHealth extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_maxHealth();
-  @override
-  int call(dynamic this_) => GameCharacter_get_maxHealth(this_);
-}
-class _TearOff_GameCharacter_get_health extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_health();
-  @override
-  int call(dynamic this_) => GameCharacter_get_health(this_);
-}
-class _TearOff_GameCharacter_healthBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_GameCharacter_healthBar();
-  @override
-  String call(dynamic this_) => GameCharacter_healthBar(this_);
-}
-class _TearOff_GameCharacter_get_maxMana extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_maxMana();
-  @override
-  int call(dynamic this_) => GameCharacter_get_maxMana(this_);
-}
-class _TearOff_GameCharacter_get_mana extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_mana();
-  @override
-  int call(dynamic this_) => GameCharacter_get_mana(this_);
-}
-class _TearOff_GameCharacter_manaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_GameCharacter_manaBar();
-  @override
-  String call(dynamic this_) => GameCharacter_manaBar(this_);
-}
-class _TearOff_GameCharacter_get_maxStamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_maxStamina();
-  @override
-  int call(dynamic this_) => GameCharacter_get_maxStamina(this_);
-}
-class _TearOff_GameCharacter_get_stamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_GameCharacter_get_stamina();
-  @override
-  int call(dynamic this_) => GameCharacter_get_stamina(this_);
-}
-class _TearOff_GameCharacter_staminaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_GameCharacter_staminaBar();
-  @override
-  String call(dynamic this_) => GameCharacter_staminaBar(this_);
-}
-class _TearOff_GameCharacter_statusBars extends TypeFunction1<String, dynamic> {
-  const _TearOff_GameCharacter_statusBars();
-  @override
-  String call(dynamic this_) => GameCharacter_statusBars(this_);
-}
-class _TearOff_Warrior_get_maxHealth extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_maxHealth();
-  @override
-  int call(dynamic this_) => Warrior_get_maxHealth(this_);
-}
-class _TearOff_Warrior_get_health extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_health();
-  @override
-  int call(dynamic this_) => Warrior_get_health(this_);
-}
-class _TearOff_Warrior_healthBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Warrior_healthBar();
-  @override
-  String call(dynamic this_) => Warrior_healthBar(this_);
-}
-class _TearOff_Warrior_get_maxMana extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_maxMana();
-  @override
-  int call(dynamic this_) => Warrior_get_maxMana(this_);
-}
-class _TearOff_Warrior_get_mana extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_mana();
-  @override
-  int call(dynamic this_) => Warrior_get_mana(this_);
-}
-class _TearOff_Warrior_manaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Warrior_manaBar();
-  @override
-  String call(dynamic this_) => Warrior_manaBar(this_);
-}
-class _TearOff_Warrior_get_maxStamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_maxStamina();
-  @override
-  int call(dynamic this_) => Warrior_get_maxStamina(this_);
-}
-class _TearOff_Warrior_get_stamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_Warrior_get_stamina();
-  @override
-  int call(dynamic this_) => Warrior_get_stamina(this_);
-}
-class _TearOff_Warrior_staminaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Warrior_staminaBar();
-  @override
-  String call(dynamic this_) => Warrior_staminaBar(this_);
-}
-class _TearOff_Warrior_statusBars extends TypeFunction1<String, dynamic> {
-  const _TearOff_Warrior_statusBars();
-  @override
-  String call(dynamic this_) => Warrior_statusBars(this_);
-}
-class _TearOff_Mage_get_maxHealth extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_maxHealth();
-  @override
-  int call(dynamic this_) => Mage_get_maxHealth(this_);
-}
-class _TearOff_Mage_get_health extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_health();
-  @override
-  int call(dynamic this_) => Mage_get_health(this_);
-}
-class _TearOff_Mage_healthBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Mage_healthBar();
-  @override
-  String call(dynamic this_) => Mage_healthBar(this_);
-}
-class _TearOff_Mage_get_maxMana extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_maxMana();
-  @override
-  int call(dynamic this_) => Mage_get_maxMana(this_);
-}
-class _TearOff_Mage_get_mana extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_mana();
-  @override
-  int call(dynamic this_) => Mage_get_mana(this_);
-}
-class _TearOff_Mage_manaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Mage_manaBar();
-  @override
-  String call(dynamic this_) => Mage_manaBar(this_);
-}
-class _TearOff_Mage_get_maxStamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_maxStamina();
-  @override
-  int call(dynamic this_) => Mage_get_maxStamina(this_);
-}
-class _TearOff_Mage_get_stamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_Mage_get_stamina();
-  @override
-  int call(dynamic this_) => Mage_get_stamina(this_);
-}
-class _TearOff_Mage_staminaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_Mage_staminaBar();
-  @override
-  String call(dynamic this_) => Mage_staminaBar(this_);
-}
-class _TearOff_Mage_statusBars extends TypeFunction1<String, dynamic> {
-  const _TearOff_Mage_statusBars();
-  @override
-  String call(dynamic this_) => Mage_statusBars(this_);
-}
-class _TearOff_Logger_get_prefix extends TypeFunction1<String, dynamic> {
-  const _TearOff_Logger_get_prefix();
-  @override
-  String call(dynamic this_) => Logger_get_prefix(this_);
-}
-class _TearOff_Logger_format extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_Logger_format();
-  @override
-  String call(dynamic this_, String msg) => Logger_format(this_, msg);
-}
-class _TearOff_Formatter_get_prefix extends TypeFunction1<String, dynamic> {
-  const _TearOff_Formatter_get_prefix();
-  @override
-  String call(dynamic this_) => Formatter_get_prefix(this_);
-}
-class _TearOff_Formatter_format extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_Formatter_format();
-  @override
-  String call(dynamic this_, String msg) => Formatter_format(this_, msg);
-}
-class _TearOff_StatefulMixin_get_counter extends TypeFunction1<int, dynamic> {
-  const _TearOff_StatefulMixin_get_counter();
-  @override
-  int call(dynamic this_) => StatefulMixin_get_counter(this_);
-}
-class _TearOff_StatefulMixin_set_counter extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_StatefulMixin_set_counter();
-  @override
-  void call(dynamic this_, int value) => StatefulMixin_set_counter(this_, value);
-}
-class _TearOff_StatefulMixin_increment extends TypeFunction1<void, dynamic> {
-  const _TearOff_StatefulMixin_increment();
-  @override
-  void call(dynamic this_) => StatefulMixin_increment(this_);
-}
-class _TearOff_StatefulMixin_decrement extends TypeFunction1<void, dynamic> {
-  const _TearOff_StatefulMixin_decrement();
-  @override
-  void call(dynamic this_) => StatefulMixin_decrement(this_);
-}
-class _TearOff_StatefulMixin_get_counterStatus extends TypeFunction1<String, dynamic> {
-  const _TearOff_StatefulMixin_get_counterStatus();
-  @override
-  String call(dynamic this_) => StatefulMixin_get_counterStatus(this_);
-}
-class _TearOff_LayerA_layer extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerA_layer();
-  @override
-  String call(dynamic this_) => LayerA_layer(this_);
-}
-class _TearOff_LayerA_onlyA extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerA_onlyA();
-  @override
-  String call(dynamic this_) => LayerA_onlyA(this_);
-}
-class _TearOff_LayerB_layer extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerB_layer();
-  @override
-  String call(dynamic this_) => LayerB_layer(this_);
-}
-class _TearOff_LayerB_onlyB extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerB_onlyB();
-  @override
-  String call(dynamic this_) => LayerB_onlyB(this_);
-}
-class _TearOff_LayerC_layer extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerC_layer();
-  @override
-  String call(dynamic this_) => LayerC_layer(this_);
-}
-class _TearOff_LayerC_onlyC extends TypeFunction1<String, dynamic> {
-  const _TearOff_LayerC_onlyC();
-  @override
-  String call(dynamic this_) => LayerC_onlyC(this_);
-}
-class _TearOff_Mappable_mapValue<T> extends TypeFunction2<dynamic, dynamic, TypeFunction1<dynamic, T>> {
-  _TearOff_Mappable_mapValue();
-  @override
-  dynamic call(dynamic this_, TypeFunction1<dynamic, T> transform) => Mappable_mapValue<T, dynamic>(this_, transform);
-}
-class _TearOff_Mappable_describe<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_Mappable_describe();
-  @override
-  String call(dynamic this_) => Mappable_describe<T>(this_);
-}
-class _TearOff_Filterable_test<T> extends TypeFunction2<bool, dynamic, TypeFunction1<bool, T>> {
-  _TearOff_Filterable_test();
-  @override
-  bool call(dynamic this_, TypeFunction1<bool, T> predicate) => Filterable_test<T>(this_, predicate);
-}
-class _TearOff_Taggable_tag extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_Taggable_tag();
-  @override
-  void call(dynamic this_, String t) => Taggable_tag(this_, t);
-}
-class _TearOff_Taggable_get_allTags extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_Taggable_get_allTags();
-  @override
-  StaticList<String> call(dynamic this_) => Taggable_get_allTags(this_);
-}
-class _TearOff_Taggable_hasTag extends TypeFunction2<bool, dynamic, String> {
-  const _TearOff_Taggable_hasTag();
-  @override
-  bool call(dynamic this_, String t) => Taggable_hasTag(this_, t);
-}
-class _TearOff_Addable_addValues extends TypeFunction2<int, dynamic, int> {
-  const _TearOff_Addable_addValues();
-  @override
-  int call(dynamic this_, int other) => Addable_addValues(this_, other);
-}
-class _TearOff_Addable_doubleValue extends TypeFunction1<int, dynamic> {
-  const _TearOff_Addable_doubleValue();
-  @override
-  int call(dynamic this_) => Addable_doubleValue(this_);
-}
-class _TearOff_Printable2_prettyPrint extends TypeFunction1<void, dynamic> {
-  const _TearOff_Printable2_prettyPrint();
-  @override
-  void call(dynamic this_) => Printable2_prettyPrint(this_);
-}
-class _TearOff_Scalable_scale extends TypeFunction2<double, dynamic, double> {
-  const _TearOff_Scalable_scale();
-  @override
-  double call(dynamic this_, double factor) => Scalable_scale(this_, factor);
-}
-class _TearOff_Scalable_measureInfo extends TypeFunction1<String, dynamic> {
-  const _TearOff_Scalable_measureInfo();
-  @override
-  String call(dynamic this_) => Scalable_measureInfo(this_);
-}
-class _TearOff_NamedMixin_get_label extends TypeFunction1<String, dynamic> {
-  const _TearOff_NamedMixin_get_label();
-  @override
-  String call(dynamic this_) => NamedMixin_get_label(this_);
-}
-class _TearOff_NamedMixin_greet extends TypeFunction1<String, dynamic> {
-  const _TearOff_NamedMixin_greet();
-  @override
-  String call(dynamic this_) => NamedMixin_greet(this_);
-}
-class _TearOff_DescribedMixin_get_label extends TypeFunction1<String, dynamic> {
-  const _TearOff_DescribedMixin_get_label();
-  @override
-  String call(dynamic this_) => DescribedMixin_get_label(this_);
-}
-class _TearOff_DescribedMixin_info extends TypeFunction1<String, dynamic> {
-  const _TearOff_DescribedMixin_info();
-  @override
-  String call(dynamic this_) => DescribedMixin_info(this_);
-}
-class _TearOff_Base64Mixin_encode extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_Base64Mixin_encode();
-  @override
-  String call(dynamic this_, String input) => Base64Mixin_encode(this_, input);
-}
-class _TearOff_HexMixin_encode extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_HexMixin_encode();
-  @override
-  String call(dynamic this_, String input) => HexMixin_encode(this_, input);
-}
-class _TearOff_ChainMixin_step1 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainMixin_step1();
-  @override
-  String call(dynamic this_) => ChainMixin_step1(this_);
-}
-class _TearOff_ChainMixin_step2 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainMixin_step2();
-  @override
-  String call(dynamic this_) => ChainMixin_step2(this_);
-}
-class _TearOff_ChainMixin_step3 extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainMixin_step3();
-  @override
-  String call(dynamic this_) => ChainMixin_step3(this_);
-}
-class _TearOff_ChainMixin_fullChain extends TypeFunction1<String, dynamic> {
-  const _TearOff_ChainMixin_fullChain();
-  @override
-  String call(dynamic this_) => ChainMixin_fullChain(this_);
-}
-class _TearOff_HealthMixin_get_maxHealth extends TypeFunction1<int, dynamic> {
-  const _TearOff_HealthMixin_get_maxHealth();
-  @override
-  int call(dynamic this_) => HealthMixin_get_maxHealth(this_);
-}
-class _TearOff_HealthMixin_get_health extends TypeFunction1<int, dynamic> {
-  const _TearOff_HealthMixin_get_health();
-  @override
-  int call(dynamic this_) => HealthMixin_get_health(this_);
-}
-class _TearOff_HealthMixin_healthBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_HealthMixin_healthBar();
-  @override
-  String call(dynamic this_) => HealthMixin_healthBar(this_);
-}
-class _TearOff_ManaMixin_get_maxMana extends TypeFunction1<int, dynamic> {
-  const _TearOff_ManaMixin_get_maxMana();
-  @override
-  int call(dynamic this_) => ManaMixin_get_maxMana(this_);
-}
-class _TearOff_ManaMixin_get_mana extends TypeFunction1<int, dynamic> {
-  const _TearOff_ManaMixin_get_mana();
-  @override
-  int call(dynamic this_) => ManaMixin_get_mana(this_);
-}
-class _TearOff_ManaMixin_manaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_ManaMixin_manaBar();
-  @override
-  String call(dynamic this_) => ManaMixin_manaBar(this_);
-}
-class _TearOff_StaminaMixin_get_maxStamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_StaminaMixin_get_maxStamina();
-  @override
-  int call(dynamic this_) => StaminaMixin_get_maxStamina(this_);
-}
-class _TearOff_StaminaMixin_get_stamina extends TypeFunction1<int, dynamic> {
-  const _TearOff_StaminaMixin_get_stamina();
-  @override
-  int call(dynamic this_) => StaminaMixin_get_stamina(this_);
-}
-class _TearOff_StaminaMixin_staminaBar extends TypeFunction1<String, dynamic> {
-  const _TearOff_StaminaMixin_staminaBar();
-  @override
-  String call(dynamic this_) => StaminaMixin_staminaBar(this_);
-}
 class ClosureEnv_main_2 extends TypeFunction1<int, int> {
   ClosureEnv_main_2();
   @override

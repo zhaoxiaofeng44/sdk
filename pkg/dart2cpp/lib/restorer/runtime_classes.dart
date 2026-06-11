@@ -2,8 +2,8 @@
 ///
 /// 包含 VPtr 虚函数表基类、TypeFunction 函数值基类族、Box 类型（闭包引用语义）。
 /// 由 dart_restorer 生成的还原代码通过 import 引入本文件。
-
-import 'dart:collection';
+///
+/// 注意：本文件完全不依赖 dart:collection，所有集合类自行实现。
 
 // ============================================================================
 // TypeFunction 基类族 — 替代 Dart 内建 Function 类型
@@ -160,21 +160,21 @@ class VPtr {
   @override
   String toString() {
     final fn = vptr['toString'];
-    if (fn != null) return (fn as TypeFunction1<String, dynamic>)(this);
+    if (fn != null) return (fn as String Function(dynamic))(this);
     return super.toString();
   }
   @override
   bool operator ==(Object other) {
     final fn = vptr['operatorEq'];
     if (fn != null) {
-      return (fn as TypeFunction2<bool, dynamic, dynamic>)(this, other);
+      return (fn as bool Function(dynamic, Object))(this, other);
     }
     return identical(this, other);
   }
   @override
   int get hashCode {
     final fn = vptr['get_hashCode'];
-    if (fn != null) return (fn as TypeFunction1<int, dynamic>)(this);
+    if (fn != null) return (fn as int Function(dynamic))(this);
     return super.hashCode;
   }
 }
@@ -236,14 +236,14 @@ class Array<T> {
 
   T operator [](int index) {
     if (index < 0 || index >= _length) {
-      throw RangeError.index(index, this, 'index', null, _length);
+      throw DartRangeError('Index $index out of range [0..$_length)');
     }
     return _storage[index];
   }
 
   void operator []=(int index, T value) {
     if (index < 0 || index >= _length) {
-      throw RangeError.index(index, this, 'index', null, _length);
+      throw DartRangeError('Index $index out of range [0..$_length)');
     }
     _storage[index] = value;
   }
@@ -260,7 +260,7 @@ class Array<T> {
 
   T removeAt(int index) {
     if (index < 0 || index >= _length) {
-      throw RangeError.index(index, this, 'index', null, _length);
+      throw DartRangeError('Index $index out of range [0..$_length)');
     }
     final removed = _storage.removeAt(index);
     _length--;
@@ -296,8 +296,10 @@ class Array<T> {
   String toString() => 'Array(${_storage.take(_length).join(', ')})';
 }
 
-/// StaticList<T> — 静态列表，implements List<T> 接口，内部基于 Array<T> 独立管理数据。
-class StaticList<T> with ListMixin<T> {
+/// StaticList<T> — 完全独立的静态列表，不继承 List/ListMixin。
+/// 内部基于 Array<T> 管理数据，所有方法自行实现。
+/// 通过提供 `Iterator<T> get iterator` 支持 Dart for-in 循环。
+class StaticList<T> extends Iterable<T> {
   final Array<T> _data;
 
   StaticList._internal(this._data);
@@ -321,60 +323,278 @@ class StaticList<T> with ListMixin<T> {
 
   StaticList.from(Iterable elements) : _data = Array<T>.from(elements.cast<T>());
 
-  // -- List<T> 核心接口 --
+  // -- 核心属性 --
 
-  @override
   int get length => _data.length;
 
-  @override
   set length(int newLength) {
     if (newLength < _data.length) {
-      while (_data.length > newLength) {
-        _data.removeAt(_data.length - 1);
-      }
+      while (_data.length > newLength) _data.removeAt(_data.length - 1);
     } else {
-      while (_data.length < newLength) {
-        _data.add(null as T);
-      }
+      while (_data.length < newLength) _data.add(null as T);
     }
   }
 
-  @override
-  T operator [](int index) => _data[index];
+  bool get isEmpty => _data.length == 0;
+  bool get isNotEmpty => _data.length > 0;
 
-  @override
+  T get first {
+    if (isEmpty) throw DartStateError('No element');
+    return _data[0];
+  }
+
+  T get last {
+    if (isEmpty) throw DartStateError('No element');
+    return _data[_data.length - 1];
+  }
+
+  T get single {
+    if (_data.length != 1) throw DartStateError('Not single element');
+    return _data[0];
+  }
+
+  // -- 索引访问 --
+
+  T operator [](int index) => _data[index];
   void operator []=(int index, T value) => _data[index] = value;
 
-  @override
+  // -- 修改操作 --
+
   void add(T element) => _data.add(element);
 
-  @override
   void addAll(Iterable<T> elements) {
-    for (final element in elements) {
-      _data.add(element);
+    for (final element in elements) _data.add(element);
+  }
+
+  void insert(int index, T element) => _data.insert(index, element);
+
+  void insertAll(int index, Iterable<T> elements) {
+    int i = index;
+    for (final e in elements) {
+      _data.insert(i, e);
+      i++;
     }
   }
 
-  @override
+  T removeAt(int index) => _data.removeAt(index);
+
+  bool remove(Object? element) {
+    try {
+      return _data.remove(element as T);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void removeLast() {
+    if (isEmpty) throw DartRangeError('Cannot removeLast on empty list');
+    _data.removeAt(_data.length - 1);
+  }
+
+  void removeWhere(bool Function(T) test) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (test(_data[i])) _data.removeAt(i);
+    }
+  }
+
+  void retainWhere(bool Function(T) test) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (!test(_data[i])) _data.removeAt(i);
+    }
+  }
+
+  void clear() => _data.clear();
+
+  // -- 查询操作 --
+
+  bool contains(Object? element) {
+    try {
+      return _data.contains(element as T);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  int indexOf(Object? element, [int start = 0]) {
+    for (int i = start; i < _data.length; i++) {
+      if (_data[i] == element) return i;
+    }
+    return -1;
+  }
+
+  int lastIndexOf(Object? element, [int? end]) {
+    final endIdx = end ?? _data.length - 1;
+    for (int i = endIdx; i >= 0; i--) {
+      if (_data[i] == element) return i;
+    }
+    return -1;
+  }
+
+  int indexWhere(bool Function(T) test, [int start = 0]) {
+    for (int i = start; i < _data.length; i++) {
+      if (test(_data[i])) return i;
+    }
+    return -1;
+  }
+
+  T elementAt(int index) => _data[index];
+
+  // -- 迭代/函数式 --
+
+  StaticIterator<T> get iterator => StaticIterator<T>._fromArray(_data);
+
+  void forEach(void Function(T) action) {
+    for (int i = 0; i < _data.length; i++) action(_data[i]);
+  }
+
+  StaticList<R> map<R>(R Function(T) convert) {
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) result.add(convert(_data[i]));
+    return result;
+  }
+
+  StaticList<T> where(bool Function(T) test) {
+    final result = StaticList<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) result.add(_data[i]);
+    }
+    return result;
+  }
+
+  StaticList<R> whereType<R>() {
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) {
+      if (_data[i] is R) result.add(_data[i] as R);
+    }
+    return result;
+  }
+
+  StaticList<R> expand<R>(Iterable<R> Function(T) convert) {
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) {
+      for (final r in convert(_data[i])) result.add(r);
+    }
+    return result;
+  }
+
+  T reduce(T Function(T, T) combine) {
+    if (isEmpty) throw DartStateError('No element');
+    T value = _data[0];
+    for (int i = 1; i < _data.length; i++) value = combine(value, _data[i]);
+    return value;
+  }
+
+  R fold<R>(R initialValue, R Function(R, T) combine) {
+    R value = initialValue;
+    for (int i = 0; i < _data.length; i++) value = combine(value, _data[i]);
+    return value;
+  }
+
+  bool any(bool Function(T) test) {
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) return true;
+    }
+    return false;
+  }
+
+  bool every(bool Function(T) test) {
+    for (int i = 0; i < _data.length; i++) {
+      if (!test(_data[i])) return false;
+    }
+    return true;
+  }
+
+  T firstWhere(bool Function(T) test, {T Function()? orElse}) {
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) return _data[i];
+    }
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  T lastWhere(bool Function(T) test, {T Function()? orElse}) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (test(_data[i])) return _data[i];
+    }
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  StaticList<T> take(int count) {
+    final result = StaticList<T>();
+    final end = count < _data.length ? count : _data.length;
+    for (int i = 0; i < end; i++) result.add(_data[i]);
+    return result;
+  }
+
+  StaticList<T> skip(int count) {
+    final result = StaticList<T>();
+    for (int i = count; i < _data.length; i++) result.add(_data[i]);
+    return result;
+  }
+
+  // -- 变换 --
+
   StaticList<T> sublist(int start, [int? end]) {
-    final actualEnd = end ?? length;
-    return StaticList<T>.of(super.sublist(start, actualEnd));
+    final actualEnd = end ?? _data.length;
+    final result = StaticList<T>();
+    for (int i = start; i < actualEnd; i++) result.add(_data[i]);
+    return result;
   }
 
-  @override
-  StaticList<T> toList({bool growable = true}) {
-    return StaticList<T>.of(this);
-  }
+  StaticList<T> toStaticList() => StaticList<T>.of(this);
 
-  @override
+  StaticSet<T> toStaticSet() => StaticSet<T>.of(this);
+
   StaticList<R> cast<R>() {
-    return StaticList<R>.of(super.cast<R>());
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) result.add(_data[i] as R);
+    return result;
   }
 
-  @override
-  StaticList<T> operator +(List<T> other) {
+  StaticList<T> get reversed {
+    final result = StaticList<T>();
+    for (int i = _data.length - 1; i >= 0; i--) result.add(_data[i]);
+    return result;
+  }
+
+  StaticList<T> operator +(dynamic other) {
     final result = StaticList<T>.of(this);
-    result.addAll(other);
+    if (other is StaticList<T>) {
+      result.addAll(other);
+    } else if (other is Iterable<T>) {
+      result.addAll(other);
+    }
+    return result;
+  }
+
+  // -- 排序 --
+
+  void sort([int Function(T, T)? compare]) {
+    final list = _data.toList();
+    list.sort(compare);
+    _data.clear();
+    for (final e in list) _data.add(e);
+  }
+
+  // -- 字符串 --
+
+  String join([String separator = '']) {
+    if (isEmpty) return '';
+    final buf = StringBuffer();
+    buf.write(_data[0]);
+    for (int i = 1; i < _data.length; i++) {
+      buf.write(separator);
+      buf.write(_data[i]);
+    }
+    return buf.toString();
+  }
+
+  // -- Map 辅助 --
+
+  StaticMap<int, T> asMap() {
+    final result = StaticMap<int, T>();
+    for (int i = 0; i < _data.length; i++) result[i] = _data[i];
     return result;
   }
 
@@ -383,7 +603,9 @@ class StaticList<T> with ListMixin<T> {
 }
 
 /// StaticMap<K, V> — implements Map<K,V>，内部基于 Array 独立管理键值对。
-class StaticMap<K, V> with MapMixin<K, V> {
+/// StaticMap<K, V> — 完全独立的静态 Map，不继承 Map/MapMixin。
+/// entries 返回 StaticMapEntry（不是原生 MapEntry）。
+class StaticMap<K, V> {
   final Array<K> _keys;
   final Array<V> _values;
 
@@ -391,15 +613,39 @@ class StaticMap<K, V> with MapMixin<K, V> {
       : _keys = Array<K>.empty(),
         _values = Array<V>.empty();
 
-  StaticMap.of(Map<K, V> entries)
-      : _keys = Array<K>.from(entries.keys),
-        _values = Array<V>.from(entries.values);
+  StaticMap.of(dynamic source)
+      : _keys = Array<K>.empty(),
+        _values = Array<V>.empty() {
+    if (source is StaticMap<K, V>) {
+      for (int i = 0; i < source._keys.length; i++) {
+        _keys.add(source._keys[i]);
+        _values.add(source._values[i]);
+      }
+    } else if (source is Map<K, V>) {
+      for (final entry in source.entries) {
+        _keys.add(entry.key);
+        _values.add(entry.value);
+      }
+    }
+  }
 
-  StaticMap.from(Map entries)
-      : _keys = Array<K>.from(entries.keys.cast<K>()),
-        _values = Array<V>.from(entries.values.cast<V>());
+  StaticMap.from(dynamic source)
+      : _keys = Array<K>.empty(),
+        _values = Array<V>.empty() {
+    if (source is StaticMap) {
+      for (int i = 0; i < source._keys.length; i++) {
+        _keys.add(source._keys[i] as K);
+        _values.add(source._values[i] as V);
+      }
+    } else if (source is Map) {
+      for (final entry in source.entries) {
+        _keys.add(entry.key as K);
+        _values.add(entry.value as V);
+      }
+    }
+  }
 
-  StaticMap.fromEntries(Iterable<MapEntry<K, V>> entries)
+  StaticMap.fromEntries(Iterable<StaticMapEntry<K, V>> entries)
       : _keys = Array<K>.empty(),
         _values = Array<V>.empty() {
     for (final entry in entries) {
@@ -412,16 +658,20 @@ class StaticMap<K, V> with MapMixin<K, V> {
       : _keys = Array<K>.from(keys),
         _values = Array<V>.from(values);
 
-  // -- Map<K,V> 核心接口 --
+  // -- 核心属性 --
 
-  @override
+  int get length => _keys.length;
+  bool get isEmpty => _keys.length == 0;
+  bool get isNotEmpty => _keys.length > 0;
+
+  // -- 访问 --
+
   V? operator [](Object? key) {
     final idx = _keys.indexOf(key as K);
     if (idx == -1) return null;
     return _values[idx];
   }
 
-  @override
   void operator []=(K key, V value) {
     final idx = _keys.indexOf(key);
     if (idx != -1) {
@@ -432,10 +682,37 @@ class StaticMap<K, V> with MapMixin<K, V> {
     }
   }
 
-  @override
-  Iterable<K> get keys => StaticList<K>._internal(_keys);
+  bool containsKey(Object? key) {
+    try {
+      return _keys.indexOf(key as K) != -1;
+    } catch (_) {
+      return false;
+    }
+  }
 
-  @override
+  bool containsValue(Object? value) {
+    try {
+      return _values.indexOf(value as V) != -1;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // -- 集合视图 --
+
+  StaticList<K> get keys => StaticList<K>._internal(_keys);
+  StaticList<V> get values => StaticList<V>._internal(_values);
+
+  StaticList<StaticMapEntry<K, V>> get entries {
+    final result = StaticList<StaticMapEntry<K, V>>();
+    for (int i = 0; i < _keys.length; i++) {
+      result.add(StaticMapEntry<K, V>(_keys[i], _values[i]));
+    }
+    return result;
+  }
+
+  // -- 修改 --
+
   V? remove(Object? key) {
     final idx = _keys.indexOf(key as K);
     if (idx == -1) return null;
@@ -443,14 +720,70 @@ class StaticMap<K, V> with MapMixin<K, V> {
     return _values.removeAt(idx);
   }
 
-  @override
+  void removeWhere(bool Function(K key, V value) test) {
+    for (int i = _keys.length - 1; i >= 0; i--) {
+      if (test(_keys[i], _values[i])) {
+        _keys.removeAt(i);
+        _values.removeAt(i);
+      }
+    }
+  }
+
   void clear() {
     _keys.clear();
     _values.clear();
   }
 
-  @override
-  StaticMap<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(K key, V value) convert) {
+  V putIfAbsent(K key, V Function() ifAbsent) {
+    final idx = _keys.indexOf(key);
+    if (idx != -1) return _values[idx];
+    final value = ifAbsent();
+    _keys.add(key);
+    _values.add(value);
+    return value;
+  }
+
+  V update(K key, V Function(V) update, {V Function()? ifAbsent}) {
+    final idx = _keys.indexOf(key);
+    if (idx != -1) {
+      final newVal = update(_values[idx]);
+      _values[idx] = newVal;
+      return newVal;
+    }
+    if (ifAbsent != null) {
+      final newVal = ifAbsent();
+      _keys.add(key);
+      _values.add(newVal);
+      return newVal;
+    }
+    throw DartArgumentError('Key not found: $key');
+  }
+
+  void updateAll(V Function(K key, V value) update) {
+    for (int i = 0; i < _keys.length; i++) {
+      _values[i] = update(_keys[i], _values[i]);
+    }
+  }
+
+  void addAll(dynamic other) {
+    if (other is StaticMap<K, V>) {
+      for (int i = 0; i < other._keys.length; i++) {
+        this[other._keys[i]] = other._values[i];
+      }
+    } else if (other is Map<K, V>) {
+      other.forEach((k, v) => this[k] = v);
+    }
+  }
+
+  void addEntries(Iterable<StaticMapEntry<K, V>> newEntries) {
+    for (final entry in newEntries) {
+      this[entry.key] = entry.value;
+    }
+  }
+
+  // -- 函数式 --
+
+  StaticMap<K2, V2> map<K2, V2>(StaticMapEntry<K2, V2> Function(K key, V value) convert) {
     final result = StaticMap<K2, V2>();
     for (int i = 0; i < _keys.length; i++) {
       final entry = convert(_keys[i], _values[i]);
@@ -459,40 +792,90 @@ class StaticMap<K, V> with MapMixin<K, V> {
     return result;
   }
 
-  @override
+  void forEach(void Function(K key, V value) action) {
+    for (int i = 0; i < _keys.length; i++) {
+      action(_keys[i], _values[i]);
+    }
+  }
+
   StaticMap<RK, RV> cast<RK, RV>() {
-    return StaticMap<RK, RV>.of(super.cast<RK, RV>());
+    final result = StaticMap<RK, RV>();
+    for (int i = 0; i < _keys.length; i++) {
+      result[_keys[i] as RK] = _values[i] as RV;
+    }
+    return result;
+  }
+
+  @override
+  String toString() {
+    if (isEmpty) return '{}';
+    final buf = StringBuffer('{');
+    for (int i = 0; i < _keys.length; i++) {
+      if (i > 0) buf.write(', ');
+      buf.write('${_keys[i]}: ${_values[i]}');
+    }
+    buf.write('}');
+    return buf.toString();
   }
 }
 
-/// StaticSet<T> — implements Set<T>，内部基于 Array<T> 管理元素（保证唯一性）。
-class StaticSet<T> with SetMixin<T> {
+/// StaticSet<T> — 完全独立的静态 Set，不继承 Set/SetMixin。
+/// extends Iterable<T> 以兼容 for-in 和 Iterable 参数场景。
+class StaticSet<T> extends Iterable<T> {
   final Array<T> _data;
 
   StaticSet() : _data = Array<T>.empty();
 
   StaticSet.of(Iterable<T> elements) : _data = Array<T>.empty() {
-    for (final element in elements) {
-      add(element);
-    }
+    for (final element in elements) add(element);
   }
 
   StaticSet.from(Iterable elements) : _data = Array<T>.empty() {
-    for (final element in elements) {
-      add(element as T);
-    }
+    for (final element in elements) add(element as T);
   }
 
-  // -- Set<T> 核心接口 --
+  // -- 核心属性 --
 
-  @override
+  int get length => _data.length;
+  bool get isEmpty => _data.length == 0;
+  bool get isNotEmpty => _data.length > 0;
+
+  // -- 修改 --
+
   bool add(T element) {
     if (_data.contains(element)) return false;
     _data.add(element);
     return true;
   }
 
-  @override
+  void addAll(Iterable<T> elements) {
+    for (final element in elements) add(element);
+  }
+
+  bool remove(Object? element) {
+    try {
+      return _data.remove(element as T);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void removeWhere(bool Function(T) test) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (test(_data[i])) _data.removeAt(i);
+    }
+  }
+
+  void retainWhere(bool Function(T) test) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (!test(_data[i])) _data.removeAt(i);
+    }
+  }
+
+  void clear() => _data.clear();
+
+  // -- 查询 --
+
   bool contains(Object? element) {
     try {
       return _data.contains(element as T);
@@ -501,7 +884,6 @@ class StaticSet<T> with SetMixin<T> {
     }
   }
 
-  @override
   T? lookup(Object? element) {
     try {
       final idx = _data.indexOf(element as T);
@@ -512,79 +894,112 @@ class StaticSet<T> with SetMixin<T> {
     }
   }
 
-  @override
-  bool remove(Object? element) {
-    try {
-      return _data.remove(element as T);
-    } catch (_) {
-      return false;
-    }
+  // -- 迭代 --
+
+  StaticIterator<T> get iterator => StaticIterator<T>._fromArray(_data);
+
+  void forEach(void Function(T) action) {
+    for (int i = 0; i < _data.length; i++) action(_data[i]);
   }
 
-  @override
-  Iterator<T> get iterator => _StaticSetIterator<T>(this);
+  // -- 函数式 --
 
-  @override
-  int get length => _data.length;
+  StaticList<R> map<R>(R Function(T) convert) {
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) result.add(convert(_data[i]));
+    return result;
+  }
 
-  @override
-  StaticSet<T> toSet() => StaticSet<T>.of(this);
+  StaticSet<T> where(bool Function(T) test) {
+    final result = StaticSet<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) result.add(_data[i]);
+    }
+    return result;
+  }
 
-  @override
-  StaticSet<T> union(Set<T> other) {
+  bool any(bool Function(T) test) {
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) return true;
+    }
+    return false;
+  }
+
+  bool every(bool Function(T) test) {
+    for (int i = 0; i < _data.length; i++) {
+      if (!test(_data[i])) return false;
+    }
+    return true;
+  }
+
+  T reduce(T Function(T, T) combine) {
+    if (isEmpty) throw DartStateError('No element');
+    T value = _data[0];
+    for (int i = 1; i < _data.length; i++) value = combine(value, _data[i]);
+    return value;
+  }
+
+  R fold<R>(R initialValue, R Function(R, T) combine) {
+    R value = initialValue;
+    for (int i = 0; i < _data.length; i++) value = combine(value, _data[i]);
+    return value;
+  }
+
+  // -- 集合操作 --
+
+  StaticSet<T> union(StaticSet<T> other) {
     final result = StaticSet<T>.of(this);
-    for (final element in other) {
-      result.add(element);
-    }
+    for (int i = 0; i < other._data.length; i++) result.add(other._data[i]);
     return result;
   }
 
-  @override
-  StaticSet<T> intersection(Set<Object?> other) {
+  StaticSet<T> intersection(StaticSet<T> other) {
     final result = StaticSet<T>();
     for (int i = 0; i < _data.length; i++) {
-      if (other.contains(_data[i])) {
-        result.add(_data[i]);
-      }
+      if (other.contains(_data[i])) result.add(_data[i]);
     }
     return result;
   }
 
-  @override
-  StaticSet<T> difference(Set<Object?> other) {
+  StaticSet<T> difference(StaticSet<T> other) {
     final result = StaticSet<T>();
     for (int i = 0; i < _data.length; i++) {
-      if (!other.contains(_data[i])) {
-        result.add(_data[i]);
-      }
+      if (!other.contains(_data[i])) result.add(_data[i]);
     }
     return result;
   }
 
-  @override
+  // -- 变换 --
+
+  StaticList<T> toStaticList() {
+    final result = StaticList<T>();
+    for (int i = 0; i < _data.length; i++) result.add(_data[i]);
+    return result;
+  }
+
+  StaticSet<T> toStaticSet() => StaticSet<T>.of(this);
+
   StaticSet<R> cast<R>() {
-    return StaticSet<R>.of(super.cast<R>());
+    final result = StaticSet<R>();
+    for (int i = 0; i < _data.length; i++) result.add(_data[i] as R);
+    return result;
+  }
+
+  // -- 字符串 --
+
+  String join([String separator = '']) {
+    if (isEmpty) return '';
+    final buf = StringBuffer();
+    buf.write(_data[0]);
+    for (int i = 1; i < _data.length; i++) {
+      buf.write(separator);
+      buf.write(_data[i]);
+    }
+    return buf.toString();
   }
 
   @override
   String toString() => '{${join(', ')}}';
-}
-
-/// StaticSet 的迭代器实现
-class _StaticSetIterator<T> implements Iterator<T> {
-  final StaticSet<T> _set;
-  int _index = -1;
-
-  _StaticSetIterator(this._set);
-
-  @override
-  T get current => _set._data[_index];
-
-  @override
-  bool moveNext() {
-    _index++;
-    return _index < _set._data.length;
-  }
 }
 
 // ============================================================================
@@ -618,7 +1033,7 @@ class Promise<T> {
   T get result {
     if (state == PromiseState.error) throw error!;
     if (state != PromiseState.completed) {
-      throw StateError('Promise not yet completed');
+      throw DartStateError('Promise not yet completed');
     }
     return _result as T;
   }
@@ -642,7 +1057,7 @@ class Promise<T> {
 
   void complete(T value) {
     if (state == PromiseState.completed || state == PromiseState.error) {
-      throw StateError('Promise already resolved');
+      throw DartStateError('Promise already resolved');
     }
     _result = value;
     state = PromiseState.completed;
@@ -650,7 +1065,7 @@ class Promise<T> {
 
   void completeError(Object err) {
     if (state == PromiseState.completed || state == PromiseState.error) {
-      throw StateError('Promise already resolved');
+      throw DartStateError('Promise already resolved');
     }
     error = err;
     state = PromiseState.error;
@@ -838,8 +1253,8 @@ class _DelayedTask {
 }
 
 /// promiseDelayed — 兼容 Future.delayed(Duration, [computation]) 的异步延迟函数
-/// Duration 按 10ms = 1 tick 映射，最小 1 tick。
-Promise<T> promiseDelayed<T>(Duration duration, [T Function()? computation]) {
+/// StaticDuration 按 10ms = 1 tick 映射，最小 1 tick。
+Promise<T> promiseDelayed<T>(StaticDuration duration, [T Function()? computation]) {
   final ticks = (duration.inMilliseconds / 10).ceil().clamp(1, 100000);
   final promise = Promise<T>();
   GlobalScheduler.instance.registerDelayedTask(ticks, () {
@@ -871,7 +1286,7 @@ T smAwait<T>(dynamic promiseOrFuture) {
   _smAwaitDepth++;
   if (_smAwaitDepth > _smAwaitMaxDepth) {
     _smAwaitDepth--;
-    throw StateError(
+    throw DartStateError(
       'smAwait recursion depth exceeded $_smAwaitMaxDepth — '
       'consider using AsyncStateMachine for deep async nesting');
   }
@@ -889,7 +1304,7 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
       GlobalScheduler.instance.tick();
       roundCount++;
       if (roundCount > 100000) {
-        throw StateError('smAwait exceeded max rounds — possible deadlock');
+        throw DartStateError('smAwait exceeded max rounds — possible deadlock');
       }
     }
     if (promiseOrFuture.isError) throw promiseOrFuture.error!;
@@ -912,7 +1327,7 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
       GlobalScheduler.instance.tick();
       roundCount++;
       if (roundCount > 100000) {
-        throw StateError('smAwait(Future) exceeded max rounds — possible deadlock');
+        throw DartStateError('smAwait(Future) exceeded max rounds — possible deadlock');
       }
     }
     if (error != null) throw error!;
@@ -925,13 +1340,13 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
       GlobalScheduler.instance.tick();
       roundCount++;
       if (roundCount > 100000) {
-        throw StateError('smAwait exceeded max rounds — possible deadlock');
+        throw DartStateError('smAwait exceeded max rounds — possible deadlock');
       }
     }
     if (promiseOrFuture.isError) throw promiseOrFuture.error!;
     return promiseOrFuture.result as T;
   }
-  throw StateError('smAwait: unsupported type ${promiseOrFuture.runtimeType}');
+  throw DartStateError('smAwait: unsupported type ${promiseOrFuture.runtimeType}');
 }
 
 /// AsyncStateMachine — 异步函数转状态机的基类
@@ -952,4 +1367,330 @@ abstract class AsyncStateMachine<T> {
     GlobalScheduler.instance.registerActivePromise(promise);
     return promise;
   }
+}
+
+// ============================================================================
+// 语义脱钩包装类型 — 让生成代码不直接出现裸 dart:core 标识符
+// ============================================================================
+
+// ---- IO ----
+
+/// staticPrint — 替代裸 print，便于 C++ 落地时统一替换
+void staticPrint(Object? object) => print(object);
+
+// ---- StringBuffer ----
+
+/// StaticStringBuffer — 委托 StringBuffer
+class StaticStringBuffer {
+  final StringBuffer _delegate;
+
+  StaticStringBuffer([Object content = '']) : _delegate = StringBuffer(content);
+
+  void write(Object? obj) => _delegate.write(obj);
+  void writeln([Object? obj = '']) => _delegate.writeln(obj);
+  void writeAll(Iterable objects, [String separator = '']) =>
+      _delegate.writeAll(objects, separator);
+  void writeCharCode(int charCode) => _delegate.writeCharCode(charCode);
+
+  int get length => _delegate.length;
+  bool get isEmpty => _delegate.isEmpty;
+  bool get isNotEmpty => _delegate.isNotEmpty;
+  void clear() => _delegate.clear();
+
+  @override
+  String toString() => _delegate.toString();
+}
+
+// ---- MapEntry ----
+
+/// StaticMapEntry<K,V> — 替代原生 MapEntry（MapEntry 是 final class 无法继承）
+class StaticMapEntry<K, V> {
+  final K key;
+  final V value;
+  const StaticMapEntry(this.key, this.value);
+
+  /// 转换为原生 MapEntry（供需要 MapEntry 的 API 使用）
+  MapEntry<K, V> toMapEntry() => MapEntry<K, V>(key, value);
+
+  @override
+  String toString() => 'StaticMapEntry($key: $value)';
+
+  @override
+  bool operator ==(Object other) =>
+      other is StaticMapEntry<K, V> && other.key == key && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(key, value);
+}
+
+// ---- Iterator ----
+
+/// StaticIterator<T> — 统一的迭代器，支持从原生 Iterator 或 Array 构造
+class StaticIterator<T> implements Iterator<T> {
+  final Iterator<T> _delegate;
+  StaticIterator(this._delegate);
+
+  /// 从 Array 直接构造（内部使用，避免依赖原生 List.iterator）
+  StaticIterator._fromArray(Array<T> array)
+      : _delegate = _ArrayIterator<T>(array);
+
+  @override
+  bool moveNext() => _delegate.moveNext();
+  @override
+  T get current => _delegate.current;
+}
+
+/// Array 的原生迭代器实现
+class _ArrayIterator<T> implements Iterator<T> {
+  final Array<T> _array;
+  int _index = -1;
+  _ArrayIterator(this._array);
+
+  @override
+  T get current => _array[_index];
+  @override
+  bool moveNext() {
+    _index++;
+    return _index < _array.length;
+  }
+}
+
+// ---- 异常体系 ----
+
+/// DartException — 替代裸 Exception
+class DartException implements Exception {
+  final String? message;
+  DartException([this.message]);
+
+  @override
+  String toString() => message ?? 'DartException';
+}
+
+/// DartStateError — 替代裸 StateError
+class DartStateError extends StateError {
+  DartStateError(String message) : super(message);
+}
+
+/// DartArgumentError — 替代裸 ArgumentError
+class DartArgumentError extends ArgumentError {
+  DartArgumentError([dynamic message]) : super(message);
+}
+
+/// DartRangeError — 替代裸 RangeError
+class DartRangeError extends RangeError {
+  DartRangeError([dynamic message]) : super(message);
+
+  /// 替代 RangeError.range
+  DartRangeError.range(int invalidValue, int minValue, int maxValue,
+      [String? name, String? message])
+      : super.range(invalidValue, minValue, maxValue, name, message);
+
+  /// 替代 RangeError.value
+  DartRangeError.value(num value, [String? name, String? message])
+      : super.value(value, name, message);
+}
+
+/// 替代 RangeError.index（工厂构造函数，不能用 super.index）
+DartRangeError dartRangeErrorIndex(int index, dynamic indexable,
+    [String? name, String? message, int? length]) {
+  // 触发原生检查逻辑后包装
+  try {
+    throw RangeError.index(index, indexable, name, message, length);
+  } on RangeError catch (e) {
+    final wrapped = DartRangeError(e.message);
+    return wrapped;
+  }
+}
+
+/// DartFormatException — 替代裸 FormatException
+class DartFormatException extends FormatException {
+  const DartFormatException([String message = '', dynamic source, int? offset])
+      : super(message, source, offset);
+}
+
+/// DartUnsupportedError — 替代裸 UnsupportedError
+class DartUnsupportedError extends UnsupportedError {
+  DartUnsupportedError([String? message]) : super(message ?? '');
+}
+
+/// DartUnimplementedError — 替代裸 UnimplementedError
+class DartUnimplementedError extends UnimplementedError {
+  DartUnimplementedError([String? message]) : super(message);
+}
+
+// ---- RegExp ----
+
+/// StaticRegExp — 委托 RegExp，实现 Pattern 以兼容 String.replaceAll 等
+class StaticRegExp implements Pattern {
+  final RegExp _delegate;
+
+  StaticRegExp(String source,
+      {bool multiLine = false,
+      bool caseSensitive = true,
+      bool unicode = false,
+      bool dotAll = false})
+      : _delegate = RegExp(source,
+            multiLine: multiLine,
+            caseSensitive: caseSensitive,
+            unicode: unicode,
+            dotAll: dotAll);
+
+  bool hasMatch(String input) => _delegate.hasMatch(input);
+  RegExpMatch? firstMatch(String input) => _delegate.firstMatch(input);
+  @override
+  Iterable<RegExpMatch> allMatches(String string, [int start = 0]) =>
+      _delegate.allMatches(string, start);
+
+  @override
+  Match? matchAsPrefix(String string, [int start = 0]) =>
+      _delegate.matchAsPrefix(string, start);
+  String get pattern => _delegate.pattern;
+  bool get isMultiLine => _delegate.isMultiLine;
+  bool get isCaseSensitive => _delegate.isCaseSensitive;
+  bool get isUnicode => _delegate.isUnicode;
+  bool get isDotAll => _delegate.isDotAll;
+
+  /// 委托 RegExp.escape 静态方法
+  static String escape(String text) => RegExp.escape(text);
+
+  @override
+  String toString() => _delegate.toString();
+}
+
+// ---- Duration ----
+
+/// StaticDuration — 委托 Duration
+class StaticDuration {
+  final Duration _delegate;
+
+  StaticDuration(
+      {int days = 0,
+      int hours = 0,
+      int minutes = 0,
+      int seconds = 0,
+      int milliseconds = 0,
+      int microseconds = 0})
+      : _delegate = Duration(
+            days: days,
+            hours: hours,
+            minutes: minutes,
+            seconds: seconds,
+            milliseconds: milliseconds,
+            microseconds: microseconds);
+
+  StaticDuration._(this._delegate);
+
+  int get inDays => _delegate.inDays;
+  int get inHours => _delegate.inHours;
+  int get inMinutes => _delegate.inMinutes;
+  int get inSeconds => _delegate.inSeconds;
+  int get inMilliseconds => _delegate.inMilliseconds;
+  int get inMicroseconds => _delegate.inMicroseconds;
+
+  Duration toDuration() => _delegate;
+
+  @override
+  String toString() => _delegate.toString();
+
+  @override
+  bool operator ==(Object other) =>
+      other is StaticDuration && other._delegate == _delegate;
+
+  @override
+  int get hashCode => _delegate.hashCode;
+}
+
+// ---- DateTime ----
+
+/// StaticDateTime — 委托 DateTime
+class StaticDateTime {
+  final DateTime _delegate;
+
+  StaticDateTime(int year,
+      [int month = 1,
+      int day = 1,
+      int hour = 0,
+      int minute = 0,
+      int second = 0,
+      int millisecond = 0,
+      int microsecond = 0])
+      : _delegate = DateTime(
+            year, month, day, hour, minute, second, millisecond, microsecond);
+
+  StaticDateTime._(this._delegate);
+
+  factory StaticDateTime.now() => StaticDateTime._(DateTime.now());
+  factory StaticDateTime.utc(int year,
+          [int month = 1,
+          int day = 1,
+          int hour = 0,
+          int minute = 0,
+          int second = 0,
+          int millisecond = 0,
+          int microsecond = 0]) =>
+      StaticDateTime._(DateTime.utc(
+          year, month, day, hour, minute, second, millisecond, microsecond));
+  factory StaticDateTime.parse(String formattedString) =>
+      StaticDateTime._(DateTime.parse(formattedString));
+  factory StaticDateTime.tryParse(String formattedString) {
+    final dt = DateTime.tryParse(formattedString);
+    if (dt == null) throw DartFormatException('Invalid date format: $formattedString');
+    return StaticDateTime._(dt);
+  }
+  factory StaticDateTime.fromMillisecondsSinceEpoch(int millisecondsSinceEpoch,
+          {bool isUtc = false}) =>
+      StaticDateTime._(DateTime.fromMillisecondsSinceEpoch(
+          millisecondsSinceEpoch,
+          isUtc: isUtc));
+  factory StaticDateTime.fromMicrosecondsSinceEpoch(int microsecondsSinceEpoch,
+          {bool isUtc = false}) =>
+      StaticDateTime._(DateTime.fromMicrosecondsSinceEpoch(
+          microsecondsSinceEpoch,
+          isUtc: isUtc));
+
+  int get year => _delegate.year;
+  int get month => _delegate.month;
+  int get day => _delegate.day;
+  int get hour => _delegate.hour;
+  int get minute => _delegate.minute;
+  int get second => _delegate.second;
+  int get millisecond => _delegate.millisecond;
+  int get microsecond => _delegate.microsecond;
+  int get weekday => _delegate.weekday;
+  int get millisecondsSinceEpoch => _delegate.millisecondsSinceEpoch;
+  int get microsecondsSinceEpoch => _delegate.microsecondsSinceEpoch;
+  bool get isUtc => _delegate.isUtc;
+
+  StaticDateTime add(StaticDuration duration) =>
+      StaticDateTime._(_delegate.add(duration.toDuration()));
+  StaticDateTime subtract(StaticDuration duration) =>
+      StaticDateTime._(_delegate.subtract(duration.toDuration()));
+  StaticDuration difference(StaticDateTime other) =>
+      StaticDuration._(_delegate.difference(other._delegate));
+  bool isBefore(StaticDateTime other) => _delegate.isBefore(other._delegate);
+  bool isAfter(StaticDateTime other) => _delegate.isAfter(other._delegate);
+  bool isAtSameMomentAs(StaticDateTime other) =>
+      _delegate.isAtSameMomentAs(other._delegate);
+  String toIso8601String() => _delegate.toIso8601String();
+  StaticDateTime toUtc() => StaticDateTime._(_delegate.toUtc());
+  StaticDateTime toLocal() => StaticDateTime._(_delegate.toLocal());
+
+  DateTime toDateTime() => _delegate;
+
+  @override
+  String toString() => _delegate.toString();
+
+  @override
+  bool operator ==(Object other) =>
+      other is StaticDateTime && other._delegate == _delegate;
+
+  @override
+  int get hashCode => _delegate.hashCode;
+}
+
+// ---- Comparable ----
+
+/// StaticComparable<T> — 替代裸 Comparable<T>
+abstract class StaticComparable<T> {
+  int compareTo(T other);
 }

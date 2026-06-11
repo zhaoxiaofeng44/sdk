@@ -9,19 +9,19 @@ typedef VoidCallback = TypeFunction0<void>;
 // mixin Printable → static functions for delegation
 void Printable_printInfo(dynamic this__) {
   final this_ = this__;
-  print('[${(this_.vptr['get_displayName'] as TypeFunction1<String, dynamic>)(this_)}]');
+  staticPrint('[${(this_.vptr['get_displayName'] as String Function(dynamic))(this_)}]');
 }
 
 
 // mixin Orderable → static functions for delegation
 bool Orderable_isLessThan<T>(dynamic this__, T other) {
   final this_ = this__;
-  return ((this_.vptr['compareTo'] as TypeFunction2<int, dynamic, T>)(this_, other) < 0);
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) < 0);
 }
 
 bool Orderable_isGreaterThan<T>(dynamic this__, T other) {
   final this_ = this__;
-  return ((this_.vptr['compareTo'] as TypeFunction2<int, dynamic, T>)(this_, other) > 0);
+  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) > 0);
 }
 
 
@@ -29,8 +29,8 @@ class AnimalValue extends VPtr {
   late String name;
   late int age;
   AnimalValue() {
-    vptr['speak'] = const _TearOff_Animal_speak();
-    vptr['toString'] = const _TearOff_Animal_toString();
+    vptr['speak'] = Animal_speak;
+    vptr['toString'] = Animal_toString;
   }
 }
 
@@ -54,13 +54,13 @@ String Animal_toString(dynamic this__) {
 class DogValue extends Dog_Animal_Printable_OrderableValue {
   late String breed;
   DogValue() {
-    vptr['speak'] = const _TearOff_Dog_speak();
-    vptr['toString'] = const _TearOff_Dog_toString();
-    vptr['get_displayName'] = const _TearOff_Dog_get_displayName();
-    vptr['printInfo'] = const _TearOff_Dog_printInfo();
-    vptr['compareTo'] = const _TearOff_Dog_compareTo();
-    vptr['isLessThan'] = const _TearOff_Dog_isLessThan();
-    vptr['isGreaterThan'] = const _TearOff_Dog_isGreaterThan();
+    vptr['speak'] = Dog_speak;
+    vptr['toString'] = Dog_toString;
+    vptr['get_displayName'] = Dog_get_displayName;
+    vptr['printInfo'] = Dog_printInfo;
+    vptr['compareTo'] = Dog_compareTo;
+    vptr['isLessThan'] = Dog_isLessThan;
+    vptr['isGreaterThan'] = Dog_isGreaterThan;
   }
 }
 
@@ -98,24 +98,24 @@ void Dog_printInfo(dynamic this__) {
 
 bool Dog_isLessThan(dynamic this__, DogValue other) {
   final this_ = this__ as DogValue;
-  return Orderable_isLessThan<dynamic>(this_, other);
+  return Orderable_isLessThan<DogValue>(this_, other);
 }
 
 bool Dog_isGreaterThan(dynamic this__, DogValue other) {
   final this_ = this__ as DogValue;
-  return Orderable_isGreaterThan<dynamic>(this_, other);
+  return Orderable_isGreaterThan<DogValue>(this_, other);
 }
 
 
 class CatValue extends Cat_Animal_PrintableValue {
   late String _mood;
   CatValue() {
-    vptr['speak'] = const _TearOff_Cat_speak();
-    vptr['toString'] = const _TearOff_Cat_toString();
-    vptr['get_displayName'] = const _TearOff_Cat_get_displayName();
-    vptr['printInfo'] = const _TearOff_Cat_printInfo();
-    vptr['get_mood'] = const _TearOff_Cat_get_mood();
-    vptr['set_mood'] = const _TearOff_Cat_set_mood();
+    vptr['speak'] = Cat_speak;
+    vptr['toString'] = Cat_toString;
+    vptr['get_displayName'] = Cat_get_displayName;
+    vptr['printInfo'] = Cat_printInfo;
+    vptr['get_mood'] = Cat_get_mood;
+    vptr['set_mood'] = Cat_set_mood;
   }
 }
 
@@ -161,12 +161,12 @@ class Vector2DValue extends VPtr {
   late double x;
   late double y;
   Vector2DValue() {
-    vptr['operatorPlus'] = const _TearOff_Vector2D_operatorPlus();
-    vptr['operatorMinus'] = const _TearOff_Vector2D_operatorMinus();
-    vptr['operatorStar'] = const _TearOff_Vector2D_operatorStar();
-    vptr['operatorEq'] = const _TearOff_Vector2D_operatorEq();
-    vptr['get_length'] = const _TearOff_Vector2D_get_length();
-    vptr['toString'] = const _TearOff_Vector2D_toString();
+    vptr['operatorPlus'] = Vector2D_operatorPlus;
+    vptr['operatorMinus'] = Vector2D_operatorMinus;
+    vptr['operatorStar'] = Vector2D_operatorStar;
+    vptr['operatorEq'] = Vector2D_operatorEq;
+    vptr['get_length'] = Vector2D_get_length;
+    vptr['toString'] = Vector2D_toString;
   }
 }
 
@@ -221,10 +221,10 @@ class CounterValue extends VPtr {
   late int _value;
   late String label;
   CounterValue() {
-    vptr['increment'] = const _TearOff_Counter_increment();
-    vptr['decrement'] = const _TearOff_Counter_decrement();
-    vptr['get_value'] = const _TearOff_Counter_get_value();
-    vptr['toString'] = const _TearOff_Counter_toString();
+    vptr['increment'] = Counter_increment;
+    vptr['decrement'] = Counter_decrement;
+    vptr['get_value'] = Counter_get_value;
+    vptr['toString'] = Counter_toString;
   }
 }
 
@@ -277,13 +277,13 @@ class ResultValue<T> extends VPtr {
   late String? error;
   late bool isSuccess;
   ResultValue() {
-    vptr['toString'] = _TearOff_Result_toString<T>();
+    vptr['toString'] = Result_toString<T>;
   }
 }
 
 ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
   final this_ = this__ as ResultValue<T>;
-  this_.vptr['fold_String'] = _TearOff_Result_fold_String<T>();
+  this_.vptr['fold_String'] = Result_fold<T, String>;
   this_.data = value;
   this_.error = null;
   this_.isSuccess = true;
@@ -292,7 +292,7 @@ ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
 
 ResultValue<T> Result_new_failure<T>(dynamic this__, String message) {
   final this_ = this__ as ResultValue<T>;
-  this_.vptr['fold_String'] = _TearOff_Result_fold_String<T>();
+  this_.vptr['fold_String'] = Result_fold<T, String>;
   this_.data = null;
   this_.error = message;
   this_.isSuccess = false;
@@ -318,9 +318,9 @@ class LazyLoaderValue extends VPtr {
   late int _computedValue;
   late bool _initialized;
   LazyLoaderValue() {
-    vptr['initialize'] = const _TearOff_LazyLoader_initialize();
-    vptr['get_data'] = const _TearOff_LazyLoader_get_data();
-    vptr['get_computedValue'] = const _TearOff_LazyLoader_get_computedValue();
+    vptr['initialize'] = LazyLoader_initialize;
+    vptr['get_data'] = LazyLoader_get_data;
+    vptr['get_computedValue'] = LazyLoader_get_computedValue;
   }
 }
 
@@ -353,8 +353,8 @@ class BoundedValueValue extends VPtr {
   late double max;
   late double _current;
   BoundedValueValue() {
-    vptr['set'] = const _TearOff_BoundedValue_set();
-    vptr['get_current'] = const _TearOff_BoundedValue_get_current();
+    vptr['set'] = BoundedValue_set;
+    vptr['get_current'] = BoundedValue_get_current;
   }
 }
 
@@ -384,7 +384,7 @@ class ShapeValue extends VPtr {
   late String color;
   late double opacity;
   ShapeValue() {
-    vptr['describe'] = const _TearOff_Shape_describe();
+    vptr['describe'] = Shape_describe;
   }
 }
 
@@ -410,8 +410,8 @@ String Shape_describe(dynamic this__) {
 class PolygonValue extends ShapeValue {
   late int sides;
   PolygonValue() {
-    vptr['describe'] = const _TearOff_Polygon_describe();
-    vptr['perimeter'] = const _TearOff_Polygon_perimeter();
+    vptr['describe'] = Polygon_describe;
+    vptr['perimeter'] = Polygon_perimeter;
   }
 }
 
@@ -436,9 +436,9 @@ double Polygon_perimeter(dynamic this__, double sideLength) {
 class RegularPolygonValue extends PolygonValue {
   late double sideLength;
   RegularPolygonValue() {
-    vptr['describe'] = const _TearOff_RegularPolygon_describe();
-    vptr['perimeter'] = const _TearOff_RegularPolygon_perimeter();
-    vptr['area'] = const _TearOff_RegularPolygon_area();
+    vptr['describe'] = RegularPolygon_describe;
+    vptr['perimeter'] = RegularPolygon_perimeter;
+    vptr['area'] = RegularPolygon_area;
   }
 }
 
@@ -467,9 +467,9 @@ double RegularPolygon_area(dynamic this__) {
 
 class SquareValue extends RegularPolygonValue {
   SquareValue() {
-    vptr['describe'] = const _TearOff_Square_describe();
-    vptr['perimeter'] = const _TearOff_Square_perimeter();
-    vptr['area'] = const _TearOff_Square_area();
+    vptr['describe'] = Square_describe;
+    vptr['perimeter'] = Square_perimeter;
+    vptr['area'] = Square_area;
   }
 }
 
@@ -497,7 +497,7 @@ double Square_area(dynamic this__) {
 
 class SerializableValue extends VPtr {
   SerializableValue() {
-    vptr['serialize'] = const _TearOff_Serializable_serialize();
+    vptr['serialize'] = Serializable_serialize;
   }
 }
 
@@ -513,7 +513,7 @@ String Serializable_serialize(dynamic this_) {
 
 class CloneableValue<T> extends VPtr {
   CloneableValue() {
-    vptr['clone'] = _TearOff_Cloneable_clone<T>();
+    vptr['clone'] = Cloneable_clone<T>;
   }
 }
 
@@ -529,7 +529,7 @@ T Cloneable_clone<T>(dynamic this_) {
 
 class Comparable2Value<T> extends VPtr {
   Comparable2Value() {
-    vptr['compareTo2'] = _TearOff_Comparable2_compareTo2<T>();
+    vptr['compareTo2'] = Comparable2_compareTo2<T>;
   }
 }
 
@@ -548,10 +548,10 @@ class DataPointValue extends VPtr implements SerializableValue, CloneableValue<D
   late double y;
   late String label;
   DataPointValue() {
-    vptr['serialize'] = const _TearOff_DataPoint_serialize();
-    vptr['clone'] = const _TearOff_DataPoint_clone();
-    vptr['compareTo2'] = const _TearOff_DataPoint_compareTo2();
-    vptr['toString'] = const _TearOff_DataPoint_toString();
+    vptr['serialize'] = DataPoint_serialize;
+    vptr['clone'] = DataPoint_clone;
+    vptr['compareTo2'] = DataPoint_compareTo2;
+    vptr['toString'] = DataPoint_toString;
   }
 }
 
@@ -591,26 +591,26 @@ String DataPoint_toString(dynamic this__) {
 // mixin Loggable → static functions for delegation
 void Loggable_log(dynamic this__, String message) {
   final this_ = this__;
-  print('[${(this_.vptr['get_logTag'] as TypeFunction1<String, dynamic>)(this_)}] ${message}');
+  staticPrint('[${(this_.vptr['get_logTag'] as String Function(dynamic))(this_)}] ${message}');
 }
 
 
 // mixin Validatable → static functions for delegation
 bool Validatable_validate(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['serialize'] as TypeFunction1<String, dynamic>)(this_).isNotEmpty;
+  return (this_.vptr['serialize'] as String Function(dynamic))(this_).isNotEmpty;
 }
 
 
 class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_ValidatableValue {
   LoggedDataPointValue() {
-    vptr['serialize'] = const _TearOff_LoggedDataPoint_serialize();
-    vptr['clone'] = const _TearOff_LoggedDataPoint_clone();
-    vptr['compareTo2'] = const _TearOff_LoggedDataPoint_compareTo2();
-    vptr['toString'] = const _TearOff_LoggedDataPoint_toString();
-    vptr['get_logTag'] = const _TearOff_LoggedDataPoint_get_logTag();
-    vptr['log'] = const _TearOff_LoggedDataPoint_log();
-    vptr['validate'] = const _TearOff_LoggedDataPoint_validate();
+    vptr['serialize'] = LoggedDataPoint_serialize;
+    vptr['clone'] = LoggedDataPoint_clone;
+    vptr['compareTo2'] = LoggedDataPoint_compareTo2;
+    vptr['toString'] = LoggedDataPoint_toString;
+    vptr['get_logTag'] = LoggedDataPoint_get_logTag;
+    vptr['log'] = LoggedDataPoint_log;
+    vptr['validate'] = LoggedDataPoint_validate;
   }
 }
 
@@ -697,7 +697,7 @@ class ConfigValue extends VPtr {
   late bool secure;
   late String baseUrl;
   ConfigValue() {
-    vptr['toString'] = const _TearOff_Config_toString();
+    vptr['toString'] = Config_toString;
   }
 }
 
@@ -731,12 +731,12 @@ String Config_toString(dynamic this__) {
 class SortedListValue<T extends Comparable<dynamic>> extends VPtr {
   late StaticList<T> _items;
   SortedListValue() {
-    vptr['add'] = _TearOff_SortedList_add<T>();
-    vptr['get_first'] = _TearOff_SortedList_get_first<T>();
-    vptr['get_last'] = _TearOff_SortedList_get_last<T>();
-    vptr['get_length'] = _TearOff_SortedList_get_length<T>();
-    vptr['toList'] = _TearOff_SortedList_toList<T>();
-    vptr['toString'] = _TearOff_SortedList_toString<T>();
+    vptr['add'] = SortedList_add<T>;
+    vptr['get_first'] = SortedList_get_first<T>;
+    vptr['get_last'] = SortedList_get_last<T>;
+    vptr['get_length'] = SortedList_get_length<T>;
+    vptr['toList'] = SortedList_toList<T>;
+    vptr['toString'] = SortedList_toString<T>;
   }
 }
 
@@ -782,7 +782,7 @@ class NullSafetyDemoValue extends VPtr {
   late String? nullableField;
   late String nonNullField;
   NullSafetyDemoValue() {
-    vptr['demonstrate'] = const _TearOff_NullSafetyDemo_demonstrate();
+    vptr['demonstrate'] = NullSafetyDemo_demonstrate;
   }
 }
 
@@ -805,8 +805,8 @@ String NullSafetyDemo_demonstrate(dynamic this__) {
 
 class RendererValue extends VPtr {
   RendererValue() {
-    vptr['render'] = const _TearOff_Renderer_render();
-    vptr['get_name'] = const _TearOff_Renderer_get_name();
+    vptr['render'] = Renderer_render;
+    vptr['get_name'] = Renderer_get_name;
   }
 }
 
@@ -826,8 +826,8 @@ String Renderer_get_name(dynamic this_) {
 
 class CircleRendererValue extends RendererValue {
   CircleRendererValue() {
-    vptr['render'] = const _TearOff_CircleRenderer_render();
-    vptr['get_name'] = const _TearOff_CircleRenderer_get_name();
+    vptr['render'] = CircleRenderer_render;
+    vptr['get_name'] = CircleRenderer_get_name;
   }
 }
 
@@ -839,7 +839,7 @@ CircleRendererValue CircleRenderer_new(dynamic this__) {
 
 void CircleRenderer_render(dynamic this__, String shape) {
   final this_ = this__ as CircleRendererValue;
-  print('  CircleRenderer: drawing ${shape}');
+  staticPrint('  CircleRenderer: drawing ${shape}');
 }
 
 String CircleRenderer_get_name(dynamic this__) {
@@ -851,14 +851,14 @@ String CircleRenderer_get_name(dynamic this__) {
 class PipelineValue<TInput, TOutput> extends VPtr {
   late TypeFunction1<TOutput, TInput> _transform;
   PipelineValue() {
-    vptr['execute'] = _TearOff_Pipeline_execute<TInput, TOutput>();
+    vptr['execute'] = Pipeline_execute<TInput, TOutput>;
   }
 }
 
 PipelineValue<TInput, TOutput> Pipeline_new<TInput, TOutput>(dynamic this__, TypeFunction1<TOutput, TInput> _transform) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
-  this_.vptr['then_String'] = _TearOff_Pipeline_then_String<TInput, TOutput>();
-  this_.vptr['then_int'] = _TearOff_Pipeline_then_int<TInput, TOutput>();
+  this_.vptr['then_String'] = Pipeline_then<TInput, TOutput, String>;
+  this_.vptr['then_int'] = Pipeline_then<TInput, TOutput, int>;
   this_._transform = _transform;
   return this_;
 }
@@ -877,10 +877,10 @@ PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dyn
 class BitFlagsValue extends VPtr {
   late int _flags;
   BitFlagsValue() {
-    vptr['set'] = const _TearOff_BitFlags_set();
-    vptr['clear'] = const _TearOff_BitFlags_clear();
-    vptr['has'] = const _TearOff_BitFlags_has();
-    vptr['toString'] = const _TearOff_BitFlags_toString();
+    vptr['set'] = BitFlags_set;
+    vptr['clear'] = BitFlags_clear;
+    vptr['has'] = BitFlags_has;
+    vptr['toString'] = BitFlags_toString;
   }
 }
 
@@ -911,9 +911,9 @@ bool BitFlags_has(dynamic this__, int flag) {
 String BitFlags_toString(dynamic this__) {
   final this_ = this__ as BitFlagsValue;
   final StaticList<String> parts = StaticList<String>();
-  if ((this_.vptr['has'] as TypeFunction2<bool, dynamic, int>)(this_, 1))   parts.add('r');
-  if ((this_.vptr['has'] as TypeFunction2<bool, dynamic, int>)(this_, 2))   parts.add('w');
-  if ((this_.vptr['has'] as TypeFunction2<bool, dynamic, int>)(this_, 4))   parts.add('x');
+  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 1))   parts.add('r');
+  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 2))   parts.add('w');
+  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 4))   parts.add('x');
   return (parts.isEmpty ? '-' : parts.join(''));
 }
 
@@ -926,7 +926,7 @@ int Timestamped_get_timestamp(dynamic this__) {
 
 String Timestamped_get_timeStr(dynamic this__) {
   final this_ = this__;
-  return 'T:${(this_.vptr['get_timestamp'] as TypeFunction1<int, dynamic>)(this_)}';
+  return 'T:${(this_.vptr['get_timestamp'] as int Function(dynamic))(this_)}';
 }
 
 
@@ -945,11 +945,11 @@ StaticList<String> Tagged_get_tags(dynamic this__) {
 class EventValue extends Event_Object_Timestamped_TaggedValue {
   late String name;
   EventValue() {
-    vptr['get_timestamp'] = const _TearOff_Event_get_timestamp();
-    vptr['get_timeStr'] = const _TearOff_Event_get_timeStr();
-    vptr['addTag'] = const _TearOff_Event_addTag();
-    vptr['get_tags'] = const _TearOff_Event_get_tags();
-    vptr['toString'] = const _TearOff_Event_toString();
+    vptr['get_timestamp'] = Event_get_timestamp;
+    vptr['get_timeStr'] = Event_get_timeStr;
+    vptr['addTag'] = Event_addTag;
+    vptr['get_tags'] = Event_get_tags;
+    vptr['toString'] = Event_toString;
   }
 }
 
@@ -962,7 +962,7 @@ EventValue Event_new(dynamic this__, String name) {
 
 String Event_toString(dynamic this__) {
   final this_ = this__ as EventValue;
-  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as TypeFunction1<String, dynamic>)(this_)}, tags=${(this_.vptr['get_tags'] as TypeFunction1<StaticList<String>, dynamic>)(this_)})';
+  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as String Function(dynamic))(this_)}, tags=${(this_.vptr['get_tags'] as StaticList<String> Function(dynamic))(this_)})';
 }
 
 int Event_get_timestamp(dynamic this__) {
@@ -989,13 +989,13 @@ StaticList<String> Event_get_tags(dynamic this__) {
 class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
   late Priority priority;
   ImportantEventValue() {
-    vptr['get_timestamp'] = const _TearOff_ImportantEvent_get_timestamp();
-    vptr['get_timeStr'] = const _TearOff_ImportantEvent_get_timeStr();
-    vptr['addTag'] = const _TearOff_ImportantEvent_addTag();
-    vptr['get_tags'] = const _TearOff_ImportantEvent_get_tags();
-    vptr['toString'] = const _TearOff_ImportantEvent_toString();
-    vptr['get_logTag'] = const _TearOff_ImportantEvent_get_logTag();
-    vptr['log'] = const _TearOff_ImportantEvent_log();
+    vptr['get_timestamp'] = ImportantEvent_get_timestamp;
+    vptr['get_timeStr'] = ImportantEvent_get_timeStr;
+    vptr['addTag'] = ImportantEvent_addTag;
+    vptr['get_tags'] = ImportantEvent_get_tags;
+    vptr['toString'] = ImportantEvent_toString;
+    vptr['get_logTag'] = ImportantEvent_get_logTag;
+    vptr['log'] = ImportantEvent_log;
   }
 }
 
@@ -1014,7 +1014,7 @@ String ImportantEvent_get_logTag(dynamic this__) {
 
 String ImportantEvent_toString(dynamic this__) {
   final this_ = this__ as ImportantEventValue;
-  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as TypeFunction1<String, dynamic>)(this_)})';
+  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as String Function(dynamic))(this_)})';
 }
 
 int ImportantEvent_get_timestamp(dynamic this__) {
@@ -1196,8 +1196,8 @@ StaticList<int> buildList() {
   return (StaticList<int>()..add(1)..add(2)..addAll(StaticList<int>.of([3, 4, 5]))..sort());
 }
 
-StringBuffer buildBuffer() {
-  return (StringBuffer()..write('Hello')..write(', ')..write('World')..writeln('!'));
+StaticStringBuffer buildBuffer() {
+  return (StaticStringBuffer()..write('Hello')..write(', ')..write('World')..writeln('!'));
 }
 
 StaticList<int> mergeAndFilter(StaticList<int> a, StaticList<int> b, bool includeNegative) {
@@ -1219,14 +1219,14 @@ int parseAndDivide(String a, String b) {
   try {
     final int x = int.parse(a);
     final int y = int.parse(b);
-    if ((y == 0))     throw ArgumentError('Division by zero');
+    if ((y == 0))     throw DartArgumentError('Division by zero');
     return (x ~/ y);
   }
  on FormatException {
     rethrow;
   }
  on ArgumentError catch (e) {
-    throw StateError('Math error: ${e.message}');
+    throw DartStateError('Math error: ${e.message}');
   }
 }
 
@@ -1252,7 +1252,7 @@ StaticList<B> flatMap<A, B>(StaticList<A> list, TypeFunction1<StaticList<B>, A> 
 T findMax<T extends Comparable<dynamic>>(StaticList<T> items) {
   T maxItem = items.first;
 {
-    Iterator<T> sync_for_iterator = items.iterator;
+    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final T item = sync_for_iterator.current;
 {
@@ -1271,7 +1271,7 @@ R applyTwice<T, R>(T value, TypeFunction1<R, T> fn1, TypeFunction1<R, R> fn2) {
 
 String? findFirst(StaticList<String> items, TypeFunction1<bool, String> test) {
 {
-    Iterator<String> sync_for_iterator = items.iterator;
+    StaticIterator<String> sync_for_iterator = StaticIterator(items.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final String item = sync_for_iterator.current;
 {
@@ -1285,7 +1285,7 @@ String? findFirst(StaticList<String> items, TypeFunction1<bool, String> test) {
 StaticList<int> filterWithForIn(StaticList<int> items) {
   final StaticList<int> result = StaticList<int>();
 {
-    Iterator<int> sync_for_iterator = items.iterator;
+    StaticIterator<int> sync_for_iterator = StaticIterator(items.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final int item = sync_for_iterator.current;
 {
@@ -1342,11 +1342,11 @@ double safeCast(Object value) {
 }
 
 String tryCatchFinally(int code) {
-  final StringBuffer log = StringBuffer();
+  final StaticStringBuffer log = StaticStringBuffer();
   try {
     log.write('try ');
-    if ((code == 1))     throw FormatException('bad format');
-    if ((code == 2))     throw ArgumentError('bad arg');
+    if ((code == 1))     throw DartFormatException('bad format');
+    if ((code == 2))     throw DartArgumentError('bad arg');
     log.write('ok ');
   }
  on FormatException catch (e) {
@@ -1389,64 +1389,64 @@ String dayType(int day) {
 }
 
 void main() {
-  print('=== 全面语法节点还原测试 ===\n');
-  print('--- 1. mixin + implements ---');
+  staticPrint('=== 全面语法节点还原测试 ===\n');
+  staticPrint('--- 1. mixin + implements ---');
   final DogValue dog1 = Dog_new(DogValue(), 'Rex', 3, 'Labrador');
   final DogValue dog2 = Dog_new(DogValue(), 'Max', 5, 'Poodle');
-  (dog1.vptr['printInfo'] as TypeFunction1<void, dynamic>)(dog1);
-  print('${(dog1.vptr['speak'] as TypeFunction1<String, dynamic>)(dog1)} (${dog1.breed})');
-  print('dog1 < dog2: ${(dog1.vptr['isLessThan'] as TypeFunction2<bool, dynamic, DogValue>)(dog1, dog2)}');
-  print('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as TypeFunction2<bool, dynamic, DogValue>)(dog1, dog2)}');
+  (dog1.vptr['printInfo'] as void Function(dynamic))(dog1);
+  staticPrint('${(dog1.vptr['speak'] as String Function(dynamic))(dog1)} (${dog1.breed})');
+  staticPrint('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(dynamic, DogValue))(dog1, dog2)}');
+  staticPrint('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(dynamic, DogValue))(dog1, dog2)}');
   final CatValue cat = Cat_new(CatValue(), 'Whiskers', 2);
-  (cat.vptr['printInfo'] as TypeFunction1<void, dynamic>)(cat);
-  print('${(cat.vptr['speak'] as TypeFunction1<String, dynamic>)(cat)}, mood: ${(cat.vptr['get_mood'] as TypeFunction1<String, dynamic>)(cat)}');
-  (cat.vptr['set_mood'] as TypeFunction2<void, dynamic, String>)(cat, 'sleepy');
-  print('mood after set: ${(cat.vptr['get_mood'] as TypeFunction1<String, dynamic>)(cat)}');
-  print('\n--- 2. operator 重载 ---');
-  final Vector2DValue sum = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorPlus'] as TypeFunction2<Vector2DValue, dynamic, Vector2DValue>)(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
-  final Vector2DValue diff = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorMinus'] as TypeFunction2<Vector2DValue, dynamic, Vector2DValue>)(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
-  final Vector2DValue scaled = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorStar'] as TypeFunction2<Vector2DValue, dynamic, double>)(Vector2D_new(Vector2DValue(), 3.0, 4.0), 2.0);
-  print('v1 + v2 = ${sum}');
-  print('v1 - v2 = ${diff}');
-  print('v1 * 2 = ${scaled}');
-  print('v1.length = ${(Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['get_length'] as TypeFunction1<double, dynamic>)(Vector2D_new(Vector2DValue(), 3.0, 4.0)).toStringAsFixed(2)}');
-  print('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
-  print('\n--- 3. static + factory ---');
+  (cat.vptr['printInfo'] as void Function(dynamic))(cat);
+  staticPrint('${(cat.vptr['speak'] as String Function(dynamic))(cat)}, mood: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
+  (cat.vptr['set_mood'] as void Function(dynamic, String))(cat, 'sleepy');
+  staticPrint('mood after set: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
+  staticPrint('\n--- 2. operator 重载 ---');
+  final Vector2DValue sum = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
+  final Vector2DValue diff = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
+  final Vector2DValue scaled = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(Vector2D_new(Vector2DValue(), 3.0, 4.0), 2.0);
+  staticPrint('v1 + v2 = ${sum}');
+  staticPrint('v1 - v2 = ${diff}');
+  staticPrint('v1 * 2 = ${scaled}');
+  staticPrint('v1.length = ${(Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['get_length'] as double Function(dynamic))(Vector2D_new(Vector2DValue(), 3.0, 4.0)).toStringAsFixed(2)}');
+  staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
+  staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
   final CounterValue c2 = Counter_new('beta', initialValue: 50);
   final CounterValue c3 = Counter_new_fromString('gamma:25');
-  (c1.vptr['increment'] as TypeFunction2<void, dynamic, int>)(c1, 10);
-  (c2.vptr['decrement'] as TypeFunction2<void, dynamic, int>)(c2, 5);
-  (c3.vptr['increment'] as TypeFunction2<void, dynamic, int>)(c3, 1);
-  print('${c1}, ${c2}, ${c3}');
-  print('instances: ${Counter_instanceCount()}');
-  print('maxValue: 100');
-  print('\n--- 4. Result<T> + named params ---');
-  print('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
-  print('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (Result_new_success<int>(ResultValue<int>(), 42).vptr['fold_String'] as TypeFunction3<String, dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>>)(Result_new_success<int>(ResultValue<int>(), 42), ClosureEnv_main_7(), ClosureEnv_main_8());
-  final String errMsg = (Result_new_failure<int>(ResultValue<int>(), 'not found').vptr['fold_String'] as TypeFunction3<String, dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>>)(Result_new_failure<int>(ResultValue<int>(), 'not found'), ClosureEnv_main_11(), ClosureEnv_main_12());
-  print('okMsg: ${okMsg}');
-  print('errMsg: ${errMsg}');
-  print('\n--- 5. 可选参数 ---');
-  print(formatMessage('Hello {subject}!', 'Dart'));
-  print(formatMessage('Count: {count}', null, 99));
-  print(formatMessage('No params'));
-  print(buildQuery(endpoint: 'api.example.com/users'));
-  print(buildQuery(endpoint: 'api.example.com/search', params: StaticMap<String, String>.of({'q': 'dart', 'page': '1'}), maxWait: 10, secure: false));
-  print('\n--- 6. sync* 生成器 ---');
+  (c1.vptr['increment'] as void Function(dynamic, int))(c1, 10);
+  (c2.vptr['decrement'] as void Function(dynamic, int))(c2, 5);
+  (c3.vptr['increment'] as void Function(dynamic, int))(c3, 1);
+  staticPrint('${c1}, ${c2}, ${c3}');
+  staticPrint('instances: ${Counter_instanceCount()}');
+  staticPrint('maxValue: 100');
+  staticPrint('\n--- 4. Result<T> + named params ---');
+  staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
+  staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
+  final String okMsg = (Result_new_success<int>(ResultValue<int>(), 42).vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(Result_new_success<int>(ResultValue<int>(), 42), ClosureEnv_main_7(), ClosureEnv_main_8());
+  final String errMsg = (Result_new_failure<int>(ResultValue<int>(), 'not found').vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(Result_new_failure<int>(ResultValue<int>(), 'not found'), ClosureEnv_main_11(), ClosureEnv_main_12());
+  staticPrint('okMsg: ${okMsg}');
+  staticPrint('errMsg: ${errMsg}');
+  staticPrint('\n--- 5. 可选参数 ---');
+  staticPrint(formatMessage('Hello {subject}!', 'Dart'));
+  staticPrint(formatMessage('Count: {count}', null, 99));
+  staticPrint(formatMessage('No params'));
+  staticPrint(buildQuery(endpoint: 'api.example.com/users'));
+  staticPrint(buildQuery(endpoint: 'api.example.com/search', params: StaticMap<String, String>.of({'q': 'dart', 'page': '1'}), maxWait: 10, secure: false));
+  staticPrint('\n--- 6. sync* 生成器 ---');
   final StaticList<int> r = StaticList.of(range(0, 10, 2).toList());
-  print('range(0,10,2): ${r}');
+  staticPrint('range(0,10,2): ${r}');
   final StaticList<int> fib = StaticList.of(fibonacci(8).toList());
-  print('fibonacci(8): ${fib}');
-  print('\n--- 7. async countdown ---');
+  staticPrint('fibonacci(8): ${fib}');
+  staticPrint('\n--- 7. async countdown ---');
   final StaticList<String> countdown = StaticList<String>.of(smAwait(countDown(3)));
-  print('countdown: ${countdown}');
-  print('\n--- 8. record 类型 ---');
+  staticPrint('countdown: ${countdown}');
+  staticPrint('\n--- 8. record 类型 ---');
   final (String, int) person = getPersonRecord();
-  print('person: ${person.$1}, age=${person.$2}');
+  staticPrint('person: ${person.$1}, age=${person.$2}');
   final (String, double, double) loc = getLocation();
-  print('location: ${loc.$1} (${loc.$2}, ${loc.$3})');
+  staticPrint('location: ${loc.$1} (${loc.$2}, ${loc.$3})');
   final int q;
   final int r2;
 {
@@ -1454,544 +1454,194 @@ void main() {
     q = _v10.$1;
     r2 = _v10.$2;
   }
-  print('divmod(17,5): quotient=${q}, remainder=${r2}');
-  print('\n--- 9. pattern matching ---');
+  staticPrint('divmod(17,5): quotient=${q}, remainder=${r2}');
+  staticPrint('\n--- 9. pattern matching ---');
   final StaticList<Object?> values = StaticList<Object?>.of([null, (-5), 42, '', 'hello', StaticList<int>(), StaticList<int>.of([1, 2, 3])]);
 {
-    Iterator<Object?> sync_for_iterator = values.iterator;
+    StaticIterator<Object?> sync_for_iterator = StaticIterator(values.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final Object? v = sync_for_iterator.current;
 {
-        print('  ${describeValue(v)}');
+        staticPrint('  ${describeValue(v)}');
       }
     }
   }
-  print('\n--- 10. 级联操作符 ---');
+  staticPrint('\n--- 10. 级联操作符 ---');
   final StaticList<int> list = StaticList<int>.of(buildList());
-  print('buildList: ${list}');
-  final StringBuffer buf = buildBuffer();
-  print('buildBuffer: ${buf.toString().trim()}');
-  print('\n--- 11. 展开 + 集合 if/for ---');
+  staticPrint('buildList: ${list}');
+  final StaticStringBuffer buf = buildBuffer();
+  staticPrint('buildBuffer: ${buf.toString().trim()}');
+  staticPrint('\n--- 11. 展开 + 集合 if/for ---');
   final StaticList<int> merged = StaticList<int>.of(mergeAndFilter(StaticList<int>.of([1, 2]), StaticList<int>.of([3, 4]), true));
-  print('merged(includeNeg=true): ${merged}');
+  staticPrint('merged(includeNeg=true): ${merged}');
   final StaticList<int> mergedNoNeg = StaticList<int>.of(mergeAndFilter(StaticList<int>.of([1, 2]), StaticList<int>.of([3, 4]), false));
-  print('merged(includeNeg=false): ${mergedNoNeg}');
+  staticPrint('merged(includeNeg=false): ${mergedNoNeg}');
   final StaticMap<String, int> scores = StaticMap<String, int>.of(buildScoreMap(StaticList<String>.of(['Alice', 'Bob', 'Carol']), true));
-  print('scores: ${scores}');
-  print('\n--- 12. late 变量 ---');
+  staticPrint('scores: ${scores}');
+  staticPrint('\n--- 12. late 变量 ---');
   final LazyLoaderValue loader = LazyLoader_new(LazyLoaderValue());
-  print('before init: ${(loader.vptr['get_data'] as TypeFunction1<String, dynamic>)(loader)}, ${(loader.vptr['get_computedValue'] as TypeFunction1<int, dynamic>)(loader)}');
-  (loader.vptr['initialize'] as TypeFunction2<void, dynamic, String>)(loader, 'hello');
-  print('after init: ${(loader.vptr['get_data'] as TypeFunction1<String, dynamic>)(loader)}, ${(loader.vptr['get_computedValue'] as TypeFunction1<int, dynamic>)(loader)}');
-  print('\n--- 13. rethrow ---');
+  staticPrint('before init: ${(loader.vptr['get_data'] as String Function(dynamic))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(dynamic))(loader)}');
+  (loader.vptr['initialize'] as void Function(dynamic, String))(loader, 'hello');
+  staticPrint('after init: ${(loader.vptr['get_data'] as String Function(dynamic))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(dynamic))(loader)}');
+  staticPrint('\n--- 13. rethrow ---');
   try {
     parseAndDivide('10', '2');
-    print('10/2 = ${parseAndDivide('10', '2')}');
+    staticPrint('10/2 = ${parseAndDivide('10', '2')}');
   }
  catch (e) {
-    print('unexpected: ${e}');
+    staticPrint('unexpected: ${e}');
   }
   try {
     parseAndDivide('10', '0');
   }
  on StateError catch (e) {
-    print('StateError: ${e.message}');
+    staticPrint('StateError: ${e.message}');
   }
   try {
     parseAndDivide('abc', '2');
   }
  on FormatException catch (e) {
-    print('FormatException: ${e.message}');
+    staticPrint('FormatException: ${e.message}');
   }
-  print('\n--- 14. assert ---');
+  staticPrint('\n--- 14. assert ---');
   final BoundedValueValue bv = BoundedValue_new(BoundedValueValue(), 0.0, 10.0, 5.0);
-  (bv.vptr['set'] as TypeFunction2<void, dynamic, double>)(bv, 7.5);
-  print('BoundedValue: ${(bv.vptr['get_current'] as TypeFunction1<double, dynamic>)(bv)}');
-  print('\n--- 15. 字符串 ---');
-  print(multiLineExample());
-  print('\n--- 16. typedef + 函数式组合 ---');
+  (bv.vptr['set'] as void Function(dynamic, double))(bv, 7.5);
+  staticPrint('BoundedValue: ${(bv.vptr['get_current'] as double Function(dynamic))(bv)}');
+  staticPrint('\n--- 15. 字符串 ---');
+  staticPrint(multiLineExample());
+  staticPrint('\n--- 16. typedef + 函数式组合 ---');
   final TypeFunction1<String, int> doubleIt = compose<int, int, String>(ClosureEnv_main_13(), ClosureEnv_main_14());
-  print('compose(5): ${doubleIt(5)}');
+  staticPrint('compose(5): ${doubleIt(5)}');
   final TypeFunction1<bool, int> isPositive = ClosureEnv_main_15();
   final TypeFunction1<bool, int> isEven = ClosureEnv_main_16();
   final TypeFunction1<bool, int> isPositiveEven = and<int>(isPositive, isEven);
   final StaticList<int> nums = StaticList<int>.of([(-2), (-1), 0, 1, 2, 3, 4]);
-  print('positiveEvens: ${StaticList.of(nums.where(isPositiveEven).toList())}');
+  staticPrint('positiveEvens: ${StaticList.of(nums.where(isPositiveEven).toList())}');
   final StaticList<int> nested = StaticList<int>.of(flatMap<int, int>(StaticList<int>.of([1, 2, 3]), ClosureEnv_main_17()));
-  print('flatMap: ${nested}');
-  print('\n--- 19. 多层继承链 ---');
+  staticPrint('flatMap: ${nested}');
+  staticPrint('\n--- 19. 多层继承链 ---');
   final ShapeValue shape = Shape_new(ShapeValue(), 'red');
-  print((shape.vptr['describe'] as TypeFunction1<String, dynamic>)(shape));
+  staticPrint((shape.vptr['describe'] as String Function(dynamic))(shape));
   final ShapeValue transparentShape = Shape_new_transparent(ShapeValue(), 'blue');
-  print((transparentShape.vptr['describe'] as TypeFunction1<String, dynamic>)(transparentShape));
+  staticPrint((transparentShape.vptr['describe'] as String Function(dynamic))(transparentShape));
   final PolygonValue polygon = Polygon_new(PolygonValue(), 'green', 6, opacity: 0.8);
-  print((polygon.vptr['describe'] as TypeFunction1<String, dynamic>)(polygon));
-  print('perimeter: ${(polygon.vptr['perimeter'] as TypeFunction2<double, dynamic, double>)(polygon, 3.0)}');
+  staticPrint((polygon.vptr['describe'] as String Function(dynamic))(polygon));
+  staticPrint('perimeter: ${(polygon.vptr['perimeter'] as double Function(dynamic, double))(polygon, 3.0)}');
   final RegularPolygonValue hexagon = RegularPolygon_new(RegularPolygonValue(), 'yellow', 6, 5.0);
-  print((hexagon.vptr['describe'] as TypeFunction1<String, dynamic>)(hexagon));
-  print('perimeter: ${(hexagon.vptr['perimeter'] as TypeFunction2<double, dynamic, double?>)(hexagon, null)}');
-  print('area: ${(hexagon.vptr['area'] as TypeFunction1<double, dynamic>)(hexagon)}');
+  staticPrint((hexagon.vptr['describe'] as String Function(dynamic))(hexagon));
+  staticPrint('perimeter: ${(hexagon.vptr['perimeter'] as double Function(dynamic, double?))(hexagon, null)}');
+  staticPrint('area: ${(hexagon.vptr['area'] as double Function(dynamic))(hexagon)}');
   final SquareValue square = Square_new(SquareValue(), 'white', 10.0, opacity: 0.9);
-  print((square.vptr['describe'] as TypeFunction1<String, dynamic>)(square));
-  print('square perimeter: ${(square.vptr['perimeter'] as TypeFunction2<double, dynamic, double?>)(square, null)}');
-  print('\n--- 20. implements 多接口 ---');
+  staticPrint((square.vptr['describe'] as String Function(dynamic))(square));
+  staticPrint('square perimeter: ${(square.vptr['perimeter'] as double Function(dynamic, double?))(square, null)}');
+  staticPrint('\n--- 20. implements 多接口 ---');
   final DataPointValue dp1 = DataPoint_new(DataPointValue(), 1.0, 2.0, 'A');
   final DataPointValue dp2 = DataPoint_new(DataPointValue(), 3.0, 1.0, 'B');
-  print('dp1: ${dp1}');
-  print('dp1.serialize: ${(dp1.vptr['serialize'] as TypeFunction1<String, dynamic>)(dp1)}');
-  final DataPointValue dp1Clone = (dp1.vptr['clone'] as TypeFunction1<DataPointValue, dynamic>)(dp1);
-  print('dp1.clone: ${dp1Clone}');
-  print('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as TypeFunction2<int, dynamic, DataPointValue>)(dp1, dp2)}');
-  print('\n--- 21. mixin on 约束 ---');
+  staticPrint('dp1: ${dp1}');
+  staticPrint('dp1.serialize: ${(dp1.vptr['serialize'] as String Function(dynamic))(dp1)}');
+  final DataPointValue dp1Clone = (dp1.vptr['clone'] as DataPointValue Function(dynamic))(dp1);
+  staticPrint('dp1.clone: ${dp1Clone}');
+  staticPrint('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(dynamic, DataPointValue))(dp1, dp2)}');
+  staticPrint('\n--- 21. mixin on 约束 ---');
   final LoggedDataPointValue ldp = LoggedDataPoint_new(LoggedDataPointValue(), 5.0, 6.0, 'logged');
-  (ldp.vptr['log'] as TypeFunction2<void, dynamic, String>)(ldp, 'created');
-  print('validate: ${(ldp.vptr['validate'] as TypeFunction1<bool, dynamic>)(ldp)}');
-  print('serialize: ${(ldp.vptr['serialize'] as TypeFunction1<String, dynamic>)(ldp)}');
-  print('\n--- 22. 增强枚举 ---');
-  print('Priority.high: ${Priority}.high');
-  print('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
-  print('low > high: ${Priority_isHigherThan(Priority.low, Priority.high)}');
+  (ldp.vptr['log'] as void Function(dynamic, String))(ldp, 'created');
+  staticPrint('validate: ${(ldp.vptr['validate'] as bool Function(dynamic))(ldp)}');
+  staticPrint('serialize: ${(ldp.vptr['serialize'] as String Function(dynamic))(ldp)}');
+  staticPrint('\n--- 22. 增强枚举 ---');
+  staticPrint('Priority.high: ${Priority}.high');
+  staticPrint('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
+  staticPrint('low > high: ${Priority_isHigherThan(Priority.low, Priority.high)}');
 {
-    Iterator<Priority> sync_for_iterator = const [Priority.low, Priority.medium, Priority.high, Priority.critical].iterator;
+    StaticIterator<Priority> sync_for_iterator = StaticIterator(const [Priority.low, Priority.medium, Priority.high, Priority.critical].iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final Priority p = sync_for_iterator.current;
 {
-        print('  ${Priority_toString(p)}');
+        staticPrint('  ${Priority_toString(p)}');
       }
     }
   }
-  print('GET isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.get)}');
-  print('POST isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.post)}');
-  print('\n--- 23. 重定向构造函数 ---');
+  staticPrint('GET isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.get)}');
+  staticPrint('POST isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.post)}');
+  staticPrint('\n--- 23. 重定向构造函数 ---');
   final ConfigValue cfg1 = Config_new(ConfigValue(), 'example.com', 8080);
   final ConfigValue cfg2 = Config_new_localhost(ConfigValue());
   final ConfigValue cfg3 = Config_new_production(ConfigValue(), 'api.example.com');
-  print('cfg1: ${cfg1}');
-  print('cfg2: ${cfg2}');
-  print('cfg3: ${cfg3}');
-  print('\n--- 24. 泛型约束 ---');
+  staticPrint('cfg1: ${cfg1}');
+  staticPrint('cfg2: ${cfg2}');
+  staticPrint('cfg3: ${cfg3}');
+  staticPrint('\n--- 24. 泛型约束 ---');
   final SortedListValue<int> sortedList = SortedList_new<int>(SortedListValue<int>());
-  (sortedList.vptr['add'] as TypeFunction2<void, dynamic, int>)(sortedList, 5);
-  (sortedList.vptr['add'] as TypeFunction2<void, dynamic, int>)(sortedList, 1);
-  (sortedList.vptr['add'] as TypeFunction2<void, dynamic, int>)(sortedList, 3);
-  (sortedList.vptr['add'] as TypeFunction2<void, dynamic, int>)(sortedList, 2);
-  print('sorted: ${sortedList}');
-  print('first: ${(sortedList.vptr['get_first'] as TypeFunction1<int, dynamic>)(sortedList)}, last: ${(sortedList.vptr['get_last'] as TypeFunction1<int, dynamic>)(sortedList)}');
+  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 5);
+  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 1);
+  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 3);
+  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 2);
+  staticPrint('sorted: ${sortedList}');
+  staticPrint('first: ${(sortedList.vptr['get_first'] as int Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as int Function(dynamic))(sortedList)}');
   final int maxVal = findMax<int>(StaticList<int>.of([3, 7, 1, 9, 4]));
-  print('findMax: ${maxVal}');
+  staticPrint('findMax: ${maxVal}');
   final String result = applyTwice<int, String>(5, ClosureEnv_main_18(), ClosureEnv_main_19());
-  print('applyTwice: ${result}');
-  print('\n--- 25. null safety ---');
+  staticPrint('applyTwice: ${result}');
+  staticPrint('\n--- 25. null safety ---');
   final NullSafetyDemoValue ns1 = NullSafetyDemo_new(NullSafetyDemoValue(), 'hello', 'world');
-  print('ns1: ${(ns1.vptr['demonstrate'] as TypeFunction1<String, dynamic>)(ns1)}');
+  staticPrint('ns1: ${(ns1.vptr['demonstrate'] as String Function(dynamic))(ns1)}');
   final NullSafetyDemoValue ns2 = NullSafetyDemo_new(NullSafetyDemoValue(), 'hello');
-  print('ns2: ${(ns2.vptr['demonstrate'] as TypeFunction1<String, dynamic>)(ns2)}');
+  staticPrint('ns2: ${(ns2.vptr['demonstrate'] as String Function(dynamic))(ns2)}');
   final String? found = findFirst(StaticList<String>.of(['apple', 'banana', 'cherry']), ClosureEnv_main_20());
-  print('findFirst(b): ${found}');
+  staticPrint('findFirst(b): ${found}');
   final String? notFound = findFirst(StaticList<String>.of(['apple', 'banana']), ClosureEnv_main_21());
-  print('findFirst(z): ${notFound}');
-  print('\n--- 26. for-in + do-while ---');
+  staticPrint('findFirst(z): ${notFound}');
+  staticPrint('\n--- 26. for-in + do-while ---');
   final StaticList<int> filtered = StaticList<int>.of(filterWithForIn(StaticList<int>.of([5, (-3), 10, 200, 50, (-1), 80])));
-  print('filterWithForIn: ${filtered}');
-  print('collatz(6): ${collatzSteps(6)}');
-  print('collatz(27): ${collatzSteps(27)}');
-  print('\n--- 27. 类型测试 ---');
-  print(typeTest(42));
-  print(typeTest('hello'));
-  print(typeTest(true));
-  print(typeTest(StaticList<int>.of([1, 2, 3])));
-  print('safeCast(3.14): ${safeCast(3.14)}');
-  print('safeCast("x"): ${safeCast('x')}');
-  print('\n--- 28. try-catch-finally ---');
-  print('code=0: ${tryCatchFinally(0)}');
-  print('code=1: ${tryCatchFinally(1)}');
-  print('code=2: ${tryCatchFinally(2)}');
-  print('\n--- 29. covariant ---');
+  staticPrint('filterWithForIn: ${filtered}');
+  staticPrint('collatz(6): ${collatzSteps(6)}');
+  staticPrint('collatz(27): ${collatzSteps(27)}');
+  staticPrint('\n--- 27. 类型测试 ---');
+  staticPrint(typeTest(42));
+  staticPrint(typeTest('hello'));
+  staticPrint(typeTest(true));
+  staticPrint(typeTest(StaticList<int>.of([1, 2, 3])));
+  staticPrint('safeCast(3.14): ${safeCast(3.14)}');
+  staticPrint('safeCast("x"): ${safeCast('x')}');
+  staticPrint('\n--- 28. try-catch-finally ---');
+  staticPrint('code=0: ${tryCatchFinally(0)}');
+  staticPrint('code=1: ${tryCatchFinally(1)}');
+  staticPrint('code=2: ${tryCatchFinally(2)}');
+  staticPrint('\n--- 29. covariant ---');
   final CircleRendererValue renderer = CircleRenderer_new(CircleRendererValue());
-  print('renderer: ${(renderer.vptr['get_name'] as TypeFunction1<String, dynamic>)(renderer)}');
-  (renderer.vptr['render'] as TypeFunction2<void, dynamic, String>)(renderer, 'circle');
-  print('\n--- 30. Pipeline 泛型链 ---');
-  final PipelineValue<int, String> pipeline = ((Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()).vptr['then_int'] as TypeFunction2<PipelineValue<int, int>, dynamic, TypeFunction1<int, String>>)(Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()), ClosureEnv_main_24()).vptr['then_String'] as TypeFunction2<PipelineValue<int, String>, dynamic, TypeFunction1<String, int>>)((Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()).vptr['then_int'] as TypeFunction2<PipelineValue<int, int>, dynamic, TypeFunction1<int, String>>)(Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()), ClosureEnv_main_24()), ClosureEnv_main_26());
-  print('pipeline(42): ${(pipeline.vptr['execute'] as TypeFunction2<String, dynamic, int>)(pipeline, 42)}');
-  print('pipeline(12345): ${(pipeline.vptr['execute'] as TypeFunction2<String, dynamic, int>)(pipeline, 12345)}');
-  print('\n--- 31. switch-case ---');
-  print('day 1: ${dayType(1)}');
-  print('day 3: ${dayType(3)}');
-  print('day 7: ${dayType(7)}');
-  print('day 9: ${dayType(9)}');
-  print('\n--- 32. 位运算 ---');
+  staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(dynamic))(renderer)}');
+  (renderer.vptr['render'] as void Function(dynamic, String))(renderer, 'circle');
+  staticPrint('\n--- 30. Pipeline 泛型链 ---');
+  final PipelineValue<int, String> pipeline = ((Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()).vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()), ClosureEnv_main_24()).vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))((Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()).vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(Pipeline_new<int, String>(PipelineValue<int, String>(), ClosureEnv_main_22()), ClosureEnv_main_24()), ClosureEnv_main_26());
+  staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 42)}');
+  staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 12345)}');
+  staticPrint('\n--- 31. switch-case ---');
+  staticPrint('day 1: ${dayType(1)}');
+  staticPrint('day 3: ${dayType(3)}');
+  staticPrint('day 7: ${dayType(7)}');
+  staticPrint('day 9: ${dayType(9)}');
+  staticPrint('\n--- 32. 位运算 ---');
   final BitFlagsValue flags = BitFlags_new(BitFlagsValue());
-  (flags.vptr['set'] as TypeFunction2<void, dynamic, int>)(flags, 1);
-  (flags.vptr['set'] as TypeFunction2<void, dynamic, int>)(flags, 4);
-  print('flags: ${flags}');
-  print('has read: ${(flags.vptr['has'] as TypeFunction2<bool, dynamic, int>)(flags, 1)}');
-  print('has write: ${(flags.vptr['has'] as TypeFunction2<bool, dynamic, int>)(flags, 2)}');
-  (flags.vptr['set'] as TypeFunction2<void, dynamic, int>)(flags, 2);
-  print('after set write: ${flags}');
-  (flags.vptr['clear'] as TypeFunction2<void, dynamic, int>)(flags, 4);
-  print('after clear execute: ${flags}');
-  print('\n--- 33. 多层 mixin ---');
+  (flags.vptr['set'] as void Function(dynamic, int))(flags, 1);
+  (flags.vptr['set'] as void Function(dynamic, int))(flags, 4);
+  staticPrint('flags: ${flags}');
+  staticPrint('has read: ${(flags.vptr['has'] as bool Function(dynamic, int))(flags, 1)}');
+  staticPrint('has write: ${(flags.vptr['has'] as bool Function(dynamic, int))(flags, 2)}');
+  (flags.vptr['set'] as void Function(dynamic, int))(flags, 2);
+  staticPrint('after set write: ${flags}');
+  (flags.vptr['clear'] as void Function(dynamic, int))(flags, 4);
+  staticPrint('after clear execute: ${flags}');
+  staticPrint('\n--- 33. 多层 mixin ---');
   final EventValue event = Event_new(EventValue(), 'meeting');
-  (event.vptr['addTag'] as TypeFunction2<void, dynamic, String>)(event, 'work');
-  (event.vptr['addTag'] as TypeFunction2<void, dynamic, String>)(event, 'important');
-  print(event);
+  (event.vptr['addTag'] as void Function(dynamic, String))(event, 'work');
+  (event.vptr['addTag'] as void Function(dynamic, String))(event, 'important');
+  staticPrint(event);
   final ImportantEventValue impEvent = ImportantEvent_new(ImportantEventValue(), 'deadline', Priority.critical);
-  (impEvent.vptr['addTag'] as TypeFunction2<void, dynamic, String>)(impEvent, 'urgent');
-  (impEvent.vptr['log'] as TypeFunction2<void, dynamic, String>)(impEvent, 'created');
-  print(impEvent);
-  print('\n=== 所有测试通过 ✅ ===');
+  (impEvent.vptr['addTag'] as void Function(dynamic, String))(impEvent, 'urgent');
+  (impEvent.vptr['log'] as void Function(dynamic, String))(impEvent, 'created');
+  staticPrint(impEvent);
+  staticPrint('\n=== 所有测试通过 ✅ ===');
 }
 
-class _TearOff_Animal_speak extends TypeFunction1<String, dynamic> {
-  const _TearOff_Animal_speak();
-  @override
-  String call(dynamic this_) => Animal_speak(this_);
-}
-class _TearOff_Animal_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Animal_toString();
-  @override
-  String call(dynamic this_) => Animal_toString(this_);
-}
-class _TearOff_Dog_speak extends TypeFunction1<String, dynamic> {
-  const _TearOff_Dog_speak();
-  @override
-  String call(dynamic this_) => Dog_speak(this_);
-}
-class _TearOff_Dog_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Dog_toString();
-  @override
-  String call(dynamic this_) => Dog_toString(this_);
-}
-class _TearOff_Dog_get_displayName extends TypeFunction1<String, dynamic> {
-  const _TearOff_Dog_get_displayName();
-  @override
-  String call(dynamic this_) => Dog_get_displayName(this_);
-}
-class _TearOff_Dog_printInfo extends TypeFunction1<void, dynamic> {
-  const _TearOff_Dog_printInfo();
-  @override
-  void call(dynamic this_) => Dog_printInfo(this_);
-}
-class _TearOff_Dog_compareTo extends TypeFunction2<int, dynamic, DogValue> {
-  const _TearOff_Dog_compareTo();
-  @override
-  int call(dynamic this_, DogValue other) => Dog_compareTo(this_, other);
-}
-class _TearOff_Dog_isLessThan extends TypeFunction2<bool, dynamic, DogValue> {
-  const _TearOff_Dog_isLessThan();
-  @override
-  bool call(dynamic this_, DogValue other) => Dog_isLessThan(this_, other);
-}
-class _TearOff_Dog_isGreaterThan extends TypeFunction2<bool, dynamic, DogValue> {
-  const _TearOff_Dog_isGreaterThan();
-  @override
-  bool call(dynamic this_, DogValue other) => Dog_isGreaterThan(this_, other);
-}
-class _TearOff_Cat_speak extends TypeFunction1<String, dynamic> {
-  const _TearOff_Cat_speak();
-  @override
-  String call(dynamic this_) => Cat_speak(this_);
-}
-class _TearOff_Cat_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Cat_toString();
-  @override
-  String call(dynamic this_) => Cat_toString(this_);
-}
-class _TearOff_Cat_get_displayName extends TypeFunction1<String, dynamic> {
-  const _TearOff_Cat_get_displayName();
-  @override
-  String call(dynamic this_) => Cat_get_displayName(this_);
-}
-class _TearOff_Cat_printInfo extends TypeFunction1<void, dynamic> {
-  const _TearOff_Cat_printInfo();
-  @override
-  void call(dynamic this_) => Cat_printInfo(this_);
-}
-class _TearOff_Cat_get_mood extends TypeFunction1<String, dynamic> {
-  const _TearOff_Cat_get_mood();
-  @override
-  String call(dynamic this_) => Cat_get_mood(this_);
-}
-class _TearOff_Cat_set_mood extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_Cat_set_mood();
-  @override
-  void call(dynamic this_, String value) => Cat_set_mood(this_, value);
-}
-class _TearOff_Vector2D_operatorPlus extends TypeFunction2<Vector2DValue, dynamic, Vector2DValue> {
-  const _TearOff_Vector2D_operatorPlus();
-  @override
-  Vector2DValue call(dynamic this_, Vector2DValue other) => Vector2D_operatorPlus(this_, other);
-}
-class _TearOff_Vector2D_operatorMinus extends TypeFunction2<Vector2DValue, dynamic, Vector2DValue> {
-  const _TearOff_Vector2D_operatorMinus();
-  @override
-  Vector2DValue call(dynamic this_, Vector2DValue other) => Vector2D_operatorMinus(this_, other);
-}
-class _TearOff_Vector2D_operatorStar extends TypeFunction2<Vector2DValue, dynamic, double> {
-  const _TearOff_Vector2D_operatorStar();
-  @override
-  Vector2DValue call(dynamic this_, double scalar) => Vector2D_operatorStar(this_, scalar);
-}
-class _TearOff_Vector2D_operatorEq extends TypeFunction2<bool, dynamic, Object> {
-  const _TearOff_Vector2D_operatorEq();
-  @override
-  bool call(dynamic this_, Object other) => Vector2D_operatorEq(this_, other);
-}
-class _TearOff_Vector2D_get_length extends TypeFunction1<double, dynamic> {
-  const _TearOff_Vector2D_get_length();
-  @override
-  double call(dynamic this_) => Vector2D_get_length(this_);
-}
-class _TearOff_Vector2D_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Vector2D_toString();
-  @override
-  String call(dynamic this_) => Vector2D_toString(this_);
-}
-class _TearOff_Counter_increment extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_Counter_increment();
-  @override
-  void call(dynamic this_, int step) => Counter_increment(this_, step);
-}
-class _TearOff_Counter_decrement extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_Counter_decrement();
-  @override
-  void call(dynamic this_, int step) => Counter_decrement(this_, step);
-}
-class _TearOff_Counter_get_value extends TypeFunction1<int, dynamic> {
-  const _TearOff_Counter_get_value();
-  @override
-  int call(dynamic this_) => Counter_get_value(this_);
-}
-class _TearOff_Counter_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Counter_toString();
-  @override
-  String call(dynamic this_) => Counter_toString(this_);
-}
-class _TearOff_Result_toString<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_Result_toString();
-  @override
-  String call(dynamic this_) => Result_toString<T>(this_);
-}
-class _TearOff_Result_fold_String<T> extends TypeFunction3<String, dynamic, TypeFunction1<String, T>, TypeFunction1<String, String>> {
-  _TearOff_Result_fold_String();
-  @override
-  String call(dynamic this_, TypeFunction1<String, T> onSuccess, TypeFunction1<String, String> onFailure) => Result_fold<T, String>(this_, onSuccess, onFailure);
-}
-class _TearOff_LazyLoader_initialize extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_LazyLoader_initialize();
-  @override
-  void call(dynamic this_, String data) => LazyLoader_initialize(this_, data);
-}
-class _TearOff_LazyLoader_get_data extends TypeFunction1<String, dynamic> {
-  const _TearOff_LazyLoader_get_data();
-  @override
-  String call(dynamic this_) => LazyLoader_get_data(this_);
-}
-class _TearOff_LazyLoader_get_computedValue extends TypeFunction1<int, dynamic> {
-  const _TearOff_LazyLoader_get_computedValue();
-  @override
-  int call(dynamic this_) => LazyLoader_get_computedValue(this_);
-}
-class _TearOff_BoundedValue_set extends TypeFunction2<void, dynamic, double> {
-  const _TearOff_BoundedValue_set();
-  @override
-  void call(dynamic this_, double value) => BoundedValue_set(this_, value);
-}
-class _TearOff_BoundedValue_get_current extends TypeFunction1<double, dynamic> {
-  const _TearOff_BoundedValue_get_current();
-  @override
-  double call(dynamic this_) => BoundedValue_get_current(this_);
-}
-class _TearOff_Shape_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_Shape_describe();
-  @override
-  String call(dynamic this_) => Shape_describe(this_);
-}
-class _TearOff_Polygon_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_Polygon_describe();
-  @override
-  String call(dynamic this_) => Polygon_describe(this_);
-}
-class _TearOff_Polygon_perimeter extends TypeFunction2<double, dynamic, double> {
-  const _TearOff_Polygon_perimeter();
-  @override
-  double call(dynamic this_, double sideLength) => Polygon_perimeter(this_, sideLength);
-}
-class _TearOff_RegularPolygon_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_RegularPolygon_describe();
-  @override
-  String call(dynamic this_) => RegularPolygon_describe(this_);
-}
-class _TearOff_RegularPolygon_perimeter extends TypeFunction2<double, dynamic, double?> {
-  const _TearOff_RegularPolygon_perimeter();
-  @override
-  double call(dynamic this_, double? overrideSideLength) => RegularPolygon_perimeter(this_, overrideSideLength);
-}
-class _TearOff_RegularPolygon_area extends TypeFunction1<double, dynamic> {
-  const _TearOff_RegularPolygon_area();
-  @override
-  double call(dynamic this_) => RegularPolygon_area(this_);
-}
-class _TearOff_Square_describe extends TypeFunction1<String, dynamic> {
-  const _TearOff_Square_describe();
-  @override
-  String call(dynamic this_) => Square_describe(this_);
-}
-class _TearOff_Square_perimeter extends TypeFunction2<double, dynamic, double?> {
-  const _TearOff_Square_perimeter();
-  @override
-  double call(dynamic this_, double? overrideSideLength) => Square_perimeter(this_, overrideSideLength);
-}
-class _TearOff_Square_area extends TypeFunction1<double, dynamic> {
-  const _TearOff_Square_area();
-  @override
-  double call(dynamic this_) => Square_area(this_);
-}
-class _TearOff_Serializable_serialize extends TypeFunction1<String, dynamic> {
-  const _TearOff_Serializable_serialize();
-  @override
-  String call(dynamic this_) => Serializable_serialize(this_);
-}
-class _TearOff_Cloneable_clone<T> extends TypeFunction1<T, dynamic> {
-  _TearOff_Cloneable_clone();
-  @override
-  T call(dynamic this_) => Cloneable_clone<T>(this_);
-}
-class _TearOff_Comparable2_compareTo2<T> extends TypeFunction2<int, dynamic, T> {
-  _TearOff_Comparable2_compareTo2();
-  @override
-  int call(dynamic this_, T other) => Comparable2_compareTo2<T>(this_, other);
-}
-class _TearOff_DataPoint_serialize extends TypeFunction1<String, dynamic> {
-  const _TearOff_DataPoint_serialize();
-  @override
-  String call(dynamic this_) => DataPoint_serialize(this_);
-}
-class _TearOff_DataPoint_clone extends TypeFunction1<DataPointValue, dynamic> {
-  const _TearOff_DataPoint_clone();
-  @override
-  DataPointValue call(dynamic this_) => DataPoint_clone(this_);
-}
-class _TearOff_DataPoint_compareTo2 extends TypeFunction2<int, dynamic, DataPointValue> {
-  const _TearOff_DataPoint_compareTo2();
-  @override
-  int call(dynamic this_, DataPointValue other) => DataPoint_compareTo2(this_, other);
-}
-class _TearOff_DataPoint_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_DataPoint_toString();
-  @override
-  String call(dynamic this_) => DataPoint_toString(this_);
-}
-class _TearOff_LoggedDataPoint_serialize extends TypeFunction1<String, dynamic> {
-  const _TearOff_LoggedDataPoint_serialize();
-  @override
-  String call(dynamic this_) => LoggedDataPoint_serialize(this_);
-}
-class _TearOff_LoggedDataPoint_clone extends TypeFunction1<DataPointValue, dynamic> {
-  const _TearOff_LoggedDataPoint_clone();
-  @override
-  DataPointValue call(dynamic this_) => LoggedDataPoint_clone(this_);
-}
-class _TearOff_LoggedDataPoint_compareTo2 extends TypeFunction2<int, dynamic, DataPointValue> {
-  const _TearOff_LoggedDataPoint_compareTo2();
-  @override
-  int call(dynamic this_, DataPointValue other) => LoggedDataPoint_compareTo2(this_, other);
-}
-class _TearOff_LoggedDataPoint_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_LoggedDataPoint_toString();
-  @override
-  String call(dynamic this_) => LoggedDataPoint_toString(this_);
-}
-class _TearOff_LoggedDataPoint_get_logTag extends TypeFunction1<String, dynamic> {
-  const _TearOff_LoggedDataPoint_get_logTag();
-  @override
-  String call(dynamic this_) => LoggedDataPoint_get_logTag(this_);
-}
-class _TearOff_LoggedDataPoint_log extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_LoggedDataPoint_log();
-  @override
-  void call(dynamic this_, String message) => LoggedDataPoint_log(this_, message);
-}
-class _TearOff_LoggedDataPoint_validate extends TypeFunction1<bool, dynamic> {
-  const _TearOff_LoggedDataPoint_validate();
-  @override
-  bool call(dynamic this_) => LoggedDataPoint_validate(this_);
-}
-class _TearOff_Config_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Config_toString();
-  @override
-  String call(dynamic this_) => Config_toString(this_);
-}
-class _TearOff_SortedList_add<T extends Comparable<dynamic>> extends TypeFunction2<void, dynamic, T> {
-  _TearOff_SortedList_add();
-  @override
-  void call(dynamic this_, T item) => SortedList_add<T>(this_, item);
-}
-class _TearOff_SortedList_get_first<T extends Comparable<dynamic>> extends TypeFunction1<T, dynamic> {
-  _TearOff_SortedList_get_first();
-  @override
-  T call(dynamic this_) => SortedList_get_first<T>(this_);
-}
-class _TearOff_SortedList_get_last<T extends Comparable<dynamic>> extends TypeFunction1<T, dynamic> {
-  _TearOff_SortedList_get_last();
-  @override
-  T call(dynamic this_) => SortedList_get_last<T>(this_);
-}
-class _TearOff_SortedList_get_length<T extends Comparable<dynamic>> extends TypeFunction1<int, dynamic> {
-  _TearOff_SortedList_get_length();
-  @override
-  int call(dynamic this_) => SortedList_get_length<T>(this_);
-}
-class _TearOff_SortedList_toList<T extends Comparable<dynamic>> extends TypeFunction1<StaticList<T>, dynamic> {
-  _TearOff_SortedList_toList();
-  @override
-  StaticList<T> call(dynamic this_) => SortedList_toList<T>(this_);
-}
-class _TearOff_SortedList_toString<T extends Comparable<dynamic>> extends TypeFunction1<String, dynamic> {
-  _TearOff_SortedList_toString();
-  @override
-  String call(dynamic this_) => SortedList_toString<T>(this_);
-}
-class _TearOff_NullSafetyDemo_demonstrate extends TypeFunction1<String, dynamic> {
-  const _TearOff_NullSafetyDemo_demonstrate();
-  @override
-  String call(dynamic this_) => NullSafetyDemo_demonstrate(this_);
-}
-class _TearOff_Renderer_render extends TypeFunction2<void, dynamic, Object> {
-  const _TearOff_Renderer_render();
-  @override
-  void call(dynamic this_, Object shape) => Renderer_render(this_, shape);
-}
-class _TearOff_Renderer_get_name extends TypeFunction1<String, dynamic> {
-  const _TearOff_Renderer_get_name();
-  @override
-  String call(dynamic this_) => Renderer_get_name(this_);
-}
-class _TearOff_CircleRenderer_render extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_CircleRenderer_render();
-  @override
-  void call(dynamic this_, String shape) => CircleRenderer_render(this_, shape);
-}
-class _TearOff_CircleRenderer_get_name extends TypeFunction1<String, dynamic> {
-  const _TearOff_CircleRenderer_get_name();
-  @override
-  String call(dynamic this_) => CircleRenderer_get_name(this_);
-}
-class _TearOff_Pipeline_execute<TInput, TOutput> extends TypeFunction2<TOutput, dynamic, TInput> {
-  _TearOff_Pipeline_execute();
-  @override
-  TOutput call(dynamic this_, TInput input) => Pipeline_execute<TInput, TOutput>(this_, input);
-}
-class _TearOff_Pipeline_then_String<TInput, TOutput> extends TypeFunction2<PipelineValue<TInput, String>, dynamic, TypeFunction1<String, TOutput>> {
-  _TearOff_Pipeline_then_String();
-  @override
-  PipelineValue<TInput, String> call(dynamic this_, TypeFunction1<String, TOutput> next) => Pipeline_then<TInput, TOutput, String>(this_, next);
-}
-class _TearOff_Pipeline_then_int<TInput, TOutput> extends TypeFunction2<PipelineValue<TInput, int>, dynamic, TypeFunction1<int, TOutput>> {
-  _TearOff_Pipeline_then_int();
-  @override
-  PipelineValue<TInput, int> call(dynamic this_, TypeFunction1<int, TOutput> next) => Pipeline_then<TInput, TOutput, int>(this_, next);
-}
 class ClosureEnv_anon_0<TNewOutput, TOutput, TInput> extends TypeFunction1<TNewOutput, TInput> {
   PipelineValue<TInput, TOutput> this_;
   TypeFunction1<TNewOutput, TOutput> next;
@@ -2003,92 +1653,12 @@ TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(ClosureEnv_anon_0
   return env.next((() { final _let6 = input; return env.this_._transform(_let6); })());
 }
 
-class _TearOff_BitFlags_set extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_BitFlags_set();
-  @override
-  void call(dynamic this_, int flag) => BitFlags_set(this_, flag);
-}
-class _TearOff_BitFlags_clear extends TypeFunction2<void, dynamic, int> {
-  const _TearOff_BitFlags_clear();
-  @override
-  void call(dynamic this_, int flag) => BitFlags_clear(this_, flag);
-}
-class _TearOff_BitFlags_has extends TypeFunction2<bool, dynamic, int> {
-  const _TearOff_BitFlags_has();
-  @override
-  bool call(dynamic this_, int flag) => BitFlags_has(this_, flag);
-}
-class _TearOff_BitFlags_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_BitFlags_toString();
-  @override
-  String call(dynamic this_) => BitFlags_toString(this_);
-}
-class _TearOff_Event_get_timestamp extends TypeFunction1<int, dynamic> {
-  const _TearOff_Event_get_timestamp();
-  @override
-  int call(dynamic this_) => Event_get_timestamp(this_);
-}
-class _TearOff_Event_get_timeStr extends TypeFunction1<String, dynamic> {
-  const _TearOff_Event_get_timeStr();
-  @override
-  String call(dynamic this_) => Event_get_timeStr(this_);
-}
-class _TearOff_Event_addTag extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_Event_addTag();
-  @override
-  void call(dynamic this_, String tag) => Event_addTag(this_, tag);
-}
-class _TearOff_Event_get_tags extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_Event_get_tags();
-  @override
-  StaticList<String> call(dynamic this_) => Event_get_tags(this_);
-}
-class _TearOff_Event_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Event_toString();
-  @override
-  String call(dynamic this_) => Event_toString(this_);
-}
-class _TearOff_ImportantEvent_get_timestamp extends TypeFunction1<int, dynamic> {
-  const _TearOff_ImportantEvent_get_timestamp();
-  @override
-  int call(dynamic this_) => ImportantEvent_get_timestamp(this_);
-}
-class _TearOff_ImportantEvent_get_timeStr extends TypeFunction1<String, dynamic> {
-  const _TearOff_ImportantEvent_get_timeStr();
-  @override
-  String call(dynamic this_) => ImportantEvent_get_timeStr(this_);
-}
-class _TearOff_ImportantEvent_addTag extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_ImportantEvent_addTag();
-  @override
-  void call(dynamic this_, String tag) => ImportantEvent_addTag(this_, tag);
-}
-class _TearOff_ImportantEvent_get_tags extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_ImportantEvent_get_tags();
-  @override
-  StaticList<String> call(dynamic this_) => ImportantEvent_get_tags(this_);
-}
-class _TearOff_ImportantEvent_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_ImportantEvent_toString();
-  @override
-  String call(dynamic this_) => ImportantEvent_toString(this_);
-}
-class _TearOff_ImportantEvent_get_logTag extends TypeFunction1<String, dynamic> {
-  const _TearOff_ImportantEvent_get_logTag();
-  @override
-  String call(dynamic this_) => ImportantEvent_get_logTag(this_);
-}
-class _TearOff_ImportantEvent_log extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_ImportantEvent_log();
-  @override
-  void call(dynamic this_, String message) => ImportantEvent_log(this_, message);
-}
-class ClosureEnv_buildQuery_1 extends TypeFunction1<String, MapEntry<String, String>> {
+class ClosureEnv_buildQuery_1 extends TypeFunction1<String, StaticMapEntry<String, String>> {
   ClosureEnv_buildQuery_1();
   @override
-  String call(MapEntry<String, String> e) => ClosureEnv_buildQuery_1_call(this, e);
+  String call(StaticMapEntry<String, String> e) => ClosureEnv_buildQuery_1_call(this, e);
 }
-String ClosureEnv_buildQuery_1_call(ClosureEnv_buildQuery_1 env, MapEntry<String, String> e) {
+String ClosureEnv_buildQuery_1_call(ClosureEnv_buildQuery_1 env, StaticMapEntry<String, String> e) {
   return '${e.key}=${e.value}';
 }
 
@@ -2101,7 +1671,7 @@ class ClosureEnv_countDown_2 {
 void ClosureEnv_countDown_2_call(ClosureEnv_countDown_2 env) {
   final StaticList<String> result = StaticList<String>();
   for (var i = env.from.value; (i >= 0); i = (i - 1)) {
-    smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 1)));
+    smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
     result.add(((i == 0) ? 'Go!' : '${i}...'));
   }
   env._promise.complete(result);

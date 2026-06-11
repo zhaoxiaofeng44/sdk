@@ -210,6 +210,14 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     final declType = v.type;
     if (declType is! InterfaceType) return initStr;
     final raw = declType.classNode.name;
+
+    // Iterator → StaticIterator：某些来源（如 enum .values）的 .iterator 返回原生 Iterator
+    // 需用 StaticIterator 包装；StaticList/StaticSet 的 .iterator 已返回 StaticIterator 不需包装
+    if (raw == 'Iterator' || raw == '_ListIterator') {
+      if (initStr.trimLeft().startsWith('StaticIterator')) return initStr;
+      return 'StaticIterator($initStr)';
+    }
+
     String? staticName;
     if (raw == 'List' || raw == '_List' || raw == '_GrowableList') {
       staticName = 'StaticList';
@@ -241,6 +249,9 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       final guardType = c.guard as InterfaceType;
       final guardName = guardType.classNode.name;
       if (guardName != 'Object') {
+        // catch 中保留原生异常类名（不做映射），因为 dart:core 内部方法
+        // 抛出的仍是原生异常类型（如 int.parse 抛 FormatException）。
+        // DartXxx extends Xxx，所以 on Xxx 能同时捕获两者。
         _buf.write(' on $guardName');
       }
     }

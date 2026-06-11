@@ -7,16 +7,16 @@ class TreeNodeValue<T> extends VPtr {
   late TreeNodeValue<T>? left;
   late TreeNodeValue<T>? right;
   TreeNodeValue() {
-    vptr['preorder'] = _TearOff_TreeNode_preorder<T>();
-    vptr['inorder'] = _TearOff_TreeNode_inorder<T>();
-    vptr['get_depth'] = _TearOff_TreeNode_get_depth<T>();
-    vptr['toString'] = _TearOff_TreeNode_toString<T>();
+    vptr['preorder'] = TreeNode_preorder<T>;
+    vptr['inorder'] = TreeNode_inorder<T>;
+    vptr['get_depth'] = TreeNode_get_depth<T>;
+    vptr['toString'] = TreeNode_toString<T>;
   }
 }
 
 TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
   final this_ = this__ as TreeNodeValue<T>;
-  this_.vptr['map_String'] = _TearOff_TreeNode_map_String<T>();
+  this_.vptr['map_String'] = TreeNode_map<T, String>;
   this_.value = value;
   this_.left = left;
   this_.right = right;
@@ -26,24 +26,24 @@ TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? lef
 StaticList<T> TreeNode_preorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['preorder'] as TypeFunction1<StaticList<T>, dynamic>)(this_.left!));
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['preorder'] as TypeFunction1<StaticList<T>, dynamic>)(this_.right!));
+  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['preorder'] as StaticList<T> Function(dynamic))(this_.left!));
+  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['preorder'] as StaticList<T> Function(dynamic))(this_.right!));
   return result;
 }
 
 StaticList<T> TreeNode_inorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>();
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as TypeFunction1<StaticList<T>, dynamic>)(this_.left!));
+  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.left!));
   result.add(this_.value);
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as TypeFunction1<StaticList<T>, dynamic>)(this_.right!));
+  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.right!));
   return result;
 }
 
 int TreeNode_get_depth<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
-  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as TypeFunction1<int, dynamic>)(_let1); })() ?? 0);
-  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as TypeFunction1<int, dynamic>)(_let3); })() ?? 0);
+  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(dynamic))(_let1); })() ?? 0);
+  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(dynamic))(_let3); })() ?? 0);
   return (1 + ((leftDepth > rightDepth) ? leftDepth : rightDepth));
 }
 
@@ -62,10 +62,10 @@ class LinkedNodeValue<T> extends VPtr {
   late T data;
   late LinkedNodeValue<T>? next;
   LinkedNodeValue() {
-    vptr['reversed'] = _TearOff_LinkedNode_reversed<T>();
-    vptr['toList'] = _TearOff_LinkedNode_toList<T>();
-    vptr['get_length'] = _TearOff_LinkedNode_get_length<T>();
-    vptr['toString'] = _TearOff_LinkedNode_toString<T>();
+    vptr['reversed'] = LinkedNode_reversed<T>;
+    vptr['toList'] = LinkedNode_toList<T>;
+    vptr['get_length'] = LinkedNode_get_length<T>;
+    vptr['toString'] = LinkedNode_toString<T>;
   }
 }
 
@@ -79,7 +79,7 @@ LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>
 LinkedNodeValue<T> LinkedNode_reversed<T>(dynamic this__) {
   final this_ = this__ as LinkedNodeValue<T>;
   if ((this_.next == null))   return LinkedNode_new<T>(LinkedNodeValue<T>(), this_.data);
-  final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as TypeFunction1<LinkedNodeValue<T>, dynamic>)(this_.next!);
+  final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as LinkedNodeValue<T> Function(dynamic))(this_.next!);
   LinkedNodeValue<T> tail = rev;
   while (!((tail.next == null))) {
     tail = tail.next!;
@@ -112,7 +112,7 @@ int LinkedNode_get_length<T>(dynamic this__) {
 
 String LinkedNode_toString<T>(dynamic this__) {
   final this_ = this__ as LinkedNodeValue<T>;
-  return 'LinkedNode(${(this_.vptr['toList'] as TypeFunction1<StaticList<T>, dynamic>)(this_).join(' -> ')})';
+  return 'LinkedNode(${(this_.vptr['toList'] as StaticList<T> Function(dynamic))(this_).join(' -> ')})';
 }
 
 
@@ -121,19 +121,19 @@ class EitherValue<L, R> extends VPtr {
   late R? _right;
   late bool _isRight;
   EitherValue() {
-    vptr['get_isLeft'] = _TearOff_Either_get_isLeft<L, R>();
-    vptr['get_isRight'] = _TearOff_Either_get_isRight<L, R>();
-    vptr['get_leftValue'] = _TearOff_Either_get_leftValue<L, R>();
-    vptr['get_rightValue'] = _TearOff_Either_get_rightValue<L, R>();
-    vptr['toString'] = _TearOff_Either_toString<L, R>();
+    vptr['get_isLeft'] = Either_get_isLeft<L, R>;
+    vptr['get_isRight'] = Either_get_isRight<L, R>;
+    vptr['get_leftValue'] = Either_get_leftValue<L, R>;
+    vptr['get_rightValue'] = Either_get_rightValue<L, R>;
+    vptr['toString'] = Either_toString<L, R>;
   }
 }
 
 EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['fold_String'] = _TearOff_Either_fold_String<L, R>();
-  this_.vptr['mapRight_int'] = _TearOff_Either_mapRight_int<L, R>();
-  this_.vptr['flatMap_dynamic'] = _TearOff_Either_flatMap_dynamic<L, R>();
+  this_.vptr['fold_String'] = Either_fold<L, R, String>;
+  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
+  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
   this_._left = value;
   this_._right = null;
   this_._isRight = false;
@@ -142,9 +142,9 @@ EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
 
 EitherValue<L, R> Either_new_right<L, R>(dynamic this__, R value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['fold_String'] = _TearOff_Either_fold_String<L, R>();
-  this_.vptr['mapRight_int'] = _TearOff_Either_mapRight_int<L, R>();
-  this_.vptr['flatMap_dynamic'] = _TearOff_Either_flatMap_dynamic<L, R>();
+  this_.vptr['fold_String'] = Either_fold<L, R, String>;
+  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
+  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
   this_._left = null;
   this_._right = value;
   this_._isRight = true;
@@ -163,13 +163,13 @@ bool Either_get_isRight<L, R>(dynamic this__) {
 
 L Either_get_leftValue<L, R>(dynamic this__) {
   final this_ = this__ as EitherValue<L, R>;
-  if (!((this_.vptr['get_isLeft'] as TypeFunction1<bool, dynamic>)(this_)))   throw StateError('Not a left value');
+  if (!((this_.vptr['get_isLeft'] as bool Function(dynamic))(this_)))   throw DartStateError('Not a left value');
   return (this_._left as L);
 }
 
 R Either_get_rightValue<L, R>(dynamic this__) {
   final this_ = this__ as EitherValue<L, R>;
-  if (!((this_.vptr['get_isRight'] as TypeFunction1<bool, dynamic>)(this_)))   throw StateError('Not a right value');
+  if (!((this_.vptr['get_isRight'] as bool Function(dynamic))(this_)))   throw DartStateError('Not a right value');
   return (this_._right as R);
 }
 
@@ -201,7 +201,7 @@ String Either_toString<L, R>(dynamic this__) {
 // mixin Serializable → static functions for delegation
 String Serializable_serialize(dynamic this__) {
   final this_ = this__;
-  final StaticMap<String, dynamic> map = StaticMap<String, dynamic>.of((this_.vptr['toMap'] as TypeFunction1<StaticMap<String, dynamic>, dynamic>)(this_));
+  final StaticMap<String, dynamic> map = StaticMap<String, dynamic>.of((this_.vptr['toMap'] as StaticMap<String, dynamic> Function(dynamic))(this_));
   final String entries = map.entries.map(ClosureEnv_anon_0()).join(', ');
   return '{${entries}}';
 }
@@ -210,12 +210,12 @@ String Serializable_serialize(dynamic this__) {
 // mixin Validatable → static functions for delegation
 bool Validatable_get_isValid(dynamic this__) {
   final this_ = this__;
-  return (this_.vptr['validate'] as TypeFunction1<StaticList<String>, dynamic>)(this_).isEmpty;
+  return (this_.vptr['validate'] as StaticList<String> Function(dynamic))(this_).isEmpty;
 }
 
 String Validatable_get_validationSummary(dynamic this__) {
   final this_ = this__;
-  final StaticList<String> errors = StaticList<String>.of((this_.vptr['validate'] as TypeFunction1<StaticList<String>, dynamic>)(this_));
+  final StaticList<String> errors = StaticList<String>.of((this_.vptr['validate'] as StaticList<String> Function(dynamic))(this_));
   if (errors.isEmpty)   return 'valid';
   return 'invalid: ${errors.join('; ')}';
 }
@@ -228,12 +228,12 @@ class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue 
   late String email;
   late int age;
   UserProfileValue() {
-    vptr['toMap'] = const _TearOff_UserProfile_toMap();
-    vptr['serialize'] = const _TearOff_UserProfile_serialize();
-    vptr['validate'] = const _TearOff_UserProfile_validate();
-    vptr['get_isValid'] = const _TearOff_UserProfile_get_isValid();
-    vptr['get_validationSummary'] = const _TearOff_UserProfile_get_validationSummary();
-    vptr['toString'] = const _TearOff_UserProfile_toString();
+    vptr['toMap'] = UserProfile_toMap;
+    vptr['serialize'] = UserProfile_serialize;
+    vptr['validate'] = UserProfile_validate;
+    vptr['get_isValid'] = UserProfile_get_isValid;
+    vptr['get_validationSummary'] = UserProfile_get_validationSummary;
+    vptr['toString'] = UserProfile_toString;
   }
 }
 
@@ -282,10 +282,10 @@ String UserProfile_get_validationSummary(dynamic this__) {
 
 class DataTransformerValue<TInput, TOutput> extends VPtr {
   DataTransformerValue() {
-    vptr['transform'] = _TearOff_DataTransformer_transform<TInput, TOutput>();
-    vptr['preValidate'] = _TearOff_DataTransformer_preValidate<TInput, TOutput>();
-    vptr['process'] = _TearOff_DataTransformer_process<TInput, TOutput>();
-    vptr['postProcess'] = _TearOff_DataTransformer_postProcess<TInput, TOutput>();
+    vptr['transform'] = DataTransformer_transform<TInput, TOutput>;
+    vptr['preValidate'] = DataTransformer_preValidate<TInput, TOutput>;
+    vptr['process'] = DataTransformer_process<TInput, TOutput>;
+    vptr['postProcess'] = DataTransformer_postProcess<TInput, TOutput>;
   }
 }
 
@@ -296,9 +296,9 @@ DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(dynam
 
 TOutput DataTransformer_transform<TInput, TOutput>(dynamic this__, TInput input) {
   final this_ = this__ as DataTransformerValue<TInput, TOutput>;
-  final TInput validated = (this_.vptr['preValidate'] as TypeFunction2<TInput, dynamic, TInput>)(this_, input);
-  final TOutput processed = (this_.vptr['process'] as TypeFunction2<TOutput, dynamic, TInput>)(this_, validated);
-  return (this_.vptr['postProcess'] as TypeFunction2<TOutput, dynamic, TOutput>)(this_, processed);
+  final TInput validated = (this_.vptr['preValidate'] as TInput Function(dynamic, TInput))(this_, input);
+  final TOutput processed = (this_.vptr['process'] as TOutput Function(dynamic, TInput))(this_, validated);
+  return (this_.vptr['postProcess'] as TOutput Function(dynamic, TOutput))(this_, processed);
 }
 
 TInput DataTransformer_preValidate<TInput, TOutput>(dynamic this__, TInput input) {
@@ -318,10 +318,10 @@ TOutput DataTransformer_postProcess<TInput, TOutput>(dynamic this__, TOutput out
 
 class StringToIntTransformerValue extends DataTransformerValue<String, int> {
   StringToIntTransformerValue() {
-    vptr['transform'] = const _TearOff_StringToIntTransformer_transform();
-    vptr['preValidate'] = const _TearOff_StringToIntTransformer_preValidate();
-    vptr['process'] = const _TearOff_StringToIntTransformer_process();
-    vptr['postProcess'] = const _TearOff_StringToIntTransformer_postProcess();
+    vptr['transform'] = StringToIntTransformer_transform;
+    vptr['preValidate'] = StringToIntTransformer_preValidate;
+    vptr['process'] = StringToIntTransformer_process;
+    vptr['postProcess'] = StringToIntTransformer_postProcess;
   }
 }
 
@@ -355,10 +355,10 @@ int StringToIntTransformer_postProcess(dynamic this__, int output) {
 class IntToStringTransformerValue extends DataTransformerValue<int, String> {
   late String prefix;
   IntToStringTransformerValue() {
-    vptr['transform'] = const _TearOff_IntToStringTransformer_transform();
-    vptr['preValidate'] = const _TearOff_IntToStringTransformer_preValidate();
-    vptr['process'] = const _TearOff_IntToStringTransformer_process();
-    vptr['postProcess'] = const _TearOff_IntToStringTransformer_postProcess();
+    vptr['transform'] = IntToStringTransformer_transform;
+    vptr['preValidate'] = IntToStringTransformer_preValidate;
+    vptr['process'] = IntToStringTransformer_process;
+    vptr['postProcess'] = IntToStringTransformer_postProcess;
   }
 }
 
@@ -394,10 +394,10 @@ class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
   late DataTransformerValue<A, B> first;
   late DataTransformerValue<B, C> second;
   ChainedTransformerValue() {
-    vptr['transform'] = _TearOff_ChainedTransformer_transform<A, B, C>();
-    vptr['preValidate'] = _TearOff_ChainedTransformer_preValidate<A, B, C>();
-    vptr['process'] = _TearOff_ChainedTransformer_process<A, B, C>();
-    vptr['postProcess'] = _TearOff_ChainedTransformer_postProcess<A, B, C>();
+    vptr['transform'] = ChainedTransformer_transform<A, B, C>;
+    vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
+    vptr['process'] = ChainedTransformer_process<A, B, C>;
+    vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
   }
 }
 
@@ -411,8 +411,8 @@ ChainedTransformerValue<A, B, C> ChainedTransformer_new<A, B, C>(dynamic this__,
 
 C ChainedTransformer_process<A, B, C>(dynamic this__, A input) {
   final this_ = this__ as ChainedTransformerValue<A, B, C>;
-  final B intermediate = (this_.first.vptr['transform'] as TypeFunction2<B, dynamic, A>)(this_.first, input);
-  return (this_.second.vptr['transform'] as TypeFunction2<C, dynamic, B>)(this_.second, intermediate);
+  final B intermediate = (this_.first.vptr['transform'] as B Function(dynamic, A))(this_.first, input);
+  return (this_.second.vptr['transform'] as C Function(dynamic, B))(this_.second, intermediate);
 }
 
 C ChainedTransformer_transform<A, B, C>(dynamic this__, A input) {
@@ -435,14 +435,14 @@ class RegistryValue extends VPtr {
   late StaticMap<String, dynamic> _store;
   late int _accessCount;
   RegistryValue() {
-    vptr['register'] = const _TearOff_Registry_register();
-    vptr['lookup'] = const _TearOff_Registry_lookup();
-    vptr['contains'] = const _TearOff_Registry_contains();
-    vptr['get_size'] = const _TearOff_Registry_get_size();
-    vptr['get_accessCount'] = const _TearOff_Registry_get_accessCount();
-    vptr['get_keys'] = const _TearOff_Registry_get_keys();
-    vptr['clear'] = const _TearOff_Registry_clear();
-    vptr['toString'] = const _TearOff_Registry_toString();
+    vptr['register'] = Registry_register;
+    vptr['lookup'] = Registry_lookup;
+    vptr['contains'] = Registry_contains;
+    vptr['get_size'] = Registry_get_size;
+    vptr['get_accessCount'] = Registry_get_accessCount;
+    vptr['get_keys'] = Registry_get_keys;
+    vptr['clear'] = Registry_clear;
+    vptr['toString'] = Registry_toString;
   }
 }
 
@@ -498,7 +498,7 @@ void Registry_clear(dynamic this__) {
 
 String Registry_toString(dynamic this__) {
   final this_ = this__ as RegistryValue;
-  return 'Registry(size=${(this_.vptr['get_size'] as TypeFunction1<int, dynamic>)(this_)}, accesses=${(this_.vptr['get_accessCount'] as TypeFunction1<int, dynamic>)(this_)})';
+  return 'Registry(size=${(this_.vptr['get_size'] as int Function(dynamic))(this_)}, accesses=${(this_.vptr['get_accessCount'] as int Function(dynamic))(this_)})';
 }
 
 
@@ -525,7 +525,7 @@ String DataProcessor__scoreToGrade(int score) {
 StaticMap<String, StaticList<StaticMap<String, dynamic>>> DataProcessor_groupByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of({});
 {
-    Iterator<StaticMap<String, dynamic>> sync_for_iterator = records.iterator;
+    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(records.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final StaticMap<String, dynamic> record = StaticMap<String, dynamic>.of(sync_for_iterator.current);
 {
@@ -549,8 +549,8 @@ class ExpensiveComputationValue extends VPtr {
   late int computedValue;
   late String description;
   ExpensiveComputationValue() {
-    vptr['initialize'] = const _TearOff_ExpensiveComputation_initialize();
-    vptr['toString'] = const _TearOff_ExpensiveComputation_toString();
+    vptr['initialize'] = ExpensiveComputation_initialize;
+    vptr['toString'] = ExpensiveComputation_toString;
   }
 }
 
@@ -635,7 +635,7 @@ int MathUtils_lcm(int a, int b) {
 
 class Printable3Value extends VPtr {
   Printable3Value() {
-    vptr['prettyPrint'] = const _TearOff_Printable3_prettyPrint();
+    vptr['prettyPrint'] = Printable3_prettyPrint;
   }
 }
 
@@ -653,11 +653,11 @@ class ScoreValue extends VPtr implements Printable3Value {
   late String subject;
   late int points;
   ScoreValue() {
-    vptr['prettyPrint'] = const _TearOff_Score_prettyPrint();
-    vptr['compareTo2'] = const _TearOff_Score_compareTo2();
-    vptr['isLessThan'] = const _TearOff_Score_isLessThan();
-    vptr['isGreaterThan'] = const _TearOff_Score_isGreaterThan();
-    vptr['toString'] = const _TearOff_Score_toString();
+    vptr['prettyPrint'] = Score_prettyPrint;
+    vptr['compareTo2'] = Score_compareTo2;
+    vptr['isLessThan'] = Score_isLessThan;
+    vptr['isGreaterThan'] = Score_isGreaterThan;
+    vptr['toString'] = Score_toString;
   }
 }
 
@@ -675,12 +675,12 @@ int Score_compareTo2(dynamic this__, ScoreValue other) {
 
 bool Score_isLessThan(dynamic this__, ScoreValue other) {
   final this_ = this__ as ScoreValue;
-  return ((this_.vptr['compareTo2'] as TypeFunction2<int, dynamic, ScoreValue>)(this_, other) < 0);
+  return ((this_.vptr['compareTo2'] as int Function(dynamic, ScoreValue))(this_, other) < 0);
 }
 
 bool Score_isGreaterThan(dynamic this__, ScoreValue other) {
   final this_ = this__ as ScoreValue;
-  return ((this_.vptr['compareTo2'] as TypeFunction2<int, dynamic, ScoreValue>)(this_, other) > 0);
+  return ((this_.vptr['compareTo2'] as int Function(dynamic, ScoreValue))(this_, other) > 0);
 }
 
 String Score_prettyPrint(dynamic this__) {
@@ -697,12 +697,12 @@ String Score_toString(dynamic this__) {
 class WeightedScoreValue extends ScoreValue {
   late double weight;
   WeightedScoreValue() {
-    vptr['prettyPrint'] = const _TearOff_WeightedScore_prettyPrint();
-    vptr['compareTo2'] = const _TearOff_WeightedScore_compareTo2();
-    vptr['isLessThan'] = const _TearOff_WeightedScore_isLessThan();
-    vptr['isGreaterThan'] = const _TearOff_WeightedScore_isGreaterThan();
-    vptr['toString'] = const _TearOff_WeightedScore_toString();
-    vptr['get_weightedPoints'] = const _TearOff_WeightedScore_get_weightedPoints();
+    vptr['prettyPrint'] = WeightedScore_prettyPrint;
+    vptr['compareTo2'] = WeightedScore_compareTo2;
+    vptr['isLessThan'] = WeightedScore_isLessThan;
+    vptr['isGreaterThan'] = WeightedScore_isGreaterThan;
+    vptr['toString'] = WeightedScore_toString;
+    vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
   }
 }
 
@@ -721,14 +721,14 @@ double WeightedScore_get_weightedPoints(dynamic this__) {
 int WeightedScore_compareTo2(dynamic this__, ScoreValue other) {
   final this_ = this__ as WeightedScoreValue;
   if ((other is WeightedScoreValue)) {
-    return (this_.vptr['get_weightedPoints'] as TypeFunction1<double, dynamic>)(this_).compareTo((other.vptr['get_weightedPoints'] as TypeFunction1<double, dynamic>)(other));
+    return (this_.vptr['get_weightedPoints'] as double Function(dynamic))(this_).compareTo((other.vptr['get_weightedPoints'] as double Function(dynamic))(other));
   }
   return Score_compareTo2(this_, other);
 }
 
 String WeightedScore_prettyPrint(dynamic this__) {
   final this_ = this__ as WeightedScoreValue;
-  return '[${this_.subject}: ${this_.points} pts × ${this_.weight} = ${(this_.vptr['get_weightedPoints'] as TypeFunction1<double, dynamic>)(this_).toStringAsFixed(1)}]';
+  return '[${this_.subject}: ${this_.points} pts × ${this_.weight} = ${(this_.vptr['get_weightedPoints'] as double Function(dynamic))(this_).toStringAsFixed(1)}]';
 }
 
 String WeightedScore_toString(dynamic this__) {
@@ -756,7 +756,7 @@ TextProcessorValue TextProcessor_new(dynamic this__) {
 }
 
 String TextProcessor_camelToSnake(String input) {
-  final StringBuffer result = StringBuffer();
+  final StaticStringBuffer result = StaticStringBuffer();
   for (var i = 0; (i < input.length); i = (i + 1)) {
     final String char = input[i];
     if ((((char == char.toUpperCase()) && !((char == char.toLowerCase()))) && (i > 0))) {
@@ -776,10 +776,10 @@ String TextProcessor_snakeToCamel(String input) {
 }
 
 StaticMap<String, int> TextProcessor_wordFrequency(String text) {
-  final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(RegExp('[^a-z\\s]'), '').split(RegExp('\\s+')).where(ClosureEnv_anon_9()).toList());
+  final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+')).where(ClosureEnv_anon_9()).toList());
   final StaticMap<String, int> freq = StaticMap<String, int>.of({});
 {
-    Iterator<String> sync_for_iterator = words.iterator;
+    StaticIterator<String> sync_for_iterator = StaticIterator(words.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final String word = sync_for_iterator.current;
 {
@@ -864,7 +864,7 @@ JsonLikeProcessorValue JsonLikeProcessor_new(dynamic this__) {
 dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<String, dynamic> overlay) {
   final StaticMap<String, dynamic> result = StaticMap<String, dynamic>.from(base);
 {
-    Iterator<String> sync_for_iterator = overlay.keys.iterator;
+    StaticIterator<String> sync_for_iterator = StaticIterator(overlay.keys.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final String key = sync_for_iterator.current;
 {
@@ -883,9 +883,9 @@ dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<S
 StaticList<String> JsonLikeProcessor_flattenKeys(StaticMap<String, dynamic> map, {String prefix = ''}) {
   final StaticList<String> keys = StaticList<String>();
 {
-    Iterator<MapEntry<String, dynamic>> sync_for_iterator = map.entries.iterator;
+    StaticIterator<StaticMapEntry<String, dynamic>> sync_for_iterator = StaticIterator(map.entries.iterator);
     for (; sync_for_iterator.moveNext(); ) {
-      final MapEntry<String, dynamic> entry = sync_for_iterator.current;
+      final StaticMapEntry<String, dynamic> entry = sync_for_iterator.current;
 {
         final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
         if ((entry.value is StaticMap<String, dynamic>)) {
@@ -906,11 +906,11 @@ class Matrix2DValue extends VPtr {
   late int rows;
   late int cols;
   Matrix2DValue() {
-    vptr['get'] = const _TearOff_Matrix2D_get();
-    vptr['operatorPlus'] = const _TearOff_Matrix2D_operatorPlus();
-    vptr['operatorStar'] = const _TearOff_Matrix2D_operatorStar();
-    vptr['get_trace'] = const _TearOff_Matrix2D_get_trace();
-    vptr['toString'] = const _TearOff_Matrix2D_toString();
+    vptr['get'] = Matrix2D_get;
+    vptr['operatorPlus'] = Matrix2D_operatorPlus;
+    vptr['operatorStar'] = Matrix2D_operatorStar;
+    vptr['get_trace'] = Matrix2D_get_trace;
+    vptr['toString'] = Matrix2D_toString;
   }
 }
 
@@ -988,7 +988,7 @@ String Matrix2D_toString(dynamic this__) {
 
 class EntityValue extends VPtr {
   EntityValue() {
-    vptr['get_entityId'] = const _TearOff_Entity_get_entityId();
+    vptr['get_entityId'] = Entity_get_entityId;
   }
 }
 
@@ -1005,7 +1005,7 @@ String Entity_get_entityId(dynamic this_) {
 // mixin Auditable → static functions for delegation
 void Auditable_audit(dynamic this__, String action) {
   final this_ = this__;
-  this_._auditLog.add('[${(this_.vptr['get_entityId'] as TypeFunction1<String, dynamic>)(this_)}] ${action}');
+  this_._auditLog.add('[${(this_.vptr['get_entityId'] as String Function(dynamic))(this_)}] ${action}');
 }
 
 StaticList<String> Auditable_get_auditLog(dynamic this__) {
@@ -1023,7 +1023,7 @@ void Cacheable_markDirty(dynamic this__) {
 void Cacheable_markCached(dynamic this__) {
   final this_ = this__;
   this_._isDirty = false;
-  this_._cachedAt = DateTime.now();
+  this_._cachedAt = StaticDateTime.now();
 }
 
 bool Cacheable_get_isDirty(dynamic this__) {
@@ -1042,14 +1042,14 @@ class ProductValue extends Product_Entity_Auditable_CacheableValue {
   late String name;
   late double price;
   ProductValue() {
-    vptr['get_entityId'] = const _TearOff_Product_get_entityId();
-    vptr['audit'] = const _TearOff_Product_audit();
-    vptr['get_auditLog'] = const _TearOff_Product_get_auditLog();
-    vptr['markDirty'] = const _TearOff_Product_markDirty();
-    vptr['markCached'] = const _TearOff_Product_markCached();
-    vptr['get_isDirty'] = const _TearOff_Product_get_isDirty();
-    vptr['get_cacheStatus'] = const _TearOff_Product_get_cacheStatus();
-    vptr['toString'] = const _TearOff_Product_toString();
+    vptr['get_entityId'] = Product_get_entityId;
+    vptr['audit'] = Product_audit;
+    vptr['get_auditLog'] = Product_get_auditLog;
+    vptr['markDirty'] = Product_markDirty;
+    vptr['markCached'] = Product_markCached;
+    vptr['get_isDirty'] = Product_get_isDirty;
+    vptr['get_cacheStatus'] = Product_get_cacheStatus;
+    vptr['toString'] = Product_toString;
   }
 }
 
@@ -1067,7 +1067,7 @@ ProductValue Product_new(dynamic this__, String entityId, String name, double pr
 
 String Product_toString(dynamic this__) {
   final this_ = this__ as ProductValue;
-  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as TypeFunction1<String, dynamic>)(this_)}, audits=${this_._auditLog.length})';
+  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.vptr['get_cacheStatus'] as String Function(dynamic))(this_)}, audits=${this_._auditLog.length})';
 }
 
 String Product_get_entityId(dynamic this__) {
@@ -1120,7 +1120,7 @@ class Product_Entity_AuditableValue extends EntityValue {
 
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
-  late DateTime? _cachedAt;
+  late StaticDateTime? _cachedAt;
   late bool _isDirty;
 }
 
@@ -1154,7 +1154,7 @@ TypeFunction1<TypeFunction1<C, B>, A> curry<A, B, C>(TypeFunction2<C, A, B> biFu
 T pipe<T>(T value, StaticList<TypeFunction1<T, T>> transforms) {
   T result = value;
 {
-    Iterator<TypeFunction1<T, T>> sync_for_iterator = transforms.iterator;
+    StaticIterator<TypeFunction1<T, T>> sync_for_iterator = StaticIterator(transforms.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<T, T> transform = sync_for_iterator.current;
 {
@@ -1230,7 +1230,7 @@ StaticList<int> parseNumbers(StaticList<String> inputs) {
         if (trimmed.isEmpty)         break;
         final int value = int.parse(trimmed);
         if ((value < 0)) {
-          throw ArgumentError('Negative value at index ${i}: ${value}');
+          throw DartArgumentError('Negative value at index ${i}: ${value}');
         }
         results.add(value);
       }
@@ -1274,7 +1274,7 @@ bool IntMathExtension_get_isPrime(final int this_) {
 }
 
 int IntMathExtension_get_factorial(final int this_) {
-  if ((this_ < 0))   throw ArgumentError('Factorial not defined for negative numbers');
+  if ((this_ < 0))   throw DartArgumentError('Factorial not defined for negative numbers');
   if ((this_ <= 1))   return 1;
   int result = 1;
   for (var i = 2; (i <= this_); i = (i + 1)) {
@@ -1311,439 +1311,204 @@ T IterableStats_get_min<T extends num>(final Iterable<T> this_) {
 }
 
 void main() {
-  print('=== 高级语法还原测试 ===\n');
-  print('--- 1. 嵌套闭包 ---');
+  staticPrint('=== 高级语法还原测试 ===\n');
+  staticPrint('--- 1. 嵌套闭包 ---');
   final dynamic counter = makeCounter(start: 5, step: 3);
-  print('counter: ${counter()}, ${counter()}, ${counter()}');
+  staticPrint('counter: ${counter()}, ${counter()}, ${counter()}');
   final dynamic acc = makeAccumulator(100);
   final dynamic snap1 = acc(10);
   final dynamic snap2 = acc(20);
-  print('snap1: ${snap1.call()}');
-  print('snap2: ${snap2.call()}');
+  staticPrint('snap1: ${snap1.call()}');
+  staticPrint('snap2: ${snap2.call()}');
   final StaticList<dynamic> closures = StaticList<dynamic>.of(makeClosureList(4));
 {
-    Iterator<dynamic> sync_for_iterator = closures.iterator;
+    StaticIterator<dynamic> sync_for_iterator = StaticIterator(closures.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final dynamic cl = sync_for_iterator.current;
 {
-        print('  ${cl()}');
+        staticPrint('  ${cl()}');
       }
     }
   }
-  print('\n--- 2. 二叉树 ---');
+  staticPrint('\n--- 2. 二叉树 ---');
   final TreeNodeValue<int> tree = TreeNode_new<int>(TreeNodeValue<int>(), 1, TreeNode_new<int>(TreeNodeValue<int>(), 2, TreeNode_new<int>(TreeNodeValue<int>(), 4), TreeNode_new<int>(TreeNodeValue<int>(), 5)), TreeNode_new<int>(TreeNodeValue<int>(), 3, null, TreeNode_new<int>(TreeNodeValue<int>(), 6)));
-  print('preorder: ${(tree.vptr['preorder'] as TypeFunction1<StaticList<int>, dynamic>)(tree)}');
-  print('inorder: ${(tree.vptr['inorder'] as TypeFunction1<StaticList<int>, dynamic>)(tree)}');
-  print('depth: ${(tree.vptr['get_depth'] as TypeFunction1<int, dynamic>)(tree)}');
-  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TypeFunction2<TreeNodeValue<String>, dynamic, TypeFunction1<String, int>>)(tree, ClosureEnv_main_31());
-  print('mapped preorder: ${(strTree.vptr['preorder'] as TypeFunction1<StaticList<String>, dynamic>)(strTree)}');
-  print('\n--- 3. 链表 ---');
+  staticPrint('preorder: ${(tree.vptr['preorder'] as StaticList<int> Function(dynamic))(tree)}');
+  staticPrint('inorder: ${(tree.vptr['inorder'] as StaticList<int> Function(dynamic))(tree)}');
+  staticPrint('depth: ${(tree.vptr['get_depth'] as int Function(dynamic))(tree)}');
+  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_31());
+  staticPrint('mapped preorder: ${(strTree.vptr['preorder'] as StaticList<String> Function(dynamic))(strTree)}');
+  staticPrint('\n--- 3. 链表 ---');
   final LinkedNodeValue<int> list = LinkedNode_new<int>(LinkedNodeValue<int>(), 1, LinkedNode_new<int>(LinkedNodeValue<int>(), 2, LinkedNode_new<int>(LinkedNodeValue<int>(), 3, LinkedNode_new<int>(LinkedNodeValue<int>(), 4))));
-  print('list: ${list}');
-  print('length: ${(list.vptr['get_length'] as TypeFunction1<int, dynamic>)(list)}');
-  final LinkedNodeValue<int> revList = (list.vptr['reversed'] as TypeFunction1<LinkedNodeValue<int>, dynamic>)(list);
-  print('reversed: ${revList}');
-  print('\n--- 4. Either ---');
+  staticPrint('list: ${list}');
+  staticPrint('length: ${(list.vptr['get_length'] as int Function(dynamic))(list)}');
+  final LinkedNodeValue<int> revList = (list.vptr['reversed'] as LinkedNodeValue<int> Function(dynamic))(list);
+  staticPrint('reversed: ${revList}');
+  staticPrint('\n--- 4. Either ---');
   final EitherValue<String, int> right = Either_new_right<String, int>(EitherValue<String, int>(), 42);
   final EitherValue<String, int> left = Either_new_left<String, int>(EitherValue<String, int>(), 'error');
-  print('right: ${right}');
-  print('left: ${left}');
-  print('right.fold: ${(right.vptr['fold_String'] as TypeFunction3<String, dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>>)(right, ClosureEnv_main_34(), ClosureEnv_main_35())}');
-  print('left.fold: ${(left.vptr['fold_String'] as TypeFunction3<String, dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>>)(left, ClosureEnv_main_38(), ClosureEnv_main_39())}');
-  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as TypeFunction2<EitherValue<String, int>, dynamic, TypeFunction1<int, int>>)(right, ClosureEnv_main_41());
-  print('mapped right: ${mapped}');
-  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as TypeFunction2<EitherValue<String, dynamic>, dynamic, TypeFunction1<EitherValue<String, dynamic>, int>>)(right, ClosureEnv_main_43());
-  print('chained: ${chained}');
-  print('\n--- 5. 函数式编程 ---');
+  staticPrint('right: ${right}');
+  staticPrint('left: ${left}');
+  staticPrint('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(right, ClosureEnv_main_34(), ClosureEnv_main_35())}');
+  staticPrint('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(left, ClosureEnv_main_38(), ClosureEnv_main_39())}');
+  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, TypeFunction1<int, int>))(right, ClosureEnv_main_41());
+  staticPrint('mapped right: ${mapped}');
+  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, TypeFunction1<EitherValue<String, dynamic>, int>))(right, ClosureEnv_main_43());
+  staticPrint('chained: ${chained}');
+  staticPrint('\n--- 5. 函数式编程 ---');
   final TypeFunction1<int, int> double2 = ClosureEnv_main_44();
   final TypeFunction1<int, int> addOne = ClosureEnv_main_45();
   final TypeFunction1<int, int> composed = composeFunc<int, int, int>(addOne, double2);
-  print('compose(double, addOne)(5): ${composed(5)}');
+  staticPrint('compose(double, addOne)(5): ${composed(5)}');
   final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_46());
   final TypeFunction1<int, int> add10 = curriedAdd(10);
-  print('curriedAdd(10)(5): ${add10(5)}');
+  staticPrint('curriedAdd(10)(5): ${add10(5)}');
   final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_50(), ClosureEnv_main_51(), ClosureEnv_main_52()]));
-  print('pipe(3, [*2, +10, ^2]): ${piped}');
+  staticPrint('pipe(3, [*2, +10, ^2]): ${piped}');
   final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_53());
-  print('memoized(10): ${memoFib(10)}');
-  print('memoized(10) again: ${memoFib(10)}');
-  print('\n--- 6. 多重嵌套控制流 ---');
+  staticPrint('memoized(10): ${memoFib(10)}');
+  staticPrint('memoized(10) again: ${memoFib(10)}');
+  staticPrint('\n--- 6. 多重嵌套控制流 ---');
   final StaticList<int> testNumbers = StaticList<int>.of([(-150), (-42), (-3), 0, 1, 7, 12, 97]);
 {
-    Iterator<int> sync_for_iterator = testNumbers.iterator;
+    StaticIterator<int> sync_for_iterator = StaticIterator(testNumbers.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final int n = sync_for_iterator.current;
 {
-        print('  ${n} → ${classifyNumber(n)}');
+        staticPrint('  ${n} → ${classifyNumber(n)}');
       }
     }
   }
-  print('parseNumbers: ${parseNumbers(StaticList<String>.of(['10', 'abc', ' 42 ', '-5', '', '7']))}');
-  print('\n--- 7. mixin 组合 ---');
+  staticPrint('parseNumbers: ${parseNumbers(StaticList<String>.of(['10', 'abc', ' 42 ', '-5', '', '7']))}');
+  staticPrint('\n--- 7. mixin 组合 ---');
   final UserProfileValue user1 = UserProfile_new(UserProfileValue(), 'Alice', 'alice@example.com', 25);
-  print('user1: ${user1}');
-  print('serialize: ${(user1.vptr['serialize'] as TypeFunction1<String, dynamic>)(user1)}');
-  print('validation: ${(user1.vptr['get_validationSummary'] as TypeFunction1<String, dynamic>)(user1)}');
+  staticPrint('user1: ${user1}');
+  staticPrint('serialize: ${(user1.vptr['serialize'] as String Function(dynamic))(user1)}');
+  staticPrint('validation: ${(user1.vptr['get_validationSummary'] as String Function(dynamic))(user1)}');
   final UserProfileValue user2 = UserProfile_new(UserProfileValue(), '', 'invalid-email', (-5));
-  print('user2 validation: ${(user2.vptr['get_validationSummary'] as TypeFunction1<String, dynamic>)(user2)}');
-  print('\n--- 8. 模板方法模式 ---');
+  staticPrint('user2 validation: ${(user2.vptr['get_validationSummary'] as String Function(dynamic))(user2)}');
+  staticPrint('\n--- 8. 模板方法模式 ---');
   final StringToIntTransformerValue strToInt = StringToIntTransformer_new(StringToIntTransformerValue());
-  print('strToInt("  42  "): ${(strToInt.vptr['transform'] as TypeFunction2<int, dynamic, String>)(strToInt, '  42  ')}');
+  staticPrint('strToInt("  42  "): ${(strToInt.vptr['transform'] as int Function(dynamic, String))(strToInt, '  42  ')}');
   final IntToStringTransformerValue intToStr = IntToStringTransformer_new(IntToStringTransformerValue(), 'NUM:');
-  print('intToStr(123): ${(intToStr.vptr['transform'] as TypeFunction2<String, dynamic, int>)(intToStr, 123)}');
+  staticPrint('intToStr(123): ${(intToStr.vptr['transform'] as String Function(dynamic, int))(intToStr, 123)}');
   final ChainedTransformerValue<String, int, String> chained2 = ChainedTransformer_new<String, int, String>(ChainedTransformerValue<String, int, String>(), strToInt, intToStr);
-  print('chained(" 99 "): ${(chained2.vptr['transform'] as TypeFunction2<String, dynamic, String>)(chained2, ' 99 ')}');
-  print('\n--- 9. 单例 Registry ---');
+  staticPrint('chained(" 99 "): ${(chained2.vptr['transform'] as String Function(dynamic, String))(chained2, ' 99 ')}');
+  staticPrint('\n--- 9. 单例 Registry ---');
   final RegistryValue reg1 = Registry_new();
   final RegistryValue reg2 = Registry_new();
-  print('same instance: ${identical(reg1, reg2)}');
-  (reg1.vptr['register'] as TypeFunction3<void, dynamic, String, dynamic>)(reg1, 'name', 'Dart');
-  (reg1.vptr['register'] as TypeFunction3<void, dynamic, String, dynamic>)(reg1, 'version', 3);
-  print('registry: ${reg1}');
-  print('lookup name: ${(reg2.vptr['lookup'] as TypeFunction2<dynamic, dynamic, String>)(reg2, 'name')}');
-  print('keys: ${(reg1.vptr['get_keys'] as TypeFunction1<StaticList<String>, dynamic>)(reg1)}');
-  (reg1.vptr['clear'] as TypeFunction1<void, dynamic>)(reg1);
-  print('\n--- 10. 集合操作链 ---');
+  staticPrint('same instance: ${identical(reg1, reg2)}');
+  (reg1.vptr['register'] as void Function(dynamic, String, dynamic))(reg1, 'name', 'Dart');
+  (reg1.vptr['register'] as void Function(dynamic, String, dynamic))(reg1, 'version', 3);
+  staticPrint('registry: ${reg1}');
+  staticPrint('lookup name: ${(reg2.vptr['lookup'] as dynamic Function(dynamic, String))(reg2, 'name')}');
+  staticPrint('keys: ${(reg1.vptr['get_keys'] as StaticList<String> Function(dynamic))(reg1)}');
+  (reg1.vptr['clear'] as void Function(dynamic))(reg1);
+  staticPrint('\n--- 10. 集合操作链 ---');
   final StaticList<StaticMap<String, Object>> records = StaticList<StaticMap<String, Object>>.of([StaticMap<String, Object>.of({'name': 'Alice', 'score': 95}), StaticMap<String, Object>.of({'name': 'Bob', 'score': 72}), StaticMap<String, Object>.of({'name': 'Carol', 'score': 88}), StaticMap<String, Object>.of({'name': 'Dave', 'score': 45}), StaticMap<String, Object>.of({'name': 'Eve', 'score': 91}), StaticMap<String, Object>.of({'name': 'Frank', 'score': 63})]);
   final StaticList<StaticMap<String, dynamic>> processed = StaticList<StaticMap<String, dynamic>>.of(DataProcessor_processRecords(records));
 {
-    Iterator<StaticMap<String, dynamic>> sync_for_iterator = processed.iterator;
+    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(processed.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final StaticMap<String, dynamic> r = StaticMap<String, dynamic>.of(sync_for_iterator.current);
 {
-        print('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
+        staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
       }
     }
   }
   final StaticMap<String, double> averages = StaticMap<String, double>.of(DataProcessor_averageByGrade(processed));
-  print('averages: ${averages}');
-  print('\n--- 11. late 变量 ---');
+  staticPrint('averages: ${averages}');
+  staticPrint('\n--- 11. late 变量 ---');
   final ExpensiveComputationValue comp = ExpensiveComputation_new(ExpensiveComputationValue(), 42);
-  print('comp: ${comp}');
-  print('computedValue: ${comp.computedValue}');
-  (comp.vptr['initialize'] as TypeFunction2<void, dynamic, String>)(comp, 'test description');
-  print('description: ${comp.description}');
-  print('\n--- 12. 局部函数 + 递归 ---');
-  print('fibonacci(10): ${MathUtils_fibonacci(10)}');
-  print('fibonacci(20): ${MathUtils_fibonacci(20)}');
-  print('primeFactors(360): ${MathUtils_primeFactors(360)}');
-  print('gcd(48, 18): ${MathUtils_gcd(48, 18)}');
-  print('lcm(12, 18): ${MathUtils_lcm(12, 18)}');
-  print('\n--- 13. 多重 implements ---');
+  staticPrint('comp: ${comp}');
+  staticPrint('computedValue: ${comp.computedValue}');
+  (comp.vptr['initialize'] as void Function(dynamic, String))(comp, 'test description');
+  staticPrint('description: ${comp.description}');
+  staticPrint('\n--- 12. 局部函数 + 递归 ---');
+  staticPrint('fibonacci(10): ${MathUtils_fibonacci(10)}');
+  staticPrint('fibonacci(20): ${MathUtils_fibonacci(20)}');
+  staticPrint('primeFactors(360): ${MathUtils_primeFactors(360)}');
+  staticPrint('gcd(48, 18): ${MathUtils_gcd(48, 18)}');
+  staticPrint('lcm(12, 18): ${MathUtils_lcm(12, 18)}');
+  staticPrint('\n--- 13. 多重 implements ---');
   final StaticList<ScoreValue> scores = StaticList<ScoreValue>.of([Score_new(ScoreValue(), 'Math', 90), Score_new(ScoreValue(), 'English', 75), WeightedScore_new(WeightedScoreValue(), 'Physics', 85, 1.5), WeightedScore_new(WeightedScoreValue(), 'Art', 95, 0.5)]);
 {
-    Iterator<ScoreValue> sync_for_iterator = scores.iterator;
+    StaticIterator<ScoreValue> sync_for_iterator = StaticIterator(scores.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final ScoreValue s = sync_for_iterator.current;
 {
-        print('  ${(s.vptr['prettyPrint'] as TypeFunction1<String, dynamic>)(s)}');
+        staticPrint('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
       }
     }
   }
   final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
   final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
-  print('physics > art (weighted): ${(ws1.vptr['isGreaterThan'] as TypeFunction2<bool, dynamic, ScoreValue>)(ws1, ws2)}');
-  print('\n--- 14. 字符串操作 ---');
-  print('camelToSnake("helloWorldFoo"): ${TextProcessor_camelToSnake('helloWorldFoo')}');
-  print('snakeToCamel("hello_world_foo"): ${TextProcessor_snakeToCamel('hello_world_foo')}');
+  staticPrint('physics > art (weighted): ${(ws1.vptr['isGreaterThan'] as bool Function(dynamic, ScoreValue))(ws1, ws2)}');
+  staticPrint('\n--- 14. 字符串操作 ---');
+  staticPrint('camelToSnake("helloWorldFoo"): ${TextProcessor_camelToSnake('helloWorldFoo')}');
+  staticPrint('snakeToCamel("hello_world_foo"): ${TextProcessor_snakeToCamel('hello_world_foo')}');
   final StaticMap<String, int> freq = StaticMap<String, int>.of(TextProcessor_wordFrequency('the quick brown fox jumps over the lazy fox'));
-  print('word frequency: ${freq}');
-  print('truncate: ${TextProcessor_truncate('Hello, World! This is a long string.', 20)}');
-  print('\n--- 15. async 链 ---');
+  staticPrint('word frequency: ${freq}');
+  staticPrint('truncate: ${TextProcessor_truncate('Hello, World! This is a long string.', 20)}');
+  staticPrint('\n--- 15. async 链 ---');
   final String asyncResult = smAwait(asyncTransform(5));
-  print('asyncTransform(5): ${asyncResult}');
+  staticPrint('asyncTransform(5): ${asyncResult}');
   final StaticList<int> asyncSeq = StaticList<int>.of(smAwait(asyncSequence(5)));
-  print('asyncSequence(5): ${asyncSeq}');
-  print('\n--- 16. 增强枚举 ---');
+  staticPrint('asyncSequence(5): ${asyncSeq}');
+  staticPrint('\n--- 16. 增强枚举 ---');
 {
-    Iterator<Season> sync_for_iterator = const [Season.spring, Season.summer, Season.autumn, Season.winter].iterator;
+    StaticIterator<Season> sync_for_iterator = StaticIterator(const [Season.spring, Season.summer, Season.autumn, Season.winter].iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final Season s = sync_for_iterator.current;
 {
-        print('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
+        staticPrint('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
       }
     }
   }
-  print('\n--- 17. 嵌套 Map 操作 ---');
+  staticPrint('\n--- 17. 嵌套 Map 操作 ---');
   final StaticMap<String, Object> base = StaticMap<String, Object>.of({'a': 1, 'b': StaticMap<String, int>.of({'x': 10, 'y': 20}), 'c': 3});
   final StaticMap<String, Object> overlay = StaticMap<String, Object>.of({'b': StaticMap<String, int>.of({'y': 99, 'z': 30}), 'd': 4});
   final dynamic merged = JsonLikeProcessor_deepMerge(base, overlay);
-  print('deepMerge: ${merged}');
+  staticPrint('deepMerge: ${merged}');
   final StaticMap<String, Object> nested = StaticMap<String, Object>.of({'user': StaticMap<String, Object>.of({'name': 'Alice', 'address': StaticMap<String, String>.of({'city': 'NYC', 'zip': '10001'})}), 'role': 'admin'});
-  print('flattenKeys: ${JsonLikeProcessor_flattenKeys(nested)}');
-  print('\n--- 18. 扩展方法 ---');
-  print('7.isPrime: ${IntMathExtension_get_isPrime(7)}');
-  print('12.isPrime: ${IntMathExtension_get_isPrime(12)}');
-  print('5.factorial: ${IntMathExtension_get_factorial(5)}');
-  print('12345.digits: ${IntMathExtension_get_digits(12345)}');
+  staticPrint('flattenKeys: ${JsonLikeProcessor_flattenKeys(nested)}');
+  staticPrint('\n--- 18. 扩展方法 ---');
+  staticPrint('7.isPrime: ${IntMathExtension_get_isPrime(7)}');
+  staticPrint('12.isPrime: ${IntMathExtension_get_isPrime(12)}');
+  staticPrint('5.factorial: ${IntMathExtension_get_factorial(5)}');
+  staticPrint('12345.digits: ${IntMathExtension_get_digits(12345)}');
   final StaticList<int> nums = StaticList<int>.of([10, 20, 30, 40, 50]);
-  print('sum: ${IterableStats_get_sum(nums)}, avg: ${IterableStats_get_average(nums)}, max: ${IterableStats_get_max(nums)}, min: ${IterableStats_get_min(nums)}');
-  print('\n--- 19. Matrix2D ---');
+  staticPrint('sum: ${IterableStats_get_sum(nums)}, avg: ${IterableStats_get_average(nums)}, max: ${IterableStats_get_max(nums)}, min: ${IterableStats_get_min(nums)}');
+  staticPrint('\n--- 19. Matrix2D ---');
   final Matrix2DValue m1 = Matrix2D_new(Matrix2DValue(), StaticList<StaticList<double>>.of([StaticList<double>.of([1.0, 2.0]), StaticList<double>.of([3.0, 4.0])]));
   final Matrix2DValue m2 = Matrix2D_new_identity(Matrix2DValue(), 2);
-  print('m1: ${m1}');
-  print('m2 (identity): ${m2}');
-  print('m1 + m2: ${(m1.vptr['operatorPlus'] as TypeFunction2<Matrix2DValue, dynamic, Matrix2DValue>)(m1, m2)}');
-  print('m1 * m2: ${(m1.vptr['operatorStar'] as TypeFunction2<Matrix2DValue, dynamic, Matrix2DValue>)(m1, m2)}');
-  print('m1 trace: ${(m1.vptr['get_trace'] as TypeFunction1<double, dynamic>)(m1)}');
+  staticPrint('m1: ${m1}');
+  staticPrint('m2 (identity): ${m2}');
+  staticPrint('m1 + m2: ${(m1.vptr['operatorPlus'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
+  staticPrint('m1 * m2: ${(m1.vptr['operatorStar'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
+  staticPrint('m1 trace: ${(m1.vptr['get_trace'] as double Function(dynamic))(m1)}');
   final Matrix2DValue m3 = Matrix2D_new_zeros(Matrix2DValue(), 2, 3);
-  print('zeros(2,3): ${m3}');
-  print('\n--- 20. 综合 mixin + 抽象类 ---');
+  staticPrint('zeros(2,3): ${m3}');
+  staticPrint('\n--- 20. 综合 mixin + 抽象类 ---');
   final ProductValue product = Product_new(ProductValue(), 'P001', 'Widget', 9.99);
-  (product.vptr['audit'] as TypeFunction2<void, dynamic, String>)(product, 'created');
-  (product.vptr['audit'] as TypeFunction2<void, dynamic, String>)(product, 'priced');
-  (product.vptr['markCached'] as TypeFunction1<void, dynamic>)(product);
-  print('product: ${product}');
-  print('auditLog: ${(product.vptr['get_auditLog'] as TypeFunction1<StaticList<String>, dynamic>)(product)}');
-  (product.vptr['markDirty'] as TypeFunction1<void, dynamic>)(product);
-  print('after markDirty: ${(product.vptr['get_cacheStatus'] as TypeFunction1<String, dynamic>)(product)}');
-  print('\n=== 所有高级语法测试通过 ✅ ===');
+  (product.vptr['audit'] as void Function(dynamic, String))(product, 'created');
+  (product.vptr['audit'] as void Function(dynamic, String))(product, 'priced');
+  (product.vptr['markCached'] as void Function(dynamic))(product);
+  staticPrint('product: ${product}');
+  staticPrint('auditLog: ${(product.vptr['get_auditLog'] as StaticList<String> Function(dynamic))(product)}');
+  (product.vptr['markDirty'] as void Function(dynamic))(product);
+  staticPrint('after markDirty: ${(product.vptr['get_cacheStatus'] as String Function(dynamic))(product)}');
+  staticPrint('\n=== 所有高级语法测试通过 ✅ ===');
 }
 
-class _TearOff_TreeNode_preorder<T> extends TypeFunction1<StaticList<T>, dynamic> {
-  _TearOff_TreeNode_preorder();
-  @override
-  StaticList<T> call(dynamic this_) => TreeNode_preorder<T>(this_);
-}
-class _TearOff_TreeNode_inorder<T> extends TypeFunction1<StaticList<T>, dynamic> {
-  _TearOff_TreeNode_inorder();
-  @override
-  StaticList<T> call(dynamic this_) => TreeNode_inorder<T>(this_);
-}
-class _TearOff_TreeNode_get_depth<T> extends TypeFunction1<int, dynamic> {
-  _TearOff_TreeNode_get_depth();
-  @override
-  int call(dynamic this_) => TreeNode_get_depth<T>(this_);
-}
-class _TearOff_TreeNode_toString<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_TreeNode_toString();
-  @override
-  String call(dynamic this_) => TreeNode_toString<T>(this_);
-}
-class _TearOff_TreeNode_map_String<T> extends TypeFunction2<TreeNodeValue<String>, dynamic, TypeFunction1<String, T>> {
-  _TearOff_TreeNode_map_String();
-  @override
-  TreeNodeValue<String> call(dynamic this_, TypeFunction1<String, T> transform) => TreeNode_map<T, String>(this_, transform);
-}
-class _TearOff_LinkedNode_reversed<T> extends TypeFunction1<LinkedNodeValue<T>, dynamic> {
-  _TearOff_LinkedNode_reversed();
-  @override
-  LinkedNodeValue<T> call(dynamic this_) => LinkedNode_reversed<T>(this_);
-}
-class _TearOff_LinkedNode_toList<T> extends TypeFunction1<StaticList<T>, dynamic> {
-  _TearOff_LinkedNode_toList();
-  @override
-  StaticList<T> call(dynamic this_) => LinkedNode_toList<T>(this_);
-}
-class _TearOff_LinkedNode_get_length<T> extends TypeFunction1<int, dynamic> {
-  _TearOff_LinkedNode_get_length();
-  @override
-  int call(dynamic this_) => LinkedNode_get_length<T>(this_);
-}
-class _TearOff_LinkedNode_toString<T> extends TypeFunction1<String, dynamic> {
-  _TearOff_LinkedNode_toString();
-  @override
-  String call(dynamic this_) => LinkedNode_toString<T>(this_);
-}
-class _TearOff_Either_get_isLeft<L, R> extends TypeFunction1<bool, dynamic> {
-  _TearOff_Either_get_isLeft();
-  @override
-  bool call(dynamic this_) => Either_get_isLeft<L, R>(this_);
-}
-class _TearOff_Either_get_isRight<L, R> extends TypeFunction1<bool, dynamic> {
-  _TearOff_Either_get_isRight();
-  @override
-  bool call(dynamic this_) => Either_get_isRight<L, R>(this_);
-}
-class _TearOff_Either_get_leftValue<L, R> extends TypeFunction1<L, dynamic> {
-  _TearOff_Either_get_leftValue();
-  @override
-  L call(dynamic this_) => Either_get_leftValue<L, R>(this_);
-}
-class _TearOff_Either_get_rightValue<L, R> extends TypeFunction1<R, dynamic> {
-  _TearOff_Either_get_rightValue();
-  @override
-  R call(dynamic this_) => Either_get_rightValue<L, R>(this_);
-}
-class _TearOff_Either_toString<L, R> extends TypeFunction1<String, dynamic> {
-  _TearOff_Either_toString();
-  @override
-  String call(dynamic this_) => Either_toString<L, R>(this_);
-}
-class _TearOff_Either_fold_String<L, R> extends TypeFunction3<String, dynamic, TypeFunction1<String, L>, TypeFunction1<String, R>> {
-  _TearOff_Either_fold_String();
-  @override
-  String call(dynamic this_, TypeFunction1<String, L> onLeft, TypeFunction1<String, R> onRight) => Either_fold<L, R, String>(this_, onLeft, onRight);
-}
-class _TearOff_Either_mapRight_int<L, R> extends TypeFunction2<EitherValue<L, int>, dynamic, TypeFunction1<int, R>> {
-  _TearOff_Either_mapRight_int();
-  @override
-  EitherValue<L, int> call(dynamic this_, TypeFunction1<int, R> transform) => Either_mapRight<L, R, int>(this_, transform);
-}
-class _TearOff_Either_flatMap_dynamic<L, R> extends TypeFunction2<EitherValue<L, dynamic>, dynamic, TypeFunction1<EitherValue<L, dynamic>, R>> {
-  _TearOff_Either_flatMap_dynamic();
-  @override
-  EitherValue<L, dynamic> call(dynamic this_, TypeFunction1<EitherValue<L, dynamic>, R> transform) => Either_flatMap<L, R, dynamic>(this_, transform);
-}
-class ClosureEnv_anon_0 extends TypeFunction1<String, MapEntry<String, dynamic>> {
+class ClosureEnv_anon_0 extends TypeFunction1<String, StaticMapEntry<String, dynamic>> {
   ClosureEnv_anon_0();
   @override
-  String call(MapEntry<String, dynamic> e) => ClosureEnv_anon_0_call(this, e);
+  String call(StaticMapEntry<String, dynamic> e) => ClosureEnv_anon_0_call(this, e);
 }
-String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, MapEntry<String, dynamic> e) {
+String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, StaticMapEntry<String, dynamic> e) {
   return '${e.key}=${e.value}';
 }
 
-class _TearOff_UserProfile_toMap extends TypeFunction1<StaticMap<String, dynamic>, dynamic> {
-  const _TearOff_UserProfile_toMap();
-  @override
-  StaticMap<String, dynamic> call(dynamic this_) => UserProfile_toMap(this_);
-}
-class _TearOff_UserProfile_serialize extends TypeFunction1<String, dynamic> {
-  const _TearOff_UserProfile_serialize();
-  @override
-  String call(dynamic this_) => UserProfile_serialize(this_);
-}
-class _TearOff_UserProfile_validate extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_UserProfile_validate();
-  @override
-  StaticList<String> call(dynamic this_) => UserProfile_validate(this_);
-}
-class _TearOff_UserProfile_get_isValid extends TypeFunction1<bool, dynamic> {
-  const _TearOff_UserProfile_get_isValid();
-  @override
-  bool call(dynamic this_) => UserProfile_get_isValid(this_);
-}
-class _TearOff_UserProfile_get_validationSummary extends TypeFunction1<String, dynamic> {
-  const _TearOff_UserProfile_get_validationSummary();
-  @override
-  String call(dynamic this_) => UserProfile_get_validationSummary(this_);
-}
-class _TearOff_UserProfile_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_UserProfile_toString();
-  @override
-  String call(dynamic this_) => UserProfile_toString(this_);
-}
-class _TearOff_DataTransformer_transform<TInput, TOutput> extends TypeFunction2<TOutput, dynamic, TInput> {
-  _TearOff_DataTransformer_transform();
-  @override
-  TOutput call(dynamic this_, TInput input) => DataTransformer_transform<TInput, TOutput>(this_, input);
-}
-class _TearOff_DataTransformer_preValidate<TInput, TOutput> extends TypeFunction2<TInput, dynamic, TInput> {
-  _TearOff_DataTransformer_preValidate();
-  @override
-  TInput call(dynamic this_, TInput input) => DataTransformer_preValidate<TInput, TOutput>(this_, input);
-}
-class _TearOff_DataTransformer_process<TInput, TOutput> extends TypeFunction2<TOutput, dynamic, TInput> {
-  _TearOff_DataTransformer_process();
-  @override
-  TOutput call(dynamic this_, TInput input) => DataTransformer_process<TInput, TOutput>(this_, input);
-}
-class _TearOff_DataTransformer_postProcess<TInput, TOutput> extends TypeFunction2<TOutput, dynamic, TOutput> {
-  _TearOff_DataTransformer_postProcess();
-  @override
-  TOutput call(dynamic this_, TOutput output) => DataTransformer_postProcess<TInput, TOutput>(this_, output);
-}
-class _TearOff_StringToIntTransformer_transform extends TypeFunction2<int, dynamic, String> {
-  const _TearOff_StringToIntTransformer_transform();
-  @override
-  int call(dynamic this_, String input) => StringToIntTransformer_transform(this_, input);
-}
-class _TearOff_StringToIntTransformer_preValidate extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_StringToIntTransformer_preValidate();
-  @override
-  String call(dynamic this_, String input) => StringToIntTransformer_preValidate(this_, input);
-}
-class _TearOff_StringToIntTransformer_process extends TypeFunction2<int, dynamic, String> {
-  const _TearOff_StringToIntTransformer_process();
-  @override
-  int call(dynamic this_, String input) => StringToIntTransformer_process(this_, input);
-}
-class _TearOff_StringToIntTransformer_postProcess extends TypeFunction2<int, dynamic, int> {
-  const _TearOff_StringToIntTransformer_postProcess();
-  @override
-  int call(dynamic this_, int output) => StringToIntTransformer_postProcess(this_, output);
-}
-class _TearOff_IntToStringTransformer_transform extends TypeFunction2<String, dynamic, int> {
-  const _TearOff_IntToStringTransformer_transform();
-  @override
-  String call(dynamic this_, int input) => IntToStringTransformer_transform(this_, input);
-}
-class _TearOff_IntToStringTransformer_preValidate extends TypeFunction2<int, dynamic, int> {
-  const _TearOff_IntToStringTransformer_preValidate();
-  @override
-  int call(dynamic this_, int input) => IntToStringTransformer_preValidate(this_, input);
-}
-class _TearOff_IntToStringTransformer_process extends TypeFunction2<String, dynamic, int> {
-  const _TearOff_IntToStringTransformer_process();
-  @override
-  String call(dynamic this_, int input) => IntToStringTransformer_process(this_, input);
-}
-class _TearOff_IntToStringTransformer_postProcess extends TypeFunction2<String, dynamic, String> {
-  const _TearOff_IntToStringTransformer_postProcess();
-  @override
-  String call(dynamic this_, String output) => IntToStringTransformer_postProcess(this_, output);
-}
-class _TearOff_ChainedTransformer_transform<A, B, C> extends TypeFunction2<C, dynamic, A> {
-  _TearOff_ChainedTransformer_transform();
-  @override
-  C call(dynamic this_, A input) => ChainedTransformer_transform<A, B, C>(this_, input);
-}
-class _TearOff_ChainedTransformer_preValidate<A, B, C> extends TypeFunction2<A, dynamic, A> {
-  _TearOff_ChainedTransformer_preValidate();
-  @override
-  A call(dynamic this_, A input) => ChainedTransformer_preValidate<A, B, C>(this_, input);
-}
-class _TearOff_ChainedTransformer_process<A, B, C> extends TypeFunction2<C, dynamic, A> {
-  _TearOff_ChainedTransformer_process();
-  @override
-  C call(dynamic this_, A input) => ChainedTransformer_process<A, B, C>(this_, input);
-}
-class _TearOff_ChainedTransformer_postProcess<A, B, C> extends TypeFunction2<C, dynamic, C> {
-  _TearOff_ChainedTransformer_postProcess();
-  @override
-  C call(dynamic this_, C output) => ChainedTransformer_postProcess<A, B, C>(this_, output);
-}
-class _TearOff_Registry_register extends TypeFunction3<void, dynamic, String, dynamic> {
-  const _TearOff_Registry_register();
-  @override
-  void call(dynamic this_, String key, dynamic value) => Registry_register(this_, key, value);
-}
-class _TearOff_Registry_lookup extends TypeFunction2<dynamic, dynamic, String> {
-  const _TearOff_Registry_lookup();
-  @override
-  dynamic call(dynamic this_, String key) => Registry_lookup(this_, key);
-}
-class _TearOff_Registry_contains extends TypeFunction2<bool, dynamic, String> {
-  const _TearOff_Registry_contains();
-  @override
-  bool call(dynamic this_, String key) => Registry_contains(this_, key);
-}
-class _TearOff_Registry_get_size extends TypeFunction1<int, dynamic> {
-  const _TearOff_Registry_get_size();
-  @override
-  int call(dynamic this_) => Registry_get_size(this_);
-}
-class _TearOff_Registry_get_accessCount extends TypeFunction1<int, dynamic> {
-  const _TearOff_Registry_get_accessCount();
-  @override
-  int call(dynamic this_) => Registry_get_accessCount(this_);
-}
-class _TearOff_Registry_get_keys extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_Registry_get_keys();
-  @override
-  StaticList<String> call(dynamic this_) => Registry_get_keys(this_);
-}
-class _TearOff_Registry_clear extends TypeFunction1<void, dynamic> {
-  const _TearOff_Registry_clear();
-  @override
-  void call(dynamic this_) => Registry_clear(this_);
-}
-class _TearOff_Registry_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Registry_toString();
-  @override
-  String call(dynamic this_) => Registry_toString(this_);
-}
 class ClosureEnv_anon_1 extends TypeFunction2<int, StaticMap<String, dynamic>, StaticMap<String, dynamic>> {
   ClosureEnv_anon_1();
   @override
@@ -1798,86 +1563,16 @@ int ClosureEnv_ClosureEnv_anon_6_7_call(ClosureEnv_ClosureEnv_anon_6_7 env, int 
   return (sum + (r['score'] as int));
 }
 
-class ClosureEnv_anon_6 extends TypeFunction2<MapEntry<String, double>, String, StaticList<StaticMap<String, dynamic>>> {
+class ClosureEnv_anon_6 extends TypeFunction2<StaticMapEntry<String, double>, String, StaticList<StaticMap<String, dynamic>>> {
   ClosureEnv_anon_6();
   @override
-  MapEntry<String, double> call(String grade, StaticList<StaticMap<String, dynamic>> items) => ClosureEnv_anon_6_call(this, grade, items);
+  StaticMapEntry<String, double> call(String grade, StaticList<StaticMap<String, dynamic>> items) => ClosureEnv_anon_6_call(this, grade, items);
 }
-MapEntry<String, double> ClosureEnv_anon_6_call(ClosureEnv_anon_6 env, String grade, StaticList<StaticMap<String, dynamic>> items) {
+StaticMapEntry<String, double> ClosureEnv_anon_6_call(ClosureEnv_anon_6 env, String grade, StaticList<StaticMap<String, dynamic>> items) {
     final int total = items.fold(0, ClosureEnv_ClosureEnv_anon_6_7());
-    return MapEntry(grade, (total / items.length));
+    return StaticMapEntry(grade, (total / items.length));
   }
 
-class _TearOff_ExpensiveComputation_initialize extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_ExpensiveComputation_initialize();
-  @override
-  void call(dynamic this_, String desc) => ExpensiveComputation_initialize(this_, desc);
-}
-class _TearOff_ExpensiveComputation_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_ExpensiveComputation_toString();
-  @override
-  String call(dynamic this_) => ExpensiveComputation_toString(this_);
-}
-class _TearOff_Printable3_prettyPrint extends TypeFunction1<String, dynamic> {
-  const _TearOff_Printable3_prettyPrint();
-  @override
-  String call(dynamic this_) => Printable3_prettyPrint(this_);
-}
-class _TearOff_Score_prettyPrint extends TypeFunction1<String, dynamic> {
-  const _TearOff_Score_prettyPrint();
-  @override
-  String call(dynamic this_) => Score_prettyPrint(this_);
-}
-class _TearOff_Score_compareTo2 extends TypeFunction2<int, dynamic, ScoreValue> {
-  const _TearOff_Score_compareTo2();
-  @override
-  int call(dynamic this_, ScoreValue other) => Score_compareTo2(this_, other);
-}
-class _TearOff_Score_isLessThan extends TypeFunction2<bool, dynamic, ScoreValue> {
-  const _TearOff_Score_isLessThan();
-  @override
-  bool call(dynamic this_, ScoreValue other) => Score_isLessThan(this_, other);
-}
-class _TearOff_Score_isGreaterThan extends TypeFunction2<bool, dynamic, ScoreValue> {
-  const _TearOff_Score_isGreaterThan();
-  @override
-  bool call(dynamic this_, ScoreValue other) => Score_isGreaterThan(this_, other);
-}
-class _TearOff_Score_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Score_toString();
-  @override
-  String call(dynamic this_) => Score_toString(this_);
-}
-class _TearOff_WeightedScore_prettyPrint extends TypeFunction1<String, dynamic> {
-  const _TearOff_WeightedScore_prettyPrint();
-  @override
-  String call(dynamic this_) => WeightedScore_prettyPrint(this_);
-}
-class _TearOff_WeightedScore_compareTo2 extends TypeFunction2<int, dynamic, ScoreValue> {
-  const _TearOff_WeightedScore_compareTo2();
-  @override
-  int call(dynamic this_, ScoreValue other) => WeightedScore_compareTo2(this_, other);
-}
-class _TearOff_WeightedScore_isLessThan extends TypeFunction2<bool, dynamic, ScoreValue> {
-  const _TearOff_WeightedScore_isLessThan();
-  @override
-  bool call(dynamic this_, ScoreValue other) => WeightedScore_isLessThan(this_, other);
-}
-class _TearOff_WeightedScore_isGreaterThan extends TypeFunction2<bool, dynamic, ScoreValue> {
-  const _TearOff_WeightedScore_isGreaterThan();
-  @override
-  bool call(dynamic this_, ScoreValue other) => WeightedScore_isGreaterThan(this_, other);
-}
-class _TearOff_WeightedScore_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_WeightedScore_toString();
-  @override
-  String call(dynamic this_) => WeightedScore_toString(this_);
-}
-class _TearOff_WeightedScore_get_weightedPoints extends TypeFunction1<double, dynamic> {
-  const _TearOff_WeightedScore_get_weightedPoints();
-  @override
-  double call(dynamic this_) => WeightedScore_get_weightedPoints(this_);
-}
 class ClosureEnv_anon_8 extends TypeFunction1<String, String> {
   ClosureEnv_anon_8();
   @override
@@ -1896,31 +1591,6 @@ bool ClosureEnv_anon_9_call(ClosureEnv_anon_9 env, String w) {
   return w.isNotEmpty;
 }
 
-class _TearOff_Matrix2D_get extends TypeFunction3<double, dynamic, int, int> {
-  const _TearOff_Matrix2D_get();
-  @override
-  double call(dynamic this_, int row, int col) => Matrix2D_get(this_, row, col);
-}
-class _TearOff_Matrix2D_operatorPlus extends TypeFunction2<Matrix2DValue, dynamic, Matrix2DValue> {
-  const _TearOff_Matrix2D_operatorPlus();
-  @override
-  Matrix2DValue call(dynamic this_, Matrix2DValue other) => Matrix2D_operatorPlus(this_, other);
-}
-class _TearOff_Matrix2D_operatorStar extends TypeFunction2<Matrix2DValue, dynamic, Matrix2DValue> {
-  const _TearOff_Matrix2D_operatorStar();
-  @override
-  Matrix2DValue call(dynamic this_, Matrix2DValue other) => Matrix2D_operatorStar(this_, other);
-}
-class _TearOff_Matrix2D_get_trace extends TypeFunction1<double, dynamic> {
-  const _TearOff_Matrix2D_get_trace();
-  @override
-  double call(dynamic this_) => Matrix2D_get_trace(this_);
-}
-class _TearOff_Matrix2D_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Matrix2D_toString();
-  @override
-  String call(dynamic this_) => Matrix2D_toString(this_);
-}
 class ClosureEnv_anon_10 extends TypeFunction1<StaticList<double>, int> {
   int cols;
   ClosureEnv_anon_10(this.cols);
@@ -1979,51 +1649,6 @@ String ClosureEnv_anon_15_call(ClosureEnv_anon_15 env, String r) {
   return '[${r}]';
 }
 
-class _TearOff_Entity_get_entityId extends TypeFunction1<String, dynamic> {
-  const _TearOff_Entity_get_entityId();
-  @override
-  String call(dynamic this_) => Entity_get_entityId(this_);
-}
-class _TearOff_Product_get_entityId extends TypeFunction1<String, dynamic> {
-  const _TearOff_Product_get_entityId();
-  @override
-  String call(dynamic this_) => Product_get_entityId(this_);
-}
-class _TearOff_Product_audit extends TypeFunction2<void, dynamic, String> {
-  const _TearOff_Product_audit();
-  @override
-  void call(dynamic this_, String action) => Product_audit(this_, action);
-}
-class _TearOff_Product_get_auditLog extends TypeFunction1<StaticList<String>, dynamic> {
-  const _TearOff_Product_get_auditLog();
-  @override
-  StaticList<String> call(dynamic this_) => Product_get_auditLog(this_);
-}
-class _TearOff_Product_markDirty extends TypeFunction1<void, dynamic> {
-  const _TearOff_Product_markDirty();
-  @override
-  void call(dynamic this_) => Product_markDirty(this_);
-}
-class _TearOff_Product_markCached extends TypeFunction1<void, dynamic> {
-  const _TearOff_Product_markCached();
-  @override
-  void call(dynamic this_) => Product_markCached(this_);
-}
-class _TearOff_Product_get_isDirty extends TypeFunction1<bool, dynamic> {
-  const _TearOff_Product_get_isDirty();
-  @override
-  bool call(dynamic this_) => Product_get_isDirty(this_);
-}
-class _TearOff_Product_get_cacheStatus extends TypeFunction1<String, dynamic> {
-  const _TearOff_Product_get_cacheStatus();
-  @override
-  String call(dynamic this_) => Product_get_cacheStatus(this_);
-}
-class _TearOff_Product_toString extends TypeFunction1<String, dynamic> {
-  const _TearOff_Product_toString();
-  @override
-  String call(dynamic this_) => Product_toString(this_);
-}
 class ClosureEnv_makeCounter_16 extends TypeFunction0<int> {
   IntBox current;
   int step;
@@ -2124,7 +1749,7 @@ class ClosureEnv_asyncAdd_24 {
   void call() => ClosureEnv_asyncAdd_24_call(this);
 }
 void ClosureEnv_asyncAdd_24_call(ClosureEnv_asyncAdd_24 env) {
-  smAwait(promiseDelayed<dynamic>(Duration(milliseconds: 1)));
+  smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
   env._promise.complete((env.a.value + env.b.value));
   return;
 }

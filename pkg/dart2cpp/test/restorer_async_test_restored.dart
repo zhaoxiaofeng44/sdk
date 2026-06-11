@@ -31,34 +31,34 @@ Promise<String> conditionalAsync(bool flag) {
 }
 
 void main() {
-  print('=== async/await 转换验证测试 ===\n');
-  print('--- 1. 基础 async 函数 ---');
+  staticPrint('=== async/await 转换验证测试 ===\n');
+  staticPrint('--- 1. 基础 async 函数 ---');
   final String v1 = smAwait(greetAsync('dart'));
   assert((v1 == 'hello dart'), 'Expected "hello dart", got "${v1}"');
-  print('  ✓ greetAsync("dart") = "${v1}"');
-  print('\n--- 2. 串行 await ---');
+  staticPrint('  ✓ greetAsync("dart") = "${v1}"');
+  staticPrint('\n--- 2. 串行 await ---');
   final String v2 = smAwait(chainAsync('prefix'));
   assert((v2 == 'prefix: hello world'), 'Unexpected: "${v2}"');
-  print('  ✓ chainAsync("prefix") = "${v2}"');
-  print('\n--- 3. 多个 await ---');
+  staticPrint('  ✓ chainAsync("prefix") = "${v2}"');
+  staticPrint('\n--- 3. 多个 await ---');
   final String v3 = smAwait(multiAwait('alice', 'bob'));
   assert((v3 == 'hello alice and hello bob'), 'Unexpected: "${v3}"');
-  print('  ✓ multiAwait("alice","bob") = "${v3}"');
-  print('\n--- 4. try-catch 中的 await ---');
+  staticPrint('  ✓ multiAwait("alice","bob") = "${v3}"');
+  staticPrint('\n--- 4. try-catch 中的 await ---');
   final String v4a = smAwait(tryCatchAsync('ok_input'));
   assert((v4a == 'ok: hello ok_input'), 'Unexpected: "${v4a}"');
-  print('  ✓ tryCatchAsync("ok_input") = "${v4a}"');
+  staticPrint('  ✓ tryCatchAsync("ok_input") = "${v4a}"');
   final String v4b = smAwait(tryCatchAsync('fail'));
   assert((v4b == 'caught: Exception: expected failure'), 'Unexpected: "${v4b}"');
-  print('  ✓ tryCatchAsync("fail") = "${v4b}"');
-  print('\n--- 5. 条件分支中的 await ---');
+  staticPrint('  ✓ tryCatchAsync("fail") = "${v4b}"');
+  staticPrint('\n--- 5. 条件分支中的 await ---');
   final String v5a = smAwait(conditionalAsync(true));
   final String v5b = smAwait(conditionalAsync(false));
   assert((v5a == 'hello yes'), 'Unexpected: "${v5a}"');
   assert((v5b == 'hello no'), 'Unexpected: "${v5b}"');
-  print('  ✓ conditionalAsync(true) = "${v5a}"');
-  print('  ✓ conditionalAsync(false) = "${v5b}"');
-  print('\n=== ✅ 全部 5 个 async/await 测试通过！ ===');
+  staticPrint('  ✓ conditionalAsync(true) = "${v5a}"');
+  staticPrint('  ✓ conditionalAsync(false) = "${v5b}"');
+  staticPrint('\n=== ✅ 全部 5 个 async/await 测试通过！ ===');
 }
 
 class ClosureEnv_greetAsync_0 {

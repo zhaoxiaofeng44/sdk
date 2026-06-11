@@ -44,7 +44,7 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
       if (className == 'override') return '@override';
       if (className == 'pragma') return '@pragma';
       if (className == 'Duration') {
-        return 'Duration()';
+        return 'StaticDuration()';
       }
       // 检查是否是 enum 值（superclass 是 _Enum）
       if (_isEnumConstant(c)) {
