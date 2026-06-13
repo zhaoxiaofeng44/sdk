@@ -12,6 +12,14 @@ class TreeNodeValue<T> extends VPtr {
     vptr['get_depth'] = TreeNode_get_depth<T>;
     vptr['toString'] = TreeNode_toString<T>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (value is AnyGC) (value as AnyGC).gcMark(flag);
+    if (left is AnyGC) (left as AnyGC).gcMark(flag);
+    if (right is AnyGC) (right as AnyGC).gcMark(flag);
+  }
 }
 
 TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
@@ -33,7 +41,7 @@ StaticList<T> TreeNode_preorder<T>(dynamic this__) {
 
 StaticList<T> TreeNode_inorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
-  final StaticList<T> result = StaticList<T>();
+  final StaticList<T> result = StaticList<T>.of([]);
   if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.left!));
   result.add(this_.value);
   if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.right!));
@@ -49,7 +57,7 @@ int TreeNode_get_depth<T>(dynamic this__) {
 
 TreeNodeValue<R> TreeNode_map<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as TreeNodeValue<T>;
-  return TreeNode_new<R>(TreeNodeValue<R>(), transform(this_.value), (() { final _let4 = this_.left; return (_let4 == null) ? null : TreeNode_map<T, R>(_let4, transform); })(), (() { final _let5 = this_.right; return (_let5 == null) ? null : TreeNode_map<T, R>(_let5, transform); })());
+  return TreeNode_new<R>(GC.allocateLocal(TreeNodeValue<R>()), transform.closureCall(transform, this_.value), (() { final _let4 = this_.left; return (_let4 == null) ? null : TreeNode_map<T, R>(_let4, transform); })(), (() { final _let5 = this_.right; return (_let5 == null) ? null : TreeNode_map<T, R>(_let5, transform); })());
 }
 
 String TreeNode_toString<T>(dynamic this__) {
@@ -67,6 +75,13 @@ class LinkedNodeValue<T> extends VPtr {
     vptr['get_length'] = LinkedNode_get_length<T>;
     vptr['toString'] = LinkedNode_toString<T>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (data is AnyGC) (data as AnyGC).gcMark(flag);
+    if (next is AnyGC) (next as AnyGC).gcMark(flag);
+  }
 }
 
 LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>? next = null]) {
@@ -78,13 +93,13 @@ LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>
 
 LinkedNodeValue<T> LinkedNode_reversed<T>(dynamic this__) {
   final this_ = this__ as LinkedNodeValue<T>;
-  if ((this_.next == null))   return LinkedNode_new<T>(LinkedNodeValue<T>(), this_.data);
+  if ((this_.next == null))   return LinkedNode_new<T>(GC.allocateLocal(LinkedNodeValue<T>()), this_.data);
   final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as LinkedNodeValue<T> Function(dynamic))(this_.next!);
   LinkedNodeValue<T> tail = rev;
   while (!((tail.next == null))) {
     tail = tail.next!;
   }
-  tail.next = LinkedNode_new<T>(LinkedNodeValue<T>(), this_.data);
+  tail.next = LinkedNode_new<T>(GC.allocateLocal(LinkedNodeValue<T>()), this_.data);
   return rev;
 }
 
@@ -126,6 +141,13 @@ class EitherValue<L, R> extends VPtr {
     vptr['get_leftValue'] = Either_get_leftValue<L, R>;
     vptr['get_rightValue'] = Either_get_rightValue<L, R>;
     vptr['toString'] = Either_toString<L, R>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_left is AnyGC) (_left as AnyGC).gcMark(flag);
+    if (_right is AnyGC) (_right as AnyGC).gcMark(flag);
   }
 }
 
@@ -175,20 +197,20 @@ R Either_get_rightValue<L, R>(dynamic this__) {
 
 T Either_fold<L, R, T>(dynamic this__, TypeFunction1<T, L> onLeft, TypeFunction1<T, R> onRight) {
   final this_ = this__ as EitherValue<L, R>;
-  if (this_._isRight)   return onRight((this_._right as R));
-  return onLeft((this_._left as L));
+  if (this_._isRight)   return onRight.closureCall(onRight, (this_._right as R));
+  return onLeft.closureCall(onLeft, (this_._left as L));
 }
 
 EitherValue<L, R2> Either_mapRight<L, R, R2>(dynamic this__, TypeFunction1<R2, R> transform) {
   final this_ = this__ as EitherValue<L, R>;
-  if (this_._isRight)   return Either_new_right<L, R2>(EitherValue<L, R2>(), transform((this_._right as R)));
-  return Either_new_left<L, R2>(EitherValue<L, R2>(), (this_._left as L));
+  if (this_._isRight)   return Either_new_right<L, R2>(GC.allocateLocal(EitherValue<L, R2>()), transform.closureCall(transform, (this_._right as R)));
+  return Either_new_left<L, R2>(GC.allocateLocal(EitherValue<L, R2>()), (this_._left as L));
 }
 
 EitherValue<L, R2> Either_flatMap<L, R, R2>(dynamic this__, TypeFunction1<EitherValue<L, R2>, R> transform) {
   final this_ = this__ as EitherValue<L, R>;
-  if (this_._isRight)   return transform((this_._right as R));
-  return Either_new_left<L, R2>(EitherValue<L, R2>(), (this_._left as L));
+  if (this_._isRight)   return transform.closureCall(transform, (this_._right as R));
+  return Either_new_left<L, R2>(GC.allocateLocal(EitherValue<L, R2>()), (this_._left as L));
 }
 
 String Either_toString<L, R>(dynamic this__) {
@@ -202,7 +224,7 @@ String Either_toString<L, R>(dynamic this__) {
 String Serializable_serialize(dynamic this__) {
   final this_ = this__;
   final StaticMap<String, dynamic> map = StaticMap<String, dynamic>.of((this_.vptr['toMap'] as StaticMap<String, dynamic> Function(dynamic))(this_));
-  final String entries = map.entries.map(ClosureEnv_anon_0()).join(', ');
+  final String entries = map.entries.map(ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0()))).join(', ');
   return '{${entries}}';
 }
 
@@ -235,6 +257,11 @@ class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue 
     vptr['get_validationSummary'] = UserProfile_get_validationSummary;
     vptr['toString'] = UserProfile_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 UserProfileValue UserProfile_new(dynamic this__, String name, String email, int age) {
@@ -252,7 +279,7 @@ StaticMap<String, dynamic> UserProfile_toMap(dynamic this__) {
 
 StaticList<String> UserProfile_validate(dynamic this__) {
   final this_ = this__ as UserProfileValue;
-  final StaticList<String> errors = StaticList<String>();
+  final StaticList<String> errors = StaticList<String>.of([]);
   if (this_.name.isEmpty)   errors.add('name is empty');
   if (!(this_.email.contains('@')))   errors.add('invalid email');
   if (((this_.age < 0) || (this_.age > 150)))   errors.add('invalid age');
@@ -323,6 +350,11 @@ class StringToIntTransformerValue extends DataTransformerValue<String, int> {
     vptr['process'] = StringToIntTransformer_process;
     vptr['postProcess'] = StringToIntTransformer_postProcess;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 StringToIntTransformerValue StringToIntTransformer_new(dynamic this__) {
@@ -359,6 +391,11 @@ class IntToStringTransformerValue extends DataTransformerValue<int, String> {
     vptr['preValidate'] = IntToStringTransformer_preValidate;
     vptr['process'] = IntToStringTransformer_process;
     vptr['postProcess'] = IntToStringTransformer_postProcess;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -398,6 +435,13 @@ class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
     vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
     vptr['process'] = ChainedTransformer_process<A, B, C>;
     vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (first is AnyGC) (first as AnyGC).gcMark(flag);
+    if (second is AnyGC) (second as AnyGC).gcMark(flag);
   }
 }
 
@@ -444,9 +488,15 @@ class RegistryValue extends VPtr {
     vptr['clear'] = Registry_clear;
     vptr['toString'] = Registry_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_store is AnyGC) (_store as AnyGC).gcMark(flag);
+  }
 }
 
-final RegistryValue Registry__instance = Registry_new__internal(RegistryValue());
+final RegistryValue Registry__instance = Registry_new__internal(GC.allocateGlobal(RegistryValue()));
 RegistryValue Registry_new__internal(dynamic this__) {
   final this_ = this__ as RegistryValue;
   this_._store = StaticMap<String, dynamic>.of({});
@@ -511,7 +561,7 @@ DataProcessorValue DataProcessor_new(dynamic this__) {
 }
 
 StaticList<StaticMap<String, dynamic>> DataProcessor_processRecords(StaticList<StaticMap<String, dynamic>> records) {
-  return (StaticList.of(records.where(ClosureEnv_anon_2()).where(ClosureEnv_anon_3()).map(ClosureEnv_anon_4()).toList())..sort(ClosureEnv_anon_1()));
+  return (StaticList.of(records.where(ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()))).where(ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()))).map(ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()))).toList())..sort(ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1()))));
 }
 
 String DataProcessor__scoreToGrade(int score) {
@@ -524,23 +574,17 @@ String DataProcessor__scoreToGrade(int score) {
 
 StaticMap<String, StaticList<StaticMap<String, dynamic>>> DataProcessor_groupByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of({});
-{
-    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(records.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final StaticMap<String, dynamic> record = StaticMap<String, dynamic>.of(sync_for_iterator.current);
-{
-        final String grade = (record['grade'] as String);
-        groups.putIfAbsent(grade, ClosureEnv_anon_5());
-        groups[grade]!.add(record);
-      }
-    }
+  for (final record in records) {
+    final String grade = (record['grade'] as String);
+    groups.putIfAbsent(grade, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5())));
+    groups[grade]!.add(record);
   }
   return groups;
 }
 
 StaticMap<String, double> DataProcessor_averageByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of(DataProcessor_groupByGrade(records));
-  return groups.map(ClosureEnv_anon_6());
+  return groups.map(ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6())));
 }
 
 
@@ -603,7 +647,7 @@ int MathUtils_fibonacci(int n) {
 }
 
 StaticList<int> MathUtils_primeFactors(int n) {
-  final StaticList<int> factors = StaticList<int>();
+  final StaticList<int> factors = StaticList<int>.of([]);
   void extractFactor(int factor) {
     while (((n % factor) == 0)) {
       factors.add(factor);
@@ -704,6 +748,11 @@ class WeightedScoreValue extends ScoreValue {
     vptr['toString'] = WeightedScore_toString;
     vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 WeightedScoreValue WeightedScore_new(dynamic this__, String subject, int points, double weight) {
@@ -771,21 +820,15 @@ String TextProcessor_snakeToCamel(String input) {
   final StaticList<String> parts = StaticList<String>.of(input.split('_'));
   if (parts.isEmpty)   return input;
   final String first = parts[0];
-  final String rest = parts.skip(1).map(ClosureEnv_anon_8()).join();
+  final String rest = parts.skip(1).map(ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8()))).join();
   return '${first}${rest}';
 }
 
 StaticMap<String, int> TextProcessor_wordFrequency(String text) {
-  final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+')).where(ClosureEnv_anon_9()).toList());
+  final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+')).where(ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))).toList());
   final StaticMap<String, int> freq = StaticMap<String, int>.of({});
-{
-    StaticIterator<String> sync_for_iterator = StaticIterator(words.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final String word = sync_for_iterator.current;
-{
-        freq[word] = ((freq[word] ?? 0) + 1);
-      }
-    }
+  for (final word in words) {
+    freq[word] = ((freq[word] ?? 0) + 1);
   }
   return freq;
 }
@@ -863,38 +906,26 @@ JsonLikeProcessorValue JsonLikeProcessor_new(dynamic this__) {
 
 dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<String, dynamic> overlay) {
   final StaticMap<String, dynamic> result = StaticMap<String, dynamic>.from(base);
-{
-    StaticIterator<String> sync_for_iterator = StaticIterator(overlay.keys.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final String key = sync_for_iterator.current;
-{
-        if (((result.containsKey(key) && (result[key] is StaticMap<String, dynamic>)) && (overlay[key] is StaticMap<String, dynamic>))) {
-          result[key] = JsonLikeProcessor_deepMerge((result[key] as StaticMap<String, dynamic>), (overlay[key] as StaticMap<String, dynamic>));
-        }
+  for (final key in overlay.keys) {
+    if (((result.containsKey(key) && (result[key] is StaticMap<String, dynamic>)) && (overlay[key] is StaticMap<String, dynamic>))) {
+      result[key] = JsonLikeProcessor_deepMerge((result[key] as StaticMap<String, dynamic>), (overlay[key] as StaticMap<String, dynamic>));
+    }
  else {
-          result[key] = overlay[key];
-        }
-      }
+      result[key] = overlay[key];
     }
   }
   return result;
 }
 
 StaticList<String> JsonLikeProcessor_flattenKeys(StaticMap<String, dynamic> map, {String prefix = ''}) {
-  final StaticList<String> keys = StaticList<String>();
-{
-    StaticIterator<StaticMapEntry<String, dynamic>> sync_for_iterator = StaticIterator(map.entries.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final StaticMapEntry<String, dynamic> entry = sync_for_iterator.current;
-{
-        final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
-        if ((entry.value is StaticMap<String, dynamic>)) {
-          keys.addAll(JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
-        }
+  final StaticList<String> keys = StaticList<String>.of([]);
+  for (final entry in map.entries) {
+    final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
+    if ((entry.value is StaticMap<String, dynamic>)) {
+      keys.addAll(JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
+    }
  else {
-          keys.add(fullKey);
-        }
-      }
+      keys.add(fullKey);
     }
   }
   return (keys..sort());
@@ -912,6 +943,12 @@ class Matrix2DValue extends VPtr {
     vptr['get_trace'] = Matrix2D_get_trace;
     vptr['toString'] = Matrix2D_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_data is AnyGC) (_data as AnyGC).gcMark(flag);
+  }
 }
 
 Matrix2DValue Matrix2D_new(dynamic this__, StaticList<StaticList<double>> _data) {
@@ -926,7 +963,7 @@ Matrix2DValue Matrix2D_new_zeros(dynamic this__, int rows, int cols) {
   final this_ = this__ as Matrix2DValue;
   this_.rows = rows;
   this_.cols = cols;
-  this_._data = StaticList<StaticList<double>>.generate(rows, ClosureEnv_anon_10(cols));
+  this_._data = StaticList<StaticList<double>>.generate(rows, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), cols));
   return this_;
 }
 
@@ -934,7 +971,7 @@ Matrix2DValue Matrix2D_new_identity(dynamic this__, int size) {
   final this_ = this__ as Matrix2DValue;
   this_.rows = size;
   this_.cols = size;
-  this_._data = StaticList<StaticList<double>>.generate(size, ClosureEnv_anon_11(size));
+  this_._data = StaticList<StaticList<double>>.generate(size, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), size));
   return this_;
 }
 
@@ -945,7 +982,7 @@ double Matrix2D_get(dynamic this__, int row, int col) {
 
 Matrix2DValue Matrix2D_operatorPlus(dynamic this__, Matrix2DValue other) {
   final this_ = this__ as Matrix2DValue;
-  final Matrix2DValue result = Matrix2D_new_zeros(Matrix2DValue(), this_.rows, this_.cols);
+  final Matrix2DValue result = Matrix2D_new_zeros(GC.allocateLocal(Matrix2DValue()), this_.rows, this_.cols);
   for (var i = 0; (i < this_.rows); i = (i + 1)) {
     for (var j = 0; (j < this_.cols); j = (j + 1)) {
       result._data[i][j] = (this_._data[i][j] + other._data[i][j]);
@@ -956,7 +993,7 @@ Matrix2DValue Matrix2D_operatorPlus(dynamic this__, Matrix2DValue other) {
 
 Matrix2DValue Matrix2D_operatorStar(dynamic this__, Matrix2DValue other) {
   final this_ = this__ as Matrix2DValue;
-  final Matrix2DValue result = Matrix2D_new_zeros(Matrix2DValue(), this_.rows, other.cols);
+  final Matrix2DValue result = Matrix2D_new_zeros(GC.allocateLocal(Matrix2DValue()), this_.rows, other.cols);
   for (var i = 0; (i < this_.rows); i = (i + 1)) {
     for (var j = 0; (j < other.cols); j = (j + 1)) {
       double sum = 0.0;
@@ -981,7 +1018,7 @@ double Matrix2D_get_trace(dynamic this__) {
 
 String Matrix2D_toString(dynamic this__) {
   final this_ = this__ as Matrix2DValue;
-  final String rowStrings = this_._data.map(ClosureEnv_anon_13()).map(ClosureEnv_anon_15()).join(', ');
+  final String rowStrings = this_._data.map(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()))).map(ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()))).join(', ');
   return 'Matrix(${this_.rows}x${this_.cols}: ${rowStrings})';
 }
 
@@ -1051,6 +1088,11 @@ class ProductValue extends Product_Entity_Auditable_CacheableValue {
     vptr['get_cacheStatus'] = Product_get_cacheStatus;
     vptr['toString'] = Product_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 ProductValue Product_new(dynamic this__, String entityId, String name, double price) {
@@ -1059,7 +1101,7 @@ ProductValue Product_new(dynamic this__, String entityId, String name, double pr
   this_.entityId = entityId;
   this_.name = name;
   this_.price = price;
-  this_._auditLog = StaticList<String>();
+  this_._auditLog = StaticList<String>.of([]);
   this_._cachedAt = null;
   this_._isDirty = true;
   return this_;
@@ -1107,67 +1149,95 @@ String Product_get_cacheStatus(dynamic this__) {
 
 
 class UserProfile_Object_SerializableValue extends VPtr {
+  UserProfile_Object_SerializableValue() {
+    vptr['serialize'] = Serializable_serialize;
+  }
 }
 
 
 class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Object_SerializableValue {
+  UserProfile_Object_Serializable_ValidatableValue() {
+    vptr['get_isValid'] = Validatable_get_isValid;
+    vptr['get_validationSummary'] = Validatable_get_validationSummary;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class Product_Entity_AuditableValue extends EntityValue {
   late StaticList<String> _auditLog;
+  Product_Entity_AuditableValue() {
+    vptr['audit'] = Auditable_audit;
+    vptr['get_auditLog'] = Auditable_get_auditLog;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_auditLog is AnyGC) (_auditLog as AnyGC).gcMark(flag);
+  }
 }
 
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
   late StaticDateTime? _cachedAt;
   late bool _isDirty;
+  Product_Entity_Auditable_CacheableValue() {
+    vptr['markDirty'] = Cacheable_markDirty;
+    vptr['markCached'] = Cacheable_markCached;
+    vptr['get_isDirty'] = Cacheable_get_isDirty;
+    vptr['get_cacheStatus'] = Cacheable_get_cacheStatus;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_cachedAt is AnyGC) (_cachedAt as AnyGC).gcMark(flag);
+  }
 }
 
 
 dynamic makeCounter({int start = 0, int step = 1}) {
   IntBox current = IntBox(start);
-  return ClosureEnv_makeCounter_16(current, step);
+  return ClosureEnv_makeCounter_16_new(GC.allocateLocal(ClosureEnv_makeCounter_16()), current, step);
 }
 
 dynamic makeAccumulator(int initial) {
   IntBox total = IntBox(initial);
-  return ClosureEnv_makeAccumulator_17(total);
+  return ClosureEnv_makeAccumulator_17_new(GC.allocateLocal(ClosureEnv_makeAccumulator_17()), total);
 }
 
 StaticList<dynamic> makeClosureList(int count) {
-  final StaticList<dynamic> closures = StaticList<dynamic>();
+  final StaticList<dynamic> closures = StaticList.of([]);
   for (var i = 0; (i < count); i = (i + 1)) {
-    closures.add(ClosureEnv_makeClosureList_19(i));
+    closures.add(ClosureEnv_makeClosureList_19_new(GC.allocateLocal(ClosureEnv_makeClosureList_19()), i));
   }
   return closures;
 }
 
 TypeFunction1<C, A> composeFunc<A, B, C>(TypeFunction1<C, B> funcBC, TypeFunction1<B, A> funcAB) {
-  return ClosureEnv_composeFunc_20<C, B, A>(funcBC, funcAB);
+  return ClosureEnv_composeFunc_20_new<C, B, A>(GC.allocateLocal(ClosureEnv_composeFunc_20<C, B, A>()), funcBC, funcAB);
 }
 
 TypeFunction1<TypeFunction1<C, B>, A> curry<A, B, C>(TypeFunction2<C, A, B> biFunc) {
-  return ClosureEnv_curry_21<C, A, B>(biFunc);
+  return ClosureEnv_curry_21_new<C, A, B>(GC.allocateLocal(ClosureEnv_curry_21<C, A, B>()), biFunc);
 }
 
 T pipe<T>(T value, StaticList<TypeFunction1<T, T>> transforms) {
   T result = value;
-{
-    StaticIterator<TypeFunction1<T, T>> sync_for_iterator = StaticIterator(transforms.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final TypeFunction1<T, T> transform = sync_for_iterator.current;
-{
-        result = transform(result);
-      }
-    }
+  for (final transform in transforms) {
+    result = transform.closureCall(transform, result);
   }
   return result;
 }
 
 TypeFunction1<B, A> memoize<A, B>(TypeFunction1<B, A> func) {
   final StaticMap<A, B> cache = StaticMap<A, B>.of({});
-  return ClosureEnv_memoize_23<A, B>(cache, func);
+  return ClosureEnv_memoize_23_new<A, B>(GC.allocateLocal(ClosureEnv_memoize_23<A, B>()), cache, func);
 }
 
 String classifyNumber(int number) {
@@ -1222,7 +1292,7 @@ String classifyNumber(int number) {
 }
 
 StaticList<int> parseNumbers(StaticList<String> inputs) {
-  final StaticList<int> results = StaticList<int>();
+  final StaticList<int> results = StaticList<int>.of([]);
   for (var i = 0; (i < inputs.length); i = (i + 1))   do {
 {
       try {
@@ -1285,7 +1355,7 @@ int IntMathExtension_get_factorial(final int this_) {
 
 StaticList<int> IntMathExtension_get_digits(final int this_) {
   if ((this_ == 0))   return StaticList<int>.of([0]);
-  final StaticList<int> result = StaticList<int>();
+  final StaticList<int> result = StaticList<int>.of([]);
   int n = this_.abs();
   while ((n > 0)) {
     result.insert(0, (n % 10));
@@ -1295,7 +1365,7 @@ StaticList<int> IntMathExtension_get_digits(final int this_) {
 }
 
 T IterableStats_get_sum<T extends num>(final Iterable<T> this_) {
-  return this_.reduce(ClosureEnv_IterableStats_get_sum_27<T>());
+  return this_.reduce(ClosureEnv_IterableStats_get_sum_27_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_sum_27<T>())));
 }
 
 double IterableStats_get_average<T extends num>(final Iterable<T> this_) {
@@ -1303,95 +1373,83 @@ double IterableStats_get_average<T extends num>(final Iterable<T> this_) {
 }
 
 T IterableStats_get_max<T extends num>(final Iterable<T> this_) {
-  return this_.reduce(ClosureEnv_IterableStats_get_max_28<T>());
+  return this_.reduce(ClosureEnv_IterableStats_get_max_28_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_max_28<T>())));
 }
 
 T IterableStats_get_min<T extends num>(final Iterable<T> this_) {
-  return this_.reduce(ClosureEnv_IterableStats_get_min_29<T>());
+  return this_.reduce(ClosureEnv_IterableStats_get_min_29_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_min_29<T>())));
 }
 
 void main() {
   staticPrint('=== 高级语法还原测试 ===\n');
   staticPrint('--- 1. 嵌套闭包 ---');
   final dynamic counter = makeCounter(start: 5, step: 3);
-  staticPrint('counter: ${counter()}, ${counter()}, ${counter()}');
+  staticPrint('counter: ${counter.closureCall(counter)}, ${counter.closureCall(counter)}, ${counter.closureCall(counter)}');
   final dynamic acc = makeAccumulator(100);
-  final dynamic snap1 = acc(10);
-  final dynamic snap2 = acc(20);
+  final dynamic snap1 = acc.closureCall(acc, 10);
+  final dynamic snap2 = acc.closureCall(acc, 20);
   staticPrint('snap1: ${snap1.call()}');
   staticPrint('snap2: ${snap2.call()}');
   final StaticList<dynamic> closures = StaticList<dynamic>.of(makeClosureList(4));
-{
-    StaticIterator<dynamic> sync_for_iterator = StaticIterator(closures.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final dynamic cl = sync_for_iterator.current;
-{
-        staticPrint('  ${cl()}');
-      }
-    }
+  for (final cl in closures) {
+    staticPrint('  ${cl.closureCall(cl)}');
   }
   staticPrint('\n--- 2. 二叉树 ---');
-  final TreeNodeValue<int> tree = TreeNode_new<int>(TreeNodeValue<int>(), 1, TreeNode_new<int>(TreeNodeValue<int>(), 2, TreeNode_new<int>(TreeNodeValue<int>(), 4), TreeNode_new<int>(TreeNodeValue<int>(), 5)), TreeNode_new<int>(TreeNodeValue<int>(), 3, null, TreeNode_new<int>(TreeNodeValue<int>(), 6)));
+  final TreeNodeValue<int> tree = TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 1, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 2, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 4), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 5)), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 3, null, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 6)));
   staticPrint('preorder: ${(tree.vptr['preorder'] as StaticList<int> Function(dynamic))(tree)}');
   staticPrint('inorder: ${(tree.vptr['inorder'] as StaticList<int> Function(dynamic))(tree)}');
   staticPrint('depth: ${(tree.vptr['get_depth'] as int Function(dynamic))(tree)}');
-  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_31());
+  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_31_new(GC.allocateLocal(ClosureEnv_main_31())));
   staticPrint('mapped preorder: ${(strTree.vptr['preorder'] as StaticList<String> Function(dynamic))(strTree)}');
   staticPrint('\n--- 3. 链表 ---');
-  final LinkedNodeValue<int> list = LinkedNode_new<int>(LinkedNodeValue<int>(), 1, LinkedNode_new<int>(LinkedNodeValue<int>(), 2, LinkedNode_new<int>(LinkedNodeValue<int>(), 3, LinkedNode_new<int>(LinkedNodeValue<int>(), 4))));
+  final LinkedNodeValue<int> list = LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 1, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 2, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 3, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 4))));
   staticPrint('list: ${list}');
   staticPrint('length: ${(list.vptr['get_length'] as int Function(dynamic))(list)}');
   final LinkedNodeValue<int> revList = (list.vptr['reversed'] as LinkedNodeValue<int> Function(dynamic))(list);
   staticPrint('reversed: ${revList}');
   staticPrint('\n--- 4. Either ---');
-  final EitherValue<String, int> right = Either_new_right<String, int>(EitherValue<String, int>(), 42);
-  final EitherValue<String, int> left = Either_new_left<String, int>(EitherValue<String, int>(), 'error');
+  final EitherValue<String, int> right = Either_new_right<String, int>(GC.allocateLocal(EitherValue<String, int>()), 42);
+  final EitherValue<String, int> left = Either_new_left<String, int>(GC.allocateLocal(EitherValue<String, int>()), 'error');
   staticPrint('right: ${right}');
   staticPrint('left: ${left}');
-  staticPrint('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(right, ClosureEnv_main_34(), ClosureEnv_main_35())}');
-  staticPrint('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(left, ClosureEnv_main_38(), ClosureEnv_main_39())}');
-  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, TypeFunction1<int, int>))(right, ClosureEnv_main_41());
+  staticPrint('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(right, ClosureEnv_main_34_new(GC.allocateLocal(ClosureEnv_main_34())), ClosureEnv_main_35_new(GC.allocateLocal(ClosureEnv_main_35())))}');
+  staticPrint('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(left, ClosureEnv_main_38_new(GC.allocateLocal(ClosureEnv_main_38())), ClosureEnv_main_39_new(GC.allocateLocal(ClosureEnv_main_39())))}');
+  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, TypeFunction1<int, int>))(right, ClosureEnv_main_41_new(GC.allocateLocal(ClosureEnv_main_41())));
   staticPrint('mapped right: ${mapped}');
-  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, TypeFunction1<EitherValue<String, dynamic>, int>))(right, ClosureEnv_main_43());
+  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, TypeFunction1<EitherValue<String, dynamic>, int>))(right, ClosureEnv_main_43_new(GC.allocateLocal(ClosureEnv_main_43())));
   staticPrint('chained: ${chained}');
   staticPrint('\n--- 5. 函数式编程 ---');
-  final TypeFunction1<int, int> double2 = ClosureEnv_main_44();
-  final TypeFunction1<int, int> addOne = ClosureEnv_main_45();
+  final TypeFunction1<int, int> double2 = ClosureEnv_main_44_new(GC.allocateLocal(ClosureEnv_main_44()));
+  final TypeFunction1<int, int> addOne = ClosureEnv_main_45_new(GC.allocateLocal(ClosureEnv_main_45()));
   final TypeFunction1<int, int> composed = composeFunc<int, int, int>(addOne, double2);
-  staticPrint('compose(double, addOne)(5): ${composed(5)}');
-  final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_46());
-  final TypeFunction1<int, int> add10 = curriedAdd(10);
-  staticPrint('curriedAdd(10)(5): ${add10(5)}');
-  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_50(), ClosureEnv_main_51(), ClosureEnv_main_52()]));
+  staticPrint('compose(double, addOne)(5): ${composed.closureCall(composed, 5)}');
+  final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_46_new(GC.allocateLocal(ClosureEnv_main_46())));
+  final TypeFunction1<int, int> add10 = curriedAdd.closureCall(curriedAdd, 10);
+  staticPrint('curriedAdd(10)(5): ${add10.closureCall(add10, 5)}');
+  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_47_new(GC.allocateLocal(ClosureEnv_main_47())), ClosureEnv_main_48_new(GC.allocateLocal(ClosureEnv_main_48())), ClosureEnv_main_49_new(GC.allocateLocal(ClosureEnv_main_49()))]));
   staticPrint('pipe(3, [*2, +10, ^2]): ${piped}');
-  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_53());
-  staticPrint('memoized(10): ${memoFib(10)}');
-  staticPrint('memoized(10) again: ${memoFib(10)}');
+  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_50_new(GC.allocateLocal(ClosureEnv_main_50())));
+  staticPrint('memoized(10): ${memoFib.closureCall(memoFib, 10)}');
+  staticPrint('memoized(10) again: ${memoFib.closureCall(memoFib, 10)}');
   staticPrint('\n--- 6. 多重嵌套控制流 ---');
   final StaticList<int> testNumbers = StaticList<int>.of([(-150), (-42), (-3), 0, 1, 7, 12, 97]);
-{
-    StaticIterator<int> sync_for_iterator = StaticIterator(testNumbers.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final int n = sync_for_iterator.current;
-{
-        staticPrint('  ${n} → ${classifyNumber(n)}');
-      }
-    }
+  for (final n in testNumbers) {
+    staticPrint('  ${n} → ${classifyNumber(n)}');
   }
   staticPrint('parseNumbers: ${parseNumbers(StaticList<String>.of(['10', 'abc', ' 42 ', '-5', '', '7']))}');
   staticPrint('\n--- 7. mixin 组合 ---');
-  final UserProfileValue user1 = UserProfile_new(UserProfileValue(), 'Alice', 'alice@example.com', 25);
+  final UserProfileValue user1 = UserProfile_new(GC.allocateLocal(UserProfileValue()), 'Alice', 'alice@example.com', 25);
   staticPrint('user1: ${user1}');
   staticPrint('serialize: ${(user1.vptr['serialize'] as String Function(dynamic))(user1)}');
   staticPrint('validation: ${(user1.vptr['get_validationSummary'] as String Function(dynamic))(user1)}');
-  final UserProfileValue user2 = UserProfile_new(UserProfileValue(), '', 'invalid-email', (-5));
+  final UserProfileValue user2 = UserProfile_new(GC.allocateLocal(UserProfileValue()), '', 'invalid-email', (-5));
   staticPrint('user2 validation: ${(user2.vptr['get_validationSummary'] as String Function(dynamic))(user2)}');
   staticPrint('\n--- 8. 模板方法模式 ---');
-  final StringToIntTransformerValue strToInt = StringToIntTransformer_new(StringToIntTransformerValue());
+  final StringToIntTransformerValue strToInt = StringToIntTransformer_new(GC.allocateLocal(StringToIntTransformerValue()));
   staticPrint('strToInt("  42  "): ${(strToInt.vptr['transform'] as int Function(dynamic, String))(strToInt, '  42  ')}');
-  final IntToStringTransformerValue intToStr = IntToStringTransformer_new(IntToStringTransformerValue(), 'NUM:');
+  final IntToStringTransformerValue intToStr = IntToStringTransformer_new(GC.allocateLocal(IntToStringTransformerValue()), 'NUM:');
   staticPrint('intToStr(123): ${(intToStr.vptr['transform'] as String Function(dynamic, int))(intToStr, 123)}');
-  final ChainedTransformerValue<String, int, String> chained2 = ChainedTransformer_new<String, int, String>(ChainedTransformerValue<String, int, String>(), strToInt, intToStr);
+  final ChainedTransformerValue<String, int, String> chained2 = ChainedTransformer_new<String, int, String>(GC.allocateLocal(ChainedTransformerValue<String, int, String>()), strToInt, intToStr);
   staticPrint('chained(" 99 "): ${(chained2.vptr['transform'] as String Function(dynamic, String))(chained2, ' 99 ')}');
   staticPrint('\n--- 9. 单例 Registry ---');
   final RegistryValue reg1 = Registry_new();
@@ -1406,19 +1464,13 @@ void main() {
   staticPrint('\n--- 10. 集合操作链 ---');
   final StaticList<StaticMap<String, Object>> records = StaticList<StaticMap<String, Object>>.of([StaticMap<String, Object>.of({'name': 'Alice', 'score': 95}), StaticMap<String, Object>.of({'name': 'Bob', 'score': 72}), StaticMap<String, Object>.of({'name': 'Carol', 'score': 88}), StaticMap<String, Object>.of({'name': 'Dave', 'score': 45}), StaticMap<String, Object>.of({'name': 'Eve', 'score': 91}), StaticMap<String, Object>.of({'name': 'Frank', 'score': 63})]);
   final StaticList<StaticMap<String, dynamic>> processed = StaticList<StaticMap<String, dynamic>>.of(DataProcessor_processRecords(records));
-{
-    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(processed.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final StaticMap<String, dynamic> r = StaticMap<String, dynamic>.of(sync_for_iterator.current);
-{
-        staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
-      }
-    }
+  for (final r in processed) {
+    staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
   }
   final StaticMap<String, double> averages = StaticMap<String, double>.of(DataProcessor_averageByGrade(processed));
   staticPrint('averages: ${averages}');
   staticPrint('\n--- 11. late 变量 ---');
-  final ExpensiveComputationValue comp = ExpensiveComputation_new(ExpensiveComputationValue(), 42);
+  final ExpensiveComputationValue comp = ExpensiveComputation_new(GC.allocateLocal(ExpensiveComputationValue()), 42);
   staticPrint('comp: ${comp}');
   staticPrint('computedValue: ${comp.computedValue}');
   (comp.vptr['initialize'] as void Function(dynamic, String))(comp, 'test description');
@@ -1430,15 +1482,9 @@ void main() {
   staticPrint('gcd(48, 18): ${MathUtils_gcd(48, 18)}');
   staticPrint('lcm(12, 18): ${MathUtils_lcm(12, 18)}');
   staticPrint('\n--- 13. 多重 implements ---');
-  final StaticList<ScoreValue> scores = StaticList<ScoreValue>.of([Score_new(ScoreValue(), 'Math', 90), Score_new(ScoreValue(), 'English', 75), WeightedScore_new(WeightedScoreValue(), 'Physics', 85, 1.5), WeightedScore_new(WeightedScoreValue(), 'Art', 95, 0.5)]);
-{
-    StaticIterator<ScoreValue> sync_for_iterator = StaticIterator(scores.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final ScoreValue s = sync_for_iterator.current;
-{
-        staticPrint('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
-      }
-    }
+  final StaticList<ScoreValue> scores = StaticList<ScoreValue>.of([Score_new(GC.allocateLocal(ScoreValue()), 'Math', 90), Score_new(GC.allocateLocal(ScoreValue()), 'English', 75), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Physics', 85, 1.5), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Art', 95, 0.5)]);
+  for (final s in scores) {
+    staticPrint('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
   }
   final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
   final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
@@ -1455,14 +1501,8 @@ void main() {
   final StaticList<int> asyncSeq = StaticList<int>.of(smAwait(asyncSequence(5)));
   staticPrint('asyncSequence(5): ${asyncSeq}');
   staticPrint('\n--- 16. 增强枚举 ---');
-{
-    StaticIterator<Season> sync_for_iterator = StaticIterator(const [Season.spring, Season.summer, Season.autumn, Season.winter].iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final Season s = sync_for_iterator.current;
-{
-        staticPrint('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
-      }
-    }
+  for (final s in const [Season.spring, Season.summer, Season.autumn, Season.winter]) {
+    staticPrint('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
   }
   staticPrint('\n--- 17. 嵌套 Map 操作 ---');
   final StaticMap<String, Object> base = StaticMap<String, Object>.of({'a': 1, 'b': StaticMap<String, int>.of({'x': 10, 'y': 20}), 'c': 3});
@@ -1479,17 +1519,17 @@ void main() {
   final StaticList<int> nums = StaticList<int>.of([10, 20, 30, 40, 50]);
   staticPrint('sum: ${IterableStats_get_sum(nums)}, avg: ${IterableStats_get_average(nums)}, max: ${IterableStats_get_max(nums)}, min: ${IterableStats_get_min(nums)}');
   staticPrint('\n--- 19. Matrix2D ---');
-  final Matrix2DValue m1 = Matrix2D_new(Matrix2DValue(), StaticList<StaticList<double>>.of([StaticList<double>.of([1.0, 2.0]), StaticList<double>.of([3.0, 4.0])]));
-  final Matrix2DValue m2 = Matrix2D_new_identity(Matrix2DValue(), 2);
+  final Matrix2DValue m1 = Matrix2D_new(GC.allocateLocal(Matrix2DValue()), StaticList<StaticList<double>>.of([StaticList<double>.of([1.0, 2.0]), StaticList<double>.of([3.0, 4.0])]));
+  final Matrix2DValue m2 = Matrix2D_new_identity(GC.allocateLocal(Matrix2DValue()), 2);
   staticPrint('m1: ${m1}');
   staticPrint('m2 (identity): ${m2}');
   staticPrint('m1 + m2: ${(m1.vptr['operatorPlus'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
   staticPrint('m1 * m2: ${(m1.vptr['operatorStar'] as Matrix2DValue Function(dynamic, Matrix2DValue))(m1, m2)}');
   staticPrint('m1 trace: ${(m1.vptr['get_trace'] as double Function(dynamic))(m1)}');
-  final Matrix2DValue m3 = Matrix2D_new_zeros(Matrix2DValue(), 2, 3);
+  final Matrix2DValue m3 = Matrix2D_new_zeros(GC.allocateLocal(Matrix2DValue()), 2, 3);
   staticPrint('zeros(2,3): ${m3}');
   staticPrint('\n--- 20. 综合 mixin + 抽象类 ---');
-  final ProductValue product = Product_new(ProductValue(), 'P001', 'Widget', 9.99);
+  final ProductValue product = Product_new(GC.allocateLocal(ProductValue()), 'P001', 'Widget', 9.99);
   (product.vptr['audit'] as void Function(dynamic, String))(product, 'created');
   (product.vptr['audit'] as void Function(dynamic, String))(product, 'priced');
   (product.vptr['markCached'] as void Function(dynamic))(product);
@@ -1503,240 +1543,471 @@ void main() {
 class ClosureEnv_anon_0 extends TypeFunction1<String, StaticMapEntry<String, dynamic>> {
   ClosureEnv_anon_0();
   @override
-  String call(StaticMapEntry<String, dynamic> e) => ClosureEnv_anon_0_call(this, e);
+  String call(StaticMapEntry<String, dynamic> e) => closureCall(this, e);
 }
-String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, StaticMapEntry<String, dynamic> e) {
+ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
+  env_.closureCall = ClosureEnv_anon_0_call;
+  return env_;
+}
+String ClosureEnv_anon_0_call(dynamic env__, StaticMapEntry<String, dynamic> e) {
+  final env = env__ as ClosureEnv_anon_0;
+
   return '${e.key}=${e.value}';
 }
 
 class ClosureEnv_anon_1 extends TypeFunction2<int, StaticMap<String, dynamic>, StaticMap<String, dynamic>> {
   ClosureEnv_anon_1();
   @override
-  int call(StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) => ClosureEnv_anon_1_call(this, a, b);
+  int call(StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) => closureCall(this, a, b);
 }
-int ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) {
+ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
+  env_.closureCall = ClosureEnv_anon_1_call;
+  return env_;
+}
+int ClosureEnv_anon_1_call(dynamic env__, StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) {
+  final env = env__ as ClosureEnv_anon_1;
+
   return (b['score'] as int).compareTo((a['score'] as int));
 }
 
 class ClosureEnv_anon_2 extends TypeFunction1<bool, StaticMap<String, dynamic>> {
   ClosureEnv_anon_2();
   @override
-  bool call(StaticMap<String, dynamic> r) => ClosureEnv_anon_2_call(this, r);
+  bool call(StaticMap<String, dynamic> r) => closureCall(this, r);
 }
-bool ClosureEnv_anon_2_call(ClosureEnv_anon_2 env, StaticMap<String, dynamic> r) {
+ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_) {
+  env_.closureCall = ClosureEnv_anon_2_call;
+  return env_;
+}
+bool ClosureEnv_anon_2_call(dynamic env__, StaticMap<String, dynamic> r) {
+  final env = env__ as ClosureEnv_anon_2;
+
   return (r.containsKey('name') && r.containsKey('score'));
 }
 
 class ClosureEnv_anon_3 extends TypeFunction1<bool, StaticMap<String, dynamic>> {
   ClosureEnv_anon_3();
   @override
-  bool call(StaticMap<String, dynamic> r) => ClosureEnv_anon_3_call(this, r);
+  bool call(StaticMap<String, dynamic> r) => closureCall(this, r);
 }
-bool ClosureEnv_anon_3_call(ClosureEnv_anon_3 env, StaticMap<String, dynamic> r) {
+ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_) {
+  env_.closureCall = ClosureEnv_anon_3_call;
+  return env_;
+}
+bool ClosureEnv_anon_3_call(dynamic env__, StaticMap<String, dynamic> r) {
+  final env = env__ as ClosureEnv_anon_3;
+
   return ((r['score'] as int) >= 0);
 }
 
 class ClosureEnv_anon_4 extends TypeFunction1<StaticMap<String, Object>, StaticMap<String, dynamic>> {
   ClosureEnv_anon_4();
   @override
-  StaticMap<String, Object> call(StaticMap<String, dynamic> r) => ClosureEnv_anon_4_call(this, r);
+  StaticMap<String, Object> call(StaticMap<String, dynamic> r) => closureCall(this, r);
 }
-StaticMap<String, Object> ClosureEnv_anon_4_call(ClosureEnv_anon_4 env, StaticMap<String, dynamic> r) {
+ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_) {
+  env_.closureCall = ClosureEnv_anon_4_call;
+  return env_;
+}
+StaticMap<String, Object> ClosureEnv_anon_4_call(dynamic env__, StaticMap<String, dynamic> r) {
+  final env = env__ as ClosureEnv_anon_4;
+
   return StaticMap<String, Object>.of({'name': (r['name'] as String).toUpperCase(), 'score': (r['score'] as int), 'grade': DataProcessor__scoreToGrade((r['score'] as int)), 'passed': ((r['score'] as int) >= 60)});
 }
 
 class ClosureEnv_anon_5 extends TypeFunction0<StaticList<StaticMap<String, dynamic>>> {
   ClosureEnv_anon_5();
   @override
-  StaticList<StaticMap<String, dynamic>> call() => ClosureEnv_anon_5_call(this);
+  StaticList<StaticMap<String, dynamic>> call() => closureCall(this);
 }
-StaticList<StaticMap<String, dynamic>> ClosureEnv_anon_5_call(ClosureEnv_anon_5 env) {
-  return StaticList<StaticMap<String, dynamic>>();
+ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_) {
+  env_.closureCall = ClosureEnv_anon_5_call;
+  return env_;
+}
+StaticList<StaticMap<String, dynamic>> ClosureEnv_anon_5_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_5;
+
+  return StaticList<StaticMap<String, dynamic>>.of([]);
 }
 
 class ClosureEnv_ClosureEnv_anon_6_7 extends TypeFunction2<int, int, StaticMap<String, dynamic>> {
   ClosureEnv_ClosureEnv_anon_6_7();
   @override
-  int call(int sum, StaticMap<String, dynamic> r) => ClosureEnv_ClosureEnv_anon_6_7_call(this, sum, r);
+  int call(int sum, StaticMap<String, dynamic> r) => closureCall(this, sum, r);
 }
-int ClosureEnv_ClosureEnv_anon_6_7_call(ClosureEnv_ClosureEnv_anon_6_7 env, int sum, StaticMap<String, dynamic> r) {
+ClosureEnv_ClosureEnv_anon_6_7 ClosureEnv_ClosureEnv_anon_6_7_new(ClosureEnv_ClosureEnv_anon_6_7 env_) {
+  env_.closureCall = ClosureEnv_ClosureEnv_anon_6_7_call;
+  return env_;
+}
+int ClosureEnv_ClosureEnv_anon_6_7_call(dynamic env__, int sum, StaticMap<String, dynamic> r) {
+  final env = env__ as ClosureEnv_ClosureEnv_anon_6_7;
+
   return (sum + (r['score'] as int));
 }
 
 class ClosureEnv_anon_6 extends TypeFunction2<StaticMapEntry<String, double>, String, StaticList<StaticMap<String, dynamic>>> {
   ClosureEnv_anon_6();
   @override
-  StaticMapEntry<String, double> call(String grade, StaticList<StaticMap<String, dynamic>> items) => ClosureEnv_anon_6_call(this, grade, items);
+  StaticMapEntry<String, double> call(String grade, StaticList<StaticMap<String, dynamic>> items) => closureCall(this, grade, items);
 }
-StaticMapEntry<String, double> ClosureEnv_anon_6_call(ClosureEnv_anon_6 env, String grade, StaticList<StaticMap<String, dynamic>> items) {
-    final int total = items.fold(0, ClosureEnv_ClosureEnv_anon_6_7());
+ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_) {
+  env_.closureCall = ClosureEnv_anon_6_call;
+  return env_;
+}
+StaticMapEntry<String, double> ClosureEnv_anon_6_call(dynamic env__, String grade, StaticList<StaticMap<String, dynamic>> items) {
+  final env = env__ as ClosureEnv_anon_6;
+
+    final int total = items.fold(0, ClosureEnv_ClosureEnv_anon_6_7_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_6_7())));
     return StaticMapEntry(grade, (total / items.length));
   }
 
 class ClosureEnv_anon_8 extends TypeFunction1<String, String> {
   ClosureEnv_anon_8();
   @override
-  String call(String p) => ClosureEnv_anon_8_call(this, p);
+  String call(String p) => closureCall(this, p);
 }
-String ClosureEnv_anon_8_call(ClosureEnv_anon_8 env, String p) {
+ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
+  env_.closureCall = ClosureEnv_anon_8_call;
+  return env_;
+}
+String ClosureEnv_anon_8_call(dynamic env__, String p) {
+  final env = env__ as ClosureEnv_anon_8;
+
   return (p.isEmpty ? '' : '${p[0].toUpperCase()}${p.substring(1)}');
 }
 
 class ClosureEnv_anon_9 extends TypeFunction1<bool, String> {
   ClosureEnv_anon_9();
   @override
-  bool call(String w) => ClosureEnv_anon_9_call(this, w);
+  bool call(String w) => closureCall(this, w);
 }
-bool ClosureEnv_anon_9_call(ClosureEnv_anon_9 env, String w) {
+ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
+  env_.closureCall = ClosureEnv_anon_9_call;
+  return env_;
+}
+bool ClosureEnv_anon_9_call(dynamic env__, String w) {
+  final env = env__ as ClosureEnv_anon_9;
+
   return w.isNotEmpty;
 }
 
 class ClosureEnv_anon_10 extends TypeFunction1<StaticList<double>, int> {
-  int cols;
-  ClosureEnv_anon_10(this.cols);
+  late int cols;
+  ClosureEnv_anon_10();
   @override
-  StaticList<double> call(int _) => ClosureEnv_anon_10_call(this, _);
+  StaticList<double> call(int _) => closureCall(this, _);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (cols is AnyGC) (cols as AnyGC).gcMark(flag);
+  }
 }
-StaticList<double> ClosureEnv_anon_10_call(ClosureEnv_anon_10 env, int _) {
+ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_, int cols) {
+  env_.closureCall = ClosureEnv_anon_10_call;
+  env_.cols = cols;
+  return env_;
+}
+StaticList<double> ClosureEnv_anon_10_call(dynamic env__, int _) {
+  final env = env__ as ClosureEnv_anon_10;
+
   return StaticList<double>.filled(env.cols, 0.0);
 }
 
 class ClosureEnv_ClosureEnv_anon_11_12 extends TypeFunction1<double, int> {
-  IntBox i;
-  ClosureEnv_ClosureEnv_anon_11_12(this.i);
+  late IntBox i;
+  ClosureEnv_ClosureEnv_anon_11_12();
   @override
-  double call(int j) => ClosureEnv_ClosureEnv_anon_11_12_call(this, j);
+  double call(int j) => closureCall(this, j);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (i is AnyGC) (i as AnyGC).gcMark(flag);
+  }
 }
-double ClosureEnv_ClosureEnv_anon_11_12_call(ClosureEnv_ClosureEnv_anon_11_12 env, int j) {
+ClosureEnv_ClosureEnv_anon_11_12 ClosureEnv_ClosureEnv_anon_11_12_new(ClosureEnv_ClosureEnv_anon_11_12 env_, IntBox i) {
+  env_.closureCall = ClosureEnv_ClosureEnv_anon_11_12_call;
+  env_.i = i;
+  return env_;
+}
+double ClosureEnv_ClosureEnv_anon_11_12_call(dynamic env__, int j) {
+  final env = env__ as ClosureEnv_ClosureEnv_anon_11_12;
+
   return ((env.i.value == j) ? 1.0 : 0.0);
 }
 
 class ClosureEnv_anon_11 extends TypeFunction1<StaticList<double>, int> {
-  int size;
-  ClosureEnv_anon_11(this.size);
+  late int size;
+  ClosureEnv_anon_11();
   @override
-  StaticList<double> call(int i_raw) => ClosureEnv_anon_11_call(this, i_raw);
+  StaticList<double> call(int i_raw) => closureCall(this, i_raw);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (size is AnyGC) (size as AnyGC).gcMark(flag);
+  }
 }
-StaticList<double> ClosureEnv_anon_11_call(ClosureEnv_anon_11 env, int i_raw) {
+ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, int size) {
+  env_.closureCall = ClosureEnv_anon_11_call;
+  env_.size = size;
+  return env_;
+}
+StaticList<double> ClosureEnv_anon_11_call(dynamic env__, int i_raw) {
+  final env = env__ as ClosureEnv_anon_11;
+
   IntBox i = IntBox(i_raw);
-  return StaticList<double>.generate(env.size, ClosureEnv_ClosureEnv_anon_11_12(i));
+  return StaticList<double>.generate(env.size, ClosureEnv_ClosureEnv_anon_11_12_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_11_12()), i));
 }
 
 class ClosureEnv_ClosureEnv_anon_13_14 extends TypeFunction1<String, double> {
   ClosureEnv_ClosureEnv_anon_13_14();
   @override
-  String call(double v) => ClosureEnv_ClosureEnv_anon_13_14_call(this, v);
+  String call(double v) => closureCall(this, v);
 }
-String ClosureEnv_ClosureEnv_anon_13_14_call(ClosureEnv_ClosureEnv_anon_13_14 env, double v) {
+ClosureEnv_ClosureEnv_anon_13_14 ClosureEnv_ClosureEnv_anon_13_14_new(ClosureEnv_ClosureEnv_anon_13_14 env_) {
+  env_.closureCall = ClosureEnv_ClosureEnv_anon_13_14_call;
+  return env_;
+}
+String ClosureEnv_ClosureEnv_anon_13_14_call(dynamic env__, double v) {
+  final env = env__ as ClosureEnv_ClosureEnv_anon_13_14;
+
   return v.toStringAsFixed(1);
 }
 
 class ClosureEnv_anon_13 extends TypeFunction1<String, StaticList<double>> {
   ClosureEnv_anon_13();
   @override
-  String call(StaticList<double> row) => ClosureEnv_anon_13_call(this, row);
+  String call(StaticList<double> row) => closureCall(this, row);
 }
-String ClosureEnv_anon_13_call(ClosureEnv_anon_13 env, StaticList<double> row) {
-  return row.map(ClosureEnv_ClosureEnv_anon_13_14()).join(', ');
+ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_) {
+  env_.closureCall = ClosureEnv_anon_13_call;
+  return env_;
+}
+String ClosureEnv_anon_13_call(dynamic env__, StaticList<double> row) {
+  final env = env__ as ClosureEnv_anon_13;
+
+  return row.map(ClosureEnv_ClosureEnv_anon_13_14_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_13_14()))).join(', ');
 }
 
 class ClosureEnv_anon_15 extends TypeFunction1<String, String> {
   ClosureEnv_anon_15();
   @override
-  String call(String r) => ClosureEnv_anon_15_call(this, r);
+  String call(String r) => closureCall(this, r);
 }
-String ClosureEnv_anon_15_call(ClosureEnv_anon_15 env, String r) {
+ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_) {
+  env_.closureCall = ClosureEnv_anon_15_call;
+  return env_;
+}
+String ClosureEnv_anon_15_call(dynamic env__, String r) {
+  final env = env__ as ClosureEnv_anon_15;
+
   return '[${r}]';
 }
 
 class ClosureEnv_makeCounter_16 extends TypeFunction0<int> {
-  IntBox current;
-  int step;
-  ClosureEnv_makeCounter_16(this.current, this.step);
+  late IntBox current;
+  late int step;
+  ClosureEnv_makeCounter_16();
   @override
-  int call() => ClosureEnv_makeCounter_16_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (current is AnyGC) (current as AnyGC).gcMark(flag);
+    if (step is AnyGC) (step as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_makeCounter_16_call(ClosureEnv_makeCounter_16 env) {
+ClosureEnv_makeCounter_16 ClosureEnv_makeCounter_16_new(ClosureEnv_makeCounter_16 env_, IntBox current, int step) {
+  env_.closureCall = ClosureEnv_makeCounter_16_call;
+  env_.current = current;
+  env_.step = step;
+  return env_;
+}
+int ClosureEnv_makeCounter_16_call(dynamic env__) {
+  final env = env__ as ClosureEnv_makeCounter_16;
+
     env.current.value = (env.current.value + env.step);
     return env.current.value;
   }
 
 class ClosureEnv_ClosureEnv_makeAccumulator_17_18 extends TypeFunction0<String> {
-  IntBox snapshot;
-  IntBox total;
-  ClosureEnv_ClosureEnv_makeAccumulator_17_18(this.snapshot, this.total);
+  late IntBox snapshot;
+  late IntBox total;
+  ClosureEnv_ClosureEnv_makeAccumulator_17_18();
   @override
-  String call() => ClosureEnv_ClosureEnv_makeAccumulator_17_18_call(this);
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (snapshot is AnyGC) (snapshot as AnyGC).gcMark(flag);
+    if (total is AnyGC) (total as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_ClosureEnv_makeAccumulator_17_18_call(ClosureEnv_ClosureEnv_makeAccumulator_17_18 env) {
+ClosureEnv_ClosureEnv_makeAccumulator_17_18 ClosureEnv_ClosureEnv_makeAccumulator_17_18_new(ClosureEnv_ClosureEnv_makeAccumulator_17_18 env_, IntBox snapshot, IntBox total) {
+  env_.closureCall = ClosureEnv_ClosureEnv_makeAccumulator_17_18_call;
+  env_.snapshot = snapshot;
+  env_.total = total;
+  return env_;
+}
+String ClosureEnv_ClosureEnv_makeAccumulator_17_18_call(dynamic env__) {
+  final env = env__ as ClosureEnv_ClosureEnv_makeAccumulator_17_18;
+
   return 'accumulated: ${env.snapshot.value} (current total: ${env.total.value})';
 }
 
 class ClosureEnv_makeAccumulator_17 extends TypeFunction1<TypeFunction0<String>, int> {
-  IntBox total;
-  ClosureEnv_makeAccumulator_17(this.total);
+  late IntBox total;
+  ClosureEnv_makeAccumulator_17();
   @override
-  TypeFunction0<String> call(int amount) => ClosureEnv_makeAccumulator_17_call(this, amount);
+  TypeFunction0<String> call(int amount) => closureCall(this, amount);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (total is AnyGC) (total as AnyGC).gcMark(flag);
+  }
 }
-TypeFunction0<String> ClosureEnv_makeAccumulator_17_call(ClosureEnv_makeAccumulator_17 env, int amount) {
+ClosureEnv_makeAccumulator_17 ClosureEnv_makeAccumulator_17_new(ClosureEnv_makeAccumulator_17 env_, IntBox total) {
+  env_.closureCall = ClosureEnv_makeAccumulator_17_call;
+  env_.total = total;
+  return env_;
+}
+TypeFunction0<String> ClosureEnv_makeAccumulator_17_call(dynamic env__, int amount) {
+  final env = env__ as ClosureEnv_makeAccumulator_17;
+
     env.total.value = (env.total.value + amount);
     IntBox snapshot = IntBox(env.total.value);
-    return ClosureEnv_ClosureEnv_makeAccumulator_17_18(snapshot, env.total);
+    return ClosureEnv_ClosureEnv_makeAccumulator_17_18_new(GC.allocateLocal(ClosureEnv_ClosureEnv_makeAccumulator_17_18()), snapshot, env.total);
   }
 
 class ClosureEnv_makeClosureList_19 extends TypeFunction0<String> {
-  int i;
-  ClosureEnv_makeClosureList_19(this.i);
+  late int i;
+  ClosureEnv_makeClosureList_19();
   @override
-  String call() => ClosureEnv_makeClosureList_19_call(this);
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (i is AnyGC) (i as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_makeClosureList_19_call(ClosureEnv_makeClosureList_19 env) {
+ClosureEnv_makeClosureList_19 ClosureEnv_makeClosureList_19_new(ClosureEnv_makeClosureList_19 env_, int i) {
+  env_.closureCall = ClosureEnv_makeClosureList_19_call;
+  env_.i = i;
+  return env_;
+}
+String ClosureEnv_makeClosureList_19_call(dynamic env__) {
+  final env = env__ as ClosureEnv_makeClosureList_19;
+
   return 'closure_${env.i}';
 }
 
 class ClosureEnv_composeFunc_20<C, B, A> extends TypeFunction1<C, A> {
-  TypeFunction1<C, B> funcBC;
-  TypeFunction1<B, A> funcAB;
-  ClosureEnv_composeFunc_20(this.funcBC, this.funcAB);
+  late TypeFunction1<C, B> funcBC;
+  late TypeFunction1<B, A> funcAB;
+  ClosureEnv_composeFunc_20();
   @override
-  C call(A a) => ClosureEnv_composeFunc_20_call<C, B, A>(this, a);
+  C call(A a) => closureCall(this, a);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (funcBC is AnyGC) (funcBC as AnyGC).gcMark(flag);
+    if (funcAB is AnyGC) (funcAB as AnyGC).gcMark(flag);
+  }
 }
-C ClosureEnv_composeFunc_20_call<C, B, A>(ClosureEnv_composeFunc_20<C, B, A> env, A a) {
-  return env.funcBC(env.funcAB(a));
+ClosureEnv_composeFunc_20<C, B, A> ClosureEnv_composeFunc_20_new<C, B, A>(ClosureEnv_composeFunc_20<C, B, A> env_, TypeFunction1<C, B> funcBC, TypeFunction1<B, A> funcAB) {
+  env_.closureCall = ClosureEnv_composeFunc_20_call<C, B, A>;
+  env_.funcBC = funcBC;
+  env_.funcAB = funcAB;
+  return env_;
+}
+C ClosureEnv_composeFunc_20_call<C, B, A>(dynamic env__, A a) {
+  final env = env__ as ClosureEnv_composeFunc_20<C, B, A>;
+
+  return env.funcBC.closureCall(env.funcBC, env.funcAB.closureCall(env.funcAB, a));
 }
 
 class ClosureEnv_ClosureEnv_curry_21_22<C, A, B> extends TypeFunction1<C, B> {
-  TypeFunction2<C, A, B> biFunc;
-  ObjectBox<A> a;
-  ClosureEnv_ClosureEnv_curry_21_22(this.biFunc, this.a);
+  late TypeFunction2<C, A, B> biFunc;
+  late ObjectBox<A> a;
+  ClosureEnv_ClosureEnv_curry_21_22();
   @override
-  C call(B b) => ClosureEnv_ClosureEnv_curry_21_22_call<C, A, B>(this, b);
+  C call(B b) => closureCall(this, b);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (biFunc is AnyGC) (biFunc as AnyGC).gcMark(flag);
+    if (a is AnyGC) (a as AnyGC).gcMark(flag);
+  }
 }
-C ClosureEnv_ClosureEnv_curry_21_22_call<C, A, B>(ClosureEnv_ClosureEnv_curry_21_22<C, A, B> env, B b) {
-  return env.biFunc(env.a.value, b);
+ClosureEnv_ClosureEnv_curry_21_22<C, A, B> ClosureEnv_ClosureEnv_curry_21_22_new<C, A, B>(ClosureEnv_ClosureEnv_curry_21_22<C, A, B> env_, TypeFunction2<C, A, B> biFunc, ObjectBox<A> a) {
+  env_.closureCall = ClosureEnv_ClosureEnv_curry_21_22_call<C, A, B>;
+  env_.biFunc = biFunc;
+  env_.a = a;
+  return env_;
+}
+C ClosureEnv_ClosureEnv_curry_21_22_call<C, A, B>(dynamic env__, B b) {
+  final env = env__ as ClosureEnv_ClosureEnv_curry_21_22<C, A, B>;
+
+  return env.biFunc.closureCall(env.biFunc, env.a.value, b);
 }
 
 class ClosureEnv_curry_21<C, A, B> extends TypeFunction1<TypeFunction1<C, B>, A> {
-  TypeFunction2<C, A, B> biFunc;
-  ClosureEnv_curry_21(this.biFunc);
+  late TypeFunction2<C, A, B> biFunc;
+  ClosureEnv_curry_21();
   @override
-  TypeFunction1<C, B> call(A a_raw) => ClosureEnv_curry_21_call<C, A, B>(this, a_raw);
+  TypeFunction1<C, B> call(A a_raw) => closureCall(this, a_raw);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (biFunc is AnyGC) (biFunc as AnyGC).gcMark(flag);
+  }
 }
-TypeFunction1<C, B> ClosureEnv_curry_21_call<C, A, B>(ClosureEnv_curry_21<C, A, B> env, A a_raw) {
+ClosureEnv_curry_21<C, A, B> ClosureEnv_curry_21_new<C, A, B>(ClosureEnv_curry_21<C, A, B> env_, TypeFunction2<C, A, B> biFunc) {
+  env_.closureCall = ClosureEnv_curry_21_call<C, A, B>;
+  env_.biFunc = biFunc;
+  return env_;
+}
+TypeFunction1<C, B> ClosureEnv_curry_21_call<C, A, B>(dynamic env__, A a_raw) {
+  final env = env__ as ClosureEnv_curry_21<C, A, B>;
+
   ObjectBox<A> a = ObjectBox<A>(a_raw);
-  return ClosureEnv_ClosureEnv_curry_21_22<C, A, B>(env.biFunc, a);
+  return ClosureEnv_ClosureEnv_curry_21_22_new<C, A, B>(GC.allocateLocal(ClosureEnv_ClosureEnv_curry_21_22<C, A, B>()), env.biFunc, a);
 }
 
 class ClosureEnv_memoize_23<A, B> extends TypeFunction1<B, A> {
-  StaticMap<A, B> cache;
-  TypeFunction1<B, A> func;
-  ClosureEnv_memoize_23(this.cache, this.func);
+  late StaticMap<A, B> cache;
+  late TypeFunction1<B, A> func;
+  ClosureEnv_memoize_23();
   @override
-  B call(A arg) => ClosureEnv_memoize_23_call<A, B>(this, arg);
+  B call(A arg) => closureCall(this, arg);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (cache is AnyGC) (cache as AnyGC).gcMark(flag);
+    if (func is AnyGC) (func as AnyGC).gcMark(flag);
+  }
 }
-B ClosureEnv_memoize_23_call<A, B>(ClosureEnv_memoize_23<A, B> env, A arg) {
+ClosureEnv_memoize_23<A, B> ClosureEnv_memoize_23_new<A, B>(ClosureEnv_memoize_23<A, B> env_, StaticMap<A, B> cache, TypeFunction1<B, A> func) {
+  env_.closureCall = ClosureEnv_memoize_23_call<A, B>;
+  env_.cache = cache;
+  env_.func = func;
+  return env_;
+}
+B ClosureEnv_memoize_23_call<A, B>(dynamic env__, A arg) {
+  final env = env__ as ClosureEnv_memoize_23<A, B>;
+
     if (env.cache.containsKey(arg))     return (env.cache[arg] as B);
-    final B result = env.func(arg);
+    final B result = env.func.closureCall(env.func, arg);
     env.cache[arg] = result;
     return result;
   }
@@ -1772,7 +2043,7 @@ class ClosureEnv_asyncSequence_26 {
   void call() => ClosureEnv_asyncSequence_26_call(this);
 }
 void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
-  final StaticList<int> results = StaticList<int>();
+  final StaticList<int> results = StaticList<int>.of([]);
   for (var i = 0; (i < env.count.value); i = (i + 1)) {
     final int value = smAwait(asyncAdd(i, (i * i)));
     results.add(value);
@@ -1783,243 +2054,360 @@ void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
 class ClosureEnv_IterableStats_get_sum_27<T extends num> extends TypeFunction2<T, T, T> {
   ClosureEnv_IterableStats_get_sum_27();
   @override
-  T call(T a, T b) => ClosureEnv_IterableStats_get_sum_27_call<T>(this, a, b);
+  T call(T a, T b) => closureCall(this, a, b);
 }
-T ClosureEnv_IterableStats_get_sum_27_call<T extends num>(ClosureEnv_IterableStats_get_sum_27<T> env, T a, T b) {
+ClosureEnv_IterableStats_get_sum_27<T> ClosureEnv_IterableStats_get_sum_27_new<T extends num>(ClosureEnv_IterableStats_get_sum_27<T> env_) {
+  env_.closureCall = ClosureEnv_IterableStats_get_sum_27_call<T>;
+  return env_;
+}
+T ClosureEnv_IterableStats_get_sum_27_call<T extends num>(dynamic env__, T a, T b) {
+  final env = env__ as ClosureEnv_IterableStats_get_sum_27<T>;
+
   return ((a + b) as T);
 }
 
 class ClosureEnv_IterableStats_get_max_28<T extends num> extends TypeFunction2<T, T, T> {
   ClosureEnv_IterableStats_get_max_28();
   @override
-  T call(T a, T b) => ClosureEnv_IterableStats_get_max_28_call<T>(this, a, b);
+  T call(T a, T b) => closureCall(this, a, b);
 }
-T ClosureEnv_IterableStats_get_max_28_call<T extends num>(ClosureEnv_IterableStats_get_max_28<T> env, T a, T b) {
+ClosureEnv_IterableStats_get_max_28<T> ClosureEnv_IterableStats_get_max_28_new<T extends num>(ClosureEnv_IterableStats_get_max_28<T> env_) {
+  env_.closureCall = ClosureEnv_IterableStats_get_max_28_call<T>;
+  return env_;
+}
+T ClosureEnv_IterableStats_get_max_28_call<T extends num>(dynamic env__, T a, T b) {
+  final env = env__ as ClosureEnv_IterableStats_get_max_28<T>;
+
   return ((a > b) ? a : b);
 }
 
 class ClosureEnv_IterableStats_get_min_29<T extends num> extends TypeFunction2<T, T, T> {
   ClosureEnv_IterableStats_get_min_29();
   @override
-  T call(T a, T b) => ClosureEnv_IterableStats_get_min_29_call<T>(this, a, b);
+  T call(T a, T b) => closureCall(this, a, b);
 }
-T ClosureEnv_IterableStats_get_min_29_call<T extends num>(ClosureEnv_IterableStats_get_min_29<T> env, T a, T b) {
+ClosureEnv_IterableStats_get_min_29<T> ClosureEnv_IterableStats_get_min_29_new<T extends num>(ClosureEnv_IterableStats_get_min_29<T> env_) {
+  env_.closureCall = ClosureEnv_IterableStats_get_min_29_call<T>;
+  return env_;
+}
+T ClosureEnv_IterableStats_get_min_29_call<T extends num>(dynamic env__, T a, T b) {
+  final env = env__ as ClosureEnv_IterableStats_get_min_29<T>;
+
   return ((a < b) ? a : b);
 }
 
 class ClosureEnv_main_30 extends TypeFunction1<String, int> {
   ClosureEnv_main_30();
   @override
-  String call(int v) => ClosureEnv_main_30_call(this, v);
+  String call(int v) => closureCall(this, v);
 }
-String ClosureEnv_main_30_call(ClosureEnv_main_30 env, int v) {
+ClosureEnv_main_30 ClosureEnv_main_30_new(ClosureEnv_main_30 env_) {
+  env_.closureCall = ClosureEnv_main_30_call;
+  return env_;
+}
+String ClosureEnv_main_30_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_30;
+
   return 'N${v}';
 }
 
 class ClosureEnv_main_31 extends TypeFunction1<String, int> {
   ClosureEnv_main_31();
   @override
-  String call(int v) => ClosureEnv_main_31_call(this, v);
+  String call(int v) => closureCall(this, v);
 }
-String ClosureEnv_main_31_call(ClosureEnv_main_31 env, int v) {
+ClosureEnv_main_31 ClosureEnv_main_31_new(ClosureEnv_main_31 env_) {
+  env_.closureCall = ClosureEnv_main_31_call;
+  return env_;
+}
+String ClosureEnv_main_31_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_31;
+
   return 'N${v}';
 }
 
 class ClosureEnv_main_32 extends TypeFunction1<String, String> {
   ClosureEnv_main_32();
   @override
-  String call(String l) => ClosureEnv_main_32_call(this, l);
+  String call(String l) => closureCall(this, l);
 }
-String ClosureEnv_main_32_call(ClosureEnv_main_32 env, String l) {
+ClosureEnv_main_32 ClosureEnv_main_32_new(ClosureEnv_main_32 env_) {
+  env_.closureCall = ClosureEnv_main_32_call;
+  return env_;
+}
+String ClosureEnv_main_32_call(dynamic env__, String l) {
+  final env = env__ as ClosureEnv_main_32;
+
   return 'L:${l}';
 }
 
 class ClosureEnv_main_33 extends TypeFunction1<String, int> {
   ClosureEnv_main_33();
   @override
-  String call(int r) => ClosureEnv_main_33_call(this, r);
+  String call(int r) => closureCall(this, r);
 }
-String ClosureEnv_main_33_call(ClosureEnv_main_33 env, int r) {
+ClosureEnv_main_33 ClosureEnv_main_33_new(ClosureEnv_main_33 env_) {
+  env_.closureCall = ClosureEnv_main_33_call;
+  return env_;
+}
+String ClosureEnv_main_33_call(dynamic env__, int r) {
+  final env = env__ as ClosureEnv_main_33;
+
   return 'R:${r}';
 }
 
 class ClosureEnv_main_34 extends TypeFunction1<String, String> {
   ClosureEnv_main_34();
   @override
-  String call(String l) => ClosureEnv_main_34_call(this, l);
+  String call(String l) => closureCall(this, l);
 }
-String ClosureEnv_main_34_call(ClosureEnv_main_34 env, String l) {
+ClosureEnv_main_34 ClosureEnv_main_34_new(ClosureEnv_main_34 env_) {
+  env_.closureCall = ClosureEnv_main_34_call;
+  return env_;
+}
+String ClosureEnv_main_34_call(dynamic env__, String l) {
+  final env = env__ as ClosureEnv_main_34;
+
   return 'L:${l}';
 }
 
 class ClosureEnv_main_35 extends TypeFunction1<String, int> {
   ClosureEnv_main_35();
   @override
-  String call(int r) => ClosureEnv_main_35_call(this, r);
+  String call(int r) => closureCall(this, r);
 }
-String ClosureEnv_main_35_call(ClosureEnv_main_35 env, int r) {
+ClosureEnv_main_35 ClosureEnv_main_35_new(ClosureEnv_main_35 env_) {
+  env_.closureCall = ClosureEnv_main_35_call;
+  return env_;
+}
+String ClosureEnv_main_35_call(dynamic env__, int r) {
+  final env = env__ as ClosureEnv_main_35;
+
   return 'R:${r}';
 }
 
 class ClosureEnv_main_36 extends TypeFunction1<String, String> {
   ClosureEnv_main_36();
   @override
-  String call(String l) => ClosureEnv_main_36_call(this, l);
+  String call(String l) => closureCall(this, l);
 }
-String ClosureEnv_main_36_call(ClosureEnv_main_36 env, String l) {
+ClosureEnv_main_36 ClosureEnv_main_36_new(ClosureEnv_main_36 env_) {
+  env_.closureCall = ClosureEnv_main_36_call;
+  return env_;
+}
+String ClosureEnv_main_36_call(dynamic env__, String l) {
+  final env = env__ as ClosureEnv_main_36;
+
   return 'L:${l}';
 }
 
 class ClosureEnv_main_37 extends TypeFunction1<String, int> {
   ClosureEnv_main_37();
   @override
-  String call(int r) => ClosureEnv_main_37_call(this, r);
+  String call(int r) => closureCall(this, r);
 }
-String ClosureEnv_main_37_call(ClosureEnv_main_37 env, int r) {
+ClosureEnv_main_37 ClosureEnv_main_37_new(ClosureEnv_main_37 env_) {
+  env_.closureCall = ClosureEnv_main_37_call;
+  return env_;
+}
+String ClosureEnv_main_37_call(dynamic env__, int r) {
+  final env = env__ as ClosureEnv_main_37;
+
   return 'R:${r}';
 }
 
 class ClosureEnv_main_38 extends TypeFunction1<String, String> {
   ClosureEnv_main_38();
   @override
-  String call(String l) => ClosureEnv_main_38_call(this, l);
+  String call(String l) => closureCall(this, l);
 }
-String ClosureEnv_main_38_call(ClosureEnv_main_38 env, String l) {
+ClosureEnv_main_38 ClosureEnv_main_38_new(ClosureEnv_main_38 env_) {
+  env_.closureCall = ClosureEnv_main_38_call;
+  return env_;
+}
+String ClosureEnv_main_38_call(dynamic env__, String l) {
+  final env = env__ as ClosureEnv_main_38;
+
   return 'L:${l}';
 }
 
 class ClosureEnv_main_39 extends TypeFunction1<String, int> {
   ClosureEnv_main_39();
   @override
-  String call(int r) => ClosureEnv_main_39_call(this, r);
+  String call(int r) => closureCall(this, r);
 }
-String ClosureEnv_main_39_call(ClosureEnv_main_39 env, int r) {
+ClosureEnv_main_39 ClosureEnv_main_39_new(ClosureEnv_main_39 env_) {
+  env_.closureCall = ClosureEnv_main_39_call;
+  return env_;
+}
+String ClosureEnv_main_39_call(dynamic env__, int r) {
+  final env = env__ as ClosureEnv_main_39;
+
   return 'R:${r}';
 }
 
 class ClosureEnv_main_40 extends TypeFunction1<int, int> {
   ClosureEnv_main_40();
   @override
-  int call(int v) => ClosureEnv_main_40_call(this, v);
+  int call(int v) => closureCall(this, v);
 }
-int ClosureEnv_main_40_call(ClosureEnv_main_40 env, int v) {
+ClosureEnv_main_40 ClosureEnv_main_40_new(ClosureEnv_main_40 env_) {
+  env_.closureCall = ClosureEnv_main_40_call;
+  return env_;
+}
+int ClosureEnv_main_40_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_40;
+
   return (v * 2);
 }
 
 class ClosureEnv_main_41 extends TypeFunction1<int, int> {
   ClosureEnv_main_41();
   @override
-  int call(int v) => ClosureEnv_main_41_call(this, v);
+  int call(int v) => closureCall(this, v);
 }
-int ClosureEnv_main_41_call(ClosureEnv_main_41 env, int v) {
+ClosureEnv_main_41 ClosureEnv_main_41_new(ClosureEnv_main_41 env_) {
+  env_.closureCall = ClosureEnv_main_41_call;
+  return env_;
+}
+int ClosureEnv_main_41_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_41;
+
   return (v * 2);
 }
 
 class ClosureEnv_main_42 extends TypeFunction1<EitherValue<String, dynamic>, int> {
   ClosureEnv_main_42();
   @override
-  EitherValue<String, dynamic> call(int v) => ClosureEnv_main_42_call(this, v);
+  EitherValue<String, dynamic> call(int v) => closureCall(this, v);
 }
-EitherValue<String, dynamic> ClosureEnv_main_42_call(ClosureEnv_main_42 env, int v) {
-  return ((v > 10) ? Either_new_right<String, String>(EitherValue<String, String>(), 'big_${v}') : Either_new_left<String, dynamic>(EitherValue<String, dynamic>(), 'too small'));
+ClosureEnv_main_42 ClosureEnv_main_42_new(ClosureEnv_main_42 env_) {
+  env_.closureCall = ClosureEnv_main_42_call;
+  return env_;
+}
+EitherValue<String, dynamic> ClosureEnv_main_42_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_42;
+
+  return ((v > 10) ? Either_new_right<String, String>(GC.allocateLocal(EitherValue<String, String>()), 'big_${v}') : Either_new_left<String, dynamic>(GC.allocateLocal(EitherValue<String, dynamic>()), 'too small'));
 }
 
 class ClosureEnv_main_43 extends TypeFunction1<EitherValue<String, dynamic>, int> {
   ClosureEnv_main_43();
   @override
-  EitherValue<String, dynamic> call(int v) => ClosureEnv_main_43_call(this, v);
+  EitherValue<String, dynamic> call(int v) => closureCall(this, v);
 }
-EitherValue<String, dynamic> ClosureEnv_main_43_call(ClosureEnv_main_43 env, int v) {
-  return ((v > 10) ? Either_new_right<String, String>(EitherValue<String, String>(), 'big_${v}') : Either_new_left<String, dynamic>(EitherValue<String, dynamic>(), 'too small'));
+ClosureEnv_main_43 ClosureEnv_main_43_new(ClosureEnv_main_43 env_) {
+  env_.closureCall = ClosureEnv_main_43_call;
+  return env_;
+}
+EitherValue<String, dynamic> ClosureEnv_main_43_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_43;
+
+  return ((v > 10) ? Either_new_right<String, String>(GC.allocateLocal(EitherValue<String, String>()), 'big_${v}') : Either_new_left<String, dynamic>(GC.allocateLocal(EitherValue<String, dynamic>()), 'too small'));
 }
 
 class ClosureEnv_main_44 extends TypeFunction1<int, int> {
   ClosureEnv_main_44();
   @override
-  int call(int x) => ClosureEnv_main_44_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_44_call(ClosureEnv_main_44 env, int x) {
+ClosureEnv_main_44 ClosureEnv_main_44_new(ClosureEnv_main_44 env_) {
+  env_.closureCall = ClosureEnv_main_44_call;
+  return env_;
+}
+int ClosureEnv_main_44_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_44;
+
   return (x * 2);
 }
 
 class ClosureEnv_main_45 extends TypeFunction1<int, int> {
   ClosureEnv_main_45();
   @override
-  int call(int x) => ClosureEnv_main_45_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_45_call(ClosureEnv_main_45 env, int x) {
+ClosureEnv_main_45 ClosureEnv_main_45_new(ClosureEnv_main_45 env_) {
+  env_.closureCall = ClosureEnv_main_45_call;
+  return env_;
+}
+int ClosureEnv_main_45_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_45;
+
   return (x + 1);
 }
 
 class ClosureEnv_main_46 extends TypeFunction2<int, int, int> {
   ClosureEnv_main_46();
   @override
-  int call(int a, int b) => ClosureEnv_main_46_call(this, a, b);
+  int call(int a, int b) => closureCall(this, a, b);
 }
-int ClosureEnv_main_46_call(ClosureEnv_main_46 env, int a, int b) {
+ClosureEnv_main_46 ClosureEnv_main_46_new(ClosureEnv_main_46 env_) {
+  env_.closureCall = ClosureEnv_main_46_call;
+  return env_;
+}
+int ClosureEnv_main_46_call(dynamic env__, int a, int b) {
+  final env = env__ as ClosureEnv_main_46;
+
   return (a + b);
 }
 
 class ClosureEnv_main_47 extends TypeFunction1<int, int> {
   ClosureEnv_main_47();
   @override
-  int call(int x) => ClosureEnv_main_47_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_47_call(ClosureEnv_main_47 env, int x) {
+ClosureEnv_main_47 ClosureEnv_main_47_new(ClosureEnv_main_47 env_) {
+  env_.closureCall = ClosureEnv_main_47_call;
+  return env_;
+}
+int ClosureEnv_main_47_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_47;
+
   return (x * 2);
 }
 
 class ClosureEnv_main_48 extends TypeFunction1<int, int> {
   ClosureEnv_main_48();
   @override
-  int call(int x) => ClosureEnv_main_48_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_48_call(ClosureEnv_main_48 env, int x) {
+ClosureEnv_main_48 ClosureEnv_main_48_new(ClosureEnv_main_48 env_) {
+  env_.closureCall = ClosureEnv_main_48_call;
+  return env_;
+}
+int ClosureEnv_main_48_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_48;
+
   return (x + 10);
 }
 
 class ClosureEnv_main_49 extends TypeFunction1<int, int> {
   ClosureEnv_main_49();
   @override
-  int call(int x) => ClosureEnv_main_49_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_49_call(ClosureEnv_main_49 env, int x) {
+ClosureEnv_main_49 ClosureEnv_main_49_new(ClosureEnv_main_49 env_) {
+  env_.closureCall = ClosureEnv_main_49_call;
+  return env_;
+}
+int ClosureEnv_main_49_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_49;
+
   return (x * x);
 }
 
 class ClosureEnv_main_50 extends TypeFunction1<int, int> {
   ClosureEnv_main_50();
   @override
-  int call(int x) => ClosureEnv_main_50_call(this, x);
+  int call(int n) => closureCall(this, n);
 }
-int ClosureEnv_main_50_call(ClosureEnv_main_50 env, int x) {
-  return (x * 2);
+ClosureEnv_main_50 ClosureEnv_main_50_new(ClosureEnv_main_50 env_) {
+  env_.closureCall = ClosureEnv_main_50_call;
+  return env_;
 }
+int ClosureEnv_main_50_call(dynamic env__, int n) {
+  final env = env__ as ClosureEnv_main_50;
 
-class ClosureEnv_main_51 extends TypeFunction1<int, int> {
-  ClosureEnv_main_51();
-  @override
-  int call(int x) => ClosureEnv_main_51_call(this, x);
-}
-int ClosureEnv_main_51_call(ClosureEnv_main_51 env, int x) {
-  return (x + 10);
-}
-
-class ClosureEnv_main_52 extends TypeFunction1<int, int> {
-  ClosureEnv_main_52();
-  @override
-  int call(int x) => ClosureEnv_main_52_call(this, x);
-}
-int ClosureEnv_main_52_call(ClosureEnv_main_52 env, int x) {
-  return (x * x);
-}
-
-class ClosureEnv_main_53 extends TypeFunction1<int, int> {
-  ClosureEnv_main_53();
-  @override
-  int call(int n) => ClosureEnv_main_53_call(this, n);
-}
-int ClosureEnv_main_53_call(ClosureEnv_main_53 env, int n) {
     if ((n <= 1))     return n;
     return n;
   }

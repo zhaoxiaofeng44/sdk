@@ -99,6 +99,9 @@ abstract class _DartRestorerBase {
   /// 是否在实例方法体内（用于 this → this_ 转换）
   bool _insideMethodBody = false;
 
+  /// 是否在静态/顶层字段初始化上下文中（用于 GC.allocateGlobal 包装）
+  bool _isStaticFieldContext = false;
+
   /// this 的替换名称（在方法体内为 'this_'，在构造函数体内为 'obj'）
   String _thisReplacementName = 'this_';
 

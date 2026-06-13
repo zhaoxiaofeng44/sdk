@@ -16,36 +16,36 @@ void ClosureEnv_main_0_call(ClosureEnv_main_0 env) {
   final String testSource = 'mixin Printable {\n  String get displayName;\n  void printInfo() => print(\'[$displayName]\');\n}\n\nmixin Orderable<T> {\n  int compareTo(T other);\n  bool isLessThan(T other) => compareTo(other) < 0;\n}\n\nclass Animal {\n  final String name;\n  final int age;\n  Animal(this.name, this.age);\n  String speak() => \'...\';\n}\n\nclass Dog extends Animal with Printable, Orderable<Dog> {\n  final String breed;\n  Dog(super.name, super.age, this.breed);\n  \n  @override\n  String get displayName => \'Dog:$name\';\n  \n  @override\n  String speak() => \'Woof!\';\n  \n  @override\n  int compareTo(Dog other) => age.compareTo(other.age);\n}\n\nvoid main() {\n  final dog = Dog(\'Rex\', 5, \'Labrador\');\n  dog.printInfo();\n  print(dog.speak());\n  final dog2 = Dog(\'Buddy\', 3, \'Golden\');\n  print(\'dog < dog2: ${dog.isLessThan(dog2)}\');\n}\n';
   final File tempFile = File('/tmp/mixin_test_source.dart');
   smAwait(tempFile.writeAsString(testSource));
-  print('=== 测试 Mixin Lowering ===\n');
-  print('原始源码:');
-  print(testSource);
-  print('\n--- 编译为 Kernel AST ---');
+  staticPrint('=== 测试 Mixin Lowering ===\n');
+  staticPrint('原始源码:');
+  staticPrint(testSource);
+  staticPrint('\n--- 编译为 Kernel AST ---');
   final CompilerOptions compilerOptions = (CompilerOptions()..sdkSummary = _Uri.file('/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill')..fileSystem = createFrontEndFileSystem(null, null)..embedSourceText = false..target = createFrontEndTarget('vm', trackWidgetCreation: false, supportMirrors: false));
   final KernelCompilationResults results = smAwait(compileToKernel(KernelCompilationArguments(source: tempFile.uri, options: compilerOptions, requireMain: false, includePlatform: false, environmentDefines: StaticMap<String, String>.of({}), enableAsserts: false)));
   final Component? component = results.component;
   if ((component == null)) {
-    print('❌ 编译失败');
+    staticPrint('❌ 编译失败');
     return;
   }
-  print('✅ 编译成功');
-  print('\n--- DartRestorer 还原 ---');
+  staticPrint('✅ 编译成功');
+  staticPrint('\n--- DartRestorer 还原 ---');
   final String restoredSource = restoreDartFromComponent(component);
-  print('还原后的代码:');
-  print(restoredSource);
+  staticPrint('还原后的代码:');
+  staticPrint(restoredSource);
   final File restoredFile = File('/tmp/mixin_test_restored.dart');
   smAwait(restoredFile.writeAsString(restoredSource));
-  print('\n✅ 已写入: /tmp/mixin_test_restored.dart');
-  print('\n--- 运行还原后的代码 ---');
+  staticPrint('\n✅ 已写入: /tmp/mixin_test_restored.dart');
+  staticPrint('\n--- 运行还原后的代码 ---');
   final ProcessResult runResult = smAwait(Process.run('dart', StaticList<String>.of(['/tmp/mixin_test_restored.dart'])));
   if ((runResult.exitCode == 0)) {
-    print('✅ 运行成功');
-    print('输出:');
-    print(runResult.stdout);
+    staticPrint('✅ 运行成功');
+    staticPrint('输出:');
+    staticPrint(runResult.stdout);
   }
  else {
-    print('❌ 运行失败 (exit=${runResult.exitCode})');
-    print('stderr:');
-    print(runResult.stderr);
+    staticPrint('❌ 运行失败 (exit=${runResult.exitCode})');
+    staticPrint('stderr:');
+    staticPrint(runResult.stderr);
   }
   smAwait(tempFile.delete());
 }
@@ -53,8 +53,14 @@ class MethodSpecEntryValue extends VPtr {
   late String vptrSuffix;
   late StaticList<String> typeArgStrs;
   MethodSpecEntryValue() {
-    vptr['operatorEq'] = const _TearOff_MethodSpecEntry_operatorEq();
-    vptr['get_hashCode'] = const _TearOff_MethodSpecEntry_get_hashCode();
+    vptr['operatorEq'] = MethodSpecEntry_operatorEq;
+    vptr['get_hashCode'] = MethodSpecEntry_get_hashCode;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (typeArgStrs is AnyGC) (typeArgStrs as AnyGC).gcMark(flag);
   }
 }
 
@@ -77,7 +83,7 @@ int MethodSpecEntry_get_hashCode(dynamic this__) {
 
 
 class _DartRestorerBaseValue extends VPtr {
-  late StringBuffer _buf;
+  late StaticStringBuffer _buf;
   late int _indent;
   late int _varCounter;
   late StaticMap<String, String> _cleanedNames;
@@ -93,13 +99,13 @@ class _DartRestorerBaseValue extends VPtr {
   late StaticMap<String, String> _activeTypeParamSubstitution;
   late StaticSet<TypeParameter> _activeTypeParamTargets;
   late bool _insideMethodBody;
+  late bool _isStaticFieldContext;
   late String _thisReplacementName;
   late bool _insideAsyncFunction;
   late String _asyncInnerReturnType;
   late int _closureCounter;
   late StaticList<String> _closureContextStack;
   late StaticList<String> _pendingClosureDecls;
-  late StaticSet<String> _emittedTearOffWrappers;
   late StaticList<String> _pendingTopLevelDecls;
   late StaticSet<String> _emittedSharedVTableClasses;
   late StaticMap<String, StaticMap<String, StaticSet<MethodSpecEntryValue>>> _methodTypeSpecializations;
@@ -107,11 +113,37 @@ class _DartRestorerBaseValue extends VPtr {
   late bool _thisIsCapturedInEnv;
   late StaticSet<VariableDeclaration> _boxedVars;
   late StaticSet<VariableDeclaration> _currentFunctionParams;
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_buf is AnyGC) (_buf as AnyGC).gcMark(flag);
+    if (_cleanedNames is AnyGC) (_cleanedNames as AnyGC).gcMark(flag);
+    if (_userClasses is AnyGC) (_userClasses as AnyGC).gcMark(flag);
+    if (_mixinNames is AnyGC) (_mixinNames as AnyGC).gcMark(flag);
+    if (_enumNames is AnyGC) (_enumNames as AnyGC).gcMark(flag);
+    if (_enumsWithCustomToString is AnyGC) (_enumsWithCustomToString as AnyGC).gcMark(flag);
+    if (_classHierarchy is AnyGC) (_classHierarchy as AnyGC).gcMark(flag);
+    if (_classVTableEntries is AnyGC) (_classVTableEntries as AnyGC).gcMark(flag);
+    if (_classNodes is AnyGC) (_classNodes as AnyGC).gcMark(flag);
+    if (_syntheticLoweredNames is AnyGC) (_syntheticLoweredNames as AnyGC).gcMark(flag);
+    if (_currentClass is AnyGC) (_currentClass as AnyGC).gcMark(flag);
+    if (_activeTypeParamSubstitution is AnyGC) (_activeTypeParamSubstitution as AnyGC).gcMark(flag);
+    if (_activeTypeParamTargets is AnyGC) (_activeTypeParamTargets as AnyGC).gcMark(flag);
+    if (_closureContextStack is AnyGC) (_closureContextStack as AnyGC).gcMark(flag);
+    if (_pendingClosureDecls is AnyGC) (_pendingClosureDecls as AnyGC).gcMark(flag);
+    if (_pendingTopLevelDecls is AnyGC) (_pendingTopLevelDecls as AnyGC).gcMark(flag);
+    if (_emittedSharedVTableClasses is AnyGC) (_emittedSharedVTableClasses as AnyGC).gcMark(flag);
+    if (_methodTypeSpecializations is AnyGC) (_methodTypeSpecializations as AnyGC).gcMark(flag);
+    if (_capturedVarEnvPrefix is AnyGC) (_capturedVarEnvPrefix as AnyGC).gcMark(flag);
+    if (_boxedVars is AnyGC) (_boxedVars as AnyGC).gcMark(flag);
+    if (_currentFunctionParams is AnyGC) (_currentFunctionParams as AnyGC).gcMark(flag);
+  }
 }
 
 _DartRestorerBaseValue _DartRestorerBase_new(dynamic this__) {
   final this_ = this__ as _DartRestorerBaseValue;
-  this_._buf = StringBuffer();
+  this_._buf = StaticStringBuffer();
   this_._indent = 0;
   this_._varCounter = 0;
   this_._cleanedNames = StaticMap<String, String>.of({});
@@ -127,13 +159,13 @@ _DartRestorerBaseValue _DartRestorerBase_new(dynamic this__) {
   this_._activeTypeParamSubstitution = StaticMap<String, String>.of({});
   this_._activeTypeParamTargets = StaticSet<TypeParameter>.of([]);
   this_._insideMethodBody = false;
+  this_._isStaticFieldContext = false;
   this_._thisReplacementName = 'this_';
   this_._insideAsyncFunction = false;
   this_._asyncInnerReturnType = 'dynamic';
   this_._closureCounter = 0;
   this_._closureContextStack = StaticList<String>.of([]);
   this_._pendingClosureDecls = StaticList<String>.of([]);
-  this_._emittedTearOffWrappers = StaticSet<String>.of([]);
   this_._pendingTopLevelDecls = StaticList<String>.of([]);
   this_._emittedSharedVTableClasses = StaticSet<String>.of([]);
   this_._methodTypeSpecializations = StaticMap<String, StaticMap<String, StaticSet<MethodSpecEntryValue>>>.of({});
@@ -158,11 +190,11 @@ bool _DartRestorerBase__containsTypeParameter(dynamic this__, DartType type) {
   final this_ = this__ as _DartRestorerBaseValue;
   if ((type is TypeParameterType))   return true;
   if ((type is InterfaceType)) {
-    return type.typeArguments.any(ClosureEnv_anon_1(this_));
+    return type.typeArguments.any(ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1()), this_));
   }
   if ((type is FunctionType)) {
     if (_DartRestorerBase__containsTypeParameter(this_, type.returnType))     return true;
-    return type.positionalParameters.any(ClosureEnv_anon_2(this_));
+    return type.positionalParameters.any(ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
   }
   if ((type is FutureOrType)) {
     return _DartRestorerBase__containsTypeParameter(this_, type.typeArgument);
@@ -170,13 +202,13 @@ bool _DartRestorerBase__containsTypeParameter(dynamic this__, DartType type) {
   return false;
 }
 
-String _DartRestorerBase__typeToSpecStr(dynamic this__, DartType type, {bool asSuffix = false}) {
+String _DartRestorerBase__typeToSpecStr(dynamic this__, DartType type, bool asSuffix) {
   final this_ = this__ as _DartRestorerBaseValue;
   if ((type is InterfaceType)) {
     final String name = type.classNode.name;
     if (type.typeArguments.isEmpty)     return name;
     final String separator = (asSuffix ? '_' : ', ');
-    final String args = type.typeArguments.map(ClosureEnv_anon_3(this_, asSuffix)).join(separator);
+    final String args = type.typeArguments.map(ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()), this_, asSuffix)).join(separator);
     return (asSuffix ? '${name}_${args}' : '${name}<${args}>');
   }
   if ((type is TypeParameterType))   return (type.parameter.name ?? 'T');
@@ -263,172 +295,172 @@ void _DartRestorerBase__collectShallowDecls(dynamic this__, TreeNode node, Stati
   _DartRestorerBase__visitChildrenForLocalDecl(this_, node, out);
 }
 
-void _DartRestorerBase__forEachChildNode(dynamic this__, TreeNode node, TypeFunction1<void, TreeNode> visit, {TypeFunction1<void, VariableDeclaration>? onTryCatchVar = null, TypeFunction1<void, VariableDeclaration>? onLetVar = null}) {
+void _DartRestorerBase__forEachChildNode(dynamic this__, TreeNode node, TypeFunction1<void, TreeNode> visit, TypeFunction1<void, VariableDeclaration>? onTryCatchVar, TypeFunction1<void, VariableDeclaration>? onLetVar) {
   final this_ = this__ as _DartRestorerBaseValue;
   if ((node is Block)) {
-    for (final s in node.statements)     visit(s);
+    for (final s in node.statements)     visit.closureCall(visit, s);
   }
  else   if ((node is ExpressionStatement)) {
-    visit(node.expression);
+    visit.closureCall(visit, node.expression);
   }
  else   if ((node is ReturnStatement)) {
-    if (!((node.expression == null)))     visit(node.expression!);
+    if (!((node.expression == null)))     visit.closureCall(visit, node.expression!);
   }
  else   if ((node is IfStatement)) {
-    visit(node.condition);
-    visit(node.then);
-    if (!((node.otherwise == null)))     visit(node.otherwise!);
+    visit.closureCall(visit, node.condition);
+    visit.closureCall(visit, node.then);
+    if (!((node.otherwise == null)))     visit.closureCall(visit, node.otherwise!);
   }
  else   if ((node is ForStatement)) {
-    for (final v in node.variables)     visit(v);
-    if (!((node.condition == null)))     visit(node.condition!);
-    for (final u in node.updates)     visit(u);
-    visit(node.body);
+    for (final v in node.variables)     visit.closureCall(visit, v);
+    if (!((node.condition == null)))     visit.closureCall(visit, node.condition!);
+    for (final u in node.updates)     visit.closureCall(visit, u);
+    visit.closureCall(visit, node.body);
   }
  else   if ((node is ForInStatement)) {
-    visit(node.variable);
-    visit(node.iterable);
-    visit(node.body);
+    visit.closureCall(visit, node.variable);
+    visit.closureCall(visit, node.iterable);
+    visit.closureCall(visit, node.body);
   }
  else   if ((node is WhileStatement)) {
-    visit(node.condition);
-    visit(node.body);
+    visit.closureCall(visit, node.condition);
+    visit.closureCall(visit, node.body);
   }
  else   if ((node is DoStatement)) {
-    visit(node.body);
-    visit(node.condition);
+    visit.closureCall(visit, node.body);
+    visit.closureCall(visit, node.condition);
   }
  else   if ((node is TryCatch)) {
-    visit(node.body);
+    visit.closureCall(visit, node.body);
     for (final c in node.catches) {
       if (!((onTryCatchVar == null))) {
-        if (!((c.exception == null)))         onTryCatchVar(c.exception!);
-        if (!((c.stackTrace == null)))         onTryCatchVar(c.stackTrace!);
+        if (!((c.exception == null)))         onTryCatchVar.closureCall(onTryCatchVar, c.exception!);
+        if (!((c.stackTrace == null)))         onTryCatchVar.closureCall(onTryCatchVar, c.stackTrace!);
       }
-      visit(c.body);
+      visit.closureCall(visit, c.body);
     }
   }
  else   if ((node is TryFinally)) {
-    visit(node.body);
-    visit(node.finalizer);
+    visit.closureCall(visit, node.body);
+    visit.closureCall(visit, node.finalizer);
   }
  else   if ((node is SwitchStatement)) {
-    visit(node.expression);
-    for (final c in node.cases)     visit(c.body);
+    visit.closureCall(visit, node.expression);
+    for (final c in node.cases)     visit.closureCall(visit, c.body);
   }
  else   if ((node is LabeledStatement)) {
-    visit(node.body);
+    visit.closureCall(visit, node.body);
   }
  else   if ((node is YieldStatement)) {
-    visit(node.expression);
+    visit.closureCall(visit, node.expression);
   }
  else   if ((node is AssertStatement)) {
-    visit(node.condition);
-    if (!((node.message == null)))     visit(node.message!);
+    visit.closureCall(visit, node.condition);
+    if (!((node.message == null)))     visit.closureCall(visit, node.message!);
   }
  else   if ((node is VariableDeclaration)) {
-    if (!((node.initializer == null)))     visit(node.initializer!);
+    if (!((node.initializer == null)))     visit.closureCall(visit, node.initializer!);
   }
  else   if ((node is Let)) {
-    if (!((onLetVar == null)))     onLetVar(node.variable);
-    if (!((node.variable.initializer == null)))     visit(node.variable.initializer!);
-    visit(node.body);
+    if (!((onLetVar == null)))     onLetVar.closureCall(onLetVar, node.variable);
+    if (!((node.variable.initializer == null)))     visit.closureCall(visit, node.variable.initializer!);
+    visit.closureCall(visit, node.body);
   }
  else   if ((node is BlockExpression)) {
-    visit(node.body);
-    visit(node.value);
+    visit.closureCall(visit, node.body);
+    visit.closureCall(visit, node.value);
   }
  else   if ((node is InstanceInvocation)) {
-    visit(node.receiver);
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    visit.closureCall(visit, node.receiver);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
  else   if ((node is StaticInvocation)) {
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
  else   if ((node is ConstructorInvocation)) {
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
  else   if ((node is InstanceGet)) {
-    visit(node.receiver);
+    visit.closureCall(visit, node.receiver);
   }
  else   if ((node is InstanceSet)) {
-    visit(node.receiver);
-    visit(node.value);
+    visit.closureCall(visit, node.receiver);
+    visit.closureCall(visit, node.value);
   }
  else   if ((node is VariableSet)) {
-    visit(node.value);
+    visit.closureCall(visit, node.value);
   }
  else   if ((node is ConditionalExpression)) {
-    visit(node.condition);
-    visit(node.then);
-    visit(node.otherwise);
+    visit.closureCall(visit, node.condition);
+    visit.closureCall(visit, node.then);
+    visit.closureCall(visit, node.otherwise);
   }
  else   if ((node is LogicalExpression)) {
-    visit(node.left);
-    visit(node.right);
+    visit.closureCall(visit, node.left);
+    visit.closureCall(visit, node.right);
   }
  else   if ((node is Not)) {
-    visit(node.operand);
+    visit.closureCall(visit, node.operand);
   }
  else   if ((node is StringConcatenation)) {
-    for (final e in node.expressions)     visit(e);
+    for (final e in node.expressions)     visit.closureCall(visit, e);
   }
  else   if ((node is AsExpression)) {
-    visit(node.operand);
+    visit.closureCall(visit, node.operand);
   }
  else   if ((node is IsExpression)) {
-    visit(node.operand);
+    visit.closureCall(visit, node.operand);
   }
  else   if ((node is NullCheck)) {
-    visit(node.operand);
+    visit.closureCall(visit, node.operand);
   }
  else   if ((node is AwaitExpression)) {
-    visit(node.operand);
+    visit.closureCall(visit, node.operand);
   }
  else   if ((node is ListLiteral)) {
-    for (final e in node.expressions)     visit(e);
+    for (final e in node.expressions)     visit.closureCall(visit, e);
   }
  else   if ((node is SetLiteral)) {
-    for (final e in node.expressions)     visit(e);
+    for (final e in node.expressions)     visit.closureCall(visit, e);
   }
  else   if ((node is MapLiteral)) {
     for (final e in node.entries) {
-      visit(e.key);
-      visit(e.value);
+      visit.closureCall(visit, e.key);
+      visit.closureCall(visit, e.value);
     }
   }
  else   if ((node is Throw)) {
-    visit(node.expression);
+    visit.closureCall(visit, node.expression);
   }
  else   if ((node is EqualsCall)) {
-    visit(node.left);
-    visit(node.right);
+    visit.closureCall(visit, node.left);
+    visit.closureCall(visit, node.right);
   }
  else   if ((node is EqualsNull)) {
-    visit(node.expression);
+    visit.closureCall(visit, node.expression);
   }
  else   if ((node is FunctionInvocation)) {
-    visit(node.receiver);
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    visit.closureCall(visit, node.receiver);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
  else   if ((node is DynamicInvocation)) {
-    visit(node.receiver);
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    visit.closureCall(visit, node.receiver);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
  else   if ((node is LocalFunctionInvocation)) {
-    for (final a in node.arguments.positional)     visit(a);
-    for (final a in node.arguments.named)     visit(a.value);
+    for (final a in node.arguments.positional)     visit.closureCall(visit, a);
+    for (final a in node.arguments.named)     visit.closureCall(visit, a.value);
   }
 }
 
 void _DartRestorerBase__visitChildrenForLocalDecl(dynamic this__, TreeNode node, StaticSet<VariableDeclaration> out) {
   final this_ = this__ as _DartRestorerBaseValue;
-  _DartRestorerBase__forEachChildNode(this_, node, ClosureEnv_anon_4(this_, out), onTryCatchVar: ClosureEnv_anon_5(out), onLetVar: ClosureEnv_anon_6(out));
+  _DartRestorerBase__forEachChildNode(this_, node, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()), this_, out), onTryCatchVar: ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()), out), onLetVar: ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()), out));
 }
 
 void _DartRestorerBase__collectAllFunctionExpressions(dynamic this__, TreeNode node, StaticList<FunctionExpression> out) {
@@ -446,7 +478,7 @@ void _DartRestorerBase__collectAllFunctionExpressions(dynamic this__, TreeNode n
     }
     return;
   }
-  _DartRestorerBase__forEachChildNode(this_, node, ClosureEnv_anon_7(this_, out));
+  _DartRestorerBase__forEachChildNode(this_, node, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7()), this_, out));
 }
 
 String _DartRestorerBase__sanitizeClosureContextName(dynamic this__, String name) {
@@ -454,7 +486,7 @@ String _DartRestorerBase__sanitizeClosureContextName(dynamic this__, String name
   if (name.contains('|')) {
     return _DartRestorerBase__sanitizeExtensionMethodName(this_, name);
   }
-  return name.replaceAll(RegExp('[^a-zA-Z0-9_]'), '_');
+  return name.replaceAll(StaticRegExp('[^a-zA-Z0-9_]'), '_');
 }
 
 void _DartRestorerBase__pushClosureContext(dynamic this__, String name) {
@@ -503,26 +535,44 @@ String _DartRestorerBase__restoreTypeForSignature(dynamic this__, DartType type)
  else     if ((name == 'Function')) {
       return 'dynamic';
     }
+ else     if ((name == 'StringBuffer')) {
+      mappedName = 'StaticStringBuffer';
+    }
+ else     if (((name == 'Iterator') || (name == '_ListIterator'))) {
+      mappedName = 'StaticIterator';
+    }
+ else     if ((name == 'MapEntry')) {
+      mappedName = 'StaticMapEntry';
+    }
+ else     if ((name == 'Duration')) {
+      mappedName = 'StaticDuration';
+    }
+ else     if ((name == 'DateTime')) {
+      mappedName = 'StaticDateTime';
+    }
+ else     if (((name == 'RegExp') || (name == '_RegExp'))) {
+      mappedName = 'StaticRegExp';
+    }
  else {
       mappedName = name;
     }
     if (type.typeArguments.isEmpty)     return '${mappedName}${suffix}';
-    final String args = type.typeArguments.map(ClosureEnv_anon_8(this_)).join(', ');
+    final String args = type.typeArguments.map(ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8()), this_)).join(', ');
     return '${mappedName}<${args}>${suffix}';
   }
   if ((type is FunctionType)) {
     final String ret = _DartRestorerBase__restoreTypeForSignature(this_, type.returnType);
     final bool hasNamed = type.namedParameters.isNotEmpty;
-    final StaticList<DartType> positional = type.positionalParameters;
+    final StaticList<DartType> positional = StaticList<DartType>.of(type.positionalParameters);
     final int required_ = type.requiredParameterCount;
     final bool hasOptional = (positional.length > required_);
     if (((hasNamed || hasOptional) || (positional.length > 16))) {
       return 'TypeFunction<${ret}>${suffix}';
     }
     final int arity = positional.length;
-    final StaticList<String> paramTexts = (() {     final StaticList<String> _v2 = StaticList<String>.of([]);
+    final StaticList<String> paramTexts = StaticList<String>.of((() {     final StaticList<String> _v2 = StaticList<String>.of([]);
     for (final p in positional)     _v2.add(_DartRestorerBase__restoreTypeForSignature(this_, p));
- return _v2; })();
+ return _v2; })());
     final String args = (() {     final StaticList<String> _v3 = StaticList<String>.of([ret]);
     _v3.addAll(paramTexts);
  return _v3; })().join(', ');
@@ -639,7 +689,7 @@ String _DartRestorerBase__sanitizeExtensionMethodName(dynamic this__, String raw
     final String propName = memberPart.substring(4);
     return '${extensionName}_set_${propName}';
   }
-  memberPart = memberPart.replaceAll(RegExp('[^a-zA-Z0-9_]'), '_');
+  memberPart = memberPart.replaceAll(StaticRegExp('[^a-zA-Z0-9_]'), '_');
   return '${extensionName}_${memberPart}';
 }
 
@@ -680,6 +730,12 @@ void _DartRestorerBase__writeParams(dynamic this_, FunctionNode func, {Procedure
 class _CaptureAnalysisResultValue extends VPtr {
   late StaticList<VariableDeclaration> capturedDecls;
   late bool capturesThis;
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (capturedDecls is AnyGC) (capturedDecls as AnyGC).gcMark(flag);
+  }
 }
 
 _CaptureAnalysisResultValue _CaptureAnalysisResult_new(dynamic this__, {required StaticList<VariableDeclaration> capturedDecls, required bool capturesThis}) {
@@ -696,8 +752,8 @@ class _CapturedVarValue extends VPtr {
   late bool isThis;
   late bool isBoxed;
   _CapturedVarValue() {
-    vptr['operatorEq'] = const _TearOff__CapturedVar_operatorEq();
-    vptr['get_hashCode'] = const _TearOff__CapturedVar_get_hashCode();
+    vptr['operatorEq'] = _CapturedVar_operatorEq;
+    vptr['get_hashCode'] = _CapturedVar_get_hashCode;
   }
 }
 
@@ -728,6 +784,12 @@ class _VTableEntryValue extends VPtr {
   late String signature;
   late Procedure? proc;
   late String? declaringClassName;
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (proc is AnyGC) (proc as AnyGC).gcMark(flag);
+  }
 }
 
 _VTableEntryValue _VTableEntry_new(dynamic this__, {required String name, required String kind, required String staticFuncName, required String signature, Procedure? proc = null, String? declaringClassName = null}) {
@@ -744,14 +806,19 @@ _VTableEntryValue _VTableEntry_new(dynamic this__, {required String name, requir
 
 class DartRestorerValue extends DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorer__StatementRestorer__DeclarationRestorerValue {
   DartRestorerValue() {
-    vptr['restore'] = const _TearOff_DartRestorer_restore();
+    vptr['restore'] = DartRestorer_restore;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
 DartRestorerValue DartRestorer_new(dynamic this__) {
   final this_ = this__ as DartRestorerValue;
   _DartRestorerBase_new(this_);
-  this_._buf = StringBuffer();
+  this_._buf = StaticStringBuffer();
   this_._indent = 0;
   this_._varCounter = 0;
   this_._cleanedNames = StaticMap<String, String>.of({});
@@ -767,13 +834,13 @@ DartRestorerValue DartRestorer_new(dynamic this__) {
   this_._activeTypeParamSubstitution = StaticMap<String, String>.of({});
   this_._activeTypeParamTargets = StaticSet<TypeParameter>.of([]);
   this_._insideMethodBody = false;
+  this_._isStaticFieldContext = false;
   this_._thisReplacementName = 'this_';
   this_._insideAsyncFunction = false;
   this_._asyncInnerReturnType = 'dynamic';
   this_._closureCounter = 0;
   this_._closureContextStack = StaticList<String>.of([]);
   this_._pendingClosureDecls = StaticList<String>.of([]);
-  this_._emittedTearOffWrappers = StaticSet<String>.of([]);
   this_._pendingTopLevelDecls = StaticList<String>.of([]);
   this_._emittedSharedVTableClasses = StaticSet<String>.of([]);
   this_._methodTypeSpecializations = StaticMap<String, StaticMap<String, StaticSet<MethodSpecEntryValue>>>.of({});
@@ -833,7 +900,7 @@ void DartRestorer__collectClassInfo(dynamic this__, Library lib) {
       if (DartRestorer__isEnumClass(this_, cls)) {
         this_._enumNames.add(cls.name);
         this_._classNodes[cls.name] = cls;
-        final bool hasCustomToString = cls.procedures.any(ClosureEnv_anon_9());
+        final bool hasCustomToString = cls.procedures.any(ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
         if (hasCustomToString) {
           this_._enumsWithCustomToString.add(cls.name);
         }
@@ -859,7 +926,7 @@ void DartRestorer__collectClassInfo(dynamic this__, Library lib) {
       userClassEntries.add((className, cls));
     }
   } while (false);
-  final StaticList<(String, Class)> sorted = DartRestorer__topologicalSort(this_, userClassEntries);
+  final StaticList<(String, Class)> sorted = StaticList<(String, Class)>.of(DartRestorer__topologicalSort(this_, userClassEntries));
   for (final _item6 in sorted) {
     final String className;
     final Class cls;
@@ -954,7 +1021,7 @@ void DartRestorer__scanNodeForMethodTypeSpecs(dynamic this__, TreeNode node) {
 void DartRestorer__checkAndRecordMethodTypeSpec(dynamic this__, InstanceInvocation node) {
   final this_ = this__ as DartRestorerValue;
   final Procedure target = node.interfaceTarget;
-  final StaticList<TypeParameter> methodTypeParams = target.function.typeParameters;
+  final StaticList<TypeParameter> methodTypeParams = StaticList<TypeParameter>.of(target.function.typeParameters);
   if (methodTypeParams.isEmpty)   return;
   final Class? enclosingClass = target.enclosingClass;
   if ((enclosingClass == null))   return;
@@ -966,18 +1033,18 @@ void DartRestorer__checkAndRecordMethodTypeSpec(dynamic this__, InstanceInvocati
   if (this_._syntheticLoweredNames.contains(className)) {
     className = DartRestorer__findUserClassForSynthetic(this_, className);
   }
-  final StaticSet<String?> classTpNames = StaticSet.of(enclosingClass.typeParameters.map(ClosureEnv_anon_10()).toSet().toList());
-  final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(methodTypeParams.where(ClosureEnv_anon_11(classTpNames)).toList());
+  final StaticSet<String?> classTpNames = StaticSet.of(enclosingClass.typeParameters.map(ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()))).toSet().toList());
+  final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(methodTypeParams.where(ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), classTpNames)).toList());
   if (dedupedMethodTps.isEmpty)   return;
-  final StaticList<DartType> methodTypeArgs = node.arguments.types;
+  final StaticList<DartType> methodTypeArgs = StaticList<DartType>.of(node.arguments.types);
   if (methodTypeArgs.isEmpty)   return;
-  final bool hasAbstractTypeArg = methodTypeArgs.any(ClosureEnv_anon_12(this_));
+  final bool hasAbstractTypeArg = methodTypeArgs.any(ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_));
   if (hasAbstractTypeArg)   return;
   final String methodName = target.name.text;
-  final String typeSuffix = methodTypeArgs.map(ClosureEnv_anon_13(this_)).join('_');
+  final String typeSuffix = methodTypeArgs.map(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_)).join('_');
   if (typeSuffix.isEmpty)   return;
-  final StaticList<String> typeArgStrs = StaticList.of(methodTypeArgs.map(ClosureEnv_anon_14(this_)).toList());
-  this_._methodTypeSpecializations.putIfAbsent(className, ClosureEnv_anon_15()).putIfAbsent(methodName, ClosureEnv_anon_16()).add(MethodSpecEntry_new(MethodSpecEntryValue(), typeSuffix, typeArgStrs));
+  final StaticList<String> typeArgStrs = StaticList.of(methodTypeArgs.map(ClosureEnv_anon_14_new(GC.allocateLocal(ClosureEnv_anon_14()), this_)).toList());
+  this_._methodTypeSpecializations.putIfAbsent(className, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()))).putIfAbsent(methodName, ClosureEnv_anon_16_new(GC.allocateLocal(ClosureEnv_anon_16()))).add(MethodSpecEntry_new(GC.allocateLocal(MethodSpecEntryValue()), typeSuffix, typeArgStrs));
 }
 
 void DartRestorer__scanChildrenForMethodTypeSpecs(dynamic this__, TreeNode node) {
@@ -1161,7 +1228,7 @@ void DartRestorer__scanChildrenForMethodTypeSpecs(dynamic this__, TreeNode node)
   }
 }
 
-void DartRestorer__collectVTableEntries(dynamic this__, Class cls, {String? overrideName = null}) {
+void DartRestorer__collectVTableEntries(dynamic this__, Class cls, String? overrideName) {
   final this_ = this__ as DartRestorerValue;
   final String className = (overrideName ?? cls.name);
   final StaticList<_VTableEntryValue> entries = StaticList<_VTableEntryValue>.of([]);
@@ -1173,9 +1240,9 @@ void DartRestorer__collectVTableEntries(dynamic this__, Class cls, {String? over
     final String ifaceName = impl.classNode.name;
     if (this_._classVTableEntries.containsKey(ifaceName)) {
       for (final ifaceEntry in this_._classVTableEntries[ifaceName]!) {
-        final bool alreadyExists = entries.any(ClosureEnv_anon_17(ifaceEntry));
+        final bool alreadyExists = entries.any(ClosureEnv_anon_17_new(GC.allocateLocal(ClosureEnv_anon_17()), ifaceEntry));
         if (!(alreadyExists)) {
-          entries.add(_VTableEntry_new(_VTableEntryValue(), name: ifaceEntry.name, kind: ifaceEntry.kind, staticFuncName: ifaceEntry.staticFuncName, signature: ifaceEntry.signature, declaringClassName: ifaceEntry.declaringClassName));
+          entries.add(_VTableEntry_new(GC.allocateLocal(_VTableEntryValue()), name: ifaceEntry.name, kind: ifaceEntry.kind, staticFuncName: ifaceEntry.staticFuncName, signature: ifaceEntry.signature, declaringClassName: ifaceEntry.declaringClassName));
         }
       }
     }
@@ -1187,13 +1254,13 @@ void DartRestorer__collectVTableEntries(dynamic this__, Class cls, {String? over
       if (proc.name.text.startsWith('_'))       break;
       StringBox methodName = StringBox(proc.name.text);
       final _VTableEntryValue entry = DartRestorer__buildVTableEntry(this_, cls, proc, methodName.value, className);
-      final int existingIdx = entries.indexWhere(ClosureEnv_anon_18(methodName, entry));
+      final int existingIdx = entries.indexWhere(ClosureEnv_anon_18_new(GC.allocateLocal(ClosureEnv_anon_18()), methodName, entry));
       if ((existingIdx >= 0)) {
         final String existingDeclaringClass = (entries[existingIdx].declaringClassName ?? className);
-        entries[existingIdx] = _VTableEntry_new(_VTableEntryValue(), name: entry.name, kind: entry.kind, staticFuncName: entry.staticFuncName, signature: entry.signature, proc: entry.proc, declaringClassName: existingDeclaringClass);
+        entries[existingIdx] = _VTableEntry_new(GC.allocateLocal(_VTableEntryValue()), name: entry.name, kind: entry.kind, staticFuncName: entry.staticFuncName, signature: entry.signature, proc: entry.proc, declaringClassName: existingDeclaringClass);
       }
  else {
-        entries.add(_VTableEntry_new(_VTableEntryValue(), name: entry.name, kind: entry.kind, staticFuncName: entry.staticFuncName, signature: entry.signature, proc: entry.proc, declaringClassName: className));
+        entries.add(_VTableEntry_new(GC.allocateLocal(_VTableEntryValue()), name: entry.name, kind: entry.kind, staticFuncName: entry.staticFuncName, signature: entry.signature, proc: entry.proc, declaringClassName: className));
       }
     }
   } while (false);
@@ -1222,7 +1289,7 @@ _VTableEntryValue DartRestorer__buildVTableEntry(dynamic this__, Class cls, Proc
     kind = 'operator';
     staticFuncName = _DartRestorerBase__staticMethodName(this_, className, methodName);
     final String retType = _DartRestorerBase__restoreTypeForSignature(this_, proc.function.returnType);
-    final String paramTypes = proc.function.positionalParameters.map(ClosureEnv_anon_19(this_)).join(', ');
+    final String paramTypes = proc.function.positionalParameters.map(ClosureEnv_anon_19_new(GC.allocateLocal(ClosureEnv_anon_19()), this_)).join(', ');
     final String paramPart = (paramTypes.isEmpty ? '${className}Value this_' : '${className}Value this_, ${paramTypes}');
     signature = '${retType} Function(${paramPart})';
   }
@@ -1240,7 +1307,7 @@ _VTableEntryValue DartRestorer__buildVTableEntry(dynamic this__, Class cls, Proc
     final String paramPart = (paramTypes.isEmpty ? '${className}Value this_' : '${className}Value this_, ${paramTypes.join(', ')}');
     signature = '${retType} Function(${paramPart})';
   }
-  return _VTableEntry_new(_VTableEntryValue(), name: methodName, kind: kind, staticFuncName: staticFuncName, signature: signature, proc: proc);
+  return _VTableEntry_new(GC.allocateLocal(_VTableEntryValue()), name: methodName, kind: kind, staticFuncName: staticFuncName, signature: signature, proc: proc);
 }
 
 void DartRestorer__restoreLibrary(dynamic this__, Library lib) {
@@ -1314,11 +1381,41 @@ String _TypeUtils__restoreArgs(dynamic this__, Arguments args) {
   return parts.join(', ');
 }
 
+String _TypeUtils__restoreFlattenedArgs(dynamic this__, FunctionNode target, Arguments args) {
+  final this_ = this__;
+  final StaticList<String> parts = StaticList<String>.of([]);
+  final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(target.positionalParameters);
+  for (var i = 0; (i < pos.length); i = (i + 1)) {
+    if ((i < args.positional.length)) {
+      parts.add(_DartRestorerBase__restoreExpr(this_, args.positional[i]));
+    }
+ else {
+      final VariableDeclaration p = pos[i];
+      parts.add((!((p.initializer == null)) ? _DartRestorerBase__restoreExpr(this_, p.initializer!) : _DartRestorerBase__defaultValueForType(this_, p.type)));
+    }
+  }
+  if (target.namedParameters.isNotEmpty) {
+    final StaticMap<String, Expression> supplied = StaticMap<String, Expression>.of((() {     final StaticMap<String, Expression> _v13 = StaticMap<String, Expression>.of({});
+    for (final n in args.named)     _v13[n.name] = n.value;
+ return _v13; })());
+    for (final p in target.namedParameters) {
+      final String? name = p.name;
+      if ((!((name == null)) && supplied.containsKey(name))) {
+        parts.add(_DartRestorerBase__restoreExpr(this_, supplied[name]!));
+      }
+ else {
+        parts.add((!((p.initializer == null)) ? _DartRestorerBase__restoreExpr(this_, p.initializer!) : _DartRestorerBase__defaultValueForType(this_, p.type)));
+      }
+    }
+  }
+  return parts.join(', ');
+}
+
 String _TypeUtils__restoreSupertype(dynamic this__, Supertype s) {
   final this_ = this__;
   final String name = s.classNode.name;
   if (s.typeArguments.isEmpty)   return name;
-  final String args = s.typeArguments.map(ClosureEnv_anon_20(this_)).join(', ');
+  final String args = s.typeArguments.map(ClosureEnv_anon_20_new(GC.allocateLocal(ClosureEnv_anon_20()), this_)).join(', ');
   return '${name}<${args}>';
 }
 
@@ -1344,6 +1441,24 @@ String _TypeUtils__restoreType(dynamic this__, DartType type) {
  else     if ((rawName == 'Function')) {
       return 'dynamic';
     }
+ else     if ((rawName == 'StringBuffer')) {
+      name = 'StaticStringBuffer';
+    }
+ else     if (((rawName == 'Iterator') || (rawName == '_ListIterator'))) {
+      name = 'StaticIterator';
+    }
+ else     if ((rawName == 'MapEntry')) {
+      name = 'StaticMapEntry';
+    }
+ else     if ((rawName == 'Duration')) {
+      name = 'StaticDuration';
+    }
+ else     if ((rawName == 'DateTime')) {
+      name = 'StaticDateTime';
+    }
+ else     if (((rawName == 'RegExp') || (rawName == '_RegExp'))) {
+      name = 'StaticRegExp';
+    }
  else     if (_DartRestorerBase__isUserClass(this_, rawName)) {
       name = '${rawName}Value';
     }
@@ -1351,7 +1466,7 @@ String _TypeUtils__restoreType(dynamic this__, DartType type) {
       name = rawName;
     }
     if (type.typeArguments.isEmpty)     return '${name}${suffix}';
-    final String args = type.typeArguments.map(ClosureEnv_anon_21(this_)).join(', ');
+    final String args = type.typeArguments.map(ClosureEnv_anon_21_new(GC.allocateLocal(ClosureEnv_anon_21()), this_)).join(', ');
     return '${name}<${args}>${suffix}';
   }
   if ((type is FunctionType)) {
@@ -1397,22 +1512,22 @@ String _TypeUtils__cleanVarName(dynamic this__, String name) {
     cleaned = name.substring(1);
   }
  else   if (name.contains('#')) {
-    final StaticList<String> parts = name.split('#');
+    final StaticList<String> parts = StaticList<String>.of(name.split('#'));
     final String lastPart = parts.last;
-    if ((lastPart.isEmpty || RegExp('^[0-9]').hasMatch(lastPart))) {
-      cleaned = '_v${(() { final _let14 = this_._varCounter; return (() { final _let15 = this_._varCounter = (_let14 + 1); return _let14; })(); })()}';
+    if ((lastPart.isEmpty || StaticRegExp('^[0-9]').hasMatch(lastPart))) {
+      cleaned = '_v${(() { final _let15 = this_._varCounter; return (() { final _let16 = this_._varCounter = (_let15 + 1); return _let15; })(); })()}';
     }
  else {
-      cleaned = '_v${(() { final _let16 = this_._varCounter; return (() { final _let17 = this_._varCounter = (_let16 + 1); return _let16; })(); })()}_${lastPart}';
+      cleaned = '_v${(() { final _let17 = this_._varCounter; return (() { final _let18 = this_._varCounter = (_let17 + 1); return _let17; })(); })()}_${lastPart}';
     }
   }
  else {
     cleaned = name;
   }
-  if ((cleaned.isNotEmpty && RegExp('^[0-9]').hasMatch(cleaned))) {
-    cleaned = '_v${(() { final _let18 = this_._varCounter; return (() { final _let19 = this_._varCounter = (_let18 + 1); return _let18; })(); })()}';
+  if ((cleaned.isNotEmpty && StaticRegExp('^[0-9]').hasMatch(cleaned))) {
+    cleaned = '_v${(() { final _let19 = this_._varCounter; return (() { final _let20 = this_._varCounter = (_let19 + 1); return _let19; })(); })()}';
   }
-  cleaned = cleaned.replaceAll(RegExp('[^a-zA-Z0-9_]'), '_');
+  cleaned = cleaned.replaceAll(StaticRegExp('[^a-zA-Z0-9_]'), '_');
   if (const {'this', 'super', 'new', 'null', 'true', 'false', 'void', 'var', 'final', 'const', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'throw', 'rethrow', 'class', 'extends', 'implements', 'with', 'mixin', 'enum', 'import', 'export', 'library', 'part', 'of', 'show', 'hide', 'as', 'abstract', 'static', 'dynamic', 'get', 'set', 'operator', 'typedef', 'is', 'in', 'assert', 'async', 'await', 'yield', 'sync', 'late', 'required', 'external', 'factory', 'covariant'}.contains(cleaned)) {
     cleaned = '${cleaned}_';
   }
@@ -1424,19 +1539,19 @@ String _TypeUtils__restoreFunctionTypeAsTypeFunction(dynamic this__, FunctionTyp
   final this_ = this__;
   final String ret = _TypeUtils__restoreType(this_, type.returnType);
   final bool hasNamed = type.namedParameters.isNotEmpty;
-  final StaticList<DartType> positional = type.positionalParameters;
+  final StaticList<DartType> positional = StaticList<DartType>.of(type.positionalParameters);
   final int required_ = type.requiredParameterCount;
   final bool hasOptionalPositional = (positional.length > required_);
   if (((hasNamed || hasOptionalPositional) || (positional.length > 16))) {
     return 'TypeFunction<${ret}>${suffix}';
   }
   final int arity = positional.length;
-  final StaticList<String> paramTexts = (() {   final StaticList<String> _v20 = StaticList<String>.of([]);
-  for (final p in positional)   _v20.add(_TypeUtils__restoreType(this_, p));
- return _v20; })();
-  final String args = (() {   final StaticList<String> _v21 = StaticList<String>.of([ret]);
-  _v21.addAll(paramTexts);
- return _v21; })().join(', ');
+  final StaticList<String> paramTexts = StaticList<String>.of((() {   final StaticList<String> _v21 = StaticList<String>.of([]);
+  for (final p in positional)   _v21.add(_TypeUtils__restoreType(this_, p));
+ return _v21; })());
+  final String args = (() {   final StaticList<String> _v22 = StaticList<String>.of([ret]);
+  _v22.addAll(paramTexts);
+ return _v22; })().join(', ');
   return 'TypeFunction${arity}<${args}>${suffix}';
 }
 
@@ -1457,6 +1572,46 @@ String _TypeUtils__resolveRealSuperclass(dynamic this__, Class cls) {
     return _TypeUtils__resolveRealSuperclass(this_, cls.supertype!.classNode);
   }
   return 'Object';
+}
+
+String _TypeUtils__formatTypeParamDecl(dynamic this__, TypeParameter tp) {
+  final this_ = this__;
+  final String name = (tp.name ?? 'T');
+  final String bound = _TypeUtils__restoreType(this_, tp.bound);
+  if ((((bound == 'Object') || (bound == 'Object?')) || (bound == 'dynamic'))) {
+    return name;
+  }
+  return '${name} extends ${bound}';
+}
+
+String _TypeUtils__restoreClosureParamType(dynamic this__, DartType type) {
+  final this_ = this__;
+  final bool nullable = (type.nullability == Nullability.nullable);
+  final String suffix = (nullable ? '?' : '');
+  if ((type is InterfaceType)) {
+    final String raw = type.classNode.name;
+    final bool isContainer = ((((((((((((raw == 'List') || (raw == '_List')) || (raw == '_GrowableList')) || (raw == 'Map')) || (raw == '_Map')) || (raw == 'LinkedHashMap')) || (raw == '_InternalLinkedHashMap')) || (raw == 'Set')) || (raw == '_Set')) || (raw == 'LinkedHashSet')) || (raw == '_CompactLinkedHashSet')) || (raw == 'Iterable'));
+    if (!(isContainer)) {
+      return _TypeUtils__restoreType(this_, type);
+    }
+    late String mapped;
+    if ((((raw == 'List') || (raw == '_List')) || (raw == '_GrowableList'))) {
+      mapped = 'StaticList';
+    }
+ else     if (((((raw == 'Map') || (raw == '_Map')) || (raw == 'LinkedHashMap')) || (raw == '_InternalLinkedHashMap'))) {
+      mapped = 'StaticMap';
+    }
+ else     if (((((raw == 'Set') || (raw == '_Set')) || (raw == 'LinkedHashSet')) || (raw == '_CompactLinkedHashSet'))) {
+      mapped = 'StaticSet';
+    }
+ else {
+      mapped = 'Iterable';
+    }
+    if (type.typeArguments.isEmpty)     return '${mapped}${suffix}';
+    final String args = type.typeArguments.map(ClosureEnv_anon_22_new(GC.allocateLocal(ClosureEnv_anon_22()), this_)).join(', ');
+    return '${mapped}<${args}>${suffix}';
+  }
+  return _TypeUtils__restoreType(this_, type);
 }
 
 StaticList<String> _TypeUtils__collectMixins(dynamic this__, Class cls) {
@@ -1488,15 +1643,15 @@ String _ConstantRestorer__restoreConstant(dynamic this__, Constant c) {
   }
   if ((c is NullConstant))   return 'null';
   if ((c is ListConstant)) {
-    final String items = c.entries.map(ClosureEnv_anon_22(this_)).join(', ');
+    final String items = c.entries.map(ClosureEnv_anon_23_new(GC.allocateLocal(ClosureEnv_anon_23()), this_)).join(', ');
     return 'const [${items}]';
   }
   if ((c is SetConstant)) {
-    final String items = c.entries.map(ClosureEnv_anon_23(this_)).join(', ');
+    final String items = c.entries.map(ClosureEnv_anon_24_new(GC.allocateLocal(ClosureEnv_anon_24()), this_)).join(', ');
     return 'const {${items}}';
   }
   if ((c is MapConstant)) {
-    final String entries = c.entries.map(ClosureEnv_anon_24(this_)).join(', ');
+    final String entries = c.entries.map(ClosureEnv_anon_25_new(GC.allocateLocal(ClosureEnv_anon_25()), this_)).join(', ');
     return 'const {${entries}}';
   }
   if ((c is InstanceConstant)) {
@@ -1504,7 +1659,7 @@ String _ConstantRestorer__restoreConstant(dynamic this__, Constant c) {
     if ((className == 'override'))     return '@override';
     if ((className == 'pragma'))     return '@pragma';
     if ((className == 'Duration')) {
-      return 'Duration()';
+      return 'StaticDuration()';
     }
     if (_ConstantRestorer__isEnumConstant(this_, c)) {
       return _ConstantRestorer__restoreEnumConstant(this_, c);
@@ -1588,7 +1743,7 @@ String _ConstantRestorer__restoreInstanceConstant(dynamic this__, InstanceConsta
   if (!((bestCtor == null))) {
     return _ConstantRestorer__buildConstantCtorCall(this_, className, bestCtor, fieldValues, c.typeArguments);
   }
-  final String fields = c.fieldValues.entries.map(ClosureEnv_anon_25(this_)).join(', ');
+  final String fields = c.fieldValues.entries.map(ClosureEnv_anon_26_new(GC.allocateLocal(ClosureEnv_anon_26()), this_)).join(', ');
   return 'const ${className}(${fields})';
 }
 
@@ -1647,12 +1802,12 @@ String _ConstantRestorer__restoreInstanceConstantLowered(dynamic this__, Instanc
       }
     } while (false);
     final String argsStr = argParts.join(', ');
-    final String typeArgs = (c.typeArguments.isNotEmpty ? '<${c.typeArguments.map(/* unknown: InstanceTearOff */).join(', ')}>' : '');
+    final String typeArgs = (c.typeArguments.isNotEmpty ? '<${c.typeArguments.map(ClosureEnv_anon_27_new(GC.allocateLocal(ClosureEnv_anon_27()), this_)).join(', ')}>' : '');
     final String valueType = '${className}Value${typeArgs}';
     return (argsStr.isEmpty ? '${funcName}${typeArgs}(${valueType}())' : '${funcName}${typeArgs}(${valueType}(), ${argsStr})');
   }
-  final String fields = c.fieldValues.entries.map(ClosureEnv_anon_26(this_)).join(', ');
-  final String typeArgs = (c.typeArguments.isNotEmpty ? '<${c.typeArguments.map(/* unknown: InstanceTearOff */).join(', ')}>' : '');
+  final String fields = c.fieldValues.entries.map(ClosureEnv_anon_28_new(GC.allocateLocal(ClosureEnv_anon_28()), this_)).join(', ');
+  final String typeArgs = (c.typeArguments.isNotEmpty ? '<${c.typeArguments.map(ClosureEnv_anon_29_new(GC.allocateLocal(ClosureEnv_anon_29()), this_)).join(', ')}>' : '');
   final String valueType = '${className}Value${typeArgs}';
   return (fields.isEmpty ? '${className}_new(${valueType}())' : '${className}_new(${valueType}(), ${fields})');
 }
@@ -1723,8 +1878,8 @@ String _ConstantRestorer__buildConstantCtorCall(dynamic this__, String className
       }
     }
   } while (false);
-  final StaticList<DartType> typeArgs = StaticList.of(typeArguments.where(ClosureEnv_anon_27()).toList());
-  final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_28(this_)).join(', ')}>' : '');
+  final StaticList<DartType> typeArgs = StaticList.of(typeArguments.where(ClosureEnv_anon_30_new(GC.allocateLocal(ClosureEnv_anon_30()))).toList());
+  final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_31_new(GC.allocateLocal(ClosureEnv_anon_31()), this_)).join(', ')}>' : '');
   final String argsStr = argParts.join(', ');
   if (ctorName.isEmpty) {
     return 'const ${className}${typeArgStr}(${argsStr})';
@@ -1787,6 +1942,7 @@ String _ConstantRestorer__restoreEnumConstant(dynamic this__, InstanceConstant c
 
 // mixin _ExpressionRestorer → static functions for delegation
 const String _ExpressionRestorer__thisParamType = 'dynamic';
+const StaticMap<String, String> _ExpressionRestorer__sdkClassNameMap = const {'StringBuffer': 'StaticStringBuffer', 'MapEntry': 'StaticMapEntry', 'RegExp': 'StaticRegExp', '_RegExp': 'StaticRegExp', 'Duration': 'StaticDuration', 'DateTime': 'StaticDateTime', 'StateError': 'DartStateError', 'ArgumentError': 'DartArgumentError', 'RangeError': 'DartRangeError', 'FormatException': 'DartFormatException', 'UnsupportedError': 'DartUnsupportedError', 'UnimplementedError': 'DartUnimplementedError'};
 String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
   final this_ = this__;
   if ((expr is VariableGet))   return _ExpressionRestorer__restoreVarGet(this_, expr);
@@ -1805,7 +1961,7 @@ String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
     final bool isThisReceiver = ((expr.receiver is ThisExpression) || ((expr.receiver is VariableGet) && ((expr.receiver as VariableGet).variable.name == this_._thisReplacementName)));
     if (((insideMixin && this_._insideMethodBody) && isThisReceiver)) {
       if (!(fieldName.startsWith('_'))) {
-        return '(${recv}.vptr[\'set_${fieldName}\'] as TypeFunction2<void, dynamic, dynamic>)(${recv}, ${value})';
+        return '(${recv}.vptr[\'set_${fieldName}\'] as void Function(dynamic, dynamic))(${recv}, ${value})';
       }
     }
     return '${recv}.${fieldName} = ${value}';
@@ -1873,13 +2029,13 @@ String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
         final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
         final String staticName = _DartRestorerBase__staticMethodName(this_, parentName, expr.name.text);
         final String selfArg = (this_._insideMethodBody ? this_._thisReplacementName : 'this');
-        final StaticList<DartType> typeArgs = expr.arguments.types;
+        final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
         late String typeArgStr;
         if (typeArgs.isNotEmpty) {
-          typeArgStr = '<${typeArgs.map(ClosureEnv_anon_29(this_)).join(', ')}>';
+          typeArgStr = '<${typeArgs.map(ClosureEnv_anon_32_new(GC.allocateLocal(ClosureEnv_anon_32()), this_)).join(', ')}>';
         }
  else         if (this_._currentClass!.typeParameters.isNotEmpty) {
-          typeArgStr = '<${this_._currentClass!.typeParameters.map(ClosureEnv_anon_30()).join(', ')}>';
+          typeArgStr = '<${this_._currentClass!.typeParameters.map(ClosureEnv_anon_33_new(GC.allocateLocal(ClosureEnv_anon_33()))).join(', ')}>';
         }
  else {
           typeArgStr = '';
@@ -1901,15 +2057,16 @@ String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
     final String methodName = expr.name.text;
     final String? receiverClassName = _ExpressionRestorer__getReceiverClassNameFromReceiver(this_, expr.receiver, expr.interfaceTarget);
     if ((!((receiverClassName == null)) && (_DartRestorerBase__isUserClass(this_, receiverClassName) || _DartRestorerBase__isMixinName(this_, receiverClassName)))) {
-      final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
       final Member target = expr.interfaceTarget;
       if ((target is Procedure)) {
         final String sig = _ExpressionRestorer__buildPreciseFuncSignature(this_, target, receiverClassName: receiverClassName, receiver: expr.receiver);
+        final String args = _TypeUtils__restoreFlattenedArgs(this_, target.function, expr.arguments);
         if (args.isEmpty) {
           return '(${recv}.vptr[\'${methodName}\'] as ${sig})(${recv})';
         }
         return '(${recv}.vptr[\'${methodName}\'] as ${sig})(${recv}, ${args})';
       }
+      final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
       if (args.isEmpty) {
         return '${recv}.${methodName}()';
       }
@@ -1925,8 +2082,8 @@ String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
         parentName = _DartRestorerBase__getParentClassName(this_, parentName);
       }
       if ((!((parentName == null)) && _DartRestorerBase__needsLowering(this_, parentName))) {
-        final StaticList<_VTableEntryValue>? parentEntries = this_._classVTableEntries[parentName];
-        if ((!((parentEntries == null)) && parentEntries.any(ClosureEnv_anon_31(fieldName)))) {
+        final StaticList<_VTableEntryValue>? parentEntries = StaticList<_VTableEntryValue>.of(this_._classVTableEntries[parentName]);
+        if ((!((parentEntries == null)) && parentEntries.any(ClosureEnv_anon_34_new(GC.allocateLocal(ClosureEnv_anon_34()), fieldName)))) {
           return '${parentName}_get_${fieldName}(${this_._thisReplacementName})';
         }
       }
@@ -1950,13 +2107,87 @@ String _ExpressionRestorer__restoreExpr(dynamic this__, Expression expr) {
     final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
     return '${funcName}(${args})';
   }
+  if ((expr is InstanceTearOff))   return _ExpressionRestorer__restoreInstanceTearOff(this_, expr);
   return '/* unknown: ${expr.runtimeType} */';
+}
+
+String _ExpressionRestorer__restoreInstanceTearOff(dynamic this__, InstanceTearOff expr) {
+  final this_ = this__;
+  final Procedure target = expr.interfaceTarget;
+  final FunctionNode func = target.function;
+  final String methodName = expr.name.text;
+  final String recv = _ExpressionRestorer__restoreExpr(this_, expr.receiver);
+  final String? receiverClassName = _ExpressionRestorer__getReceiverClassNameFromReceiver(this_, expr.receiver, target);
+  final String returnType = _DartRestorerBase__restoreTypeForSignature(this_, func.returnType);
+  final StaticList<String> paramTypes = StaticList<String>.of([]);
+  for (final p in func.positionalParameters) {
+    paramTypes.add(_DartRestorerBase__restoreTypeForSignature(this_, p.type));
+  }
+  for (final p in func.namedParameters) {
+    paramTypes.add(_DartRestorerBase__restoreTypeForSignature(this_, p.type));
+  }
+  final int arity = paramTypes.length;
+  if ((arity > 16)) {
+    return '/* unsupported InstanceTearOff arity=${arity} for ${methodName} */';
+  }
+  final int closureId = (() { final _let36 = this_._closureCounter; return (() { final _let37 = this_._closureCounter = (_let36 + 1); return _let36; })(); })();
+  final String envClassName = 'ClosureEnv_${this_._closureContext}_${closureId}';
+  final StaticList<String> paramNames = StaticList<String>.of((() {   final StaticList<String> _v38 = StaticList<String>.of([]);
+  for (var i = 0; (i < arity); i = (i + 1))   _v38.add('a${(i + 1)}');
+ return _v38; })());
+  final String callSig = (() {   final StaticList<String> _v39 = StaticList<String>.of([]);
+  for (var i = 0; (i < arity); i = (i + 1))   _v39.add('${paramTypes[i]} ${paramNames[i]}');
+ return _v39; })().join(', ');
+  final bool isVptrTarget = (!((receiverClassName == null)) && (_DartRestorerBase__isUserClass(this_, receiverClassName) || _DartRestorerBase__isMixinName(this_, receiverClassName)));
+  final String callBody;
+  if (isVptrTarget) {
+    final String vptrSigParams = (() {     final StaticList<String> _v40 = StaticList<String>.of(['dynamic']);
+    _v40.addAll(paramTypes);
+ return _v40; })().join(', ');
+    final String invokeArgs = (() {     final StaticList<String> _v41 = StaticList<String>.of(['_r']);
+    _v41.addAll(paramNames);
+ return _v41; })().join(', ');
+    callBody = '(_r.vptr[\'${methodName}\'] as ${returnType} Function(${vptrSigParams}))(${invokeArgs})';
+  }
+ else {
+    final String invokeArgs = paramNames.join(', ');
+    callBody = '_r.${methodName}(${invokeArgs})';
+  }
+  final String typeArgs = (() {   final StaticList<String> _v42 = StaticList<String>.of([returnType]);
+  _v42.addAll(paramTypes);
+ return _v42; })().join(', ');
+  final String newFuncName = '${envClassName}_new';
+  final String staticCallName = '${envClassName}_call';
+  final String tearOffCallArgs = (paramNames.isEmpty ? 'this' : 'this, ${paramNames.join(', ')}');
+  final StaticStringBuffer decl = (StaticStringBuffer()..writeln('class ${envClassName} extends TypeFunction${arity}<${typeArgs}> {')..writeln('  late dynamic _r;')..writeln('  ${envClassName}();')..writeln('  @override')..writeln('  ${returnType} call(${callSig}) => closureCall(${tearOffCallArgs});')..writeln('  @override')..writeln('  void gcMark(int flag) {')..writeln('    if (gcFlag == flag) return;')..writeln('    super.gcMark(flag);')..writeln('    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);')..writeln('  }')..writeln('}')..writeln('${envClassName} ${newFuncName}(${envClassName} env_, dynamic _r) {')..writeln('  env_.closureCall = ${staticCallName};')..writeln('  env_._r = _r;')..writeln('  return env_;')..writeln('}'));
+  if (isVptrTarget) {
+    decl.writeln('${returnType} ${staticCallName}(dynamic env__${(paramNames.isEmpty ? '' : ', ${callSig}')}) {');
+    decl.writeln('  final _r = (env__ as ${envClassName})._r;');
+    final String vptrSigParams = (() {     final StaticList<String> _v44 = StaticList<String>.of(['dynamic']);
+    _v44.addAll(paramTypes);
+ return _v44; })().join(', ');
+    final String invokeArgs = (() {     final StaticList<String> _v45 = StaticList<String>.of(['_r']);
+    _v45.addAll(paramNames);
+ return _v45; })().join(', ');
+    decl.writeln('  return (_r.vptr[\'${methodName}\'] as ${returnType} Function(${vptrSigParams}))(${invokeArgs});');
+    decl.writeln('}');
+  }
+ else {
+    decl.writeln('${returnType} ${staticCallName}(dynamic env__${(paramNames.isEmpty ? '' : ', ${callSig}')}) {');
+    decl.writeln('  final _r = (env__ as ${envClassName})._r;');
+    final String invokeArgs = paramNames.join(', ');
+    decl.writeln('  return _r.${methodName}(${invokeArgs});');
+    decl.writeln('}');
+  }
+  this_._pendingClosureDecls.add(decl.toString());
+  final String gcMethod = (this_._isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal');
+  return '${newFuncName}(GC.${gcMethod}(${envClassName}()), ${recv})';
 }
 
 String _ExpressionRestorer__restoreVarGet(dynamic this__, VariableGet expr) {
   final this_ = this__;
   if ((expr.variable.name == null)) {
-    expr.variable.name = '_v${(() { final _let34 = this_._varCounter; return (() { final _let35 = this_._varCounter = (_let34 + 1); return _let34; })(); })()}';
+    expr.variable.name = '_v${(() { final _let46 = this_._varCounter; return (() { final _let47 = this_._varCounter = (_let46 + 1); return _let46; })(); })()}';
   }
   final String name = _TypeUtils__cleanVarName(this_, expr.variable.name!);
   final String? prefix = this_._capturedVarEnvPrefix[expr.variable];
@@ -1969,7 +2200,7 @@ String _ExpressionRestorer__restoreVarGet(dynamic this__, VariableGet expr) {
 String _ExpressionRestorer__restoreVarSet(dynamic this__, VariableSet expr) {
   final this_ = this__;
   if ((expr.variable.name == null)) {
-    expr.variable.name = '_v${(() { final _let36 = this_._varCounter; return (() { final _let37 = this_._varCounter = (_let36 + 1); return _let36; })(); })()}';
+    expr.variable.name = '_v${(() { final _let48 = this_._varCounter; return (() { final _let49 = this_._varCounter = (_let48 + 1); return _let48; })(); })()}';
   }
   final String name = _TypeUtils__cleanVarName(this_, expr.variable.name!);
   final String? prefix = this_._capturedVarEnvPrefix[expr.variable];
@@ -2058,7 +2289,7 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
       }
       final String staticFuncName = '${resolvedClassName}_${name}';
       final StaticList<String> allTypeArgs = StaticList<String>.of([]);
-      final StaticList<String> receiverClassTypeArgs = _ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, expr.receiver);
+      final StaticList<String> receiverClassTypeArgs = StaticList<String>.of(_ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, expr.receiver));
       allTypeArgs.addAll(receiverClassTypeArgs);
       for (final ta in expr.arguments.types) {
         allTypeArgs.add(_TypeUtils__restoreType(this_, ta));
@@ -2120,34 +2351,17 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
     final String vtableField = _DartRestorerBase__vtableFieldName(this_, name);
     final String allArgs = _TypeUtils__restoreArgs(this_, expr.arguments);
     String _buildArgsWithDefaults() {
-      final FunctionNode tFunc = expr.interfaceTarget.function;
-      final StaticList<String> parts = StaticList<String>.of([]);
-      for (var i = 0; (i < expr.arguments.positional.length); i = (i + 1)) {
-        parts.add(_ExpressionRestorer__restoreExpr(this_, expr.arguments.positional[i]));
-      }
-      for (var i = expr.arguments.positional.length; (i < tFunc.positionalParameters.length); i = (i + 1)) {
-        final VariableDeclaration p = tFunc.positionalParameters[i];
-        if (!((p.initializer == null))) {
-          parts.add(_ExpressionRestorer__restoreExpr(this_, p.initializer!));
-        }
- else {
-          parts.add('null');
-        }
-      }
-      for (final n in expr.arguments.named) {
-        parts.add('${n.name}: ${_ExpressionRestorer__restoreExpr(this_, n.value)}');
-      }
-      return parts.join(', ');
+      return _TypeUtils__restoreFlattenedArgs(this_, expr.interfaceTarget.function, expr.arguments);
     }
 
     final bool hasMethodTypeParams = expr.interfaceTarget.function.typeParameters.isNotEmpty;
     if (hasMethodTypeParams) {
       final Class? enclosingClass = expr.interfaceTarget.enclosingClass;
-      final StaticSet<String?> classTpNames = (!((enclosingClass == null)) ? StaticSet.of(enclosingClass.typeParameters.map(ClosureEnv_anon_32()).toSet().toList()) : StaticSet<String?>.of([]));
-      final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(expr.interfaceTarget.function.typeParameters.where(ClosureEnv_anon_33(classTpNames)).toList());
-      final bool hasConcreteTypeArgs = ((dedupedMethodTps.isNotEmpty && expr.arguments.types.isNotEmpty) && !(expr.arguments.types.any(ClosureEnv_anon_34(this_))));
+      final StaticSet<String?> classTpNames = StaticSet<String?>.of((!((enclosingClass == null)) ? StaticSet.of(enclosingClass.typeParameters.map(ClosureEnv_anon_35_new(GC.allocateLocal(ClosureEnv_anon_35()))).toSet().toList()) : StaticSet<String?>.of([])));
+      final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(expr.interfaceTarget.function.typeParameters.where(ClosureEnv_anon_36_new(GC.allocateLocal(ClosureEnv_anon_36()), classTpNames)).toList());
+      final bool hasConcreteTypeArgs = ((dedupedMethodTps.isNotEmpty && expr.arguments.types.isNotEmpty) && !(expr.arguments.types.any(ClosureEnv_anon_37_new(GC.allocateLocal(ClosureEnv_anon_37()), this_))));
       if (hasConcreteTypeArgs) {
-        final String typeSuffix = expr.arguments.types.map(ClosureEnv_anon_35(this_)).join('_');
+        final String typeSuffix = expr.arguments.types.map(ClosureEnv_anon_38_new(GC.allocateLocal(ClosureEnv_anon_38()), this_)).join('_');
         final String baseKey = (_TypeUtils__isBinaryOp(this_, name) ? 'operator${_DartRestorerBase__operatorFuncName(this_, name)}' : ((name == 'unary-') ? 'operatorNeg' : ((name == '~') ? 'operatorBitwiseNot' : ((name == '[]') ? 'operatorIndex' : ((name == '[]=') ? 'operatorIndexSet' : _DartRestorerBase__vtableFieldName(this_, name))))));
         final String specKey = '${baseKey}_${typeSuffix}';
         final String args = _buildArgsWithDefaults();
@@ -2162,13 +2376,13 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
             specSigParams.add(_DartRestorerBase__restoreTypeForSignature(this_, targetFunc.positionalParameters[i].type));
           }
         }
-        final StaticList<String> specNamedParts = StaticList<String>.of([]);
-        for (final namedParam in expr.functionType.namedParameters) {
-          final String typeStr = _DartRestorerBase__restoreTypeForSignature(this_, namedParam.type);
-          final String requiredPrefix = (namedParam.isRequired ? 'required ' : '');
-          specNamedParts.add('${requiredPrefix}${typeStr} ${namedParam.name}');
-        }
-        final String specSig = _ExpressionRestorer__emitFuncSig(this_, specReturnType, specSigParams, named: specNamedParts);
+        final StaticMap<String, DartType> ftNamedByName = StaticMap<String, DartType>.of((() {         final StaticMap<String, DartType> _v53 = StaticMap<String, DartType>.of({});
+        for (final np in expr.functionType.namedParameters)         _v53[np.name] = np.type;
+ return _v53; })());
+        final StaticList<String> specNamedTypes = StaticList<String>.of((() {         final StaticList<String> _v54 = StaticList<String>.of([]);
+        for (final np in targetFunc.namedParameters)         _v54.add(_DartRestorerBase__restoreTypeForSignature(this_, (ftNamedByName[np.name] ?? np.type)));
+ return _v54; })());
+        final String specSig = _ExpressionRestorer__emitFuncSig(this_, specReturnType, specSigParams, namedTypes: specNamedTypes);
         if (args.isEmpty) {
           return '(${recv}.vptr[\'${specKey}\'] as ${specSig})(${recv})';
         }
@@ -2180,7 +2394,7 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
       }
       final String staticFuncName = '${resolvedClassName}_${name}';
       final StaticList<String> allTypeArgs = StaticList<String>.of([]);
-      final StaticList<String> receiverClassTypeArgs = _ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, expr.receiver);
+      final StaticList<String> receiverClassTypeArgs = StaticList<String>.of(_ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, expr.receiver));
       allTypeArgs.addAll(receiverClassTypeArgs);
       for (final ta in expr.arguments.types) {
         allTypeArgs.add(_TypeUtils__restoreType(this_, ta));
@@ -2201,27 +2415,11 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
         sigParamTypes.add(_DartRestorerBase__restoreTypeForSignature(this_, targetFunc.positionalParameters[i].type));
       }
     }
-    final StaticList<String> namedParts = StaticList<String>.of([]);
-    for (final namedParam in expr.functionType.namedParameters) {
-      final String typeStr = _DartRestorerBase__restoreTypeForSignature(this_, namedParam.type);
-      final String requiredPrefix = (namedParam.isRequired ? 'required ' : '');
-      namedParts.add('${requiredPrefix}${typeStr} ${namedParam.name}');
-    }
-    final String sig = _ExpressionRestorer__emitFuncSig(this_, returnType, sigParamTypes, named: namedParts);
-    final StaticList<String> fullArgParts = StaticList<String>.of([]);
-    for (var i = 0; (i < expr.arguments.positional.length); i = (i + 1)) {
-      fullArgParts.add(_ExpressionRestorer__restoreExpr(this_, expr.arguments.positional[i]));
-    }
-    for (var i = expr.arguments.positional.length; (i < targetFunc.positionalParameters.length); i = (i + 1)) {
-      final VariableDeclaration param = targetFunc.positionalParameters[i];
-      if (!((param.initializer == null))) {
-        fullArgParts.add(_ExpressionRestorer__restoreExpr(this_, param.initializer!));
-      }
- else {
-        fullArgParts.add(_DartRestorerBase__defaultValueForType(this_, param.type));
-      }
-    }
-    final String fullArgs = fullArgParts.join(', ');
+    final StaticList<String> namedTypes = StaticList<String>.of((() {     final StaticList<String> _v57 = StaticList<String>.of([]);
+    for (final np in expr.functionType.namedParameters)     _v57.add(_DartRestorerBase__restoreTypeForSignature(this_, np.type));
+ return _v57; })());
+    final String sig = _ExpressionRestorer__emitFuncSig(this_, returnType, sigParamTypes, namedTypes: namedTypes);
+    final String fullArgs = _TypeUtils__restoreFlattenedArgs(this_, targetFunc, expr.arguments);
     if (fullArgs.isEmpty) {
       return '(${recv}.vptr[\'${vtableField}\'] as ${sig})(${recv})';
     }
@@ -2239,7 +2437,7 @@ String _ExpressionRestorer__restoreInstanceInvocation(dynamic this__, InstanceIn
     final Procedure target = expr.interfaceTarget;
     final String sig = _ExpressionRestorer__buildPreciseFuncSignature(this_, target);
     final String vtableField = _DartRestorerBase__vtableFieldName(this_, name);
-    final String allArgs = _TypeUtils__restoreArgs(this_, expr.arguments);
+    final String allArgs = _TypeUtils__restoreFlattenedArgs(this_, target.function, expr.arguments);
     if (allArgs.isEmpty) {
       return '(${recv}.vptr[\'${vtableField}\'] as ${sig})(${recv})';
     }
@@ -2276,25 +2474,18 @@ String _ExpressionRestorer__buildPreciseFuncSignature(dynamic this__, Procedure 
   for (final param in proc.function.positionalParameters) {
     paramTypes.add(_DartRestorerBase__restoreTypeForSignature(this_, param.type));
   }
-  final StaticList<String> namedParts = StaticList<String>.of([]);
-  for (final param in proc.function.namedParameters) {
-    final String typeStr = _DartRestorerBase__restoreTypeForSignature(this_, param.type);
-    final String requiredPrefix = (param.isRequired ? 'required ' : '');
-    namedParts.add('${requiredPrefix}${typeStr} ${param.name}');
-  }
-  return _ExpressionRestorer__emitFuncSig(this_, returnType, paramTypes, named: namedParts);
+  final StaticList<String> namedTypes = StaticList<String>.of((() {   final StaticList<String> _v58 = StaticList<String>.of([]);
+  for (final np in proc.function.namedParameters)   _v58.add(_DartRestorerBase__restoreTypeForSignature(this_, np.type));
+ return _v58; })());
+  return _ExpressionRestorer__emitFuncSig(this_, returnType, paramTypes, namedTypes: namedTypes);
 }
 
-String _ExpressionRestorer__emitFuncSig(dynamic this__, String returnType, StaticList<String> positional, {StaticList<String> named = const []}) {
+String _ExpressionRestorer__emitFuncSig(dynamic this__, String returnType, StaticList<String> positional, {StaticList<String> namedTypes = const []}) {
   final this_ = this__;
-  if ((named.isNotEmpty || (positional.length > 16))) {
-    return 'dynamic';
-  }
-  final int arity = positional.length;
-  final String args = (() {   final StaticList<String> _v42 = StaticList<String>.of([returnType]);
-  _v42.addAll(positional);
- return _v42; })().join(', ');
-  return 'TypeFunction${arity}<${args}>';
+  final StaticList<String> all = StaticList<String>.of((() {   final StaticList<String> _v59 = StaticList<String>.of(positional);
+  _v59.addAll(namedTypes);
+ return _v59; })());
+  return '${returnType} Function(${all.join(', ')})';
 }
 
 String _ExpressionRestorer__getActualClassName(dynamic this__, String rawName) {
@@ -2362,19 +2553,19 @@ StaticList<String> _ExpressionRestorer__extractClassTypeArgsFromReceiver(dynamic
   if ((receiver is VariableGet)) {
     final DartType varType = receiver.variable.type;
     if (((varType is InterfaceType) && varType.typeArguments.isNotEmpty)) {
-      return StaticList.of(varType.typeArguments.map(ClosureEnv_anon_36(this_)).toList());
+      return StaticList.of(varType.typeArguments.map(ClosureEnv_anon_39_new(GC.allocateLocal(ClosureEnv_anon_39()), this_)).toList());
     }
   }
   if ((receiver is ConstructorInvocation)) {
-    final StaticList<DartType> args = receiver.arguments.types;
+    final StaticList<DartType> args = StaticList<DartType>.of(receiver.arguments.types);
     if (args.isNotEmpty) {
-      return StaticList.of(args.map(ClosureEnv_anon_37(this_)).toList());
+      return StaticList.of(args.map(ClosureEnv_anon_40_new(GC.allocateLocal(ClosureEnv_anon_40()), this_)).toList());
     }
   }
   if ((receiver is InstanceInvocation)) {
     final DartType retType = receiver.functionType.returnType;
     if (((retType is InterfaceType) && retType.typeArguments.isNotEmpty)) {
-      return StaticList.of(retType.typeArguments.map(ClosureEnv_anon_38(this_)).toList());
+      return StaticList.of(retType.typeArguments.map(ClosureEnv_anon_41_new(GC.allocateLocal(ClosureEnv_anon_41()), this_)).toList());
     }
   }
   if ((receiver is NullCheck)) {
@@ -2383,14 +2574,14 @@ StaticList<String> _ExpressionRestorer__extractClassTypeArgsFromReceiver(dynamic
   if ((receiver is InstanceGet)) {
     final DartType resultType = receiver.resultType;
     if (((resultType is InterfaceType) && resultType.typeArguments.isNotEmpty)) {
-      return StaticList.of(resultType.typeArguments.map(ClosureEnv_anon_39(this_)).toList());
+      return StaticList.of(resultType.typeArguments.map(ClosureEnv_anon_42_new(GC.allocateLocal(ClosureEnv_anon_42()), this_)).toList());
     }
     if ((resultType is NullType))     return StaticList<String>.of([]);
   }
   if ((receiver is AsExpression)) {
     final DartType castType = receiver.type;
     if (((castType is InterfaceType) && castType.typeArguments.isNotEmpty)) {
-      return StaticList.of(castType.typeArguments.map(ClosureEnv_anon_40(this_)).toList());
+      return StaticList.of(castType.typeArguments.map(ClosureEnv_anon_43_new(GC.allocateLocal(ClosureEnv_anon_43()), this_)).toList());
     }
     return _ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, receiver.operand);
   }
@@ -2401,9 +2592,9 @@ StaticList<String> _ExpressionRestorer__extractClassTypeArgsFromReceiver(dynamic
     return _ExpressionRestorer__extractClassTypeArgsFromReceiver(this_, receiver.value);
   }
   if (((receiver is ThisExpression) && !((this_._currentClass == null)))) {
-    final StaticList<TypeParameter> tps = this_._currentClass!.typeParameters;
+    final StaticList<TypeParameter> tps = StaticList<TypeParameter>.of(this_._currentClass!.typeParameters);
     if (tps.isNotEmpty) {
-      return StaticList.of(tps.map(ClosureEnv_anon_41()).toList());
+      return StaticList.of(tps.map(ClosureEnv_anon_44_new(GC.allocateLocal(ClosureEnv_anon_44()))).toList());
     }
   }
   return StaticList<String>.of([]);
@@ -2413,7 +2604,10 @@ String _ExpressionRestorer__restoreFunctionInvocation(dynamic this__, FunctionIn
   final this_ = this__;
   final String recv = _ExpressionRestorer__restoreExpr(this_, expr.receiver);
   final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
-  return '${recv}(${args})';
+  if (args.isEmpty) {
+    return '${recv}.closureCall(${recv})';
+  }
+  return '${recv}.closureCall(${recv}, ${args})';
 }
 
 String _ExpressionRestorer__restoreDynamicInvocation(dynamic this__, DynamicInvocation expr) {
@@ -2446,24 +2640,26 @@ String _ExpressionRestorer__restoreStaticInvocation(dynamic this__, StaticInvoca
   final String name = target.name.text;
   final String args = _TypeUtils__restoreArgs(this_, expr.arguments);
   if ((!((target.enclosingClass == null)) && (target.enclosingClass!.name == '_GrowableList'))) {
-    final StaticList<DartType> typeArgs = expr.arguments.types;
-    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_42(this_)).join(', ')}>' : '');
+    final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_45_new(GC.allocateLocal(ClosureEnv_anon_45()), this_)).join(', ')}>' : '');
     if (name.startsWith('_literal')) {
-      final String items = expr.arguments.positional.map(ClosureEnv_anon_43(this_)).join(', ');
+      final String items = expr.arguments.positional.map(ClosureEnv_anon_46_new(GC.allocateLocal(ClosureEnv_anon_46()), this_)).join(', ');
       return 'StaticList${typeArgStr}.of([${items}])';
     }
-    return 'StaticList${typeArgStr}()';
+    if (name.isEmpty) {
+      return 'StaticList${typeArgStr}()';
+    }
   }
   if ((!((target.enclosingClass == null)) && _ExpressionRestorer__isSetInternalClass(this_, target.enclosingClass!.name))) {
-    final StaticList<DartType> typeArgs = expr.arguments.types;
-    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_44(this_)).join(', ')}>' : '');
+    final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_47_new(GC.allocateLocal(ClosureEnv_anon_47()), this_)).join(', ')}>' : '');
     if (((name == 'from') || (name == 'of')))     return 'StaticSet${typeArgStr}.of(${args})';
     if ((name.isEmpty || (name == '_default')))     return 'StaticSet${typeArgStr}()';
     return 'StaticSet${typeArgStr}.${name}(${args})';
   }
   if ((!((target.enclosingClass == null)) && _ExpressionRestorer__isMapInternalClass(this_, target.enclosingClass!.name))) {
-    final StaticList<DartType> typeArgs = expr.arguments.types;
-    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_45(this_)).join(', ')}>' : '');
+    final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_48_new(GC.allocateLocal(ClosureEnv_anon_48()), this_)).join(', ')}>' : '');
     if ((name.isEmpty || (name == '_default')))     return 'StaticMap${typeArgStr}()';
     return 'StaticMap${typeArgStr}.${name}(${args})';
   }
@@ -2484,8 +2680,8 @@ String _ExpressionRestorer__restoreStaticInvocation(dynamic this__, StaticInvoca
   if ((target.isFactory && !((target.enclosingClass == null)))) {
     final String className = target.enclosingClass!.name;
     if (((className == 'Future') || (className == '_Future'))) {
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_46(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_49_new(GC.allocateLocal(ClosureEnv_anon_49()), this_)).join(', ')}>' : '');
       if ((name == 'delayed')) {
         return 'promiseDelayed${typeArgStr}(${args})';
       }
@@ -2493,35 +2689,36 @@ String _ExpressionRestorer__restoreStaticInvocation(dynamic this__, StaticInvoca
       return 'Promise${typeArgStr}.${name}(${args})';
     }
     if ((((className == 'List') || (className == '_GrowableList')) || (className == '_List'))) {
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_47(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_50_new(GC.allocateLocal(ClosureEnv_anon_50()), this_)).join(', ')}>' : '');
       if ((name == 'filled'))       return 'StaticList${typeArgStr}.filled(${args})';
       if (((name == 'from') || (name == 'of')))       return 'StaticList${typeArgStr}.of(${args})';
       if (name.isEmpty)       return 'StaticList${typeArgStr}()';
       return 'StaticList${typeArgStr}.${name}(${args})';
     }
     if (((className == 'Map') || _ExpressionRestorer__isMapInternalClass(this_, className))) {
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_48(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_51_new(GC.allocateLocal(ClosureEnv_anon_51()), this_)).join(', ')}>' : '');
       if (((name == 'from') || (name == 'of')))       return 'StaticMap${typeArgStr}.of(${args})';
       if ((name.isEmpty || (name == '_default')))       return 'StaticMap${typeArgStr}()';
       return 'StaticMap${typeArgStr}.${name}(${args})';
     }
     if (((className == 'Set') || _ExpressionRestorer__isSetInternalClass(this_, className))) {
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_49(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_52_new(GC.allocateLocal(ClosureEnv_anon_52()), this_)).join(', ')}>' : '');
       if (((name == 'from') || (name == 'of')))       return 'StaticSet${typeArgStr}.of(${args})';
       if (name.isEmpty)       return 'StaticSet${typeArgStr}()';
       return 'StaticSet${typeArgStr}.${name}(${args})';
     }
     if (_DartRestorerBase__isUserClass(this_, className)) {
       final String funcName = (name.isEmpty ? '${className}_new' : '${className}_new_${name}');
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_50(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_53_new(GC.allocateLocal(ClosureEnv_anon_53()), this_)).join(', ')}>' : '');
       return '${funcName}${typeArgStr}(${args})';
     }
-    if (name.isEmpty)     return '${className}(${args})';
-    return '${className}.${name}(${args})';
+    final String mappedFactoryClass = _ExpressionRestorer._mapSdkClassName(className);
+    if (name.isEmpty)     return '${mappedFactoryClass}(${args})';
+    return '${mappedFactoryClass}.${name}(${args})';
   }
   if (!((target.enclosingClass == null))) {
     String className = target.enclosingClass!.name;
@@ -2530,15 +2727,16 @@ String _ExpressionRestorer__restoreStaticInvocation(dynamic this__, StaticInvoca
       if (this_._syntheticLoweredNames.contains(className)) {
         className = _ExpressionRestorer__findUserClassForSynthetic(this_, className);
       }
-      final StaticList<DartType> typeArgs = expr.arguments.types;
-      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_51(this_)).join(', ')}>' : '');
+      final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+      final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_54_new(GC.allocateLocal(ClosureEnv_anon_54()), this_)).join(', ')}>' : '');
       return '${className}_${name}${typeArgStr}(${args})';
     }
-    return '${className}.${name}(${args})';
+    return '${_ExpressionRestorer._mapSdkClassName(className)}.${name}(${args})';
   }
-  final StaticList<DartType> typeArgs = expr.arguments.types;
-  final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_52(this_)).join(', ')}>' : '');
-  return '${name}${typeArgStr}(${args})';
+  final String mappedName = _ExpressionRestorer._mapTopLevelFuncName(name);
+  final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+  final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_55_new(GC.allocateLocal(ClosureEnv_anon_55()), this_)).join(', ')}>' : '');
+  return '${mappedName}${typeArgStr}(${args})';
 }
 
 String _ExpressionRestorer__restoreStaticGet(dynamic this__, StaticGet expr) {
@@ -2581,10 +2779,10 @@ String _ExpressionRestorer__restoreConstructorInvocation(dynamic this__, Constru
   final String className = expr.target.enclosingClass.name;
   final String ctorName = expr.target.name.text;
   if ((className == '_GrowableList')) {
-    final StaticList<DartType> typeArgs = expr.arguments.types;
-    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_53(this_)).join(', ')}>' : '');
+    final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_56_new(GC.allocateLocal(ClosureEnv_anon_56()), this_)).join(', ')}>' : '');
     if (ctorName.startsWith('_literal')) {
-      final String items = expr.arguments.positional.map(ClosureEnv_anon_54(this_)).join(', ');
+      final String items = expr.arguments.positional.map(ClosureEnv_anon_57_new(GC.allocateLocal(ClosureEnv_anon_57()), this_)).join(', ');
       return 'StaticList${typeArgStr}.of([${items}])';
     }
  else     if (ctorName.isEmpty) {
@@ -2592,21 +2790,24 @@ String _ExpressionRestorer__restoreConstructorInvocation(dynamic this__, Constru
     }
   }
   if (_ExpressionRestorer__isSetInternalClass(this_, className)) {
-    final StaticList<DartType> typeArgs = expr.arguments.types;
-    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_55(this_)).join(', ')}>' : '');
+    final StaticList<DartType> typeArgs = StaticList<DartType>.of(expr.arguments.types);
+    final String typeArgStr = (typeArgs.isNotEmpty ? '<${typeArgs.map(ClosureEnv_anon_58_new(GC.allocateLocal(ClosureEnv_anon_58()), this_)).join(', ')}>' : '');
     return 'StaticSet${typeArgStr}()';
   }
   final String allArgs = _TypeUtils__restoreArgs(this_, expr.arguments);
   if (_DartRestorerBase__isUserClass(this_, className)) {
     final String funcName = (ctorName.isEmpty ? '${className}_new' : '${className}_new_${ctorName}');
-    final String typeArgs = (expr.arguments.types.isNotEmpty ? '<${expr.arguments.types.map(/* unknown: InstanceTearOff */).join(', ')}>' : '');
+    final String typeArgs = (expr.arguments.types.isNotEmpty ? '<${expr.arguments.types.map(ClosureEnv_anon_59_new(GC.allocateLocal(ClosureEnv_anon_59()), this_)).join(', ')}>' : '');
     final String valueType = '${className}Value${typeArgs}';
-    return (allArgs.isEmpty ? '${funcName}${typeArgs}(${valueType}())' : '${funcName}${typeArgs}(${valueType}(), ${allArgs})');
+    final String gcMethod = (this_._isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal');
+    final String gcWrappedValue = 'GC.${gcMethod}(${valueType}())';
+    return (allArgs.isEmpty ? '${funcName}${typeArgs}(${gcWrappedValue})' : '${funcName}${typeArgs}(${gcWrappedValue}, ${allArgs})');
   }
+  final String mappedClassName = _ExpressionRestorer._mapSdkClassName(className);
   final String prefix = (expr.isConst ? 'const ' : '');
-  if (ctorName.isEmpty)   return '${prefix}${className}(${allArgs})';
-  if (ctorName.startsWith('_'))   return '${prefix}${className}(${allArgs})';
-  return '${prefix}${className}.${ctorName}(${allArgs})';
+  if (ctorName.isEmpty)   return '${prefix}${mappedClassName}(${allArgs})';
+  if (ctorName.startsWith('_'))   return '${prefix}${mappedClassName}(${allArgs})';
+  return '${prefix}${mappedClassName}.${ctorName}(${allArgs})';
 }
 
 bool _ExpressionRestorer__isSetInternalClass(dynamic this__, String className) {
@@ -2642,7 +2843,7 @@ String _ExpressionRestorer__restoreNot(dynamic this__, Not expr) {
 
 String _ExpressionRestorer__restoreStringConcat(dynamic this__, StringConcatenation expr) {
   final this_ = this__;
-  final String parts = expr.expressions.map(ClosureEnv_anon_56(this_)).join();
+  final String parts = expr.expressions.map(ClosureEnv_anon_60_new(GC.allocateLocal(ClosureEnv_anon_60()), this_)).join();
   return '\'${parts}\'';
 }
 
@@ -2689,7 +2890,7 @@ String _ExpressionRestorer__restoreDoubleLiteral(dynamic this__, DoubleLiteral e
 String _ExpressionRestorer__restoreListLiteral(dynamic this__, ListLiteral expr) {
   final this_ = this__;
   final String typeArg = _TypeUtils__restoreType(this_, expr.typeArgument);
-  final String items = expr.expressions.map(ClosureEnv_anon_57(this_)).join(', ');
+  final String items = expr.expressions.map(ClosureEnv_anon_61_new(GC.allocateLocal(ClosureEnv_anon_61()), this_)).join(', ');
   if (expr.isConst) {
     return 'StaticList<${typeArg}>.of([${items}])';
   }
@@ -2703,7 +2904,7 @@ String _ExpressionRestorer__restoreMapLiteral(dynamic this__, MapLiteral expr) {
   final this_ = this__;
   final String keyType = _TypeUtils__restoreType(this_, expr.keyType);
   final String valueType = _TypeUtils__restoreType(this_, expr.valueType);
-  final String entries = expr.entries.map(ClosureEnv_anon_58(this_)).join(', ');
+  final String entries = expr.entries.map(ClosureEnv_anon_62_new(GC.allocateLocal(ClosureEnv_anon_62()), this_)).join(', ');
   if (((keyType == 'dynamic') && (valueType == 'dynamic'))) {
     return 'StaticMap.of({${entries}})';
   }
@@ -2713,7 +2914,7 @@ String _ExpressionRestorer__restoreMapLiteral(dynamic this__, MapLiteral expr) {
 String _ExpressionRestorer__restoreSetLiteral(dynamic this__, SetLiteral expr) {
   final this_ = this__;
   final String typeArg = _TypeUtils__restoreType(this_, expr.typeArgument);
-  final String items = expr.expressions.map(ClosureEnv_anon_59(this_)).join(', ');
+  final String items = expr.expressions.map(ClosureEnv_anon_63_new(GC.allocateLocal(ClosureEnv_anon_63()), this_)).join(', ');
   return 'StaticSet<${typeArg}>.of([${items}])';
 }
 
@@ -2730,7 +2931,7 @@ String _ExpressionRestorer__restoreAsExpr(dynamic this__, AsExpression expr) {
 String _ExpressionRestorer__restoreLet(dynamic this__, Let expr) {
   final this_ = this__;
   final VariableDeclaration v = expr.variable;
-  if ((v.name == null))   v.name = '_let${(() { final _let45 = this_._varCounter; return (() { final _let46 = this_._varCounter = (_let45 + 1); return _let45; })(); })()}';
+  if ((v.name == null))   v.name = '_let${(() { final _let62 = this_._varCounter; return (() { final _let63 = this_._varCounter = (_let62 + 1); return _let62; })(); })()}';
   final String cleanedName = _TypeUtils__cleanVarName(this_, v.name!);
   v.name = cleanedName;
   if (!((v.initializer == null))) {
@@ -2740,7 +2941,13 @@ String _ExpressionRestorer__restoreLet(dynamic this__, Let expr) {
       if ((condition is EqualsNull)) {
         final Expression condExpr = condition.expression;
         if (((condExpr is VariableGet) && (condExpr.variable == v))) {
+          final Expression thenBranch = body.then;
           final Expression otherwise = body.otherwise;
+          if ((((((thenBranch is AsExpression) && (thenBranch.operand is VariableGet)) && ((thenBranch.operand as VariableGet).variable == v)) && (otherwise is VariableGet)) && (otherwise.variable == v))) {
+            final String lhs = _ExpressionRestorer__restoreExpr(this_, v.initializer!);
+            final String castType = _TypeUtils__restoreType(this_, thenBranch.type);
+            return '(${lhs} as ${castType})';
+          }
           if (((otherwise is VariableGet) && (otherwise.variable == v))) {
             final String lhs = _ExpressionRestorer__restoreExpr(this_, v.initializer!);
             final String fallback = _ExpressionRestorer__restoreExpr(this_, body.then);
@@ -2793,7 +3000,7 @@ String _ExpressionRestorer__restoreLet(dynamic this__, Let expr) {
         if (receiverNeedsLowering) {
           final String receiver = _ExpressionRestorer__restoreExpr(this_, v.initializer!);
           final String tmpName = cleanedName;
-          final StringBuffer stmtBuf = StringBuffer();
+          final StaticStringBuffer stmtBuf = StaticStringBuffer();
           for (final stmt in body.body.statements) {
             if ((stmt is ExpressionStatement)) {
               stmtBuf.write('${_ExpressionRestorer__restoreExpr(this_, stmt.expression)}; ');
@@ -2801,7 +3008,7 @@ String _ExpressionRestorer__restoreLet(dynamic this__, Let expr) {
           }
           return '(() { final ${tmpName} = ${receiver}; ${stmtBuf}return ${tmpName}; })()';
         }
-        final StaticList<String>? cascadeOps = _ExpressionRestorer__extractCascadeOps(this_, body.body.statements, v);
+        final StaticList<String>? cascadeOps = StaticList<String>.of(_ExpressionRestorer__extractCascadeOps(this_, body.body.statements, v));
         if ((!((cascadeOps == null)) && cascadeOps.isNotEmpty)) {
           final String receiver = _ExpressionRestorer__restoreExpr(this_, v.initializer!);
           final String opsStr = cascadeOps.join('');
@@ -2862,10 +3069,10 @@ String? _ExpressionRestorer__extractSingleCascadeOp(dynamic this__, Expression e
 
 String _ExpressionRestorer__restoreBlockExpr(dynamic this__, BlockExpression expr) {
   final this_ = this__;
-  final StringBuffer stmts = StringBuffer();
+  final StaticStringBuffer stmts = StaticStringBuffer();
   for (final s in expr.body.statements) {
-    final StringBuffer oldBuf = this_._buf;
-    final StringBuffer tmpBuf = StringBuffer();
+    final StaticStringBuffer oldBuf = this_._buf;
+    final StaticStringBuffer tmpBuf = StaticStringBuffer();
     this_._buf = tmpBuf;
     _DartRestorerBase__restoreStmt(this_, s);
     this_._buf = oldBuf;
@@ -2880,23 +3087,23 @@ String _ExpressionRestorer__restoreFuncExpr(dynamic this__, FunctionExpression e
   final this_ = this__;
   final FunctionNode func = expr.function;
   final _CaptureAnalysisResultValue analysis = analyzeCapturedVarsFromFunc(func);
-  final StaticList<VariableDeclaration> capturedDecls = analysis.capturedDecls;
+  final StaticList<VariableDeclaration> capturedDecls = StaticList<VariableDeclaration>.of(analysis.capturedDecls);
   final bool capturesThis = analysis.capturesThis;
   return _ExpressionRestorer__restoreFuncExprAsClosure(this_, func, capturedDecls, capturesThis);
 }
 
 String _ExpressionRestorer__restoreFuncExprAsLambda(dynamic this__, FunctionNode func) {
   final this_ = this__;
-  final StringBuffer sb = StringBuffer();
+  final StaticStringBuffer sb = StaticStringBuffer();
   sb.write('(');
   final StaticList<String> params = StaticList<String>.of([]);
   for (final p in func.positionalParameters) {
-    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_p${(() { final _let48 = this_._varCounter; return (() { final _let49 = this_._varCounter = (_let48 + 1); return _let48; })(); })()}'));
+    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_p${(() { final _let65 = this_._varCounter; return (() { final _let66 = this_._varCounter = (_let65 + 1); return _let65; })(); })()}'));
     p.name = pName;
     params.add('${_TypeUtils__restoreType(this_, p.type)} ${pName}');
   }
   for (final p in func.namedParameters) {
-    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n${(() { final _let51 = this_._varCounter; return (() { final _let52 = this_._varCounter = (_let51 + 1); return _let51; })(); })()}'));
+    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n${(() { final _let68 = this_._varCounter; return (() { final _let69 = this_._varCounter = (_let68 + 1); return _let68; })(); })()}'));
     p.name = pName;
     params.add('${_TypeUtils__restoreType(this_, p.type)} ${pName}');
   }
@@ -2909,8 +3116,8 @@ String _ExpressionRestorer__restoreFuncExprAsLambda(dynamic this__, FunctionNode
     }
   }
  else   if (!((func.body == null))) {
-    final StringBuffer oldBuf = this_._buf;
-    final StringBuffer tmpBuf = StringBuffer();
+    final StaticStringBuffer oldBuf = this_._buf;
+    final StaticStringBuffer tmpBuf = StaticStringBuffer();
     this_._buf = tmpBuf;
     _DartRestorerBase__restoreStmt(this_, func.body!);
     this_._buf = oldBuf;
@@ -2921,14 +3128,14 @@ String _ExpressionRestorer__restoreFuncExprAsLambda(dynamic this__, FunctionNode
 
 String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNode func, StaticList<VariableDeclaration> capturedDecls, bool capturesThis) {
   final this_ = this__;
-  final int closureId = (() { final _let53 = this_._closureCounter; return (() { final _let54 = this_._closureCounter = (_let53 + 1); return _let53; })(); })();
+  final int closureId = (() { final _let70 = this_._closureCounter; return (() { final _let71 = this_._closureCounter = (_let70 + 1); return _let70; })(); })();
   final String envClassName = 'ClosureEnv_${this_._closureContext}_${closureId}';
   final StaticList<_CapturedVarValue> capturedFields = StaticList<_CapturedVarValue>.of([]);
   if ((((capturesThis && this_._insideMethodBody) && !((this_._currentClass == null))) && _DartRestorerBase__needsLowering(this_, this_._currentClass!.name))) {
     late String thisTypeStr;
     if (_DartRestorerBase__isUserClass(this_, this_._currentClass!.name)) {
-      final StaticList<TypeParameter> classTypeParams = this_._currentClass!.typeParameters;
-      final String typeParamSuffix = (classTypeParams.isNotEmpty ? '<${classTypeParams.map(ClosureEnv_anon_60()).join(', ')}>' : '');
+      final StaticList<TypeParameter> classTypeParams = StaticList<TypeParameter>.of(this_._currentClass!.typeParameters);
+      final String typeParamSuffix = (classTypeParams.isNotEmpty ? '<${classTypeParams.map(ClosureEnv_anon_64_new(GC.allocateLocal(ClosureEnv_anon_64()))).join(', ')}>' : '');
       thisTypeStr = '${this_._currentClass!.name}Value${typeParamSuffix}';
     }
  else     if (_DartRestorerBase__isEnumName(this_, this_._currentClass!.name)) {
@@ -2937,21 +3144,21 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
  else {
       thisTypeStr = 'dynamic';
     }
-    capturedFields.add(_CapturedVar_new(_CapturedVarValue(), name: this_._thisReplacementName, typeStr: thisTypeStr, isThis: true));
+    capturedFields.add(_CapturedVar_new(GC.allocateLocal(_CapturedVarValue()), name: this_._thisReplacementName, typeStr: thisTypeStr, isThis: true));
   }
   for (final decl in capturedDecls) {
-    final String varName = _TypeUtils__cleanVarName(this_, (decl.name ?? '_cap${(() { final _let57 = this_._varCounter; return (() { final _let58 = this_._varCounter = (_let57 + 1); return _let57; })(); })()}'));
+    final String varName = _TypeUtils__cleanVarName(this_, (decl.name ?? '_cap${(() { final _let74 = this_._varCounter; return (() { final _let75 = this_._varCounter = (_let74 + 1); return _let74; })(); })()}'));
     decl.name = varName;
     final bool isBoxed = this_._boxedVars.contains(decl);
     final String typeStr = (isBoxed ? _TypeUtils__boxTypeNameFor(this_, decl.type)! : _TypeUtils__restoreType(this_, decl.type));
-    capturedFields.add(_CapturedVar_new(_CapturedVarValue(), name: varName, typeStr: typeStr, isBoxed: isBoxed));
+    capturedFields.add(_CapturedVar_new(GC.allocateLocal(_CapturedVarValue()), name: varName, typeStr: typeStr, isBoxed: isBoxed));
   }
   for (final p in func.positionalParameters) {
-    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_p${(() { final _let60 = this_._varCounter; return (() { final _let61 = this_._varCounter = (_let60 + 1); return _let60; })(); })()}'));
+    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_p${(() { final _let77 = this_._varCounter; return (() { final _let78 = this_._varCounter = (_let77 + 1); return _let77; })(); })()}'));
     p.name = pName;
   }
   for (final p in func.namedParameters) {
-    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n${(() { final _let63 = this_._varCounter; return (() { final _let64 = this_._varCounter = (_let63 + 1); return _let63; })(); })()}'));
+    final String pName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n${(() { final _let80 = this_._varCounter; return (() { final _let81 = this_._varCounter = (_let80 + 1); return _let80; })(); })()}'));
     p.name = pName;
   }
   _DartRestorerBase__preanalyzeBoxedVarsForFunc(this_, func);
@@ -2966,12 +3173,12 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
   for (final p in func.positionalParameters) {
     final String baseName = p.name!;
     final String pName = (this_._boxedVars.contains(p) ? '${baseName}_raw' : baseName);
-    callParams.add('${_TypeUtils__restoreType(this_, p.type)} ${pName}');
+    callParams.add('${_TypeUtils__restoreClosureParamType(this_, p.type)} ${pName}');
   }
   for (final p in func.namedParameters) {
     final String baseName = p.name!;
     final String pName = (this_._boxedVars.contains(p) ? '${baseName}_raw' : baseName);
-    callParams.add('${_TypeUtils__restoreType(this_, p.type)} ${pName}');
+    callParams.add('${_TypeUtils__restoreClosureParamType(this_, p.type)} ${pName}');
   }
   final String callParamStr = callParams.join(', ');
   final StaticList<String> callArgNames = StaticList<String>.of([]);
@@ -2998,7 +3205,9 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
     _ExpressionRestorer__collectTypeParameters(this_, p.type, typeParams);
   }
   _ExpressionRestorer__collectTypeParameters(this_, func.returnType, typeParams);
-  final String typeParamStr = (typeParams.isEmpty ? '' : '<${typeParams.map(ClosureEnv_anon_61()).join(', ')}>');
+  final String typeParamNameStr = (typeParams.isEmpty ? '' : '<${typeParams.map(ClosureEnv_anon_65_new(GC.allocateLocal(ClosureEnv_anon_65()))).join(', ')}>');
+  final String typeParamDeclStr = (typeParams.isEmpty ? '' : '<${typeParams.map(ClosureEnv_anon_66_new(GC.allocateLocal(ClosureEnv_anon_66()), this_)).join(', ')}>');
+  final String typeParamStr = typeParamNameStr;
   final StaticMap<VariableDeclaration, String> savedEnvPrefix = StaticMap<VariableDeclaration, String>.from(this_._capturedVarEnvPrefix);
   final bool savedThisInEnv = this_._thisIsCapturedInEnv;
   for (final decl in capturedDecls) {
@@ -3029,8 +3238,8 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
     }
   }
  else   if (!((func.body == null))) {
-    final StringBuffer oldBuf = this_._buf;
-    final StringBuffer tmpBuf = StringBuffer();
+    final StaticStringBuffer oldBuf = this_._buf;
+    final StaticStringBuffer tmpBuf = StaticStringBuffer();
     this_._buf = tmpBuf;
     if (paramBoxInitLines.isNotEmpty) {
       tmpBuf.write('{\n');
@@ -3071,45 +3280,69 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
   this_._capturedVarEnvPrefix.clear();
   this_._capturedVarEnvPrefix.addAll(savedEnvPrefix);
   this_._thisIsCapturedInEnv = savedThisInEnv;
-  final StringBuffer declBuf = StringBuffer();
-  final StaticList<String> positionalParamTypes = (() {   final StaticList<String> _v66 = StaticList<String>.of([]);
-  for (final p in func.positionalParameters)   _v66.add(_TypeUtils__restoreType(this_, p.type));
- return _v66; })();
+  final StaticStringBuffer declBuf = StaticStringBuffer();
+  final StaticList<String> positionalParamTypes = StaticList<String>.of((() {   final StaticList<String> _v83 = StaticList<String>.of([]);
+  for (final p in func.positionalParameters)   _v83.add(_TypeUtils__restoreClosureParamType(this_, p.type));
+ return _v83; })());
   final bool hasNamedParam = func.namedParameters.isNotEmpty;
   late String baseClause;
   late bool callIsOverride;
   if ((!(hasNamedParam) && (positionalParamTypes.length <= 16))) {
     final int arity = positionalParamTypes.length;
-    final String args = (() {     final StaticList<String> _v67 = StaticList<String>.of([returnType]);
-    _v67.addAll(positionalParamTypes);
- return _v67; })().join(', ');
+    final String args = (() {     final StaticList<String> _v84 = StaticList<String>.of([returnType]);
+    _v84.addAll(positionalParamTypes);
+ return _v84; })().join(', ');
     baseClause = ' extends TypeFunction${arity}<${args}>';
     callIsOverride = true;
   }
  else {
-    baseClause = ' extends TypeFunction<${returnType}>';
+    baseClause = ' extends TypeFunction';
     callIsOverride = false;
   }
-  declBuf.write('class ${envClassName}${typeParamStr}${baseClause} {\n');
+  declBuf.write('class ${envClassName}${typeParamDeclStr}${baseClause} {\n');
   for (final field in capturedFields) {
-    declBuf.write('  ${field.typeStr} ${field.name};\n');
+    declBuf.write('  late ${field.typeStr} ${field.name};\n');
   }
-  final String ctorParams = capturedFields.map(ClosureEnv_anon_62()).join(', ');
-  declBuf.write('  ${envClassName}(${ctorParams});\n');
+  declBuf.write('  ${envClassName}();\n');
   final String staticCallName = '${envClassName}_call';
-  final String forwardArgs = (callArgStr.isEmpty ? 'this' : 'this, ${callArgStr}');
+  final String callArgs = (callArgStr.isEmpty ? 'this' : 'this, ${callArgStr}');
   if (callIsOverride) {
     declBuf.write('  @override\n');
   }
-  declBuf.write('  ${returnType} call(${callParamStr}) => ${staticCallName}${typeParamStr}(${forwardArgs});\n');
+  declBuf.write('  ${returnType} call(${callParamStr}) => closureCall(${callArgs});\n');
+  if (capturedFields.isNotEmpty) {
+    declBuf.write('  @override\n');
+    declBuf.write('  void gcMark(int flag) {\n');
+    declBuf.write('    if (gcFlag == flag) return;\n');
+    declBuf.write('    super.gcMark(flag);\n');
+    for (final field in capturedFields) {
+      declBuf.write('    if (${field.name} is AnyGC) (${field.name} as AnyGC).gcMark(flag);\n');
+    }
+    declBuf.write('  }\n');
+  }
+  declBuf.write('}\n');
+  final String newFuncName = '${envClassName}_new';
+  final String envClassWithTypeParamsForNew = '${envClassName}${typeParamStr}';
+  final StaticList<String> newParams = StaticList<String>.of(['${envClassWithTypeParamsForNew} env_']);
+  for (final field in capturedFields) {
+    newParams.add('${field.typeStr} ${field.name}');
+  }
+  declBuf.write('${envClassWithTypeParamsForNew} ${newFuncName}${typeParamDeclStr}(${newParams.join(', ')}) {\n');
+  declBuf.write('  env_.closureCall = ${staticCallName}${typeParamStr};\n');
+  for (final field in capturedFields) {
+    declBuf.write('  env_.${field.name} = ${field.name};\n');
+  }
+  declBuf.write('  return env_;\n');
   declBuf.write('}\n');
   final String envClassWithTypeParams = '${envClassName}${typeParamStr}';
-  final String staticParams = (callParamStr.isEmpty ? '${envClassWithTypeParams} env' : '${envClassWithTypeParams} env, ${callParamStr}');
+  final String staticParams = (callParamStr.isEmpty ? 'dynamic env__' : 'dynamic env__, ${callParamStr}');
   final AsyncMarker marker = func.asyncMarker;
   String asyncStr = '';
   if ((marker == AsyncMarker.AsyncStar))   asyncStr = ' async*';
   if ((marker == AsyncMarker.SyncStar))   asyncStr = ' sync*';
-  declBuf.write('${returnType} ${staticCallName}${typeParamStr}(${staticParams})${asyncStr}${bodyStr}\n');
+  final String castLine = '  final env = env__ as ${envClassWithTypeParams};\n';
+  final String adjustedBody = _ExpressionRestorer__insertCastIntoBody(this_, bodyStr, castLine);
+  declBuf.write('${returnType} ${staticCallName}${typeParamDeclStr}(${staticParams})${asyncStr}${adjustedBody}\n');
   this_._pendingClosureDecls.add(declBuf.toString());
   final StaticList<String> constructArgsList = StaticList<String>.of([]);
   for (var _i = 0; (_i < capturedFields.length); _i = (_i + 1)) {
@@ -3123,7 +3356,7 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
       }
     }
  else     if ((_i < (capturedDecls.length + ((((capturesThis && this_._insideMethodBody) && !((this_._currentClass == null))) && _DartRestorerBase__needsLowering(this_, this_._currentClass!.name)) ? 1 : 0)))) {
-      final int declIdx = (field.isThis ? (-1) : (_i - (capturedFields.any(ClosureEnv_anon_63()) ? 1 : 0)));
+      final int declIdx = (field.isThis ? (-1) : (_i - (capturedFields.any(ClosureEnv_anon_67_new(GC.allocateLocal(ClosureEnv_anon_67()))) ? 1 : 0)));
       if (((declIdx >= 0) && (declIdx < capturedDecls.length))) {
         final String? prefix = savedEnvPrefix[capturedDecls[declIdx]];
         if (!((prefix == null))) {
@@ -3142,7 +3375,23 @@ String _ExpressionRestorer__restoreFuncExprAsClosure(dynamic this__, FunctionNod
     }
   }
   final String constructArgs = constructArgsList.join(', ');
-  return '${envClassName}${typeParamStr}(${constructArgs})';
+  final String newFuncNameRef = '${envClassName}_new';
+  final String gcMethod = (this_._isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal');
+  final String gcWrappedValue = 'GC.${gcMethod}(${envClassName}${typeParamStr}())';
+  if (constructArgs.isEmpty) {
+    return '${newFuncNameRef}${typeParamStr}(${gcWrappedValue})';
+  }
+  return '${newFuncNameRef}${typeParamStr}(${gcWrappedValue}, ${constructArgs})';
+}
+
+String _ExpressionRestorer__insertCastIntoBody(dynamic this__, String bodyStr, String castLine) {
+  final this_ = this__;
+  final String trimmed = bodyStr.trimLeft();
+  if (trimmed.startsWith('{')) {
+    final int braceIdx = bodyStr.indexOf('{');
+    return '${bodyStr.substring(0, (braceIdx + 1))}\n${castLine}${bodyStr.substring((braceIdx + 1))}';
+  }
+  return ' {\n${castLine}  ${trimmed.substring(3)}\n}';
 }
 
 void _ExpressionRestorer__collectTypeParameters(dynamic this__, DartType type, StaticSet<TypeParameter> result) {
@@ -3312,7 +3561,7 @@ void _StatementRestorer__restoreStmt(dynamic this__, Statement stmt) {
     this_._buf.write('; ');
     if (!((stmt.condition == null)))     this_._buf.write(_DartRestorerBase__restoreExpr(this_, stmt.condition!));
     this_._buf.write('; ');
-    this_._buf.write(stmt.updates.map(ClosureEnv_anon_64(this_)).join(', '));
+    this_._buf.write(stmt.updates.map(ClosureEnv_anon_68_new(GC.allocateLocal(ClosureEnv_anon_68()), this_)).join(', '));
     this_._buf.write(') ');
     _StatementRestorer__restoreStmt(this_, stmt.body);
   }
@@ -3388,7 +3637,7 @@ void _StatementRestorer__restoreStmt(dynamic this__, Statement stmt) {
 void _StatementRestorer__restoreForIn(dynamic this__, ForInStatement stmt) {
   final this_ = this__;
   final VariableDeclaration varDecl = stmt.variable;
-  final String varName = _TypeUtils__cleanVarName(this_, (varDecl.name ?? '_item${(() { final _let70 = this_._varCounter; return (() { final _let71 = this_._varCounter = (_let70 + 1); return _let70; })(); })()}'));
+  final String varName = _TypeUtils__cleanVarName(this_, (varDecl.name ?? '_item${(() { final _let87 = this_._varCounter; return (() { final _let88 = this_._varCounter = (_let87 + 1); return _let87; })(); })()}'));
   varDecl.name = varName;
   final String iterableExpr = _DartRestorerBase__restoreExpr(this_, stmt.iterable);
   final String keyword = (varDecl.isFinal ? 'final' : 'var');
@@ -3426,7 +3675,7 @@ bool _StatementRestorer__isReachabilityError(dynamic this__, Expression expr) {
 
 void _StatementRestorer__restoreVarDecl(dynamic this__, VariableDeclaration v) {
   final this_ = this__;
-  final String originalName = (v.name ?? '_v${(() { final _let73 = this_._varCounter; return (() { final _let74 = this_._varCounter = (_let73 + 1); return _let73; })(); })()}');
+  final String originalName = (v.name ?? '_v${(() { final _let90 = this_._varCounter; return (() { final _let91 = this_._varCounter = (_let90 + 1); return _let90; })(); })()}');
   final String name = _TypeUtils__cleanVarName(this_, originalName);
   v.name = name;
   if (name.startsWith('_alreadyDeclared_')) {
@@ -3457,9 +3706,44 @@ void _StatementRestorer__restoreVarDecl(dynamic this__, VariableDeclaration v) {
   this_._buf.write(_TypeUtils__restoreType(this_, v.type));
   this_._buf.write(' ${name}');
   if (!((v.initializer == null))) {
-    this_._buf.write(' = ${_DartRestorerBase__restoreExpr(this_, v.initializer!)}');
+    final String initStr = _DartRestorerBase__restoreExpr(this_, v.initializer!);
+    this_._buf.write(' = ${_StatementRestorer__adaptInitForStaticCollection(this_, v, initStr)}');
   }
   this_._buf.write(';\n');
+}
+
+String _StatementRestorer__adaptInitForStaticCollection(dynamic this__, VariableDeclaration v, String initStr) {
+  final this_ = this__;
+  final DartType declType = v.type;
+  if (!((declType is InterfaceType)))   return initStr;
+  final String raw = declType.classNode.name;
+  if (((raw == 'Iterator') || (raw == '_ListIterator'))) {
+    if (initStr.trimLeft().startsWith('StaticIterator'))     return initStr;
+    return 'StaticIterator(${initStr})';
+  }
+  String? staticName;
+  if ((((raw == 'List') || (raw == '_List')) || (raw == '_GrowableList'))) {
+    staticName = 'StaticList';
+  }
+ else   if (((((raw == 'Map') || (raw == '_Map')) || (raw == 'LinkedHashMap')) || (raw == '_InternalLinkedHashMap'))) {
+    staticName = 'StaticMap';
+  }
+ else   if (((((raw == 'Set') || (raw == '_Set')) || (raw == 'LinkedHashSet')) || (raw == '_CompactLinkedHashSet'))) {
+    staticName = 'StaticSet';
+  }
+  if ((staticName == null))   return initStr;
+  final Expression? init = v.initializer;
+  if ((init is VariableGet))   return initStr;
+  String probe = initStr.trimLeft();
+  while (probe.startsWith('(')) {
+    probe = probe.substring(1).trimLeft();
+  }
+  if (probe.startsWith(staticName))   return initStr;
+  final String typeArgs = declType.typeArguments.map(ClosureEnv_anon_69_new(GC.allocateLocal(ClosureEnv_anon_69()), this_)).join(', ');
+  if (typeArgs.isEmpty) {
+    return '${staticName}.of(${initStr})';
+  }
+  return '${staticName}<${typeArgs}>.of(${initStr})';
 }
 
 void _StatementRestorer__restoreCatch(dynamic this__, Catch c) {
@@ -3510,7 +3794,7 @@ void _StatementRestorer__restoreSwitch(dynamic this__, SwitchStatement stmt) {
 
 void _StatementRestorer__restoreFuncDecl(dynamic this__, FunctionDeclaration stmt) {
   final this_ = this__;
-  final String name = _TypeUtils__cleanVarName(this_, (stmt.variable.name ?? '_fn${(() { final _let78 = this_._varCounter; return (() { final _let79 = this_._varCounter = (_let78 + 1); return _let78; })(); })()}'));
+  final String name = _TypeUtils__cleanVarName(this_, (stmt.variable.name ?? '_fn${(() { final _let95 = this_._varCounter; return (() { final _let96 = this_._varCounter = (_let95 + 1); return _let95; })(); })()}'));
   stmt.variable.name = name;
   this_._buf.write('${this_._pad}');
   this_._buf.write(_TypeUtils__restoreType(this_, stmt.function.returnType));
@@ -3615,9 +3899,9 @@ void _DeclarationRestorer__emitMixinMethodAsStatic(dynamic this__, Class cls, Pr
       if (((retType is InterfaceType) && retType.typeArguments.isNotEmpty)) {
         innerRetType = _TypeUtils__restoreType(this_, retType.typeArguments.first);
       }
-      final StaticList<VariableDeclaration> allParams = (() {       final StaticList<VariableDeclaration> _v83 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
-      _v83.addAll(proc.function.namedParameters);
- return _v83; })();
+      final StaticList<VariableDeclaration> allParams = StaticList<VariableDeclaration>.of((() {       final StaticList<VariableDeclaration> _v100 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+      _v100.addAll(proc.function.namedParameters);
+ return _v100; })());
       final String envBaseName = '${mixinName}_${methodName}';
       this_._buf.write(' ');
       _DartRestorerBase__pushClosureContext(this_, envBaseName);
@@ -3683,13 +3967,13 @@ void _DeclarationRestorer__restoreClassLowered(dynamic this__, Class cls, String
   final String className = (overrideName ?? cls.name);
   final String? parentName = _DartRestorerBase__getParentClassName(this_, className);
   final bool isSyntheticMixinClass = _DartRestorerBase__isSyntheticMixinClassName(this_, cls.name);
-  final StaticMap<String, String> savedTypeParamSubstitution = this_._activeTypeParamSubstitution;
-  final StaticSet<TypeParameter> savedTypeParamTargets = this_._activeTypeParamTargets;
+  final StaticMap<String, String> savedTypeParamSubstitution = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
+  final StaticSet<TypeParameter> savedTypeParamTargets = StaticSet<TypeParameter>.of(this_._activeTypeParamTargets);
   if (!((cls.supertype == null))) {
     final Supertype superType = cls.supertype!;
     final Class superClass = superType.classNode;
     if ((superClass.typeParameters.isNotEmpty && superType.typeArguments.isNotEmpty)) {
-      final StaticSet<String?> currentTypeParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_65()).toSet().toList());
+      final StaticSet<String?> currentTypeParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_70_new(GC.allocateLocal(ClosureEnv_anon_70()))).toSet().toList());
       final StaticMap<String, String> substitution = StaticMap<String, String>.of({});
       final StaticSet<TypeParameter> targets = StaticSet<TypeParameter>.of([]);
       for (var i = 0; ((i < superClass.typeParameters.length) && (i < superType.typeArguments.length)); i = (i + 1)) {
@@ -3700,12 +3984,12 @@ void _DeclarationRestorer__restoreClassLowered(dynamic this__, Class cls, String
         }
       }
       if (substitution.isNotEmpty) {
-        this_._activeTypeParamSubstitution = (() {         final StaticMap<String, String> _v86 = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
-        _v86.addAll(substitution);
- return _v86; })();
-        this_._activeTypeParamTargets = (() {         final StaticSet<TypeParameter> _v87 = StaticSet<TypeParameter>.of(this_._activeTypeParamTargets);
-        _v87.addAll(targets);
- return _v87; })();
+        this_._activeTypeParamSubstitution = (() {         final StaticMap<String, String> _v103 = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
+        _v103.addAll(substitution);
+ return _v103; })();
+        this_._activeTypeParamTargets = (() {         final StaticSet<TypeParameter> _v104 = StaticSet<TypeParameter>.of(this_._activeTypeParamTargets);
+        _v104.addAll(targets);
+ return _v104; })();
       }
     }
   }
@@ -3733,7 +4017,7 @@ void _DeclarationRestorer__restoreClassLowered(dynamic this__, Class cls, String
       _DeclarationRestorer__emitInstanceMethodAsStatic(this_, cls, proc, className);
     }
   }
-  final StaticList<_VTableEntryValue> allEntries = _DeclarationRestorer__collectAllVTableEntries(this_, className);
+  final StaticList<_VTableEntryValue> allEntries = StaticList<_VTableEntryValue>.of(_DeclarationRestorer__collectAllVTableEntries(this_, className));
   for (final entry in allEntries) {
     if (!(definedMethods.contains(entry.name))) {
       _DeclarationRestorer__emitDelegateMethodAsStatic(this_, cls, entry, className);
@@ -3803,7 +4087,7 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
       }
     }
     if (((this_._syntheticLoweredNames.contains(originClassName) && !((originClass == null))) && originClass.name.contains('&'))) {
-      final StaticList<String> parts = originClass.name.split('&');
+      final StaticList<String> parts = StaticList<String>.of(originClass.name.split('&'));
       if (parts.isNotEmpty) {
         final String lastMixin = parts.last.trim();
         if (_DartRestorerBase__isMixinName(this_, lastMixin)) {
@@ -3838,8 +4122,8 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
       do {
         while (!((parentName == null))) {
           if (((!(this_._syntheticLoweredNames.contains(parentName)) && !(_DartRestorerBase__isMixinName(this_, parentName))) && _DartRestorerBase__isUserClass(this_, parentName))) {
-            final StaticList<_VTableEntryValue>? parentEntries = this_._classVTableEntries[parentName];
-            if ((!((parentEntries == null)) && parentEntries.any(ClosureEnv_anon_66(methodName, entry)))) {
+            final StaticList<_VTableEntryValue>? parentEntries = StaticList<_VTableEntryValue>.of(this_._classVTableEntries[parentName]);
+            if ((!((parentEntries == null)) && parentEntries.any(ClosureEnv_anon_71_new(GC.allocateLocal(ClosureEnv_anon_71()), methodName, entry)))) {
               originClassName = parentName;
               break;
             }
@@ -3859,7 +4143,7 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
  else {
     originFuncName = _DartRestorerBase__staticMethodName(this_, originClassName, methodName);
   }
-  final StaticMap<String, String> typeSubstitution = _DeclarationRestorer__buildTypeSubstitutionForDelegate(this_, cls, proc);
+  final StaticMap<String, String> typeSubstitution = StaticMap<String, String>.of(_DeclarationRestorer__buildTypeSubstitutionForDelegate(this_, cls, proc));
   String restoreTypeWithSub(DartType type) {
     if (typeSubstitution.isEmpty)     return _TypeUtils__restoreType(this_, type);
     if ((type is TypeParameterType)) {
@@ -3872,7 +4156,7 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
     }
     String result = _TypeUtils__restoreType(this_, type);
     for (final entry in typeSubstitution.entries) {
-      result = result.replaceAll(RegExp('\b${entry.key}\b'), entry.value);
+      result = result.replaceAll(StaticRegExp('\b${entry.key}\b'), entry.value);
     }
     return result;
   }
@@ -3909,7 +4193,7 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
   }
   this_._buf.write(') {\n');
   this_._indent = (this_._indent + 1);
-  final String delegateClassTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_67()).join(', ')}>' : '');
+  final String delegateClassTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_72_new(GC.allocateLocal(ClosureEnv_anon_72()))).join(', ')}>' : '');
   this_._buf.write('${this_._pad}final this_ = this__ as ${className}Value${delegateClassTypeParamStr};\n');
   final bool isAbstractOrigin = (proc.isAbstract || (proc.function.body == null));
   if ((isAbstractOrigin && (entry.kind == 'getter'))) {
@@ -3926,7 +4210,7 @@ void _DeclarationRestorer__emitDelegateFromProc(dynamic this__, Class cls, Proce
  else {
       this_._buf.write(this_._pad);
     }
-    final StaticList<String> originTypeArgs = _DeclarationRestorer__buildOriginTypeArgs(this_, cls, proc, originClassName);
+    final StaticList<String> originTypeArgs = StaticList<String>.of(_DeclarationRestorer__buildOriginTypeArgs(this_, cls, proc, originClassName));
     final String originTypeArgStr = (originTypeArgs.isEmpty ? '' : '<${originTypeArgs.join(', ')}>');
     this_._buf.write('${originFuncName}${originTypeArgStr}(${forwardArgs.join(', ')});\n');
   }
@@ -3939,12 +4223,12 @@ StaticList<String> _DeclarationRestorer__buildOriginTypeArgs(dynamic this__, Cla
   final StaticList<String> result = StaticList<String>.of([]);
   final Class? originClass = (this_._classNodes[originClassName] ?? proc.enclosingClass);
   if (((!((originClass == null)) && !((originClass == cls))) && originClass.typeParameters.isNotEmpty)) {
-    final StaticList<String>? concreteArgs = _DeclarationRestorer__resolveOriginConcreteTypeArgs(this_, cls, originClass);
+    final StaticList<String>? concreteArgs = StaticList<String>.of(_DeclarationRestorer__resolveOriginConcreteTypeArgs(this_, cls, originClass, originClassName));
     if ((!((concreteArgs == null)) && (concreteArgs.length == originClass.typeParameters.length))) {
       result.addAll(concreteArgs);
     }
  else {
-      final StaticSet<String?> clsParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_68()).toSet().toList());
+      final StaticSet<String?> clsParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_73_new(GC.allocateLocal(ClosureEnv_anon_73()))).toSet().toList());
       for (final tp in originClass.typeParameters) {
         final String name = (tp.name ?? 'T');
         result.add((clsParamNames.contains(name) ? name : 'dynamic'));
@@ -3961,9 +4245,11 @@ StaticList<String> _DeclarationRestorer__buildOriginTypeArgs(dynamic this__, Cla
   return result;
 }
 
-StaticList<String>? _DeclarationRestorer__resolveOriginConcreteTypeArgs(dynamic this__, Class cls, Class originClass) {
+StaticList<String>? _DeclarationRestorer__resolveOriginConcreteTypeArgs(dynamic this__, Class cls, Class originClass, String originClassName) {
   final this_ = this__;
-  final StaticList<String>? viaExtends = _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, cls, originClass);
+  bool sameClass(Class? c)   return (!((c == null)) && (identical(c, originClass) || (c.name == originClassName)));
+
+  final StaticList<String>? viaExtends = StaticList<String>.of(_DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, cls, originClass));
   if (!((viaExtends == null)))   return viaExtends;
   Class currentClass = cls;
   final StaticMap<String, String> typeParamMap = StaticMap<String, String>.of({});
@@ -3975,14 +4261,20 @@ StaticList<String>? _DeclarationRestorer__resolveOriginConcreteTypeArgs(dynamic 
     final Supertype? superType = currentClass.supertype;
     if ((superType == null))     return null;
     final Supertype? mixedIn = currentClass.mixedInType;
-    if ((!((mixedIn == null)) && (mixedIn.classNode == originClass))) {
+    if ((!((mixedIn == null)) && sameClass(mixedIn.classNode))) {
       if (mixedIn.typeArguments.isEmpty)       return null;
-      return StaticList.of(mixedIn.typeArguments.map(ClosureEnv_anon_69(this_, typeParamMap)).toList());
+      return StaticList.of(mixedIn.typeArguments.map(ClosureEnv_anon_74_new(GC.allocateLocal(ClosureEnv_anon_74()), this_, typeParamMap)).toList());
+    }
+    for (final impl in currentClass.implementedTypes) {
+      if (sameClass(impl.classNode)) {
+        if (impl.typeArguments.isEmpty)         return null;
+        return StaticList.of(impl.typeArguments.map(ClosureEnv_anon_75_new(GC.allocateLocal(ClosureEnv_anon_75()), this_, typeParamMap)).toList());
+      }
     }
     final Class nextClass = superType.classNode;
-    if ((nextClass == originClass)) {
+    if (sameClass(nextClass)) {
       if (superType.typeArguments.isEmpty)       return null;
-      return StaticList.of(superType.typeArguments.map(ClosureEnv_anon_70(this_, typeParamMap)).toList());
+      return StaticList.of(superType.typeArguments.map(ClosureEnv_anon_76_new(GC.allocateLocal(ClosureEnv_anon_76()), this_, typeParamMap)).toList());
     }
     final StaticMap<String, String> newMap = StaticMap<String, String>.of({});
     for (var i = 0; ((i < nextClass.typeParameters.length) && (i < superType.typeArguments.length)); i = (i + 1)) {
@@ -3999,7 +4291,7 @@ String _DeclarationRestorer__substituteTypeStr(dynamic this__, String typeStr, S
   final this_ = this__;
   if (map.isEmpty)   return typeStr;
   String result = typeStr;
-  map.forEach(ClosureEnv_anon_71(result));
+  map.forEach(ClosureEnv_anon_77_new(GC.allocateLocal(ClosureEnv_anon_77()), result));
   return result;
 }
 
@@ -4009,10 +4301,10 @@ StaticMap<String, String> _DeclarationRestorer__buildTypeSubstitutionForDelegate
   if ((originClass == null))   return StaticMap<String, String>.of({});
   if ((originClass == cls))   return StaticMap<String, String>.of({});
   if (originClass.typeParameters.isEmpty)   return StaticMap<String, String>.of({});
-  final StaticSet<String?> currentTypeParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_73()).toSet().toList());
-  final StaticSet<String?> parentTypeParamNames = StaticSet.of(originClass.typeParameters.map(ClosureEnv_anon_74()).toSet().toList());
-  if (parentTypeParamNames.every(ClosureEnv_anon_75(currentTypeParamNames)))   return StaticMap<String, String>.of({});
-  final StaticList<String>? concreteTypeArgs = _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, cls, originClass);
+  final StaticSet<String?> currentTypeParamNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_79_new(GC.allocateLocal(ClosureEnv_anon_79()))).toSet().toList());
+  final StaticSet<String?> parentTypeParamNames = StaticSet.of(originClass.typeParameters.map(ClosureEnv_anon_80_new(GC.allocateLocal(ClosureEnv_anon_80()))).toSet().toList());
+  if (parentTypeParamNames.every(ClosureEnv_anon_81_new(GC.allocateLocal(ClosureEnv_anon_81()), currentTypeParamNames)))   return StaticMap<String, String>.of({});
+  final StaticList<String>? concreteTypeArgs = StaticList<String>.of(_DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, cls, originClass));
   if (((concreteTypeArgs == null) || concreteTypeArgs.isEmpty))   return StaticMap<String, String>.of({});
   final StaticMap<String, String> substitution = StaticMap<String, String>.of({});
   for (var i = 0; ((i < originClass.typeParameters.length) && (i < concreteTypeArgs.length)); i = (i + 1)) {
@@ -4031,7 +4323,7 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
   if (hasUserParent) {
     String parentTypeArgs = '';
     if ((!((superType == null)) && superType.typeArguments.isNotEmpty)) {
-      final StaticList<String> concreteArgs = StaticList.of(superType.typeArguments.map(ClosureEnv_anon_76(this_)).toList());
+      final StaticList<String> concreteArgs = StaticList.of(superType.typeArguments.map(ClosureEnv_anon_82_new(GC.allocateLocal(ClosureEnv_anon_82()), this_)).toList());
       if (concreteArgs.isNotEmpty) {
         parentTypeArgs = '<${concreteArgs.join(', ')}>';
       }
@@ -4041,7 +4333,7 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
  else   if (((!((parentName == null)) && !(_DartRestorerBase__isUserClass(this_, parentName))) && !((superType == null)))) {
     String parentTypeArgs = '';
     if (superType.typeArguments.isNotEmpty) {
-      final StaticList<String> concreteArgs = StaticList.of(superType.typeArguments.map(ClosureEnv_anon_77(this_)).toList());
+      final StaticList<String> concreteArgs = StaticList.of(superType.typeArguments.map(ClosureEnv_anon_83_new(GC.allocateLocal(ClosureEnv_anon_83()), this_)).toList());
       if (concreteArgs.isNotEmpty) {
         parentTypeArgs = '<${concreteArgs.join(', ')}>';
       }
@@ -4051,7 +4343,7 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
  else {
     this_._buf.write(' extends VPtr');
   }
-  final StaticList<String> implementedInterfaces = _DeclarationRestorer__collectUserImplementedInterfaces(this_, cls, className);
+  final StaticList<String> implementedInterfaces = StaticList<String>.of(_DeclarationRestorer__collectUserImplementedInterfaces(this_, cls, className));
   if (implementedInterfaces.isNotEmpty) {
     this_._buf.write(' implements ');
     this_._buf.write(implementedInterfaces.join(', '));
@@ -4065,7 +4357,7 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
  else {
     _DeclarationRestorer__collectAllFields(this_, cls, fieldsToEmit, StaticSet<String>.of([]));
   }
-  final StaticMap<String, String> mixinTypeSubstitution = _DeclarationRestorer__buildMixinFieldTypeSubstitution(this_, cls);
+  final StaticMap<String, String> mixinTypeSubstitution = StaticMap<String, String>.of(_DeclarationRestorer__buildMixinFieldTypeSubstitution(this_, cls));
   for (final field in fieldsToEmit)   do {
 {
       if (field.isStatic)       break;
@@ -4086,8 +4378,52 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
     _DeclarationRestorer__emitRuntimeParentBridgeMethods(this_, cls, parentName!);
   }
   _DeclarationRestorer__emitValueClassConstructor(this_, cls, className, parentName, isSyntheticMixinClass);
+  _DeclarationRestorer__emitGcMarkOverride(this_, fieldsToEmit, hasUserParent);
   this_._indent = (this_._indent - 1);
   this_._buf.write('}\n\n');
+}
+
+void _DeclarationRestorer__emitGcMarkOverride(dynamic this__, StaticList<Field> fieldsToEmit, bool hasUserParent) {
+  final this_ = this__;
+  final StaticList<Field> gcFields = StaticList<Field>.of([]);
+  for (final field in fieldsToEmit)   do {
+{
+      if (field.isStatic)       break;
+      if (_DeclarationRestorer__isGcRelevantType(this_, field.type)) {
+        gcFields.add(field);
+      }
+    }
+  } while (false);
+  if ((gcFields.isEmpty && !(hasUserParent)))   return;
+  this_._buf.write('${this_._pad}@override\n');
+  this_._buf.write('${this_._pad}void gcMark(int flag) {\n');
+  this_._indent = (this_._indent + 1);
+  this_._buf.write('${this_._pad}if (gcFlag == flag) return;\n');
+  this_._buf.write('${this_._pad}super.gcMark(flag);\n');
+  for (final field in gcFields) {
+    final String fieldName = field.name.text;
+    this_._buf.write('${this_._pad}if (${fieldName} is AnyGC) (${fieldName} as AnyGC).gcMark(flag);\n');
+  }
+  this_._indent = (this_._indent - 1);
+  this_._buf.write('${this_._pad}}\n');
+}
+
+bool _DeclarationRestorer__isGcRelevantType(dynamic this__, DartType type) {
+  final this_ = this__;
+  if ((type is InterfaceType)) {
+    final String name = type.classNode.name;
+    if (((((name == 'int') || (name == 'double')) || (name == 'bool')) || (name == 'String'))) {
+      return false;
+    }
+    return true;
+  }
+  if ((type is TypeParameterType))   return true;
+  if ((type is DynamicType))   return true;
+  if ((type is FunctionType))   return true;
+  if ((type is NullType))   return false;
+  if ((type is VoidType))   return false;
+  if ((type is NeverType))   return false;
+  return true;
 }
 
 void _DeclarationRestorer__emitValueClassConstructor(dynamic this__, Class cls, String className, String? parentName, bool isSyntheticMixinClass) {
@@ -4096,17 +4432,17 @@ void _DeclarationRestorer__emitValueClassConstructor(dynamic this__, Class cls, 
     _DeclarationRestorer__emitSyntheticMixinValueConstructor(this_, cls, className, parentName);
     return;
   }
-  final StaticList<_VTableEntryValue> entries = _DeclarationRestorer__collectAllVTableEntries(this_, className);
+  final StaticList<_VTableEntryValue> entries = StaticList<_VTableEntryValue>.of(_DeclarationRestorer__collectAllVTableEntries(this_, className));
   if (entries.isEmpty)   return;
   final bool hasClassTypeParams = cls.typeParameters.isNotEmpty;
-  final StaticList<String> typeParamNames = StaticList.of(cls.typeParameters.map(ClosureEnv_anon_78()).toList());
+  final StaticList<String> typeParamNames = StaticList.of(cls.typeParameters.map(ClosureEnv_anon_84_new(GC.allocateLocal(ClosureEnv_anon_84()))).toList());
   final String typeParamStr = (hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '');
-  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_79()).toSet().toList());
+  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_85_new(GC.allocateLocal(ClosureEnv_anon_85()))).toSet().toList());
   final StaticList<_VTableEntryValue> normalEntries = StaticList<_VTableEntryValue>.of([]);
   for (final entry in entries)   do {
 {
       if (!((entry.proc == null))) {
-        final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_80(classTpNames)).toList());
+        final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_86_new(GC.allocateLocal(ClosureEnv_anon_86()), classTpNames)).toList());
         if (dedupedMethodTps.isNotEmpty) {
           break;
         }
@@ -4139,12 +4475,15 @@ void _DeclarationRestorer__emitSyntheticMixinValueConstructor(dynamic this__, Cl
     } while (false);
   }
   if (mixinMethodNames.isEmpty)   return;
-  final StaticList<_VTableEntryValue> allEntries = (this_._classVTableEntries[className] ?? StaticList<_VTableEntryValue>.of([]));
-  final StaticList<_VTableEntryValue> mixinEntries = StaticList.of(allEntries.where(ClosureEnv_anon_81(mixinMethodNames)).toList());
+  final StaticList<_VTableEntryValue> allEntries = StaticList<_VTableEntryValue>.of((this_._classVTableEntries[className] ?? StaticList<_VTableEntryValue>.of([])));
+  final StaticList<_VTableEntryValue> mixinEntries = StaticList.of(allEntries.where(ClosureEnv_anon_87_new(GC.allocateLocal(ClosureEnv_anon_87()), mixinMethodNames)).toList());
   if (mixinEntries.isEmpty)   return;
   this_._buf.write('${this_._pad}${className}Value() {\n');
   this_._indent = (this_._indent + 1);
-  final Class mixinClass = cls.mixedInType!.classNode;
+  final Supertype mixinSupertype = cls.mixedInType!;
+  final Class mixinClass = mixinSupertype.classNode;
+  final bool mixinIsSpecialized = mixinSupertype.typeArguments.any(ClosureEnv_anon_88_new(GC.allocateLocal(ClosureEnv_anon_88())));
+  final StaticList<String> mixinTypeArgStrs = StaticList.of(mixinSupertype.typeArguments.map(ClosureEnv_anon_89_new(GC.allocateLocal(ClosureEnv_anon_89()), this_)).toList());
   for (final entry in mixinEntries) {
     final String key = _DeclarationRestorer__vptrEntryKey(this_, entry);
     final String mixinName = mixinClass.name;
@@ -4160,18 +4499,15 @@ void _DeclarationRestorer__emitSyntheticMixinValueConstructor(dynamic this__, Cl
     }
     late String rhs;
     if (!((entry.proc == null))) {
-      final StaticSet<String?> mixinClassTpNames = StaticSet.of(mixinClass.typeParameters.map(ClosureEnv_anon_82()).toSet().toList());
-      final StaticList<TypeParameter> methodTpsDedup = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_83(mixinClassTpNames)).toList());
-      final StaticList<String> wrapperTpDecls = (() {       final StaticList<String> _v102 = StaticList<String>.of(mixinClass.typeParameters.map(/* unknown: InstanceTearOff */));
- return _v102; })();
-      final StaticList<String> callTypeArgsList = (() {       final StaticList<String> _v103 = StaticList<String>.of(mixinClass.typeParameters.map(ClosureEnv_anon_84()));
-      _v103.addAll(methodTpsDedup.map(ClosureEnv_anon_85()));
- return _v103; })();
+      final StaticSet<String?> mixinClassTpNames = StaticSet.of(mixinClass.typeParameters.map(ClosureEnv_anon_90_new(GC.allocateLocal(ClosureEnv_anon_90()))).toSet().toList());
+      final StaticList<TypeParameter> methodTpsDedup = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_91_new(GC.allocateLocal(ClosureEnv_anon_91()), mixinClassTpNames)).toList());
+      final StaticList<String> callTypeArgsList = StaticList<String>.of((() {       final StaticList<String> _v119 = StaticList<String>.of([]);
+      if (mixinIsSpecialized)       _v119.addAll(mixinTypeArgStrs);
+ else       _v119.addAll(mixinClass.typeParameters.map(ClosureEnv_anon_92_new(GC.allocateLocal(ClosureEnv_anon_92()))));
+      _v119.addAll(methodTpsDedup.map(ClosureEnv_anon_93_new(GC.allocateLocal(ClosureEnv_anon_93()))));
+ return _v119; })());
       final String callTypeArgsStr = (callTypeArgsList.isEmpty ? '' : '<${callTypeArgsList.join(', ')}>');
-      final StaticMap<String, String> methodTpToDynamic = (() {       final StaticMap<String, String> _v105 = StaticMap<String, String>.of({});
-      for (final tp in methodTpsDedup)       if (!((tp.name == null)))       _v105[tp.name!] = 'dynamic';
- return _v105; })();
-      rhs = _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: staticFuncName, callTypeArgsStr: callTypeArgsStr, functionNode: entry.proc!.function, hostingCls: mixinClass, methodTpNames: wrapperTpDecls, additionalSubstitution: methodTpToDynamic);
+      rhs = _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: staticFuncName, callTypeArgsStr: callTypeArgsStr);
     }
  else {
       rhs = staticFuncName;
@@ -4191,12 +4527,12 @@ void _DeclarationRestorer__emitRuntimeParentBridgeMethods(dynamic this__, Class 
   for (final method in abstractMethods) {
     final String methodName = method.name.text;
     final String returnType = _TypeUtils__restoreType(this_, method.function.returnType);
-    final StaticList<VariableDeclaration> params = method.function.positionalParameters;
-    final String paramStr = params.map(ClosureEnv_anon_86(this_)).join(', ');
+    final StaticList<VariableDeclaration> params = StaticList<VariableDeclaration>.of(method.function.positionalParameters);
+    final String paramStr = params.map(ClosureEnv_anon_94_new(GC.allocateLocal(ClosureEnv_anon_94()), this_)).join(', ');
     this_._buf.write('${this_._pad}@override\n');
     this_._buf.write('${this_._pad}${returnType} ${methodName}(${paramStr}) {\n');
     this_._indent = (this_._indent + 1);
-    this_._buf.write('${this_._pad}return (vptr[\'${methodName}\'] as TypeFunction1<${returnType}, dynamic>)(this);\n');
+    this_._buf.write('${this_._pad}return (vptr[\'${methodName}\'] as ${returnType} Function(dynamic))(this);\n');
     this_._indent = (this_._indent - 1);
     this_._buf.write('${this_._pad}}\n');
   }
@@ -4227,10 +4563,10 @@ StaticList<String> _DeclarationRestorer__collectUserImplementedInterfaces(dynami
         if (visited.contains(implClassName))         break;
         visited.add(implClassName);
         if (((_DartRestorerBase__isUserClass(this_, implClassName) && !(_DartRestorerBase__isMixinName(this_, implClassName))) && !(this_._syntheticLoweredNames.contains(implClassName)))) {
-          final StringBuffer buf = StringBuffer('${implClassName}Value');
+          final StaticStringBuffer buf = StaticStringBuffer('${implClassName}Value');
           if (implType.typeArguments.isNotEmpty) {
             buf.write('<');
-            buf.write(implType.typeArguments.map(ClosureEnv_anon_87(this_)).join(', '));
+            buf.write(implType.typeArguments.map(ClosureEnv_anon_95_new(GC.allocateLocal(ClosureEnv_anon_95()), this_)).join(', '));
             buf.write('>');
           }
           interfaces.add(buf.toString());
@@ -4255,7 +4591,7 @@ StaticMap<String, String> _DeclarationRestorer__buildMixinFieldTypeSubstitution(
   final StaticMap<String, String> substitution = StaticMap<String, String>.of({});
   if (!((cls.mixedInType == null))) {
     final Class mixinClass = cls.mixedInType!.classNode;
-    final StaticList<DartType> mixedInArgs = cls.mixedInType!.typeArguments;
+    final StaticList<DartType> mixedInArgs = StaticList<DartType>.of(cls.mixedInType!.typeArguments);
     for (var i = 0; ((i < mixinClass.typeParameters.length) && (i < mixedInArgs.length)); i = (i + 1)) {
       final String mixinParamName = (mixinClass.typeParameters[i].name ?? 'T${i}');
       final String actualType = _TypeUtils__restoreType(this_, mixedInArgs[i]);
@@ -4271,8 +4607,8 @@ StaticMap<String, String> _DeclarationRestorer__buildMixinFieldTypeSubstitution(
       if (!(_DartRestorerBase__isSyntheticMixinClassName(this_, superCls.name)))       break;
       if (!((superCls.mixedInType == null))) {
         final Class mixinClass = superCls.mixedInType!.classNode;
-        final StaticList<DartType> mixedInArgs = superCls.mixedInType!.typeArguments;
-        final StaticList<DartType> superTypeArgs = currentClass.supertype!.typeArguments;
+        final StaticList<DartType> mixedInArgs = StaticList<DartType>.of(superCls.mixedInType!.typeArguments);
+        final StaticList<DartType> superTypeArgs = StaticList<DartType>.of(currentClass.supertype!.typeArguments);
         final StaticMap<String, String> superParamMap = StaticMap<String, String>.of({});
         for (var i = 0; ((i < superCls.typeParameters.length) && (i < superTypeArgs.length)); i = (i + 1)) {
           final String paramName = (superCls.typeParameters[i].name ?? 'T${i}');
@@ -4304,7 +4640,7 @@ void _DeclarationRestorer__emitObjectMethodOverrides(dynamic this__, Class cls, 
     this_._buf.write('${this_._pad}String toString() {\n');
     this_._indent = (this_._indent + 1);
     this_._buf.write('${this_._pad}final toStringFn = vptr[\'toString_\'];\n');
-    this_._buf.write('${this_._pad}if (toStringFn != null) return (toStringFn as TypeFunction1<String, dynamic>)(this);\n');
+    this_._buf.write('${this_._pad}if (toStringFn != null) return (toStringFn as String Function(dynamic))(this);\n');
     this_._buf.write('${this_._pad}return super.toString();\n');
     this_._indent = (this_._indent - 1);
     this_._buf.write('${this_._pad}}\n');
@@ -4314,7 +4650,7 @@ void _DeclarationRestorer__emitObjectMethodOverrides(dynamic this__, Class cls, 
     this_._buf.write('${this_._pad}bool operator ==(Object other) {\n');
     this_._indent = (this_._indent + 1);
     this_._buf.write('${this_._pad}final eqFn = vptr[\'operatorEq\'];\n');
-    this_._buf.write('${this_._pad}if (eqFn != null) return (eqFn as TypeFunction2<bool, dynamic, dynamic>)(this, other);\n');
+    this_._buf.write('${this_._pad}if (eqFn != null) return (eqFn as bool Function(dynamic, Object))(this, other);\n');
     this_._buf.write('${this_._pad}return identical(this, other);\n');
     this_._indent = (this_._indent - 1);
     this_._buf.write('${this_._pad}}\n');
@@ -4324,7 +4660,7 @@ void _DeclarationRestorer__emitObjectMethodOverrides(dynamic this__, Class cls, 
     this_._buf.write('${this_._pad}int get hashCode {\n');
     this_._indent = (this_._indent + 1);
     this_._buf.write('${this_._pad}final hashFn = vptr[\'get_hashCode\'];\n');
-    this_._buf.write('${this_._pad}if (hashFn != null) return (hashFn as TypeFunction1<int, dynamic>)(this);\n');
+    this_._buf.write('${this_._pad}if (hashFn != null) return (hashFn as int Function(dynamic))(this);\n');
     this_._buf.write('${this_._pad}return super.hashCode;\n');
     this_._indent = (this_._indent - 1);
     this_._buf.write('${this_._pad}}\n');
@@ -4333,7 +4669,7 @@ void _DeclarationRestorer__emitObjectMethodOverrides(dynamic this__, Class cls, 
 
 bool _DeclarationRestorer__classHasVTableEntry(dynamic this__, String className, String entryName, String kind) {
   final this_ = this__;
-  final StaticList<_VTableEntryValue>? entries = this_._classVTableEntries[className];
+  final StaticList<_VTableEntryValue>? entries = StaticList<_VTableEntryValue>.of(this_._classVTableEntries[className]);
   if (!((entries == null))) {
     for (final entry in entries) {
       if (((entry.name == entryName) && (entry.kind == kind)))       return true;
@@ -4404,13 +4740,13 @@ StaticList<_VTableEntryValue> _DeclarationRestorer__collectAllVTableEntries(dyna
   final StaticSet<String> seenKeys = StaticSet<String>.of([]);
   String? currentClass = className;
   while ((!((currentClass == null)) && _DartRestorerBase__isUserClass(this_, currentClass))) {
-    final StaticList<_VTableEntryValue>? classEntries = this_._classVTableEntries[currentClass];
+    final StaticList<_VTableEntryValue>? classEntries = StaticList<_VTableEntryValue>.of(this_._classVTableEntries[currentClass]);
     if (!((classEntries == null))) {
       for (final entry in classEntries) {
         final String key = '${entry.kind}:${entry.name}';
         if (!(seenKeys.contains(key))) {
           seenKeys.add(key);
-          final _VTableEntryValue updatedEntry = _VTableEntry_new(_VTableEntryValue(), name: entry.name, kind: entry.kind, staticFuncName: _DeclarationRestorer__getStaticFuncName(this_, className, entry.name, entry.kind), signature: entry.signature, proc: entry.proc, declaringClassName: entry.declaringClassName);
+          final _VTableEntryValue updatedEntry = _VTableEntry_new(GC.allocateLocal(_VTableEntryValue()), name: entry.name, kind: entry.kind, staticFuncName: _DeclarationRestorer__getStaticFuncName(this_, className, entry.name, entry.kind), signature: entry.signature, proc: entry.proc, declaringClassName: entry.declaringClassName);
           entries.add(updatedEntry);
         }
       }
@@ -4422,7 +4758,7 @@ StaticList<_VTableEntryValue> _DeclarationRestorer__collectAllVTableEntries(dyna
 
 String _DeclarationRestorer__findDeclaringClassName(dynamic this__, String className, String methodName, String kind) {
   final this_ = this__;
-  final StaticList<_VTableEntryValue>? entries = this_._classVTableEntries[className];
+  final StaticList<_VTableEntryValue>? entries = StaticList<_VTableEntryValue>.of(this_._classVTableEntries[className]);
   if (!((entries == null))) {
     for (final entry in entries) {
       if (((entry.name == methodName) && (entry.kind == kind))) {
@@ -4451,10 +4787,10 @@ StaticList<String>? _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(dyn
     if ((superType == null))     return null;
     if ((superType.classNode == ancestorCls)) {
       if (superType.typeArguments.isEmpty)       return null;
-      return StaticList.of(superType.typeArguments.map(ClosureEnv_anon_88(this_)).toList());
+      return StaticList.of(superType.typeArguments.map(ClosureEnv_anon_96_new(GC.allocateLocal(ClosureEnv_anon_96()), this_)).toList());
     }
     currentClass = superType.classNode;
-    final StaticList<String>? result = _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, currentClass, ancestorCls);
+    final StaticList<String>? result = StaticList<String>.of(_DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, currentClass, ancestorCls));
     if (!((result == null))) {
       if ((superType.typeArguments.isNotEmpty && currentClass.typeParameters.isNotEmpty)) {
         final StaticMap<String, String> typeParamMap = StaticMap<String, String>.of({});
@@ -4462,7 +4798,7 @@ StaticList<String>? _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(dyn
           final String paramName = (currentClass.typeParameters[i].name ?? 'T${i}');
           typeParamMap[paramName] = _TypeUtils__restoreType(this_, superType.typeArguments[i]);
         }
-        return StaticList.of(result.map(ClosureEnv_anon_89(typeParamMap)).toList());
+        return StaticList.of(result.map(ClosureEnv_anon_97_new(GC.allocateLocal(ClosureEnv_anon_97()), typeParamMap)).toList());
       }
       return result;
     }
@@ -4499,7 +4835,9 @@ void _DeclarationRestorer__emitStaticFields(dynamic this__, Class cls, String cl
       this_._buf.write(' ${className}_${field.name.text}');
       if (!((field.initializer == null))) {
         this_._buf.write(' = ');
+        this_._isStaticFieldContext = true;
         this_._buf.write(_DartRestorerBase__restoreExpr(this_, field.initializer!));
+        this_._isStaticFieldContext = false;
       }
       this_._buf.write(';\n');
     }
@@ -4510,8 +4848,8 @@ void _DeclarationRestorer__emitConstructorFunction(dynamic this__, Class cls, Co
   final this_ = this__;
   final String ctorName = ctor.name.text;
   final String funcName = (ctorName.isEmpty ? '${className}_new' : '${className}_new_${ctorName}');
-  final StaticList<_VTableEntryValue> entries = _DeclarationRestorer__collectAllVTableEntries(this_, className);
-  final String typeParamNamesForReturn = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_90()).join(', ')}>' : '');
+  final StaticList<_VTableEntryValue> entries = StaticList<_VTableEntryValue>.of(_DeclarationRestorer__collectAllVTableEntries(this_, className));
+  final String typeParamNamesForReturn = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_98_new(GC.allocateLocal(ClosureEnv_anon_98()))).join(', ')}>' : '');
   final String returnType = '${className}Value${typeParamNamesForReturn}';
   this_._buf.write('${returnType} ${funcName}');
   _DeclarationRestorer__writeTypeParams(this_, cls.typeParameters);
@@ -4526,7 +4864,7 @@ void _DeclarationRestorer__emitConstructorFunction(dynamic this__, Class cls, Co
   this_._buf.write('${this_._pad}final this_ = this__ as ${className}Value');
   _DeclarationRestorer__writeTypeParamNames(this_, cls.typeParameters);
   this_._buf.write(';\n');
-  final bool hasRedirecting = ctor.initializers.any(ClosureEnv_anon_91());
+  final bool hasRedirecting = ctor.initializers.any(ClosureEnv_anon_99_new(GC.allocateLocal(ClosureEnv_anon_99())));
   if (hasRedirecting) {
     for (final init in ctor.initializers) {
       if ((init is RedirectingInitializer)) {
@@ -4549,12 +4887,12 @@ void _DeclarationRestorer__emitConstructorFunction(dynamic this__, Class cls, Co
     }
   }
   final bool hasClassTypeParams = cls.typeParameters.isNotEmpty;
-  final StaticList<String> typeParamNames = StaticList.of(cls.typeParameters.map(ClosureEnv_anon_92()).toList());
+  final StaticList<String> typeParamNames = StaticList.of(cls.typeParameters.map(ClosureEnv_anon_100_new(GC.allocateLocal(ClosureEnv_anon_100()))).toList());
   final String typeParamStr = (hasClassTypeParams ? '<${typeParamNames.join(', ')}>' : '');
-  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_93()).toSet().toList());
+  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_101_new(GC.allocateLocal(ClosureEnv_anon_101()))).toSet().toList());
   for (final entry in entries) {
     if (!((entry.proc == null))) {
-      final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_94(classTpNames)).toList());
+      final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(entry.proc!.function.typeParameters.where(ClosureEnv_anon_102_new(GC.allocateLocal(ClosureEnv_anon_102()), classTpNames)).toList());
       if (dedupedMethodTps.isNotEmpty) {
         _DeclarationRestorer__emitSpecializedVptrEntries(this_, cls, entry, className, typeParamStr, classTpNames, dedupedMethodTps);
       }
@@ -4618,7 +4956,7 @@ void _DeclarationRestorer__emitSharedVTableConstant(dynamic this__, String class
   final this_ = this__;
   if (this_._emittedSharedVTableClasses.contains(className))   return;
   this_._emittedSharedVTableClasses.add(className);
-  final StringBuffer sb = StringBuffer();
+  final StaticStringBuffer sb = StaticStringBuffer();
   sb.write('final Map<String, dynamic> ${_DeclarationRestorer__sharedVTableName(this_, className)} = <String, dynamic>{\n');
   for (final kv in keyRhsList) {
     sb.write('  \'${kv.$1}\': ${kv.$2},\n');
@@ -4658,12 +4996,12 @@ void _DeclarationRestorer__emitSuperInit(dynamic this__, SuperInitializer init, 
     final Supertype superType = this_._currentClass!.supertype!;
     final Class? targetClass = this_._classNodes[actualParent];
     if ((!((targetClass == null)) && targetClass.typeParameters.isNotEmpty)) {
-      final StaticList<String>? concreteArgs = _DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, this_._currentClass!, targetClass);
+      final StaticList<String>? concreteArgs = StaticList<String>.of(_DeclarationRestorer__resolveConcreteTypeArgsForAncestor(this_, this_._currentClass!, targetClass));
       if ((!((concreteArgs == null)) && concreteArgs.isNotEmpty)) {
         typeArgStr = '<${concreteArgs.join(', ')}>';
       }
  else       if (superType.typeArguments.isNotEmpty) {
-        typeArgStr = '<${superType.typeArguments.map(ClosureEnv_anon_95(this_)).join(', ')}>';
+        typeArgStr = '<${superType.typeArguments.map(ClosureEnv_anon_103_new(GC.allocateLocal(ClosureEnv_anon_103()), this_)).join(', ')}>';
       }
     }
   }
@@ -4680,11 +5018,11 @@ bool _DeclarationRestorer__isSyntheticLoweredName(dynamic this__, String name) {
 
 void _DeclarationRestorer__emitThisFieldAssignments(dynamic this__, Constructor ctor, Class cls) {
   final this_ = this__;
-  final StaticSet<String> fieldNames = StaticSet.of(cls.fields.where(ClosureEnv_anon_96()).map(ClosureEnv_anon_97()).toSet().toList());
+  final StaticSet<String> fieldNames = StaticSet.of(cls.fields.where(ClosureEnv_anon_104_new(GC.allocateLocal(ClosureEnv_anon_104()))).map(ClosureEnv_anon_105_new(GC.allocateLocal(ClosureEnv_anon_105()))).toSet().toList());
   for (final param in ctor.function.positionalParameters) {
     final String paramName = _TypeUtils__cleanVarName(this_, (param.name ?? ''));
     if (fieldNames.contains(paramName)) {
-      final bool alreadyInited = ctor.initializers.any(ClosureEnv_anon_98(paramName));
+      final bool alreadyInited = ctor.initializers.any(ClosureEnv_anon_106_new(GC.allocateLocal(ClosureEnv_anon_106()), paramName));
       if (!(alreadyInited)) {
         this_._buf.write('${this_._pad}this_.${paramName} = ${paramName};\n');
       }
@@ -4693,7 +5031,7 @@ void _DeclarationRestorer__emitThisFieldAssignments(dynamic this__, Constructor 
   for (final param in ctor.function.namedParameters) {
     final String paramName = _TypeUtils__cleanVarName(this_, (param.name ?? ''));
     if (fieldNames.contains(paramName)) {
-      final bool alreadyInited = ctor.initializers.any(ClosureEnv_anon_99(paramName));
+      final bool alreadyInited = ctor.initializers.any(ClosureEnv_anon_107_new(GC.allocateLocal(ClosureEnv_anon_107()), paramName));
       if (!(alreadyInited)) {
         this_._buf.write('${this_._pad}this_.${paramName} = ${paramName};\n');
       }
@@ -4709,7 +5047,7 @@ void _DeclarationRestorer__emitFieldDefaultValues(dynamic this__, Constructor ct
       initedFields.add(init.field.name.text);
     }
   }
-  final StaticSet<String> fieldNames = StaticSet.of(cls.fields.where(ClosureEnv_anon_100()).map(ClosureEnv_anon_101()).toSet().toList());
+  final StaticSet<String> fieldNames = StaticSet.of(cls.fields.where(ClosureEnv_anon_108_new(GC.allocateLocal(ClosureEnv_anon_108()))).map(ClosureEnv_anon_109_new(GC.allocateLocal(ClosureEnv_anon_109()))).toSet().toList());
   for (final param in ctor.function.positionalParameters) {
     final String paramName = _TypeUtils__cleanVarName(this_, (param.name ?? ''));
     if (fieldNames.contains(paramName)) {
@@ -4724,16 +5062,16 @@ void _DeclarationRestorer__emitFieldDefaultValues(dynamic this__, Constructor ct
   }
   final StaticList<Field> allFields = StaticList<Field>.of([]);
   _DeclarationRestorer__collectAllFields(this_, cls, allFields, StaticSet<String>.of([]));
-  final StaticMap<String, String> mixinTypeSubstitution = _DeclarationRestorer__buildMixinFieldTypeSubstitution(this_, cls);
+  final StaticMap<String, String> mixinTypeSubstitution = StaticMap<String, String>.of(_DeclarationRestorer__buildMixinFieldTypeSubstitution(this_, cls));
   final bool savedInsideMethodBody = this_._insideMethodBody;
   final String savedThisReplacementName = this_._thisReplacementName;
-  final StaticMap<String, String> savedTypeParamSubstitution = this_._activeTypeParamSubstitution;
+  final StaticMap<String, String> savedTypeParamSubstitution = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
   this_._insideMethodBody = true;
   this_._thisReplacementName = 'this_';
   if (mixinTypeSubstitution.isNotEmpty) {
-    this_._activeTypeParamSubstitution = (() {     final StaticMap<String, String> _v120 = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
-    _v120.addAll(mixinTypeSubstitution);
- return _v120; })();
+    this_._activeTypeParamSubstitution = (() {     final StaticMap<String, String> _v135 = StaticMap<String, String>.of(this_._activeTypeParamSubstitution);
+    _v135.addAll(mixinTypeSubstitution);
+ return _v135; })();
   }
   try {
     for (final field in allFields)     do {
@@ -4758,37 +5096,26 @@ void _DeclarationRestorer__emitSpecializedVptrEntries(dynamic this__, Class cls,
   final this_ = this__;
   final String methodName = entry.name;
   final StaticSet<MethodSpecEntryValue> specEntries = StaticSet<MethodSpecEntryValue>.of([]);
-  final StaticMap<String, StaticSet<MethodSpecEntryValue>>? classSpecs = this_._methodTypeSpecializations[className];
+  final StaticMap<String, StaticSet<MethodSpecEntryValue>>? classSpecs = StaticMap<String, StaticSet<MethodSpecEntryValue>>.of(this_._methodTypeSpecializations[className]);
   if ((!((classSpecs == null)) && !((classSpecs[methodName] == null)))) {
     specEntries.addAll(classSpecs[methodName]!);
   }
   String? parentName = this_._classHierarchy[className];
   while (!((parentName == null))) {
-    final StaticMap<String, StaticSet<MethodSpecEntryValue>>? parentSpecs = this_._methodTypeSpecializations[parentName];
+    final StaticMap<String, StaticSet<MethodSpecEntryValue>>? parentSpecs = StaticMap<String, StaticSet<MethodSpecEntryValue>>.of(this_._methodTypeSpecializations[parentName]);
     if ((!((parentSpecs == null)) && !((parentSpecs[methodName] == null)))) {
       specEntries.addAll(parentSpecs[methodName]!);
     }
     parentName = this_._classHierarchy[parentName];
   }
   if (specEntries.isEmpty)   return;
-  final Procedure proc = entry.proc!;
-  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_102()).toSet().toList());
-  final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(proc.function.typeParameters.where(ClosureEnv_anon_103(classTpNames)).toList());
   for (final specEntry in specEntries) {
     final String specKey = '${_DeclarationRestorer__vptrEntryKey(this_, entry)}_${specEntry.vptrSuffix}';
-    final StaticList<String> callTypeArgsList = (() {     final StaticList<String> _v121 = StaticList<String>.of(cls.typeParameters.map(ClosureEnv_anon_104()));
-    _v121.addAll(specEntry.typeArgStrs);
- return _v121; })();
+    final StaticList<String> callTypeArgsList = StaticList<String>.of((() {     final StaticList<String> _v136 = StaticList<String>.of(cls.typeParameters.map(ClosureEnv_anon_110_new(GC.allocateLocal(ClosureEnv_anon_110()))));
+    _v136.addAll(specEntry.typeArgStrs);
+ return _v136; })());
     final String callTypeArgsStr = '<${callTypeArgsList.join(', ')}>';
-    final StaticList<String> wrapperTpNames = StaticList.of(cls.typeParameters.map(/* unknown: InstanceTearOff */).toList());
-    final StaticMap<String, String> extraSub = StaticMap<String, String>.of({});
-    for (var i = 0; ((i < dedupedMethodTps.length) && (i < specEntry.typeArgStrs.length)); i = (i + 1)) {
-      final String? name = dedupedMethodTps[i].name;
-      if (!((name == null))) {
-        extraSub[name] = specEntry.typeArgStrs[i];
-      }
-    }
-    final String rhs = _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: entry.staticFuncName, callTypeArgsStr: callTypeArgsStr, functionNode: proc.function, hostingCls: cls, methodTpNames: wrapperTpNames, nameSuffix: '_${specEntry.vptrSuffix}', additionalSubstitution: extraSub);
+    final String rhs = _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: entry.staticFuncName, callTypeArgsStr: callTypeArgsStr);
     this_._buf.write('${this_._pad}this_.vptr[\'${specKey}\'] = ${rhs};\n');
   }
 }
@@ -4796,120 +5123,26 @@ void _DeclarationRestorer__emitSpecializedVptrEntries(dynamic this__, Class cls,
 String _DeclarationRestorer__buildVptrLambdaWrapper(dynamic this__, Class cls, _VTableEntryValue entry, String className, String typeParamStr) {
   final this_ = this__;
   final Procedure? proc = entry.proc;
-  final bool hasClassTypeParams = typeParamStr.isNotEmpty;
   if ((proc == null)) {
     return entry.staticFuncName;
   }
-  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_105()).toSet().toList());
-  final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(proc.function.typeParameters.where(ClosureEnv_anon_106(classTpNames)).toList());
-  final StaticList<String> callTypeArgsList = (() {   final StaticList<String> _v123 = StaticList<String>.of(cls.typeParameters.map(ClosureEnv_anon_107()));
-  _v123.addAll(dedupedMethodTps.map(ClosureEnv_anon_108()));
- return _v123; })();
+  final StaticSet<String?> classTpNames = StaticSet.of(cls.typeParameters.map(ClosureEnv_anon_111_new(GC.allocateLocal(ClosureEnv_anon_111()))).toSet().toList());
+  final StaticList<TypeParameter> dedupedMethodTps = StaticList.of(proc.function.typeParameters.where(ClosureEnv_anon_112_new(GC.allocateLocal(ClosureEnv_anon_112()), classTpNames)).toList());
+  final StaticList<String> callTypeArgsList = StaticList<String>.of((() {   final StaticList<String> _v138 = StaticList<String>.of(cls.typeParameters.map(ClosureEnv_anon_113_new(GC.allocateLocal(ClosureEnv_anon_113()))));
+  _v138.addAll(dedupedMethodTps.map(ClosureEnv_anon_114_new(GC.allocateLocal(ClosureEnv_anon_114()))));
+ return _v138; })());
   final String callTypeArgsStr = (callTypeArgsList.isEmpty ? '' : '<${callTypeArgsList.join(', ')}>');
-  return _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: entry.staticFuncName, callTypeArgsStr: callTypeArgsStr, functionNode: proc.function, hostingCls: ((hasClassTypeParams || dedupedMethodTps.isNotEmpty) ? cls : null), methodTpNames: (() {   final StaticList<String> _v126 = StaticList<String>.of(cls.typeParameters.map(/* unknown: InstanceTearOff */));
-  _v126.addAll(dedupedMethodTps.map(/* unknown: InstanceTearOff */));
- return _v126; })());
+  return _DeclarationRestorer__buildTearOffWrapperExpr(this_, staticFuncName: entry.staticFuncName, callTypeArgsStr: callTypeArgsStr);
 }
 
-String _DeclarationRestorer__typeParamDecl(dynamic this__, TypeParameter tp) {
+String _DeclarationRestorer__buildTearOffWrapperExpr(dynamic this__, {required String staticFuncName}, {required String callTypeArgsStr}) {
   final this_ = this__;
-  final String name = (tp.name ?? 'T');
-  final DartType bound = tp.bound;
-  if (((bound is InterfaceType) && (bound.classNode.name == 'Object'))) {
-    return name;
-  }
-  return '${name} extends ${_DartRestorerBase__restoreTypeForSignature(this_, bound)}';
-}
-
-String _DeclarationRestorer__buildTearOffWrapperExpr(dynamic this__, {required String staticFuncName}, {required String callTypeArgsStr}, {required FunctionNode functionNode}, {required Class? hostingCls}, {required StaticList<String> methodTpNames}, {String nameSuffix = ''}, {StaticMap<String, String> additionalSubstitution = const {}}) {
-  final this_ = this__;
-  final String wrapperTpDeclStr = (methodTpNames.isEmpty ? '' : '<${methodTpNames.join(', ')}>');
-  final String wrapperTpRefStr = (methodTpNames.isEmpty ? '' : '<${methodTpNames.map(/* unknown: InstanceTearOff */).join(', ')}>');
-  final String wrapperName = '_TearOff_${staticFuncName}${nameSuffix}';
-  final String emissionKey = '${wrapperName}::${wrapperTpDeclStr}';
-  if (!(this_._emittedTearOffWrappers.contains(emissionKey))) {
-    this_._emittedTearOffWrappers.add(emissionKey);
-    final StaticMap<String, String> savedSub = this_._activeTypeParamSubstitution;
-    final StaticSet<TypeParameter> savedTargets = this_._activeTypeParamTargets;
-    final bool savedInsideMethodBody = this_._insideMethodBody;
-    this_._activeTypeParamSubstitution = (() {     final StaticMap<String, String> _v128 = StaticMap<String, String>.of(savedSub);
-    _v128.addAll(additionalSubstitution);
- return _v128; })();
-    this_._activeTypeParamTargets = (additionalSubstitution.isEmpty ? savedTargets : const {});
-    this_._insideMethodBody = true;
-    final String returnText = _DartRestorerBase__restoreTypeForSignature(this_, functionNode.returnType);
-    final StaticList<String> argTexts = StaticList<String>.of(['dynamic']);
-    final StaticList<String> argNames = StaticList<String>.of(['this_']);
-    for (var i = 0; (i < functionNode.positionalParameters.length); i = (i + 1)) {
-      final VariableDeclaration p = functionNode.positionalParameters[i];
-      argTexts.add(_DartRestorerBase__restoreTypeForSignature(this_, p.type));
-      argNames.add((p.name ?? 'a${(i + 1)}'));
-    }
-    final bool hasNamed = functionNode.namedParameters.isNotEmpty;
-    late String baseClause;
-    late bool callIsOverride;
-    if ((!(hasNamed) && (argTexts.length <= 16))) {
-      final int arity = argTexts.length;
-      final String args = (() {       final StaticList<String> _v130 = StaticList<String>.of([returnText]);
-      _v130.addAll(argTexts);
- return _v130; })().join(', ');
-      baseClause = ' extends TypeFunction${arity}<${args}>';
-      callIsOverride = true;
-    }
- else {
-      baseClause = ' extends TypeFunction<${returnText}>';
-      callIsOverride = false;
-    }
-    final StringBuffer declBuf = StringBuffer();
-    declBuf.write('class ${wrapperName}${wrapperTpDeclStr}${baseClause} {\n');
-    declBuf.write((wrapperTpDeclStr.isEmpty ? '  const ${wrapperName}();\n' : '  ${wrapperName}();\n'));
-    if (!(callIsOverride)) {
-      final int positionalArity = argTexts.length;
-      declBuf.write('  @override\n');
-      declBuf.write('  int get arity => ${positionalArity};\n');
-    }
-    if (callIsOverride)     declBuf.write('  @override\n');
-    final StaticList<String> positionalParts = (() {     final StaticList<String> _v131 = StaticList<String>.of([]);
-    for (var i = 0; (i < argTexts.length); i = (i + 1))     _v131.add('${argTexts[i]} ${argNames[i]}');
- return _v131; })();
-    final StaticList<String> namedSigParts = StaticList<String>.of([]);
-    final StaticList<String> namedFwdParts = StaticList<String>.of([]);
-    if (hasNamed) {
-      for (final np in functionNode.namedParameters) {
-        final String t = _DartRestorerBase__restoreTypeForSignature(this_, np.type);
-        final String req = (np.isRequired ? 'required ' : '');
-        namedSigParts.add('${req}${t} ${np.name}');
-        namedFwdParts.add('${np.name}: ${np.name}');
-      }
-    }
-    final StringBuffer sigBuf = StringBuffer(positionalParts.join(', '));
-    if (namedSigParts.isNotEmpty) {
-      if (positionalParts.isNotEmpty)       sigBuf.write(', ');
-      sigBuf.write('{${namedSigParts.join(', ')}}');
-    }
-    final StringBuffer fwdBuf = StringBuffer(argNames.join(', '));
-    if (namedFwdParts.isNotEmpty) {
-      fwdBuf.write(', ${namedFwdParts.join(', ')}');
-    }
-    declBuf.write('  ${returnText} call(${sigBuf}) => ${staticFuncName}${callTypeArgsStr}(${fwdBuf});\n');
-    declBuf.write('}\n');
-    this_._pendingClosureDecls.add(declBuf.toString());
-    this_._activeTypeParamSubstitution = savedSub;
-    this_._activeTypeParamTargets = savedTargets;
-    this_._insideMethodBody = savedInsideMethodBody;
-  }
-  return (wrapperTpRefStr.isEmpty ? 'const ${wrapperName}()' : '${wrapperName}${wrapperTpRefStr}()');
-}
-
-String _DeclarationRestorer__extractTypeFormalName(dynamic this__, String decl) {
-  final this_ = this__;
-  final int i = decl.indexOf(' ');
-  return ((i < 0) ? decl : decl.substring(0, i));
+  return '${staticFuncName}${callTypeArgsStr}';
 }
 
 String _DeclarationRestorer__replaceTypeParam(dynamic this__, String typeStr, String paramName, String replacement) {
   final this_ = this__;
-  return typeStr.replaceAllMapped(RegExp('\b${paramName}\b'), ClosureEnv_anon_109(replacement));
+  return typeStr.replaceAllMapped(StaticRegExp('\b${paramName}\b'), ClosureEnv_anon_115_new(GC.allocateLocal(ClosureEnv_anon_115()), replacement));
 }
 
 void _DeclarationRestorer__emitBodyWithThisReplacement(dynamic this__, Statement body, String thisReplacement) {
@@ -4971,8 +5204,8 @@ void _DeclarationRestorer__emitInstanceMethodAsStatic(dynamic this__, Class cls,
     }
   }
  else   if (!(proc.isGetter)) {
-    final StaticList<VariableDeclaration> pos = proc.function.positionalParameters;
-    final StaticList<VariableDeclaration> named = proc.function.namedParameters;
+    final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+    final StaticList<VariableDeclaration> named = StaticList<VariableDeclaration>.of(proc.function.namedParameters);
     if ((pos.isNotEmpty || named.isNotEmpty)) {
       this_._buf.write(', ');
       _DeclarationRestorer__writeParams(this_, proc.function, proc: proc, suppressCovariant: true, flattenOptional: true);
@@ -4992,10 +5225,10 @@ void _DeclarationRestorer__emitInstanceMethodAsStatic(dynamic this__, Class cls,
       if (((retType is InterfaceType) && retType.typeArguments.isNotEmpty)) {
         innerRetType = _TypeUtils__restoreType(this_, retType.typeArguments.first);
       }
-      final StaticList<VariableDeclaration> allParams = (() {       final StaticList<VariableDeclaration> _v133 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
-      _v133.addAll(proc.function.namedParameters);
- return _v133; })();
-      final String classTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_110()).join(', ')}>' : '');
+      final StaticList<VariableDeclaration> allParams = StaticList<VariableDeclaration>.of((() {       final StaticList<VariableDeclaration> _v142 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+      _v142.addAll(proc.function.namedParameters);
+ return _v142; })());
+      final String classTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_116_new(GC.allocateLocal(ClosureEnv_anon_116()))).join(', ')}>' : '');
       final String thisTypeStr = '${className}Value${classTypeParamStr}';
       final String envBaseName = '${className}_${methodName}';
       _DartRestorerBase__pushClosureContext(this_, envBaseName);
@@ -5005,7 +5238,7 @@ void _DeclarationRestorer__emitInstanceMethodAsStatic(dynamic this__, Class cls,
  else {
       this_._buf.write('{\n');
       this_._indent = (this_._indent + 1);
-      final String classTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_111()).join(', ')}>' : '');
+      final String classTypeParamStr = (cls.typeParameters.isNotEmpty ? '<${cls.typeParameters.map(ClosureEnv_anon_117_new(GC.allocateLocal(ClosureEnv_anon_117()))).join(', ')}>' : '');
       this_._buf.write('${this_._pad}final this_ = this__ as ${className}Value${classTypeParamStr};\n');
       for (final p in boxedParamsForMethod) {
         final String baseName = p.name!;
@@ -5076,8 +5309,8 @@ void _DeclarationRestorer__emitAbstractMethodPlaceholder(dynamic this__, Class c
     }
   }
  else   if (!(proc.isGetter)) {
-    final StaticList<VariableDeclaration> pos = proc.function.positionalParameters;
-    final StaticList<VariableDeclaration> named = proc.function.namedParameters;
+    final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+    final StaticList<VariableDeclaration> named = StaticList<VariableDeclaration>.of(proc.function.namedParameters);
     if ((pos.isNotEmpty || named.isNotEmpty)) {
       this_._buf.write(', ');
       _DeclarationRestorer__writeParams(this_, proc.function, proc: proc, suppressCovariant: true);
@@ -5147,7 +5380,7 @@ void _DeclarationRestorer__restoreClassOriginal(dynamic this__, Class cls) {
     final String superName = cls.supertype!.classNode.name;
     if (superName.contains('&')) {
       final String realSuper = _TypeUtils__resolveRealSuperclass(this_, cls.supertype!.classNode);
-      final StaticList<String> mixins = _TypeUtils__collectMixins(this_, cls.supertype!.classNode);
+      final StaticList<String> mixins = StaticList<String>.of(_TypeUtils__collectMixins(this_, cls.supertype!.classNode));
       if (!((realSuper == 'Object'))) {
         this_._buf.write(' extends ${realSuper}');
       }
@@ -5162,7 +5395,7 @@ void _DeclarationRestorer__restoreClassOriginal(dynamic this__, Class cls) {
   }
   if (cls.implementedTypes.isNotEmpty) {
     this_._buf.write(' implements ');
-    this_._buf.write(cls.implementedTypes.map(ClosureEnv_anon_112(this_)).join(', '));
+    this_._buf.write(cls.implementedTypes.map(ClosureEnv_anon_118_new(GC.allocateLocal(ClosureEnv_anon_118()), this_)).join(', '));
   }
   this_._buf.write(' {\n');
   this_._indent = (this_._indent + 1);
@@ -5184,9 +5417,9 @@ void _DeclarationRestorer__restoreEnum(dynamic this__, Class cls) {
   _DeclarationRestorer__writeTypeParams(this_, cls.typeParameters);
   this_._buf.write(' {\n');
   this_._indent = (this_._indent + 1);
-  final StaticList<Field> enumValueFields = StaticList.of(cls.fields.where(ClosureEnv_anon_113(cls)).toList());
+  final StaticList<Field> enumValueFields = StaticList.of(cls.fields.where(ClosureEnv_anon_119_new(GC.allocateLocal(ClosureEnv_anon_119()), cls)).toList());
   final StaticSet<String> enumInternalFields = StaticSet<String>.of(['index', '_name']);
-  final StaticList<Field> userFields = StaticList.of(cls.fields.where(ClosureEnv_anon_114(enumInternalFields)).toList());
+  final StaticList<Field> userFields = StaticList.of(cls.fields.where(ClosureEnv_anon_120_new(GC.allocateLocal(ClosureEnv_anon_120()), enumInternalFields)).toList());
   StaticList<String> userParamNames = StaticList<String>.of([]);
   if (cls.constructors.isNotEmpty) {
     final Constructor ctor = cls.constructors.first;
@@ -5230,13 +5463,13 @@ void _DeclarationRestorer__restoreEnum(dynamic this__, Class cls) {
   if (userParamNames.isNotEmpty) {
     this_._buf.write('\n');
     this_._buf.write('${this_._pad}const ${enumName}(');
-    this_._buf.write(userParamNames.map(ClosureEnv_anon_115()).join(', '));
+    this_._buf.write(userParamNames.map(ClosureEnv_anon_121_new(GC.allocateLocal(ClosureEnv_anon_121()))).join(', '));
     this_._buf.write(');\n');
   }
   this_._indent = (this_._indent - 1);
   this_._buf.write('}\n\n');
   final StaticSet<String> syntheticMethods = StaticSet<String>.of(['_enumToString']);
-  final StaticList<Procedure> userMethods = StaticList.of(cls.procedures.where(ClosureEnv_anon_116(syntheticMethods)).toList());
+  final StaticList<Procedure> userMethods = StaticList.of(cls.procedures.where(ClosureEnv_anon_122_new(GC.allocateLocal(ClosureEnv_anon_122()), syntheticMethods)).toList());
   this_._currentClass = cls;
   for (final proc in userMethods) {
     _DeclarationRestorer__emitEnumMethodAsStatic(this_, cls, proc, enumName);
@@ -5270,8 +5503,8 @@ void _DeclarationRestorer__emitEnumMethodAsStatic(dynamic this__, Class cls, Pro
     }
   }
  else   if (!(proc.isGetter)) {
-    final StaticList<VariableDeclaration> pos = proc.function.positionalParameters;
-    final StaticList<VariableDeclaration> named = proc.function.namedParameters;
+    final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+    final StaticList<VariableDeclaration> named = StaticList<VariableDeclaration>.of(proc.function.namedParameters);
     if ((pos.isNotEmpty || named.isNotEmpty)) {
       this_._buf.write(', ');
       _DeclarationRestorer__writeParams(this_, proc.function, proc: proc);
@@ -5340,7 +5573,10 @@ void _DeclarationRestorer__restoreField(dynamic this__, Field field, {bool isTop
   this_._buf.write(' ${field.name.text}');
   if (!((field.initializer == null))) {
     this_._buf.write(' = ');
+    final bool savedContext = this_._isStaticFieldContext;
+    if ((isTopLevel || field.isStatic))     this_._isStaticFieldContext = true;
     this_._buf.write(_DartRestorerBase__restoreExpr(this_, field.initializer!));
+    this_._isStaticFieldContext = savedContext;
   }
   this_._buf.write(';\n');
 }
@@ -5483,9 +5719,9 @@ void _DeclarationRestorer__restoreProcedure(dynamic this__, Procedure proc) {
       if (((retType is InterfaceType) && retType.typeArguments.isNotEmpty)) {
         innerRetType = _TypeUtils__restoreType(this_, retType.typeArguments.first);
       }
-      final StaticList<VariableDeclaration> allParams = (() {       final StaticList<VariableDeclaration> _v140 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
-      _v140.addAll(proc.function.namedParameters);
- return _v140; })();
+      final StaticList<VariableDeclaration> allParams = StaticList<VariableDeclaration>.of((() {       final StaticList<VariableDeclaration> _v149 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+      _v149.addAll(proc.function.namedParameters);
+ return _v149; })());
       final String funcName = proc.name.text;
       _DartRestorerBase__pushClosureContext(this_, funcName);
       _DeclarationRestorer__emitAsyncClosureEnv(this_, envBaseName: this_._closureContext, func: proc.function, innerReturnType: innerRetType, params: allParams, boxedParams: boxedParamsForProc);
@@ -5539,9 +5775,9 @@ void _DeclarationRestorer__restoreExtensionProcedure(dynamic this__, Procedure p
     if (((retType is InterfaceType) && retType.typeArguments.isNotEmpty)) {
       innerRetType = _TypeUtils__restoreType(this_, retType.typeArguments.first);
     }
-    final StaticList<VariableDeclaration> allParams = (() {     final StaticList<VariableDeclaration> _v141 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
-    _v141.addAll(proc.function.namedParameters);
- return _v141; })();
+    final StaticList<VariableDeclaration> allParams = StaticList<VariableDeclaration>.of((() {     final StaticList<VariableDeclaration> _v150 = StaticList<VariableDeclaration>.of(proc.function.positionalParameters);
+    _v150.addAll(proc.function.namedParameters);
+ return _v150; })());
     _DartRestorerBase__pushClosureContext(this_, cleanedFuncName);
     _DeclarationRestorer__emitAsyncClosureEnv(this_, envBaseName: this_._closureContext, func: proc.function, innerReturnType: innerRetType, params: allParams);
     _DartRestorerBase__popClosureContext(this_);
@@ -5562,13 +5798,13 @@ void _DeclarationRestorer__restoreExtensionProcedure(dynamic this__, Procedure p
 
 void _DeclarationRestorer__writeParamsWithExtensionThis(dynamic this__, FunctionNode func, {Procedure? proc = null}) {
   final this_ = this__;
-  final StaticList<VariableDeclaration> pos = func.positionalParameters;
-  final StaticList<VariableDeclaration> named = func.namedParameters;
+  final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(func.positionalParameters);
+  final StaticList<VariableDeclaration> named = StaticList<VariableDeclaration>.of(func.namedParameters);
   final int reqCount = func.requiredParameterCount;
   final StaticList<String> parts = StaticList<String>.of([]);
   for (var i = 0; (i < pos.length); i = (i + 1)) {
     final VariableDeclaration p = pos[i];
-    final StringBuffer sb = StringBuffer();
+    final StaticStringBuffer sb = StaticStringBuffer();
     if (_TypeUtils__needsCovariant(this_, p, func, proc))     sb.write('covariant ');
     if (p.isFinal)     sb.write('final ');
     sb.write(_TypeUtils__restoreType(this_, p.type));
@@ -5715,25 +5951,25 @@ void _DeclarationRestorer__writeTypeParamNames(dynamic this__, StaticList<TypePa
 String _DeclarationRestorer__typeParamNamesStr(dynamic this__, StaticList<TypeParameter> params) {
   final this_ = this__;
   if (params.isEmpty)   return '';
-  final String names = params.map(ClosureEnv_anon_117()).join(', ');
+  final String names = params.map(ClosureEnv_anon_123_new(GC.allocateLocal(ClosureEnv_anon_123()))).join(', ');
   return '<${names}>';
 }
 
 void _DeclarationRestorer__writeCombinedTypeParams(dynamic this__, StaticList<TypeParameter> classParams, StaticList<TypeParameter> methodParams) {
   final this_ = this__;
   if ((classParams.isEmpty && methodParams.isEmpty))   return;
-  final StaticSet<String?> classParamNames = StaticSet.of(classParams.map(ClosureEnv_anon_118()).toSet().toList());
-  final StaticList<TypeParameter> deduped = (() {   final StaticList<TypeParameter> _v146 = StaticList<TypeParameter>.of(classParams);
-  _v146.addAll(methodParams.where(ClosureEnv_anon_119(classParamNames)));
- return _v146; })();
+  final StaticSet<String?> classParamNames = StaticSet.of(classParams.map(ClosureEnv_anon_124_new(GC.allocateLocal(ClosureEnv_anon_124()))).toSet().toList());
+  final StaticList<TypeParameter> deduped = StaticList<TypeParameter>.of((() {   final StaticList<TypeParameter> _v155 = StaticList<TypeParameter>.of(classParams);
+  _v155.addAll(methodParams.where(ClosureEnv_anon_125_new(GC.allocateLocal(ClosureEnv_anon_125()), classParamNames)));
+ return _v155; })());
   if (deduped.isEmpty)   return;
   _DeclarationRestorer__writeTypeParams(this_, deduped);
 }
 
 void _DeclarationRestorer__writeParams(dynamic this__, FunctionNode func, {Procedure? proc = null}, {bool suppressCovariant = false}, {bool flattenOptional = false}) {
   final this_ = this__;
-  final StaticList<VariableDeclaration> pos = func.positionalParameters;
-  final StaticList<VariableDeclaration> named = func.namedParameters;
+  final StaticList<VariableDeclaration> pos = StaticList<VariableDeclaration>.of(func.positionalParameters);
+  final StaticList<VariableDeclaration> named = StaticList<VariableDeclaration>.of(func.namedParameters);
   final int reqCount = func.requiredParameterCount;
   final StaticList<String> parts = StaticList<String>.of([]);
   bool openedBracket = false;
@@ -5742,26 +5978,42 @@ void _DeclarationRestorer__writeParams(dynamic this__, FunctionNode func, {Proce
     if ((((i == reqCount) && !(openedBracket)) && !(flattenOptional))) {
       openedBracket = true;
     }
-    final StringBuffer sb = StringBuffer();
+    final StaticStringBuffer sb = StaticStringBuffer();
     if ((!(suppressCovariant) && _TypeUtils__needsCovariant(this_, p, func, proc)))     sb.write('covariant ');
     if (p.isFinal)     sb.write('final ');
-    sb.write(_TypeUtils__restoreType(this_, p.type));
+    final String? defaultExpr = (((!(flattenOptional) && (i >= reqCount)) && !((p.initializer == null))) ? _DartRestorerBase__restoreExpr(this_, p.initializer!) : null);
+    sb.write(_DeclarationRestorer__paramTypeForDefault(this_, p.type, defaultExpr));
     sb.write(' ');
     final String cleanName = _TypeUtils__cleanVarName(this_, (p.name ?? '_p${i}'));
     p.name = cleanName;
     final String displayName = (this_._boxedVars.contains(p) ? '${cleanName}_raw' : cleanName);
     sb.write(displayName);
-    if (((!(flattenOptional) && (i >= reqCount)) && !((p.initializer == null)))) {
-      sb.write(' = ${_DartRestorerBase__restoreExpr(this_, p.initializer!)}');
+    if (!((defaultExpr == null))) {
+      sb.write(' = ${defaultExpr}');
     }
     parts.add(sb.toString());
   }
-  if ((!(flattenOptional) && openedBracket)) {
-    final StaticList<String> reqParts = parts.sublist(0, reqCount);
-    final StaticList<String> optParts = parts.sublist(reqCount);
-    final StaticList<String> allParts = (() {     final StaticList<String> _v148 = StaticList<String>.of(reqParts);
-    _v148.add('[${optParts.join(', ')}]');
- return _v148; })();
+  if (flattenOptional) {
+    for (final p in named) {
+      final StaticStringBuffer sb = StaticStringBuffer();
+      if (p.isFinal)       sb.write('final ');
+      sb.write(_TypeUtils__restoreType(this_, p.type));
+      sb.write(' ');
+      final String cleanName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n'));
+      p.name = cleanName;
+      final String displayName = (this_._boxedVars.contains(p) ? '${cleanName}_raw' : cleanName);
+      sb.write(displayName);
+      parts.add(sb.toString());
+    }
+    this_._buf.write(parts.join(', '));
+    return;
+  }
+  if (openedBracket) {
+    final StaticList<String> reqParts = StaticList<String>.of(parts.sublist(0, reqCount));
+    final StaticList<String> optParts = StaticList<String>.of(parts.sublist(reqCount));
+    final StaticList<String> allParts = StaticList<String>.of((() {     final StaticList<String> _v158 = StaticList<String>.of(reqParts);
+    _v158.add('[${optParts.join(', ')}]');
+ return _v158; })());
     if (named.isNotEmpty) {
       allParts.add('{${_DeclarationRestorer__namedParams(this_, named)}}');
     }
@@ -5781,30 +6033,69 @@ void _DeclarationRestorer__writeParams(dynamic this__, FunctionNode func, {Proce
 
 String _DeclarationRestorer__namedParams(dynamic this__, StaticList<VariableDeclaration> named) {
   final this_ = this__;
-  return named.map(ClosureEnv_anon_120(this_)).join(', ');
+  return named.map(ClosureEnv_anon_126_new(GC.allocateLocal(ClosureEnv_anon_126()), this_)).join(', ');
+}
+
+String _DeclarationRestorer__promoteConstCollectionDefault(dynamic this__, String defaultExpr, DartType type) {
+  final this_ = this__;
+  return defaultExpr;
+}
+
+String _DeclarationRestorer__paramTypeForDefault(dynamic this__, DartType type, String? defaultExpr) {
+  final this_ = this__;
+  final String restored = _TypeUtils__restoreType(this_, type);
+  if ((defaultExpr == null))   return restored;
+  if (!(_DeclarationRestorer__isConstCollectionLiteral(this_, defaultExpr)))   return restored;
+  return _DeclarationRestorer__demoteStaticCollectionType(this_, restored);
+}
+
+bool _DeclarationRestorer__isConstCollectionLiteral(dynamic this__, String s) {
+  final this_ = this__;
+  final String t = s.trimLeft();
+  return ((t.startsWith('const [') || t.startsWith('const {')) || t.startsWith('const <'));
+}
+
+String _DeclarationRestorer__demoteStaticCollectionType(dynamic this__, String restored) {
+  final this_ = this__;
+  for (final entry in const [const ('StaticList', 'Iterable'), const ('StaticSet', 'Iterable'), const ('StaticMap', 'Map')]) {
+    final String from;
+    final String to;
+{
+      final (String, String) _v7 = entry;
+      from = _v7.$1;
+      to = _v7.$2;
+    }
+    if (((restored == from) || (restored == '${from}?'))) {
+      return restored.replaceFirst(from, to);
+    }
+    if (restored.startsWith('${from}<')) {
+      return '${to}${restored.substring(from.length)}';
+    }
+  }
+  return restored;
 }
 
 void _DeclarationRestorer__emitAsyncClosureEnv(dynamic this__, {required String envBaseName}, {required FunctionNode func}, {required String innerReturnType}, {required StaticList<VariableDeclaration> params}, {String? thisParam = null}, {StaticList<VariableDeclaration> boxedParams = const []}) {
   final this_ = this__;
-  final int closureId = (() { final _let150 = this_._closureCounter; return (() { final _let151 = this_._closureCounter = (_let150 + 1); return _let150; })(); })();
+  final int closureId = (() { final _let160 = this_._closureCounter; return (() { final _let161 = this_._closureCounter = (_let160 + 1); return _let160; })(); })();
   final String envClassName = 'ClosureEnv_${envBaseName}_${closureId}';
-  final StringBuffer declBuf = StringBuffer();
+  final StaticStringBuffer declBuf = StaticStringBuffer();
   final StaticList<_AsyncEnvFieldValue> fields = StaticList<_AsyncEnvFieldValue>.of([]);
   if (!((thisParam == null))) {
-    fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: 'this_', typeStr: thisParam));
+    fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: 'this_', typeStr: thisParam));
   }
   for (final p in params) {
     final String paramName = p.name!;
     final String rawType = _TypeUtils__restoreType(this_, p.type);
     final String? boxType = _TypeUtils__boxTypeNameFor(this_, p.type);
     if (!((boxType == null))) {
-      fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: paramName, typeStr: boxType, isBoxed: true, boxType: boxType, rawType: rawType));
+      fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: paramName, typeStr: boxType, isBoxed: true, boxType: boxType, rawType: rawType));
     }
  else {
-      fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: paramName, typeStr: rawType));
+      fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: paramName, typeStr: rawType));
     }
   }
-  fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: '_promise', typeStr: 'Promise<${innerReturnType}>'));
+  fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: '_promise', typeStr: 'Promise<${innerReturnType}>'));
   declBuf.write('class ${envClassName} {\n');
   for (final f in fields) {
     declBuf.write('  ${f.typeStr} ${f.name};\n');
@@ -5843,8 +6134,8 @@ void _DeclarationRestorer__emitAsyncClosureEnv(dynamic this__, {required String 
   final String savedAsyncInnerType = this_._asyncInnerReturnType;
   this_._insideAsyncFunction = true;
   this_._asyncInnerReturnType = innerReturnType;
-  final StringBuffer oldBuf = this_._buf;
-  final StringBuffer tmpBuf = StringBuffer();
+  final StaticStringBuffer oldBuf = this_._buf;
+  final StaticStringBuffer tmpBuf = StaticStringBuffer();
   this_._buf = tmpBuf;
   final Statement body = func.body!;
   if ((body is Block)) {
@@ -5899,23 +6190,23 @@ void _DeclarationRestorer__emitAsyncClosureEnv(dynamic this__, {required String 
 
 void _DeclarationRestorer__emitAsyncClosureEnvForMethod(dynamic this__, {required String envBaseName}, {required FunctionNode func}, {required String innerReturnType}, {required StaticList<VariableDeclaration> params}, {required String thisParam}, {required String thisRawParam}, {StaticList<VariableDeclaration> boxedParams = const []}) {
   final this_ = this__;
-  final int closureId = (() { final _let152 = this_._closureCounter; return (() { final _let153 = this_._closureCounter = (_let152 + 1); return _let152; })(); })();
+  final int closureId = (() { final _let162 = this_._closureCounter; return (() { final _let163 = this_._closureCounter = (_let162 + 1); return _let162; })(); })();
   final String envClassName = 'ClosureEnv_${envBaseName}_${closureId}';
-  final StringBuffer declBuf = StringBuffer();
+  final StaticStringBuffer declBuf = StaticStringBuffer();
   final StaticList<_AsyncEnvFieldValue> fields = StaticList<_AsyncEnvFieldValue>.of([]);
-  fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: 'this_', typeStr: thisParam));
+  fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: 'this_', typeStr: thisParam));
   for (final p in params) {
     final String paramName = p.name!;
     final String rawType = _TypeUtils__restoreType(this_, p.type);
     final String? boxType = _TypeUtils__boxTypeNameFor(this_, p.type);
     if (!((boxType == null))) {
-      fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: paramName, typeStr: boxType, isBoxed: true, boxType: boxType, rawType: rawType));
+      fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: paramName, typeStr: boxType, isBoxed: true, boxType: boxType, rawType: rawType));
     }
  else {
-      fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: paramName, typeStr: rawType));
+      fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: paramName, typeStr: rawType));
     }
   }
-  fields.add(_AsyncEnvField_new(_AsyncEnvFieldValue(), name: '_promise', typeStr: 'Promise<${innerReturnType}>'));
+  fields.add(_AsyncEnvField_new(GC.allocateLocal(_AsyncEnvFieldValue()), name: '_promise', typeStr: 'Promise<${innerReturnType}>'));
   declBuf.write('class ${envClassName} {\n');
   for (final f in fields) {
     declBuf.write('  ${f.typeStr} ${f.name};\n');
@@ -5956,8 +6247,8 @@ void _DeclarationRestorer__emitAsyncClosureEnvForMethod(dynamic this__, {require
   final String savedAsyncInnerType = this_._asyncInnerReturnType;
   this_._insideAsyncFunction = true;
   this_._asyncInnerReturnType = innerReturnType;
-  final StringBuffer oldBuf = this_._buf;
-  final StringBuffer tmpBuf = StringBuffer();
+  final StaticStringBuffer oldBuf = this_._buf;
+  final StaticStringBuffer tmpBuf = StaticStringBuffer();
   this_._buf = tmpBuf;
   final Statement body = func.body!;
   if ((body is Block)) {
@@ -6030,22 +6321,47 @@ _AsyncEnvFieldValue _AsyncEnvField_new(dynamic this__, {required String name, re
 
 
 class DartRestorer__DartRestorerBase__TypeUtilsValue extends _DartRestorerBaseValue {
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorerValue extends DartRestorer__DartRestorerBase__TypeUtilsValue {
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorerValue extends DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorerValue {
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorer__StatementRestorerValue extends DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorerValue {
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorer__StatementRestorer__DeclarationRestorerValue extends DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRestorer__StatementRestorerValue {
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
@@ -6082,7 +6398,7 @@ class _DeclarationRestorer__DartRestorerBase__TypeUtils__ExpressionRestorer__Sta
 
 
 String restoreDartFromComponent(Component component) {
-  return (DartRestorer_new(DartRestorerValue()).vptr['restore'] as TypeFunction2<String, dynamic, Component>)(DartRestorer_new(DartRestorerValue()), component);
+  return (DartRestorer_new(GC.allocateLocal(DartRestorerValue())).vptr['restore'] as String Function(dynamic, Component))(DartRestorer_new(GC.allocateLocal(DartRestorerValue())), component);
 }
 
 _CaptureAnalysisResultValue analyzeCapturedVarsFromFunc(FunctionNode func) {
@@ -6092,9 +6408,9 @@ _CaptureAnalysisResultValue analyzeCapturedVarsFromFunc(FunctionNode func) {
   final StaticSet<VariableDeclaration> capturedSet = StaticSet<VariableDeclaration>.of([]);
   BoolBox capturesThis = BoolBox(false);
   if (!((func.body == null))) {
-    _collectCaptured(func.body!, localDecls, capturedSet, ClosureEnv_analyzeCapturedVarsFromFunc_121(capturesThis));
+    _collectCaptured(func.body!, localDecls, capturedSet, ClosureEnv_analyzeCapturedVarsFromFunc_127_new(GC.allocateLocal(ClosureEnv_analyzeCapturedVarsFromFunc_127()), capturesThis));
   }
-  return _CaptureAnalysisResult_new(_CaptureAnalysisResultValue(), capturedDecls: StaticList.of(capturedSet.toList()), capturesThis: capturesThis.value);
+  return _CaptureAnalysisResult_new(GC.allocateLocal(_CaptureAnalysisResultValue()), capturedDecls: StaticList.of(capturedSet.toList()), capturesThis: capturesThis.value);
 }
 
 void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, StaticSet<VariableDeclaration> captured, TypeFunction1<void, bool> onThisCaptured) {
@@ -6119,7 +6435,7 @@ void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, 
     return;
   }
   if ((node is ThisExpression)) {
-    onThisCaptured(true);
+    onThisCaptured.closureCall(onThisCaptured, true);
     return;
   }
   if ((node is FunctionExpression)) {
@@ -6129,7 +6445,7 @@ void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, 
     final StaticSet<VariableDeclaration> innerCaptured = StaticSet<VariableDeclaration>.of([]);
     BoolBox innerCapturesThis = BoolBox(false);
     if (!((node.function.body == null))) {
-      _collectCaptured(node.function.body!, innerLocalDecls, innerCaptured, ClosureEnv__collectCaptured_122(innerCapturesThis));
+      _collectCaptured(node.function.body!, innerLocalDecls, innerCaptured, ClosureEnv__collectCaptured_128_new(GC.allocateLocal(ClosureEnv__collectCaptured_128()), innerCapturesThis));
     }
     for (final decl in innerCaptured) {
       if (!(localDecls.contains(decl))) {
@@ -6137,7 +6453,7 @@ void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, 
       }
     }
     if (innerCapturesThis.value) {
-      onThisCaptured(true);
+      onThisCaptured.closureCall(onThisCaptured, true);
     }
     return;
   }
@@ -6356,11 +6672,11 @@ void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, 
     return;
   }
   if ((node is SuperPropertyGet)) {
-    onThisCaptured(true);
+    onThisCaptured.closureCall(onThisCaptured, true);
     return;
   }
   if ((node is SuperPropertySet)) {
-    onThisCaptured(true);
+    onThisCaptured.closureCall(onThisCaptured, true);
     _collectCaptured(node.value, localDecls, captured, onThisCaptured);
     return;
   }
@@ -6416,584 +6732,1328 @@ void _collectCaptured(TreeNode node, StaticSet<VariableDeclaration> localDecls, 
   }
 }
 
-class _TearOff_MethodSpecEntry_operatorEq extends TypeFunction2<bool, dynamic, Object> {
-  const _TearOff_MethodSpecEntry_operatorEq();
-  @override
-  bool call(dynamic this_, Object other) => MethodSpecEntry_operatorEq(this_, other);
-}
-class _TearOff_MethodSpecEntry_get_hashCode extends TypeFunction1<int, dynamic> {
-  const _TearOff_MethodSpecEntry_get_hashCode();
-  @override
-  int call(dynamic this_) => MethodSpecEntry_get_hashCode(this_);
-}
 class ClosureEnv_anon_1 extends TypeFunction1<bool, DartType> {
-  _DartRestorerBaseValue this_;
-  ClosureEnv_anon_1(this.this_);
+  late _DartRestorerBaseValue this_;
+  ClosureEnv_anon_1();
   @override
-  bool call(DartType t) => ClosureEnv_anon_1_call(this, t);
+  bool call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, DartType t) {
+ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_, _DartRestorerBaseValue this_) {
+  env_.closureCall = ClosureEnv_anon_1_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_1_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_1;
+
   return _DartRestorerBase__containsTypeParameter(env.this_, t);
 }
 
 class ClosureEnv_anon_2 extends TypeFunction1<bool, DartType> {
-  _DartRestorerBaseValue this_;
-  ClosureEnv_anon_2(this.this_);
+  late _DartRestorerBaseValue this_;
+  ClosureEnv_anon_2();
   @override
-  bool call(DartType t) => ClosureEnv_anon_2_call(this, t);
+  bool call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_2_call(ClosureEnv_anon_2 env, DartType t) {
+ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_, _DartRestorerBaseValue this_) {
+  env_.closureCall = ClosureEnv_anon_2_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_2_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_2;
+
   return _DartRestorerBase__containsTypeParameter(env.this_, t);
 }
 
 class ClosureEnv_anon_3 extends TypeFunction1<String, DartType> {
-  _DartRestorerBaseValue this_;
-  bool asSuffix;
-  ClosureEnv_anon_3(this.this_, this.asSuffix);
+  late _DartRestorerBaseValue this_;
+  late bool asSuffix;
+  ClosureEnv_anon_3();
   @override
-  String call(DartType t) => ClosureEnv_anon_3_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (asSuffix is AnyGC) (asSuffix as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_3_call(ClosureEnv_anon_3 env, DartType t) {
+ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_, _DartRestorerBaseValue this_, bool asSuffix) {
+  env_.closureCall = ClosureEnv_anon_3_call;
+  env_.this_ = this_;
+  env_.asSuffix = asSuffix;
+  return env_;
+}
+String ClosureEnv_anon_3_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_3;
+
   return _DartRestorerBase__typeToSpecStr(env.this_, t, asSuffix: env.asSuffix);
 }
 
 class ClosureEnv_anon_4 extends TypeFunction1<void, TreeNode> {
-  _DartRestorerBaseValue this_;
-  StaticSet<VariableDeclaration> out;
-  ClosureEnv_anon_4(this.this_, this.out);
+  late _DartRestorerBaseValue this_;
+  late StaticSet<VariableDeclaration> out;
+  ClosureEnv_anon_4();
   @override
-  void call(TreeNode child) => ClosureEnv_anon_4_call(this, child);
+  void call(TreeNode child) => closureCall(this, child);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (out is AnyGC) (out as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_4_call(ClosureEnv_anon_4 env, TreeNode child) {
+ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_, _DartRestorerBaseValue this_, StaticSet<VariableDeclaration> out) {
+  env_.closureCall = ClosureEnv_anon_4_call;
+  env_.this_ = this_;
+  env_.out = out;
+  return env_;
+}
+void ClosureEnv_anon_4_call(dynamic env__, TreeNode child) {
+  final env = env__ as ClosureEnv_anon_4;
+
   return _DartRestorerBase__collectShallowDecls(env.this_, child, env.out);
 }
 
 class ClosureEnv_anon_5 extends TypeFunction1<void, VariableDeclaration> {
-  StaticSet<VariableDeclaration> out;
-  ClosureEnv_anon_5(this.out);
+  late StaticSet<VariableDeclaration> out;
+  ClosureEnv_anon_5();
   @override
-  void call(VariableDeclaration v) => ClosureEnv_anon_5_call(this, v);
+  void call(VariableDeclaration v) => closureCall(this, v);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (out is AnyGC) (out as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_5_call(ClosureEnv_anon_5 env, VariableDeclaration v) {
+ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_, StaticSet<VariableDeclaration> out) {
+  env_.closureCall = ClosureEnv_anon_5_call;
+  env_.out = out;
+  return env_;
+}
+void ClosureEnv_anon_5_call(dynamic env__, VariableDeclaration v) {
+  final env = env__ as ClosureEnv_anon_5;
+
   return env.out.add(v);
 }
 
 class ClosureEnv_anon_6 extends TypeFunction1<void, VariableDeclaration> {
-  StaticSet<VariableDeclaration> out;
-  ClosureEnv_anon_6(this.out);
+  late StaticSet<VariableDeclaration> out;
+  ClosureEnv_anon_6();
   @override
-  void call(VariableDeclaration v) => ClosureEnv_anon_6_call(this, v);
+  void call(VariableDeclaration v) => closureCall(this, v);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (out is AnyGC) (out as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_6_call(ClosureEnv_anon_6 env, VariableDeclaration v) {
+ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_, StaticSet<VariableDeclaration> out) {
+  env_.closureCall = ClosureEnv_anon_6_call;
+  env_.out = out;
+  return env_;
+}
+void ClosureEnv_anon_6_call(dynamic env__, VariableDeclaration v) {
+  final env = env__ as ClosureEnv_anon_6;
+
   return env.out.add(v);
 }
 
 class ClosureEnv_anon_7 extends TypeFunction1<void, TreeNode> {
-  _DartRestorerBaseValue this_;
-  StaticList<FunctionExpression> out;
-  ClosureEnv_anon_7(this.this_, this.out);
+  late _DartRestorerBaseValue this_;
+  late StaticList<FunctionExpression> out;
+  ClosureEnv_anon_7();
   @override
-  void call(TreeNode child) => ClosureEnv_anon_7_call(this, child);
+  void call(TreeNode child) => closureCall(this, child);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (out is AnyGC) (out as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_7_call(ClosureEnv_anon_7 env, TreeNode child) {
+ClosureEnv_anon_7 ClosureEnv_anon_7_new(ClosureEnv_anon_7 env_, _DartRestorerBaseValue this_, StaticList<FunctionExpression> out) {
+  env_.closureCall = ClosureEnv_anon_7_call;
+  env_.this_ = this_;
+  env_.out = out;
+  return env_;
+}
+void ClosureEnv_anon_7_call(dynamic env__, TreeNode child) {
+  final env = env__ as ClosureEnv_anon_7;
+
   return _DartRestorerBase__collectAllFunctionExpressions(env.this_, child, env.out);
 }
 
 class ClosureEnv_anon_8 extends TypeFunction1<String, DartType> {
-  _DartRestorerBaseValue this_;
-  ClosureEnv_anon_8(this.this_);
+  late _DartRestorerBaseValue this_;
+  ClosureEnv_anon_8();
   @override
-  String call(DartType t) => ClosureEnv_anon_8_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_8_call(ClosureEnv_anon_8 env, DartType t) {
+ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_, _DartRestorerBaseValue this_) {
+  env_.closureCall = ClosureEnv_anon_8_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_8_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_8;
+
   return _DartRestorerBase__restoreTypeForSignature(env.this_, t);
 }
 
-class _TearOff__CapturedVar_operatorEq extends TypeFunction2<bool, dynamic, Object> {
-  const _TearOff__CapturedVar_operatorEq();
-  @override
-  bool call(dynamic this_, Object other) => _CapturedVar_operatorEq(this_, other);
-}
-class _TearOff__CapturedVar_get_hashCode extends TypeFunction1<int, dynamic> {
-  const _TearOff__CapturedVar_get_hashCode();
-  @override
-  int call(dynamic this_) => _CapturedVar_get_hashCode(this_);
-}
-class _TearOff_DartRestorer_restore extends TypeFunction2<String, dynamic, Component> {
-  const _TearOff_DartRestorer_restore();
-  @override
-  String call(dynamic this_, Component component) => DartRestorer_restore(this_, component);
-}
 class ClosureEnv_anon_9 extends TypeFunction1<bool, Procedure> {
   ClosureEnv_anon_9();
   @override
-  bool call(Procedure p) => ClosureEnv_anon_9_call(this, p);
+  bool call(Procedure p) => closureCall(this, p);
 }
-bool ClosureEnv_anon_9_call(ClosureEnv_anon_9 env, Procedure p) {
+ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
+  env_.closureCall = ClosureEnv_anon_9_call;
+  return env_;
+}
+bool ClosureEnv_anon_9_call(dynamic env__, Procedure p) {
+  final env = env__ as ClosureEnv_anon_9;
+
   return (((p.name.text == 'toString') && !(p.isAbstract)) && !((p.function.body == null)));
 }
 
 class ClosureEnv_anon_10 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_10();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_10_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String? ClosureEnv_anon_10_call(ClosureEnv_anon_10 env, TypeParameter tp) {
+ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_) {
+  env_.closureCall = ClosureEnv_anon_10_call;
+  return env_;
+}
+String? ClosureEnv_anon_10_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_10;
+
   return tp.name;
 }
 
 class ClosureEnv_anon_11 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_11(this.classTpNames);
+  late StaticSet<String?> classTpNames;
+  ClosureEnv_anon_11();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_11_call(this, tp);
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classTpNames is AnyGC) (classTpNames as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_11_call(ClosureEnv_anon_11 env, TypeParameter tp) {
+ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, StaticSet<String?> classTpNames) {
+  env_.closureCall = ClosureEnv_anon_11_call;
+  env_.classTpNames = classTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_11_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_11;
+
   return !(env.classTpNames.contains(tp.name));
 }
 
 class ClosureEnv_anon_12 extends TypeFunction1<bool, DartType> {
-  DartRestorerValue this_;
-  ClosureEnv_anon_12(this.this_);
+  late DartRestorerValue this_;
+  ClosureEnv_anon_12();
   @override
-  bool call(DartType ta) => ClosureEnv_anon_12_call(this, ta);
+  bool call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_12_call(ClosureEnv_anon_12 env, DartType ta) {
+ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_, DartRestorerValue this_) {
+  env_.closureCall = ClosureEnv_anon_12_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_12_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_12;
+
   return _DartRestorerBase__containsTypeParameter(env.this_, ta);
 }
 
 class ClosureEnv_anon_13 extends TypeFunction1<String, DartType> {
-  DartRestorerValue this_;
-  ClosureEnv_anon_13(this.this_);
+  late DartRestorerValue this_;
+  ClosureEnv_anon_13();
   @override
-  String call(DartType ta) => ClosureEnv_anon_13_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_13_call(ClosureEnv_anon_13 env, DartType ta) {
+ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, DartRestorerValue this_) {
+  env_.closureCall = ClosureEnv_anon_13_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_13_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_13;
+
   return _DartRestorerBase__typeToSpecSuffix(env.this_, ta);
 }
 
 class ClosureEnv_anon_14 extends TypeFunction1<String, DartType> {
-  DartRestorerValue this_;
-  ClosureEnv_anon_14(this.this_);
+  late DartRestorerValue this_;
+  ClosureEnv_anon_14();
   @override
-  String call(DartType ta) => ClosureEnv_anon_14_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_14_call(ClosureEnv_anon_14 env, DartType ta) {
+ClosureEnv_anon_14 ClosureEnv_anon_14_new(ClosureEnv_anon_14 env_, DartRestorerValue this_) {
+  env_.closureCall = ClosureEnv_anon_14_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_14_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_14;
+
   return _DartRestorerBase__typeToSpecRestoreStr(env.this_, ta);
 }
 
 class ClosureEnv_anon_15 extends TypeFunction0<StaticMap<String, StaticSet<MethodSpecEntryValue>>> {
   ClosureEnv_anon_15();
   @override
-  StaticMap<String, StaticSet<MethodSpecEntryValue>> call() => ClosureEnv_anon_15_call(this);
+  StaticMap<String, StaticSet<MethodSpecEntryValue>> call() => closureCall(this);
 }
-StaticMap<String, StaticSet<MethodSpecEntryValue>> ClosureEnv_anon_15_call(ClosureEnv_anon_15 env) {
+ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_) {
+  env_.closureCall = ClosureEnv_anon_15_call;
+  return env_;
+}
+StaticMap<String, StaticSet<MethodSpecEntryValue>> ClosureEnv_anon_15_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_15;
+
   return StaticMap<String, StaticSet<MethodSpecEntryValue>>.of({});
 }
 
 class ClosureEnv_anon_16 extends TypeFunction0<StaticSet<MethodSpecEntryValue>> {
   ClosureEnv_anon_16();
   @override
-  StaticSet<MethodSpecEntryValue> call() => ClosureEnv_anon_16_call(this);
+  StaticSet<MethodSpecEntryValue> call() => closureCall(this);
 }
-StaticSet<MethodSpecEntryValue> ClosureEnv_anon_16_call(ClosureEnv_anon_16 env) {
+ClosureEnv_anon_16 ClosureEnv_anon_16_new(ClosureEnv_anon_16 env_) {
+  env_.closureCall = ClosureEnv_anon_16_call;
+  return env_;
+}
+StaticSet<MethodSpecEntryValue> ClosureEnv_anon_16_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_16;
+
   return StaticSet<MethodSpecEntryValue>.of([]);
 }
 
 class ClosureEnv_anon_17 extends TypeFunction1<bool, _VTableEntryValue> {
-  _VTableEntryValue ifaceEntry;
-  ClosureEnv_anon_17(this.ifaceEntry);
+  late _VTableEntryValue ifaceEntry;
+  ClosureEnv_anon_17();
   @override
-  bool call(_VTableEntryValue e) => ClosureEnv_anon_17_call(this, e);
+  bool call(_VTableEntryValue e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (ifaceEntry is AnyGC) (ifaceEntry as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_17_call(ClosureEnv_anon_17 env, _VTableEntryValue e) {
+ClosureEnv_anon_17 ClosureEnv_anon_17_new(ClosureEnv_anon_17 env_, _VTableEntryValue ifaceEntry) {
+  env_.closureCall = ClosureEnv_anon_17_call;
+  env_.ifaceEntry = ifaceEntry;
+  return env_;
+}
+bool ClosureEnv_anon_17_call(dynamic env__, _VTableEntryValue e) {
+  final env = env__ as ClosureEnv_anon_17;
+
   return ((e.name == env.ifaceEntry.name) && (e.kind == env.ifaceEntry.kind));
 }
 
 class ClosureEnv_anon_18 extends TypeFunction1<bool, _VTableEntryValue> {
-  StringBox methodName;
-  _VTableEntryValue entry;
-  ClosureEnv_anon_18(this.methodName, this.entry);
+  late StringBox methodName;
+  late _VTableEntryValue entry;
+  ClosureEnv_anon_18();
   @override
-  bool call(_VTableEntryValue e) => ClosureEnv_anon_18_call(this, e);
+  bool call(_VTableEntryValue e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (methodName is AnyGC) (methodName as AnyGC).gcMark(flag);
+    if (entry is AnyGC) (entry as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_18_call(ClosureEnv_anon_18 env, _VTableEntryValue e) {
+ClosureEnv_anon_18 ClosureEnv_anon_18_new(ClosureEnv_anon_18 env_, StringBox methodName, _VTableEntryValue entry) {
+  env_.closureCall = ClosureEnv_anon_18_call;
+  env_.methodName = methodName;
+  env_.entry = entry;
+  return env_;
+}
+bool ClosureEnv_anon_18_call(dynamic env__, _VTableEntryValue e) {
+  final env = env__ as ClosureEnv_anon_18;
+
   return ((e.name == env.methodName.value) && (e.kind == env.entry.kind));
 }
 
 class ClosureEnv_anon_19 extends TypeFunction1<String, VariableDeclaration> {
-  DartRestorerValue this_;
-  ClosureEnv_anon_19(this.this_);
+  late DartRestorerValue this_;
+  ClosureEnv_anon_19();
   @override
-  String call(VariableDeclaration p) => ClosureEnv_anon_19_call(this, p);
+  String call(VariableDeclaration p) => closureCall(this, p);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_19_call(ClosureEnv_anon_19 env, VariableDeclaration p) {
+ClosureEnv_anon_19 ClosureEnv_anon_19_new(ClosureEnv_anon_19 env_, DartRestorerValue this_) {
+  env_.closureCall = ClosureEnv_anon_19_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_19_call(dynamic env__, VariableDeclaration p) {
+  final env = env__ as ClosureEnv_anon_19;
+
   return _DartRestorerBase__restoreTypeForSignature(env.this_, p.type);
 }
 
 class ClosureEnv_anon_20 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_20(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_20();
   @override
-  String call(DartType t) => ClosureEnv_anon_20_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_20_call(ClosureEnv_anon_20 env, DartType t) {
+ClosureEnv_anon_20 ClosureEnv_anon_20_new(ClosureEnv_anon_20 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_20_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_20_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_20;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_21 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_21(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_21();
   @override
-  String call(DartType t) => ClosureEnv_anon_21_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_21_call(ClosureEnv_anon_21 env, DartType t) {
+ClosureEnv_anon_21 ClosureEnv_anon_21_new(ClosureEnv_anon_21 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_21_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_21_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_21;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_22 extends TypeFunction1<String, Constant> {
-  dynamic this_;
-  ClosureEnv_anon_22(this.this_);
+class ClosureEnv_anon_22 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_22();
   @override
-  String call(Constant e) => ClosureEnv_anon_22_call(this, e);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_22_call(ClosureEnv_anon_22 env, Constant e) {
-  return _ConstantRestorer__restoreConstant(this_, e);
+ClosureEnv_anon_22 ClosureEnv_anon_22_new(ClosureEnv_anon_22 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_22_call;
+  env_.this_ = this_;
+  return env_;
 }
+String ClosureEnv_anon_22_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_22;
+
+      if (((t is InterfaceType) && (t.classNode.name == 'Object'))) {
+        return 'dynamic';
+      }
+      return _TypeUtils__restoreClosureParamType(this_, t);
+    }
 
 class ClosureEnv_anon_23 extends TypeFunction1<String, Constant> {
-  dynamic this_;
-  ClosureEnv_anon_23(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_23();
   @override
-  String call(Constant e) => ClosureEnv_anon_23_call(this, e);
+  String call(Constant e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_23_call(ClosureEnv_anon_23 env, Constant e) {
+ClosureEnv_anon_23 ClosureEnv_anon_23_new(ClosureEnv_anon_23 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_23_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_23_call(dynamic env__, Constant e) {
+  final env = env__ as ClosureEnv_anon_23;
+
   return _ConstantRestorer__restoreConstant(this_, e);
 }
 
-class ClosureEnv_anon_24 extends TypeFunction1<String, ConstantMapEntry> {
-  dynamic this_;
-  ClosureEnv_anon_24(this.this_);
+class ClosureEnv_anon_24 extends TypeFunction1<String, Constant> {
+  late dynamic this_;
+  ClosureEnv_anon_24();
   @override
-  String call(ConstantMapEntry e) => ClosureEnv_anon_24_call(this, e);
+  String call(Constant e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_24_call(ClosureEnv_anon_24 env, ConstantMapEntry e) {
+ClosureEnv_anon_24 ClosureEnv_anon_24_new(ClosureEnv_anon_24 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_24_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_24_call(dynamic env__, Constant e) {
+  final env = env__ as ClosureEnv_anon_24;
+
+  return _ConstantRestorer__restoreConstant(this_, e);
+}
+
+class ClosureEnv_anon_25 extends TypeFunction1<String, ConstantMapEntry> {
+  late dynamic this_;
+  ClosureEnv_anon_25();
+  @override
+  String call(ConstantMapEntry e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_25 ClosureEnv_anon_25_new(ClosureEnv_anon_25 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_25_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_25_call(dynamic env__, ConstantMapEntry e) {
+  final env = env__ as ClosureEnv_anon_25;
+
       return '${_ConstantRestorer__restoreConstant(this_, e.key)}: ${_ConstantRestorer__restoreConstant(this_, e.value)}';
     }
 
-class ClosureEnv_anon_25 extends TypeFunction1<String, MapEntry<Reference, Constant>> {
-  dynamic this_;
-  ClosureEnv_anon_25(this.this_);
+class ClosureEnv_anon_26 extends TypeFunction1<String, StaticMapEntry<Reference, Constant>> {
+  late dynamic this_;
+  ClosureEnv_anon_26();
   @override
-  String call(MapEntry<Reference, Constant> e) => ClosureEnv_anon_25_call(this, e);
+  String call(StaticMapEntry<Reference, Constant> e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_25_call(ClosureEnv_anon_25 env, MapEntry<Reference, Constant> e) {
+ClosureEnv_anon_26 ClosureEnv_anon_26_new(ClosureEnv_anon_26 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_26_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_26_call(dynamic env__, StaticMapEntry<Reference, Constant> e) {
+  final env = env__ as ClosureEnv_anon_26;
+
     return '${e.key.asField.name.text}: ${_ConstantRestorer__restoreConstant(this_, e.value)}';
   }
 
-class ClosureEnv_anon_26 extends TypeFunction1<String, MapEntry<Reference, Constant>> {
-  dynamic this_;
-  ClosureEnv_anon_26(this.this_);
-  @override
-  String call(MapEntry<Reference, Constant> e) => ClosureEnv_anon_26_call(this, e);
-}
-String ClosureEnv_anon_26_call(ClosureEnv_anon_26 env, MapEntry<Reference, Constant> e) {
-    return '${e.key.asField.name.text}: ${_ConstantRestorer__restoreConstant(this_, e.value)}';
-  }
-
-class ClosureEnv_anon_27 extends TypeFunction1<bool, DartType> {
+class ClosureEnv_anon_27 extends TypeFunction1<String, DartType> {
+  late dynamic _r;
   ClosureEnv_anon_27();
   @override
-  bool call(DartType t) => ClosureEnv_anon_27_call(this, t);
+  String call(DartType a1) => closureCall(this, a1);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_27_call(ClosureEnv_anon_27 env, DartType t) {
+ClosureEnv_anon_27 ClosureEnv_anon_27_new(ClosureEnv_anon_27 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_27_call;
+  env_._r = _r;
+  return env_;
+}
+String ClosureEnv_anon_27_call(dynamic env__, DartType a1) {
+  final _r = (env__ as ClosureEnv_anon_27)._r;
+  return (_r.vptr['_restoreType'] as String Function(dynamic, DartType))(_r, a1);
+}
+class ClosureEnv_anon_28 extends TypeFunction1<String, StaticMapEntry<Reference, Constant>> {
+  late dynamic this_;
+  ClosureEnv_anon_28();
+  @override
+  String call(StaticMapEntry<Reference, Constant> e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_28 ClosureEnv_anon_28_new(ClosureEnv_anon_28 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_28_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_28_call(dynamic env__, StaticMapEntry<Reference, Constant> e) {
+  final env = env__ as ClosureEnv_anon_28;
+
+    return '${e.key.asField.name.text}: ${_ConstantRestorer__restoreConstant(this_, e.value)}';
+  }
+
+class ClosureEnv_anon_29 extends TypeFunction1<String, DartType> {
+  late dynamic _r;
+  ClosureEnv_anon_29();
+  @override
+  String call(DartType a1) => closureCall(this, a1);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_29 ClosureEnv_anon_29_new(ClosureEnv_anon_29 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_29_call;
+  env_._r = _r;
+  return env_;
+}
+String ClosureEnv_anon_29_call(dynamic env__, DartType a1) {
+  final _r = (env__ as ClosureEnv_anon_29)._r;
+  return (_r.vptr['_restoreType'] as String Function(dynamic, DartType))(_r, a1);
+}
+class ClosureEnv_anon_30 extends TypeFunction1<bool, DartType> {
+  ClosureEnv_anon_30();
+  @override
+  bool call(DartType t) => closureCall(this, t);
+}
+ClosureEnv_anon_30 ClosureEnv_anon_30_new(ClosureEnv_anon_30 env_) {
+  env_.closureCall = ClosureEnv_anon_30_call;
+  return env_;
+}
+bool ClosureEnv_anon_30_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_30;
+
   return !((t is DynamicType));
 }
 
-class ClosureEnv_anon_28 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_28(this.this_);
+class ClosureEnv_anon_31 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_31();
   @override
-  String call(DartType t) => ClosureEnv_anon_28_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_28_call(ClosureEnv_anon_28 env, DartType t) {
+ClosureEnv_anon_31 ClosureEnv_anon_31_new(ClosureEnv_anon_31 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_31_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_31_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_31;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_29 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_29(this.this_);
+class ClosureEnv_anon_32 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_32();
   @override
-  String call(DartType t) => ClosureEnv_anon_29_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_29_call(ClosureEnv_anon_29 env, DartType t) {
+ClosureEnv_anon_32 ClosureEnv_anon_32_new(ClosureEnv_anon_32 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_32_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_32_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_32;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_30 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_30();
+class ClosureEnv_anon_33 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_33();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_30_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_30_call(ClosureEnv_anon_30 env, TypeParameter tp) {
+ClosureEnv_anon_33 ClosureEnv_anon_33_new(ClosureEnv_anon_33 env_) {
+  env_.closureCall = ClosureEnv_anon_33_call;
+  return env_;
+}
+String ClosureEnv_anon_33_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_33;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_31 extends TypeFunction1<bool, _VTableEntryValue> {
-  String fieldName;
-  ClosureEnv_anon_31(this.fieldName);
+class ClosureEnv_anon_34 extends TypeFunction1<bool, _VTableEntryValue> {
+  late String fieldName;
+  ClosureEnv_anon_34();
   @override
-  bool call(_VTableEntryValue e) => ClosureEnv_anon_31_call(this, e);
+  bool call(_VTableEntryValue e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (fieldName is AnyGC) (fieldName as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_31_call(ClosureEnv_anon_31 env, _VTableEntryValue e) {
+ClosureEnv_anon_34 ClosureEnv_anon_34_new(ClosureEnv_anon_34 env_, String fieldName) {
+  env_.closureCall = ClosureEnv_anon_34_call;
+  env_.fieldName = fieldName;
+  return env_;
+}
+bool ClosureEnv_anon_34_call(dynamic env__, _VTableEntryValue e) {
+  final env = env__ as ClosureEnv_anon_34;
+
   return ((e.name == env.fieldName) && (e.kind == 'getter'));
 }
 
-class ClosureEnv_anon_32 extends TypeFunction1<String?, TypeParameter> {
-  ClosureEnv_anon_32();
+class ClosureEnv_anon_35 extends TypeFunction1<String?, TypeParameter> {
+  ClosureEnv_anon_35();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_32_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String? ClosureEnv_anon_32_call(ClosureEnv_anon_32 env, TypeParameter tp) {
+ClosureEnv_anon_35 ClosureEnv_anon_35_new(ClosureEnv_anon_35 env_) {
+  env_.closureCall = ClosureEnv_anon_35_call;
+  return env_;
+}
+String? ClosureEnv_anon_35_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_35;
+
   return tp.name;
 }
 
-class ClosureEnv_anon_33 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_33(this.classTpNames);
+class ClosureEnv_anon_36 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> classTpNames;
+  ClosureEnv_anon_36();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_33_call(this, tp);
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classTpNames is AnyGC) (classTpNames as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_33_call(ClosureEnv_anon_33 env, TypeParameter tp) {
+ClosureEnv_anon_36 ClosureEnv_anon_36_new(ClosureEnv_anon_36 env_, StaticSet<String?> classTpNames) {
+  env_.closureCall = ClosureEnv_anon_36_call;
+  env_.classTpNames = classTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_36_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_36;
+
   return !(env.classTpNames.contains(tp.name));
 }
 
-class ClosureEnv_anon_34 extends TypeFunction1<bool, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_34(this.this_);
+class ClosureEnv_anon_37 extends TypeFunction1<bool, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_37();
   @override
-  bool call(DartType ta) => ClosureEnv_anon_34_call(this, ta);
+  bool call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_34_call(ClosureEnv_anon_34 env, DartType ta) {
+ClosureEnv_anon_37 ClosureEnv_anon_37_new(ClosureEnv_anon_37 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_37_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_37_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_37;
+
   return _DartRestorerBase__containsTypeParameter(this_, ta);
 }
 
-class ClosureEnv_anon_35 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_35(this.this_);
+class ClosureEnv_anon_38 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_38();
   @override
-  String call(DartType ta) => ClosureEnv_anon_35_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_35_call(ClosureEnv_anon_35 env, DartType ta) {
+ClosureEnv_anon_38 ClosureEnv_anon_38_new(ClosureEnv_anon_38 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_38_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_38_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_38;
+
   return _DartRestorerBase__typeToSpecSuffix(this_, ta);
 }
 
-class ClosureEnv_anon_36 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_36(this.this_);
-  @override
-  String call(DartType ta) => ClosureEnv_anon_36_call(this, ta);
-}
-String ClosureEnv_anon_36_call(ClosureEnv_anon_36 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
-}
-
-class ClosureEnv_anon_37 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_37(this.this_);
-  @override
-  String call(DartType ta) => ClosureEnv_anon_37_call(this, ta);
-}
-String ClosureEnv_anon_37_call(ClosureEnv_anon_37 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
-}
-
-class ClosureEnv_anon_38 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_38(this.this_);
-  @override
-  String call(DartType ta) => ClosureEnv_anon_38_call(this, ta);
-}
-String ClosureEnv_anon_38_call(ClosureEnv_anon_38 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
-}
-
 class ClosureEnv_anon_39 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_39(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_39();
   @override
-  String call(DartType ta) => ClosureEnv_anon_39_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_39_call(ClosureEnv_anon_39 env, DartType ta) {
+ClosureEnv_anon_39 ClosureEnv_anon_39_new(ClosureEnv_anon_39 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_39_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_39_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_39;
+
   return _TypeUtils__restoreType(this_, ta);
 }
 
 class ClosureEnv_anon_40 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_40(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_40();
   @override
-  String call(DartType ta) => ClosureEnv_anon_40_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_40_call(ClosureEnv_anon_40 env, DartType ta) {
+ClosureEnv_anon_40 ClosureEnv_anon_40_new(ClosureEnv_anon_40 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_40_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_40_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_40;
+
   return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_41 extends TypeFunction1<String, TypeParameter> {
+class ClosureEnv_anon_41 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
   ClosureEnv_anon_41();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_41_call(this, tp);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_41_call(ClosureEnv_anon_41 env, TypeParameter tp) {
-  return (tp.name ?? 'dynamic');
+ClosureEnv_anon_41 ClosureEnv_anon_41_new(ClosureEnv_anon_41 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_41_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_41_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_41;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
 class ClosureEnv_anon_42 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_42(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_42();
   @override
-  String call(DartType t) => ClosureEnv_anon_42_call(this, t);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_42_call(ClosureEnv_anon_42 env, DartType t) {
-  return _TypeUtils__restoreType(this_, t);
+ClosureEnv_anon_42 ClosureEnv_anon_42_new(ClosureEnv_anon_42 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_42_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_42_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_42;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_43 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_43(this.this_);
+class ClosureEnv_anon_43 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_43();
   @override
-  String call(Expression e) => ClosureEnv_anon_43_call(this, e);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_43_call(ClosureEnv_anon_43 env, Expression e) {
-  return _ExpressionRestorer__restoreExpr(this_, e);
+ClosureEnv_anon_43 ClosureEnv_anon_43_new(ClosureEnv_anon_43 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_43_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_43_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_43;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_44 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_44(this.this_);
+class ClosureEnv_anon_44 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_44();
   @override
-  String call(DartType t) => ClosureEnv_anon_44_call(this, t);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_44_call(ClosureEnv_anon_44 env, DartType t) {
-  return _TypeUtils__restoreType(this_, t);
+ClosureEnv_anon_44 ClosureEnv_anon_44_new(ClosureEnv_anon_44 env_) {
+  env_.closureCall = ClosureEnv_anon_44_call;
+  return env_;
+}
+String ClosureEnv_anon_44_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_44;
+
+  return (tp.name ?? 'dynamic');
 }
 
 class ClosureEnv_anon_45 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_45(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_45();
   @override
-  String call(DartType t) => ClosureEnv_anon_45_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_45_call(ClosureEnv_anon_45 env, DartType t) {
+ClosureEnv_anon_45 ClosureEnv_anon_45_new(ClosureEnv_anon_45 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_45_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_45_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_45;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_46 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_46(this.this_);
+class ClosureEnv_anon_46 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_46();
   @override
-  String call(DartType t) => ClosureEnv_anon_46_call(this, t);
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_46_call(ClosureEnv_anon_46 env, DartType t) {
-  return _TypeUtils__restoreType(this_, t);
+ClosureEnv_anon_46 ClosureEnv_anon_46_new(ClosureEnv_anon_46 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_46_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_46_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_46;
+
+  return _ExpressionRestorer__restoreExpr(this_, e);
 }
 
 class ClosureEnv_anon_47 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_47(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_47();
   @override
-  String call(DartType t) => ClosureEnv_anon_47_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_47_call(ClosureEnv_anon_47 env, DartType t) {
+ClosureEnv_anon_47 ClosureEnv_anon_47_new(ClosureEnv_anon_47 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_47_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_47_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_47;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_48 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_48(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_48();
   @override
-  String call(DartType t) => ClosureEnv_anon_48_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_48_call(ClosureEnv_anon_48 env, DartType t) {
+ClosureEnv_anon_48 ClosureEnv_anon_48_new(ClosureEnv_anon_48 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_48_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_48_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_48;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_49 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_49(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_49();
   @override
-  String call(DartType t) => ClosureEnv_anon_49_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_49_call(ClosureEnv_anon_49 env, DartType t) {
+ClosureEnv_anon_49 ClosureEnv_anon_49_new(ClosureEnv_anon_49 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_49_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_49_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_49;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_50 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_50(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_50();
   @override
-  String call(DartType t) => ClosureEnv_anon_50_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_50_call(ClosureEnv_anon_50 env, DartType t) {
+ClosureEnv_anon_50 ClosureEnv_anon_50_new(ClosureEnv_anon_50 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_50_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_50_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_50;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_51 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_51(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_51();
   @override
-  String call(DartType t) => ClosureEnv_anon_51_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_51_call(ClosureEnv_anon_51 env, DartType t) {
+ClosureEnv_anon_51 ClosureEnv_anon_51_new(ClosureEnv_anon_51 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_51_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_51_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_51;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_52 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_52(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_52();
   @override
-  String call(DartType t) => ClosureEnv_anon_52_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_52_call(ClosureEnv_anon_52 env, DartType t) {
+ClosureEnv_anon_52 ClosureEnv_anon_52_new(ClosureEnv_anon_52 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_52_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_52_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_52;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_53 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_53(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_53();
   @override
-  String call(DartType t) => ClosureEnv_anon_53_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_53_call(ClosureEnv_anon_53 env, DartType t) {
+ClosureEnv_anon_53 ClosureEnv_anon_53_new(ClosureEnv_anon_53 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_53_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_53_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_53;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_54 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_54(this.this_);
+class ClosureEnv_anon_54 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_54();
   @override
-  String call(Expression e) => ClosureEnv_anon_54_call(this, e);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_54_call(ClosureEnv_anon_54 env, Expression e) {
-  return _ExpressionRestorer__restoreExpr(this_, e);
+ClosureEnv_anon_54 ClosureEnv_anon_54_new(ClosureEnv_anon_54 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_54_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_54_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_54;
+
+  return _TypeUtils__restoreType(this_, t);
 }
 
 class ClosureEnv_anon_55 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_55(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_55();
   @override
-  String call(DartType t) => ClosureEnv_anon_55_call(this, t);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_55_call(ClosureEnv_anon_55 env, DartType t) {
+ClosureEnv_anon_55 ClosureEnv_anon_55_new(ClosureEnv_anon_55 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_55_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_55_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_55;
+
   return _TypeUtils__restoreType(this_, t);
 }
 
-class ClosureEnv_anon_56 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_56(this.this_);
+class ClosureEnv_anon_56 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_56();
   @override
-  String call(Expression e) => ClosureEnv_anon_56_call(this, e);
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_56_call(ClosureEnv_anon_56 env, Expression e) {
+ClosureEnv_anon_56 ClosureEnv_anon_56_new(ClosureEnv_anon_56 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_56_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_56_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_56;
+
+  return _TypeUtils__restoreType(this_, t);
+}
+
+class ClosureEnv_anon_57 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_57();
+  @override
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_57 ClosureEnv_anon_57_new(ClosureEnv_anon_57 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_57_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_57_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_57;
+
+  return _ExpressionRestorer__restoreExpr(this_, e);
+}
+
+class ClosureEnv_anon_58 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_58();
+  @override
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_58 ClosureEnv_anon_58_new(ClosureEnv_anon_58 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_58_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_58_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_58;
+
+  return _TypeUtils__restoreType(this_, t);
+}
+
+class ClosureEnv_anon_59 extends TypeFunction1<String, DartType> {
+  late dynamic _r;
+  ClosureEnv_anon_59();
+  @override
+  String call(DartType a1) => closureCall(this, a1);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_59 ClosureEnv_anon_59_new(ClosureEnv_anon_59 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_59_call;
+  env_._r = _r;
+  return env_;
+}
+String ClosureEnv_anon_59_call(dynamic env__, DartType a1) {
+  final _r = (env__ as ClosureEnv_anon_59)._r;
+  return (_r.vptr['_restoreType'] as String Function(dynamic, DartType))(_r, a1);
+}
+class ClosureEnv_anon_60 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_60();
+  @override
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_60 ClosureEnv_anon_60_new(ClosureEnv_anon_60 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_60_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_60_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_60;
+
     if ((e is StringLiteral)) {
       final String escaped = e.value.replaceAll('\\\\', '\\\\\\\\').replaceAll('\'', '\\\'').replaceAll('$', '\\$').replaceAll('\n', '\\n').replaceAll('\r', '\\r').replaceAll('\t', '\\t');
       return escaped;
@@ -7003,648 +8063,1342 @@ String ClosureEnv_anon_56_call(ClosureEnv_anon_56 env, Expression e) {
     return '\${${_ExpressionRestorer__restoreExpr(this_, e)}}';
   }
 
-class ClosureEnv_anon_57 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_57(this.this_);
+class ClosureEnv_anon_61 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_61();
   @override
-  String call(Expression e) => ClosureEnv_anon_57_call(this, e);
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_57_call(ClosureEnv_anon_57 env, Expression e) {
+ClosureEnv_anon_61 ClosureEnv_anon_61_new(ClosureEnv_anon_61 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_61_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_61_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_61;
+
   return _ExpressionRestorer__restoreExpr(this_, e);
 }
 
-class ClosureEnv_anon_58 extends TypeFunction1<String, MapLiteralEntry> {
-  dynamic this_;
-  ClosureEnv_anon_58(this.this_);
+class ClosureEnv_anon_62 extends TypeFunction1<String, MapLiteralEntry> {
+  late dynamic this_;
+  ClosureEnv_anon_62();
   @override
-  String call(MapLiteralEntry e) => ClosureEnv_anon_58_call(this, e);
+  String call(MapLiteralEntry e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_58_call(ClosureEnv_anon_58 env, MapLiteralEntry e) {
+ClosureEnv_anon_62 ClosureEnv_anon_62_new(ClosureEnv_anon_62 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_62_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_62_call(dynamic env__, MapLiteralEntry e) {
+  final env = env__ as ClosureEnv_anon_62;
+
     return '${_ExpressionRestorer__restoreExpr(this_, e.key)}: ${_ExpressionRestorer__restoreExpr(this_, e.value)}';
   }
 
-class ClosureEnv_anon_59 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_59(this.this_);
+class ClosureEnv_anon_63 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_63();
   @override
-  String call(Expression e) => ClosureEnv_anon_59_call(this, e);
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_59_call(ClosureEnv_anon_59 env, Expression e) {
+ClosureEnv_anon_63 ClosureEnv_anon_63_new(ClosureEnv_anon_63 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_63_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_63_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_63;
+
   return _ExpressionRestorer__restoreExpr(this_, e);
 }
 
-class ClosureEnv_anon_60 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_60();
+class ClosureEnv_anon_64 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_64();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_60_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_60_call(ClosureEnv_anon_60 env, TypeParameter tp) {
+ClosureEnv_anon_64 ClosureEnv_anon_64_new(ClosureEnv_anon_64 env_) {
+  env_.closureCall = ClosureEnv_anon_64_call;
+  return env_;
+}
+String ClosureEnv_anon_64_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_64;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_61 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_61();
+class ClosureEnv_anon_65 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_65();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_61_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_61_call(ClosureEnv_anon_61 env, TypeParameter tp) {
+ClosureEnv_anon_65 ClosureEnv_anon_65_new(ClosureEnv_anon_65 env_) {
+  env_.closureCall = ClosureEnv_anon_65_call;
+  return env_;
+}
+String ClosureEnv_anon_65_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_65;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_62 extends TypeFunction1<String, _CapturedVarValue> {
-  ClosureEnv_anon_62();
+class ClosureEnv_anon_66 extends TypeFunction1<String, TypeParameter> {
+  late dynamic _r;
+  ClosureEnv_anon_66();
   @override
-  String call(_CapturedVarValue f) => ClosureEnv_anon_62_call(this, f);
+  String call(TypeParameter a1) => closureCall(this, a1);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_62_call(ClosureEnv_anon_62 env, _CapturedVarValue f) {
-  return 'this.${f.name}';
+ClosureEnv_anon_66 ClosureEnv_anon_66_new(ClosureEnv_anon_66 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_66_call;
+  env_._r = _r;
+  return env_;
 }
+String ClosureEnv_anon_66_call(dynamic env__, TypeParameter a1) {
+  final _r = (env__ as ClosureEnv_anon_66)._r;
+  return (_r.vptr['_formatTypeParamDecl'] as String Function(dynamic, TypeParameter))(_r, a1);
+}
+class ClosureEnv_anon_67 extends TypeFunction1<bool, _CapturedVarValue> {
+  ClosureEnv_anon_67();
+  @override
+  bool call(_CapturedVarValue f) => closureCall(this, f);
+}
+ClosureEnv_anon_67 ClosureEnv_anon_67_new(ClosureEnv_anon_67 env_) {
+  env_.closureCall = ClosureEnv_anon_67_call;
+  return env_;
+}
+bool ClosureEnv_anon_67_call(dynamic env__, _CapturedVarValue f) {
+  final env = env__ as ClosureEnv_anon_67;
 
-class ClosureEnv_anon_63 extends TypeFunction1<bool, _CapturedVarValue> {
-  ClosureEnv_anon_63();
-  @override
-  bool call(_CapturedVarValue f) => ClosureEnv_anon_63_call(this, f);
-}
-bool ClosureEnv_anon_63_call(ClosureEnv_anon_63 env, _CapturedVarValue f) {
   return f.isThis;
 }
 
-class ClosureEnv_anon_64 extends TypeFunction1<String, Expression> {
-  dynamic this_;
-  ClosureEnv_anon_64(this.this_);
+class ClosureEnv_anon_68 extends TypeFunction1<String, Expression> {
+  late dynamic this_;
+  ClosureEnv_anon_68();
   @override
-  String call(Expression e) => ClosureEnv_anon_64_call(this, e);
+  String call(Expression e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_64_call(ClosureEnv_anon_64 env, Expression e) {
+ClosureEnv_anon_68 ClosureEnv_anon_68_new(ClosureEnv_anon_68 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_68_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_68_call(dynamic env__, Expression e) {
+  final env = env__ as ClosureEnv_anon_68;
+
   return _DartRestorerBase__restoreExpr(this_, e);
 }
 
-class ClosureEnv_anon_65 extends TypeFunction1<String?, TypeParameter> {
-  ClosureEnv_anon_65();
+class ClosureEnv_anon_69 extends TypeFunction1<String, DartType> {
+  late dynamic _r;
+  ClosureEnv_anon_69();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_65_call(this, tp);
+  String call(DartType a1) => closureCall(this, a1);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
 }
-String? ClosureEnv_anon_65_call(ClosureEnv_anon_65 env, TypeParameter tp) {
+ClosureEnv_anon_69 ClosureEnv_anon_69_new(ClosureEnv_anon_69 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_69_call;
+  env_._r = _r;
+  return env_;
+}
+String ClosureEnv_anon_69_call(dynamic env__, DartType a1) {
+  final _r = (env__ as ClosureEnv_anon_69)._r;
+  return (_r.vptr['_restoreType'] as String Function(dynamic, DartType))(_r, a1);
+}
+class ClosureEnv_anon_70 extends TypeFunction1<String?, TypeParameter> {
+  ClosureEnv_anon_70();
+  @override
+  String? call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_70 ClosureEnv_anon_70_new(ClosureEnv_anon_70 env_) {
+  env_.closureCall = ClosureEnv_anon_70_call;
+  return env_;
+}
+String? ClosureEnv_anon_70_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_70;
+
   return tp.name;
 }
 
-class ClosureEnv_anon_66 extends TypeFunction1<bool, _VTableEntryValue> {
-  String methodName;
-  _VTableEntryValue entry;
-  ClosureEnv_anon_66(this.methodName, this.entry);
+class ClosureEnv_anon_71 extends TypeFunction1<bool, _VTableEntryValue> {
+  late String methodName;
+  late _VTableEntryValue entry;
+  ClosureEnv_anon_71();
   @override
-  bool call(_VTableEntryValue e) => ClosureEnv_anon_66_call(this, e);
+  bool call(_VTableEntryValue e) => closureCall(this, e);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (methodName is AnyGC) (methodName as AnyGC).gcMark(flag);
+    if (entry is AnyGC) (entry as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_66_call(ClosureEnv_anon_66 env, _VTableEntryValue e) {
+ClosureEnv_anon_71 ClosureEnv_anon_71_new(ClosureEnv_anon_71 env_, String methodName, _VTableEntryValue entry) {
+  env_.closureCall = ClosureEnv_anon_71_call;
+  env_.methodName = methodName;
+  env_.entry = entry;
+  return env_;
+}
+bool ClosureEnv_anon_71_call(dynamic env__, _VTableEntryValue e) {
+  final env = env__ as ClosureEnv_anon_71;
+
   return ((e.name == env.methodName) && (e.kind == env.entry.kind));
 }
 
-class ClosureEnv_anon_67 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_67();
+class ClosureEnv_anon_72 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_72();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_67_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_67_call(ClosureEnv_anon_67 env, TypeParameter tp) {
+ClosureEnv_anon_72 ClosureEnv_anon_72_new(ClosureEnv_anon_72 env_) {
+  env_.closureCall = ClosureEnv_anon_72_call;
+  return env_;
+}
+String ClosureEnv_anon_72_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_72;
+
   return (tp.name ?? 'T');
-}
-
-class ClosureEnv_anon_68 extends TypeFunction1<String?, TypeParameter> {
-  ClosureEnv_anon_68();
-  @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_68_call(this, tp);
-}
-String? ClosureEnv_anon_68_call(ClosureEnv_anon_68 env, TypeParameter tp) {
-  return tp.name;
-}
-
-class ClosureEnv_anon_69 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  StaticMap<String, String> typeParamMap;
-  ClosureEnv_anon_69(this.this_, this.typeParamMap);
-  @override
-  String call(DartType ta) => ClosureEnv_anon_69_call(this, ta);
-}
-String ClosureEnv_anon_69_call(ClosureEnv_anon_69 env, DartType ta) {
-  return _DeclarationRestorer__substituteTypeStr(this_, _TypeUtils__restoreType(this_, ta), env.typeParamMap);
-}
-
-class ClosureEnv_anon_70 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  StaticMap<String, String> typeParamMap;
-  ClosureEnv_anon_70(this.this_, this.typeParamMap);
-  @override
-  String call(DartType ta) => ClosureEnv_anon_70_call(this, ta);
-}
-String ClosureEnv_anon_70_call(ClosureEnv_anon_70 env, DartType ta) {
-  return _DeclarationRestorer__substituteTypeStr(this_, _TypeUtils__restoreType(this_, ta), env.typeParamMap);
-}
-
-class ClosureEnv_ClosureEnv_anon_71_72 extends TypeFunction1<String, Match> {
-  StringBox to;
-  ClosureEnv_ClosureEnv_anon_71_72(this.to);
-  @override
-  String call(Match m) => ClosureEnv_ClosureEnv_anon_71_72_call(this, m);
-}
-String ClosureEnv_ClosureEnv_anon_71_72_call(ClosureEnv_ClosureEnv_anon_71_72 env, Match m) {
-  return env.to.value;
-}
-
-class ClosureEnv_anon_71 extends TypeFunction2<void, String, String> {
-  String result;
-  ClosureEnv_anon_71(this.result);
-  @override
-  void call(String from, String to_raw) => ClosureEnv_anon_71_call(this, from, to_raw);
-}
-void ClosureEnv_anon_71_call(ClosureEnv_anon_71 env, String from, String to_raw) {
-  StringBox to = StringBox(to_raw);
-  if ((from == to.value))   return;
-  env.result = env.result.replaceAllMapped(RegExp((('\\b' + RegExp.escape(from)) + '\\b')), ClosureEnv_ClosureEnv_anon_71_72(to));
 }
 
 class ClosureEnv_anon_73 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_73();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_73_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String? ClosureEnv_anon_73_call(ClosureEnv_anon_73 env, TypeParameter tp) {
+ClosureEnv_anon_73 ClosureEnv_anon_73_new(ClosureEnv_anon_73 env_) {
+  env_.closureCall = ClosureEnv_anon_73_call;
+  return env_;
+}
+String? ClosureEnv_anon_73_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_73;
+
   return tp.name;
 }
 
-class ClosureEnv_anon_74 extends TypeFunction1<String?, TypeParameter> {
+class ClosureEnv_anon_74 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  late StaticMap<String, String> typeParamMap;
   ClosureEnv_anon_74();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_74_call(this, tp);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (typeParamMap is AnyGC) (typeParamMap as AnyGC).gcMark(flag);
+  }
 }
-String? ClosureEnv_anon_74_call(ClosureEnv_anon_74 env, TypeParameter tp) {
-  return tp.name;
+ClosureEnv_anon_74 ClosureEnv_anon_74_new(ClosureEnv_anon_74 env_, dynamic this_, StaticMap<String, String> typeParamMap) {
+  env_.closureCall = ClosureEnv_anon_74_call;
+  env_.this_ = this_;
+  env_.typeParamMap = typeParamMap;
+  return env_;
+}
+String ClosureEnv_anon_74_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_74;
+
+  return _DeclarationRestorer__substituteTypeStr(this_, _TypeUtils__restoreType(this_, ta), env.typeParamMap);
 }
 
-class ClosureEnv_anon_75 extends TypeFunction1<bool, String?> {
-  StaticSet<String?> currentTypeParamNames;
-  ClosureEnv_anon_75(this.currentTypeParamNames);
+class ClosureEnv_anon_75 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  late StaticMap<String, String> typeParamMap;
+  ClosureEnv_anon_75();
   @override
-  bool call(String? n) => ClosureEnv_anon_75_call(this, n);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (typeParamMap is AnyGC) (typeParamMap as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_75_call(ClosureEnv_anon_75 env, String? n) {
-  return env.currentTypeParamNames.contains(n);
+ClosureEnv_anon_75 ClosureEnv_anon_75_new(ClosureEnv_anon_75 env_, dynamic this_, StaticMap<String, String> typeParamMap) {
+  env_.closureCall = ClosureEnv_anon_75_call;
+  env_.this_ = this_;
+  env_.typeParamMap = typeParamMap;
+  return env_;
+}
+String ClosureEnv_anon_75_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_75;
+
+  return _DeclarationRestorer__substituteTypeStr(this_, _TypeUtils__restoreType(this_, ta), env.typeParamMap);
 }
 
 class ClosureEnv_anon_76 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_76(this.this_);
+  late dynamic this_;
+  late StaticMap<String, String> typeParamMap;
+  ClosureEnv_anon_76();
   @override
-  String call(DartType ta) => ClosureEnv_anon_76_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (typeParamMap is AnyGC) (typeParamMap as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_76_call(ClosureEnv_anon_76 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
+ClosureEnv_anon_76 ClosureEnv_anon_76_new(ClosureEnv_anon_76 env_, dynamic this_, StaticMap<String, String> typeParamMap) {
+  env_.closureCall = ClosureEnv_anon_76_call;
+  env_.this_ = this_;
+  env_.typeParamMap = typeParamMap;
+  return env_;
+}
+String ClosureEnv_anon_76_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_76;
+
+  return _DeclarationRestorer__substituteTypeStr(this_, _TypeUtils__restoreType(this_, ta), env.typeParamMap);
 }
 
-class ClosureEnv_anon_77 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_77(this.this_);
+class ClosureEnv_ClosureEnv_anon_77_78 extends TypeFunction1<String, Match> {
+  late StringBox to;
+  ClosureEnv_ClosureEnv_anon_77_78();
   @override
-  String call(DartType ta) => ClosureEnv_anon_77_call(this, ta);
+  String call(Match m) => closureCall(this, m);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (to is AnyGC) (to as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_77_call(ClosureEnv_anon_77 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
+ClosureEnv_ClosureEnv_anon_77_78 ClosureEnv_ClosureEnv_anon_77_78_new(ClosureEnv_ClosureEnv_anon_77_78 env_, StringBox to) {
+  env_.closureCall = ClosureEnv_ClosureEnv_anon_77_78_call;
+  env_.to = to;
+  return env_;
+}
+String ClosureEnv_ClosureEnv_anon_77_78_call(dynamic env__, Match m) {
+  final env = env__ as ClosureEnv_ClosureEnv_anon_77_78;
+
+  return env.to.value;
 }
 
-class ClosureEnv_anon_78 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_78();
+class ClosureEnv_anon_77 extends TypeFunction2<void, String, String> {
+  late String result;
+  ClosureEnv_anon_77();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_78_call(this, tp);
+  void call(String from, String to_raw) => closureCall(this, from, to_raw);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (result is AnyGC) (result as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_78_call(ClosureEnv_anon_78 env, TypeParameter tp) {
-  return (tp.name ?? 'T');
+ClosureEnv_anon_77 ClosureEnv_anon_77_new(ClosureEnv_anon_77 env_, String result) {
+  env_.closureCall = ClosureEnv_anon_77_call;
+  env_.result = result;
+  return env_;
+}
+void ClosureEnv_anon_77_call(dynamic env__, String from, String to_raw) {
+  final env = env__ as ClosureEnv_anon_77;
+
+  StringBox to = StringBox(to_raw);
+  if ((from == to.value))   return;
+  env.result = env.result.replaceAllMapped(StaticRegExp((('\\b' + StaticRegExp.escape(from)) + '\\b')), ClosureEnv_ClosureEnv_anon_77_78_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_77_78()), to));
 }
 
 class ClosureEnv_anon_79 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_79();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_79_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String? ClosureEnv_anon_79_call(ClosureEnv_anon_79 env, TypeParameter tp) {
+ClosureEnv_anon_79 ClosureEnv_anon_79_new(ClosureEnv_anon_79 env_) {
+  env_.closureCall = ClosureEnv_anon_79_call;
+  return env_;
+}
+String? ClosureEnv_anon_79_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_79;
+
   return tp.name;
 }
 
-class ClosureEnv_anon_80 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_80(this.classTpNames);
+class ClosureEnv_anon_80 extends TypeFunction1<String?, TypeParameter> {
+  ClosureEnv_anon_80();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_80_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-bool ClosureEnv_anon_80_call(ClosureEnv_anon_80 env, TypeParameter tp) {
-  return !(env.classTpNames.contains(tp.name));
+ClosureEnv_anon_80 ClosureEnv_anon_80_new(ClosureEnv_anon_80 env_) {
+  env_.closureCall = ClosureEnv_anon_80_call;
+  return env_;
+}
+String? ClosureEnv_anon_80_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_80;
+
+  return tp.name;
 }
 
-class ClosureEnv_anon_81 extends TypeFunction1<bool, _VTableEntryValue> {
-  StaticSet<String> mixinMethodNames;
-  ClosureEnv_anon_81(this.mixinMethodNames);
+class ClosureEnv_anon_81 extends TypeFunction1<bool, String?> {
+  late StaticSet<String?> currentTypeParamNames;
+  ClosureEnv_anon_81();
   @override
-  bool call(_VTableEntryValue entry) => ClosureEnv_anon_81_call(this, entry);
-}
-bool ClosureEnv_anon_81_call(ClosureEnv_anon_81 env, _VTableEntryValue entry) {
-    return env.mixinMethodNames.contains(entry.name);
+  bool call(String? n) => closureCall(this, n);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (currentTypeParamNames is AnyGC) (currentTypeParamNames as AnyGC).gcMark(flag);
   }
+}
+ClosureEnv_anon_81 ClosureEnv_anon_81_new(ClosureEnv_anon_81 env_, StaticSet<String?> currentTypeParamNames) {
+  env_.closureCall = ClosureEnv_anon_81_call;
+  env_.currentTypeParamNames = currentTypeParamNames;
+  return env_;
+}
+bool ClosureEnv_anon_81_call(dynamic env__, String? n) {
+  final env = env__ as ClosureEnv_anon_81;
 
-class ClosureEnv_anon_82 extends TypeFunction1<String?, TypeParameter> {
+  return env.currentTypeParamNames.contains(n);
+}
+
+class ClosureEnv_anon_82 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
   ClosureEnv_anon_82();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_82_call(this, tp);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String? ClosureEnv_anon_82_call(ClosureEnv_anon_82 env, TypeParameter tp) {
-  return tp.name;
+ClosureEnv_anon_82 ClosureEnv_anon_82_new(ClosureEnv_anon_82 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_82_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_82_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_82;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_83 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> mixinClassTpNames;
-  ClosureEnv_anon_83(this.mixinClassTpNames);
+class ClosureEnv_anon_83 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_83();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_83_call(this, tp);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_83_call(ClosureEnv_anon_83 env, TypeParameter tp) {
-  return !(env.mixinClassTpNames.contains(tp.name));
+ClosureEnv_anon_83 ClosureEnv_anon_83_new(ClosureEnv_anon_83 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_83_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_83_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_83;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
 class ClosureEnv_anon_84 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_84();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_84_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_84_call(ClosureEnv_anon_84 env, TypeParameter tp) {
+ClosureEnv_anon_84 ClosureEnv_anon_84_new(ClosureEnv_anon_84 env_) {
+  env_.closureCall = ClosureEnv_anon_84_call;
+  return env_;
+}
+String ClosureEnv_anon_84_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_84;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_85 extends TypeFunction1<String, TypeParameter> {
+class ClosureEnv_anon_85 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_85();
   @override
-  String call(TypeParameter _) => ClosureEnv_anon_85_call(this, _);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_85_call(ClosureEnv_anon_85 env, TypeParameter _) {
-  return 'dynamic';
+ClosureEnv_anon_85 ClosureEnv_anon_85_new(ClosureEnv_anon_85 env_) {
+  env_.closureCall = ClosureEnv_anon_85_call;
+  return env_;
+}
+String? ClosureEnv_anon_85_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_85;
+
+  return tp.name;
 }
 
-class ClosureEnv_anon_86 extends TypeFunction1<String, VariableDeclaration> {
-  dynamic this_;
-  ClosureEnv_anon_86(this.this_);
+class ClosureEnv_anon_86 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> classTpNames;
+  ClosureEnv_anon_86();
   @override
-  String call(VariableDeclaration p) => ClosureEnv_anon_86_call(this, p);
-}
-String ClosureEnv_anon_86_call(ClosureEnv_anon_86 env, VariableDeclaration p) {
-  return '${_TypeUtils__restoreType(this_, p.type)} ${(p.name ?? '_')}';
-}
-
-class ClosureEnv_anon_87 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_87(this.this_);
+  bool call(TypeParameter tp) => closureCall(this, tp);
   @override
-  String call(DartType ta) => ClosureEnv_anon_87_call(this, ta);
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classTpNames is AnyGC) (classTpNames as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_87_call(ClosureEnv_anon_87 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
+ClosureEnv_anon_86 ClosureEnv_anon_86_new(ClosureEnv_anon_86 env_, StaticSet<String?> classTpNames) {
+  env_.closureCall = ClosureEnv_anon_86_call;
+  env_.classTpNames = classTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_86_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_86;
+
+  return !(env.classTpNames.contains(tp.name));
 }
 
-class ClosureEnv_anon_88 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_88(this.this_);
+class ClosureEnv_anon_87 extends TypeFunction1<bool, _VTableEntryValue> {
+  late StaticSet<String> mixinMethodNames;
+  ClosureEnv_anon_87();
   @override
-  String call(DartType ta) => ClosureEnv_anon_88_call(this, ta);
-}
-String ClosureEnv_anon_88_call(ClosureEnv_anon_88 env, DartType ta) {
-  return _TypeUtils__restoreType(this_, ta);
-}
-
-class ClosureEnv_anon_89 extends TypeFunction1<String, String> {
-  StaticMap<String, String> typeParamMap;
-  ClosureEnv_anon_89(this.typeParamMap);
+  bool call(_VTableEntryValue entry) => closureCall(this, entry);
   @override
-  String call(String typeStr) => ClosureEnv_anon_89_call(this, typeStr);
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (mixinMethodNames is AnyGC) (mixinMethodNames as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_89_call(ClosureEnv_anon_89 env, String typeStr) {
-          return (env.typeParamMap[typeStr] ?? typeStr);
-        }
+ClosureEnv_anon_87 ClosureEnv_anon_87_new(ClosureEnv_anon_87 env_, StaticSet<String> mixinMethodNames) {
+  env_.closureCall = ClosureEnv_anon_87_call;
+  env_.mixinMethodNames = mixinMethodNames;
+  return env_;
+}
+bool ClosureEnv_anon_87_call(dynamic env__, _VTableEntryValue entry) {
+  final env = env__ as ClosureEnv_anon_87;
 
-class ClosureEnv_anon_90 extends TypeFunction1<String, TypeParameter> {
+    return env.mixinMethodNames.contains(entry.name);
+  }
+
+class ClosureEnv_anon_88 extends TypeFunction1<bool, DartType> {
+  ClosureEnv_anon_88();
+  @override
+  bool call(DartType t) => closureCall(this, t);
+}
+ClosureEnv_anon_88 ClosureEnv_anon_88_new(ClosureEnv_anon_88 env_) {
+  env_.closureCall = ClosureEnv_anon_88_call;
+  return env_;
+}
+bool ClosureEnv_anon_88_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_88;
+
+  return !((t is TypeParameterType));
+}
+
+class ClosureEnv_anon_89 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_89();
+  @override
+  String call(DartType t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_89 ClosureEnv_anon_89_new(ClosureEnv_anon_89 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_89_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_89_call(dynamic env__, DartType t) {
+  final env = env__ as ClosureEnv_anon_89;
+
+  return _DartRestorerBase__restoreTypeForSignature(this_, t);
+}
+
+class ClosureEnv_anon_90 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_90();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_90_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_90_call(ClosureEnv_anon_90 env, TypeParameter tp) {
-  return (tp.name ?? 'T');
+ClosureEnv_anon_90 ClosureEnv_anon_90_new(ClosureEnv_anon_90 env_) {
+  env_.closureCall = ClosureEnv_anon_90_call;
+  return env_;
+}
+String? ClosureEnv_anon_90_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_90;
+
+  return tp.name;
 }
 
-class ClosureEnv_anon_91 extends TypeFunction1<bool, Initializer> {
+class ClosureEnv_anon_91 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> mixinClassTpNames;
   ClosureEnv_anon_91();
   @override
-  bool call(Initializer init) => ClosureEnv_anon_91_call(this, init);
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (mixinClassTpNames is AnyGC) (mixinClassTpNames as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_91_call(ClosureEnv_anon_91 env, Initializer init) {
-  return (init is RedirectingInitializer);
+ClosureEnv_anon_91 ClosureEnv_anon_91_new(ClosureEnv_anon_91 env_, StaticSet<String?> mixinClassTpNames) {
+  env_.closureCall = ClosureEnv_anon_91_call;
+  env_.mixinClassTpNames = mixinClassTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_91_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_91;
+
+  return !(env.mixinClassTpNames.contains(tp.name));
 }
 
 class ClosureEnv_anon_92 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_92();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_92_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_92_call(ClosureEnv_anon_92 env, TypeParameter tp) {
+ClosureEnv_anon_92 ClosureEnv_anon_92_new(ClosureEnv_anon_92 env_) {
+  env_.closureCall = ClosureEnv_anon_92_call;
+  return env_;
+}
+String ClosureEnv_anon_92_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_92;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_93 extends TypeFunction1<String?, TypeParameter> {
+class ClosureEnv_anon_93 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_93();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_93_call(this, tp);
+  String call(TypeParameter _) => closureCall(this, _);
 }
-String? ClosureEnv_anon_93_call(ClosureEnv_anon_93 env, TypeParameter tp) {
-  return tp.name;
+ClosureEnv_anon_93 ClosureEnv_anon_93_new(ClosureEnv_anon_93 env_) {
+  env_.closureCall = ClosureEnv_anon_93_call;
+  return env_;
+}
+String ClosureEnv_anon_93_call(dynamic env__, TypeParameter _) {
+  final env = env__ as ClosureEnv_anon_93;
+
+  return 'dynamic';
 }
 
-class ClosureEnv_anon_94 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_94(this.classTpNames);
+class ClosureEnv_anon_94 extends TypeFunction1<String, VariableDeclaration> {
+  late dynamic this_;
+  ClosureEnv_anon_94();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_94_call(this, tp);
+  String call(VariableDeclaration p) => closureCall(this, p);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_94_call(ClosureEnv_anon_94 env, TypeParameter tp) {
-  return !(env.classTpNames.contains(tp.name));
+ClosureEnv_anon_94 ClosureEnv_anon_94_new(ClosureEnv_anon_94 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_94_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_94_call(dynamic env__, VariableDeclaration p) {
+  final env = env__ as ClosureEnv_anon_94;
+
+  return '${_TypeUtils__restoreType(this_, p.type)} ${(p.name ?? '_')}';
 }
 
 class ClosureEnv_anon_95 extends TypeFunction1<String, DartType> {
-  dynamic this_;
-  ClosureEnv_anon_95(this.this_);
+  late dynamic this_;
+  ClosureEnv_anon_95();
   @override
-  String call(DartType ta) => ClosureEnv_anon_95_call(this, ta);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_95_call(ClosureEnv_anon_95 env, DartType ta) {
+ClosureEnv_anon_95 ClosureEnv_anon_95_new(ClosureEnv_anon_95 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_95_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_95_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_95;
+
   return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_96 extends TypeFunction1<bool, Field> {
+class ClosureEnv_anon_96 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
   ClosureEnv_anon_96();
   @override
-  bool call(Field f) => ClosureEnv_anon_96_call(this, f);
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_96_call(ClosureEnv_anon_96 env, Field f) {
-  return !(f.isStatic);
+ClosureEnv_anon_96 ClosureEnv_anon_96_new(ClosureEnv_anon_96 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_96_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_96_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_96;
+
+  return _TypeUtils__restoreType(this_, ta);
 }
 
-class ClosureEnv_anon_97 extends TypeFunction1<String, Field> {
+class ClosureEnv_anon_97 extends TypeFunction1<String, String> {
+  late StaticMap<String, String> typeParamMap;
   ClosureEnv_anon_97();
   @override
-  String call(Field f) => ClosureEnv_anon_97_call(this, f);
-}
-String ClosureEnv_anon_97_call(ClosureEnv_anon_97 env, Field f) {
-  return f.name.text;
-}
-
-class ClosureEnv_anon_98 extends TypeFunction1<bool, Initializer> {
-  String paramName;
-  ClosureEnv_anon_98(this.paramName);
+  String call(String typeStr) => closureCall(this, typeStr);
   @override
-  bool call(Initializer init) => ClosureEnv_anon_98_call(this, init);
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (typeParamMap is AnyGC) (typeParamMap as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_98_call(ClosureEnv_anon_98 env, Initializer init) {
-  return ((init is FieldInitializer) && (init.field.name.text == env.paramName));
+ClosureEnv_anon_97 ClosureEnv_anon_97_new(ClosureEnv_anon_97 env_, StaticMap<String, String> typeParamMap) {
+  env_.closureCall = ClosureEnv_anon_97_call;
+  env_.typeParamMap = typeParamMap;
+  return env_;
+}
+String ClosureEnv_anon_97_call(dynamic env__, String typeStr) {
+  final env = env__ as ClosureEnv_anon_97;
+
+          return (env.typeParamMap[typeStr] ?? typeStr);
+        }
+
+class ClosureEnv_anon_98 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_98();
+  @override
+  String call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_98 ClosureEnv_anon_98_new(ClosureEnv_anon_98 env_) {
+  env_.closureCall = ClosureEnv_anon_98_call;
+  return env_;
+}
+String ClosureEnv_anon_98_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_98;
+
+  return (tp.name ?? 'T');
 }
 
 class ClosureEnv_anon_99 extends TypeFunction1<bool, Initializer> {
-  String paramName;
-  ClosureEnv_anon_99(this.paramName);
+  ClosureEnv_anon_99();
   @override
-  bool call(Initializer init) => ClosureEnv_anon_99_call(this, init);
+  bool call(Initializer init) => closureCall(this, init);
 }
-bool ClosureEnv_anon_99_call(ClosureEnv_anon_99 env, Initializer init) {
-  return ((init is FieldInitializer) && (init.field.name.text == env.paramName));
+ClosureEnv_anon_99 ClosureEnv_anon_99_new(ClosureEnv_anon_99 env_) {
+  env_.closureCall = ClosureEnv_anon_99_call;
+  return env_;
+}
+bool ClosureEnv_anon_99_call(dynamic env__, Initializer init) {
+  final env = env__ as ClosureEnv_anon_99;
+
+  return (init is RedirectingInitializer);
 }
 
-class ClosureEnv_anon_100 extends TypeFunction1<bool, Field> {
+class ClosureEnv_anon_100 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_100();
   @override
-  bool call(Field f) => ClosureEnv_anon_100_call(this, f);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-bool ClosureEnv_anon_100_call(ClosureEnv_anon_100 env, Field f) {
+ClosureEnv_anon_100 ClosureEnv_anon_100_new(ClosureEnv_anon_100 env_) {
+  env_.closureCall = ClosureEnv_anon_100_call;
+  return env_;
+}
+String ClosureEnv_anon_100_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_100;
+
+  return (tp.name ?? 'T');
+}
+
+class ClosureEnv_anon_101 extends TypeFunction1<String?, TypeParameter> {
+  ClosureEnv_anon_101();
+  @override
+  String? call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_101 ClosureEnv_anon_101_new(ClosureEnv_anon_101 env_) {
+  env_.closureCall = ClosureEnv_anon_101_call;
+  return env_;
+}
+String? ClosureEnv_anon_101_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_101;
+
+  return tp.name;
+}
+
+class ClosureEnv_anon_102 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> classTpNames;
+  ClosureEnv_anon_102();
+  @override
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classTpNames is AnyGC) (classTpNames as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_102 ClosureEnv_anon_102_new(ClosureEnv_anon_102 env_, StaticSet<String?> classTpNames) {
+  env_.closureCall = ClosureEnv_anon_102_call;
+  env_.classTpNames = classTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_102_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_102;
+
+  return !(env.classTpNames.contains(tp.name));
+}
+
+class ClosureEnv_anon_103 extends TypeFunction1<String, DartType> {
+  late dynamic this_;
+  ClosureEnv_anon_103();
+  @override
+  String call(DartType ta) => closureCall(this, ta);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_103 ClosureEnv_anon_103_new(ClosureEnv_anon_103 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_103_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_103_call(dynamic env__, DartType ta) {
+  final env = env__ as ClosureEnv_anon_103;
+
+  return _TypeUtils__restoreType(this_, ta);
+}
+
+class ClosureEnv_anon_104 extends TypeFunction1<bool, Field> {
+  ClosureEnv_anon_104();
+  @override
+  bool call(Field f) => closureCall(this, f);
+}
+ClosureEnv_anon_104 ClosureEnv_anon_104_new(ClosureEnv_anon_104 env_) {
+  env_.closureCall = ClosureEnv_anon_104_call;
+  return env_;
+}
+bool ClosureEnv_anon_104_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_104;
+
   return !(f.isStatic);
 }
 
-class ClosureEnv_anon_101 extends TypeFunction1<String, Field> {
-  ClosureEnv_anon_101();
+class ClosureEnv_anon_105 extends TypeFunction1<String, Field> {
+  ClosureEnv_anon_105();
   @override
-  String call(Field f) => ClosureEnv_anon_101_call(this, f);
+  String call(Field f) => closureCall(this, f);
 }
-String ClosureEnv_anon_101_call(ClosureEnv_anon_101 env, Field f) {
+ClosureEnv_anon_105 ClosureEnv_anon_105_new(ClosureEnv_anon_105 env_) {
+  env_.closureCall = ClosureEnv_anon_105_call;
+  return env_;
+}
+String ClosureEnv_anon_105_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_105;
+
   return f.name.text;
 }
 
-class ClosureEnv_anon_102 extends TypeFunction1<String?, TypeParameter> {
-  ClosureEnv_anon_102();
+class ClosureEnv_anon_106 extends TypeFunction1<bool, Initializer> {
+  late String paramName;
+  ClosureEnv_anon_106();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_102_call(this, tp);
+  bool call(Initializer init) => closureCall(this, init);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (paramName is AnyGC) (paramName as AnyGC).gcMark(flag);
+  }
 }
-String? ClosureEnv_anon_102_call(ClosureEnv_anon_102 env, TypeParameter tp) {
-  return tp.name;
+ClosureEnv_anon_106 ClosureEnv_anon_106_new(ClosureEnv_anon_106 env_, String paramName) {
+  env_.closureCall = ClosureEnv_anon_106_call;
+  env_.paramName = paramName;
+  return env_;
+}
+bool ClosureEnv_anon_106_call(dynamic env__, Initializer init) {
+  final env = env__ as ClosureEnv_anon_106;
+
+  return ((init is FieldInitializer) && (init.field.name.text == env.paramName));
 }
 
-class ClosureEnv_anon_103 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_103(this.classTpNames);
-  @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_103_call(this, tp);
-}
-bool ClosureEnv_anon_103_call(ClosureEnv_anon_103 env, TypeParameter tp) {
-  return !(env.classTpNames.contains(tp.name));
-}
-
-class ClosureEnv_anon_104 extends TypeFunction1<String, TypeParameter> {
-  ClosureEnv_anon_104();
-  @override
-  String call(TypeParameter tp) => ClosureEnv_anon_104_call(this, tp);
-}
-String ClosureEnv_anon_104_call(ClosureEnv_anon_104 env, TypeParameter tp) {
-  return (tp.name ?? 'T');
-}
-
-class ClosureEnv_anon_105 extends TypeFunction1<String?, TypeParameter> {
-  ClosureEnv_anon_105();
-  @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_105_call(this, tp);
-}
-String? ClosureEnv_anon_105_call(ClosureEnv_anon_105 env, TypeParameter tp) {
-  return tp.name;
-}
-
-class ClosureEnv_anon_106 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classTpNames;
-  ClosureEnv_anon_106(this.classTpNames);
-  @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_106_call(this, tp);
-}
-bool ClosureEnv_anon_106_call(ClosureEnv_anon_106 env, TypeParameter tp) {
-  return !(env.classTpNames.contains(tp.name));
-}
-
-class ClosureEnv_anon_107 extends TypeFunction1<String, TypeParameter> {
+class ClosureEnv_anon_107 extends TypeFunction1<bool, Initializer> {
+  late String paramName;
   ClosureEnv_anon_107();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_107_call(this, tp);
+  bool call(Initializer init) => closureCall(this, init);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (paramName is AnyGC) (paramName as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_107_call(ClosureEnv_anon_107 env, TypeParameter tp) {
-  return (tp.name ?? 'T');
+ClosureEnv_anon_107 ClosureEnv_anon_107_new(ClosureEnv_anon_107 env_, String paramName) {
+  env_.closureCall = ClosureEnv_anon_107_call;
+  env_.paramName = paramName;
+  return env_;
+}
+bool ClosureEnv_anon_107_call(dynamic env__, Initializer init) {
+  final env = env__ as ClosureEnv_anon_107;
+
+  return ((init is FieldInitializer) && (init.field.name.text == env.paramName));
 }
 
-class ClosureEnv_anon_108 extends TypeFunction1<String, TypeParameter> {
+class ClosureEnv_anon_108 extends TypeFunction1<bool, Field> {
   ClosureEnv_anon_108();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_108_call(this, tp);
+  bool call(Field f) => closureCall(this, f);
 }
-String ClosureEnv_anon_108_call(ClosureEnv_anon_108 env, TypeParameter tp) {
-  return (tp.name ?? 'T');
+ClosureEnv_anon_108 ClosureEnv_anon_108_new(ClosureEnv_anon_108 env_) {
+  env_.closureCall = ClosureEnv_anon_108_call;
+  return env_;
+}
+bool ClosureEnv_anon_108_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_108;
+
+  return !(f.isStatic);
 }
 
-class ClosureEnv_anon_109 extends TypeFunction1<String, Match> {
-  String replacement;
-  ClosureEnv_anon_109(this.replacement);
+class ClosureEnv_anon_109 extends TypeFunction1<String, Field> {
+  ClosureEnv_anon_109();
   @override
-  String call(Match m) => ClosureEnv_anon_109_call(this, m);
+  String call(Field f) => closureCall(this, f);
 }
-String ClosureEnv_anon_109_call(ClosureEnv_anon_109 env, Match m) {
-  return env.replacement;
+ClosureEnv_anon_109 ClosureEnv_anon_109_new(ClosureEnv_anon_109 env_) {
+  env_.closureCall = ClosureEnv_anon_109_call;
+  return env_;
+}
+String ClosureEnv_anon_109_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_109;
+
+  return f.name.text;
 }
 
 class ClosureEnv_anon_110 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_110();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_110_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_110_call(ClosureEnv_anon_110 env, TypeParameter tp) {
+ClosureEnv_anon_110 ClosureEnv_anon_110_new(ClosureEnv_anon_110 env_) {
+  env_.closureCall = ClosureEnv_anon_110_call;
+  return env_;
+}
+String ClosureEnv_anon_110_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_110;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_111 extends TypeFunction1<String, TypeParameter> {
+class ClosureEnv_anon_111 extends TypeFunction1<String?, TypeParameter> {
   ClosureEnv_anon_111();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_111_call(this, tp);
+  String? call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_111_call(ClosureEnv_anon_111 env, TypeParameter tp) {
+ClosureEnv_anon_111 ClosureEnv_anon_111_new(ClosureEnv_anon_111 env_) {
+  env_.closureCall = ClosureEnv_anon_111_call;
+  return env_;
+}
+String? ClosureEnv_anon_111_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_111;
+
+  return tp.name;
+}
+
+class ClosureEnv_anon_112 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> classTpNames;
+  ClosureEnv_anon_112();
+  @override
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classTpNames is AnyGC) (classTpNames as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_112 ClosureEnv_anon_112_new(ClosureEnv_anon_112 env_, StaticSet<String?> classTpNames) {
+  env_.closureCall = ClosureEnv_anon_112_call;
+  env_.classTpNames = classTpNames;
+  return env_;
+}
+bool ClosureEnv_anon_112_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_112;
+
+  return !(env.classTpNames.contains(tp.name));
+}
+
+class ClosureEnv_anon_113 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_113();
+  @override
+  String call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_113 ClosureEnv_anon_113_new(ClosureEnv_anon_113 env_) {
+  env_.closureCall = ClosureEnv_anon_113_call;
+  return env_;
+}
+String ClosureEnv_anon_113_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_113;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_112 extends TypeFunction1<String, Supertype> {
-  dynamic this_;
-  ClosureEnv_anon_112(this.this_);
+class ClosureEnv_anon_114 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_114();
   @override
-  String call(Supertype s) => ClosureEnv_anon_112_call(this, s);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_112_call(ClosureEnv_anon_112 env, Supertype s) {
-  return _TypeUtils__restoreSupertype(this_, s);
+ClosureEnv_anon_114 ClosureEnv_anon_114_new(ClosureEnv_anon_114 env_) {
+  env_.closureCall = ClosureEnv_anon_114_call;
+  return env_;
+}
+String ClosureEnv_anon_114_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_114;
+
+  return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_113 extends TypeFunction1<bool, Field> {
-  Class cls;
-  ClosureEnv_anon_113(this.cls);
-  @override
-  bool call(Field f) => ClosureEnv_anon_113_call(this, f);
-}
-bool ClosureEnv_anon_113_call(ClosureEnv_anon_113 env, Field f) {
-  return ((((f.isStatic && f.isConst) && (f.type is InterfaceType)) && ((f.type as InterfaceType).classNode == env.cls)) && !((f.name.text == 'values')));
-}
-
-class ClosureEnv_anon_114 extends TypeFunction1<bool, Field> {
-  StaticSet<String> enumInternalFields;
-  ClosureEnv_anon_114(this.enumInternalFields);
-  @override
-  bool call(Field f) => ClosureEnv_anon_114_call(this, f);
-}
-bool ClosureEnv_anon_114_call(ClosureEnv_anon_114 env, Field f) {
-  return (!(f.isStatic) && !(env.enumInternalFields.contains(f.name.text)));
-}
-
-class ClosureEnv_anon_115 extends TypeFunction1<String, String> {
+class ClosureEnv_anon_115 extends TypeFunction1<String, Match> {
+  late String replacement;
   ClosureEnv_anon_115();
   @override
-  String call(String name) => ClosureEnv_anon_115_call(this, name);
+  String call(Match m) => closureCall(this, m);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (replacement is AnyGC) (replacement as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_115_call(ClosureEnv_anon_115 env, String name) {
-  return 'this.${name}';
+ClosureEnv_anon_115 ClosureEnv_anon_115_new(ClosureEnv_anon_115 env_, String replacement) {
+  env_.closureCall = ClosureEnv_anon_115_call;
+  env_.replacement = replacement;
+  return env_;
+}
+String ClosureEnv_anon_115_call(dynamic env__, Match m) {
+  final env = env__ as ClosureEnv_anon_115;
+
+  return env.replacement;
 }
 
-class ClosureEnv_anon_116 extends TypeFunction1<bool, Procedure> {
-  StaticSet<String> syntheticMethods;
-  ClosureEnv_anon_116(this.syntheticMethods);
+class ClosureEnv_anon_116 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_116();
   @override
-  bool call(Procedure p) => ClosureEnv_anon_116_call(this, p);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-bool ClosureEnv_anon_116_call(ClosureEnv_anon_116 env, Procedure p) {
-  return ((!(env.syntheticMethods.contains(p.name.text)) && !(p.isAbstract)) && !((p.function.body == null)));
+ClosureEnv_anon_116 ClosureEnv_anon_116_new(ClosureEnv_anon_116 env_) {
+  env_.closureCall = ClosureEnv_anon_116_call;
+  return env_;
+}
+String ClosureEnv_anon_116_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_116;
+
+  return (tp.name ?? 'T');
 }
 
 class ClosureEnv_anon_117 extends TypeFunction1<String, TypeParameter> {
   ClosureEnv_anon_117();
   @override
-  String call(TypeParameter tp) => ClosureEnv_anon_117_call(this, tp);
+  String call(TypeParameter tp) => closureCall(this, tp);
 }
-String ClosureEnv_anon_117_call(ClosureEnv_anon_117 env, TypeParameter tp) {
+ClosureEnv_anon_117 ClosureEnv_anon_117_new(ClosureEnv_anon_117 env_) {
+  env_.closureCall = ClosureEnv_anon_117_call;
+  return env_;
+}
+String ClosureEnv_anon_117_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_117;
+
   return (tp.name ?? 'T');
 }
 
-class ClosureEnv_anon_118 extends TypeFunction1<String?, TypeParameter> {
+class ClosureEnv_anon_118 extends TypeFunction1<String, Supertype> {
+  late dynamic this_;
   ClosureEnv_anon_118();
   @override
-  String? call(TypeParameter tp) => ClosureEnv_anon_118_call(this, tp);
+  String call(Supertype s) => closureCall(this, s);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String? ClosureEnv_anon_118_call(ClosureEnv_anon_118 env, TypeParameter tp) {
+ClosureEnv_anon_118 ClosureEnv_anon_118_new(ClosureEnv_anon_118 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_118_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_118_call(dynamic env__, Supertype s) {
+  final env = env__ as ClosureEnv_anon_118;
+
+  return _TypeUtils__restoreSupertype(this_, s);
+}
+
+class ClosureEnv_anon_119 extends TypeFunction1<bool, Field> {
+  late Class cls;
+  ClosureEnv_anon_119();
+  @override
+  bool call(Field f) => closureCall(this, f);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (cls is AnyGC) (cls as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_119 ClosureEnv_anon_119_new(ClosureEnv_anon_119 env_, Class cls) {
+  env_.closureCall = ClosureEnv_anon_119_call;
+  env_.cls = cls;
+  return env_;
+}
+bool ClosureEnv_anon_119_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_119;
+
+  return ((((f.isStatic && f.isConst) && (f.type is InterfaceType)) && ((f.type as InterfaceType).classNode == env.cls)) && !((f.name.text == 'values')));
+}
+
+class ClosureEnv_anon_120 extends TypeFunction1<bool, Field> {
+  late StaticSet<String> enumInternalFields;
+  ClosureEnv_anon_120();
+  @override
+  bool call(Field f) => closureCall(this, f);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (enumInternalFields is AnyGC) (enumInternalFields as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_120 ClosureEnv_anon_120_new(ClosureEnv_anon_120 env_, StaticSet<String> enumInternalFields) {
+  env_.closureCall = ClosureEnv_anon_120_call;
+  env_.enumInternalFields = enumInternalFields;
+  return env_;
+}
+bool ClosureEnv_anon_120_call(dynamic env__, Field f) {
+  final env = env__ as ClosureEnv_anon_120;
+
+  return (!(f.isStatic) && !(env.enumInternalFields.contains(f.name.text)));
+}
+
+class ClosureEnv_anon_121 extends TypeFunction1<String, String> {
+  ClosureEnv_anon_121();
+  @override
+  String call(String name) => closureCall(this, name);
+}
+ClosureEnv_anon_121 ClosureEnv_anon_121_new(ClosureEnv_anon_121 env_) {
+  env_.closureCall = ClosureEnv_anon_121_call;
+  return env_;
+}
+String ClosureEnv_anon_121_call(dynamic env__, String name) {
+  final env = env__ as ClosureEnv_anon_121;
+
+  return 'this.${name}';
+}
+
+class ClosureEnv_anon_122 extends TypeFunction1<bool, Procedure> {
+  late StaticSet<String> syntheticMethods;
+  ClosureEnv_anon_122();
+  @override
+  bool call(Procedure p) => closureCall(this, p);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (syntheticMethods is AnyGC) (syntheticMethods as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_122 ClosureEnv_anon_122_new(ClosureEnv_anon_122 env_, StaticSet<String> syntheticMethods) {
+  env_.closureCall = ClosureEnv_anon_122_call;
+  env_.syntheticMethods = syntheticMethods;
+  return env_;
+}
+bool ClosureEnv_anon_122_call(dynamic env__, Procedure p) {
+  final env = env__ as ClosureEnv_anon_122;
+
+  return ((!(env.syntheticMethods.contains(p.name.text)) && !(p.isAbstract)) && !((p.function.body == null)));
+}
+
+class ClosureEnv_anon_123 extends TypeFunction1<String, TypeParameter> {
+  ClosureEnv_anon_123();
+  @override
+  String call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_123 ClosureEnv_anon_123_new(ClosureEnv_anon_123 env_) {
+  env_.closureCall = ClosureEnv_anon_123_call;
+  return env_;
+}
+String ClosureEnv_anon_123_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_123;
+
+  return (tp.name ?? 'T');
+}
+
+class ClosureEnv_anon_124 extends TypeFunction1<String?, TypeParameter> {
+  ClosureEnv_anon_124();
+  @override
+  String? call(TypeParameter tp) => closureCall(this, tp);
+}
+ClosureEnv_anon_124 ClosureEnv_anon_124_new(ClosureEnv_anon_124 env_) {
+  env_.closureCall = ClosureEnv_anon_124_call;
+  return env_;
+}
+String? ClosureEnv_anon_124_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_124;
+
   return tp.name;
 }
 
-class ClosureEnv_anon_119 extends TypeFunction1<bool, TypeParameter> {
-  StaticSet<String?> classParamNames;
-  ClosureEnv_anon_119(this.classParamNames);
+class ClosureEnv_anon_125 extends TypeFunction1<bool, TypeParameter> {
+  late StaticSet<String?> classParamNames;
+  ClosureEnv_anon_125();
   @override
-  bool call(TypeParameter tp) => ClosureEnv_anon_119_call(this, tp);
+  bool call(TypeParameter tp) => closureCall(this, tp);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (classParamNames is AnyGC) (classParamNames as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_119_call(ClosureEnv_anon_119 env, TypeParameter tp) {
+ClosureEnv_anon_125 ClosureEnv_anon_125_new(ClosureEnv_anon_125 env_, StaticSet<String?> classParamNames) {
+  env_.closureCall = ClosureEnv_anon_125_call;
+  env_.classParamNames = classParamNames;
+  return env_;
+}
+bool ClosureEnv_anon_125_call(dynamic env__, TypeParameter tp) {
+  final env = env__ as ClosureEnv_anon_125;
+
   return !(env.classParamNames.contains(tp.name));
 }
 
-class ClosureEnv_anon_120 extends TypeFunction1<String, VariableDeclaration> {
-  dynamic this_;
-  ClosureEnv_anon_120(this.this_);
+class ClosureEnv_anon_126 extends TypeFunction1<String, VariableDeclaration> {
+  late dynamic this_;
+  ClosureEnv_anon_126();
   @override
-  String call(VariableDeclaration p) => ClosureEnv_anon_120_call(this, p);
+  String call(VariableDeclaration p) => closureCall(this, p);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_120_call(ClosureEnv_anon_120 env, VariableDeclaration p) {
-    final StringBuffer sb = StringBuffer();
+ClosureEnv_anon_126 ClosureEnv_anon_126_new(ClosureEnv_anon_126 env_, dynamic this_) {
+  env_.closureCall = ClosureEnv_anon_126_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_126_call(dynamic env__, VariableDeclaration p) {
+  final env = env__ as ClosureEnv_anon_126;
+
+    final StaticStringBuffer sb = StaticStringBuffer();
     if (p.isRequired)     sb.write('required ');
     if (p.isFinal)     sb.write('final ');
-    sb.write(_TypeUtils__restoreType(this_, p.type));
+    final String? defaultExpr = (!((p.initializer == null)) ? _DartRestorerBase__restoreExpr(this_, p.initializer!) : null);
+    sb.write(_DeclarationRestorer__paramTypeForDefault(this_, p.type, defaultExpr));
     sb.write(' ');
     final String cleanName = _TypeUtils__cleanVarName(this_, (p.name ?? '_n'));
     p.name = cleanName;
     final String displayName = (this_._boxedVars.contains(p) ? '${cleanName}_raw' : cleanName);
     sb.write(displayName);
-    if (!((p.initializer == null))) {
-      sb.write(' = ${_DartRestorerBase__restoreExpr(this_, p.initializer!)}');
+    if (!((defaultExpr == null))) {
+      sb.write(' = ${_DeclarationRestorer__promoteConstCollectionDefault(this_, defaultExpr, p.type)}');
     }
     return sb.toString();
   }
 
-class ClosureEnv_analyzeCapturedVarsFromFunc_121 extends TypeFunction1<void, bool> {
-  BoolBox capturesThis;
-  ClosureEnv_analyzeCapturedVarsFromFunc_121(this.capturesThis);
+class ClosureEnv_analyzeCapturedVarsFromFunc_127 extends TypeFunction1<void, bool> {
+  late BoolBox capturesThis;
+  ClosureEnv_analyzeCapturedVarsFromFunc_127();
   @override
-  void call(bool flag) => ClosureEnv_analyzeCapturedVarsFromFunc_121_call(this, flag);
+  void call(bool flag) => closureCall(this, flag);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (capturesThis is AnyGC) (capturesThis as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_analyzeCapturedVarsFromFunc_121_call(ClosureEnv_analyzeCapturedVarsFromFunc_121 env, bool flag) {
+ClosureEnv_analyzeCapturedVarsFromFunc_127 ClosureEnv_analyzeCapturedVarsFromFunc_127_new(ClosureEnv_analyzeCapturedVarsFromFunc_127 env_, BoolBox capturesThis) {
+  env_.closureCall = ClosureEnv_analyzeCapturedVarsFromFunc_127_call;
+  env_.capturesThis = capturesThis;
+  return env_;
+}
+void ClosureEnv_analyzeCapturedVarsFromFunc_127_call(dynamic env__, bool flag) {
+  final env = env__ as ClosureEnv_analyzeCapturedVarsFromFunc_127;
+
       env.capturesThis.value = true;
     }
 
-class ClosureEnv__collectCaptured_122 extends TypeFunction1<void, bool> {
-  BoolBox innerCapturesThis;
-  ClosureEnv__collectCaptured_122(this.innerCapturesThis);
+class ClosureEnv__collectCaptured_128 extends TypeFunction1<void, bool> {
+  late BoolBox innerCapturesThis;
+  ClosureEnv__collectCaptured_128();
   @override
-  void call(bool flag) => ClosureEnv__collectCaptured_122_call(this, flag);
+  void call(bool flag) => closureCall(this, flag);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (innerCapturesThis is AnyGC) (innerCapturesThis as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv__collectCaptured_122_call(ClosureEnv__collectCaptured_122 env, bool flag) {
+ClosureEnv__collectCaptured_128 ClosureEnv__collectCaptured_128_new(ClosureEnv__collectCaptured_128 env_, BoolBox innerCapturesThis) {
+  env_.closureCall = ClosureEnv__collectCaptured_128_call;
+  env_.innerCapturesThis = innerCapturesThis;
+  return env_;
+}
+void ClosureEnv__collectCaptured_128_call(dynamic env__, bool flag) {
+  final env = env__ as ClosureEnv__collectCaptured_128;
+
         env.innerCapturesThis.value = true;
       }
 

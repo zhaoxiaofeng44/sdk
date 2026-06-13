@@ -21,6 +21,15 @@ class PromiseValue<T> extends VPtr {
     vptr['complete'] = Promise_complete<T>;
     vptr['completeError'] = Promise_completeError<T>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_state is AnyGC) (_state as AnyGC).gcMark(flag);
+    if (_result is AnyGC) (_result as AnyGC).gcMark(flag);
+    if (_error is AnyGC) (_error as AnyGC).gcMark(flag);
+    if (_onTick is AnyGC) (_onTick as AnyGC).gcMark(flag);
+  }
 }
 
 PromiseValue<T> Promise_new<T>(dynamic this__) {
@@ -87,21 +96,21 @@ void Promise_completeError<T>(dynamic this__, Object error) {
 }
 
 PromiseValue<T> Promise_value<T>(T val) {
-  final PromiseValue<T> promise = Promise_new<T>(PromiseValue<T>());
+  final PromiseValue<T> promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
   (promise.vptr['complete'] as void Function(dynamic, T))(promise, val);
   return promise;
 }
 
 PromiseValue<T> Promise_delayed<T>(int delayTicks, TypeFunction0<T> computation) {
-  final PromiseValue<T> promise = Promise_new<T>(PromiseValue<T>());
-  (GlobalScheduler_instance.vptr['registerDelayedTask'] as void Function(dynamic, int, TypeFunction0<void>))(GlobalScheduler_instance, delayTicks, ClosureEnv_anon_1<T>(promise, computation));
+  final PromiseValue<T> promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
+  (GlobalScheduler_instance.vptr['registerDelayedTask'] as void Function(dynamic, int, TypeFunction0<void>))(GlobalScheduler_instance, delayTicks, ClosureEnv_anon_1_new<T>(GC.allocateLocal(ClosureEnv_anon_1<T>()), promise, computation));
   return promise;
 }
 
 PromiseValue<R> Promise_then<T, R>(dynamic this__, TypeFunction1<R, T> onValue) {
   final this_ = this__ as PromiseValue<T>;
-  final PromiseValue<R> nextPromise = Promise_new<R>(PromiseValue<R>());
-  nextPromise._onTick = ClosureEnv_anon_2<R, T>(this_, nextPromise, onValue);
+  final PromiseValue<R> nextPromise = Promise_new<R>(GC.allocateLocal(PromiseValue<R>()));
+  nextPromise._onTick = ClosureEnv_anon_2_new<R, T>(GC.allocateLocal(ClosureEnv_anon_2<R, T>()), this_, nextPromise, onValue);
   (GlobalScheduler_instance.vptr['registerActivePromise'] as void Function(dynamic, PromiseValue<dynamic>))(GlobalScheduler_instance, nextPromise);
   return nextPromise;
 }
@@ -118,13 +127,20 @@ class GlobalSchedulerValue extends VPtr {
     vptr['get_hasActiveTasks'] = GlobalScheduler_get_hasActiveTasks;
     vptr['reset'] = GlobalScheduler_reset;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_activePromises is AnyGC) (_activePromises as AnyGC).gcMark(flag);
+    if (_delayedTasks is AnyGC) (_delayedTasks as AnyGC).gcMark(flag);
+  }
 }
 
-final GlobalSchedulerValue GlobalScheduler_instance = GlobalScheduler_new__(GlobalSchedulerValue());
+final GlobalSchedulerValue GlobalScheduler_instance = GlobalScheduler_new__(GC.allocateGlobal(GlobalSchedulerValue()));
 GlobalSchedulerValue GlobalScheduler_new__(dynamic this__) {
   final this_ = this__ as GlobalSchedulerValue;
-  this_._activePromises = StaticList<PromiseValue<dynamic>>();
-  this_._delayedTasks = StaticList<_DelayedTaskValue>();
+  this_._activePromises = StaticList<PromiseValue<dynamic>>.of([]);
+  this_._delayedTasks = StaticList<_DelayedTaskValue>.of([]);
   this_._currentTick = 0;
   return this_;
 }
@@ -139,47 +155,34 @@ void GlobalScheduler_registerDelayedTask(dynamic this__, int delayTicks, TypeFun
   final this_ = this__ as GlobalSchedulerValue;
   final int target = (this_._currentTick + delayTicks);
   log('registerDelayed: trigger@tick=${target} (delay=${delayTicks})');
-  this_._delayedTasks.add(_DelayedTask_new(_DelayedTaskValue(), target, callback));
+  this_._delayedTasks.add(_DelayedTask_new(GC.allocateLocal(_DelayedTaskValue()), target, callback));
 }
 
 void GlobalScheduler_tick(dynamic this__) {
   final this_ = this__ as GlobalSchedulerValue;
   this_._currentTick = (this_._currentTick + 1);
   log('--- tick #${this_._currentTick} start (active=${this_._activePromises.length}, delayed=${this_._delayedTasks.length}) ---');
-  final StaticList<_DelayedTaskValue> expired = StaticList.of(this_._delayedTasks.where(ClosureEnv_anon_3(this_)).toList());
-  this_._delayedTasks.removeWhere(ClosureEnv_anon_4(this_));
-{
-    StaticIterator<_DelayedTaskValue> sync_for_iterator = StaticIterator(expired.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final _DelayedTaskValue task = sync_for_iterator.current;
-{
-        log('  delayed task triggered @tick=${this_._currentTick}');
-        task.callback();
-      }
-    }
+  final StaticList<_DelayedTaskValue> expired = StaticList.of(this_._delayedTasks.where(ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()), this_)).toList());
+  this_._delayedTasks.removeWhere(ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()), this_));
+  for (final task in expired) {
+    log('  delayed task triggered @tick=${this_._currentTick}');
+    task.callback.closureCall(task.callback);
   }
   final StaticList<PromiseValue<dynamic>> snapshot = StaticList<PromiseValue<dynamic>>.of(this_._activePromises);
-  final StaticSet<PromiseValue<dynamic>> finished = StaticSet<PromiseValue<dynamic>>.of((() {   final StaticSet<PromiseValue<dynamic>> _v1 = StaticSet<PromiseValue<dynamic>>();
- return _v1; })());
+  final StaticSet<PromiseValue<dynamic>> finished = StaticSet<PromiseValue<dynamic>>.of([]);
+  for (final promise in snapshot)   do {
 {
-    StaticIterator<PromiseValue<dynamic>> sync_for_iterator = StaticIterator(snapshot.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final PromiseValue<dynamic> promise = sync_for_iterator.current;
-      do {
-{
-          if (((promise.vptr['get_isCompleted'] as bool Function(dynamic))(promise) || (promise.vptr['get_isError'] as bool Function(dynamic))(promise))) {
-            finished.add(promise);
-            break;
-          }
-          final TypeFunction0<bool>? onTick = promise._onTick;
-          if ((!((onTick == null)) && onTick())) {
-            finished.add(promise);
-          }
-        }
-      } while (false);
+      if (((promise.vptr['get_isCompleted'] as bool Function(dynamic))(promise) || (promise.vptr['get_isError'] as bool Function(dynamic))(promise))) {
+        finished.add(promise);
+        break;
+      }
+      final TypeFunction0<bool>? onTick = promise._onTick;
+      if ((!((onTick == null)) && onTick.closureCall(onTick))) {
+        finished.add(promise);
+      }
     }
-  }
-  this_._activePromises.removeWhere(ClosureEnv_anon_5(finished));
+  } while (false);
+  this_._activePromises.removeWhere(ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()), finished));
   log('--- tick #${this_._currentTick} end (remaining active=${this_._activePromises.length}) ---');
 }
 
@@ -199,6 +202,12 @@ void GlobalScheduler_reset(dynamic this__) {
 class _DelayedTaskValue extends VPtr {
   late int targetTick;
   late TypeFunction0<void> callback;
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (callback is AnyGC) (callback as AnyGC).gcMark(flag);
+  }
 }
 
 _DelayedTaskValue _DelayedTask_new(dynamic this__, int targetTick, TypeFunction0<void> callback) {
@@ -218,12 +227,18 @@ class AsyncStateMachineValue<T> extends VPtr {
     vptr['completeWithError'] = AsyncStateMachine_completeWithError<T>;
     vptr['start'] = AsyncStateMachine_start<T>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (promise is AnyGC) (promise as AnyGC).gcMark(flag);
+  }
 }
 
 AsyncStateMachineValue<T> AsyncStateMachine_new<T>(dynamic this__) {
   final this_ = this__ as AsyncStateMachineValue<T>;
   this_.smState = 0;
-  this_.promise = Promise_new<T>(PromiseValue<T>());
+  this_.promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
   return this_;
 }
 
@@ -243,7 +258,7 @@ void AsyncStateMachine_completeWithError<T>(dynamic this__, Object error) {
 
 PromiseValue<T> AsyncStateMachine_start<T>(dynamic this__) {
   final this_ = this__ as AsyncStateMachineValue<T>;
-  this_.promise._onTick = ClosureEnv_anon_6(this_);
+  this_.promise._onTick = ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()), this_);
   (GlobalScheduler_instance.vptr['registerActivePromise'] as void Function(dynamic, PromiseValue<dynamic>))(GlobalScheduler_instance, this_.promise);
   return this_.promise;
 }
@@ -262,6 +277,12 @@ class AddAsyncStateMachineValue extends AsyncStateMachineValue<int> {
     vptr['start'] = AddAsyncStateMachine_start;
     vptr['get_debugName'] = AddAsyncStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 AddAsyncStateMachineValue AddAsyncStateMachine_new(dynamic this__, int a, int b) {
@@ -270,7 +291,7 @@ AddAsyncStateMachineValue AddAsyncStateMachine_new(dynamic this__, int a, int b)
   this_.a = a;
   this_.b = b;
   this_.smState = 0;
-  this_.promise = Promise_new<int>(PromiseValue<int>());
+  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
   this_._x = 0;
   this_._y = 0;
   this_._pendingFuture = null;
@@ -297,7 +318,7 @@ bool AddAsyncStateMachine_step(dynamic this__) {
 {
           if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
           this_._x = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
-          this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_7(this_));
+          this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7()), this_));
           this_.smState = 2;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, got x=${this_._x}, created delayed future for ${this_.b}');
           return false;
@@ -343,13 +364,19 @@ class InnerAsyncStateMachineValue extends AsyncStateMachineValue<String> {
     vptr['start'] = InnerAsyncStateMachine_start;
     vptr['get_debugName'] = InnerAsyncStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 InnerAsyncStateMachineValue InnerAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as InnerAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
   this_.smState = 0;
-  this_.promise = Promise_new<String>(PromiseValue<String>());
+  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
   this_._pendingFuture = null;
   return this_;
 }
@@ -365,7 +392,7 @@ bool InnerAsyncStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = Promise_delayed<String>(2, ClosureEnv_anon_8());
+          this_._pendingFuture = Promise_delayed<String>(2, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future');
           return false;
@@ -412,13 +439,19 @@ class OuterAsyncStateMachineValue extends AsyncStateMachineValue<String> {
     vptr['start'] = OuterAsyncStateMachine_start;
     vptr['get_debugName'] = OuterAsyncStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 OuterAsyncStateMachineValue OuterAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as OuterAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
   this_.smState = 0;
-  this_.promise = Promise_new<String>(PromiseValue<String>());
+  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
   this_._prefix = '';
   this_._pendingFuture = null;
   return this_;
@@ -444,7 +477,7 @@ bool OuterAsyncStateMachine_step(dynamic this__) {
 {
           if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
           this_._prefix = (this_._pendingFuture!.vptr['get_result'] as String Function(dynamic))(this_._pendingFuture!);
-          final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(InnerAsyncStateMachineValue());
+          final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(GC.allocateLocal(InnerAsyncStateMachineValue()));
           this_._pendingFuture = (innerSm.vptr['start'] as PromiseValue<String> Function(dynamic))(innerSm);
           this_.smState = 2;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, prefix=${this_._prefix}, started InnerAsync');
@@ -491,13 +524,19 @@ class ErrorStateMachineValue extends AsyncStateMachineValue<String> {
     vptr['start'] = ErrorStateMachine_start;
     vptr['get_debugName'] = ErrorStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 ErrorStateMachineValue ErrorStateMachine_new(dynamic this__) {
   final this_ = this__ as ErrorStateMachineValue;
   AsyncStateMachine_new<String>(this_);
   this_.smState = 0;
-  this_.promise = Promise_new<String>(PromiseValue<String>());
+  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
   this_._pendingFuture = null;
   return this_;
 }
@@ -513,7 +552,7 @@ bool ErrorStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_9());
+          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future (will throw)');
           return false;
@@ -562,13 +601,19 @@ class ParallelAwaitStateMachineValue extends AsyncStateMachineValue<StaticList<i
     vptr['start'] = ParallelAwaitStateMachine_start;
     vptr['get_debugName'] = ParallelAwaitStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_futures is AnyGC) (_futures as AnyGC).gcMark(flag);
+  }
 }
 
 ParallelAwaitStateMachineValue ParallelAwaitStateMachine_new(dynamic this__) {
   final this_ = this__ as ParallelAwaitStateMachineValue;
   AsyncStateMachine_new<StaticList<int>>(this_);
   this_.smState = 0;
-  this_.promise = Promise_new<StaticList<int>>(PromiseValue<StaticList<int>>());
+  this_.promise = Promise_new<StaticList<int>>(GC.allocateLocal(PromiseValue<StaticList<int>>()));
   return this_;
 }
 
@@ -583,16 +628,16 @@ bool ParallelAwaitStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._futures = StaticList<PromiseValue<int>>.of([Promise_delayed<int>(3, ClosureEnv_anon_13()), Promise_delayed<int>(2, ClosureEnv_anon_14()), Promise_delayed<int>(1, ClosureEnv_anon_15())]);
+          this_._futures = StaticList<PromiseValue<int>>.of([Promise_delayed<int>(3, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()))), Promise_delayed<int>(2, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()))), Promise_delayed<int>(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12())))]);
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created 3 delayed futures');
           return false;
         }
       case 1:
 {
-          final bool allDone = this_._futures.every(ClosureEnv_anon_16());
+          final bool allDone = this_._futures.every(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13())));
           if (!(allDone))           return false;
-          final StaticList<int> results = StaticList.of(this_._futures.map(ClosureEnv_anon_17()).toList());
+          final StaticList<int> results = StaticList.of(this_._futures.map(ClosureEnv_anon_14_new(GC.allocateLocal(ClosureEnv_anon_14()))).toList());
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, all futures completed: ${results}');
           (this_.vptr['completeWith'] as void Function(dynamic, StaticList<int>))(this_, results);
           return true;
@@ -631,6 +676,12 @@ class ComputeStepStateMachineValue extends AsyncStateMachineValue<int> {
     vptr['start'] = ComputeStepStateMachine_start;
     vptr['get_debugName'] = ComputeStepStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 ComputeStepStateMachineValue ComputeStepStateMachine_new(dynamic this__, int input) {
@@ -638,7 +689,7 @@ ComputeStepStateMachineValue ComputeStepStateMachine_new(dynamic this__, int inp
   AsyncStateMachine_new<int>(this_);
   this_.input = input;
   this_.smState = 0;
-  this_.promise = Promise_new<int>(PromiseValue<int>());
+  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
   this_._pendingFuture = null;
   return this_;
 }
@@ -654,7 +705,7 @@ bool ComputeStepStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_18(this_));
+          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()), this_));
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1');
           return false;
@@ -703,13 +754,19 @@ class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
     vptr['start'] = PipelineStateMachine_start;
     vptr['get_debugName'] = PipelineStateMachine_get_debugName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pendingFuture is AnyGC) (_pendingFuture as AnyGC).gcMark(flag);
+  }
 }
 
 PipelineStateMachineValue PipelineStateMachine_new(dynamic this__) {
   final this_ = this__ as PipelineStateMachineValue;
   AsyncStateMachine_new<int>(this_);
   this_.smState = 0;
-  this_.promise = Promise_new<int>(PromiseValue<int>());
+  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
   this_._a = 0;
   this_._b = 0;
   this_._c = 0;
@@ -728,7 +785,7 @@ bool PipelineStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = (ComputeStepStateMachine_new(ComputeStepStateMachineValue(), 1).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(ComputeStepStateMachineValue(), 1));
+          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1));
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, started ComputeStep(1)');
           return false;
@@ -737,7 +794,7 @@ bool PipelineStateMachine_step(dynamic this__) {
 {
           if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
           this_._a = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
-          this_._pendingFuture = (ComputeStepStateMachine_new(ComputeStepStateMachineValue(), this_._a).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(ComputeStepStateMachineValue(), this_._a));
+          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a));
           this_.smState = 2;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, a=${this_._a}, started ComputeStep(${this_._a})');
           return false;
@@ -746,7 +803,7 @@ bool PipelineStateMachine_step(dynamic this__) {
 {
           if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
           this_._b = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
-          this_._pendingFuture = (ComputeStepStateMachine_new(ComputeStepStateMachineValue(), this_._b).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(ComputeStepStateMachineValue(), this_._b));
+          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b));
           this_.smState = 3;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→3, b=${this_._b}, started ComputeStep(${this_._b})');
           return false;
@@ -817,7 +874,7 @@ void testBasicAwait() {
 void testDelayedFuture() {
   staticPrint('\n--- Demo 2: 延迟 Future ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PromiseValue<String> future = Promise_delayed<String>(3, ClosureEnv_testDelayedFuture_19());
+  final PromiseValue<String> future = Promise_delayed<String>(3, ClosureEnv_testDelayedFuture_16_new(GC.allocateLocal(ClosureEnv_testDelayedFuture_16())));
   final String result = smAwait<String>(future);
   assert((result == 'hello after delay'), 'Unexpected result: ${result}');
   staticPrint('  ✓ smAwait(delayed(3 ticks)) = "${result}"');
@@ -826,7 +883,7 @@ void testDelayedFuture() {
 void testMultipleAwaitSerial() {
   staticPrint('\n--- Demo 3: 多 await 串行 (addAsync(10, 20)) ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final AddAsyncStateMachineValue sm = AddAsyncStateMachine_new(AddAsyncStateMachineValue(), 10, 20);
+  final AddAsyncStateMachineValue sm = AddAsyncStateMachine_new(GC.allocateLocal(AddAsyncStateMachineValue()), 10, 20);
   final PromiseValue<int> future = (sm.vptr['start'] as PromiseValue<int> Function(dynamic))(sm);
   final int result = smAwait<int>(future);
   assert((result == 30), 'Expected 30, got ${result}');
@@ -836,7 +893,7 @@ void testMultipleAwaitSerial() {
 void testNestedAsync() {
   staticPrint('\n--- Demo 4: 嵌套异步调用 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final OuterAsyncStateMachineValue sm = OuterAsyncStateMachine_new(OuterAsyncStateMachineValue());
+  final OuterAsyncStateMachineValue sm = OuterAsyncStateMachine_new(GC.allocateLocal(OuterAsyncStateMachineValue()));
   final PromiseValue<String> future = (sm.vptr['start'] as PromiseValue<String> Function(dynamic))(sm);
   final String result = smAwait<String>(future);
   assert((result == 'result: INNER'), 'Expected "result: INNER", got "${result}"');
@@ -846,7 +903,7 @@ void testNestedAsync() {
 void testThenChain() {
   staticPrint('\n--- Demo 5: then 链式调用 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PromiseValue<String> future = ((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_21()).vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_21()), ClosureEnv_testThenChain_23());
+  final PromiseValue<String> future = ((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_18_new(GC.allocateLocal(ClosureEnv_testThenChain_18()))).vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_18_new(GC.allocateLocal(ClosureEnv_testThenChain_18()))), ClosureEnv_testThenChain_20_new(GC.allocateLocal(ClosureEnv_testThenChain_20())));
   final String result = smAwait<String>(future);
   assert((result == 'value=10'), 'Expected "value=10", got "${result}"');
   staticPrint('  ✓ Promise.value(5).then(*2).then(format) = "${result}"');
@@ -855,7 +912,7 @@ void testThenChain() {
 void testErrorHandling() {
   staticPrint('\n--- Demo 6: 异常处理 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final ErrorStateMachineValue sm = ErrorStateMachine_new(ErrorStateMachineValue());
+  final ErrorStateMachineValue sm = ErrorStateMachine_new(GC.allocateLocal(ErrorStateMachineValue()));
   final PromiseValue<String> future = (sm.vptr['start'] as PromiseValue<String> Function(dynamic))(sm);
   final String result = smAwait<String>(future);
   assert(result.contains('something went wrong'), 'Error not caught: ${result}');
@@ -865,7 +922,7 @@ void testErrorHandling() {
 void testParallelAwait() {
   staticPrint('\n--- Demo 7: 并行 await (Future.wait 模拟) ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final ParallelAwaitStateMachineValue sm = ParallelAwaitStateMachine_new(ParallelAwaitStateMachineValue());
+  final ParallelAwaitStateMachineValue sm = ParallelAwaitStateMachine_new(GC.allocateLocal(ParallelAwaitStateMachineValue()));
   final PromiseValue<StaticList<int>> future = (sm.vptr['start'] as PromiseValue<StaticList<int>> Function(dynamic))(sm);
   final StaticList<int> result = StaticList<int>.of(smAwait<StaticList<int>>(future));
   assert((result.length == 3), 'Expected 3 results');
@@ -876,7 +933,7 @@ void testParallelAwait() {
 void testPipeline() {
   staticPrint('\n--- Demo 8: 多层嵌套管道 pipeline ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PipelineStateMachineValue sm = PipelineStateMachine_new(PipelineStateMachineValue());
+  final PipelineStateMachineValue sm = PipelineStateMachine_new(GC.allocateLocal(PipelineStateMachineValue()));
   final PromiseValue<int> future = (sm.vptr['start'] as PromiseValue<int> Function(dynamic))(sm);
   final int result = smAwait<int>(future);
   assert((result == 14), 'Expected 14, got ${result}');
@@ -886,7 +943,7 @@ void testPipeline() {
 void testTickCounting() {
   staticPrint('\n--- Demo 9: tick 计数验证 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PromiseValue<int> future = Promise_delayed<int>(5, ClosureEnv_testTickCounting_24());
+  final PromiseValue<int> future = Promise_delayed<int>(5, ClosureEnv_testTickCounting_21_new(GC.allocateLocal(ClosureEnv_testTickCounting_21())));
   int ticksBefore = GlobalScheduler_instance._currentTick;
   final int result = smAwait<int>(future);
   int ticksAfter = GlobalScheduler_instance._currentTick;
@@ -916,15 +973,30 @@ void main() {
 
 bool enableLog = true;
 class ClosureEnv_anon_0<T> extends TypeFunction0<void> {
-  PromiseValue<T> promise;
-  TypeFunction0<T> computation;
-  ClosureEnv_anon_0(this.promise, this.computation);
+  late PromiseValue<T> promise;
+  late TypeFunction0<T> computation;
+  ClosureEnv_anon_0();
   @override
-  void call() => ClosureEnv_anon_0_call<T>(this);
+  void call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (promise is AnyGC) (promise as AnyGC).gcMark(flag);
+    if (computation is AnyGC) (computation as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_0_call<T>(ClosureEnv_anon_0<T> env) {
+ClosureEnv_anon_0<T> ClosureEnv_anon_0_new<T>(ClosureEnv_anon_0<T> env_, PromiseValue<T> promise, TypeFunction0<T> computation) {
+  env_.closureCall = ClosureEnv_anon_0_call<T>;
+  env_.promise = promise;
+  env_.computation = computation;
+  return env_;
+}
+void ClosureEnv_anon_0_call<T>(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_0<T>;
+
     try {
-      (env.promise.vptr['complete'] as void Function(dynamic, T))(env.promise, env.computation());
+      (env.promise.vptr['complete'] as void Function(dynamic, T))(env.promise, env.computation.closureCall(env.computation));
     }
  catch (e) {
       (env.promise.vptr['completeError'] as void Function(dynamic, Object))(env.promise, e);
@@ -932,15 +1004,30 @@ void ClosureEnv_anon_0_call<T>(ClosureEnv_anon_0<T> env) {
   }
 
 class ClosureEnv_anon_1<T> extends TypeFunction0<void> {
-  PromiseValue<T> promise;
-  TypeFunction0<T> computation;
-  ClosureEnv_anon_1(this.promise, this.computation);
+  late PromiseValue<T> promise;
+  late TypeFunction0<T> computation;
+  ClosureEnv_anon_1();
   @override
-  void call() => ClosureEnv_anon_1_call<T>(this);
+  void call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (promise is AnyGC) (promise as AnyGC).gcMark(flag);
+    if (computation is AnyGC) (computation as AnyGC).gcMark(flag);
+  }
 }
-void ClosureEnv_anon_1_call<T>(ClosureEnv_anon_1<T> env) {
+ClosureEnv_anon_1<T> ClosureEnv_anon_1_new<T>(ClosureEnv_anon_1<T> env_, PromiseValue<T> promise, TypeFunction0<T> computation) {
+  env_.closureCall = ClosureEnv_anon_1_call<T>;
+  env_.promise = promise;
+  env_.computation = computation;
+  return env_;
+}
+void ClosureEnv_anon_1_call<T>(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_1<T>;
+
     try {
-      (env.promise.vptr['complete'] as void Function(dynamic, T))(env.promise, env.computation());
+      (env.promise.vptr['complete'] as void Function(dynamic, T))(env.promise, env.computation.closureCall(env.computation));
     }
  catch (e) {
       (env.promise.vptr['completeError'] as void Function(dynamic, Object))(env.promise, e);
@@ -948,17 +1035,34 @@ void ClosureEnv_anon_1_call<T>(ClosureEnv_anon_1<T> env) {
   }
 
 class ClosureEnv_anon_2<R, T> extends TypeFunction0<bool> {
-  PromiseValue<T> this_;
-  PromiseValue<R> nextPromise;
-  TypeFunction1<R, T> onValue;
-  ClosureEnv_anon_2(this.this_, this.nextPromise, this.onValue);
+  late PromiseValue<T> this_;
+  late PromiseValue<R> nextPromise;
+  late TypeFunction1<R, T> onValue;
+  ClosureEnv_anon_2();
   @override
-  bool call() => ClosureEnv_anon_2_call<R, T>(this);
+  bool call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (nextPromise is AnyGC) (nextPromise as AnyGC).gcMark(flag);
+    if (onValue is AnyGC) (onValue as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_2_call<R, T>(ClosureEnv_anon_2<R, T> env) {
+ClosureEnv_anon_2<R, T> ClosureEnv_anon_2_new<R, T>(ClosureEnv_anon_2<R, T> env_, PromiseValue<T> this_, PromiseValue<R> nextPromise, TypeFunction1<R, T> onValue) {
+  env_.closureCall = ClosureEnv_anon_2_call<R, T>;
+  env_.this_ = this_;
+  env_.nextPromise = nextPromise;
+  env_.onValue = onValue;
+  return env_;
+}
+bool ClosureEnv_anon_2_call<R, T>(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_2<R, T>;
+
     if ((env.this_.vptr['get_isCompleted'] as bool Function(dynamic))(env.this_)) {
       try {
-        (env.nextPromise.vptr['complete'] as void Function(dynamic, R))(env.nextPromise, env.onValue((env.this_.vptr['get_result'] as T Function(dynamic))(env.this_)));
+        (env.nextPromise.vptr['complete'] as void Function(dynamic, R))(env.nextPromise, env.onValue.closureCall(env.onValue, (env.this_.vptr['get_result'] as T Function(dynamic))(env.this_)));
       }
  catch (e) {
         (env.nextPromise.vptr['completeError'] as void Function(dynamic, Object))(env.nextPromise, e);
@@ -973,202 +1077,333 @@ bool ClosureEnv_anon_2_call<R, T>(ClosureEnv_anon_2<R, T> env) {
   }
 
 class ClosureEnv_anon_3 extends TypeFunction1<bool, _DelayedTaskValue> {
-  GlobalSchedulerValue this_;
-  ClosureEnv_anon_3(this.this_);
+  late GlobalSchedulerValue this_;
+  ClosureEnv_anon_3();
   @override
-  bool call(_DelayedTaskValue t) => ClosureEnv_anon_3_call(this, t);
+  bool call(_DelayedTaskValue t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_3_call(ClosureEnv_anon_3 env, _DelayedTaskValue t) {
+ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_, GlobalSchedulerValue this_) {
+  env_.closureCall = ClosureEnv_anon_3_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_3_call(dynamic env__, _DelayedTaskValue t) {
+  final env = env__ as ClosureEnv_anon_3;
+
   return (t.targetTick <= env.this_._currentTick);
 }
 
 class ClosureEnv_anon_4 extends TypeFunction1<bool, _DelayedTaskValue> {
-  GlobalSchedulerValue this_;
-  ClosureEnv_anon_4(this.this_);
+  late GlobalSchedulerValue this_;
+  ClosureEnv_anon_4();
   @override
-  bool call(_DelayedTaskValue t) => ClosureEnv_anon_4_call(this, t);
+  bool call(_DelayedTaskValue t) => closureCall(this, t);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_4_call(ClosureEnv_anon_4 env, _DelayedTaskValue t) {
+ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_, GlobalSchedulerValue this_) {
+  env_.closureCall = ClosureEnv_anon_4_call;
+  env_.this_ = this_;
+  return env_;
+}
+bool ClosureEnv_anon_4_call(dynamic env__, _DelayedTaskValue t) {
+  final env = env__ as ClosureEnv_anon_4;
+
   return (t.targetTick <= env.this_._currentTick);
 }
 
 class ClosureEnv_anon_5 extends TypeFunction1<bool, PromiseValue<dynamic>> {
-  StaticSet<PromiseValue<dynamic>> finished;
-  ClosureEnv_anon_5(this.finished);
+  late StaticSet<PromiseValue<dynamic>> finished;
+  ClosureEnv_anon_5();
   @override
-  bool call(PromiseValue<dynamic> p) => ClosureEnv_anon_5_call(this, p);
+  bool call(PromiseValue<dynamic> p) => closureCall(this, p);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (finished is AnyGC) (finished as AnyGC).gcMark(flag);
+  }
 }
-bool ClosureEnv_anon_5_call(ClosureEnv_anon_5 env, PromiseValue<dynamic> p) {
+ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_, StaticSet<PromiseValue<dynamic>> finished) {
+  env_.closureCall = ClosureEnv_anon_5_call;
+  env_.finished = finished;
+  return env_;
+}
+bool ClosureEnv_anon_5_call(dynamic env__, PromiseValue<dynamic> p) {
+  final env = env__ as ClosureEnv_anon_5;
+
   return env.finished.contains(p);
 }
 
 class ClosureEnv_anon_6 extends TypeFunction0<bool> {
-  final dynamic _r;
-  ClosureEnv_anon_6(this._r);
+  late dynamic _r;
+  ClosureEnv_anon_6();
   @override
-  bool call() => (_r.vptr['step'] as bool Function(dynamic))(_r);
+  bool call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_, dynamic _r) {
+  env_.closureCall = ClosureEnv_anon_6_call;
+  env_._r = _r;
+  return env_;
+}
+bool ClosureEnv_anon_6_call(dynamic env__) {
+  final _r = (env__ as ClosureEnv_anon_6)._r;
+  return (_r.vptr['step'] as bool Function(dynamic))(_r);
 }
 class ClosureEnv_anon_7 extends TypeFunction0<int> {
-  AddAsyncStateMachineValue this_;
-  ClosureEnv_anon_7(this.this_);
+  late AddAsyncStateMachineValue this_;
+  ClosureEnv_anon_7();
   @override
-  int call() => ClosureEnv_anon_7_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_anon_7_call(ClosureEnv_anon_7 env) {
+ClosureEnv_anon_7 ClosureEnv_anon_7_new(ClosureEnv_anon_7 env_, AddAsyncStateMachineValue this_) {
+  env_.closureCall = ClosureEnv_anon_7_call;
+  env_.this_ = this_;
+  return env_;
+}
+int ClosureEnv_anon_7_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_7;
+
   return env.this_.b;
 }
 
 class ClosureEnv_anon_8 extends TypeFunction0<String> {
   ClosureEnv_anon_8();
   @override
-  String call() => ClosureEnv_anon_8_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_8_call(ClosureEnv_anon_8 env) {
+ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
+  env_.closureCall = ClosureEnv_anon_8_call;
+  return env_;
+}
+String ClosureEnv_anon_8_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_8;
+
   return 'inner';
 }
 
 class ClosureEnv_anon_9 extends TypeFunction0<Never> {
   ClosureEnv_anon_9();
   @override
-  Never call() => ClosureEnv_anon_9_call(this);
+  Never call() => closureCall(this);
 }
-Never ClosureEnv_anon_9_call(ClosureEnv_anon_9 env) {
+ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
+  env_.closureCall = ClosureEnv_anon_9_call;
+  return env_;
+}
+Never ClosureEnv_anon_9_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_9;
+
             throw Exception('something went wrong');
           }
 
 class ClosureEnv_anon_10 extends TypeFunction0<int> {
   ClosureEnv_anon_10();
   @override
-  int call() => ClosureEnv_anon_10_call(this);
+  int call() => closureCall(this);
 }
-int ClosureEnv_anon_10_call(ClosureEnv_anon_10 env) {
+ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_) {
+  env_.closureCall = ClosureEnv_anon_10_call;
+  return env_;
+}
+int ClosureEnv_anon_10_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_10;
+
   return 10;
 }
 
 class ClosureEnv_anon_11 extends TypeFunction0<int> {
   ClosureEnv_anon_11();
   @override
-  int call() => ClosureEnv_anon_11_call(this);
+  int call() => closureCall(this);
 }
-int ClosureEnv_anon_11_call(ClosureEnv_anon_11 env) {
+ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_) {
+  env_.closureCall = ClosureEnv_anon_11_call;
+  return env_;
+}
+int ClosureEnv_anon_11_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_11;
+
   return 20;
 }
 
 class ClosureEnv_anon_12 extends TypeFunction0<int> {
   ClosureEnv_anon_12();
   @override
-  int call() => ClosureEnv_anon_12_call(this);
+  int call() => closureCall(this);
 }
-int ClosureEnv_anon_12_call(ClosureEnv_anon_12 env) {
+ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_) {
+  env_.closureCall = ClosureEnv_anon_12_call;
+  return env_;
+}
+int ClosureEnv_anon_12_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_12;
+
   return 30;
 }
 
-class ClosureEnv_anon_13 extends TypeFunction0<int> {
+class ClosureEnv_anon_13 extends TypeFunction1<bool, PromiseValue<int>> {
   ClosureEnv_anon_13();
   @override
-  int call() => ClosureEnv_anon_13_call(this);
+  bool call(PromiseValue<int> f) => closureCall(this, f);
 }
-int ClosureEnv_anon_13_call(ClosureEnv_anon_13 env) {
-  return 10;
+ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_) {
+  env_.closureCall = ClosureEnv_anon_13_call;
+  return env_;
 }
+bool ClosureEnv_anon_13_call(dynamic env__, PromiseValue<int> f) {
+  final env = env__ as ClosureEnv_anon_13;
 
-class ClosureEnv_anon_14 extends TypeFunction0<int> {
-  ClosureEnv_anon_14();
-  @override
-  int call() => ClosureEnv_anon_14_call(this);
-}
-int ClosureEnv_anon_14_call(ClosureEnv_anon_14 env) {
-  return 20;
-}
-
-class ClosureEnv_anon_15 extends TypeFunction0<int> {
-  ClosureEnv_anon_15();
-  @override
-  int call() => ClosureEnv_anon_15_call(this);
-}
-int ClosureEnv_anon_15_call(ClosureEnv_anon_15 env) {
-  return 30;
-}
-
-class ClosureEnv_anon_16 extends TypeFunction1<bool, PromiseValue<int>> {
-  ClosureEnv_anon_16();
-  @override
-  bool call(PromiseValue<int> f) => ClosureEnv_anon_16_call(this, f);
-}
-bool ClosureEnv_anon_16_call(ClosureEnv_anon_16 env, PromiseValue<int> f) {
   return ((f.vptr['get_isCompleted'] as bool Function(dynamic))(f) || (f.vptr['get_isError'] as bool Function(dynamic))(f));
 }
 
-class ClosureEnv_anon_17 extends TypeFunction1<int, PromiseValue<int>> {
-  ClosureEnv_anon_17();
+class ClosureEnv_anon_14 extends TypeFunction1<int, PromiseValue<int>> {
+  ClosureEnv_anon_14();
   @override
-  int call(PromiseValue<int> f) => ClosureEnv_anon_17_call(this, f);
+  int call(PromiseValue<int> f) => closureCall(this, f);
 }
-int ClosureEnv_anon_17_call(ClosureEnv_anon_17 env, PromiseValue<int> f) {
+ClosureEnv_anon_14 ClosureEnv_anon_14_new(ClosureEnv_anon_14 env_) {
+  env_.closureCall = ClosureEnv_anon_14_call;
+  return env_;
+}
+int ClosureEnv_anon_14_call(dynamic env__, PromiseValue<int> f) {
+  final env = env__ as ClosureEnv_anon_14;
+
   return (f.vptr['get_result'] as int Function(dynamic))(f);
 }
 
-class ClosureEnv_anon_18 extends TypeFunction0<int> {
-  ComputeStepStateMachineValue this_;
-  ClosureEnv_anon_18(this.this_);
+class ClosureEnv_anon_15 extends TypeFunction0<int> {
+  late ComputeStepStateMachineValue this_;
+  ClosureEnv_anon_15();
   @override
-  int call() => ClosureEnv_anon_18_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_anon_18_call(ClosureEnv_anon_18 env) {
+ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_, ComputeStepStateMachineValue this_) {
+  env_.closureCall = ClosureEnv_anon_15_call;
+  env_.this_ = this_;
+  return env_;
+}
+int ClosureEnv_anon_15_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_15;
+
   return (env.this_.input * 2);
 }
 
-class ClosureEnv_testDelayedFuture_19 extends TypeFunction0<String> {
-  ClosureEnv_testDelayedFuture_19();
+class ClosureEnv_testDelayedFuture_16 extends TypeFunction0<String> {
+  ClosureEnv_testDelayedFuture_16();
   @override
-  String call() => ClosureEnv_testDelayedFuture_19_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_testDelayedFuture_19_call(ClosureEnv_testDelayedFuture_19 env) {
+ClosureEnv_testDelayedFuture_16 ClosureEnv_testDelayedFuture_16_new(ClosureEnv_testDelayedFuture_16 env_) {
+  env_.closureCall = ClosureEnv_testDelayedFuture_16_call;
+  return env_;
+}
+String ClosureEnv_testDelayedFuture_16_call(dynamic env__) {
+  final env = env__ as ClosureEnv_testDelayedFuture_16;
+
   return 'hello after delay';
 }
 
-class ClosureEnv_testThenChain_20 extends TypeFunction1<int, int> {
+class ClosureEnv_testThenChain_17 extends TypeFunction1<int, int> {
+  ClosureEnv_testThenChain_17();
+  @override
+  int call(int v) => closureCall(this, v);
+}
+ClosureEnv_testThenChain_17 ClosureEnv_testThenChain_17_new(ClosureEnv_testThenChain_17 env_) {
+  env_.closureCall = ClosureEnv_testThenChain_17_call;
+  return env_;
+}
+int ClosureEnv_testThenChain_17_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_testThenChain_17;
+
+  return (v * 2);
+}
+
+class ClosureEnv_testThenChain_18 extends TypeFunction1<int, int> {
+  ClosureEnv_testThenChain_18();
+  @override
+  int call(int v) => closureCall(this, v);
+}
+ClosureEnv_testThenChain_18 ClosureEnv_testThenChain_18_new(ClosureEnv_testThenChain_18 env_) {
+  env_.closureCall = ClosureEnv_testThenChain_18_call;
+  return env_;
+}
+int ClosureEnv_testThenChain_18_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_testThenChain_18;
+
+  return (v * 2);
+}
+
+class ClosureEnv_testThenChain_19 extends TypeFunction1<String, int> {
+  ClosureEnv_testThenChain_19();
+  @override
+  String call(int v) => closureCall(this, v);
+}
+ClosureEnv_testThenChain_19 ClosureEnv_testThenChain_19_new(ClosureEnv_testThenChain_19 env_) {
+  env_.closureCall = ClosureEnv_testThenChain_19_call;
+  return env_;
+}
+String ClosureEnv_testThenChain_19_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_testThenChain_19;
+
+  return 'value=${v}';
+}
+
+class ClosureEnv_testThenChain_20 extends TypeFunction1<String, int> {
   ClosureEnv_testThenChain_20();
   @override
-  int call(int v) => ClosureEnv_testThenChain_20_call(this, v);
+  String call(int v) => closureCall(this, v);
 }
-int ClosureEnv_testThenChain_20_call(ClosureEnv_testThenChain_20 env, int v) {
-  return (v * 2);
+ClosureEnv_testThenChain_20 ClosureEnv_testThenChain_20_new(ClosureEnv_testThenChain_20 env_) {
+  env_.closureCall = ClosureEnv_testThenChain_20_call;
+  return env_;
 }
+String ClosureEnv_testThenChain_20_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_testThenChain_20;
 
-class ClosureEnv_testThenChain_21 extends TypeFunction1<int, int> {
-  ClosureEnv_testThenChain_21();
-  @override
-  int call(int v) => ClosureEnv_testThenChain_21_call(this, v);
-}
-int ClosureEnv_testThenChain_21_call(ClosureEnv_testThenChain_21 env, int v) {
-  return (v * 2);
-}
-
-class ClosureEnv_testThenChain_22 extends TypeFunction1<String, int> {
-  ClosureEnv_testThenChain_22();
-  @override
-  String call(int v) => ClosureEnv_testThenChain_22_call(this, v);
-}
-String ClosureEnv_testThenChain_22_call(ClosureEnv_testThenChain_22 env, int v) {
   return 'value=${v}';
 }
 
-class ClosureEnv_testThenChain_23 extends TypeFunction1<String, int> {
-  ClosureEnv_testThenChain_23();
+class ClosureEnv_testTickCounting_21 extends TypeFunction0<int> {
+  ClosureEnv_testTickCounting_21();
   @override
-  String call(int v) => ClosureEnv_testThenChain_23_call(this, v);
+  int call() => closureCall(this);
 }
-String ClosureEnv_testThenChain_23_call(ClosureEnv_testThenChain_23 env, int v) {
-  return 'value=${v}';
+ClosureEnv_testTickCounting_21 ClosureEnv_testTickCounting_21_new(ClosureEnv_testTickCounting_21 env_) {
+  env_.closureCall = ClosureEnv_testTickCounting_21_call;
+  return env_;
 }
+int ClosureEnv_testTickCounting_21_call(dynamic env__) {
+  final env = env__ as ClosureEnv_testTickCounting_21;
 
-class ClosureEnv_testTickCounting_24 extends TypeFunction0<int> {
-  ClosureEnv_testTickCounting_24();
-  @override
-  int call() => ClosureEnv_testTickCounting_24_call(this);
-}
-int ClosureEnv_testTickCounting_24_call(ClosureEnv_testTickCounting_24 env) {
   return 99;
 }
 

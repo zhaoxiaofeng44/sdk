@@ -21,125 +21,212 @@
 // 还原器侧的 ARITY 上限常量。
 // ============================================================================
 
-abstract class TypeFunction<R> {
-  const TypeFunction();
-  int get arity;
+abstract class TypeFunction extends AnyGC {
+  TypeFunction();
+  late dynamic closureCall;
 }
 
-abstract class TypeFunction0<R> extends TypeFunction<R> {
-  const TypeFunction0();
-  @override int get arity => 0;
+abstract class TypeFunction0<R> extends TypeFunction {
+  TypeFunction0();
   R call();
 }
 
-abstract class TypeFunction1<R, T1> extends TypeFunction<R> {
-  const TypeFunction1();
-  @override int get arity => 1;
+abstract class TypeFunction1<R, T1> extends TypeFunction {
+  TypeFunction1();
   R call(T1 a1);
 }
 
-abstract class TypeFunction2<R, T1, T2> extends TypeFunction<R> {
-  const TypeFunction2();
-  @override int get arity => 2;
+abstract class TypeFunction2<R, T1, T2> extends TypeFunction {
+  TypeFunction2();
   R call(T1 a1, T2 a2);
 }
 
-abstract class TypeFunction3<R, T1, T2, T3> extends TypeFunction<R> {
-  const TypeFunction3();
-  @override int get arity => 3;
+abstract class TypeFunction3<R, T1, T2, T3> extends TypeFunction {
+  TypeFunction3();
   R call(T1 a1, T2 a2, T3 a3);
 }
 
-abstract class TypeFunction4<R, T1, T2, T3, T4> extends TypeFunction<R> {
-  const TypeFunction4();
-  @override int get arity => 4;
+abstract class TypeFunction4<R, T1, T2, T3, T4> extends TypeFunction {
+  TypeFunction4();
   R call(T1 a1, T2 a2, T3 a3, T4 a4);
 }
 
-abstract class TypeFunction5<R, T1, T2, T3, T4, T5> extends TypeFunction<R> {
-  const TypeFunction5();
-  @override int get arity => 5;
+abstract class TypeFunction5<R, T1, T2, T3, T4, T5> extends TypeFunction {
+  TypeFunction5();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5);
 }
 
-abstract class TypeFunction6<R, T1, T2, T3, T4, T5, T6> extends TypeFunction<R> {
-  const TypeFunction6();
-  @override int get arity => 6;
+abstract class TypeFunction6<R, T1, T2, T3, T4, T5, T6> extends TypeFunction {
+  TypeFunction6();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6);
 }
 
-abstract class TypeFunction7<R, T1, T2, T3, T4, T5, T6, T7> extends TypeFunction<R> {
-  const TypeFunction7();
-  @override int get arity => 7;
+abstract class TypeFunction7<R, T1, T2, T3, T4, T5, T6, T7> extends TypeFunction {
+  TypeFunction7();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7);
 }
 
-abstract class TypeFunction8<R, T1, T2, T3, T4, T5, T6, T7, T8> extends TypeFunction<R> {
-  const TypeFunction8();
-  @override int get arity => 8;
+abstract class TypeFunction8<R, T1, T2, T3, T4, T5, T6, T7, T8> extends TypeFunction {
+  TypeFunction8();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8);
 }
 
 abstract class TypeFunction9<R, T1, T2, T3, T4, T5, T6, T7, T8, T9>
-    extends TypeFunction<R> {
-  const TypeFunction9();
-  @override int get arity => 9;
+    extends TypeFunction {
+  TypeFunction9();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9);
 }
 
 abstract class TypeFunction10<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
-    extends TypeFunction<R> {
-  const TypeFunction10();
-  @override int get arity => 10;
+    extends TypeFunction {
+  TypeFunction10();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10);
 }
 
 abstract class TypeFunction11<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
-    extends TypeFunction<R> {
-  const TypeFunction11();
-  @override int get arity => 11;
+    extends TypeFunction {
+  TypeFunction11();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11);
 }
 
 abstract class TypeFunction12<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
-    extends TypeFunction<R> {
-  const TypeFunction12();
-  @override int get arity => 12;
+    extends TypeFunction {
+  TypeFunction12();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11, T12 a12);
 }
 
 abstract class TypeFunction13<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
-    extends TypeFunction<R> {
-  const TypeFunction13();
-  @override int get arity => 13;
+    extends TypeFunction {
+  TypeFunction13();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11, T12 a12, T13 a13);
 }
 
 abstract class TypeFunction14<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
-    extends TypeFunction<R> {
-  const TypeFunction14();
-  @override int get arity => 14;
+    extends TypeFunction {
+  TypeFunction14();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11, T12 a12, T13 a13, T14 a14);
 }
 
 abstract class TypeFunction15<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>
-    extends TypeFunction<R> {
-  const TypeFunction15();
-  @override int get arity => 15;
+    extends TypeFunction {
+  TypeFunction15();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11, T12 a12, T13 a13, T14 a14, T15 a15);
 }
 
 abstract class TypeFunction16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>
-    extends TypeFunction<R> {
-  const TypeFunction16();
-  @override int get arity => 16;
+    extends TypeFunction {
+  TypeFunction16();
   R call(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7, T8 a8, T9 a9, T10 a10,
       T11 a11, T12 a12, T13 a13, T14 a14, T15 a15, T16 a16);
+}
+
+// ============================================================================
+// AnyGC 基类 — 所有需要 GC 管理的类型（VPtr / Box）的公共基类
+// ----------------------------------------------------------------------------
+// 提供 _gcFlag 标记位和 gcMark 方法，供标记-清除 GC 使用。
+// 子类应覆写 gcMark，在其中递归标记自身持有的 AnyGC 子对象。
+// ============================================================================
+
+abstract class AnyGC {
+  /// GC 标记位。每轮 GC 使用递增的 flag 值，被标记的对象 gcFlag == 当前 flag，
+  /// 未被标记的对象 gcFlag < 当前 flag，即为垃圾。
+  /// 使用公开字段以便跨 library 的 restored 代码子类可以访问。
+  int gcFlag = 0;
+
+  /// 标记当前对象为存活。子类覆写时应先调用 super，再递归标记子对象。
+  /// [flag] 是本轮 GC 的标记值，避免每轮都要重置所有对象的 flag。
+  void gcMark(int flag) {
+    if (gcFlag == flag) return; // 已标记，防止循环引用无限递归
+    gcFlag = flag;
+  }
+}
+
+// ============================================================================
+// GC — 全局标记-清除垃圾回收器
+// ----------------------------------------------------------------------------
+// 对象分配统一通过 GC.allocateLocal / GC.allocateGlobal 包装 new 表达式。
+// 调用 GC.collect() 触发一轮标记-清除：
+//   1. 标记阶段：从所有 root 对象出发，递归调用 gcMark(flag)
+//   2. 清除阶段：移除未被标记的非 root 对象
+// ============================================================================
+
+class GC {
+  static int _currentFlag = 0;
+
+  /// 所有已注册的 GC 对象（包括 root 和非 root）
+  static final List<AnyGC> _objects = [];
+
+  /// 顶层对象（静态变量 / 全局变量），作为 GC root
+  static final List<AnyGC> _roots = [];
+
+  /// 用于去重注册的标识集合
+  static final Set<AnyGC> _registered = {};
+
+  /// 分配一个局部对象（非 root），注册到 GC 并返回该对象。
+  /// 用于包装 new 表达式：`GC.allocateLocal(X_new(XValue(), args))`
+  static T allocateLocal<T extends AnyGC>(T object) {
+    if (_registered.add(object)) {
+      _objects.add(object);
+    }
+    return object;
+  }
+
+  /// 分配一个全局对象（root），注册到 GC 并标记为 root，返回该对象。
+  /// 用于静态变量 / 全局变量：`GC.allocateGlobal(X_new(XValue(), args))`
+  static T allocateGlobal<T extends AnyGC>(T object) {
+    if (_registered.add(object)) {
+      _objects.add(object);
+    }
+    if (!_roots.contains(object)) {
+      _roots.add(object);
+    }
+    return object;
+  }
+
+  /// 从 root 集合中移除
+  static void removeRoot(AnyGC object) {
+    _roots.remove(object);
+  }
+
+  /// 执行一轮标记-清除 GC，返回被回收的对象数量
+  static int collect() {
+    _currentFlag++;
+    final flag = _currentFlag;
+
+    // 标记阶段：从每个 root 出发递归标记
+    for (final root in _roots) {
+      root.gcMark(flag);
+    }
+
+    // 清除阶段：移除未被标记的对象
+    final beforeCount = _objects.length;
+    _objects.removeWhere((obj) => obj.gcFlag != flag);
+    _registered.removeWhere((obj) => obj.gcFlag != flag);
+
+    // 同步清理 roots 中已被回收的对象（理论上 root 总是被标记的，防御性清理）
+    _roots.removeWhere((obj) => obj.gcFlag != flag);
+
+    return beforeCount - _objects.length;
+  }
+
+  /// 获取当前管理的对象总数
+  static int get objectCount => _objects.length;
+
+  /// 获取当前 root 数量
+  static int get rootCount => _roots.length;
+
+  /// 重置 GC 状态（测试用）
+  static void reset() {
+    _objects.clear();
+    _roots.clear();
+    _registered.clear();
+    _currentFlag = 0;
+  }
 }
 
 /// VPtr 基类 - 所有无基类（或继承自 Object）的 Value 类都继承自它。
@@ -148,7 +235,7 @@ abstract class TypeFunction16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T
 /// 注：vptr 槽里存的函数现在统一是 TypeFunctionN 子类实例（由还原器生成的
 /// 各种 _Closure_ / _TearOff_ 类）。这里用对应 arity 的 TypeFunctionN 做
 /// cast，避免出现 `Function` 字面量。
-class VPtr {
+class VPtr extends AnyGC {
   late Map<String, dynamic> vptr;
   VPtr() {
     vptr = <String, dynamic>{
@@ -181,30 +268,52 @@ class VPtr {
 
 /// Box 类型定义（闭包引用语义）
 /// 用于在闭包中捕获可变的值类型变量。
+/// 所有 Box 继承 AnyGC 以参与 GC 管理，构造时自动注册到 GC。
 
-class IntBox {
+class IntBox extends AnyGC {
   int value;
-  IntBox(this.value);
+  IntBox(this.value) {
+    GC.allocateLocal(this);
+  }
 }
 
-class DoubleBox {
+class DoubleBox extends AnyGC {
   double value;
-  DoubleBox(this.value);
+  DoubleBox(this.value) {
+    GC.allocateLocal(this);
+  }
 }
 
-class StringBox {
+class StringBox extends AnyGC {
   String value;
-  StringBox(this.value);
+  StringBox(this.value) {
+    GC.allocateLocal(this);
+  }
 }
 
-class BoolBox {
+class BoolBox extends AnyGC {
   bool value;
-  BoolBox(this.value);
+  BoolBox(this.value) {
+    GC.allocateLocal(this);
+  }
 }
 
-class ObjectBox<T> {
+class ObjectBox<T> extends AnyGC {
   T value;
-  ObjectBox(this.value);
+  ObjectBox(this.value) {
+    GC.allocateLocal(this);
+  }
+
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    // 如果持有的值是 AnyGC 类型，递归标记
+    final v = value;
+    if (v is AnyGC) {
+      v.gcMark(flag);
+    }
+  }
 }
 
 // ============================================================================
@@ -1352,7 +1461,7 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
 /// AsyncStateMachine — 异步函数转状态机的基类
 ///
 /// 通过 Promise._onTick 驱动，不再依赖独立的 _stateMachines 列表。
-abstract class AsyncStateMachine<T> {
+abstract class AsyncStateMachine<T> extends AnyGC {
   int smState = 0;
   final Promise<T> promise = Promise<T>();
 

@@ -39,6 +39,13 @@ class PairValue<A, B> extends VPtr {
     vptr['swap'] = Pair_swap<A, B>;
     vptr['toString'] = Pair_toString<A, B>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (first is AnyGC) (first as AnyGC).gcMark(flag);
+    if (second is AnyGC) (second as AnyGC).gcMark(flag);
+  }
 }
 
 PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
@@ -50,7 +57,7 @@ PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
 
 PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
   final this_ = this__ as PairValue<A, B>;
-  return Pair_new<B, A>(PairValue<B, A>(), this_.second, this_.first);
+  return Pair_new<B, A>(GC.allocateLocal(PairValue<B, A>()), this_.second, this_.first);
 }
 
 String Pair_toString<A, B>(dynamic this__) {
@@ -68,6 +75,11 @@ class CircleValue extends ShapeValue {
     vptr['toString'] = Circle_toString;
     vptr['get_radius'] = Circle_get_radius;
     vptr['set_radius'] = Circle_set_radius;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -126,6 +138,11 @@ class RectangleValue extends ShapeValue {
     vptr['perimeter'] = Rectangle_perimeter;
     vptr['toString'] = Rectangle_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 RectangleValue Rectangle_new(dynamic this__, double width, double height) {
@@ -170,7 +187,7 @@ String StringExtensions_capitalize(final String this_) {
 }
 
 TypeFunction0<String> StringExtensions_get_capitalize(final String this_) {
-  return ClosureEnv_StringExtensions_get_capitalize_0(this_);
+  return ClosureEnv_StringExtensions_get_capitalize_0_new(GC.allocateLocal(ClosureEnv_StringExtensions_get_capitalize_0()), this_);
 }
 
 bool StringExtensions_get_isPalindrome(final String this_) {
@@ -183,7 +200,7 @@ StaticList<T> ListExtensions_filterWhere<T>(final StaticList<T> this_, TypeFunct
 }
 
 TypeFunction1<StaticList<T>, TypeFunction1<bool, T>> ListExtensions_get_filterWhere<T>(final StaticList<T> this_) {
-  return ClosureEnv_ListExtensions_get_filterWhere_1<T>(this_);
+  return ClosureEnv_ListExtensions_get_filterWhere_1_new<T>(GC.allocateLocal(ClosureEnv_ListExtensions_get_filterWhere_1<T>()), this_);
 }
 
 T identity<T>(T value) {
@@ -192,12 +209,12 @@ T identity<T>(T value) {
 
 StaticList<T> repeat<T>(T item_raw, int count) {
   ObjectBox<T> item = ObjectBox<T>(item_raw);
-  return StaticList<T>.generate(count, ClosureEnv_repeat_2<T>(item));
+  return StaticList<T>.generate(count, ClosureEnv_repeat_2_new<T>(GC.allocateLocal(ClosureEnv_repeat_2<T>()), item));
 }
 
 dynamic makeAdder(int base_raw) {
   IntBox base = IntBox(base_raw);
-  return ClosureEnv_makeAdder_3(base);
+  return ClosureEnv_makeAdder_3_new(GC.allocateLocal(ClosureEnv_makeAdder_3()), base);
 }
 
 StaticList<int> mapList(StaticList<int> items, TypeFunction1<int, int> transform) {
@@ -217,14 +234,8 @@ Promise<StaticList<String>> fetchAll(StaticList<String> urls) {
 }
 
 String? findFirst(StaticList<String> items, TypeFunction1<bool, String> predicate) {
-{
-    StaticIterator<String> sync_for_iterator = StaticIterator(items.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final String item = sync_for_iterator.current;
-{
-        if (predicate(item))         return item;
-      }
-    }
+  for (final item in items) {
+    if (predicate.closureCall(predicate, item))     return item;
   }
   return null;
 }
@@ -236,25 +247,19 @@ int safeLength(String? text) {
 void main() {
   staticPrint('=== 复杂语法节点还原测试 ===\n');
   staticPrint('--- 1. 泛型类 Pair ---');
-  final PairValue<String, int> pair = Pair_new<String, int>(PairValue<String, int>(), 'hello', 42);
+  final PairValue<String, int> pair = Pair_new<String, int>(GC.allocateLocal(PairValue<String, int>()), 'hello', 42);
   final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(dynamic))(pair);
   staticPrint('pair: ${pair}');
   staticPrint('swapped: ${swapped}');
   assert((pair.first == 'hello'));
   assert((swapped.first == 42));
   staticPrint('\n--- 2. 继承 + 多态 ---');
-  final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(CircleValue(), 5.0), Rectangle_new(RectangleValue(), 3.0, 4.0), Circle_new_unit(CircleValue())]);
-{
-    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final ShapeValue shape = sync_for_iterator.current;
-{
-        staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
-      }
-    }
+  final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new_unit(GC.allocateLocal(CircleValue()))]);
+  for (final shape in shapes) {
+    staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
   }
   staticPrint('\n--- 3. getter/setter + 异常 ---');
-  final CircleValue circle = Circle_new(CircleValue(), 3.0);
+  final CircleValue circle = Circle_new(GC.allocateLocal(CircleValue()), 3.0);
   (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, 5.0);
   staticPrint('radius after set: ${(circle.vptr['get_radius'] as double Function(dynamic))(circle)}');
   try {
@@ -266,40 +271,34 @@ void main() {
   }
   staticPrint('\n--- 4. 枚举 + switch ---');
   final StaticList<Direction> directions = StaticList<Direction>.of([Direction.north, Direction.east, Direction.south]);
+  for (final dir in directions) {
+    final String label = (() {     late String _v2;
+    do {
+      switch (dir) {
+        case Direction.north:
 {
-    StaticIterator<Direction> sync_for_iterator = StaticIterator(directions.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final Direction dir = sync_for_iterator.current;
-{
-        final String label = (() {         late String _v2;
-        do {
-          switch (dir) {
-            case Direction.north:
-{
-                _v2 = 'N';
-                break;
-              }
-            case Direction.south:
-{
-                _v2 = 'S';
-                break;
-              }
-            case Direction.east:
-{
-                _v2 = 'E';
-                break;
-              }
-            case Direction.west:
-{
-                _v2 = 'W';
-                break;
-              }
+            _v2 = 'N';
+            break;
           }
-        } while (false);
- return _v2; })();
-        staticPrint('  ${dir} -> ${label}');
+        case Direction.south:
+{
+            _v2 = 'S';
+            break;
+          }
+        case Direction.east:
+{
+            _v2 = 'E';
+            break;
+          }
+        case Direction.west:
+{
+            _v2 = 'W';
+            break;
+          }
       }
-    }
+    } while (false);
+ return _v2; })();
+    staticPrint('  ${dir} -> ${label}');
   }
   staticPrint('\n--- 5. 扩展方法 ---');
   final String word = 'hello';
@@ -307,43 +306,33 @@ void main() {
   staticPrint('isPalindrome("racecar"): ${StringExtensions_get_isPalindrome('racecar')}');
   staticPrint('isPalindrome("hello"): ${StringExtensions_get_isPalindrome('hello')}');
   final StaticList<int> numbers = StaticList<int>.of([1, 2, 3, 4, 5, 6]);
-  final StaticList<int> evens = StaticList<int>.of(ListExtensions_filterWhere(numbers, ClosureEnv_main_6()));
+  final StaticList<int> evens = StaticList<int>.of(ListExtensions_filterWhere(numbers, ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))));
   staticPrint('evens: ${evens}');
   staticPrint('\n--- 6. 泛型函数 ---');
   staticPrint('identity<int>(99): ${identity<int>(99)}');
   staticPrint('repeat("x", 3): ${repeat<String>('x', 3)}');
   staticPrint('\n--- 7. 高阶函数 + 闭包 ---');
   final dynamic add10 = makeAdder(10);
-  staticPrint('add10(5): ${add10(5)}');
-  final StaticList<int> doubled = StaticList<int>.of(mapList(StaticList<int>.of([1, 2, 3, 4]), ClosureEnv_main_7()));
+  staticPrint('add10(5): ${add10.closureCall(add10, 5)}');
+  final StaticList<int> doubled = StaticList<int>.of(mapList(StaticList<int>.of([1, 2, 3, 4]), ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7()))));
   staticPrint('doubled: ${doubled}');
   IntBox counter = IntBox(0);
-  final TypeFunction0<int> increment = ClosureEnv_main_8(counter);
-  staticPrint('counter: ${increment()}, ${increment()}, ${increment()}');
+  final TypeFunction0<int> increment = ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()), counter);
+  staticPrint('counter: ${increment.closureCall(increment)}, ${increment.closureCall(increment)}, ${increment.closureCall(increment)}');
   staticPrint('\n--- 8. 可空类型 ---');
   final StaticList<String> items = StaticList<String>.of(['apple', 'banana', 'cherry']);
-  final String? found = findFirst(items, ClosureEnv_main_9());
+  final String? found = findFirst(items, ClosureEnv_main_9_new(GC.allocateLocal(ClosureEnv_main_9())));
   staticPrint('found: ${found}');
-  final String? notFound = findFirst(items, ClosureEnv_main_10());
+  final String? notFound = findFirst(items, ClosureEnv_main_10_new(GC.allocateLocal(ClosureEnv_main_10())));
   staticPrint('notFound: ${notFound}');
   staticPrint('safeLength(null): ${safeLength(null)}');
   staticPrint('safeLength("dart"): ${safeLength('dart')}');
   staticPrint('\n--- 9. 集合操作 ---');
   final StaticMap<String, int> map = StaticMap<String, int>.of({'a': 1, 'b': 2, 'c': 3});
-  final StaticMap<String, int> filtered = StaticMap<String, int>.fromEntries(map.entries.where(ClosureEnv_main_11()));
+  final StaticMap<String, int> filtered = StaticMap<String, int>.fromEntries(map.entries.where(ClosureEnv_main_11_new(GC.allocateLocal(ClosureEnv_main_11()))));
   staticPrint('filtered map: ${filtered}');
-  final StaticSet<int> set1 = StaticSet<int>.of((() {   final StaticSet<int> _v3 = StaticSet<int>();
-  _v3.add(1);
-  _v3.add(2);
-  _v3.add(3);
-  _v3.add(4);
- return _v3; })());
-  final StaticSet<int> set2 = StaticSet<int>.of((() {   final StaticSet<int> _v4 = StaticSet<int>();
-  _v4.add(3);
-  _v4.add(4);
-  _v4.add(5);
-  _v4.add(6);
- return _v4; })());
+  final StaticSet<int> set1 = StaticSet<int>.of([1, 2, 3, 4]);
+  final StaticSet<int> set2 = StaticSet<int>.of([3, 4, 5, 6]);
   final StaticSet<int> intersection = StaticSet<int>.of(set1.intersection(set2));
   staticPrint('intersection: ${intersection}');
   staticPrint('\n--- 10. 字符串插值 ---');
@@ -397,42 +386,94 @@ void main() {
 }
 
 class ClosureEnv_StringExtensions_get_capitalize_0 extends TypeFunction0<String> {
-  String this_;
-  ClosureEnv_StringExtensions_get_capitalize_0(this.this_);
+  late String this_;
+  ClosureEnv_StringExtensions_get_capitalize_0();
   @override
-  String call() => ClosureEnv_StringExtensions_get_capitalize_0_call(this);
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_StringExtensions_get_capitalize_0_call(ClosureEnv_StringExtensions_get_capitalize_0 env) {
+ClosureEnv_StringExtensions_get_capitalize_0 ClosureEnv_StringExtensions_get_capitalize_0_new(ClosureEnv_StringExtensions_get_capitalize_0 env_, String this_) {
+  env_.closureCall = ClosureEnv_StringExtensions_get_capitalize_0_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_StringExtensions_get_capitalize_0_call(dynamic env__) {
+  final env = env__ as ClosureEnv_StringExtensions_get_capitalize_0;
+
   return StringExtensions_capitalize(env.this_);
 }
 
 class ClosureEnv_ListExtensions_get_filterWhere_1<T> extends TypeFunction1<StaticList<T>, TypeFunction1<bool, T>> {
-  StaticList<T> this_;
-  ClosureEnv_ListExtensions_get_filterWhere_1(this.this_);
+  late StaticList<T> this_;
+  ClosureEnv_ListExtensions_get_filterWhere_1();
   @override
-  StaticList<T> call(TypeFunction1<bool, T> predicate) => ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(this, predicate);
+  StaticList<T> call(TypeFunction1<bool, T> predicate) => closureCall(this, predicate);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-StaticList<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env, TypeFunction1<bool, T> predicate) {
+ClosureEnv_ListExtensions_get_filterWhere_1<T> ClosureEnv_ListExtensions_get_filterWhere_1_new<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env_, StaticList<T> this_) {
+  env_.closureCall = ClosureEnv_ListExtensions_get_filterWhere_1_call<T>;
+  env_.this_ = this_;
+  return env_;
+}
+StaticList<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(dynamic env__, TypeFunction1<bool, T> predicate) {
+  final env = env__ as ClosureEnv_ListExtensions_get_filterWhere_1<T>;
+
   return ListExtensions_filterWhere(env.this_, predicate);
 }
 
 class ClosureEnv_repeat_2<T> extends TypeFunction1<T, int> {
-  ObjectBox<T> item;
-  ClosureEnv_repeat_2(this.item);
+  late ObjectBox<T> item;
+  ClosureEnv_repeat_2();
   @override
-  T call(int _) => ClosureEnv_repeat_2_call<T>(this, _);
+  T call(int _) => closureCall(this, _);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
 }
-T ClosureEnv_repeat_2_call<T>(ClosureEnv_repeat_2<T> env, int _) {
+ClosureEnv_repeat_2<T> ClosureEnv_repeat_2_new<T>(ClosureEnv_repeat_2<T> env_, ObjectBox<T> item) {
+  env_.closureCall = ClosureEnv_repeat_2_call<T>;
+  env_.item = item;
+  return env_;
+}
+T ClosureEnv_repeat_2_call<T>(dynamic env__, int _) {
+  final env = env__ as ClosureEnv_repeat_2<T>;
+
   return env.item.value;
 }
 
 class ClosureEnv_makeAdder_3 extends TypeFunction1<int, int> {
-  IntBox base;
-  ClosureEnv_makeAdder_3(this.base);
+  late IntBox base;
+  ClosureEnv_makeAdder_3();
   @override
-  int call(int x) => ClosureEnv_makeAdder_3_call(this, x);
+  int call(int x) => closureCall(this, x);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (base is AnyGC) (base as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_makeAdder_3_call(ClosureEnv_makeAdder_3 env, int x) {
+ClosureEnv_makeAdder_3 ClosureEnv_makeAdder_3_new(ClosureEnv_makeAdder_3 env_, IntBox base) {
+  env_.closureCall = ClosureEnv_makeAdder_3_call;
+  env_.base = base;
+  return env_;
+}
+int ClosureEnv_makeAdder_3_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_makeAdder_3;
+
   return (env.base.value + x);
 }
 
@@ -454,16 +495,10 @@ class ClosureEnv_fetchAll_5 {
   void call() => ClosureEnv_fetchAll_5_call(this);
 }
 void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
-  final StaticList<String> results = StaticList<String>();
-{
-    StaticIterator<String> sync_for_iterator = StaticIterator(env.urls.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final String url = sync_for_iterator.current;
-{
-        final String data = smAwait(fetchData(url));
-        results.add(data);
-      }
-    }
+  final StaticList<String> results = StaticList<String>.of([]);
+  for (final url in env.urls) {
+    final String data = smAwait(fetchData(url));
+    results.add(data);
   }
   env._promise.complete(results);
   return;
@@ -471,28 +506,53 @@ void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
 class ClosureEnv_main_6 extends TypeFunction1<bool, int> {
   ClosureEnv_main_6();
   @override
-  bool call(int n) => ClosureEnv_main_6_call(this, n);
+  bool call(int n) => closureCall(this, n);
 }
-bool ClosureEnv_main_6_call(ClosureEnv_main_6 env, int n) {
+ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
+  env_.closureCall = ClosureEnv_main_6_call;
+  return env_;
+}
+bool ClosureEnv_main_6_call(dynamic env__, int n) {
+  final env = env__ as ClosureEnv_main_6;
+
   return ((n % 2) == 0);
 }
 
 class ClosureEnv_main_7 extends TypeFunction1<int, int> {
   ClosureEnv_main_7();
   @override
-  int call(int x) => ClosureEnv_main_7_call(this, x);
+  int call(int x) => closureCall(this, x);
 }
-int ClosureEnv_main_7_call(ClosureEnv_main_7 env, int x) {
+ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
+  env_.closureCall = ClosureEnv_main_7_call;
+  return env_;
+}
+int ClosureEnv_main_7_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_7;
+
   return (x * 2);
 }
 
 class ClosureEnv_main_8 extends TypeFunction0<int> {
-  IntBox counter;
-  ClosureEnv_main_8(this.counter);
+  late IntBox counter;
+  ClosureEnv_main_8();
   @override
-  int call() => ClosureEnv_main_8_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (counter is AnyGC) (counter as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_main_8_call(ClosureEnv_main_8 env) {
+ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_, IntBox counter) {
+  env_.closureCall = ClosureEnv_main_8_call;
+  env_.counter = counter;
+  return env_;
+}
+int ClosureEnv_main_8_call(dynamic env__) {
+  final env = env__ as ClosureEnv_main_8;
+
     env.counter.value = (env.counter.value + 1);
     return env.counter.value;
   }
@@ -500,27 +560,45 @@ int ClosureEnv_main_8_call(ClosureEnv_main_8 env) {
 class ClosureEnv_main_9 extends TypeFunction1<bool, String> {
   ClosureEnv_main_9();
   @override
-  bool call(String s) => ClosureEnv_main_9_call(this, s);
+  bool call(String s) => closureCall(this, s);
 }
-bool ClosureEnv_main_9_call(ClosureEnv_main_9 env, String s) {
+ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
+  env_.closureCall = ClosureEnv_main_9_call;
+  return env_;
+}
+bool ClosureEnv_main_9_call(dynamic env__, String s) {
+  final env = env__ as ClosureEnv_main_9;
+
   return s.startsWith('b');
 }
 
 class ClosureEnv_main_10 extends TypeFunction1<bool, String> {
   ClosureEnv_main_10();
   @override
-  bool call(String s) => ClosureEnv_main_10_call(this, s);
+  bool call(String s) => closureCall(this, s);
 }
-bool ClosureEnv_main_10_call(ClosureEnv_main_10 env, String s) {
+ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
+  env_.closureCall = ClosureEnv_main_10_call;
+  return env_;
+}
+bool ClosureEnv_main_10_call(dynamic env__, String s) {
+  final env = env__ as ClosureEnv_main_10;
+
   return s.startsWith('z');
 }
 
 class ClosureEnv_main_11 extends TypeFunction1<bool, StaticMapEntry<String, int>> {
   ClosureEnv_main_11();
   @override
-  bool call(StaticMapEntry<String, int> e) => ClosureEnv_main_11_call(this, e);
+  bool call(StaticMapEntry<String, int> e) => closureCall(this, e);
 }
-bool ClosureEnv_main_11_call(ClosureEnv_main_11 env, StaticMapEntry<String, int> e) {
+ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
+  env_.closureCall = ClosureEnv_main_11_call;
+  return env_;
+}
+bool ClosureEnv_main_11_call(dynamic env__, StaticMapEntry<String, int> e) {
+  final env = env__ as ClosureEnv_main_11;
+
   return (e.value > 1);
 }
 

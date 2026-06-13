@@ -31,6 +31,11 @@ class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
     vptr['format'] = DiamondClass_format;
     vptr['display'] = DiamondClass_display;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 DiamondClassValue DiamondClass_new(dynamic this__, String name) {
@@ -86,11 +91,16 @@ class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
   late String id;
   StatefulWidgetValue() {
     vptr['get_counter'] = StatefulWidget_get_counter;
+    vptr['set_counter'] = StatefulWidget_set_counter;
     vptr['increment'] = StatefulWidget_increment;
     vptr['decrement'] = StatefulWidget_decrement;
     vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
-    vptr['set_counter'] = StatefulWidget_set_counter;
     vptr['toString'] = StatefulWidget_toString;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -111,6 +121,11 @@ int StatefulWidget_get_counter(dynamic this__) {
   return StatefulMixin_get_counter(this_);
 }
 
+void StatefulWidget_set_counter(dynamic this__, int value) {
+  final this_ = this__ as StatefulWidgetValue;
+  StatefulMixin_set_counter(this_, value);
+}
+
 void StatefulWidget_increment(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   StatefulMixin_increment(this_);
@@ -124,11 +139,6 @@ void StatefulWidget_decrement(dynamic this__) {
 String StatefulWidget_get_counterStatus(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   return StatefulMixin_get_counterStatus(this_);
-}
-
-void StatefulWidget_set_counter(dynamic this__, int value) {
-  final this_ = this__ as StatefulWidgetValue;
-  StatefulMixin_set_counter(this_, value);
 }
 
 
@@ -176,6 +186,11 @@ class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValu
     vptr['onlyC'] = DeepMixinClass_onlyC;
     vptr['allLayers'] = DeepMixinClass_allLayers;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 DeepMixinClassValue DeepMixinClass_new(dynamic this__) {
@@ -212,7 +227,7 @@ String DeepMixinClass_onlyC(dynamic this__) {
 // mixin Mappable → static functions for delegation
 R Mappable_mapValue<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__;
-  return transform((this_.vptr['get_value'] as T Function(dynamic))(this_));
+  return transform.closureCall(transform, (this_.vptr['get_value'] as T Function(dynamic))(this_));
 }
 
 String Mappable_describe<T>(dynamic this__) {
@@ -224,7 +239,7 @@ String Mappable_describe<T>(dynamic this__) {
 // mixin Filterable → static functions for delegation
 bool Filterable_test<T>(dynamic this__, TypeFunction1<bool, T> predicate) {
   final this_ = this__;
-  return predicate((this_.vptr['get_value'] as T Function(dynamic))(this_));
+  return predicate.closureCall(predicate, (this_.vptr['get_value'] as T Function(dynamic))(this_));
 }
 
 
@@ -235,6 +250,12 @@ class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
     vptr['describe'] = Box_describe<T>;
     vptr['test'] = Box_test<T>;
     vptr['toString'] = Box_toString<T>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (value is AnyGC) (value as AnyGC).gcMark(flag);
   }
 }
 
@@ -355,12 +376,17 @@ class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
     vptr['get_allTags'] = TaggedResource_get_allTags;
     vptr['hasTag'] = TaggedResource_hasTag;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 TaggedResourceValue TaggedResource_new(dynamic this__, String id, String type) {
   final this_ = this__ as TaggedResourceValue;
   Resource_new(this_, id, type);
-  this_._tags = StaticList<String>();
+  this_._tags = StaticList<String>.of([]);
   return this_;
 }
 
@@ -417,6 +443,11 @@ class UpperProcessorValue extends BaseProcessorValue {
     vptr['process'] = UpperProcessor_process;
     vptr['get_processorName'] = UpperProcessor_get_processorName;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 UpperProcessorValue UpperProcessor_new(dynamic this__) {
@@ -441,6 +472,11 @@ class PrefixProcessorValue extends UpperProcessorValue {
   PrefixProcessorValue() {
     vptr['process'] = PrefixProcessor_process;
     vptr['get_processorName'] = PrefixProcessor_get_processorName;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -486,6 +522,11 @@ class AmountValue extends Amount_Object_AddableValue {
     vptr['operatorGt'] = Amount_operatorGt;
     vptr['toString'] = Amount_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 AmountValue Amount_new(dynamic this__, int numericValue) {
@@ -496,12 +537,12 @@ AmountValue Amount_new(dynamic this__, int numericValue) {
 
 AmountValue Amount_operatorPlus(dynamic this__, AmountValue other) {
   final this_ = this__ as AmountValue;
-  return Amount_new(AmountValue(), (this_.numericValue + other.numericValue));
+  return Amount_new(GC.allocateLocal(AmountValue()), (this_.numericValue + other.numericValue));
 }
 
 AmountValue Amount_operatorMinus(dynamic this__, AmountValue other) {
   final this_ = this__ as AmountValue;
-  return Amount_new(AmountValue(), (this_.numericValue - other.numericValue));
+  return Amount_new(GC.allocateLocal(AmountValue()), (this_.numericValue - other.numericValue));
 }
 
 bool Amount_operatorLt(dynamic this__, AmountValue other) {
@@ -570,6 +611,11 @@ class CarValue extends Car_Vehicle_Printable2Value {
     vptr['toPrettyString'] = Car_toPrettyString;
     vptr['prettyPrint'] = Car_prettyPrint;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 CarValue Car_new(dynamic this__, String make, int year, int doors) {
@@ -601,6 +647,11 @@ class ElectricCarValue extends CarValue {
     vptr['toString'] = ElectricCar_toString;
     vptr['toPrettyString'] = ElectricCar_toPrettyString;
     vptr['prettyPrint'] = ElectricCar_prettyPrint;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -663,6 +714,11 @@ class SegmentValue extends Segment_Measurable_ScalableValue {
     vptr['measureInfo'] = Segment_measureInfo;
     vptr['toString'] = Segment_toString;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 SegmentValue Segment_new(dynamic this__, double length) {
@@ -700,6 +756,11 @@ class WeightedSegmentValue extends SegmentValue {
     vptr['scale'] = WeightedSegment_scale;
     vptr['measureInfo'] = WeightedSegment_measureInfo;
     vptr['toString'] = WeightedSegment_toString;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -761,6 +822,11 @@ class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_Described
     vptr['greet'] = MultiMixinEntity_greet;
     vptr['info'] = MultiMixinEntity_info;
     vptr['fullInfo'] = MultiMixinEntity_fullInfo;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -825,6 +891,11 @@ class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
     vptr['encode'] = MultiEncoder_encode;
     vptr['encodeAll'] = MultiEncoder_encodeAll;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 MultiEncoderValue MultiEncoder_new(dynamic this__) {
@@ -847,6 +918,11 @@ class CustomEncoderValue extends MultiEncoderValue {
   CustomEncoderValue() {
     vptr['encode'] = CustomEncoder_encode;
     vptr['encodeAll'] = CustomEncoder_encodeAll;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -873,6 +949,12 @@ class ContainerValue<T> extends VPtr {
     vptr['describe'] = Container_describe<T>;
     vptr['get_content'] = Container_get_content<T>;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
 }
 
 ContainerValue<T> Container_new<T>(dynamic this__, T item) {
@@ -897,6 +979,11 @@ class LabeledContainerValue<T> extends ContainerValue<T> {
   LabeledContainerValue() {
     vptr['describe'] = LabeledContainer_describe<T>;
     vptr['get_content'] = LabeledContainer_get_content<T>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -923,6 +1010,11 @@ class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   PriorityContainerValue() {
     vptr['describe'] = PriorityContainer_describe<T>;
     vptr['get_content'] = PriorityContainer_get_content<T>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -973,6 +1065,11 @@ class ChainClassValue extends ChainClass_Object_ChainMixinValue {
     vptr['step3'] = ChainClass_step3;
     vptr['fullChain'] = ChainClass_fullChain;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 ChainClassValue ChainClass_new(dynamic this__) {
@@ -1007,6 +1104,11 @@ class ChainSubClassValue extends ChainClassValue {
     vptr['step2'] = ChainSubClass_step2;
     vptr['step3'] = ChainSubClass_step3;
     vptr['fullChain'] = ChainSubClass_fullChain;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -1064,6 +1166,11 @@ class NumberExprValue extends Expression2Value {
     vptr['evaluate'] = NumberExpr_evaluate;
     vptr['display'] = NumberExpr_display;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 NumberExprValue NumberExpr_new(dynamic this__, double value) {
@@ -1093,6 +1200,14 @@ class BinaryExprValue extends Expression2Value {
     vptr['evaluate'] = BinaryExpr_evaluate;
     vptr['display'] = BinaryExpr_display;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (left is AnyGC) (left as AnyGC).gcMark(flag);
+    if (right is AnyGC) (right as AnyGC).gcMark(flag);
+    if (_compute is AnyGC) (_compute as AnyGC).gcMark(flag);
+  }
 }
 
 BinaryExprValue BinaryExpr_new(dynamic this__, Expression2Value left, Expression2Value right, String op, TypeFunction2<double, double, double> _compute) {
@@ -1106,16 +1221,16 @@ BinaryExprValue BinaryExpr_new(dynamic this__, Expression2Value left, Expression
 }
 
 BinaryExprValue BinaryExpr_new_add(Expression2Value l, Expression2Value r) {
-  return BinaryExpr_new(BinaryExprValue(), l, r, '+', ClosureEnv_anon_0());
+  return BinaryExpr_new(GC.allocateLocal(BinaryExprValue()), l, r, '+', ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
 }
 
 BinaryExprValue BinaryExpr_new_mul(Expression2Value l, Expression2Value r) {
-  return BinaryExpr_new(BinaryExprValue(), l, r, '*', ClosureEnv_anon_1());
+  return BinaryExpr_new(GC.allocateLocal(BinaryExprValue()), l, r, '*', ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
 }
 
 double BinaryExpr_evaluate(dynamic this__) {
   final this_ = this__ as BinaryExprValue;
-  return (() { final _let0 = (this_.left.vptr['evaluate'] as double Function(dynamic))(this_.left); return (() { final _let1 = (this_.right.vptr['evaluate'] as double Function(dynamic))(this_.right); return this_._compute(_let0, _let1); })(); })();
+  return (() { final _let0 = (this_.left.vptr['evaluate'] as double Function(dynamic))(this_.left); return (() { final _let1 = (this_.right.vptr['evaluate'] as double Function(dynamic))(this_.right); return this_._compute.closureCall(this_._compute, _let0, _let1); })(); })();
 }
 
 String BinaryExpr_display(dynamic this__) {
@@ -1189,6 +1304,11 @@ class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_Stam
     vptr['staminaBar'] = GameCharacter_staminaBar;
     vptr['statusBars'] = GameCharacter_statusBars;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 GameCharacterValue GameCharacter_new(dynamic this__, String name) {
@@ -1260,6 +1380,11 @@ class WarriorValue extends GameCharacterValue {
     vptr['get_stamina'] = Warrior_get_stamina;
     vptr['staminaBar'] = Warrior_staminaBar;
     vptr['statusBars'] = Warrior_statusBars;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
   }
 }
 
@@ -1333,6 +1458,11 @@ class MageValue extends GameCharacterValue {
     vptr['staminaBar'] = Mage_staminaBar;
     vptr['statusBars'] = Mage_statusBars;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 MageValue Mage_new(dynamic this__, String name) {
@@ -1393,96 +1523,237 @@ String Mage_statusBars(dynamic this__) {
 
 
 class DiamondClass_Object_LoggerValue extends VPtr {
+  DiamondClass_Object_LoggerValue() {
+    vptr['get_prefix'] = Logger_get_prefix;
+    vptr['format'] = Logger_format;
+  }
 }
 
 
 class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_LoggerValue {
+  DiamondClass_Object_Logger_FormatterValue() {
+    vptr['get_prefix'] = Formatter_get_prefix;
+    vptr['format'] = Formatter_format;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class StatefulWidget_Object_StatefulMixinValue extends VPtr {
   late int _counter;
+  StatefulWidget_Object_StatefulMixinValue() {
+    vptr['get_counter'] = StatefulMixin_get_counter;
+    vptr['set_counter'] = StatefulMixin_set_counter;
+    vptr['increment'] = StatefulMixin_increment;
+    vptr['decrement'] = StatefulMixin_decrement;
+    vptr['get_counterStatus'] = StatefulMixin_get_counterStatus;
+  }
 }
 
 
 class DeepMixinClass_Object_LayerAValue extends VPtr {
+  DeepMixinClass_Object_LayerAValue() {
+    vptr['layer'] = LayerA_layer;
+    vptr['onlyA'] = LayerA_onlyA;
+  }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_LayerAValue {
+  DeepMixinClass_Object_LayerA_LayerBValue() {
+    vptr['layer'] = LayerB_layer;
+    vptr['onlyB'] = LayerB_onlyB;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Object_LayerA_LayerBValue {
+  DeepMixinClass_Object_LayerA_LayerB_LayerCValue() {
+    vptr['layer'] = LayerC_layer;
+    vptr['onlyC'] = LayerC_onlyC;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class Box_Object_MappableValue<T> extends VPtr {
+  Box_Object_MappableValue() {
+    vptr['mapValue'] = Mappable_mapValue<T, dynamic>;
+    vptr['describe'] = Mappable_describe<T>;
+  }
 }
 
 
 class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
+  Box_Object_Mappable_FilterableValue() {
+    vptr['test'] = Filterable_test<T>;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
   late StaticList<String> _tags;
+  TaggedResource_Resource_TaggableValue() {
+    vptr['tag'] = Taggable_tag;
+    vptr['get_allTags'] = Taggable_get_allTags;
+    vptr['hasTag'] = Taggable_hasTag;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_tags is AnyGC) (_tags as AnyGC).gcMark(flag);
+  }
 }
 
 
 class Amount_Object_AddableValue extends VPtr {
+  Amount_Object_AddableValue() {
+    vptr['addValues'] = Addable_addValues;
+    vptr['doubleValue'] = Addable_doubleValue;
+  }
 }
 
 
 class Car_Vehicle_Printable2Value extends VehicleValue {
+  Car_Vehicle_Printable2Value() {
+    vptr['prettyPrint'] = Printable2_prettyPrint;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class Segment_Measurable_ScalableValue extends MeasurableValue {
+  Segment_Measurable_ScalableValue() {
+    vptr['scale'] = Scalable_scale;
+    vptr['measureInfo'] = Scalable_measureInfo;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class MultiMixinEntity_Object_NamedMixinValue extends VPtr {
+  MultiMixinEntity_Object_NamedMixinValue() {
+    vptr['get_label'] = NamedMixin_get_label;
+    vptr['greet'] = NamedMixin_greet;
+  }
 }
 
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinEntity_Object_NamedMixinValue {
+  MultiMixinEntity_Object_NamedMixin_DescribedMixinValue() {
+    vptr['get_label'] = DescribedMixin_get_label;
+    vptr['info'] = DescribedMixin_info;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class MultiEncoder_Object_Base64MixinValue extends VPtr {
+  MultiEncoder_Object_Base64MixinValue() {
+    vptr['encode'] = Base64Mixin_encode;
+  }
 }
 
 
 class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_Base64MixinValue {
+  MultiEncoder_Object_Base64Mixin_HexMixinValue() {
+    vptr['encode'] = HexMixin_encode;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class ChainClass_Object_ChainMixinValue extends VPtr {
+  ChainClass_Object_ChainMixinValue() {
+    vptr['step1'] = ChainMixin_step1;
+    vptr['step2'] = ChainMixin_step2;
+    vptr['step3'] = ChainMixin_step3;
+    vptr['fullChain'] = ChainMixin_fullChain;
+  }
 }
 
 
 class GameCharacter_Object_HealthMixinValue extends VPtr {
+  GameCharacter_Object_HealthMixinValue() {
+    vptr['get_maxHealth'] = HealthMixin_get_maxHealth;
+    vptr['get_health'] = HealthMixin_get_health;
+    vptr['healthBar'] = HealthMixin_healthBar;
+  }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Object_HealthMixinValue {
+  GameCharacter_Object_HealthMixin_ManaMixinValue() {
+    vptr['get_maxMana'] = ManaMixin_get_maxMana;
+    vptr['get_mana'] = ManaMixin_get_mana;
+    vptr['manaBar'] = ManaMixin_manaBar;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameCharacter_Object_HealthMixin_ManaMixinValue {
+  GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue() {
+    vptr['get_maxStamina'] = StaminaMixin_get_maxStamina;
+    vptr['get_stamina'] = StaminaMixin_get_stamina;
+    vptr['staminaBar'] = StaminaMixin_staminaBar;
+  }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+  }
 }
 
 
 void main() {
   staticPrint('=== 复杂 OOP 边界测试 ===\n');
   staticPrint('--- 1. 菱形继承 ---');
-  final DiamondClassValue diamond = DiamondClass_new(DiamondClassValue(), 'DC');
+  final DiamondClassValue diamond = DiamondClass_new(GC.allocateLocal(DiamondClassValue()), 'DC');
   staticPrint('prefix: ${(diamond.vptr['get_prefix'] as String Function(dynamic))(diamond)}');
   staticPrint('format: ${(diamond.vptr['format'] as String Function(dynamic, String))(diamond, 'hello')}');
   staticPrint('display: ${(diamond.vptr['display'] as String Function(dynamic, String))(diamond, 'world')}');
   staticPrint('\n--- 2. StatefulMixin ---');
-  final StatefulWidgetValue widget = StatefulWidget_new(StatefulWidgetValue(), 'btn1');
+  final StatefulWidgetValue widget = StatefulWidget_new(GC.allocateLocal(StatefulWidgetValue()), 'btn1');
   staticPrint('initial: ${widget}');
   (widget.vptr['increment'] as void Function(dynamic))(widget);
   (widget.vptr['increment'] as void Function(dynamic))(widget);
@@ -1493,20 +1764,20 @@ void main() {
   (widget.vptr['set_counter'] as void Function(dynamic, int))(widget, 10);
   staticPrint('after set 10: ${widget}');
   staticPrint('\n--- 3. 深层 mixin 链 ---');
-  final DeepMixinClassValue deep = DeepMixinClass_new(DeepMixinClassValue());
+  final DeepMixinClassValue deep = DeepMixinClass_new(GC.allocateLocal(DeepMixinClassValue()));
   staticPrint('layer: ${(deep.vptr['layer'] as String Function(dynamic))(deep)}');
   staticPrint('allLayers: ${(deep.vptr['allLayers'] as String Function(dynamic))(deep)}');
   staticPrint('\n--- 4. 泛型 mixin ---');
-  final BoxValue<int> intBox = Box_new<int>(BoxValue<int>(), 42);
+  final BoxValue<int> intBox = Box_new<int>(GC.allocateLocal(BoxValue<int>()), 42);
   staticPrint('intBox: ${intBox}');
   staticPrint('describe: ${(intBox.vptr['describe'] as String Function(dynamic))(intBox)}');
-  staticPrint('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(dynamic, TypeFunction1<int, int>))(intBox, ClosureEnv_main_3())}');
-  staticPrint('test >10: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_5())}');
-  staticPrint('test >100: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_7())}');
-  final BoxValue<String> strBox = Box_new<String>(BoxValue<String>(), 'dart');
-  staticPrint('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(dynamic, TypeFunction1<String, String>))(strBox, ClosureEnv_main_9())}');
+  staticPrint('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(dynamic, TypeFunction1<int, int>))(intBox, ClosureEnv_main_3_new(GC.allocateLocal(ClosureEnv_main_3())))}');
+  staticPrint('test >10: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())))}');
+  staticPrint('test >100: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())))}');
+  final BoxValue<String> strBox = Box_new<String>(GC.allocateLocal(BoxValue<String>()), 'dart');
+  staticPrint('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(dynamic, TypeFunction1<String, String>))(strBox, ClosureEnv_main_9_new(GC.allocateLocal(ClosureEnv_main_9())))}');
   staticPrint('\n--- 5. 抽象+mixin+implements ---');
-  final TaggedResourceValue res = TaggedResource_new(TaggedResourceValue(), 'r1', 'file');
+  final TaggedResourceValue res = TaggedResource_new(GC.allocateLocal(TaggedResourceValue()), 'r1', 'file');
   (res.vptr['tag'] as void Function(dynamic, String))(res, 'important');
   (res.vptr['tag'] as void Function(dynamic, String))(res, 'v2');
   staticPrint('describe: ${(res.vptr['describe'] as String Function(dynamic))(res)}');
@@ -1514,15 +1785,15 @@ void main() {
   staticPrint('hasTag important: ${(res.vptr['hasTag'] as bool Function(dynamic, String))(res, 'important')}');
   staticPrint('hasTag draft: ${(res.vptr['hasTag'] as bool Function(dynamic, String))(res, 'draft')}');
   staticPrint('\n--- 6. super 调用链 ---');
-  final BaseProcessorValue base = BaseProcessor_new(BaseProcessorValue());
+  final BaseProcessorValue base = BaseProcessor_new(GC.allocateLocal(BaseProcessorValue()));
   staticPrint('base: ${(base.vptr['process'] as String Function(dynamic, String))(base, '  hello  ')} (${(base.vptr['get_processorName'] as String Function(dynamic))(base)})');
-  final UpperProcessorValue upper = UpperProcessor_new(UpperProcessorValue());
+  final UpperProcessorValue upper = UpperProcessor_new(GC.allocateLocal(UpperProcessorValue()));
   staticPrint('upper: ${(upper.vptr['process'] as String Function(dynamic, String))(upper, '  hello  ')} (${(upper.vptr['get_processorName'] as String Function(dynamic))(upper)})');
-  final PrefixProcessorValue prefix = PrefixProcessor_new(PrefixProcessorValue(), 'PRE');
+  final PrefixProcessorValue prefix = PrefixProcessor_new(GC.allocateLocal(PrefixProcessorValue()), 'PRE');
   staticPrint('prefix: ${(prefix.vptr['process'] as String Function(dynamic, String))(prefix, '  hello  ')} (${(prefix.vptr['get_processorName'] as String Function(dynamic))(prefix)})');
   staticPrint('\n--- 7. mixin + operator ---');
-  final AmountValue a1 = Amount_new(AmountValue(), 10);
-  final AmountValue a2 = Amount_new(AmountValue(), 5);
+  final AmountValue a1 = Amount_new(GC.allocateLocal(AmountValue()), 10);
+  final AmountValue a2 = Amount_new(GC.allocateLocal(AmountValue()), 5);
   staticPrint('a1 + a2: ${(a1.vptr['operatorPlus'] as AmountValue Function(dynamic, AmountValue))(a1, a2)}');
   staticPrint('a1 - a2: ${(a1.vptr['operatorMinus'] as AmountValue Function(dynamic, AmountValue))(a1, a2)}');
   staticPrint('a1 < a2: ${(a1.vptr['operatorLt'] as bool Function(dynamic, AmountValue))(a1, a2)}');
@@ -1530,57 +1801,57 @@ void main() {
   staticPrint('doubleValue: ${(a1.vptr['doubleValue'] as int Function(dynamic))(a1)}');
   staticPrint('addValues: ${(a1.vptr['addValues'] as int Function(dynamic, int))(a1, 3)}');
   staticPrint('\n--- 8. 多层继承+mixin ---');
-  final CarValue car = Car_new(CarValue(), 'Toyota', 2024, 4);
+  final CarValue car = Car_new(GC.allocateLocal(CarValue()), 'Toyota', 2024, 4);
   staticPrint('car: ${car}');
   (car.vptr['prettyPrint'] as void Function(dynamic))(car);
-  final ElectricCarValue ev = ElectricCar_new(ElectricCarValue(), 'Tesla', 2025, 4, 500);
+  final ElectricCarValue ev = ElectricCar_new(GC.allocateLocal(ElectricCarValue()), 'Tesla', 2025, 4, 500);
   staticPrint('ev: ${ev}');
   (ev.vptr['prettyPrint'] as void Function(dynamic))(ev);
   staticPrint('\n--- 9. mixin on 约束 ---');
-  final SegmentValue seg = Segment_new(SegmentValue(), 10.0);
+  final SegmentValue seg = Segment_new(GC.allocateLocal(SegmentValue()), 10.0);
   staticPrint('seg: ${seg}');
   staticPrint('scale(2): ${(seg.vptr['scale'] as double Function(dynamic, double))(seg, 2.0)}');
-  final WeightedSegmentValue wseg = WeightedSegment_new(WeightedSegmentValue(), 10.0, 0.5);
+  final WeightedSegmentValue wseg = WeightedSegment_new(GC.allocateLocal(WeightedSegmentValue()), 10.0, 0.5);
   staticPrint('wseg: ${wseg}');
   staticPrint('wseg.scale(3): ${(wseg.vptr['scale'] as double Function(dynamic, double))(wseg, 3.0)}');
   staticPrint('\n--- 10. 多 mixin 同名 getter ---');
-  final MultiMixinEntityValue entity = MultiMixinEntity_new(MultiMixinEntityValue());
+  final MultiMixinEntityValue entity = MultiMixinEntity_new(GC.allocateLocal(MultiMixinEntityValue()));
   staticPrint('label: ${(entity.vptr['get_label'] as String Function(dynamic))(entity)}');
   staticPrint('greet: ${(entity.vptr['greet'] as String Function(dynamic))(entity)}');
   staticPrint('info: ${(entity.vptr['info'] as String Function(dynamic))(entity)}');
   staticPrint('fullInfo: ${(entity.vptr['fullInfo'] as String Function(dynamic))(entity)}');
   staticPrint('\n--- 11. 接口+mixin 覆盖 ---');
-  final MultiEncoderValue multi = MultiEncoder_new(MultiEncoderValue());
+  final MultiEncoderValue multi = MultiEncoder_new(GC.allocateLocal(MultiEncoderValue()));
   staticPrint('multi.encode: ${(multi.vptr['encode'] as String Function(dynamic, String))(multi, 'abc')}');
   staticPrint('multi.encodeAll: ${(multi.vptr['encodeAll'] as String Function(dynamic, String))(multi, 'xyz')}');
-  final CustomEncoderValue custom = CustomEncoder_new(CustomEncoderValue());
+  final CustomEncoderValue custom = CustomEncoder_new(GC.allocateLocal(CustomEncoderValue()));
   staticPrint('custom.encode: ${(custom.vptr['encode'] as String Function(dynamic, String))(custom, 'abc')}');
   staticPrint('custom.encodeAll: ${(custom.vptr['encodeAll'] as String Function(dynamic, String))(custom, 'xyz')}');
   staticPrint('\n--- 12. 泛型继承链 ---');
-  final ContainerValue<int> c1 = Container_new<int>(ContainerValue<int>(), 42);
+  final ContainerValue<int> c1 = Container_new<int>(GC.allocateLocal(ContainerValue<int>()), 42);
   staticPrint('c1: ${(c1.vptr['describe'] as String Function(dynamic))(c1)}');
-  final LabeledContainerValue<String> c2 = LabeledContainer_new<String>(LabeledContainerValue<String>(), 'hello', 'greeting');
+  final LabeledContainerValue<String> c2 = LabeledContainer_new<String>(GC.allocateLocal(LabeledContainerValue<String>()), 'hello', 'greeting');
   staticPrint('c2: ${(c2.vptr['describe'] as String Function(dynamic))(c2)}');
-  final PriorityContainerValue<double> c3 = PriorityContainer_new<double>(PriorityContainerValue<double>(), 3.14, 'pi', 1);
+  final PriorityContainerValue<double> c3 = PriorityContainer_new<double>(GC.allocateLocal(PriorityContainerValue<double>()), 3.14, 'pi', 1);
   staticPrint('c3: ${(c3.vptr['describe'] as String Function(dynamic))(c3)}');
   staticPrint('c3.content: ${(c3.vptr['get_content'] as double Function(dynamic))(c3)}');
   staticPrint('\n--- 13. mixin 调用链 ---');
-  final ChainClassValue chain1 = ChainClass_new(ChainClassValue());
+  final ChainClassValue chain1 = ChainClass_new(GC.allocateLocal(ChainClassValue()));
   staticPrint('chain1.fullChain: ${(chain1.vptr['fullChain'] as String Function(dynamic))(chain1)}');
   staticPrint('chain1.step3: ${(chain1.vptr['step3'] as String Function(dynamic))(chain1)}');
-  final ChainSubClassValue chain2 = ChainSubClass_new(ChainSubClassValue());
+  final ChainSubClassValue chain2 = ChainSubClass_new(GC.allocateLocal(ChainSubClassValue()));
   staticPrint('chain2.fullChain: ${(chain2.vptr['fullChain'] as String Function(dynamic))(chain2)}');
   staticPrint('chain2.step3: ${(chain2.vptr['step3'] as String Function(dynamic))(chain2)}');
   staticPrint('\n--- 14. 表达式树 ---');
-  final BinaryExprValue expr = BinaryExpr_new_add(NumberExpr_new(NumberExprValue(), 3.0), BinaryExpr_new_mul(NumberExpr_new(NumberExprValue(), 4.0), NumberExpr_new(NumberExprValue(), 5.0)));
+  final BinaryExprValue expr = BinaryExpr_new_add(NumberExpr_new(GC.allocateLocal(NumberExprValue()), 3.0), BinaryExpr_new_mul(NumberExpr_new(GC.allocateLocal(NumberExprValue()), 4.0), NumberExpr_new(GC.allocateLocal(NumberExprValue()), 5.0)));
   staticPrint('expr: ${(expr.vptr['display'] as String Function(dynamic))(expr)}');
   staticPrint('result: ${(expr.vptr['evaluate'] as double Function(dynamic))(expr)}');
   staticPrint('\n--- 15. 游戏角色 ---');
-  final GameCharacterValue hero = GameCharacter_new(GameCharacterValue(), 'Hero');
+  final GameCharacterValue hero = GameCharacter_new(GC.allocateLocal(GameCharacterValue()), 'Hero');
   staticPrint((hero.vptr['statusBars'] as String Function(dynamic))(hero));
-  final WarriorValue warrior = Warrior_new(WarriorValue(), 'Conan');
+  final WarriorValue warrior = Warrior_new(GC.allocateLocal(WarriorValue()), 'Conan');
   staticPrint((warrior.vptr['statusBars'] as String Function(dynamic))(warrior));
-  final MageValue mage = Mage_new(MageValue(), 'Gandalf');
+  final MageValue mage = Mage_new(GC.allocateLocal(MageValue()), 'Gandalf');
   staticPrint((mage.vptr['statusBars'] as String Function(dynamic))(mage));
   staticPrint('\n=== 所有复杂 OOP 测试通过 ✅ ===');
 }
@@ -1588,90 +1859,150 @@ void main() {
 class ClosureEnv_anon_0 extends TypeFunction2<double, double, double> {
   ClosureEnv_anon_0();
   @override
-  double call(double a, double b) => ClosureEnv_anon_0_call(this, a, b);
+  double call(double a, double b) => closureCall(this, a, b);
 }
-double ClosureEnv_anon_0_call(ClosureEnv_anon_0 env, double a, double b) {
+ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
+  env_.closureCall = ClosureEnv_anon_0_call;
+  return env_;
+}
+double ClosureEnv_anon_0_call(dynamic env__, double a, double b) {
+  final env = env__ as ClosureEnv_anon_0;
+
   return (a + b);
 }
 
 class ClosureEnv_anon_1 extends TypeFunction2<double, double, double> {
   ClosureEnv_anon_1();
   @override
-  double call(double a, double b) => ClosureEnv_anon_1_call(this, a, b);
+  double call(double a, double b) => closureCall(this, a, b);
 }
-double ClosureEnv_anon_1_call(ClosureEnv_anon_1 env, double a, double b) {
+ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
+  env_.closureCall = ClosureEnv_anon_1_call;
+  return env_;
+}
+double ClosureEnv_anon_1_call(dynamic env__, double a, double b) {
+  final env = env__ as ClosureEnv_anon_1;
+
   return (a * b);
 }
 
 class ClosureEnv_main_2 extends TypeFunction1<int, int> {
   ClosureEnv_main_2();
   @override
-  int call(int v) => ClosureEnv_main_2_call(this, v);
+  int call(int v) => closureCall(this, v);
 }
-int ClosureEnv_main_2_call(ClosureEnv_main_2 env, int v) {
+ClosureEnv_main_2 ClosureEnv_main_2_new(ClosureEnv_main_2 env_) {
+  env_.closureCall = ClosureEnv_main_2_call;
+  return env_;
+}
+int ClosureEnv_main_2_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_2;
+
   return (v * 2);
 }
 
 class ClosureEnv_main_3 extends TypeFunction1<int, int> {
   ClosureEnv_main_3();
   @override
-  int call(int v) => ClosureEnv_main_3_call(this, v);
+  int call(int v) => closureCall(this, v);
 }
-int ClosureEnv_main_3_call(ClosureEnv_main_3 env, int v) {
+ClosureEnv_main_3 ClosureEnv_main_3_new(ClosureEnv_main_3 env_) {
+  env_.closureCall = ClosureEnv_main_3_call;
+  return env_;
+}
+int ClosureEnv_main_3_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_3;
+
   return (v * 2);
 }
 
 class ClosureEnv_main_4 extends TypeFunction1<bool, int> {
   ClosureEnv_main_4();
   @override
-  bool call(int v) => ClosureEnv_main_4_call(this, v);
+  bool call(int v) => closureCall(this, v);
 }
-bool ClosureEnv_main_4_call(ClosureEnv_main_4 env, int v) {
+ClosureEnv_main_4 ClosureEnv_main_4_new(ClosureEnv_main_4 env_) {
+  env_.closureCall = ClosureEnv_main_4_call;
+  return env_;
+}
+bool ClosureEnv_main_4_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_4;
+
   return (v > 10);
 }
 
 class ClosureEnv_main_5 extends TypeFunction1<bool, int> {
   ClosureEnv_main_5();
   @override
-  bool call(int v) => ClosureEnv_main_5_call(this, v);
+  bool call(int v) => closureCall(this, v);
 }
-bool ClosureEnv_main_5_call(ClosureEnv_main_5 env, int v) {
+ClosureEnv_main_5 ClosureEnv_main_5_new(ClosureEnv_main_5 env_) {
+  env_.closureCall = ClosureEnv_main_5_call;
+  return env_;
+}
+bool ClosureEnv_main_5_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_5;
+
   return (v > 10);
 }
 
 class ClosureEnv_main_6 extends TypeFunction1<bool, int> {
   ClosureEnv_main_6();
   @override
-  bool call(int v) => ClosureEnv_main_6_call(this, v);
+  bool call(int v) => closureCall(this, v);
 }
-bool ClosureEnv_main_6_call(ClosureEnv_main_6 env, int v) {
+ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
+  env_.closureCall = ClosureEnv_main_6_call;
+  return env_;
+}
+bool ClosureEnv_main_6_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_6;
+
   return (v > 100);
 }
 
 class ClosureEnv_main_7 extends TypeFunction1<bool, int> {
   ClosureEnv_main_7();
   @override
-  bool call(int v) => ClosureEnv_main_7_call(this, v);
+  bool call(int v) => closureCall(this, v);
 }
-bool ClosureEnv_main_7_call(ClosureEnv_main_7 env, int v) {
+ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
+  env_.closureCall = ClosureEnv_main_7_call;
+  return env_;
+}
+bool ClosureEnv_main_7_call(dynamic env__, int v) {
+  final env = env__ as ClosureEnv_main_7;
+
   return (v > 100);
 }
 
 class ClosureEnv_main_8 extends TypeFunction1<String, String> {
   ClosureEnv_main_8();
   @override
-  String call(String s) => ClosureEnv_main_8_call(this, s);
+  String call(String s) => closureCall(this, s);
 }
-String ClosureEnv_main_8_call(ClosureEnv_main_8 env, String s) {
+ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_) {
+  env_.closureCall = ClosureEnv_main_8_call;
+  return env_;
+}
+String ClosureEnv_main_8_call(dynamic env__, String s) {
+  final env = env__ as ClosureEnv_main_8;
+
   return s.toUpperCase();
 }
 
 class ClosureEnv_main_9 extends TypeFunction1<String, String> {
   ClosureEnv_main_9();
   @override
-  String call(String s) => ClosureEnv_main_9_call(this, s);
+  String call(String s) => closureCall(this, s);
 }
-String ClosureEnv_main_9_call(ClosureEnv_main_9 env, String s) {
+ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
+  env_.closureCall = ClosureEnv_main_9_call;
+  return env_;
+}
+String ClosureEnv_main_9_call(dynamic env__, String s) {
+  final env = env__ as ClosureEnv_main_9;
+
   return s.toUpperCase();
 }
 

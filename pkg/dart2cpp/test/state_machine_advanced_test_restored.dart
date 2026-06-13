@@ -12,6 +12,12 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
   FibStateMachineValue() {
     vptr['step'] = FibStateMachine_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
@@ -32,7 +38,7 @@ bool FibStateMachine_step(dynamic this__) {
             this_.completeWith(this_.n);
             return true;
           }
-          this_._pending = FibStateMachine_new(FibStateMachineValue(), (this_.n - 1)).start();
+          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 1)).start();
           this_.smState = 1;
           return false;
         }
@@ -40,7 +46,7 @@ bool FibStateMachine_step(dynamic this__) {
 {
           if (this_._pending!.isPending)           return false;
           this_._a = this_._pending!.result;
-          this_._pending = FibStateMachine_new(FibStateMachineValue(), (this_.n - 2)).start();
+          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 2)).start();
           this_.smState = 2;
           return false;
         }
@@ -92,6 +98,12 @@ class Level2SMValue extends AsyncStateMachine<int> {
   Level2SMValue() {
     vptr['step'] = Level2SM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 Level2SMValue Level2SM_new(dynamic this__) {
@@ -106,7 +118,7 @@ bool Level2SM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pending = Level3SM_new(Level3SMValue()).start();
+          this_._pending = Level3SM_new(GC.allocateLocal(Level3SMValue())).start();
           this_.smState = 1;
           return false;
         }
@@ -139,6 +151,12 @@ class Level1SMValue extends AsyncStateMachine<String> {
   Level1SMValue() {
     vptr['step'] = Level1SM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 Level1SMValue Level1SM_new(dynamic this__) {
@@ -153,7 +171,7 @@ bool Level1SM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pending = Level2SM_new(Level2SMValue()).start();
+          this_._pending = Level2SM_new(GC.allocateLocal(Level2SMValue())).start();
           this_.smState = 1;
           return false;
         }
@@ -187,6 +205,12 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   ConditionalAwaitSMValue() {
     vptr['step'] = ConditionalAwaitSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
@@ -203,11 +227,11 @@ bool ConditionalAwaitSM_step(dynamic this__) {
       case 0:
 {
           if (this_.flag) {
-            this_._pending = Promise.delayed(2, ClosureEnv_anon_0());
+            this_._pending = Promise.delayed(2, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
             this_.smState = 1;
           }
  else {
-            this_._pending = Promise.delayed(1, ClosureEnv_anon_1());
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
             this_.smState = 2;
           }
           return false;
@@ -245,6 +269,13 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   FindFirstSMValue() {
     vptr['step'] = FindFirstSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (items is AnyGC) (items as AnyGC).gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
@@ -265,7 +296,7 @@ bool FindFirstSM_step(dynamic this__) {
             this_.completeWith((-1));
             return true;
           }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_2(this_));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
           this_.smState = 1;
           return false;
         }
@@ -301,6 +332,12 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   TryCatchSMValue() {
     vptr['step'] = TryCatchSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 TryCatchSMValue TryCatchSM_new(dynamic this__) {
@@ -317,7 +354,7 @@ bool TryCatchSM_step(dynamic this__) {
       case 0:
 {
           this_._log = (this_._log + 'try;');
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_3());
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3())));
           this_.smState = 1;
           return false;
         }
@@ -326,7 +363,7 @@ bool TryCatchSM_step(dynamic this__) {
           if (this_._pending!.isPending)           return false;
           if (this_._pending!.isError) {
             this_._log = (this_._log + 'catch:${this_._pending!.error};');
-            this_._pending = Promise.delayed(1, ClosureEnv_anon_4());
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4())));
             this_.smState = 2;
             return false;
           }
@@ -359,6 +396,12 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   FutureAnySMValue() {
     vptr['step'] = FutureAnySM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_futures is AnyGC) (_futures as AnyGC).gcMark(flag);
+  }
 }
 
 FutureAnySMValue FutureAnySM_new(dynamic this__) {
@@ -372,22 +415,16 @@ bool FutureAnySM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_8()), Promise.delayed(2, ClosureEnv_anon_9()), Promise.delayed(8, ClosureEnv_anon_10())]);
+          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
           this_.smState = 1;
           return false;
         }
       case 1:
 {
-{
-            StaticIterator<Promise<String>> sync_for_iterator = StaticIterator(this_._futures.iterator);
-            for (; sync_for_iterator.moveNext(); ) {
-              final Promise<String> f = sync_for_iterator.current;
-{
-                if (f.isCompleted) {
-                  this_.completeWith(f.result);
-                  return true;
-                }
-              }
+          for (final f in this_._futures) {
+            if (f.isCompleted) {
+              this_.completeWith(f.result);
+              return true;
             }
           }
           return false;
@@ -414,6 +451,13 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   TimeoutSMValue() {
     vptr['step'] = TimeoutSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_taskFuture is AnyGC) (_taskFuture as AnyGC).gcMark(flag);
+    if (_timeoutFuture is AnyGC) (_timeoutFuture as AnyGC).gcMark(flag);
+  }
 }
 
 TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required int timeoutDelay}) {
@@ -429,8 +473,8 @@ bool TimeoutSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_11());
-          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_12());
+          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
+          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
           this_.smState = 1;
           return false;
         }
@@ -468,12 +512,20 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   AsyncMapSMValue() {
     vptr['step'] = AsyncMapSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (items is AnyGC) (items as AnyGC).gcMark(flag);
+    if (_results is AnyGC) (_results as AnyGC).gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as AsyncMapSMValue;
   this_.items = items;
-  this_._results = StaticList<String>();
+  this_._results = StaticList<String>.of([]);
   this_._index = 0;
   this_._pending = null;
   return this_;
@@ -490,7 +542,7 @@ bool AsyncMapSM_step(dynamic this__) {
             return true;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_13(item));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
           this_.smState = 1;
           return false;
         }
@@ -525,12 +577,20 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   AsyncReduceSMValue() {
     vptr['step'] = AsyncReduceSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_mapFuture is AnyGC) (_mapFuture as AnyGC).gcMark(flag);
+    if (_reducePending is AnyGC) (_reducePending as AnyGC).gcMark(flag);
+    if (_items is AnyGC) (_items as AnyGC).gcMark(flag);
+  }
 }
 
 AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
   this_._reducePending = null;
-  this_._items = StaticList<String>();
+  this_._items = StaticList<String>.of([]);
   this_._index = 0;
   this_._acc = '';
   return this_;
@@ -542,7 +602,7 @@ bool AsyncReduceSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._mapFuture = AsyncMapSM_new(AsyncMapSMValue(), StaticList<int>.of([1, 2, 3, 4])).start();
+          this_._mapFuture = AsyncMapSM_new(GC.allocateLocal(AsyncMapSMValue()), StaticList<int>.of([1, 2, 3, 4])).start();
           this_.smState = 1;
           return false;
         }
@@ -559,7 +619,7 @@ bool AsyncReduceSM_step(dynamic this__) {
             this_.completeWith(this_._acc);
             return true;
           }
-          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_14(this_));
+          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
           this_.smState = 3;
           return false;
         }
@@ -613,12 +673,21 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   ProcessWithClosureSMValue() {
     vptr['step'] = ProcessWithClosureSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_env is AnyGC) (_env as AnyGC).gcMark(flag);
+    if (items is AnyGC) (items as AnyGC).gcMark(flag);
+    if (_results is AnyGC) (_results as AnyGC).gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as ProcessWithClosureSMValue;
   this_.items = items;
-  this_._results = StaticList<int>();
+  this_._results = StaticList<int>.of([]);
   this_._index = 0;
   this_._pending = null;
   return this_;
@@ -630,7 +699,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._env = ClosureEnv_process_0_new(ClosureEnv_process_0Value(), 3);
+          this_._env = ClosureEnv_process_0_new(GC.allocateLocal(ClosureEnv_process_0Value()), 3);
           this_.smState = 1;
           return false;
         }
@@ -641,7 +710,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
             return false;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_15(this_, item));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
           this_.smState = 2;
           return false;
         }
@@ -682,13 +751,20 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   AsyncGeneratorSMValue() {
     vptr['step'] = AsyncGeneratorSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_yielded is AnyGC) (_yielded as AnyGC).gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
   final this_ = this__ as AsyncGeneratorSMValue;
   this_.max = max;
   this_._i = 0;
-  this_._yielded = StaticList<int>();
+  this_._yielded = StaticList<int>.of([]);
   this_._pending = null;
   return this_;
 }
@@ -703,7 +779,7 @@ bool AsyncGeneratorSM_step(dynamic this__) {
             this_.completeWith(this_._yielded);
             return true;
           }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_16(this_));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
           this_.smState = 1;
           return false;
         }
@@ -735,6 +811,12 @@ class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic
   ComplexBusinessSMValue() {
     vptr['step'] = ComplexBusinessSM_step;
   }
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
 }
 
 ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
@@ -754,7 +836,7 @@ bool ComplexBusinessSM_step(dynamic this__) {
             this_.completeWithError(Exception('max depth'));
             return true;
           }
-          this_._pending = ComplexBusinessSM_new(ComplexBusinessSMValue(), (this_.depth - 1)).start();
+          this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
           this_.smState = 1;
           return false;
         }
@@ -780,7 +862,7 @@ bool ComplexBusinessSM_step(dynamic this__) {
 void testRecursiveAsync() {
   staticPrint('\n--- 1. 递归异步 fibonacci ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(FibStateMachine_new(FibStateMachineValue(), 7).start());
+  final dynamic r = smAwait<dynamic>(FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), 7).start());
   assert((r == 13), 'fib(7) should be 13, got ${r}');
   staticPrint('  ✓ asyncFib(7) = ${r}');
 }
@@ -788,7 +870,7 @@ void testRecursiveAsync() {
 void testExceptionPropagation() {
   staticPrint('\n--- 2. 异常传播链 (3层) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(Level1SM_new(Level1SMValue()).start());
+  final dynamic r = smAwait<dynamic>(Level1SM_new(GC.allocateLocal(Level1SMValue())).start());
   assert((r.contains('deep error') as bool), 'Expected deep error, got: ${r}');
   staticPrint('  ✓ level1() caught 3-level exception: "${r}"');
 }
@@ -796,10 +878,10 @@ void testExceptionPropagation() {
 void testConditionalAwait() {
   staticPrint('\n--- 3. 条件分支中的 await ---');
   GlobalScheduler.instance.reset();
-  final dynamic r1 = smAwait<dynamic>(ConditionalAwaitSM_new(ConditionalAwaitSMValue(), true).start());
+  final dynamic r1 = smAwait<dynamic>(ConditionalAwaitSM_new(GC.allocateLocal(ConditionalAwaitSMValue()), true).start());
   assert((r1 == 'branch_true'), 'Expected branch_true, got ${r1}');
   GlobalScheduler.instance.reset();
-  final dynamic r2 = smAwait<dynamic>(ConditionalAwaitSM_new(ConditionalAwaitSMValue(), false).start());
+  final dynamic r2 = smAwait<dynamic>(ConditionalAwaitSM_new(GC.allocateLocal(ConditionalAwaitSMValue()), false).start());
   assert((r2 == 'branch_false'), 'Expected branch_false, got ${r2}');
   staticPrint('  ✓ conditionalAwait(true) = "${r1}"');
   staticPrint('  ✓ conditionalAwait(false) = "${r2}"');
@@ -808,7 +890,7 @@ void testConditionalAwait() {
 void testLoopBreakAwait() {
   staticPrint('\n--- 4. 循环 + 提前 break 中的 await ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(FindFirstSM_new(FindFirstSMValue(), StaticList<int>.of([1, 2, 3, 4, 5])).start());
+  final dynamic r = smAwait<dynamic>(FindFirstSM_new(GC.allocateLocal(FindFirstSMValue()), StaticList<int>.of([1, 2, 3, 4, 5])).start());
   assert((r == 12), 'Expected 12, got ${r}');
   staticPrint('  ✓ findFirst([1,2,3,4,5]) = ${r} (4*3=12 > 10)');
 }
@@ -816,7 +898,7 @@ void testLoopBreakAwait() {
 void testTryCatchAwait() {
   staticPrint('\n--- 5. try-catch 中的 await ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(TryCatchSM_new(TryCatchSMValue()).start());
+  final dynamic r = smAwait<dynamic>(TryCatchSM_new(GC.allocateLocal(TryCatchSMValue())).start());
   assert((r == 'try;catch:boom;recovered'), 'Unexpected: ${r}');
   staticPrint('  ✓ tryCatchAwait() = "${r}"');
 }
@@ -824,7 +906,7 @@ void testTryCatchAwait() {
 void testFutureAny() {
   staticPrint('\n--- 6. Future.any 模拟（竞争取最先完成） ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(FutureAnySM_new(FutureAnySMValue()).start());
+  final dynamic r = smAwait<dynamic>(FutureAnySM_new(GC.allocateLocal(FutureAnySMValue())).start());
   assert((r == 'fast'), 'Expected fast, got ${r}');
   staticPrint('  ✓ Future.any([slow(5), fast(2), slowest(8)]) = "${r}"');
 }
@@ -832,11 +914,11 @@ void testFutureAny() {
 void testTimeout() {
   staticPrint('\n--- 7. 超时控制模拟 ---');
   GlobalScheduler.instance.reset();
-  final dynamic r1 = smAwait<dynamic>(TimeoutSM_new(TimeoutSMValue(), taskDelay: 2, timeoutDelay: 5).start());
+  final dynamic r1 = smAwait<dynamic>(TimeoutSM_new(GC.allocateLocal(TimeoutSMValue()), taskDelay: 2, timeoutDelay: 5).start());
   assert((r1 == 'done'), 'Expected done, got ${r1}');
   staticPrint('  ✓ task(2) timeout(5) = "${r1}" (task wins)');
   GlobalScheduler.instance.reset();
-  final dynamic r2 = smAwait<dynamic>(TimeoutSM_new(TimeoutSMValue(), taskDelay: 10, timeoutDelay: 3).start());
+  final dynamic r2 = smAwait<dynamic>(TimeoutSM_new(GC.allocateLocal(TimeoutSMValue()), taskDelay: 10, timeoutDelay: 3).start());
   assert((r2 == 'TIMEOUT'), 'Expected TIMEOUT, got ${r2}');
   staticPrint('  ✓ task(10) timeout(3) = "${r2}" (timeout wins)');
 }
@@ -844,7 +926,7 @@ void testTimeout() {
 void testAsyncPipeline() {
   staticPrint('\n--- 8. 链式异步变换管道 (map → reduce) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(AsyncReduceSM_new(AsyncReduceSMValue()).start());
+  final dynamic r = smAwait<dynamic>(AsyncReduceSM_new(GC.allocateLocal(AsyncReduceSMValue())).start());
   assert((r == 'item_2+item_4+item_6+item_8'), 'Unexpected: ${r}');
   staticPrint('  ✓ asyncMap([1,2,3,4]).reduce(+) = "${r}"');
 }
@@ -852,7 +934,7 @@ void testAsyncPipeline() {
 void testClosureCaptureAwait() {
   staticPrint('\n--- 9. 闭包捕获 + await (ClosureEnv 模式) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(ProcessWithClosureSM_new(ProcessWithClosureSMValue(), StaticList<int>.of([1, 2, 3])).start());
+  final dynamic r = smAwait<dynamic>(ProcessWithClosureSM_new(GC.allocateLocal(ProcessWithClosureSMValue()), StaticList<int>.of([1, 2, 3])).start());
   assert((r.length == 4), 'Expected 4 results');
   assert(((((r[0] == 3) && (r[1] == 6)) && (r[2] == 9)) && (r[3] == 500)), 'Unexpected: ${r}');
   staticPrint('  ✓ processWithClosure([1,2,3]) = ${r}');
@@ -862,7 +944,7 @@ void testClosureCaptureAwait() {
 void testAsyncGenerator() {
   staticPrint('\n--- 10. async* 生成器模拟 ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(AsyncGeneratorSM_new(AsyncGeneratorSMValue(), 5).start());
+  final dynamic r = smAwait<dynamic>(AsyncGeneratorSM_new(GC.allocateLocal(AsyncGeneratorSMValue()), 5).start());
   assert((r.length == 5), 'Expected 5 items');
   assert((((((r[0] == 0) && (r[1] == 1)) && (r[2] == 4)) && (r[3] == 9)) && (r[4] == 16)), 'Unexpected: ${r}');
   staticPrint('  ✓ countUp(5) yields ${r}');
@@ -871,7 +953,7 @@ void testAsyncGenerator() {
 void testComplexBusiness() {
   staticPrint('\n--- 11. 复合场景：递归+异常+条件 ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(ComplexBusinessSM_new(ComplexBusinessSMValue(), 3).start());
+  final dynamic r = smAwait<dynamic>(ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), 3).start());
   assert((r['depth'] == 3), 'Top level depth should be 3');
   final StaticMap<String, dynamic> child2 = StaticMap<String, dynamic>.of((r['child'] as StaticMap<String, dynamic>));
   assert((child2['depth'] == 2), 'Child depth should be 2');
@@ -905,160 +987,254 @@ void main() {
 class ClosureEnv_anon_0 extends TypeFunction0<String> {
   ClosureEnv_anon_0();
   @override
-  String call() => ClosureEnv_anon_0_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_0_call(ClosureEnv_anon_0 env) {
+ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
+  env_.closureCall = ClosureEnv_anon_0_call;
+  return env_;
+}
+String ClosureEnv_anon_0_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_0;
+
   return 'branch_true';
 }
 
 class ClosureEnv_anon_1 extends TypeFunction0<String> {
   ClosureEnv_anon_1();
   @override
-  String call() => ClosureEnv_anon_1_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_1_call(ClosureEnv_anon_1 env) {
+ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
+  env_.closureCall = ClosureEnv_anon_1_call;
+  return env_;
+}
+String ClosureEnv_anon_1_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_1;
+
   return 'branch_false';
 }
 
 class ClosureEnv_anon_2 extends TypeFunction0<int> {
-  FindFirstSMValue this_;
-  ClosureEnv_anon_2(this.this_);
+  late FindFirstSMValue this_;
+  ClosureEnv_anon_2();
   @override
-  int call() => ClosureEnv_anon_2_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_anon_2_call(ClosureEnv_anon_2 env) {
+ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_, FindFirstSMValue this_) {
+  env_.closureCall = ClosureEnv_anon_2_call;
+  env_.this_ = this_;
+  return env_;
+}
+int ClosureEnv_anon_2_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_2;
+
   return (env.this_.items[env.this_._index] * 3);
 }
 
 class ClosureEnv_anon_3 extends TypeFunction0<Never> {
   ClosureEnv_anon_3();
   @override
-  Never call() => ClosureEnv_anon_3_call(this);
+  Never call() => closureCall(this);
 }
-Never ClosureEnv_anon_3_call(ClosureEnv_anon_3 env) {
+ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_) {
+  env_.closureCall = ClosureEnv_anon_3_call;
+  return env_;
+}
+Never ClosureEnv_anon_3_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_3;
+
   return throw 'boom';
 }
 
 class ClosureEnv_anon_4 extends TypeFunction0<String> {
   ClosureEnv_anon_4();
   @override
-  String call() => ClosureEnv_anon_4_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_4_call(ClosureEnv_anon_4 env) {
+ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_) {
+  env_.closureCall = ClosureEnv_anon_4_call;
+  return env_;
+}
+String ClosureEnv_anon_4_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_4;
+
   return 'recovered';
 }
 
 class ClosureEnv_anon_5 extends TypeFunction0<String> {
   ClosureEnv_anon_5();
   @override
-  String call() => ClosureEnv_anon_5_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_5_call(ClosureEnv_anon_5 env) {
+ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_) {
+  env_.closureCall = ClosureEnv_anon_5_call;
+  return env_;
+}
+String ClosureEnv_anon_5_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_5;
+
   return 'slow';
 }
 
 class ClosureEnv_anon_6 extends TypeFunction0<String> {
   ClosureEnv_anon_6();
   @override
-  String call() => ClosureEnv_anon_6_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_6_call(ClosureEnv_anon_6 env) {
+ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_) {
+  env_.closureCall = ClosureEnv_anon_6_call;
+  return env_;
+}
+String ClosureEnv_anon_6_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_6;
+
   return 'fast';
 }
 
 class ClosureEnv_anon_7 extends TypeFunction0<String> {
   ClosureEnv_anon_7();
   @override
-  String call() => ClosureEnv_anon_7_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_7_call(ClosureEnv_anon_7 env) {
+ClosureEnv_anon_7 ClosureEnv_anon_7_new(ClosureEnv_anon_7 env_) {
+  env_.closureCall = ClosureEnv_anon_7_call;
+  return env_;
+}
+String ClosureEnv_anon_7_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_7;
+
   return 'slowest';
 }
 
 class ClosureEnv_anon_8 extends TypeFunction0<String> {
   ClosureEnv_anon_8();
   @override
-  String call() => ClosureEnv_anon_8_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_8_call(ClosureEnv_anon_8 env) {
-  return 'slow';
+ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
+  env_.closureCall = ClosureEnv_anon_8_call;
+  return env_;
+}
+String ClosureEnv_anon_8_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_8;
+
+  return 'done';
 }
 
 class ClosureEnv_anon_9 extends TypeFunction0<String> {
   ClosureEnv_anon_9();
   @override
-  String call() => ClosureEnv_anon_9_call(this);
+  String call() => closureCall(this);
 }
-String ClosureEnv_anon_9_call(ClosureEnv_anon_9 env) {
-  return 'fast';
+ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
+  env_.closureCall = ClosureEnv_anon_9_call;
+  return env_;
 }
+String ClosureEnv_anon_9_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_9;
 
-class ClosureEnv_anon_10 extends TypeFunction0<String> {
-  ClosureEnv_anon_10();
-  @override
-  String call() => ClosureEnv_anon_10_call(this);
-}
-String ClosureEnv_anon_10_call(ClosureEnv_anon_10 env) {
-  return 'slowest';
-}
-
-class ClosureEnv_anon_11 extends TypeFunction0<String> {
-  ClosureEnv_anon_11();
-  @override
-  String call() => ClosureEnv_anon_11_call(this);
-}
-String ClosureEnv_anon_11_call(ClosureEnv_anon_11 env) {
-  return 'done';
-}
-
-class ClosureEnv_anon_12 extends TypeFunction0<String> {
-  ClosureEnv_anon_12();
-  @override
-  String call() => ClosureEnv_anon_12_call(this);
-}
-String ClosureEnv_anon_12_call(ClosureEnv_anon_12 env) {
   return 'TIMEOUT';
 }
 
-class ClosureEnv_anon_13 extends TypeFunction0<String> {
-  IntBox item;
-  ClosureEnv_anon_13(this.item);
+class ClosureEnv_anon_10 extends TypeFunction0<String> {
+  late IntBox item;
+  ClosureEnv_anon_10();
   @override
-  String call() => ClosureEnv_anon_13_call(this);
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_13_call(ClosureEnv_anon_13 env) {
+ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_, IntBox item) {
+  env_.closureCall = ClosureEnv_anon_10_call;
+  env_.item = item;
+  return env_;
+}
+String ClosureEnv_anon_10_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_10;
+
   return 'item_${(env.item.value * 2)}';
 }
 
-class ClosureEnv_anon_14 extends TypeFunction0<String> {
-  AsyncReduceSMValue this_;
-  ClosureEnv_anon_14(this.this_);
+class ClosureEnv_anon_11 extends TypeFunction0<String> {
+  late AsyncReduceSMValue this_;
+  ClosureEnv_anon_11();
   @override
-  String call() => ClosureEnv_anon_14_call(this);
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-String ClosureEnv_anon_14_call(ClosureEnv_anon_14 env) {
+ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, AsyncReduceSMValue this_) {
+  env_.closureCall = ClosureEnv_anon_11_call;
+  env_.this_ = this_;
+  return env_;
+}
+String ClosureEnv_anon_11_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_11;
+
             final String sep = (env.this_._acc.isEmpty ? '' : '+');
             return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
           }
 
-class ClosureEnv_anon_15 extends TypeFunction0<int> {
-  ProcessWithClosureSMValue this_;
-  IntBox item;
-  ClosureEnv_anon_15(this.this_, this.item);
+class ClosureEnv_anon_12 extends TypeFunction0<int> {
+  late ProcessWithClosureSMValue this_;
+  late IntBox item;
+  ClosureEnv_anon_12();
   @override
-  int call() => ClosureEnv_anon_15_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+    if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_anon_15_call(ClosureEnv_anon_15 env) {
+ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_, ProcessWithClosureSMValue this_, IntBox item) {
+  env_.closureCall = ClosureEnv_anon_12_call;
+  env_.this_ = this_;
+  env_.item = item;
+  return env_;
+}
+int ClosureEnv_anon_12_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_12;
+
   return (env.this_._env.vptr['call'] as int Function(dynamic, int))(env.this_._env, env.item.value);
 }
 
-class ClosureEnv_anon_16 extends TypeFunction0<int> {
-  AsyncGeneratorSMValue this_;
-  ClosureEnv_anon_16(this.this_);
+class ClosureEnv_anon_13 extends TypeFunction0<int> {
+  late AsyncGeneratorSMValue this_;
+  ClosureEnv_anon_13();
   @override
-  int call() => ClosureEnv_anon_16_call(this);
+  int call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
+  }
 }
-int ClosureEnv_anon_16_call(ClosureEnv_anon_16 env) {
+ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, AsyncGeneratorSMValue this_) {
+  env_.closureCall = ClosureEnv_anon_13_call;
+  env_.this_ = this_;
+  return env_;
+}
+int ClosureEnv_anon_13_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_13;
+
   return (env.this_._i * env.this_._i);
 }
 

@@ -759,8 +759,65 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 生成构造方法，在其中注册 vptr 条目
     _emitValueClassConstructor(cls, className, parentName, isSyntheticMixinClass);
 
+    // 生成 gcMark 覆写方法：遍历所有 AnyGC 类型的实例字段，递归标记
+    _emitGcMarkOverride(fieldsToEmit, hasUserParent);
+
     _indent--;
     _buf.write('}\n\n');
+  }
+
+  /// 生成 gcMark 覆写方法，遍历所有可能持有 AnyGC 引用的实例字段并递归标记。
+  /// [fieldsToEmit] 是当前类需要发射的字段列表（可能只含本类新增字段或全部字段）。
+  /// [hasUserParent] 表示是否有用户类父类（如果有，super.gcMark 会标记父类字段）。
+  void _emitGcMarkOverride(List<Field> fieldsToEmit, bool hasUserParent) {
+    // 收集需要在 gcMark 中处理的实例字段（排除静态字段和基础值类型）
+    final gcFields = <Field>[];
+    for (final field in fieldsToEmit) {
+      if (field.isStatic) continue;
+      if (_isGcRelevantType(field.type)) {
+        gcFields.add(field);
+      }
+    }
+
+    // 即使没有 gc 字段，如果有父类也需要生成 gcMark 以调用 super
+    if (gcFields.isEmpty && !hasUserParent) return;
+
+    _buf.write('${_pad}@override\n');
+    _buf.write('${_pad}void gcMark(int flag) {\n');
+    _indent++;
+    _buf.write('${_pad}if (gcFlag == flag) return;\n');
+    _buf.write('${_pad}super.gcMark(flag);\n');
+
+    for (final field in gcFields) {
+      final fieldName = field.name.text;
+      // 对所有可能是 AnyGC 的字段使用运行时 is 检查，安全且通用
+      _buf.write('${_pad}if ($fieldName is AnyGC) ($fieldName as AnyGC).gcMark(flag);\n');
+    }
+
+    _indent--;
+    _buf.write('$_pad}\n');
+  }
+
+  /// 判断字段类型是否可能持有 AnyGC 引用（需要在 gcMark 中递归标记）。
+  /// 返回 true 的类型：用户类类型（XValue）、Box 类型、泛型参数、dynamic、Object。
+  /// 返回 false 的类型：int、double、bool、String 等基础值类型。
+  bool _isGcRelevantType(DartType type) {
+    if (type is InterfaceType) {
+      final name = type.classNode.name;
+      // 基础值类型不持有 AnyGC 引用
+      if (name == 'int' || name == 'double' || name == 'bool' || name == 'String') {
+        return false;
+      }
+      // 用户类、集合类、其他引用类型可能持有 AnyGC
+      return true;
+    }
+    if (type is TypeParameterType) return true;  // 泛型参数运行时可能是 AnyGC
+    if (type is DynamicType) return true;
+    if (type is FunctionType) return true;  // TypeFunction 子类是 AnyGC？不是，但闭包 env 是
+    if (type is NullType) return false;
+    if (type is VoidType) return false;
+    if (type is NeverType) return false;
+    return true; // 保守策略：未知类型做运行时检查
   }
 
   /// 在 Value 类中生成构造方法，注册 vptr 条目
@@ -869,14 +926,17 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         final methodTpsDedup = entry.proc!.function.typeParameters
             .where((tp) => !mixinClassTpNames.contains(tp.name))
             .toList();
-        // tear-off 时附加的泛型实参：若 mixin 已在合成类里实参化（如
-        // Orderable<DogValue>），用具体实参；否则透传 mixin 自身 TP 名。
+        // tear-off 时附加的泛型实参：
+        // - mixin 本身无 TP（如 Validatable）→ 不加任何类型参数
+        // - mixin 已在合成类里实参化（如 Orderable<DogValue>）→ 用具体实参
+        // - 否则用合成类自身的 TP 名（透传），例如合成类 <ID> 对应 mixin <K>
         // 方法级 TP 一律取 dynamic（vptr 注册点拿不到方法级实参）。
         final callTypeArgsList = <String>[
-          if (mixinIsSpecialized)
-            ...mixinTypeArgStrs
-          else
-            ...mixinClass.typeParameters.map((tp) => tp.name ?? 'T'),
+          if (mixinClass.typeParameters.isNotEmpty)
+            if (mixinIsSpecialized)
+              ...mixinTypeArgStrs
+            else
+              ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
           ...methodTpsDedup.map((_) => 'dynamic'),
         ];
         final callTypeArgsStr = callTypeArgsList.isEmpty
@@ -1283,7 +1343,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write(' ${className}_${field.name.text}');
       if (field.initializer != null) {
         _buf.write(' = ');
+        _isStaticFieldContext = true;
         _buf.write(_restoreExpr(field.initializer!));
+        _isStaticFieldContext = false;
       }
       _buf.write(';\n');
     }
@@ -2241,7 +2303,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write(' ${field.name.text}');
     if (field.initializer != null) {
       _buf.write(' = ');
+      // 顶层/静态字段初始化中的对象创建应使用 GC.allocateGlobal
+      final savedContext = _isStaticFieldContext;
+      if (isTopLevel || field.isStatic) _isStaticFieldContext = true;
       _buf.write(_restoreExpr(field.initializer!));
+      _isStaticFieldContext = savedContext;
     }
     _buf.write(';\n');
   }
