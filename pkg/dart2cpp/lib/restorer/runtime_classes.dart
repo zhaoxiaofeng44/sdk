@@ -322,7 +322,7 @@ class ObjectBox<T> extends AnyGC {
 
 /// Array<T> — 底层存储容器，所有静态集合类的基础。
 /// 提供固定大小和动态增长两种模式的元素管理。
-class Array<T> {
+class Array<T> extends AnyGC {
   final List<T> _storage;
   int _length;
 
@@ -340,6 +340,17 @@ class Array<T> {
   Array.empty()
       : _storage = <T>[],
         _length = 0;
+
+  /// gcMark — 递归标记数组中引用的 GC 子对象
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    for (int i = 0; i < _length; i++) {
+      final element = _storage[i];
+      if (element is AnyGC) (element as AnyGC).gcMark(flag);
+    }
+  }
 
   int get length => _length;
 
@@ -408,7 +419,7 @@ class Array<T> {
 /// StaticList<T> — 完全独立的静态列表，不继承 List/ListMixin。
 /// 内部基于 Array<T> 管理数据，所有方法自行实现。
 /// 通过提供 `Iterator<T> get iterator` 支持 Dart for-in 循环。
-class StaticList<T> extends Iterable<T> {
+class StaticList<T> extends AnyGC implements Iterable<T> {
   final Array<T> _data;
 
   StaticList._internal(this._data);
@@ -431,6 +442,14 @@ class StaticList<T> extends Iterable<T> {
   }
 
   StaticList.from(Iterable elements) : _data = Array<T>.from(elements.cast<T>());
+
+  /// gcMark — 递归标记内部 _data（Array 本身会递归标记其元素）
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    _data.gcMark(flag);
+  }
 
   // -- 核心属性 --
 
@@ -570,7 +589,8 @@ class StaticList<T> extends Iterable<T> {
     return result;
   }
 
-  StaticList<R> whereType<R>() {
+  @override
+  Iterable<R> whereType<R>() {
     final result = StaticList<R>();
     for (int i = 0; i < _data.length; i++) {
       if (_data[i] is R) result.add(_data[i] as R);
@@ -707,6 +727,58 @@ class StaticList<T> extends Iterable<T> {
     return result;
   }
 
+  // -- Iterable 接口补充 --
+
+  StaticList<T> followedBy(Iterable<T> other) {
+    final result = StaticList<T>.of(this);
+    for (final e in other) result.add(e);
+    return result;
+  }
+
+  T singleWhere(bool Function(T) test, {T Function()? orElse}) {
+    T? found;
+    bool foundMultiple = false;
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) {
+        if (found != null) {
+          foundMultiple = true;
+          break;
+        }
+        found = _data[i];
+      }
+    }
+    if (foundMultiple) throw DartStateError('Too many elements');
+    if (found != null) return found;
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  StaticList<T> takeWhile(bool Function(T) test) {
+    final result = StaticList<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (!test(_data[i])) break;
+      result.add(_data[i]);
+    }
+    return result;
+  }
+
+  StaticList<T> skipWhile(bool Function(T) test) {
+    final result = StaticList<T>();
+    bool skipping = true;
+    for (int i = 0; i < _data.length; i++) {
+      if (skipping && test(_data[i])) continue;
+      skipping = false;
+      result.add(_data[i]);
+    }
+    return result;
+  }
+
+  @override
+  List<T> toList({bool growable = true}) => List<T>.from(_data.iterable, growable: growable);
+
+  @override
+  Set<T> toSet() => Set<T>.of(_data.iterable);
+
   @override
   String toString() => '[${join(', ')}]';
 }
@@ -714,7 +786,7 @@ class StaticList<T> extends Iterable<T> {
 /// StaticMap<K, V> — implements Map<K,V>，内部基于 Array 独立管理键值对。
 /// StaticMap<K, V> — 完全独立的静态 Map，不继承 Map/MapMixin。
 /// entries 返回 StaticMapEntry（不是原生 MapEntry）。
-class StaticMap<K, V> {
+class StaticMap<K, V> extends AnyGC {
   final Array<K> _keys;
   final Array<V> _values;
 
@@ -766,6 +838,15 @@ class StaticMap<K, V> {
   StaticMap.fromIterables(Iterable<K> keys, Iterable<V> values)
       : _keys = Array<K>.from(keys),
         _values = Array<V>.from(values);
+
+  /// gcMark — 递归标记 _keys 和 _values（Array 会递归标记其元素）
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    _keys.gcMark(flag);
+    _values.gcMark(flag);
+  }
 
   // -- 核心属性 --
 
@@ -930,7 +1011,7 @@ class StaticMap<K, V> {
 
 /// StaticSet<T> — 完全独立的静态 Set，不继承 Set/SetMixin。
 /// extends Iterable<T> 以兼容 for-in 和 Iterable 参数场景。
-class StaticSet<T> extends Iterable<T> {
+class StaticSet<T> extends AnyGC implements Iterable<T> {
   final Array<T> _data;
 
   StaticSet() : _data = Array<T>.empty();
@@ -943,11 +1024,34 @@ class StaticSet<T> extends Iterable<T> {
     for (final element in elements) add(element as T);
   }
 
+  /// gcMark — 递归标记内部 _data（Array 会递归标记其元素）
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    _data.gcMark(flag);
+  }
+
   // -- 核心属性 --
 
   int get length => _data.length;
   bool get isEmpty => _data.length == 0;
   bool get isNotEmpty => _data.length > 0;
+
+  T get first {
+    if (isEmpty) throw DartStateError('No element');
+    return _data[0];
+  }
+
+  T get last {
+    if (isEmpty) throw DartStateError('No element');
+    return _data[_data.length - 1];
+  }
+
+  T get single {
+    if (_data.length != 1) throw DartStateError('Not single element');
+    return _data[0];
+  }
 
   // -- 修改 --
 
@@ -1094,6 +1198,105 @@ class StaticSet<T> extends Iterable<T> {
     return result;
   }
 
+  // -- Iterable 接口补充 --
+
+  T elementAt(int index) => _data[index];
+
+  StaticList<R> expand<R>(Iterable<R> Function(T) convert) {
+    final result = StaticList<R>();
+    for (int i = 0; i < _data.length; i++) {
+      for (final r in convert(_data[i])) result.add(r);
+    }
+    return result;
+  }
+
+  T firstWhere(bool Function(T) test, {T Function()? orElse}) {
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) return _data[i];
+    }
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  T lastWhere(bool Function(T) test, {T Function()? orElse}) {
+    for (int i = _data.length - 1; i >= 0; i--) {
+      if (test(_data[i])) return _data[i];
+    }
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  T singleWhere(bool Function(T) test, {T Function()? orElse}) {
+    T? found;
+    bool foundMultiple = false;
+    for (int i = 0; i < _data.length; i++) {
+      if (test(_data[i])) {
+        if (found != null) {
+          foundMultiple = true;
+          break;
+        }
+        found = _data[i];
+      }
+    }
+    if (foundMultiple) throw DartStateError('Too many elements');
+    if (found != null) return found;
+    if (orElse != null) return orElse();
+    throw DartStateError('No element');
+  }
+
+  StaticSet<T> followedBy(Iterable<T> other) {
+    final result = StaticSet<T>.of(this);
+    for (final e in other) result.add(e);
+    return result;
+  }
+
+  StaticSet<T> take(int count) {
+    final result = StaticSet<T>();
+    final end = count < _data.length ? count : _data.length;
+    for (int i = 0; i < end; i++) result.add(_data[i]);
+    return result;
+  }
+
+  StaticSet<T> skip(int count) {
+    final result = StaticSet<T>();
+    for (int i = count; i < _data.length; i++) result.add(_data[i]);
+    return result;
+  }
+
+  StaticSet<T> takeWhile(bool Function(T) test) {
+    final result = StaticSet<T>();
+    for (int i = 0; i < _data.length; i++) {
+      if (!test(_data[i])) break;
+      result.add(_data[i]);
+    }
+    return result;
+  }
+
+  StaticSet<T> skipWhile(bool Function(T) test) {
+    final result = StaticSet<T>();
+    bool skipping = true;
+    for (int i = 0; i < _data.length; i++) {
+      if (skipping && test(_data[i])) continue;
+      skipping = false;
+      result.add(_data[i]);
+    }
+    return result;
+  }
+
+  Iterable<R> whereType<R>() {
+    final result = StaticSet<R>();
+    for (int i = 0; i < _data.length; i++) {
+      if (_data[i] is R) result.add(_data[i] as R);
+    }
+    return result;
+  }
+
+  @override
+  List<T> toList({bool growable = true}) => List<T>.from(_data.iterable, growable: growable);
+
+  @override
+  Set<T> toSet() => Set<T>.of(_data.iterable);
+
   // -- 字符串 --
 
   String join([String separator = '']) {
@@ -1124,7 +1327,7 @@ enum PromiseState { ready, pending, completed, error }
 /// - 持有 _onTick 回调，由 GlobalScheduler 每 tick 驱动推进
 /// - 提供 complete/completeError 操作
 /// - 提供工厂方法（value/delayed）和链式调用（then）
-class Promise<T> {
+class Promise<T> extends AnyGC {
   PromiseState state = PromiseState.pending;
   T? _result;
   Object? error;
@@ -1138,6 +1341,15 @@ class Promise<T> {
   bool get isError => state == PromiseState.error;
   bool get isPending => state == PromiseState.pending;
   bool get isReady => state == PromiseState.ready;
+
+  /// gcMark — 递归标记 result 中的 GC 子对象
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (_result is AnyGC) (_result as AnyGC).gcMark(flag);
+    if (error is AnyGC) (error as AnyGC).gcMark(flag);
+  }
 
   T get result {
     if (state == PromiseState.error) throw error!;
