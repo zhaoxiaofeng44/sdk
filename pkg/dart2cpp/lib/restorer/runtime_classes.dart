@@ -164,13 +164,18 @@ class GC {
   /// 顶层对象（静态变量 / 全局变量），作为 GC root
   static final List<AnyGC> _roots = [];
 
-  /// 用于去重注册的标识集合
-  static final Set<AnyGC> _registered = {};
+  /// 用于去重注册的标识集合（使用 Expando 避免调用未初始化对象的 hashCode）
+  static Expando<bool> _registered = Expando<bool>('gc_registered');
+
+  static void _resetRegistered() {
+    _registered = Expando<bool>('gc_registered');
+  }
 
   /// 分配一个局部对象（非 root），注册到 GC 并返回该对象。
   /// 用于包装 new 表达式：`GC.allocateLocal(X_new(XValue(), args))`
   static T allocateLocal<T extends AnyGC>(T object) {
-    if (_registered.add(object)) {
+    if (_registered[object] == null) {
+      _registered[object] = true;
       _objects.add(object);
     }
     return object;
@@ -179,7 +184,8 @@ class GC {
   /// 分配一个全局对象（root），注册到 GC 并标记为 root，返回该对象。
   /// 用于静态变量 / 全局变量：`GC.allocateGlobal(X_new(XValue(), args))`
   static T allocateGlobal<T extends AnyGC>(T object) {
-    if (_registered.add(object)) {
+    if (_registered[object] == null) {
+      _registered[object] = true;
       _objects.add(object);
     }
     if (!_roots.contains(object)) {
@@ -206,7 +212,10 @@ class GC {
     // 清除阶段：移除未被标记的对象
     final beforeCount = _objects.length;
     _objects.removeWhere((obj) => obj.gcFlag != flag);
-    _registered.removeWhere((obj) => obj.gcFlag != flag);
+    // 重建 _registered（Expando 不支持 removeWhere，通过移除旧条目再重新添加实现）
+    for (final obj in _objects) {
+      _registered[obj] = true;
+    }
 
     // 同步清理 roots 中已被回收的对象（理论上 root 总是被标记的，防御性清理）
     _roots.removeWhere((obj) => obj.gcFlag != flag);
@@ -224,7 +233,7 @@ class GC {
   static void reset() {
     _objects.clear();
     _roots.clear();
-    _registered.clear();
+    _resetRegistered();
     _currentFlag = 0;
   }
 }
@@ -247,21 +256,21 @@ class VPtr extends AnyGC {
   @override
   String toString() {
     final fn = vptr['toString'];
-    if (fn != null) return (fn as String Function(dynamic))(this);
+    if (fn != null) return (fn as Function)(this) as String;
     return super.toString();
   }
   @override
   bool operator ==(Object other) {
     final fn = vptr['operatorEq'];
     if (fn != null) {
-      return (fn as bool Function(dynamic, Object))(this, other);
+      return (fn as Function)(this, other) as bool;
     }
     return identical(this, other);
   }
   @override
   int get hashCode {
     final fn = vptr['get_hashCode'];
-    if (fn != null) return (fn as int Function(dynamic))(this);
+    if (fn != null) return (fn as Function)(this) as int;
     return super.hashCode;
   }
 }
@@ -1398,6 +1407,12 @@ class Promise<T> extends AnyGC {
     return promise;
   }
 
+  static Promise<T> rejected<T>(Object err) {
+    final promise = Promise<T>();
+    promise.completeError(err);
+    return promise;
+  }
+
   static Promise<T> delayed<T>(int delayTicks, T Function() computation) {
     final promise = Promise<T>();
     GlobalScheduler.instance.registerDelayedTask(delayTicks, () {
@@ -1667,7 +1682,9 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
     if (promiseOrFuture.isError) throw promiseOrFuture.error!;
     return promiseOrFuture.result as T;
   }
-  throw DartStateError('smAwait: unsupported type ${promiseOrFuture.runtimeType}');
+  // Dart 语义：await 非 Future/Promise 值 → 自动包装为已完成的 Future 并返回
+  // 例如: await 42 等价于 await Future.value(42)
+  return promiseOrFuture as T;
 }
 
 /// AsyncStateMachine — 异步函数转状态机的基类
@@ -1698,6 +1715,15 @@ abstract class AsyncStateMachine<T> extends AnyGC {
 
 /// staticPrint — 替代裸 print，便于 C++ 落地时统一替换
 void staticPrint(Object? object) => print(object);
+
+/// dart_str_toStringAsFixed — 将 double.toStringAsFixed 静态化
+///
+/// 用法: `dart_str_toStringAsFixed(value, digits)`
+/// 等价于: `value.toStringAsFixed(digits)`
+String dart_str_toStringAsFixed(dynamic value, int digits) {
+  if (value is double) return value.toStringAsFixed(digits);
+  return value.toString();
+}
 
 // ---- StringBuffer ----
 
@@ -2014,4 +2040,12 @@ class StaticDateTime {
 /// StaticComparable<T> — 替代裸 Comparable<T>
 abstract class StaticComparable<T> {
   int compareTo(T other);
+}
+
+/// ReachabilityError — 用于 switch 表达式穷尽性检查的运行时错误
+class ReachabilityError extends Error {
+  final String message;
+  ReachabilityError([this.message = '']);
+  @override
+  String toString() => 'ReachabilityError: $message';
 }

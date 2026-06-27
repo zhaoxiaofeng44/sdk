@@ -485,7 +485,11 @@ class ClosureEnv_fetchData_4 {
 }
 void ClosureEnv_fetchData_4_call(ClosureEnv_fetchData_4 env) {
   smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 10)));
-  env._promise.complete('data from ${env.url.value}');
+{
+    env._promise.complete('data from ${env.url.value}');
+    return;
+  }
+  env._promise.complete('');
   return;
 }
 class ClosureEnv_fetchAll_5 {
@@ -500,7 +504,11 @@ void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
     final String data = smAwait(fetchData(url));
     results.add(data);
   }
-  env._promise.complete(results);
+{
+    env._promise.complete(results);
+    return;
+  }
+  env._promise.complete(null as dynamic);
   return;
 }
 class ClosureEnv_main_6 extends TypeFunction1<bool, int> {

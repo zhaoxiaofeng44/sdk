@@ -48,6 +48,9 @@ abstract class _DartRestorerBase {
   int _varCounter = 0;
   final Map<String, String> _cleanedNames = {};
 
+  /// 当前 switch 语句中 ContinueSwitchStatement 的目标 case 标签映射
+  Map<SwitchCase, String> _currentSwitchContinueTargets = {};
+
   String get _pad => '  ' * _indent;
 
   /// 判断是否是运算符名称

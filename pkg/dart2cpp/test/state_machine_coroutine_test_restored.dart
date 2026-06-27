@@ -7,10 +7,10 @@ enum CompleterState {
 }
 
 class PromiseValue<T> extends VPtr {
-  late CompleterState _state;
-  late T? _result;
-  late Object? _error;
-  late TypeFunction0<bool>? _onTick;
+  late CompleterState _state = CompleterState.pending;
+  late T? _result = null;
+  late Object? _error = null;
+  late TypeFunction0<bool>? _onTick = null;
   PromiseValue() {
     vptr['get_state'] = Promise_get_state<T>;
     vptr['get_isCompleted'] = Promise_get_isCompleted<T>;
@@ -36,10 +36,6 @@ PromiseValue<T> Promise_new<T>(dynamic this__) {
   final this_ = this__ as PromiseValue<T>;
   this_.vptr['then_String'] = Promise_then<T, String>;
   this_.vptr['then_int'] = Promise_then<T, int>;
-  this_._state = CompleterState.pending;
-  this_._result = null;
-  this_._error = null;
-  this_._onTick = null;
   return this_;
 }
 
@@ -117,9 +113,9 @@ PromiseValue<R> Promise_then<T, R>(dynamic this__, TypeFunction1<R, T> onValue) 
 
 
 class GlobalSchedulerValue extends VPtr {
-  late StaticList<PromiseValue<dynamic>> _activePromises;
-  late StaticList<_DelayedTaskValue> _delayedTasks;
-  late int _currentTick;
+  late StaticList<PromiseValue<dynamic>> _activePromises = StaticList<PromiseValue<dynamic>>.of([]);
+  late StaticList<_DelayedTaskValue> _delayedTasks = StaticList<_DelayedTaskValue>.of([]);
+  late int _currentTick = 0;
   GlobalSchedulerValue() {
     vptr['registerActivePromise'] = GlobalScheduler_registerActivePromise;
     vptr['registerDelayedTask'] = GlobalScheduler_registerDelayedTask;
@@ -139,9 +135,6 @@ class GlobalSchedulerValue extends VPtr {
 final GlobalSchedulerValue GlobalScheduler_instance = GlobalScheduler_new__(GC.allocateGlobal(GlobalSchedulerValue()));
 GlobalSchedulerValue GlobalScheduler_new__(dynamic this__) {
   final this_ = this__ as GlobalSchedulerValue;
-  this_._activePromises = StaticList<PromiseValue<dynamic>>.of([]);
-  this_._delayedTasks = StaticList<_DelayedTaskValue>.of([]);
-  this_._currentTick = 0;
   return this_;
 }
 
@@ -219,8 +212,8 @@ _DelayedTaskValue _DelayedTask_new(dynamic this__, int targetTick, TypeFunction0
 
 
 class AsyncStateMachineValue<T> extends VPtr {
-  late int smState;
-  late PromiseValue<T> promise;
+  late int smState = 0;
+  late PromiseValue<T> promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
   AsyncStateMachineValue() {
     vptr['step'] = AsyncStateMachine_step<T>;
     vptr['completeWith'] = AsyncStateMachine_completeWith<T>;
@@ -237,8 +230,6 @@ class AsyncStateMachineValue<T> extends VPtr {
 
 AsyncStateMachineValue<T> AsyncStateMachine_new<T>(dynamic this__) {
   final this_ = this__ as AsyncStateMachineValue<T>;
-  this_.smState = 0;
-  this_.promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
   return this_;
 }
 
@@ -267,9 +258,9 @@ PromiseValue<T> AsyncStateMachine_start<T>(dynamic this__) {
 class AddAsyncStateMachineValue extends AsyncStateMachineValue<int> {
   late int a;
   late int b;
-  late int _x;
-  late int _y;
-  late PromiseValue<int>? _pendingFuture;
+  late int _x = 0;
+  late int _y = 0;
+  late PromiseValue<int>? _pendingFuture = null;
   AddAsyncStateMachineValue() {
     vptr['step'] = AddAsyncStateMachine_step;
     vptr['completeWith'] = AddAsyncStateMachine_completeWith;
@@ -290,11 +281,6 @@ AddAsyncStateMachineValue AddAsyncStateMachine_new(dynamic this__, int a, int b)
   AsyncStateMachine_new<int>(this_);
   this_.a = a;
   this_.b = b;
-  this_.smState = 0;
-  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
-  this_._x = 0;
-  this_._y = 0;
-  this_._pendingFuture = null;
   return this_;
 }
 
@@ -356,7 +342,7 @@ PromiseValue<int> AddAsyncStateMachine_start(dynamic this__) {
 
 
 class InnerAsyncStateMachineValue extends AsyncStateMachineValue<String> {
-  late PromiseValue<String>? _pendingFuture;
+  late PromiseValue<String>? _pendingFuture = null;
   InnerAsyncStateMachineValue() {
     vptr['step'] = InnerAsyncStateMachine_step;
     vptr['completeWith'] = InnerAsyncStateMachine_completeWith;
@@ -375,9 +361,6 @@ class InnerAsyncStateMachineValue extends AsyncStateMachineValue<String> {
 InnerAsyncStateMachineValue InnerAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as InnerAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.smState = 0;
-  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
-  this_._pendingFuture = null;
   return this_;
 }
 
@@ -430,8 +413,8 @@ PromiseValue<String> InnerAsyncStateMachine_start(dynamic this__) {
 
 
 class OuterAsyncStateMachineValue extends AsyncStateMachineValue<String> {
-  late String _prefix;
-  late PromiseValue<String>? _pendingFuture;
+  late String _prefix = '';
+  late PromiseValue<String>? _pendingFuture = null;
   OuterAsyncStateMachineValue() {
     vptr['step'] = OuterAsyncStateMachine_step;
     vptr['completeWith'] = OuterAsyncStateMachine_completeWith;
@@ -450,10 +433,6 @@ class OuterAsyncStateMachineValue extends AsyncStateMachineValue<String> {
 OuterAsyncStateMachineValue OuterAsyncStateMachine_new(dynamic this__) {
   final this_ = this__ as OuterAsyncStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.smState = 0;
-  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
-  this_._prefix = '';
-  this_._pendingFuture = null;
   return this_;
 }
 
@@ -516,7 +495,7 @@ PromiseValue<String> OuterAsyncStateMachine_start(dynamic this__) {
 
 
 class ErrorStateMachineValue extends AsyncStateMachineValue<String> {
-  late PromiseValue<int>? _pendingFuture;
+  late PromiseValue<int>? _pendingFuture = null;
   ErrorStateMachineValue() {
     vptr['step'] = ErrorStateMachine_step;
     vptr['completeWith'] = ErrorStateMachine_completeWith;
@@ -535,9 +514,6 @@ class ErrorStateMachineValue extends AsyncStateMachineValue<String> {
 ErrorStateMachineValue ErrorStateMachine_new(dynamic this__) {
   final this_ = this__ as ErrorStateMachineValue;
   AsyncStateMachine_new<String>(this_);
-  this_.smState = 0;
-  this_.promise = Promise_new<String>(GC.allocateLocal(PromiseValue<String>()));
-  this_._pendingFuture = null;
   return this_;
 }
 
@@ -612,8 +588,6 @@ class ParallelAwaitStateMachineValue extends AsyncStateMachineValue<StaticList<i
 ParallelAwaitStateMachineValue ParallelAwaitStateMachine_new(dynamic this__) {
   final this_ = this__ as ParallelAwaitStateMachineValue;
   AsyncStateMachine_new<StaticList<int>>(this_);
-  this_.smState = 0;
-  this_.promise = Promise_new<StaticList<int>>(GC.allocateLocal(PromiseValue<StaticList<int>>()));
   return this_;
 }
 
@@ -668,7 +642,7 @@ PromiseValue<StaticList<int>> ParallelAwaitStateMachine_start(dynamic this__) {
 
 class ComputeStepStateMachineValue extends AsyncStateMachineValue<int> {
   late int input;
-  late PromiseValue<int>? _pendingFuture;
+  late PromiseValue<int>? _pendingFuture = null;
   ComputeStepStateMachineValue() {
     vptr['step'] = ComputeStepStateMachine_step;
     vptr['completeWith'] = ComputeStepStateMachine_completeWith;
@@ -688,9 +662,6 @@ ComputeStepStateMachineValue ComputeStepStateMachine_new(dynamic this__, int inp
   final this_ = this__ as ComputeStepStateMachineValue;
   AsyncStateMachine_new<int>(this_);
   this_.input = input;
-  this_.smState = 0;
-  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
-  this_._pendingFuture = null;
   return this_;
 }
 
@@ -743,10 +714,10 @@ PromiseValue<int> ComputeStepStateMachine_start(dynamic this__) {
 
 
 class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
-  late int _a;
-  late int _b;
-  late int _c;
-  late PromiseValue<int>? _pendingFuture;
+  late int _a = 0;
+  late int _b = 0;
+  late int _c = 0;
+  late PromiseValue<int>? _pendingFuture = null;
   PipelineStateMachineValue() {
     vptr['step'] = PipelineStateMachine_step;
     vptr['completeWith'] = PipelineStateMachine_completeWith;
@@ -765,12 +736,6 @@ class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
 PipelineStateMachineValue PipelineStateMachine_new(dynamic this__) {
   final this_ = this__ as PipelineStateMachineValue;
   AsyncStateMachine_new<int>(this_);
-  this_.smState = 0;
-  this_.promise = Promise_new<int>(GC.allocateLocal(PromiseValue<int>()));
-  this_._a = 0;
-  this_._b = 0;
-  this_._c = 0;
-  this_._pendingFuture = null;
   return this_;
 }
 

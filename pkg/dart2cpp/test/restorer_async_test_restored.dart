@@ -68,7 +68,11 @@ class ClosureEnv_greetAsync_0 {
   void call() => ClosureEnv_greetAsync_0_call(this);
 }
 void ClosureEnv_greetAsync_0_call(ClosureEnv_greetAsync_0 env) {
-  env._promise.complete('hello ${env.name.value}');
+{
+    env._promise.complete('hello ${env.name.value}');
+    return;
+  }
+  env._promise.complete('');
   return;
 }
 class ClosureEnv_chainAsync_1 {
@@ -79,7 +83,11 @@ class ClosureEnv_chainAsync_1 {
 }
 void ClosureEnv_chainAsync_1_call(ClosureEnv_chainAsync_1 env) {
   final String greeting = smAwait(greetAsync('world'));
-  env._promise.complete('${env.prefix.value}: ${greeting}');
+{
+    env._promise.complete('${env.prefix.value}: ${greeting}');
+    return;
+  }
+  env._promise.complete('');
   return;
 }
 class ClosureEnv_multiAwait_2 {
@@ -92,7 +100,11 @@ class ClosureEnv_multiAwait_2 {
 void ClosureEnv_multiAwait_2_call(ClosureEnv_multiAwait_2 env) {
   final String r1 = smAwait(greetAsync(env.a.value));
   final String r2 = smAwait(greetAsync(env.b.value));
-  env._promise.complete('${r1} and ${r2}');
+{
+    env._promise.complete('${r1} and ${r2}');
+    return;
+  }
+  env._promise.complete('');
   return;
 }
 class ClosureEnv_tryCatchAsync_3 {
@@ -107,13 +119,19 @@ void ClosureEnv_tryCatchAsync_3_call(ClosureEnv_tryCatchAsync_3 env) {
       throw Exception('expected failure');
     }
     final String result = smAwait(greetAsync(env.input.value));
-    env._promise.complete('ok: ${result}');
-    return;
+{
+      env._promise.complete('ok: ${result}');
+      return;
+    }
   }
  catch (e) {
-    env._promise.complete('caught: ${e}');
-    return;
+{
+      env._promise.complete('caught: ${e}');
+      return;
+    }
   }
+  env._promise.complete('');
+  return;
 }
 class ClosureEnv_conditionalAsync_4 {
   BoolBox flag;
@@ -123,11 +141,17 @@ class ClosureEnv_conditionalAsync_4 {
 }
 void ClosureEnv_conditionalAsync_4_call(ClosureEnv_conditionalAsync_4 env) {
   if (env.flag.value) {
-    env._promise.complete(smAwait(greetAsync('yes')));
-    return;
+{
+      env._promise.complete(smAwait(greetAsync('yes')));
+      return;
+    }
   }
  else {
-    env._promise.complete(smAwait(greetAsync('no')));
-    return;
+{
+      env._promise.complete(smAwait(greetAsync('no')));
+      return;
+    }
   }
+  env._promise.complete('');
+  return;
 }

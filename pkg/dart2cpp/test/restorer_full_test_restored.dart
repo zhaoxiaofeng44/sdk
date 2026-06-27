@@ -332,7 +332,7 @@ String Result_toString<T>(dynamic this__) {
 class LazyLoaderValue extends VPtr {
   late String _data;
   late int _computedValue;
-  late bool _initialized;
+  late bool _initialized = false;
   LazyLoaderValue() {
     vptr['initialize'] = LazyLoader_initialize;
     vptr['get_data'] = LazyLoader_get_data;
@@ -342,7 +342,6 @@ class LazyLoaderValue extends VPtr {
 
 LazyLoaderValue LazyLoader_new(dynamic this__) {
   final this_ = this__ as LazyLoaderValue;
-  this_._initialized = false;
   return this_;
 }
 
@@ -765,7 +764,7 @@ String Config_toString(dynamic this__) {
 
 
 class SortedListValue<T extends Comparable<dynamic>> extends VPtr {
-  late StaticList<T> _items;
+  late StaticList<T> _items = StaticList<T>.of([]);
   SortedListValue() {
     vptr['add'] = SortedList_add<T>;
     vptr['get_first'] = SortedList_get_first<T>;
@@ -784,7 +783,6 @@ class SortedListValue<T extends Comparable<dynamic>> extends VPtr {
 
 SortedListValue<T> SortedList_new<T extends Comparable<dynamic>>(dynamic this__) {
   final this_ = this__ as SortedListValue<T>;
-  this_._items = StaticList<T>.of([]);
   return this_;
 }
 
@@ -1014,7 +1012,6 @@ class EventValue extends Event_Object_Timestamped_TaggedValue {
 EventValue Event_new(dynamic this__, String name) {
   final this_ = this__ as EventValue;
   this_.name = name;
-  this_._tags = StaticList<String>.of([]);
   return this_;
 }
 
@@ -1067,7 +1064,6 @@ ImportantEventValue ImportantEvent_new(dynamic this__, String name, Priority pri
   final this_ = this__ as ImportantEventValue;
   Event_new(this_, name);
   this_.priority = priority;
-  this_._tags = StaticList<String>.of([]);
   return this_;
 }
 
@@ -1177,7 +1173,7 @@ class Event_Object_TimestampedValue extends VPtr {
 
 
 class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue {
-  late StaticList<String> _tags;
+  late StaticList<String> _tags = StaticList<String>.of([]);
   Event_Object_Timestamped_TaggedValue() {
     vptr['addTag'] = Tagged_addTag;
     vptr['get_tags'] = Tagged_get_tags;
@@ -1792,7 +1788,11 @@ void ClosureEnv_countDown_2_call(ClosureEnv_countDown_2 env) {
     smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
     result.add(((i == 0) ? 'Go!' : '${i}...'));
   }
-  env._promise.complete(result);
+{
+    env._promise.complete(result);
+    return;
+  }
+  env._promise.complete(null as dynamic);
   return;
 }
 class ClosureEnv_compose_3<C, B, A> extends TypeFunction1<C, A> {

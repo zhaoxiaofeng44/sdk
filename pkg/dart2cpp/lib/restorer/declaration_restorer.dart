@@ -5,6 +5,18 @@ part of 'dart_restorer.dart';
 // ============================================================================
 
 mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer, _StatementRestorer {
+  /// 在 async _call 函数体末尾生成兜底的 promise complete 语句。
+  /// 确保即使函数体没有显式 return，promise 也会完成。
+  void _emitAsyncCompleteFallback(String innerReturnType) {
+    final fallbackValue = innerReturnType == 'int' ? '0' :
+        innerReturnType == 'bool' ? 'false' :
+        innerReturnType == 'double' ? '0.0' :
+        innerReturnType == 'String' ? "''" :
+        'null as dynamic';
+    _buf.write('${_pad}env._promise.complete($fallbackValue);\n');
+    _buf.write('${_pad}return;\n');
+  }
+
   // ---- VTable 字段名工具方法 ----
   // _vtableFieldName 已移至 _DartRestorerBase 基类中
 
@@ -57,7 +69,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       funcName = _staticMethodName(mixinName, methodName);
     }
     
-    final returnType = _restoreType(proc.function.returnType);
+    final returnType = _asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker);
     
     _buf.write('$returnType $funcName');
     // 类型参数声明：mixin 类的类型参数 + 方法自身的类型参数
@@ -106,12 +118,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
 
       // async mixin 方法 → ClosureEnv 闭包延迟执行模式
-      if (marker == AsyncMarker.Async && !isVoidReturn) {
-        final retType = proc.function.returnType;
-        String innerRetType = 'dynamic';
-        if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
-          innerRetType = _restoreType(retType.typeArguments.first);
-        }
+      // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
+      if (marker == AsyncMarker.Async) {
+        final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
         final allParams = <VariableDeclaration>[
           ...proc.function.positionalParameters,
           ...proc.function.namedParameters,
@@ -119,6 +128,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         final envBaseName = '${mixinName}_$methodName';
         _buf.write(' ');
         _pushClosureContext(envBaseName);
+        final mixinTypeParamStr = cls.typeParameters.isNotEmpty
+            ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
+            : '';
         _emitAsyncClosureEnvForMethod(
           envBaseName: _closureContext,
           func: proc.function,
@@ -126,6 +138,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           params: allParams,
           thisParam: 'dynamic',
           thisRawParam: 'this__',
+          classTypeParams: mixinTypeParamStr,
         );
         _popClosureContext();
       } else {
@@ -740,6 +753,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
       _buf.write(fieldTypeStr);
       _buf.write(' ${field.name.text}');
+      // 如果字段有初始值，直接在字段定义处发射（利用 Dart 的 late lazy 语义）
+      // 不再在构造函数中 eager 求值
+      if (field.initializer != null) {
+        var initStr = _restoreExpr(field.initializer!);
+        // 对 mixin 字段做类型参数替换（initializer 表达式中可能含原始类型参数名）
+        if (mixinTypeSubstitution.isNotEmpty) {
+          initStr = _substituteTypeStr(initStr, mixinTypeSubstitution);
+        }
+        _buf.write(' = $initStr');
+      }
       _buf.write(';\n');
     }
 
@@ -1643,18 +1666,14 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _collectAllFields(cls, allFields, <String>{});
 
     // 为有初始值但未处理的字段生成赋值
-    // 简化方案（Bug 12）：late field with initializer 也在构造时 eager 求值
-    //   原始语义：late + initializer → 首次访问时 lazy 求值并缓存
-    //   简化语义：late + initializer → 构造时 eager 求值
-    //   限制：
-    //   - 改变了 lazy 语义（副作用提前发生）
-    //   - 不支持 initializer 依赖构造后才赋值的字段
-    //   依赖前提：Bug 14 已修复，initializer 中的私有方法调用可直接走静态函数
+    // 新方案：late + initializer 在字段定义处直接发射，利用 Dart 的 late 惰性语义
+    // 构造函数中只处理非 late 字段（实际上所有 OOP lowered 字段都是 late，
+    // 所以这里只处理特殊情况：没有 initializer 的字段不需要赋值，
+    // 有 initializer 的字段已在字段定义处发射，无需在构造函数中重复）
     //
-    // 还原 initializer 表达式前需要正确设置上下文：
-    // - _insideMethodBody = true 让 ThisExpression 被替换为 this_
-    // - _thisReplacementName = 'this_' 是当前构造函数中 this 的占位符
-    // 调用方（_emitConstructorFunction）此时尚未设置这两个状态
+    // 保留此循环作为兜底：处理没有 initializer 但需要默认值的场景
+    //
+    // 还原表达式前需要正确设置上下文（虽然当前循环体不太会被执行）：
     // Bug 21: 构建 mixin 类型参数替换映射
     // 当 mixin 的字段初始化器引用了 mixin 的类型参数（如 Observable<T> 的 T），
     // 需要替换为当前类对应的类型参数（如 ReactiveStore<V> 的 V）
@@ -1674,9 +1693,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         if (field.isStatic) continue;
         if (initedFields.contains(field.name.text)) continue;
         if (field.initializer == null) continue;
-        _buf.write('${_pad}this_.${field.name.text} = ');
-        _buf.write(_restoreExpr(field.initializer!));
-        _buf.write(';\n');
+        // 所有字段初始化已在字段定义处发射（利用 Dart late 惰性语义），
+        // 构造函数中跳过，避免重复赋值
       }
     } finally {
       _insideMethodBody = savedInsideMethodBody;
@@ -1848,7 +1866,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write(_pad);
 
     // 返回类型（包含类型参数，如 PairValue<B, A> Pair_swap<A, B>(...)）
-    _buf.write(_restoreType(proc.function.returnType));
+    // async 函数：void → Promise<int>，裸值类型 → Promise<T>
+    _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
     _buf.write(' $funcName');
     // 类型参数声明：类的类型参数 + 方法自身的类型参数
     _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
@@ -1894,12 +1913,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
 
       // async 实例方法 → ClosureEnv 闭包延迟执行模式
-      if (marker == AsyncMarker.Async && !isVoidReturn) {
-        final retType = proc.function.returnType;
-        String innerRetType = 'dynamic';
-        if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
-          innerRetType = _restoreType(retType.typeArguments.first);
-        }
+      // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
+      if (marker == AsyncMarker.Async) {
+        final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
         final allParams = <VariableDeclaration>[
           ...proc.function.positionalParameters,
           ...proc.function.namedParameters,
@@ -1918,6 +1934,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           thisParam: thisTypeStr,
           thisRawParam: 'this__',
           boxedParams: boxedParamsForMethod,
+          classTypeParams: classTypeParamStr,
         );
         _popClosureContext();
       } else {
@@ -2433,7 +2450,14 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
           }
         }
       }
-      _buf.write(_restoreType(proc.function.returnType));
+      // main 函数特殊处理：保持 void 返回，body 同步执行
+      // 其他 async 函数：void → Promise<int>，裸值类型 → Promise<T>
+      final isMainFunc = proc.name.text == 'main' && proc.enclosingClass == null;
+      if (isMainFunc) {
+        _buf.write(_restoreType(proc.function.returnType));
+      } else {
+        _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
+      }
       _buf.write(' ');
       final name = proc.name.text;
       if (_isOperatorName(name)) {
@@ -2459,12 +2483,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
 
       // async 函数 → ClosureEnv 闭包延迟执行模式
-      if (marker == AsyncMarker.Async && !isVoidReturn) {
-        final retType = proc.function.returnType;
-        String innerRetType = 'dynamic';
-        if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
-          innerRetType = _restoreType(retType.typeArguments.first);
-        }
+      // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
+      // main 函数例外：保持同步执行以确保程序入口正常驱动
+      final isMainFunc2 = proc.name.text == 'main' && proc.enclosingClass == null;
+      if (marker == AsyncMarker.Async && !isMainFunc2) {
+        final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
         final allParams = <VariableDeclaration>[
           ...proc.function.positionalParameters,
           ...proc.function.namedParameters,
@@ -2514,7 +2537,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     final cleanedFuncName = _sanitizeExtensionMethodName(rawName);
 
     _buf.write(_pad);
-    _buf.write(_restoreType(proc.function.returnType));
+    _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
     _buf.write(' $cleanedFuncName');
     _writeTypeParams(proc.function.typeParameters);
     _buf.write('(');
@@ -2532,12 +2555,9 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
 
     // async 扩展方法 → ClosureEnv 闭包延迟执行模式
-    if (marker == AsyncMarker.Async && !isVoidReturn) {
-      final retType = proc.function.returnType;
-      String innerRetType = 'dynamic';
-      if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
-        innerRetType = _restoreType(retType.typeArguments.first);
-      }
+    // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
+    if (marker == AsyncMarker.Async) {
+      final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
       final allParams = <VariableDeclaration>[
         ...proc.function.positionalParameters,
         ...proc.function.namedParameters,
@@ -3005,12 +3025,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       for (final s in body.statements) {
         _restoreStmt(s);
       }
+      // 兜底：确保 promise 总会完成
+      _emitAsyncCompleteFallback(innerReturnType);
       _indent--;
       _buf.write('$_pad}\n');
     } else {
       _buf.write(' {\n');
       _indent++;
       _restoreStmt(body);
+      // 兜底：确保 promise 总会完成
+      _emitAsyncCompleteFallback(innerReturnType);
       _indent--;
       _buf.write('$_pad}\n');
     }
@@ -3064,9 +3088,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     required String thisParam,
     required String thisRawParam,
     List<VariableDeclaration> boxedParams = const [],
+    String classTypeParams = '',
   }) {
     final closureId = _closureCounter++;
     final envClassName = 'ClosureEnv_${envBaseName}_$closureId';
+    final envClassWithTypeParams = '$envClassName$classTypeParams';
 
     final declBuf = StringBuffer();
 
@@ -3098,7 +3124,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     fields.add(_AsyncEnvField(name: '_promise', typeStr: 'Promise<$innerReturnType>'));
 
     // ---- 生成 ClosureEnv 类 ----
-    declBuf.write('class $envClassName {\n');
+    declBuf.write('class $envClassWithTypeParams {\n');
     for (final f in fields) {
       declBuf.write('  ${f.typeStr} ${f.name};\n');
     }
@@ -3118,11 +3144,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     declBuf.write('  $envClassName(${ctorParams.join(', ')}) : ${initParts.join(', ')};\n');
 
     final staticCallName = '${envClassName}_call';
-    declBuf.write('  void call() => $staticCallName(this);\n');
+    declBuf.write('  void call() => $staticCallName$classTypeParams(this);\n');
     declBuf.write('}\n');
 
     // ---- 生成静态 call 函数（包含原函数体）----
-    declBuf.write('void $staticCallName($envClassName env)');
+    declBuf.write('void $staticCallName$classTypeParams($envClassWithTypeParams env)');
 
     // 设置 env 前缀映射：参数通过 env. 访问
     final savedEnvPrefix = Map<VariableDeclaration, String>.from(_capturedVarEnvPrefix);
@@ -3168,12 +3194,16 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       for (final s in body.statements) {
         _restoreStmt(s);
       }
+      // 兜底：确保 promise 总会完成（即使函数体没有显式 return）
+      _emitAsyncCompleteFallback(innerReturnType);
       _indent--;
       _buf.write('$_pad}\n');
     } else {
       _buf.write(' {\n');
       _indent++;
       _restoreStmt(body);
+      // 兜底：确保 promise 总会完成
+      _emitAsyncCompleteFallback(innerReturnType);
       _indent--;
       _buf.write('$_pad}\n');
     }
@@ -3206,7 +3236,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       envCtorArgs.add(p.name!);
     }
 
-    _buf.write('${_pad}final env = $envClassName(${envCtorArgs.join(', ')});\n');
+    _buf.write('${_pad}final env = $envClassWithTypeParams(${envCtorArgs.join(', ')});\n');
     _buf.write('${_pad}env._promise.setStartCallback(env.call);\n');
     _buf.write('${_pad}return env._promise;\n');
     _indent--;

@@ -686,7 +686,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// proc.function 的全部参数（this_ + positional + named）按顺序当成
   /// positional 传给 [_emitFuncSig]。
   String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName, Expression? receiver}) {
-    final returnType = _restoreTypeForSignature(proc.function.returnType);
+    // async 函数：返回类型需要与 lowering 后的实际类型一致
+    final returnType = _asyncAwareRestoreType(
+        proc.function.returnType, proc.function.asyncMarker);
     final paramTypes = <String>[_thisParamType];
     for (final param in proc.function.positionalParameters) {
       paramTypes.add(_restoreTypeForSignature(param.type));
@@ -961,6 +963,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         // Future.delayed(Duration, [computation]) → promiseDelayed(duration, [computation])
         if (name == 'delayed') {
           return 'promiseDelayed$typeArgStr($args)';
+        }
+        // Future.value(x) → Promise.value<T>(x) (静态方法，类型参数在方法上)
+        if (name == 'value' || name == 'rejected' || name == 'error') {
+          return 'Promise.$name$typeArgStr($args)';
         }
         if (name.isEmpty) return 'Promise$typeArgStr($args)';
         return 'Promise$typeArgStr.$name($args)';

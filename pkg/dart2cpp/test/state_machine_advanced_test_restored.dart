@@ -2,8 +2,8 @@ import 'package:dart2cpp/restorer/runtime_classes.dart';
 
 class FibStateMachineValue extends AsyncStateMachine<int> {
   late int n;
-  late int _a;
-  late Promise<int>? _pending;
+  late int _a = 0;
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -23,8 +23,6 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
 FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
   final this_ = this__ as FibStateMachineValue;
   this_.n = n;
-  this_._a = 0;
-  this_._pending = null;
   return this_;
 }
 
@@ -89,7 +87,7 @@ bool Level3SM_step(dynamic this__) {
 
 
 class Level2SMValue extends AsyncStateMachine<int> {
-  late Promise<int>? _pending;
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -108,7 +106,6 @@ class Level2SMValue extends AsyncStateMachine<int> {
 
 Level2SMValue Level2SM_new(dynamic this__) {
   final this_ = this__ as Level2SMValue;
-  this_._pending = null;
   return this_;
 }
 
@@ -142,7 +139,7 @@ bool Level2SM_step(dynamic this__) {
 
 
 class Level1SMValue extends AsyncStateMachine<String> {
-  late Promise<int>? _pending;
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -161,7 +158,6 @@ class Level1SMValue extends AsyncStateMachine<String> {
 
 Level1SMValue Level1SM_new(dynamic this__) {
   final this_ = this__ as Level1SMValue;
-  this_._pending = null;
   return this_;
 }
 
@@ -196,7 +192,7 @@ bool Level1SM_step(dynamic this__) {
 
 class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   late bool flag;
-  late Promise<String>? _pending;
+  late Promise<String>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -216,7 +212,6 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
 ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
   final this_ = this__ as ConditionalAwaitSMValue;
   this_.flag = flag;
-  this_._pending = null;
   return this_;
 }
 
@@ -259,8 +254,8 @@ bool ConditionalAwaitSM_step(dynamic this__) {
 
 class FindFirstSMValue extends AsyncStateMachine<int> {
   late StaticList<int> items;
-  late int _index;
-  late Promise<int>? _pending;
+  late int _index = 0;
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -281,8 +276,6 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
 FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as FindFirstSMValue;
   this_.items = items;
-  this_._index = 0;
-  this_._pending = null;
   return this_;
 }
 
@@ -322,8 +315,8 @@ bool FindFirstSM_step(dynamic this__) {
 
 
 class TryCatchSMValue extends AsyncStateMachine<String> {
-  late String _log;
-  late Promise<dynamic>? _pending;
+  late String _log = '';
+  late Promise<dynamic>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -342,8 +335,6 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
 
 TryCatchSMValue TryCatchSM_new(dynamic this__) {
   final this_ = this__ as TryCatchSMValue;
-  this_._log = '';
-  this_._pending = null;
   return this_;
 }
 
@@ -501,9 +492,9 @@ bool TimeoutSM_step(dynamic this__) {
 
 class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late StaticList<int> items;
-  late StaticList<String> _results;
-  late int _index;
-  late Promise<String>? _pending;
+  late StaticList<String> _results = StaticList<String>.of([]);
+  late int _index = 0;
+  late Promise<String>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -525,9 +516,6 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
 AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as AsyncMapSMValue;
   this_.items = items;
-  this_._results = StaticList<String>.of([]);
-  this_._index = 0;
-  this_._pending = null;
   return this_;
 }
 
@@ -565,10 +553,10 @@ bool AsyncMapSM_step(dynamic this__) {
 
 class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late Promise<StaticList<String>> _mapFuture;
-  late Promise<String>? _reducePending;
-  late StaticList<String> _items;
-  late int _index;
-  late String _acc;
+  late Promise<String>? _reducePending = null;
+  late StaticList<String> _items = StaticList<String>.of([]);
+  late int _index = 0;
+  late String _acc = '';
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -589,10 +577,6 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
 
 AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
-  this_._reducePending = null;
-  this_._items = StaticList<String>.of([]);
-  this_._index = 0;
-  this_._acc = '';
   return this_;
 }
 
@@ -662,9 +646,9 @@ int ClosureEnv_process_0_call(dynamic this__, int x) {
 class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late ClosureEnv_process_0Value _env;
   late StaticList<int> items;
-  late StaticList<int> _results;
-  late int _index;
-  late Promise<int>? _pending;
+  late StaticList<int> _results = StaticList<int>.of([]);
+  late int _index = 0;
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -687,9 +671,6 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
 ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<int> items) {
   final this_ = this__ as ProcessWithClosureSMValue;
   this_.items = items;
-  this_._results = StaticList<int>.of([]);
-  this_._index = 0;
-  this_._pending = null;
   return this_;
 }
 
@@ -740,9 +721,9 @@ bool ProcessWithClosureSM_step(dynamic this__) {
 
 class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late int max;
-  late int _i;
-  late StaticList<int> _yielded;
-  late Promise<int>? _pending;
+  late int _i = 0;
+  late StaticList<int> _yielded = StaticList<int>.of([]);
+  late Promise<int>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -763,9 +744,6 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
 AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
   final this_ = this__ as AsyncGeneratorSMValue;
   this_.max = max;
-  this_._i = 0;
-  this_._yielded = StaticList<int>.of([]);
-  this_._pending = null;
   return this_;
 }
 
@@ -802,7 +780,7 @@ bool AsyncGeneratorSM_step(dynamic this__) {
 
 class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic>> {
   late int depth;
-  late Promise<StaticMap<String, dynamic>>? _pending;
+  late Promise<StaticMap<String, dynamic>>? _pending = null;
   late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
@@ -822,7 +800,6 @@ class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic
 ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
   final this_ = this__ as ComplexBusinessSMValue;
   this_.depth = depth;
-  this_._pending = null;
   return this_;
 }
 

@@ -107,7 +107,6 @@ class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
 StatefulWidgetValue StatefulWidget_new(dynamic this__, String id) {
   final this_ = this__ as StatefulWidgetValue;
   this_.id = id;
-  this_._counter = 0;
   return this_;
 }
 
@@ -386,7 +385,6 @@ class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
 TaggedResourceValue TaggedResource_new(dynamic this__, String id, String type) {
   final this_ = this__ as TaggedResourceValue;
   Resource_new(this_, id, type);
-  this_._tags = StaticList<String>.of([]);
   return this_;
 }
 
@@ -1544,7 +1542,7 @@ class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_Logg
 
 
 class StatefulWidget_Object_StatefulMixinValue extends VPtr {
-  late int _counter;
+  late int _counter = 0;
   StatefulWidget_Object_StatefulMixinValue() {
     vptr['get_counter'] = StatefulMixin_get_counter;
     vptr['set_counter'] = StatefulMixin_set_counter;
@@ -1610,7 +1608,7 @@ class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T>
 
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
-  late StaticList<String> _tags;
+  late StaticList<String> _tags = StaticList<String>.of([]);
   TaggedResource_Resource_TaggableValue() {
     vptr['tag'] = Taggable_tag;
     vptr['get_allTags'] = Taggable_get_allTags;

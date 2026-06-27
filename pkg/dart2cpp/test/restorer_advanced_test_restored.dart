@@ -476,8 +476,8 @@ C ChainedTransformer_postProcess<A, B, C>(dynamic this__, C output) {
 
 
 class RegistryValue extends VPtr {
-  late StaticMap<String, dynamic> _store;
-  late int _accessCount;
+  late StaticMap<String, dynamic> _store = StaticMap<String, dynamic>.of({});
+  late int _accessCount = 0;
   RegistryValue() {
     vptr['register'] = Registry_register;
     vptr['lookup'] = Registry_lookup;
@@ -499,8 +499,6 @@ class RegistryValue extends VPtr {
 final RegistryValue Registry__instance = Registry_new__internal(GC.allocateGlobal(RegistryValue()));
 RegistryValue Registry_new__internal(dynamic this__) {
   final this_ = this__ as RegistryValue;
-  this_._store = StaticMap<String, dynamic>.of({});
-  this_._accessCount = 0;
   return this_;
 }
 
@@ -590,7 +588,7 @@ StaticMap<String, double> DataProcessor_averageByGrade(StaticList<StaticMap<Stri
 
 class ExpensiveComputationValue extends VPtr {
   late int seed;
-  late int computedValue;
+  late int computedValue = ExpensiveComputation__computeExpensive(this);
   late String description;
   ExpensiveComputationValue() {
     vptr['initialize'] = ExpensiveComputation_initialize;
@@ -601,7 +599,6 @@ class ExpensiveComputationValue extends VPtr {
 ExpensiveComputationValue ExpensiveComputation_new(dynamic this__, int seed) {
   final this_ = this__ as ExpensiveComputationValue;
   this_.seed = seed;
-  this_.computedValue = ExpensiveComputation__computeExpensive(this_);
   return this_;
 }
 
@@ -1101,9 +1098,6 @@ ProductValue Product_new(dynamic this__, String entityId, String name, double pr
   this_.entityId = entityId;
   this_.name = name;
   this_.price = price;
-  this_._auditLog = StaticList<String>.of([]);
-  this_._cachedAt = null;
-  this_._isDirty = true;
   return this_;
 }
 
@@ -1169,7 +1163,7 @@ class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Objec
 
 
 class Product_Entity_AuditableValue extends EntityValue {
-  late StaticList<String> _auditLog;
+  late StaticList<String> _auditLog = StaticList<String>.of([]);
   Product_Entity_AuditableValue() {
     vptr['audit'] = Auditable_audit;
     vptr['get_auditLog'] = Auditable_get_auditLog;
@@ -1184,8 +1178,8 @@ class Product_Entity_AuditableValue extends EntityValue {
 
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
-  late StaticDateTime? _cachedAt;
-  late bool _isDirty;
+  late StaticDateTime? _cachedAt = null;
+  late bool _isDirty = true;
   Product_Entity_Auditable_CacheableValue() {
     vptr['markDirty'] = Cacheable_markDirty;
     vptr['markCached'] = Cacheable_markCached;
@@ -2021,7 +2015,11 @@ class ClosureEnv_asyncAdd_24 {
 }
 void ClosureEnv_asyncAdd_24_call(ClosureEnv_asyncAdd_24 env) {
   smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
-  env._promise.complete((env.a.value + env.b.value));
+{
+    env._promise.complete((env.a.value + env.b.value));
+    return;
+  }
+  env._promise.complete(0);
   return;
 }
 class ClosureEnv_asyncTransform_25 {
@@ -2033,7 +2031,11 @@ class ClosureEnv_asyncTransform_25 {
 void ClosureEnv_asyncTransform_25_call(ClosureEnv_asyncTransform_25 env) {
   final int doubled = smAwait(asyncAdd(env.value.value, env.value.value));
   final int tripled = smAwait(asyncAdd(doubled, env.value.value));
-  env._promise.complete('value=${env.value.value}, doubled=${doubled}, tripled=${tripled}');
+{
+    env._promise.complete('value=${env.value.value}, doubled=${doubled}, tripled=${tripled}');
+    return;
+  }
+  env._promise.complete('');
   return;
 }
 class ClosureEnv_asyncSequence_26 {
@@ -2048,7 +2050,11 @@ void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
     final int value = smAwait(asyncAdd(i, (i * i)));
     results.add(value);
   }
-  env._promise.complete(results);
+{
+    env._promise.complete(results);
+    return;
+  }
+  env._promise.complete(null as dynamic);
   return;
 }
 class ClosureEnv_IterableStats_get_sum_27<T extends num> extends TypeFunction2<T, T, T> {

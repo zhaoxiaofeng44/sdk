@@ -157,12 +157,49 @@ mixin _TypeUtils on _DartRestorerBase {
       for (final p in type.positional) {
         parts.add(_restoreType(p));
       }
-      for (final n in type.named) {
-        parts.add('${_restoreType(n.type)} ${n.name}');
+      if (type.named.isNotEmpty) {
+        final namedParts = <String>[];
+        for (final n in type.named) {
+          namedParts.add('${_restoreType(n.type)} ${n.name}');
+        }
+        parts.add('{${namedParts.join(', ')}}');
       }
       return '(${parts.join(', ')})$suffix';
     }
     return 'dynamic';
+  }
+
+  /// 为 async 函数计算包装后的返回类型字符串。
+  /// - async void → 'Promise<int>'（统一转化为 async int）
+  /// - async Future<T> / _Future<T> → 'Promise<T>'
+  /// - async int（裸值类型）→ 'Promise<int>'
+  String _asyncAwareRestoreType(DartType type, AsyncMarker marker) {
+    if (marker != AsyncMarker.Async) return _restoreType(type);
+    if (type is VoidType) return 'Promise<int>';
+    if (type is InterfaceType) {
+      final raw = type.classNode.name;
+      if ((raw == 'Future' || raw == '_Future' || raw == 'Promise') &&
+          type.typeArguments.isNotEmpty) {
+        return 'Promise<${_restoreType(type.typeArguments.first)}>';
+      }
+    }
+    return 'Promise<${_restoreType(type)}>';
+  }
+
+  /// 计算 async 函数的 inner return type（Promise<T> 中的 T）。
+  /// - void → 'int'
+  /// - Future<T> → T
+  /// - 裸值类型 → 还原后的类型字符串
+  String _computeAsyncInnerReturnType(DartType retType) {
+    if (retType is VoidType) return 'int';
+    if (retType is InterfaceType) {
+      final raw = retType.classNode.name;
+      if ((raw == 'Future' || raw == '_Future' || raw == 'Promise') &&
+          retType.typeArguments.isNotEmpty) {
+        return _restoreType(retType.typeArguments.first);
+      }
+    }
+    return _restoreType(retType);
   }
 
   // ---- Helpers ----

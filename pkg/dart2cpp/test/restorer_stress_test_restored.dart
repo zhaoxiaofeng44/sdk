@@ -521,7 +521,7 @@ String Config_toString(dynamic this__) {
 
 
 class EventBusValue extends VPtr {
-  late StaticList<TypeFunction1<void, String>> _listeners;
+  late StaticList<TypeFunction1<void, String>> _listeners = StaticList<TypeFunction1<void, String>>.of([]);
   EventBusValue() {
     vptr['on'] = EventBus_on;
     vptr['emit'] = EventBus_emit;
@@ -536,7 +536,6 @@ class EventBusValue extends VPtr {
 
 EventBusValue EventBus_new(dynamic this__) {
   final this_ = this__ as EventBusValue;
-  this_._listeners = StaticList<TypeFunction1<void, String>>.of([]);
   return this_;
 }
 
@@ -602,9 +601,9 @@ void Clickable_onClick(dynamic this_) {
 
 
 class WidgetValue extends VPtr implements DrawableValue, ResizableValue, ClickableValue {
-  late String _state;
-  late double _scale;
-  late int _clickCount;
+  late String _state = 'idle';
+  late double _scale = 1.0;
+  late int _clickCount = 0;
   WidgetValue() {
     vptr['draw'] = Widget_draw;
     vptr['resize'] = Widget_resize;
@@ -615,9 +614,6 @@ class WidgetValue extends VPtr implements DrawableValue, ResizableValue, Clickab
 
 WidgetValue Widget_new(dynamic this__) {
   final this_ = this__ as WidgetValue;
-  this_._state = 'idle';
-  this_._scale = 1.0;
-  this_._clickCount = 0;
   return this_;
 }
 
@@ -746,8 +742,8 @@ R Triple_fold<A, B, C, R>(dynamic this__, TypeFunction2<R, A, B> combine) {
 
 
 class StringBuilderValue extends VPtr {
-  late StaticStringBuffer _buf;
-  late String _separator;
+  late StaticStringBuffer _buf = StaticStringBuffer();
+  late String _separator = '';
   StringBuilderValue() {
     vptr['withSeparator'] = StringBuilder_withSeparator;
     vptr['add'] = StringBuilder_add;
@@ -765,8 +761,6 @@ class StringBuilderValue extends VPtr {
 
 StringBuilderValue StringBuilder_new(dynamic this__) {
   final this_ = this__ as StringBuilderValue;
-  this_._buf = StaticStringBuffer();
-  this_._separator = '';
   return this_;
 }
 
@@ -1015,7 +1009,7 @@ void Observable_notify<T>(dynamic this__, T value) {
 
 
 class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValue<V> {
-  late StaticMap<String, V> _store;
+  late StaticMap<String, V> _store = StaticMap<String, V>.of({});
   ReactiveStoreValue() {
     vptr['log'] = ReactiveStore_log<V>;
     vptr['get_logs'] = ReactiveStore_get_logs<V>;
@@ -1036,9 +1030,6 @@ class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValu
 
 ReactiveStoreValue<V> ReactiveStore_new<V>(dynamic this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  this_._logs = StaticList<String>.of([]);
-  this_._observers = StaticList<TypeFunction1<void, V>>.of([]);
-  this_._store = StaticMap<String, V>.of({});
   return this_;
 }
 
@@ -1334,7 +1325,7 @@ class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
 
 
 class ReactiveStore_Object_LoggableValue extends VPtr {
-  late StaticList<String> _logs;
+  late StaticList<String> _logs = StaticList<String>.of([]);
   ReactiveStore_Object_LoggableValue() {
     vptr['log'] = Loggable_log;
     vptr['get_logs'] = Loggable_get_logs;
@@ -1349,7 +1340,7 @@ class ReactiveStore_Object_LoggableValue extends VPtr {
 
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
-  late StaticList<TypeFunction1<void, V>> _observers;
+  late StaticList<TypeFunction1<void, V>> _observers = StaticList<TypeFunction1<void, V>>.of([]);
   ReactiveStore_Object_Loggable_ObservableValue() {
     vptr['observe'] = Observable_observe<V>;
     vptr['notify'] = Observable_notify<V>;

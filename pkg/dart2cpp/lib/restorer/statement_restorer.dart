@@ -8,12 +8,20 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       _restoreBlock(stmt);
     } else if (stmt is ReturnStatement) {
       if (_insideAsyncFunction) {
-        // async ClosureEnv 模式：return expr → env._promise.complete(expr); return;
+        // async ClosureEnv 模式：return expr → { env._promise.complete(expr); return; }
+        // 用花括号包裹确保作为 if/while/for 的单语句体时，多条语句都在块内
+        _buf.write('{\n');
+        _indent++;
         if (stmt.expression != null) {
           final exprStr = _restoreExpr(stmt.expression!);
           _buf.write('${_pad}env._promise.complete($exprStr);\n');
+        } else if (_asyncInnerReturnType == 'int') {
+          // async void → async int: 裸 return → complete(0)
+          _buf.write('${_pad}env._promise.complete(0);\n');
         }
         _buf.write('${_pad}return;\n');
+        _indent--;
+        _buf.write('$_pad}\n');
       } else {
         _buf.write('${_pad}return');
         if (stmt.expression != null) {
@@ -107,6 +115,13 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       _buf.write('$_pad} while (false);\n');
     } else if (stmt is BreakStatement) {
       _buf.write('${_pad}break;\n');
+    } else if (stmt is ContinueSwitchStatement) {
+      final label = _currentSwitchContinueTargets[stmt.target];
+      if (label != null) {
+        _buf.write('${_pad}continue $label;\n');
+      } else {
+        _buf.write('${_pad}continue;\n');
+      }
     } else if (stmt is EmptyStatement) {
       // skip
     } else if (stmt is ForInStatement) {
@@ -118,12 +133,14 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
 
   void _restoreForIn(ForInStatement stmt) {
     // 还原 for-in 循环：for (final varName in iterable) { body }
+    // 或 await for (final varName in stream) { body }
     final varDecl = stmt.variable;
     final varName = _cleanVarName(varDecl.name ?? '_item${_varCounter++}');
     varDecl.name = varName;
     final iterableExpr = _restoreExpr(stmt.iterable);
     final keyword = varDecl.isFinal ? 'final' : 'var';
-    _buf.write('${_pad}for ($keyword $varName in $iterableExpr) ');
+    final asyncPrefix = stmt.isAsync ? 'await ' : '';
+    _buf.write('${_pad}${asyncPrefix}for ($keyword $varName in $iterableExpr) ');
     _restoreStmt(stmt.body);
   }
 
@@ -272,9 +289,18 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
   }
 
   void _restoreSwitch(SwitchStatement stmt) {
+    // 收集所有被 continue 指向的目标 case，为其生成标签
+    final savedTargets = _currentSwitchContinueTargets;
+    _currentSwitchContinueTargets = <SwitchCase, String>{};
+    _collectContinueTargets(stmt, _currentSwitchContinueTargets);
+
     _buf.write('${_pad}switch (${_restoreExpr(stmt.expression)}) {\n');
     _indent++;
     for (final c in stmt.cases) {
+      // 如果此 case 是 continue 目标，输出标签
+      if (_currentSwitchContinueTargets.containsKey(c)) {
+        _buf.write('${_pad}${_currentSwitchContinueTargets[c]}:\n');
+      }
       if (c.isDefault) {
         _buf.write('${_pad}default:\n');
       } else {
@@ -288,6 +314,38 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     }
     _indent--;
     _buf.write('$_pad}\n');
+    _currentSwitchContinueTargets = savedTargets;
+  }
+
+  /// 收集 switch 中所有 ContinueSwitchStatement 的目标 case
+  void _collectContinueTargets(SwitchStatement stmt, Map<SwitchCase, String> targets) {
+    var labelCounter = 0;
+    void visit(TreeNode node) {
+      if (node is ContinueSwitchStatement) {
+        if (!targets.containsKey(node.target)) {
+          targets[node.target] = '_case_${labelCounter++}';
+        }
+      }
+      // 递归遍历子节点（但不进入嵌套的 switch）
+      if (node is Block) {
+        for (final s in node.statements) visit(s);
+      } else if (node is ExpressionStatement) {
+        // leaf
+      } else if (node is ReturnStatement) {
+        // leaf
+      } else if (node is IfStatement) {
+        visit(node.then);
+        if (node.otherwise != null) visit(node.otherwise!);
+      } else if (node is SwitchStatement && node != stmt) {
+        // 不进入嵌套的 switch（continue 只作用于当前 switch）
+        return;
+      } else if (node is LabeledStatement) {
+        visit(node.body);
+      }
+    }
+    for (final c in stmt.cases) {
+      visit(c.body);
+    }
   }
 
   void _restoreFuncDecl(FunctionDeclaration stmt) {
@@ -304,10 +362,23 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
+
+    // 保存异步状态：局部函数有自己的异步上下文
+    // 同步局部函数不应继承外层 async 函数的 _insideAsyncFunction 标志
+    final savedInsideAsync = _insideAsyncFunction;
+    final savedAsyncInnerType = _asyncInnerReturnType;
+    if (marker != AsyncMarker.Async) {
+      _insideAsyncFunction = false;
+    }
+
     if (stmt.function.body != null) {
       _buf.write(' ');
       _restoreStmt(stmt.function.body!);
     }
     _buf.write('\n');
+
+    // 恢复异步状态
+    _insideAsyncFunction = savedInsideAsync;
+    _asyncInnerReturnType = savedAsyncInnerType;
   }
 }
