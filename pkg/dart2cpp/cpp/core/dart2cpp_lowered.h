@@ -27,6 +27,7 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -197,6 +198,21 @@ struct AnyPtr {
         data = other.data;
         other.tag = NULL_TAG;
         other.data.intVal = 0;
+    }
+
+    // 隐式转换构造函数 - 允许 TypeFunction* 隐式转换为 AnyPtr
+    AnyPtr(TypeFunction* fn) : tag(TYPE_FUNC_TAG) {
+        data.typeFnPtr = fn;
+    }
+
+    // 隐式转换构造函数 - 允许 VPtr* 隐式转换为 AnyPtr
+    AnyPtr(VPtr* vptr) : tag(VPTR_TAG) {
+        data.vptrPtr = vptr;
+    }
+
+    // 隐式转换构造函数 - 允许 AnyGC* 隐式转换为 AnyPtr
+    AnyPtr(AnyGC* gc) : tag(GC_TAG) {
+        data.gcPtr = gc;
     }
 
     // 拷贝赋值
@@ -803,14 +819,67 @@ struct StaticList : AnyGC {
         return GC::allocateLocal(new StaticIterator<T>(_data));
     }
 
+    // Iterator support for range-based for loops
+    T* begin() { return _data->begin(); }
+    T* end() { return _data->end(); }
+    const T* begin() const { return _data->begin(); }
+    const T* end() const { return _data->end(); }
+
+    // reversed property - returns a new reversed list
+    StaticList<T>* reversed() const {
+        auto* result = new StaticList<T>();
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
+
+    // join method
+    std::string join(const std::string& separator = "") const {
+        std::string result;
+        for (int i = 0; i < _data->length(); i++) {
+            if (i > 0) result += separator;
+            result += dart_str((*_data)[i]);
+        }
+        return result;
+    }
+
     // 高阶方法
 
     template<typename R>
-    StaticList<R>* map(R Function(T)) const;  // 声明（需外部实现）
+    StaticList<R>* map(R (*func)(T)) const {
+        auto* result = new StaticList<R>();
+        for (int i = 0; i < _data->length(); i++) {
+            result->add(func((*_data)[i]));
+        }
+        return GC::allocateLocal(result);
+    }
 
-    StaticList<T>* where(bool Function(T)) const;  // 声明
+    // Overload for TypeFunction1
+    template<typename R>
+    StaticList<R>* map(TypeFunction1<R, T>* func) const {
+        auto* result = new StaticList<R>();
+        for (int i = 0; i < _data->length(); i++) {
+            result->add(func->call((*_data)[i]));
+        }
+        return GC::allocateLocal(result);
+    }
 
-    void forEach(void Function(T)) const;  // 声明
+    StaticList<T>* where(bool (*func)(T)) const {
+        auto* result = new StaticList<T>();
+        for (int i = 0; i < _data->length(); i++) {
+            if (func((*_data)[i])) {
+                result->add((*_data)[i]);
+            }
+        }
+        return GC::allocateLocal(result);
+    }
+
+    void forEach(void (*func)(T)) const {
+        for (int i = 0; i < _data->length(); i++) {
+            func((*_data)[i]);
+        }
+    }
 
     void gcMark(int flag) override {
         if (gcFlag == flag) return;
@@ -993,6 +1062,18 @@ struct Promise : PromiseBase {
 
     void completeTyped(T value) {
         complete(AnyPtr::fromAuto(std::move(value)));
+    }
+
+    // Static factory methods for creating resolved promises
+    static Promise<T>* resolved(T value) {
+        auto* promise = GC::allocateLocal(new Promise<T>());
+        promise->complete(AnyPtr::fromAuto(std::move(value)));
+        return promise;
+    }
+
+    // Alias for resolved() - Dart compatibility
+    static Promise<T>* value(T value) {
+        return resolved(std::move(value));
     }
 };
 
@@ -1321,6 +1402,108 @@ template<typename... Args>
 std::string dart_str(Args&&... args) {
     std::ostringstream oss;
     (void)(int[]){0, ((oss << _toStr(std::forward<Args>(args))), 0)...};
+    return oss.str();
+}
+
+// ============================================================================
+// 11.5 String 方法辅助
+// ============================================================================
+
+/// dart_str_toUpper — 转换为大写
+inline std::string dart_str_toUpper(const std::string& s) {
+    std::string result = s;
+    std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+    return result;
+}
+
+/// dart_str_toLower — 转换为小写
+inline std::string dart_str_toLower(const std::string& s) {
+    std::string result = s;
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+    return result;
+}
+
+/// dart_str_trim — 去除首尾空白
+inline std::string dart_str_trim(const std::string& s) {
+    size_t start = s.find_first_not_of(" \t\n\r\f\v");
+    if (start == std::string::npos) return "";
+    size_t end = s.find_last_not_of(" \t\n\r\f\v");
+    return s.substr(start, end - start + 1);
+}
+
+/// dart_str_trimLeft — 去除左侧空白
+inline std::string dart_str_trimLeft(const std::string& s) {
+    size_t start = s.find_first_not_of(" \t\n\r\f\v");
+    if (start == std::string::npos) return "";
+    return s.substr(start);
+}
+
+/// dart_str_trimRight — 去除右侧空白
+inline std::string dart_str_trimRight(const std::string& s) {
+    size_t end = s.find_last_not_of(" \t\n\r\f\v");
+    if (end == std::string::npos) return "";
+    return s.substr(0, end + 1);
+}
+
+/// dart_str_split — 分割字符串
+inline StaticList<std::string>* dart_str_split(const std::string& s, const std::string& delimiter) {
+    auto* result = new StaticList<std::string>();
+    if (delimiter.empty()) {
+        // Split into individual characters
+        for (char c : s) {
+            result->add(std::string(1, c));
+        }
+    } else {
+        size_t start = 0;
+        size_t end = s.find(delimiter);
+        while (end != std::string::npos) {
+            result->add(s.substr(start, end - start));
+            start = end + delimiter.length();
+            end = s.find(delimiter, start);
+        }
+        result->add(s.substr(start));
+    }
+    return GC::allocateLocal(result);
+}
+
+/// dart_str_replaceAll — 替换所有匹配
+inline std::string dart_str_replaceAll(const std::string& s, const std::string& from, const std::string& to) {
+    if (from.empty()) return s;
+    std::string result = s;
+    size_t start_pos = 0;
+    while ((start_pos = result.find(from, start_pos)) != std::string::npos) {
+        result.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
+    return result;
+}
+
+/// dart_str_padLeft — 左填充
+inline std::string dart_str_padLeft(const std::string& s, int width, const std::string& padding) {
+    if (s.length() >= width || padding.empty()) return s;
+    int padCount = width - s.length();
+    std::string result = "";
+    while (result.length() < padCount) {
+        result += padding;
+    }
+    return result.substr(0, padCount) + s;
+}
+
+/// dart_str_padRight — 右填充
+inline std::string dart_str_padRight(const std::string& s, int width, const std::string& padding) {
+    if (s.length() >= width || padding.empty()) return s;
+    int padCount = width - s.length();
+    std::string result = s;
+    while (result.length() < width) {
+        result += padding;
+    }
+    return result.substr(0, width);
+}
+
+/// dart_str_toStringAsFixed — 格式化浮点数为固定小数位
+inline std::string dart_str_toStringAsFixed(double value, int fractionDigits) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(fractionDigits) << value;
     return oss.str();
 }
 
