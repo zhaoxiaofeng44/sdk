@@ -176,7 +176,6 @@ dart test/run_restorer_test.dart restorer_full_test
 - `test/mixin_lowering_test.dart` — 自写一段 mixin 源码到 `/tmp/mixin_test_source.dart`，编译 + 还原 + 执行，验证 mixin lowering 是否产出可运行代码。注意其 `_sdkPlatformDill` 写的是 `/Users/alsc/...`（历史路径），换机器需手改。
 - `test/static_collections_test.dart` — 直接 import `runtime_classes.dart` 测 `Array/StaticList/StaticMap/StaticSet` 的语义；这是运行时库的单元测试，不经过 restorer。
 - `test/promise_enhanced_test.dart` — `Promise` 行为的独立测试。
-- `test/unit/{expression_converter,type_converter}_test.dart` — Dart→C++ 编译器单元测试，与 restorer 无关。
 
 ### 7.5 还原产物的形态（看一眼即可对齐预期）
 

@@ -57,11 +57,11 @@ void testStaticList() {
   assert((list.length == 5));
   assert(!(list.contains(99)));
   staticPrint('  ✓ StaticList remove');
-  final StaticList<int> doubled = StaticList.of(list.map(ClosureEnv_testStaticList_0_new(GC.allocateLocal(ClosureEnv_testStaticList_0()))).toList());
+  final StaticList<int> doubled = StaticList<int>.of(list.map(ClosureEnv_testStaticList_0_new(GC.allocateLocal(ClosureEnv_testStaticList_0()))).toList());
   assert((doubled.length == list.length));
   assert((doubled[0] == (list[0] * 2)));
   staticPrint('  ✓ StaticList map');
-  final StaticList<int> filtered = StaticList.of(list.where(ClosureEnv_testStaticList_1_new(GC.allocateLocal(ClosureEnv_testStaticList_1()))).toList());
+  final StaticList<int> filtered = StaticList<int>.of(list.where(ClosureEnv_testStaticList_1_new(GC.allocateLocal(ClosureEnv_testStaticList_1()))).toList());
   assert((filtered.length > 0));
   for (var i = 0; (i < filtered.length); i = (i + 1)) {
     assert((filtered[i] > 3));
