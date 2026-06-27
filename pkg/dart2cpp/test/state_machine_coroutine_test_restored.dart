@@ -302,8 +302,8 @@ bool AddAsyncStateMachine_step(dynamic this__) {
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._x = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r0 = this_._pendingFuture!; return (_r0.vptr['get_isPending'] as bool Function(dynamic))(_r0); })())           return false;
+          this_._x = (() { final _r1 = this_._pendingFuture!; return (_r1.vptr['get_result'] as int Function(dynamic))(_r1); })();
           this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7()), this_));
           this_.smState = 2;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, got x=${this_._x}, created delayed future for ${this_.b}');
@@ -311,8 +311,8 @@ bool AddAsyncStateMachine_step(dynamic this__) {
         }
       case 2:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._y = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r2 = this_._pendingFuture!; return (_r2.vptr['get_isPending'] as bool Function(dynamic))(_r2); })())           return false;
+          this_._y = (() { final _r3 = this_._pendingFuture!; return (_r3.vptr['get_result'] as int Function(dynamic))(_r3); })();
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, got y=${this_._y}, result=${(this_._x + this_._y)}');
           (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, (this_._x + this_._y));
           return true;
@@ -382,8 +382,8 @@ bool InnerAsyncStateMachine_step(dynamic this__) {
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          final String val = (this_._pendingFuture!.vptr['get_result'] as String Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r4 = this_._pendingFuture!; return (_r4.vptr['get_isPending'] as bool Function(dynamic))(_r4); })())           return false;
+          final String val = (() { final _r5 = this_._pendingFuture!; return (_r5.vptr['get_result'] as String Function(dynamic))(_r5); })();
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, val=${val} → ${val.toUpperCase()}');
           (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, val.toUpperCase());
           return true;
@@ -454,8 +454,8 @@ bool OuterAsyncStateMachine_step(dynamic this__) {
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._prefix = (this_._pendingFuture!.vptr['get_result'] as String Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r6 = this_._pendingFuture!; return (_r6.vptr['get_isPending'] as bool Function(dynamic))(_r6); })())           return false;
+          this_._prefix = (() { final _r7 = this_._pendingFuture!; return (_r7.vptr['get_result'] as String Function(dynamic))(_r7); })();
           final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(GC.allocateLocal(InnerAsyncStateMachineValue()));
           this_._pendingFuture = (innerSm.vptr['start'] as PromiseValue<String> Function(dynamic))(innerSm);
           this_.smState = 2;
@@ -464,8 +464,8 @@ bool OuterAsyncStateMachine_step(dynamic this__) {
         }
       case 2:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          final String innerResult = (this_._pendingFuture!.vptr['get_result'] as String Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r8 = this_._pendingFuture!; return (_r8.vptr['get_isPending'] as bool Function(dynamic))(_r8); })())           return false;
+          final String innerResult = (() { final _r9 = this_._pendingFuture!; return (_r9.vptr['get_result'] as String Function(dynamic))(_r9); })();
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, inner=${innerResult}');
           (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, '${this_._prefix} ${innerResult}');
           return true;
@@ -535,10 +535,10 @@ bool ErrorStateMachine_step(dynamic this__) {
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          if ((this_._pendingFuture!.vptr['get_isError'] as bool Function(dynamic))(this_._pendingFuture!)) {
+          if ((() { final _r10 = this_._pendingFuture!; return (_r10.vptr['get_isPending'] as bool Function(dynamic))(_r10); })())           return false;
+          if ((() { final _r11 = this_._pendingFuture!; return (_r11.vptr['get_isError'] as bool Function(dynamic))(_r11); })()) {
             log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, caught error');
-            (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'caught: ${(this_._pendingFuture!.vptr['get_error'] as Object? Function(dynamic))(this_._pendingFuture!)}');
+            (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'caught: ${(() { final _r13 = this_._pendingFuture!; return (_r13.vptr['get_error'] as Object? Function(dynamic))(_r13); })()}');
             return true;
           }
           (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'unexpected success');
@@ -683,8 +683,8 @@ bool ComputeStepStateMachine_step(dynamic this__) {
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          final int r = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r14 = this_._pendingFuture!; return (_r14.vptr['get_isPending'] as bool Function(dynamic))(_r14); })())           return false;
+          final int r = (() { final _r15 = this_._pendingFuture!; return (_r15.vptr['get_result'] as int Function(dynamic))(_r15); })();
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, result=${r}');
           (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, r);
           return true;
@@ -750,33 +750,33 @@ bool PipelineStateMachine_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1));
+          this_._pendingFuture = (() { final _r16 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1); return (_r16.vptr['start'] as PromiseValue<int> Function(dynamic))(_r16); })();
           this_.smState = 1;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, started ComputeStep(1)');
           return false;
         }
       case 1:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._a = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
-          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a));
+          if ((() { final _r17 = this_._pendingFuture!; return (_r17.vptr['get_isPending'] as bool Function(dynamic))(_r17); })())           return false;
+          this_._a = (() { final _r18 = this_._pendingFuture!; return (_r18.vptr['get_result'] as int Function(dynamic))(_r18); })();
+          this_._pendingFuture = (() { final _r19 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a); return (_r19.vptr['start'] as PromiseValue<int> Function(dynamic))(_r19); })();
           this_.smState = 2;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, a=${this_._a}, started ComputeStep(${this_._a})');
           return false;
         }
       case 2:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._b = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
-          this_._pendingFuture = (ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b).vptr['start'] as PromiseValue<int> Function(dynamic))(ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b));
+          if ((() { final _r20 = this_._pendingFuture!; return (_r20.vptr['get_isPending'] as bool Function(dynamic))(_r20); })())           return false;
+          this_._b = (() { final _r21 = this_._pendingFuture!; return (_r21.vptr['get_result'] as int Function(dynamic))(_r21); })();
+          this_._pendingFuture = (() { final _r22 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b); return (_r22.vptr['start'] as PromiseValue<int> Function(dynamic))(_r22); })();
           this_.smState = 3;
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→3, b=${this_._b}, started ComputeStep(${this_._b})');
           return false;
         }
       case 3:
 {
-          if ((this_._pendingFuture!.vptr['get_isPending'] as bool Function(dynamic))(this_._pendingFuture!))           return false;
-          this_._c = (this_._pendingFuture!.vptr['get_result'] as int Function(dynamic))(this_._pendingFuture!);
+          if ((() { final _r23 = this_._pendingFuture!; return (_r23.vptr['get_isPending'] as bool Function(dynamic))(_r23); })())           return false;
+          this_._c = (() { final _r24 = this_._pendingFuture!; return (_r24.vptr['get_result'] as int Function(dynamic))(_r24); })();
           log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 3→done, c=${this_._c}, sum=${((this_._a + this_._b) + this_._c)}');
           (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, ((this_._a + this_._b) + this_._c));
           return true;
@@ -868,7 +868,7 @@ void testNestedAsync() {
 void testThenChain() {
   staticPrint('\n--- Demo 5: then 链式调用 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PromiseValue<String> future = ((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_18_new(GC.allocateLocal(ClosureEnv_testThenChain_18()))).vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))((Promise_value<int>(5).vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(Promise_value<int>(5), ClosureEnv_testThenChain_18_new(GC.allocateLocal(ClosureEnv_testThenChain_18()))), ClosureEnv_testThenChain_20_new(GC.allocateLocal(ClosureEnv_testThenChain_20())));
+  final PromiseValue<String> future = (() { final _r26 = (() { final _r25 = Promise_value<int>(5); return (_r25.vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(_r25, ClosureEnv_testThenChain_18_new(GC.allocateLocal(ClosureEnv_testThenChain_18()))); })(); return (_r26.vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))(_r26, ClosureEnv_testThenChain_20_new(GC.allocateLocal(ClosureEnv_testThenChain_20()))); })();
   final String result = smAwait<String>(future);
   assert((result == 'value=10'), 'Expected "value=10", got "${result}"');
   staticPrint('  ✓ Promise.value(5).then(*2).then(format) = "${result}"');

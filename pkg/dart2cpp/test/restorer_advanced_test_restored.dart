@@ -34,30 +34,30 @@ TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? lef
 StaticList<T> TreeNode_preorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['preorder'] as StaticList<T> Function(dynamic))(this_.left!));
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['preorder'] as StaticList<T> Function(dynamic))(this_.right!));
+  if (!((this_.left == null)))   result.addAll((() { final _r0 = this_.left!; return (_r0.vptr['preorder'] as StaticList<T> Function(dynamic))(_r0); })());
+  if (!((this_.right == null)))   result.addAll((() { final _r1 = this_.right!; return (_r1.vptr['preorder'] as StaticList<T> Function(dynamic))(_r1); })());
   return result;
 }
 
 StaticList<T> TreeNode_inorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([]);
-  if (!((this_.left == null)))   result.addAll((this_.left!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.left!));
+  if (!((this_.left == null)))   result.addAll((() { final _r2 = this_.left!; return (_r2.vptr['inorder'] as StaticList<T> Function(dynamic))(_r2); })());
   result.add(this_.value);
-  if (!((this_.right == null)))   result.addAll((this_.right!.vptr['inorder'] as StaticList<T> Function(dynamic))(this_.right!));
+  if (!((this_.right == null)))   result.addAll((() { final _r3 = this_.right!; return (_r3.vptr['inorder'] as StaticList<T> Function(dynamic))(_r3); })());
   return result;
 }
 
 int TreeNode_get_depth<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
-  final int leftDepth = ((() { final _let1 = this_.left; return (_let1 == null) ? null : (_let1.vptr['get_depth'] as int Function(dynamic))(_let1); })() ?? 0);
-  final int rightDepth = ((() { final _let3 = this_.right; return (_let3 == null) ? null : (_let3.vptr['get_depth'] as int Function(dynamic))(_let3); })() ?? 0);
+  final int leftDepth = ((() { final _let5 = this_.left; return (_let5 == null) ? null : (_let5.vptr['get_depth'] as int Function(dynamic))(_let5); })() ?? 0);
+  final int rightDepth = ((() { final _let7 = this_.right; return (_let7 == null) ? null : (_let7.vptr['get_depth'] as int Function(dynamic))(_let7); })() ?? 0);
   return (1 + ((leftDepth > rightDepth) ? leftDepth : rightDepth));
 }
 
 TreeNodeValue<R> TreeNode_map<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as TreeNodeValue<T>;
-  return TreeNode_new<R>(GC.allocateLocal(TreeNodeValue<R>()), transform.closureCall(transform, this_.value), (() { final _let4 = this_.left; return (_let4 == null) ? null : TreeNode_map<T, R>(_let4, transform); })(), (() { final _let5 = this_.right; return (_let5 == null) ? null : TreeNode_map<T, R>(_let5, transform); })());
+  return TreeNode_new<R>(GC.allocateLocal(TreeNodeValue<R>()), transform.closureCall(transform, this_.value), (() { final _let8 = this_.left; return (_let8 == null) ? null : TreeNode_map<T, R>(_let8, transform); })(), (() { final _let9 = this_.right; return (_let9 == null) ? null : TreeNode_map<T, R>(_let9, transform); })());
 }
 
 String TreeNode_toString<T>(dynamic this__) {
@@ -94,7 +94,7 @@ LinkedNodeValue<T> LinkedNode_new<T>(dynamic this__, T data, [LinkedNodeValue<T>
 LinkedNodeValue<T> LinkedNode_reversed<T>(dynamic this__) {
   final this_ = this__ as LinkedNodeValue<T>;
   if ((this_.next == null))   return LinkedNode_new<T>(GC.allocateLocal(LinkedNodeValue<T>()), this_.data);
-  final LinkedNodeValue<T> rev = (this_.next!.vptr['reversed'] as LinkedNodeValue<T> Function(dynamic))(this_.next!);
+  final LinkedNodeValue<T> rev = (() { final _r10 = this_.next!; return (_r10.vptr['reversed'] as LinkedNodeValue<T> Function(dynamic))(_r10); })();
   LinkedNodeValue<T> tail = rev;
   while (!((tail.next == null))) {
     tail = tail.next!;

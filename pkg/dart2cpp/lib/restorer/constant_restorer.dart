@@ -15,10 +15,7 @@ mixin _ConstantRestorer on _DartRestorerBase, _TypeUtils {
     }
     if (c is BoolConstant) return '${c.value}';
     if (c is StringConstant) {
-      final escaped = c.value
-          .replaceAll('\\', '\\\\')
-          .replaceAll("'", "\\'")
-          .replaceAll('\n', '\\n');
+      final escaped = _escapeStringLiteral(c.value);
       return "'$escaped'";
     }
     if (c is NullConstant) return 'null';

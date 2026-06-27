@@ -7,127 +7,182 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     if (stmt is Block) {
       _restoreBlock(stmt);
     } else if (stmt is ReturnStatement) {
-      if (_insideAsyncFunction) {
-        // async ClosureEnv 模式：return expr → { env._promise.complete(expr); return; }
-        // 用花括号包裹确保作为 if/while/for 的单语句体时，多条语句都在块内
-        _buf.write('{\n');
-        _indent++;
-        if (stmt.expression != null) {
-          final exprStr = _restoreExpr(stmt.expression!);
-          _buf.write('${_pad}env._promise.complete($exprStr);\n');
-        } else if (_asyncInnerReturnType == 'int') {
-          // async void → async int: 裸 return → complete(0)
-          _buf.write('${_pad}env._promise.complete(0);\n');
-        }
-        _buf.write('${_pad}return;\n');
-        _indent--;
-        _buf.write('$_pad}\n');
-      } else {
-        _buf.write('${_pad}return');
-        if (stmt.expression != null) {
-          _buf.write(' ${_restoreExpr(stmt.expression!)}');
-        }
-        _buf.write(';\n');
-      }
+      _restoreReturnStatement(stmt);
     } else if (stmt is ExpressionStatement) {
       _restoreExprStmt(stmt);
     } else if (stmt is VariableDeclaration) {
       _restoreVarDecl(stmt);
     } else if (stmt is IfStatement) {
-      _buf.write('${_pad}if (${_restoreExpr(stmt.condition)}) ');
-      _restoreStmt(stmt.then);
-      if (stmt.otherwise != null) {
-        _buf.write(' else ');
-        _restoreStmt(stmt.otherwise!);
-      }
+      _restoreIfStatement(stmt);
     } else if (stmt is ForStatement) {
-      _buf.write('${_pad}for (');
-      if (stmt.variables.isNotEmpty) {
-        final v = stmt.variables.first;
-        final vName = _cleanVarName(v.name ?? '_i');
-        v.name = vName;
-        // Bug 11: 若 for 循环变量被内部闭包捕获，需要 Box 化（仅基础值类型）
-        if (_boxedVars.contains(v)) {
-          final boxType = _boxTypeNameFor(v.type)!;
-          final initStr = v.initializer != null
-              ? _restoreExpr(v.initializer!)
-              : _defaultValueForType(v.type);
-          _buf.write('$boxType $vName = $boxType($initStr)');
-        } else {
-          _buf.write('var $vName = ${_restoreExpr(v.initializer!)}');
-        }
-      }
-      _buf.write('; ');
-      if (stmt.condition != null) _buf.write(_restoreExpr(stmt.condition!));
-      _buf.write('; ');
-      _buf.write(stmt.updates.map((e) => _restoreExpr(e)).join(', '));
-      _buf.write(') ');
-      _restoreStmt(stmt.body);
+      _restoreForStatement(stmt);
     } else if (stmt is WhileStatement) {
-      _buf.write('${_pad}while (${_restoreExpr(stmt.condition)}) ');
-      _restoreStmt(stmt.body);
+      _restoreWhileStatement(stmt);
     } else if (stmt is DoStatement) {
-      _buf.write('${_pad}do ');
-      _restoreStmt(stmt.body);
-      _buf.write(' while (${_restoreExpr(stmt.condition)});\n');
+      _restoreDoStatement(stmt);
     } else if (stmt is TryCatch) {
-      _buf.write('${_pad}try ');
-      _restoreStmt(stmt.body);
-      for (final c in stmt.catches) {
-        _restoreCatch(c);
-      }
+      _restoreTryCatch(stmt);
     } else if (stmt is TryFinally) {
-      // Kernel 将 try-catch-finally 表示为 TryFinally(body: TryCatch(...), finalizer: ...)
-      // 需要合并输出为 try { ... } catch ... finally { ... }
-      final body = stmt.body;
-      if (body is TryCatch) {
-        _buf.write('${_pad}try ');
-        _restoreStmt(body.body);
-        for (final c in body.catches) {
-          _restoreCatch(c);
-        }
-        _buf.write(' finally ');
-        _restoreStmt(stmt.finalizer);
-      } else {
-        _buf.write('${_pad}try ');
-        _restoreStmt(stmt.body);
-        _buf.write(' finally ');
-        _restoreStmt(stmt.finalizer);
-      }
+      _restoreTryFinally(stmt);
     } else if (stmt is YieldStatement) {
-      _buf.write('${_pad}yield ');
-      _buf.write(_restoreExpr(stmt.expression));
-      _buf.write(';\n');
+      _restoreYieldStatement(stmt);
     } else if (stmt is AssertStatement) {
-      _buf.write('${_pad}assert(${_restoreExpr(stmt.condition)}');
-      if (stmt.message != null) {
-        _buf.write(', ${_restoreExpr(stmt.message!)}');
-      }
-      _buf.write(');\n');
+      _restoreAssertStatement(stmt);
     } else if (stmt is SwitchStatement) {
       _restoreSwitch(stmt);
     } else if (stmt is LabeledStatement) {
-      // switch pattern 脱糖后的 LabeledStatement + BreakStatement 用 do-while(false) 包裹
-      _buf.write('${_pad}do {\n');
-      _indent++;
-      _restoreStmt(stmt.body);
-      _indent--;
-      _buf.write('$_pad} while (false);\n');
+      _restoreLabeledStatement(stmt);
     } else if (stmt is BreakStatement) {
       _buf.write('${_pad}break;\n');
     } else if (stmt is ContinueSwitchStatement) {
-      final label = _currentSwitchContinueTargets[stmt.target];
-      if (label != null) {
-        _buf.write('${_pad}continue $label;\n');
-      } else {
-        _buf.write('${_pad}continue;\n');
-      }
+      _restoreContinueSwitchStatement(stmt);
     } else if (stmt is EmptyStatement) {
       // skip
     } else if (stmt is ForInStatement) {
       _restoreForIn(stmt);
     } else if (stmt is FunctionDeclaration) {
       _restoreFuncDecl(stmt);
+    }
+  }
+
+  /// 还原 ReturnStatement
+  void _restoreReturnStatement(ReturnStatement stmt) {
+    if (_insideAsyncFunction) {
+      // async ClosureEnv 模式：return expr → { env._promise.complete(expr); return; }
+      // 用花括号包裹确保作为 if/while/for 的单语句体时，多条语句都在块内
+      _buf.write('{\n');
+      _indent++;
+      if (stmt.expression != null) {
+        final exprStr = _restoreExpr(stmt.expression!);
+        _buf.write('${_pad}env._promise.complete($exprStr);\n');
+      } else if (_asyncInnerReturnType == 'int') {
+        // async void → async int: 裸 return → complete(0)
+        _buf.write('${_pad}env._promise.complete(0);\n');
+      }
+      _buf.write('${_pad}return;\n');
+      _indent--;
+      _buf.write('$_pad}\n');
+    } else {
+      _buf.write('${_pad}return');
+      if (stmt.expression != null) {
+        _buf.write(' ${_restoreExpr(stmt.expression!)}');
+      }
+      _buf.write(';\n');
+    }
+  }
+
+  /// 还原 IfStatement
+  void _restoreIfStatement(IfStatement stmt) {
+    _buf.write('${_pad}if (${_restoreExpr(stmt.condition)}) ');
+    _restoreStmt(stmt.then);
+    if (stmt.otherwise != null) {
+      _buf.write(' else ');
+      _restoreStmt(stmt.otherwise!);
+    }
+  }
+
+  /// 还原 ForStatement
+  void _restoreForStatement(ForStatement stmt) {
+    _buf.write('${_pad}for (');
+    if (stmt.variables.isNotEmpty) {
+      final v = stmt.variables.first;
+      final vName = _cleanVarName(v.name ?? '_i');
+      v.name = vName;
+      // Bug 11: 若 for 循环变量被内部闭包捕获，需要 Box 化（仅基础值类型）
+      if (_boxedVars.contains(v)) {
+        final boxType = _boxTypeNameFor(v.type)!;
+        final initStr = v.initializer != null
+            ? _restoreExpr(v.initializer!)
+            : _defaultValueForType(v.type);
+        _buf.write('$boxType $vName = $boxType($initStr)');
+      } else {
+        _buf.write('var $vName = ${_restoreExpr(v.initializer!)}');
+      }
+    }
+    _buf.write('; ');
+    if (stmt.condition != null) _buf.write(_restoreExpr(stmt.condition!));
+    _buf.write('; ');
+    _buf.write(stmt.updates.map((e) => _restoreExpr(e)).join(', '));
+    _buf.write(') ');
+    _restoreStmt(stmt.body);
+  }
+
+  /// 还原 WhileStatement
+  void _restoreWhileStatement(WhileStatement stmt) {
+    _buf.write('${_pad}while (${_restoreExpr(stmt.condition)}) ');
+    _restoreStmt(stmt.body);
+  }
+
+  /// 还原 DoStatement
+  void _restoreDoStatement(DoStatement stmt) {
+    _buf.write('${_pad}do ');
+    _restoreStmt(stmt.body);
+    _buf.write(' while (${_restoreExpr(stmt.condition)});\n');
+  }
+
+  /// 还原 TryCatch
+  void _restoreTryCatch(TryCatch stmt) {
+    _buf.write('${_pad}try ');
+    _restoreStmt(stmt.body);
+    for (final c in stmt.catches) {
+      _restoreCatch(c);
+    }
+  }
+
+  /// 还原 TryFinally
+  void _restoreTryFinally(TryFinally stmt) {
+    // Kernel 将 try-catch-finally 表示为 TryFinally(body: TryCatch(...), finalizer: ...)
+    // 需要合并输出为 try { ... } catch ... finally { ... }
+    final body = stmt.body;
+    if (body is TryCatch) {
+      _buf.write('${_pad}try ');
+      _restoreStmt(body.body);
+      for (final c in body.catches) {
+        _restoreCatch(c);
+      }
+      _buf.write(' finally ');
+      _restoreStmt(stmt.finalizer);
+    } else {
+      _buf.write('${_pad}try ');
+      _restoreStmt(stmt.body);
+      _buf.write(' finally ');
+      _restoreStmt(stmt.finalizer);
+    }
+  }
+
+  /// 还原 YieldStatement
+  void _restoreYieldStatement(YieldStatement stmt) {
+    _buf.write('${_pad}yield ');
+    _buf.write(_restoreExpr(stmt.expression));
+    _buf.write(';\n');
+  }
+
+  /// 还原 AssertStatement
+  void _restoreAssertStatement(AssertStatement stmt) {
+    _buf.write('${_pad}assert(${_restoreExpr(stmt.condition)}');
+    if (stmt.message != null) {
+      _buf.write(', ${_restoreExpr(stmt.message!)}');
+    }
+    _buf.write(');\n');
+  }
+
+  /// 还原 LabeledStatement
+  void _restoreLabeledStatement(LabeledStatement stmt) {
+    // switch pattern 脱糖后的 LabeledStatement + BreakStatement 用 do-while(false) 包裹
+    _buf.write('${_pad}do {\n');
+    _indent++;
+    _restoreStmt(stmt.body);
+    _indent--;
+    _buf.write('$_pad} while (false);\n');
+  }
+
+  /// 还原 ContinueSwitchStatement
+  void _restoreContinueSwitchStatement(ContinueSwitchStatement stmt) {
+    final label = _currentSwitchContinueTargets[stmt.target];
+    if (label != null) {
+      _buf.write('${_pad}continue $label;\n');
+    } else {
+      _buf.write('${_pad}continue;\n');
     }
   }
 

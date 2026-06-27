@@ -3,6 +3,71 @@ part of 'dart_restorer.dart';
 // -----------------------------------------------------------------------------
 
 mixin _TypeUtils on _DartRestorerBase {
+  /// SDK 类名到静态包装类名的映射
+  /// 集中管理所有类型映射，避免在多处重复定义
+  static const _sdkTypeMap = <String, String>{
+    // 异步类型
+    'Future': 'Promise',
+    '_Future': 'Promise',
+    // 集合类型
+    'List': 'StaticList',
+    '_GrowableList': 'StaticList',
+    '_List': 'StaticList',
+    'Map': 'StaticMap',
+    '_Map': 'StaticMap',
+    'LinkedHashMap': 'StaticMap',
+    '_InternalLinkedHashMap': 'StaticMap',
+    'Set': 'StaticSet',
+    '_Set': 'StaticSet',
+    'LinkedHashSet': 'StaticSet',
+    '_CompactLinkedHashSet': 'StaticSet',
+    // 工具类型
+    'StringBuffer': 'StaticStringBuffer',
+    'Iterator': 'StaticIterator',
+    '_ListIterator': 'StaticIterator',
+    'MapEntry': 'StaticMapEntry',
+    'Duration': 'StaticDuration',
+    'DateTime': 'StaticDateTime',
+    'RegExp': 'StaticRegExp',
+    '_RegExp': 'StaticRegExp',
+    // 异常类型
+    'StateError': 'DartStateError',
+    'ArgumentError': 'DartArgumentError',
+    'RangeError': 'DartRangeError',
+    'FormatException': 'DartFormatException',
+    'UnsupportedError': 'DartUnsupportedError',
+    'UnimplementedError': 'DartUnimplementedError',
+  };
+
+  /// 将 SDK 类名映射到静态包装类名
+  /// 如果不在映射表中，返回原始名称
+  String _mapSdkTypeName(String name) {
+    return _sdkTypeMap[name] ?? name;
+  }
+
+  /// 判断是否是集合类型（List/Map/Set 及其内部实现类）
+  bool _isCollectionType(String name) {
+    return name == 'List' || name == '_GrowableList' || name == '_List' ||
+        name == 'Map' || name == '_Map' || name == 'LinkedHashMap' || name == '_InternalLinkedHashMap' ||
+        name == 'Set' || name == '_Set' || name == 'LinkedHashSet' || name == '_CompactLinkedHashSet' ||
+        name == 'Iterable';
+  }
+
+  /// 转义字符串字面量中的特殊字符
+  /// [escapeDollar] 是否转义 $ 符号（用于字符串插值上下文）
+  String _escapeStringLiteral(String value, {bool escapeDollar = false}) {
+    var result = value
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'")
+        .replaceAll('\n', '\\n')
+        .replaceAll('\r', '\\r')
+        .replaceAll('\t', '\\t');
+    if (escapeDollar) {
+      result = result.replaceAll(r'$', r'\$');
+    }
+    return result;
+  }
+
   /// 根据 DartType 选择合适的 Box 类型名称（Bug 11 闭包引用语义）
   /// - int/double/bool/String → IntBox/DoubleBox/BoolBox/StringBox
   /// - TypeParameterType（泛型参数如 T）→ ObjectBox<T>（运行时可能是值类型）
@@ -94,38 +159,17 @@ mixin _TypeUtils on _DartRestorerBase {
     if (type is InterfaceType) {
       final rawName = type.classNode.name;
       // OOP Lowering: 用户自定义类的实例类型引用改为 XValue
-      // Future<T> → Promise<T>（状态机协程替代）
-      // 集合静态化: List→StaticList, Map→StaticMap, Set→StaticSet
+      // SDK 类型映射：通过 _mapSdkTypeName 统一处理
       String name;
-      if (rawName == 'Future' || rawName == '_Future') {
-        name = 'Promise';
-      } else if (rawName == 'List' || rawName == '_GrowableList' || rawName == '_List') {
-        name = 'StaticList';
-      } else if (rawName == 'Map' || rawName == '_Map' || rawName == 'LinkedHashMap' || rawName == '_InternalLinkedHashMap') {
-        name = 'StaticMap';
-      } else if (rawName == 'Set' || rawName == '_Set' || rawName == 'LinkedHashSet' || rawName == '_CompactLinkedHashSet') {
-        name = 'StaticSet';
-      } else if (rawName == 'Function') {
+      if (rawName == 'Function') {
         // dart:core 的 `Function` 顶层类型缺少 arity 信息，无法选具体的
         // TypeFunctionN；退化到 `dynamic`（变量仍能被动态派发调用，且产物
         // 中不再出现 `Function` 字面量）。
         return 'dynamic';
-      } else if (rawName == 'StringBuffer') {
-        name = 'StaticStringBuffer';
-      } else if (rawName == 'Iterator' || rawName == '_ListIterator') {
-        name = 'StaticIterator';
-      } else if (rawName == 'MapEntry') {
-        name = 'StaticMapEntry';
-      } else if (rawName == 'Duration') {
-        name = 'StaticDuration';
-      } else if (rawName == 'DateTime') {
-        name = 'StaticDateTime';
-      } else if (rawName == 'RegExp' || rawName == '_RegExp') {
-        name = 'StaticRegExp';
       } else if (_isUserClass(rawName)) {
         name = '${rawName}Value';
       } else {
-        name = rawName;
+        name = _mapSdkTypeName(rawName);
       }
       if (type.typeArguments.isEmpty) return '$name$suffix';
       final args = type.typeArguments.map((t) => _restoreType(t)).join(', ');
@@ -312,23 +356,11 @@ mixin _TypeUtils on _DartRestorerBase {
     final suffix = nullable ? '?' : '';
     if (type is InterfaceType) {
       final raw = type.classNode.name;
-      final isContainer = raw == 'List' || raw == '_List' || raw == '_GrowableList'
-          || raw == 'Map' || raw == '_Map' || raw == 'LinkedHashMap' || raw == '_InternalLinkedHashMap'
-          || raw == 'Set' || raw == '_Set' || raw == 'LinkedHashSet' || raw == '_CompactLinkedHashSet'
-          || raw == 'Iterable';
-      if (!isContainer) {
+      if (!_isCollectionType(raw)) {
         return _restoreType(type);
       }
-      String mapped;
-      if (raw == 'List' || raw == '_List' || raw == '_GrowableList') {
-        mapped = 'StaticList';
-      } else if (raw == 'Map' || raw == '_Map' || raw == 'LinkedHashMap' || raw == '_InternalLinkedHashMap') {
-        mapped = 'StaticMap';
-      } else if (raw == 'Set' || raw == '_Set' || raw == 'LinkedHashSet' || raw == '_CompactLinkedHashSet') {
-        mapped = 'StaticSet';
-      } else {
-        mapped = 'Iterable';
-      }
+      // 集合类型映射：通过 _mapSdkTypeName 统一处理
+      final mapped = raw == 'Iterable' ? 'Iterable' : _mapSdkTypeName(raw);
       if (type.typeArguments.isEmpty) return '$mapped$suffix';
       final args = type.typeArguments.map((t) {
         if (t is InterfaceType && t.classNode.name == 'Object') {

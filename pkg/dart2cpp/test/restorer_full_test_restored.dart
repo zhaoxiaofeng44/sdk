@@ -1508,13 +1508,13 @@ void main() {
   (cat.vptr['set_mood'] as void Function(dynamic, String))(cat, 'sleepy');
   staticPrint('mood after set: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
   staticPrint('\n--- 2. operator 重载 ---');
-  final Vector2DValue sum = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
-  final Vector2DValue diff = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(Vector2D_new(Vector2DValue(), 3.0, 4.0), Vector2D_new(Vector2DValue(), 1.0, 2.0));
-  final Vector2DValue scaled = (Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(Vector2D_new(Vector2DValue(), 3.0, 4.0), 2.0);
+  final Vector2DValue sum = (() { final _r17 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r17.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r17, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue diff = (() { final _r18 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r18.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r18, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue scaled = (() { final _r19 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r19.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r19, 2.0); })();
   staticPrint('v1 + v2 = ${sum}');
   staticPrint('v1 - v2 = ${diff}');
   staticPrint('v1 * 2 = ${scaled}');
-  staticPrint('v1.length = ${(Vector2D_new(Vector2DValue(), 3.0, 4.0).vptr['get_length'] as double Function(dynamic))(Vector2D_new(Vector2DValue(), 3.0, 4.0)).toStringAsFixed(2)}');
+  staticPrint('v1.length = ${(() { final _r20 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r20.vptr['get_length'] as double Function(dynamic))(_r20); })().toStringAsFixed(2)}');
   staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
   staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
@@ -1529,8 +1529,8 @@ void main() {
   staticPrint('\n--- 4. Result<T> + named params ---');
   staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
   staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (Result_new_success<int>(ResultValue<int>(), 42).vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(Result_new_success<int>(ResultValue<int>(), 42), ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8())));
-  final String errMsg = (Result_new_failure<int>(ResultValue<int>(), 'not found').vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(Result_new_failure<int>(ResultValue<int>(), 'not found'), ClosureEnv_main_11_new(GC.allocateLocal(ClosureEnv_main_11())), ClosureEnv_main_12_new(GC.allocateLocal(ClosureEnv_main_12())));
+  final String okMsg = (() { final _r21 = Result_new_success<int>(ResultValue<int>(), 42); return (_r21.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r21, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
+  final String errMsg = (() { final _r22 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r22.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r22, ClosureEnv_main_11_new(GC.allocateLocal(ClosureEnv_main_11())), ClosureEnv_main_12_new(GC.allocateLocal(ClosureEnv_main_12()))); })();
   staticPrint('okMsg: ${okMsg}');
   staticPrint('errMsg: ${errMsg}');
   staticPrint('\n--- 5. 可选参数 ---');
@@ -1704,7 +1704,7 @@ void main() {
   staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(dynamic))(renderer)}');
   (renderer.vptr['render'] as void Function(dynamic, String))(renderer, 'circle');
   staticPrint('\n--- 30. Pipeline 泛型链 ---');
-  final PipelineValue<int, String> pipeline = ((Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_22_new(GC.allocateLocal(ClosureEnv_main_22()))).vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_22_new(GC.allocateLocal(ClosureEnv_main_22()))), ClosureEnv_main_24_new(GC.allocateLocal(ClosureEnv_main_24()))).vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))((Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_22_new(GC.allocateLocal(ClosureEnv_main_22()))).vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_22_new(GC.allocateLocal(ClosureEnv_main_22()))), ClosureEnv_main_24_new(GC.allocateLocal(ClosureEnv_main_24()))), ClosureEnv_main_26_new(GC.allocateLocal(ClosureEnv_main_26())));
+  final PipelineValue<int, String> pipeline = (() { final _r24 = (() { final _r23 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_22_new(GC.allocateLocal(ClosureEnv_main_22()))); return (_r23.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r23, ClosureEnv_main_24_new(GC.allocateLocal(ClosureEnv_main_24()))); })(); return (_r24.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r24, ClosureEnv_main_26_new(GC.allocateLocal(ClosureEnv_main_26()))); })();
   staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 42)}');
   staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 12345)}');
   staticPrint('\n--- 31. switch-case ---');

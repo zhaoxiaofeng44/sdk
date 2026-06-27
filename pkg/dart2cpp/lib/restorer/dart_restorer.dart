@@ -53,6 +53,112 @@ abstract class _DartRestorerBase {
 
   String get _pad => '  ' * _indent;
 
+  /// 通用作用域状态管理辅助方法
+  /// 自动保存和恢复状态，避免遗漏恢复导致的状态污染
+  T _withScope<T>(
+    Map<String, dynamic> stateToSave,
+    T Function() body, {
+    Map<String, dynamic>? stateToRestore,
+  }) {
+    // 保存状态
+    final saved = <String, dynamic>{};
+    for (final key in stateToSave.keys) {
+      saved[key] = _getState(key);
+    }
+
+    // 应用新状态
+    for (final entry in stateToSave.entries) {
+      _setState(entry.key, entry.value);
+    }
+
+    try {
+      return body();
+    } finally {
+      // 恢复状态
+      final restoreMap = stateToRestore ?? stateToSave;
+      for (final key in restoreMap.keys) {
+        _setState(key, saved[key]);
+      }
+    }
+  }
+
+  /// 获取状态值（内部辅助方法）
+  dynamic _getState(String key) {
+    switch (key) {
+      case 'activeTypeParamSubstitution':
+        return _activeTypeParamSubstitution;
+      case 'activeTypeParamTargets':
+        return _activeTypeParamTargets;
+      case 'boxedVars':
+        return Set<VariableDeclaration>.from(_boxedVars);
+      case 'currentFunctionParams':
+        return Set<VariableDeclaration>.from(_currentFunctionParams);
+      case 'insideMethodBody':
+        return _insideMethodBody;
+      case 'thisReplacementName':
+        return _thisReplacementName;
+      case 'isStaticFieldContext':
+        return _isStaticFieldContext;
+      case 'capturedVarEnvPrefix':
+        return Map<VariableDeclaration, String>.from(_capturedVarEnvPrefix);
+      case 'thisIsCapturedInEnv':
+        return _thisIsCapturedInEnv;
+      case 'insideAsyncFunction':
+        return _insideAsyncFunction;
+      case 'asyncInnerReturnType':
+        return _asyncInnerReturnType;
+      default:
+        throw ArgumentError('Unknown state key: $key');
+    }
+  }
+
+  /// 设置状态值（内部辅助方法）
+  void _setState(String key, dynamic value) {
+    switch (key) {
+      case 'activeTypeParamSubstitution':
+        _activeTypeParamSubstitution = value as Map<String, String>;
+        break;
+      case 'activeTypeParamTargets':
+        _activeTypeParamTargets = value as Set<TypeParameter>;
+        break;
+      case 'boxedVars':
+        _boxedVars
+          ..clear()
+          ..addAll(value as Set<VariableDeclaration>);
+        break;
+      case 'currentFunctionParams':
+        _currentFunctionParams
+          ..clear()
+          ..addAll(value as Set<VariableDeclaration>);
+        break;
+      case 'insideMethodBody':
+        _insideMethodBody = value as bool;
+        break;
+      case 'thisReplacementName':
+        _thisReplacementName = value as String;
+        break;
+      case 'isStaticFieldContext':
+        _isStaticFieldContext = value as bool;
+        break;
+      case 'capturedVarEnvPrefix':
+        _capturedVarEnvPrefix
+          ..clear()
+          ..addAll(value as Map<VariableDeclaration, String>);
+        break;
+      case 'thisIsCapturedInEnv':
+        _thisIsCapturedInEnv = value as bool;
+        break;
+      case 'insideAsyncFunction':
+        _insideAsyncFunction = value as bool;
+        break;
+      case 'asyncInnerReturnType':
+        _asyncInnerReturnType = value as String;
+        break;
+      default:
+        throw ArgumentError('Unknown state key: $key');
+    }
+  }
+
   /// 判断是否是运算符名称
   bool _isOperatorName(String name) {
     return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
@@ -124,14 +230,6 @@ abstract class _DartRestorerBase {
 
   /// 待输出的闭包类和静态函数定义（延迟到顶层输出）
   final List<String> _pendingClosureDecls = [];
-
-  /// 待输出的顶层声明：如类级共享的 vtable 常量
-  /// `final Map<String, dynamic> _XX_vtable = <String, dynamic>{ ... };`
-  /// 这些声明会在所有类/函数输出之后、_pendingClosureDecls 之前写到 _buf。
-  final List<String> _pendingTopLevelDecls = [];
-
-  /// 已经登记过共享 vtable 常量的类名集合，避免同类多构造函数（如 .named）重复输出。
-  final Set<String> _emittedSharedVTableClasses = {};
 
   /// 方法级泛型特化收集：className → { methodName → { 特化条目 } }
   /// 预扫描 AST 收集所有调用处的方法级类型实参，用于在构造函数中按特化 key 注册。
@@ -1369,185 +1467,9 @@ class DartRestorer extends _DartRestorerBase
   }
 
   /// 通用子节点遍历（用于预扫描方法级泛型特化）
+  /// 使用 _forEachChildNode 避免重复的遍历逻辑
   void _scanChildrenForMethodTypeSpecs(TreeNode node) {
-    if (node is Block) {
-      for (final s in node.statements) _scanNodeForMethodTypeSpecs(s);
-      return;
-    }
-    if (node is ExpressionStatement) {
-      _scanNodeForMethodTypeSpecs(node.expression);
-      return;
-    }
-    if (node is ReturnStatement) {
-      if (node.expression != null) _scanNodeForMethodTypeSpecs(node.expression!);
-      return;
-    }
-    if (node is VariableDeclaration) {
-      if (node.initializer != null) _scanNodeForMethodTypeSpecs(node.initializer!);
-      return;
-    }
-    if (node is VariableSet) {
-      _scanNodeForMethodTypeSpecs(node.value);
-      return;
-    }
-    if (node is VariableGet) return;
-    if (node is IfStatement) {
-      _scanNodeForMethodTypeSpecs(node.condition);
-      _scanNodeForMethodTypeSpecs(node.then);
-      if (node.otherwise != null) _scanNodeForMethodTypeSpecs(node.otherwise!);
-      return;
-    }
-    if (node is ForStatement) {
-      for (final v in node.variables) _scanNodeForMethodTypeSpecs(v);
-      if (node.condition != null) _scanNodeForMethodTypeSpecs(node.condition!);
-      for (final u in node.updates) _scanNodeForMethodTypeSpecs(u);
-      _scanNodeForMethodTypeSpecs(node.body);
-      return;
-    }
-    if (node is ForInStatement) {
-      _scanNodeForMethodTypeSpecs(node.variable);
-      _scanNodeForMethodTypeSpecs(node.iterable);
-      _scanNodeForMethodTypeSpecs(node.body);
-      return;
-    }
-    if (node is WhileStatement) {
-      _scanNodeForMethodTypeSpecs(node.condition);
-      _scanNodeForMethodTypeSpecs(node.body);
-      return;
-    }
-    if (node is DoStatement) {
-      _scanNodeForMethodTypeSpecs(node.body);
-      _scanNodeForMethodTypeSpecs(node.condition);
-      return;
-    }
-    if (node is TryCatch) {
-      _scanNodeForMethodTypeSpecs(node.body);
-      for (final c in node.catches) {
-        _scanNodeForMethodTypeSpecs(c.body);
-      }
-      return;
-    }
-    if (node is TryFinally) {
-      _scanNodeForMethodTypeSpecs(node.body);
-      _scanNodeForMethodTypeSpecs(node.finalizer);
-      return;
-    }
-    if (node is SwitchStatement) {
-      _scanNodeForMethodTypeSpecs(node.expression);
-      for (final c in node.cases) {
-        _scanNodeForMethodTypeSpecs(c.body);
-      }
-      return;
-    }
-    if (node is Let) {
-      _scanNodeForMethodTypeSpecs(node.variable);
-      _scanNodeForMethodTypeSpecs(node.body);
-      return;
-    }
-    if (node is BlockExpression) {
-      _scanNodeForMethodTypeSpecs(node.body);
-      _scanNodeForMethodTypeSpecs(node.value);
-      return;
-    }
-    if (node is StaticInvocation) {
-      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
-      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
-      return;
-    }
-    if (node is ConstructorInvocation) {
-      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
-      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
-      return;
-    }
-    if (node is InstanceGet) {
-      _scanNodeForMethodTypeSpecs(node.receiver);
-      return;
-    }
-    if (node is InstanceSet) {
-      _scanNodeForMethodTypeSpecs(node.receiver);
-      _scanNodeForMethodTypeSpecs(node.value);
-      return;
-    }
-    if (node is ConditionalExpression) {
-      _scanNodeForMethodTypeSpecs(node.condition);
-      _scanNodeForMethodTypeSpecs(node.then);
-      _scanNodeForMethodTypeSpecs(node.otherwise);
-      return;
-    }
-    if (node is LogicalExpression) {
-      _scanNodeForMethodTypeSpecs(node.left);
-      _scanNodeForMethodTypeSpecs(node.right);
-      return;
-    }
-    if (node is Not) {
-      _scanNodeForMethodTypeSpecs(node.operand);
-      return;
-    }
-    if (node is StringConcatenation) {
-      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
-      return;
-    }
-    if (node is AsExpression) {
-      _scanNodeForMethodTypeSpecs(node.operand);
-      return;
-    }
-    if (node is IsExpression) {
-      _scanNodeForMethodTypeSpecs(node.operand);
-      return;
-    }
-    if (node is NullCheck) {
-      _scanNodeForMethodTypeSpecs(node.operand);
-      return;
-    }
-    if (node is Throw) {
-      _scanNodeForMethodTypeSpecs(node.expression);
-      return;
-    }
-    if (node is AwaitExpression) {
-      _scanNodeForMethodTypeSpecs(node.operand);
-      return;
-    }
-    if (node is FunctionExpression) {
-      if (node.function.body != null) _scanNodeForMethodTypeSpecs(node.function.body!);
-      return;
-    }
-    if (node is FunctionDeclaration) {
-      if (node.function.body != null) _scanNodeForMethodTypeSpecs(node.function.body!);
-      return;
-    }
-    if (node is ListLiteral) {
-      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
-      return;
-    }
-    if (node is MapLiteral) {
-      for (final e in node.entries) {
-        _scanNodeForMethodTypeSpecs(e.key);
-        _scanNodeForMethodTypeSpecs(e.value);
-      }
-      return;
-    }
-    if (node is SetLiteral) {
-      for (final e in node.expressions) _scanNodeForMethodTypeSpecs(e);
-      return;
-    }
-    if (node is FunctionInvocation) {
-      _scanNodeForMethodTypeSpecs(node.receiver);
-      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
-      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
-      return;
-    }
-    if (node is DynamicInvocation) {
-      _scanNodeForMethodTypeSpecs(node.receiver);
-      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
-      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
-      return;
-    }
-    if (node is SuperMethodInvocation) {
-      for (final a in node.arguments.positional) _scanNodeForMethodTypeSpecs(a);
-      for (final a in node.arguments.named) _scanNodeForMethodTypeSpecs(a.value);
-      return;
-    }
-    // 其他节点类型不处理
+    _forEachChildNode(node, _scanNodeForMethodTypeSpecs);
   }
 
   void _collectVTableEntries(Class cls, {String? overrideName}) {
@@ -1698,17 +1620,6 @@ class DartRestorer extends _DartRestorerBase
       _popClosureContext();
     }
     for (final field in lib.fields) _restoreField(field, isTopLevel: true);
-
-    // 输出所有延迟的顶层声明：类级共享 vtable 常量
-    if (_pendingTopLevelDecls.isNotEmpty) {
-      _buf.write('// ---- Class-level shared vtables ----\n');
-      for (final decl in _pendingTopLevelDecls) {
-        _buf.write(decl);
-      }
-      _buf.write('\n');
-    }
-    _pendingTopLevelDecls.clear();
-    _emittedSharedVTableClasses.clear();
 
     // 输出所有延迟的闭包类和静态函数定义
     for (final decl in _pendingClosureDecls) {

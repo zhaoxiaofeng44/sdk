@@ -1112,69 +1112,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     return substitution;
   }
 
-  /// 在 Value 类中生成 toString()/operator==/hashCode 的覆写方法
-  /// 这些方法桥接到 vptr 中对应的函数指针，确保 Dart 运行时调用时能正确分派
-  void _emitObjectMethodOverrides(Class cls, String className, String? parentName) {
-    // 检查当前类或其继承链中是否定义了 toString
-    final hasToString = _classHasVTableEntry(className, 'toString_', 'method') ||
-        _classHasVTableEntry(className, 'toString', 'method');
-    // 检查是否定义了 operator==
-    final hasOperatorEq = _classHasVTableEntry(className, '==', 'operator');
-    // 检查是否定义了 hashCode getter
-    final hasHashCode = _classHasVTableEntry(className, 'hashCode', 'getter');
-
-    if (hasToString) {
-      _buf.write('$_pad@override\n');
-      _buf.write('${_pad}String toString() {\n');
-      _indent++;
-      _buf.write("${_pad}final toStringFn = vptr['toString_'];\n");
-      _buf.write('${_pad}if (toStringFn != null) return (toStringFn as String Function(dynamic))(this);\n');
-      _buf.write('${_pad}return super.toString();\n');
-      _indent--;
-      _buf.write('$_pad}\n');
-    }
-
-    if (hasOperatorEq) {
-      _buf.write('$_pad@override\n');
-      _buf.write('${_pad}bool operator ==(Object other) {\n');
-      _indent++;
-      _buf.write("${_pad}final eqFn = vptr['operatorEq'];\n");
-      _buf.write('${_pad}if (eqFn != null) return (eqFn as bool Function(dynamic, Object))(this, other);\n');
-      _buf.write('${_pad}return identical(this, other);\n');
-      _indent--;
-      _buf.write('$_pad}\n');
-    }
-
-    if (hasHashCode) {
-      _buf.write('$_pad@override\n');
-      _buf.write('${_pad}int get hashCode {\n');
-      _indent++;
-      _buf.write("${_pad}final hashFn = vptr['get_hashCode'];\n");
-      _buf.write('${_pad}if (hashFn != null) return (hashFn as int Function(dynamic))(this);\n');
-      _buf.write('${_pad}return super.hashCode;\n');
-      _indent--;
-      _buf.write('$_pad}\n');
-    }
-  }
-
-  /// 检查类的 VTable 中是否包含指定名称和类型的条目
-  bool _classHasVTableEntry(String className, String entryName, String kind) {
-    final entries = _classVTableEntries[className];
-    if (entries != null) {
-      for (final entry in entries) {
-        if (entry.name == entryName && entry.kind == kind) return true;
-        // toString 在 vptr 中可能注册为 'toString_' 或 'toString'
-        if (kind == 'method' && entryName == 'toString_' && entry.name == 'toString') return true;
-      }
-    }
-    // 检查父类
-    final parentName = _getParentClassName(className);
-    if (parentName != null && _isUserClass(parentName)) {
-      return _classHasVTableEntry(parentName, entryName, kind);
-    }
-    return false;
-  }
-  
   /// 收集当前类及所有父类的字段
   /// 只收集当前类自己定义的字段（不包括从父类继承的）
   /// 包括 mixin 引入的字段（通过 mixedInType）
@@ -1263,36 +1200,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     return entries;
   }
   
-  /// 查找方法的首次声明类名（declaringClassName）
-  /// 在 _classVTableEntries 中查找指定方法首次被声明的类名
-  /// 返回原始的 declaringClassName，调用方根据类型决定 this_ 参数类型：
-  /// - mixin → dynamic
-  /// - 合成中间类 → dynamic
-  /// - extends 链上的父类 → declaringClassName + Value
-  /// - 接口 implements → 当前类名 + Value
-  String _findDeclaringClassName(String className, String methodName, String kind) {
-    final entries = _classVTableEntries[className];
-    if (entries != null) {
-      for (final entry in entries) {
-        if (entry.name == methodName && entry.kind == kind) {
-          return entry.declaringClassName ?? className;
-        }
-      }
-    }
-    return className;
-  }
-
-  /// 判断 ancestorName 是否在 className 的 extends 继承链上
-  bool _isInExtendsChain(String className, String ancestorName) {
-    var current = _getParentClassName(className);
-    while (current != null) {
-      if (current == ancestorName) return true;
-      current = _getParentClassName(current);
-    }
-    return false;
-  }
-
-
   /// 从当前类 cls 的继承链中，解析出祖先类 ancestorCls 的具体类型参数
   /// 例如：StringToIntTransformer extends DataTransformer<String, int>
   /// → 返回 ['String', 'int']
@@ -1514,44 +1421,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     return _vtableFieldName(entry.name);
   }
 
-  /// 类级共享 vtable 常量的全局变量名：`_XX_vtable`
-  String _sharedVTableName(String className) => '_${className}_vtable';
-
-  /// 在顶层缓冲区注册类级共享 vtable 常量。
-  /// 同一个类有多个构造函数（如 X.named）也只会输出一次。
-  /// 形如：
-  ///   final Map<String, dynamic> _XX_vtable = <String, dynamic>{
-  ///     'k1': v1,
-  ///     'k2': v2,
-  ///   };
-  void _emitSharedVTableConstant(String className, List<(String, String)> keyRhsList) {
-    if (_emittedSharedVTableClasses.contains(className)) return;
-    _emittedSharedVTableClasses.add(className);
-
-    final sb = StringBuffer();
-    sb.write('final Map<String, dynamic> ${_sharedVTableName(className)} = <String, dynamic>{\n');
-    for (final kv in keyRhsList) {
-      sb.write("  '${kv.$1}': ${kv.$2},\n");
-    }
-    sb.write('};\n');
-    _pendingTopLevelDecls.add(sb.toString());
-  }
-
-  /// 判断给定的直接父类名沿合成链向上是否能找到真实的非合成用户类。
-  /// 与 _emitSuperInit 中查找真实父类构造函数的行为保持一致：
-  /// 跳过合成 mixin 中间类（带 '&'）和合成 lowered 类，
-  /// 只要顶端能找到非合成用户类，就视为"有真实用户父类构造"。
-  bool _hasRealUserAncestor(String? parentName) {
-    if (parentName == null || !_isUserClass(parentName)) return false;
-    String current = parentName;
-    while (_isSyntheticMixinClassName(current) || _isSyntheticLoweredName(current)) {
-      final next = _getParentClassName(current);
-      if (next == null || !_isUserClass(next)) return false;
-      current = next;
-    }
-    return !_isSyntheticLoweredName(current) && !_isSyntheticMixinClassName(current);
-  }
-
   /// 调用父类 new 函数（传入 this_）实现基类构造
   /// 如果父类是合成 mixin 中间类（不生成构造函数），则沿继承链向上
   /// 找到真正的非合成用户类来调用其构造函数
@@ -1638,69 +1507,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
 
   /// 为有初始值但未在初始化列表或 this.field 参数中处理的字段生成默认值赋值
   /// 例如：`bool _initialized = false;` → `this_._initialized = false;`
+  /// 注意：当前所有 OOP lowered 字段都是 late，初始化已在字段定义处发射，
+  /// 此方法保留作为兜底，但循环体通常不会执行
   void _emitFieldDefaultValues(Constructor ctor, Class cls) {
-    // 收集已经在初始化列表中处理过的字段名
-    final initedFields = <String>{};
-    for (final init in ctor.initializers) {
-      if (init is FieldInitializer) {
-        initedFields.add(init.field.name.text);
-      }
-    }
-    // 收集已经在 this.field 参数中处理过的字段名
-    final fieldNames = cls.fields.where((f) => !f.isStatic).map((f) => f.name.text).toSet();
-    for (final param in ctor.function.positionalParameters) {
-      final paramName = _cleanVarName(param.name ?? '');
-      if (fieldNames.contains(paramName)) {
-        initedFields.add(paramName);
-      }
-    }
-    for (final param in ctor.function.namedParameters) {
-      final paramName = _cleanVarName(param.name ?? '');
-      if (fieldNames.contains(paramName)) {
-        initedFields.add(paramName);
-      }
-    }
-
-    // 收集当前类及所有父类/mixin 的字段（与 _emitValueClass 中 _collectAllFields 一致）
-    final allFields = <Field>[];
-    _collectAllFields(cls, allFields, <String>{});
-
-    // 为有初始值但未处理的字段生成赋值
-    // 新方案：late + initializer 在字段定义处直接发射，利用 Dart 的 late 惰性语义
-    // 构造函数中只处理非 late 字段（实际上所有 OOP lowered 字段都是 late，
-    // 所以这里只处理特殊情况：没有 initializer 的字段不需要赋值，
-    // 有 initializer 的字段已在字段定义处发射，无需在构造函数中重复）
-    //
-    // 保留此循环作为兜底：处理没有 initializer 但需要默认值的场景
-    //
-    // 还原表达式前需要正确设置上下文（虽然当前循环体不太会被执行）：
-    // Bug 21: 构建 mixin 类型参数替换映射
-    // 当 mixin 的字段初始化器引用了 mixin 的类型参数（如 Observable<T> 的 T），
-    // 需要替换为当前类对应的类型参数（如 ReactiveStore<V> 的 V）
-    final mixinTypeSubstitution = _buildMixinFieldTypeSubstitution(cls);
-
-    final savedInsideMethodBody = _insideMethodBody;
-    final savedThisReplacementName = _thisReplacementName;
-    final savedTypeParamSubstitution = _activeTypeParamSubstitution;
-    _insideMethodBody = true;
-    _thisReplacementName = 'this_';
-    if (mixinTypeSubstitution.isNotEmpty) {
-      // 合并外层已有的替换映射（如非用户类基类的类型参数映射）
-      _activeTypeParamSubstitution = {..._activeTypeParamSubstitution, ...mixinTypeSubstitution};
-    }
-    try {
-      for (final field in allFields) {
-        if (field.isStatic) continue;
-        if (initedFields.contains(field.name.text)) continue;
-        if (field.initializer == null) continue;
-        // 所有字段初始化已在字段定义处发射（利用 Dart late 惰性语义），
-        // 构造函数中跳过，避免重复赋值
-      }
-    } finally {
-      _insideMethodBody = savedInsideMethodBody;
-      _thisReplacementName = savedThisReplacementName;
-      _activeTypeParamSubstitution = savedTypeParamSubstitution;
-    }
+    // 当前所有字段初始化已在字段定义处发射（利用 Dart late 惰性语义），
+    // 构造函数中无需重复赋值。此方法保留作为未来扩展的占位符。
   }
 
   /// 为 vptr 条目生成注册值
@@ -1803,16 +1614,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   }
 
   // _defaultValueForType 已移至 _DartRestorerBase 基类中
-
-  /// 在类型字符串中替换类型参数名为指定的替换值
-  /// 例如：将 "R Function(T)" 中的 R 和 T 替换为 dynamic
-  String _replaceTypeParam(String typeStr, String paramName, String replacement) {
-    // 使用单词边界匹配，避免替换部分匹配（如 "Result" 中的 "R"）
-    return typeStr.replaceAllMapped(
-      RegExp('\\b$paramName\\b'),
-      (m) => replacement,
-    );
-  }
 
   /// 输出方法体，将 this 替换为指定变量名
   void _emitBodyWithThisReplacement(Statement body, String thisReplacement) {
@@ -2321,10 +2122,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     if (field.initializer != null) {
       _buf.write(' = ');
       // 顶层/静态字段初始化中的对象创建应使用 GC.allocateGlobal
-      final savedContext = _isStaticFieldContext;
-      if (isTopLevel || field.isStatic) _isStaticFieldContext = true;
-      _buf.write(_restoreExpr(field.initializer!));
-      _isStaticFieldContext = savedContext;
+      final newContext = isTopLevel || field.isStatic;
+      _withScope(
+        {'isStaticFieldContext': newContext},
+        () => _buf.write(_restoreExpr(field.initializer!)),
+      );
     }
     _buf.write(';\n');
   }
