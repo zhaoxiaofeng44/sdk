@@ -1,0 +1,41 @@
+.*
+!.gitignore
+
+# Build outputs
+build/
+*.o
+*.so
+*.dylib
+
+# Temporary files
+*_temp.dart
+*_temp.*
+*.dill
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+.dart_tool/
+.packages
+pubspec.lock
+
+# Test outputs
+test_output/
+*.log
+
+# C++ build artifacts
+cpp/build/
+cpp/*.o
+
+# Temporary tools
+tool/*_temp.dart
+tool/test_*.dart
