@@ -1,9 +1,9 @@
 # Dart2CPP C++ Runtime Makefile
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I./core
+CXXFLAGS = -std=c++17 -Wall -Wextra -I../src/platform/cpp
 
-CORE_DIR = core
+CORE_DIR = ../src/platform/cpp
 TEST_DIR = test
 EXAMPLES_DIR = examples
 BUILD_DIR = build

@@ -239,20 +239,20 @@ class GC {
 }
 
 /// VPtr 基类 - 所有无基类（或继承自 Object）的 Value 类都继承自它。
-/// 提供 vptr 字段和 toString/operator==/hashCode 的桥接覆写。
+/// 提供 vptr 抽象 getter 和 toString/operator==/hashCode 的桥接覆写。
+///
+/// 每个具体 Value 类通过静态 `_vptr` 字段实现 per-type 共享的 vptr，
+/// 惰性初始化，所有实例共享同一份虚函数表。
 ///
 /// 注：vptr 槽里存的函数现在统一是 TypeFunctionN 子类实例（由还原器生成的
 /// 各种 _Closure_ / _TearOff_ 类）。这里用对应 arity 的 TypeFunctionN 做
 /// cast，避免出现 `Function` 字面量。
-class VPtr extends AnyGC {
-  late Map<String, dynamic> vptr;
-  VPtr() {
-    vptr = <String, dynamic>{
-      'toString': null,
-      'operatorEq': null,
-      'get_hashCode': null,
-    };
-  }
+abstract class VPtr extends AnyGC {
+  /// 子类必须实现此 getter，返回 per-type 共享的静态 vptr。
+  Map<String, dynamic> get vptr;
+
+  VPtr();
+
   @override
   String toString() {
     final fn = vptr['toString'];
