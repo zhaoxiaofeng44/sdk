@@ -167,7 +167,9 @@ mixin _TypeUtils on _DartRestorerBase {
         // 中不再出现 `Function` 字面量）。
         return 'dynamic';
       } else if (_isUserClass(rawName)) {
-        name = '${rawName}Value';
+        // 多文件支持：使用 Class 节点精确匹配，避免同名类冲突
+        final prefix = _crossLibPrefixForClass(type.classNode);
+        name = '$prefix${rawName}Value';
       } else {
         name = _mapSdkTypeName(rawName);
       }
@@ -194,7 +196,8 @@ mixin _TypeUtils on _DartRestorerBase {
     if (type is VoidType) return 'void';
     if (type is NeverType) return 'Never$suffix';
     if (type is FutureOrType) {
-      return 'FutureOr<${_restoreType(type.typeArgument)}>$suffix';
+      // FutureOr<T> 统一映射为 Promise<T>（Promise 是 Future 的运行时替代）
+      return 'Promise<${_restoreType(type.typeArgument)}>$suffix';
     }
     if (type is RecordType) {
       final parts = <String>[];
@@ -271,7 +274,7 @@ mixin _TypeUtils on _DartRestorerBase {
       // 处理 0#0 这种格式，直接生成 _v 前缀的变量名，确保声明和引用使用相同的名称
       final parts = name.split('#');
       final lastPart = parts.last;
-      if (lastPart.isEmpty || RegExp(r'^[0-9]').hasMatch(lastPart)) {
+      if (lastPart.isEmpty || _digitStartPattern.hasMatch(lastPart)) {
         // 后面部分是空或以数字开头，生成 _v 前缀的变量名
         cleaned = '_v${_varCounter++}';
       } else {
@@ -281,11 +284,11 @@ mixin _TypeUtils on _DartRestorerBase {
       cleaned = name;
     }
     // 确保清理后的变量名是合法的 Dart 标识符（不能以数字开头，不能包含 - 等特殊字符）
-    if (cleaned.isNotEmpty && RegExp(r'^[0-9]').hasMatch(cleaned)) {
+    if (cleaned.isNotEmpty && _digitStartPattern.hasMatch(cleaned)) {
       cleaned = '_v${_varCounter++}';
     }
     // 替换非法字符（如 -、|、# 等）为下划线
-    cleaned = cleaned.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    cleaned = cleaned.replaceAll(_nonIdentifierPattern, '_');
     // 如果清理后的名称是 Dart 关键字，加 _ 后缀
     if (_dartKeywords.contains(cleaned)) {
       cleaned = '${cleaned}_';

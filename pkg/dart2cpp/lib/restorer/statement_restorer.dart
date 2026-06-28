@@ -55,9 +55,10 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       if (stmt.expression != null) {
         final exprStr = _restoreExpr(stmt.expression!);
         _buf.write('${_pad}env._promise.complete($exprStr);\n');
-      } else if (_asyncInnerReturnType == 'int') {
-        // async void → async int: 裸 return → complete(0)
-        _buf.write('${_pad}env._promise.complete(0);\n');
+      } else {
+        // 裸 return → 根据返回类型生成默认值
+        final defaultVal = _defaultPromiseValue(_asyncInnerReturnType);
+        _buf.write('${_pad}env._promise.complete($defaultVal);\n');
       }
       _buf.write('${_pad}return;\n');
       _indent--;
@@ -69,6 +70,19 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       }
       _buf.write(';\n');
     }
+  }
+
+  /// 为 async 函数的裸 return 生成默认 Promise 完成值
+  /// 根据返回类型生成合适的默认值
+  String _defaultPromiseValue(String type) {
+    if (type == 'int') return '0';
+    if (type == 'double') return '0.0';
+    if (type == 'bool') return 'false';
+    if (type == 'String') return "''";
+    if (type == 'void' || type == 'dynamic') return '0';
+    if (type == 'num') return '0';
+    // 对于其他类型（包括自定义类），使用 null as dynamic
+    return 'null as dynamic';
   }
 
   /// 还原 IfStatement
@@ -168,12 +182,60 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
 
   /// 还原 LabeledStatement
   void _restoreLabeledStatement(LabeledStatement stmt) {
-    // switch pattern 脱糖后的 LabeledStatement + BreakStatement 用 do-while(false) 包裹
-    _buf.write('${_pad}do {\n');
-    _indent++;
-    _restoreStmt(stmt.body);
-    _indent--;
-    _buf.write('$_pad} while (false);\n');
+    // 检查是否是 switch pattern 脱糖后的标签（包含 break 语句）
+    // 如果是，需要用 do-while(false) 包裹
+    // 用户定义的循环标签也使用 do-while 包裹（内核将 continue 表示为 break）
+    if (_containsBreakStatement(stmt.body)) {
+      _buf.write('${_pad}do {\n');
+      _indent++;
+      _restoreStmt(stmt.body);
+      _indent--;
+      _buf.write('$_pad} while (false);\n');
+    } else {
+      // 没有 break 语句的标签：直接保留标签形式（Dart 支持，C++ 可用 goto）
+      final labelName = '_label${_varCounter++}';
+      _buf.write('${_pad}$labelName:\n');
+      _restoreStmt(stmt.body);
+    }
+  }
+
+  /// 检查语句中是否包含 BreakStatement（用于区分 switch pattern 和用户标签）
+  /// 递归检查所有语句，包括循环体内的
+  bool _containsBreakStatement(Statement stmt) {
+    if (stmt is BreakStatement) return true;
+    if (stmt is Block) {
+      return stmt.statements.any(_containsBreakStatement);
+    }
+    if (stmt is IfStatement) {
+      if (_containsBreakStatement(stmt.then)) return true;
+      if (stmt.otherwise != null && _containsBreakStatement(stmt.otherwise!)) return true;
+    }
+    if (stmt is LabeledStatement) {
+      return _containsBreakStatement(stmt.body);
+    }
+    if (stmt is ForStatement) {
+      return _containsBreakStatement(stmt.body);
+    }
+    if (stmt is WhileStatement) {
+      return _containsBreakStatement(stmt.body);
+    }
+    if (stmt is DoStatement) {
+      return _containsBreakStatement(stmt.body);
+    }
+    if (stmt is ForInStatement) {
+      return _containsBreakStatement(stmt.body);
+    }
+    if (stmt is TryCatch) {
+      if (_containsBreakStatement(stmt.body)) return true;
+      for (final c in stmt.catches) {
+        if (_containsBreakStatement(c.body)) return true;
+      }
+    }
+    if (stmt is TryFinally) {
+      if (_containsBreakStatement(stmt.body)) return true;
+      if (_containsBreakStatement(stmt.finalizer)) return true;
+    }
+    return false;
   }
 
   /// 还原 ContinueSwitchStatement
@@ -231,7 +293,7 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     final name = _cleanVarName(originalName);
     // 确保 v.name 被设置为清理后的名称，这样后续的 _restoreVarGet 能正确引用
     v.name = name;
-    
+
     // 跳过以 _alreadyDeclared_ 开头的重复声明
     if (name.startsWith('_alreadyDeclared_')) {
       final realName = name.substring('_alreadyDeclared_'.length);
@@ -256,6 +318,26 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       return;
     }
 
+    // 检查是否将普通函数赋值给 TypeFunction 类型变量
+    // 如果是，需要包装为 ClosureEnv
+    if (v.initializer != null) {
+      // 检查还原后的类型是否是 TypeFunction 类型
+      final restoredType = _restoreType(v.type);
+      final isTypeFunction = restoredType.startsWith('TypeFunction');
+
+      if (isTypeFunction) {
+        final wrappedInit = _wrapFunctionInTypeFunction(v.initializer!, v.type);
+        if (wrappedInit != null) {
+          _buf.write(_pad);
+          if (v.isConst) _buf.write('const ');
+          else if (v.isFinal) _buf.write('final ');
+          _buf.write(restoredType);
+          _buf.write(' $name = $wrappedInit;\n');
+          return;
+        }
+      }
+    }
+
     _buf.write(_pad);
     // 如果变量没有初始化器且类型不可空，添加 late 修饰符
     // 这处理了 pattern matching 脱糖后的变量声明（如 int n; 在赋值前使用）
@@ -270,6 +352,147 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       _buf.write(' = ${_adaptInitForStaticCollection(v, initStr)}');
     }
     _buf.write(';\n');
+  }
+
+  /// 检查类型是否是 TypeFunction 类型
+  bool _isTypeFunctionType(DartType type) {
+    if (type is! InterfaceType) return false;
+    final name = type.classNode.name;
+    return name.startsWith('TypeFunction');
+  }
+
+  /// 将普通函数包装为 TypeFunction 实例
+  /// 返回包装后的表达式字符串，如果无法包装则返回 null
+  String? _wrapFunctionInTypeFunction(Expression init, DartType targetType) {
+    Procedure? target;
+
+    // 处理静态函数引用（StaticGet）
+    if (init is StaticGet) {
+      final t = init.target;
+      if (t is Procedure && t.enclosingClass == null) {
+        target = t;
+      }
+    }
+    // 处理常量表达式中的 tear-off（ConstantExpression 包装的 StaticTearOffConstant 等）
+    else if (init is ConstantExpression) {
+      final c = init.constant;
+      try {
+        final t = (c as dynamic).target;
+        if (t is Procedure && t.enclosingClass == null) {
+          target = t;
+        }
+      } catch (_) {}
+      // 也尝试 procedure 属性
+      if (target == null) {
+        try {
+          final proc = (c as dynamic).procedure;
+          if (proc is Procedure && proc.enclosingClass == null) {
+            target = proc;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (target == null) {
+      return null;
+    }
+
+    // 提取 TypeFunction 的 arity 和类型参数
+    // 从还原后的类型字符串中提取（因为 kernel 类型可能是 FunctionType）
+    final restoredType = _restoreType(targetType);
+
+    // 从 "TypeFunction1<bool, int>" 中提取类型参数
+    final typeMatch = RegExp(r'TypeFunction(\d+)<(.+)>').firstMatch(restoredType);
+    if (typeMatch == null) {
+      return null;
+    }
+
+    final arity = int.parse(typeMatch.group(1)!);
+    final typeArgsStr = typeMatch.group(2)!;
+
+    if (arity > _TypeUtils.kMaxArity) {
+      return null;
+    }
+
+    // 解析类型参数
+    final typeArgs = _splitTypeArgs(typeArgsStr);
+    if (typeArgs.length != arity + 1) {
+      return null;
+    }
+
+    final returnType = typeArgs[0];
+    final paramTypes = typeArgs.sublist(1);
+
+    // 生成 ClosureEnv 类
+    final closureId = _closureCounter++;
+    final envClassName = 'ClosureEnv_${_closureContext}_$closureId';
+    final paramNames = [for (var i = 0; i < arity; i++) 'a${i + 1}'];
+    final callSig = [
+      for (var i = 0; i < arity; i++) '${paramTypes[i]} ${paramNames[i]}',
+    ].join(', ');
+
+    final typeArgsListStr = [returnType, ...paramTypes].join(', ');
+    final newFuncName = '${envClassName}_new';
+    final staticCallName = '${envClassName}_call';
+    final funcName = target.name.text;
+
+    final decl = StringBuffer()
+      ..writeln('class $envClassName extends TypeFunction$arity<$typeArgsListStr> {')
+      ..writeln('  $envClassName();')
+      ..writeln('  @override')
+      ..writeln('  $returnType call($callSig) => closureCall(${paramNames.isEmpty ? 'this' : 'this, ${paramNames.join(', ')}'});')
+      ..writeln('}')
+      ..writeln('$envClassName $newFuncName($envClassName env_) {')
+      ..writeln('  env_.closureCall = $staticCallName;')
+      ..writeln('  return env_;')
+      ..writeln('}');
+
+    // 生成 call 静态函数
+    final callParams = paramNames.isEmpty ? '' : ', ${paramNames.map((n) => '${paramTypes[paramNames.indexOf(n)]} $n').join(', ')}';
+    final callArgs = paramNames.join(', ');
+    decl.writeln('$returnType $staticCallName(dynamic env__$callParams) {');
+    if (callArgs.isEmpty) {
+      decl.writeln('  return $funcName();');
+    } else {
+      decl.writeln('  return $funcName($callArgs);');
+    }
+    decl.writeln('}');
+
+    _pendingClosureDecls.add(decl.toString());
+
+    final gcMethod = _isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal';
+    return '$newFuncName(GC.$gcMethod($envClassName()))';
+  }
+
+  /// 拆分类型参数字符串，正确处理嵌套的泛型
+  /// 例如 "bool, int" -> ["bool", "int"]
+  /// 例如 "List<int>, Map<String, int>" -> ["List<int>", "Map<String, int>"]
+  List<String> _splitTypeArgs(String typeArgsStr) {
+    final result = <String>[];
+    var current = StringBuffer();
+    var depth = 0;
+
+    for (var i = 0; i < typeArgsStr.length; i++) {
+      final char = typeArgsStr[i];
+      if (char == '<') {
+        depth++;
+        current.write(char);
+      } else if (char == '>') {
+        depth--;
+        current.write(char);
+      } else if (char == ',' && depth == 0) {
+        result.add(current.toString().trim());
+        current = StringBuffer();
+      } else {
+        current.write(char);
+      }
+    }
+
+    if (current.isNotEmpty) {
+      result.add(current.toString().trim());
+    }
+
+    return result;
   }
 
   /// 当声明类型还原为 `StaticList/StaticMap/StaticSet<...>`，但 initializer

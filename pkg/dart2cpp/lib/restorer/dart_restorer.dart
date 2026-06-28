@@ -8,6 +8,16 @@ part 'statement_restorer.dart';
 part 'declaration_restorer.dart';
 
 // ============================================================================
+// 预编译正则表达式（性能优化）
+// ============================================================================
+
+/// 匹配非标识符字符（用于清理变量名/方法名）
+final _nonIdentifierPattern = RegExp(r'[^a-zA-Z0-9_]');
+
+/// 匹配以数字开头的字符串
+final _digitStartPattern = RegExp(r'^[0-9]');
+
+// ============================================================================
 // 公共 API
 // ============================================================================
 
@@ -36,6 +46,55 @@ class MethodSpecEntry {
 
   @override
   int get hashCode => vptrSuffix.hashCode;
+}
+
+// ============================================================================
+// 多文件支持：Library 信息
+// ============================================================================
+
+/// 记录一个 Library 的元数据，用于多文件转换时的跨库引用管理
+class _LibraryInfo {
+  /// 原始 Library 对象
+  final Library library;
+
+  /// import 前缀（如 'lib_0'）
+  final String prefix;
+
+  /// 输出文件名（如 'multi_file_a_restored.dart'）
+  final String outputFileName;
+
+  /// 该库定义的类名（包括合成类）
+  final Set<String> classNames = {};
+
+  /// 该库定义的 mixin 名
+  final Set<String> mixinNames = {};
+
+  /// 该库定义的 enum 名
+  final Set<String> enumNames = {};
+
+  /// 该库定义的顶层函数名
+  final Set<String> procNames = {};
+
+  /// 该库定义的顶层字段名
+  final Set<String> fieldNames = {};
+
+  /// 完全限定名到简单名的映射（多文件模式下使用）
+  /// 例如：'lib_0.Animal' -> 'Animal'
+  final Map<String, String> qualifiedToSimpleName = {};
+
+  _LibraryInfo(this.library, this.prefix, this.outputFileName);
+
+  /// 生成完全限定名（多文件模式下用于避免同名类冲突）
+  /// 例如：prefix='lib_0', className='Animal' -> 'lib_0.Animal'
+  String qualifiedName(String className) => '$prefix.$className';
+
+  /// 检查某个名称是否属于该库
+  bool contains(String name) =>
+      classNames.contains(name) ||
+      mixinNames.contains(name) ||
+      enumNames.contains(name) ||
+      procNames.contains(name) ||
+      fieldNames.contains(name);
 }
 
 // ============================================================================
@@ -236,6 +295,112 @@ abstract class _DartRestorerBase {
   /// 每个特化条目包含：vptrSuffix（用于 vptr key）和 typeArgStrs（用于生成调用类型实参）。
   /// 例如 Either.fold<String> → { 'Either': { 'fold': { MethodSpecEntry('String', ['String']) } } }
   final Map<String, Map<String, Set<MethodSpecEntry>>> _methodTypeSpecializations = {};
+
+  // ---- 多文件支持状态 ----
+
+  /// 当前正在还原的 Library 信息（多文件模式）
+  _LibraryInfo? _currentLib;
+
+  /// 所有 Library 信息（多文件模式）：importUri → info
+  final Map<String, _LibraryInfo> _libInfos = {};
+
+  /// 类名 → 所属 Library 信息（用于跨库引用时添加 prefix）
+  /// 注意：当多个库有同名类时，需要使用 Class 节点作为 key
+  final Map<String, _LibraryInfo> _classToLib = {};
+
+  /// Class 节点 → 所属 Library 信息（精确匹配，避免同名类冲突）
+  final Map<Class, _LibraryInfo> _classNodeToLib = {};
+
+  /// 顶层函数名 → 所属 Library 信息
+  final Map<String, _LibraryInfo> _procToLib = {};
+
+  /// 顶层字段名 → 所属 Library 信息
+  final Map<String, _LibraryInfo> _fieldToLib = {};
+
+  /// 是否为多文件模式
+  bool _isMultiFileMode = false;
+
+  /// 获取跨库引用的前缀
+  /// 如果 [name] 属于当前库，返回空字符串
+  /// 如果属于其他库，返回 'prefix.'
+  String _crossLibPrefix(String name) {
+    if (!_isMultiFileMode) return '';
+
+    // 检查类
+    final classLib = _classToLib[name];
+    if (classLib != null && classLib != _currentLib) {
+      return '${classLib.prefix}.';
+    }
+
+    // 检查函数
+    final procLib = _procToLib[name];
+    if (procLib != null && procLib != _currentLib) {
+      return '${procLib.prefix}.';
+    }
+
+    // 检查字段
+    final fieldLib = _fieldToLib[name];
+    if (fieldLib != null && fieldLib != _currentLib) {
+      return '${fieldLib.prefix}.';
+    }
+
+    return '';
+  }
+
+  /// 获取 Class 节点的跨库引用前缀（精确匹配，避免同名类冲突）
+  /// 如果 [cls] 属于当前库，返回空字符串
+  /// 如果属于其他库，返回 'prefix.'
+  String _crossLibPrefixForClass(Class cls) {
+    if (!_isMultiFileMode) return '';
+
+    final classLib = _classNodeToLib[cls];
+    if (classLib != null && classLib != _currentLib) {
+      return '${classLib.prefix}.';
+    }
+
+    return '';
+  }
+
+  /// 获取类的显示名称（根据当前库决定是否需要前缀）
+  /// 如果 [cls] 属于当前库，返回简单名（如 'Animal'）
+  /// 如果属于其他库，返回带前缀的名称（如 'lib_0.Animal'）
+  String _getDisplayName(Class cls, [String? suffix]) {
+    final prefix = _crossLibPrefixForClass(cls);
+    final baseName = suffix != null ? '${cls.name}$suffix' : cls.name;
+    return '$prefix$baseName';
+  }
+
+  /// 获取指定名称所属的 Library 信息
+  _LibraryInfo? _getLibForName(String name) {
+    return _classToLib[name] ?? _procToLib[name] ?? _fieldToLib[name];
+  }
+
+  /// 获取类的 VTable 条目（多文件模式下使用完全限定名）
+  List<_VTableEntry> _getVTableEntries(Class cls, String className) {
+    final key = _isMultiFileMode
+        ? _classNodeToLib[cls]?.qualifiedName(className) ?? className
+        : className;
+    return _classVTableEntries[key] ?? [];
+  }
+
+  /// 根据类名获取 VTable 条目（用于查找父类或接口的条目）
+  /// 在多文件模式下，需要遍历所有库来查找匹配的类
+  List<_VTableEntry>? _getVTableEntriesByName(String className) {
+    if (!_isMultiFileMode) {
+      return _classVTableEntries[className];
+    }
+
+    // 多文件模式：尝试所有可能的完全限定名
+    for (final libInfo in _libInfos.values) {
+      final qualifiedKey = libInfo.qualifiedName(className);
+      if (_classVTableEntries.containsKey(qualifiedKey)) {
+        return _classVTableEntries[qualifiedKey];
+      }
+    }
+
+    // 回退到简单名称（用于接口等）
+    return _classVTableEntries[className];
+  }
 
   /// 检查 DartType 是否包含（或就是）TypeParameterType。
   /// 用于过滤泛型上下文中的调用（如递归调用），这类调用不应该生成特化条目。
@@ -567,7 +732,7 @@ abstract class _DartRestorerBase {
       return _sanitizeExtensionMethodName(name);
     }
     // 替换所有非法字符为下划线
-    return name.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    return name.replaceAll(_nonIdentifierPattern, '_');
   }
 
   /// 推入闭包上下文名称（自动清理非法字符）
@@ -1237,6 +1402,13 @@ class DartRestorer extends _DartRestorerBase
     _classVTableEntries.clear();
     _classNodes.clear();
     _syntheticLoweredNames.clear();
+    // 清除多文件状态
+    _currentLib = null;
+    _libInfos.clear();
+    _classToLib.clear();
+    _procToLib.clear();
+    _fieldToLib.clear();
+    _isMultiFileMode = false;
 
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
@@ -1262,6 +1434,149 @@ class DartRestorer extends _DartRestorerBase
       _restoreLibrary(lib);
     }
     return _buf.toString();
+  }
+
+  /// 多文件还原：每个用户 Library 生成一个独立输出文件
+  /// 返回 Map<输出文件名, 文件内容>
+  Map<String, String> restoreMultiFile(Component component) {
+    _isMultiFileMode = true;
+
+    // 第一遍：构建 Library 信息
+    _libInfos.clear();
+    _classToLib.clear();
+    _procToLib.clear();
+    _fieldToLib.clear();
+    _userClasses.clear();
+    _mixinNames.clear();
+    _enumNames.clear();
+    _classHierarchy.clear();
+    _classVTableEntries.clear();
+    _classNodes.clear();
+    _syntheticLoweredNames.clear();
+
+    int libIndex = 0;
+    final userLibraries = <Library>[];
+
+    for (final lib in component.libraries) {
+      final uri = lib.importUri.toString();
+      if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
+
+      // 从 URI 提取文件名作为基础
+      final uriPath = Uri.parse(uri).path;
+      final fileName = uriPath.split('/').last;
+      final baseName = fileName.replaceAll('.dart', '');
+      final outputFileName = '${baseName}_restored.dart';
+      final prefix = 'lib_${libIndex++}';
+
+      final libInfo = _LibraryInfo(lib, prefix, outputFileName);
+      _libInfos[uri] = libInfo;
+      userLibraries.add(lib);
+
+      // 收集该库的所有定义
+      _collectLibraryDefinitions(lib, libInfo);
+    }
+
+    // 第二遍：收集类信息和虚表（与单文件模式相同）
+    for (final lib in userLibraries) {
+      _collectClassInfo(lib);
+    }
+
+    // 第三遍：预扫描方法级泛型特化
+    _methodTypeSpecializations.clear();
+    for (final lib in userLibraries) {
+      _collectMethodTypeSpecializations(lib);
+    }
+
+    // 第四遍：逐库生成代码
+    final results = <String, String>{};
+
+    for (final lib in userLibraries) {
+      final uri = lib.importUri.toString();
+      final libInfo = _libInfos[uri]!;
+
+      _buf.clear();
+      _pendingClosureDecls.clear();
+      _currentLib = libInfo;
+
+      // 生成 import 语句
+      _emitMultiFileImports(lib, libInfo);
+
+      // 还原该库的内容
+      _restoreLibrary(lib);
+
+      // 输出延迟的闭包定义
+      for (final decl in _pendingClosureDecls) {
+        _buf.write(decl);
+      }
+      _pendingClosureDecls.clear();
+
+      results[libInfo.outputFileName] = _buf.toString();
+    }
+
+    // 清理状态
+    _currentLib = null;
+    _isMultiFileMode = false;
+
+    return results;
+  }
+
+  /// 收集一个 Library 的所有定义（类、函数、字段等）
+  void _collectLibraryDefinitions(Library lib, _LibraryInfo libInfo) {
+    // 收集类
+    for (final cls in lib.classes) {
+      // 记录 Class 节点到 Library 的映射（精确匹配，避免同名类冲突）
+      _classNodeToLib[cls] = libInfo;
+
+      if (cls.isMixinDeclaration) {
+        libInfo.mixinNames.add(cls.name);
+        // 记录完全限定名映射
+        libInfo.qualifiedToSimpleName[libInfo.qualifiedName(cls.name)] = cls.name;
+      } else if (_isEnumClass(cls)) {
+        libInfo.enumNames.add(cls.name);
+        libInfo.qualifiedToSimpleName[libInfo.qualifiedName(cls.name)] = cls.name;
+      } else {
+        final isSynthetic = cls.name.contains('&');
+        final className = isSynthetic ? _sanitizeSyntheticName(cls.name) : cls.name;
+        libInfo.classNames.add(className);
+        _classToLib[className] = libInfo;
+        // 在 _classNodes 中存储 Class 节点（用于后续查找）
+        _classNodes[className] = cls;
+        // 记录完全限定名映射
+        libInfo.qualifiedToSimpleName[libInfo.qualifiedName(className)] = className;
+      }
+    }
+
+    // 收集顶层函数
+    for (final proc in lib.procedures) {
+      libInfo.procNames.add(proc.name.text);
+      _procToLib[proc.name.text] = libInfo;
+    }
+
+    // 收集顶层字段
+    for (final field in lib.fields) {
+      libInfo.fieldNames.add(field.name.text);
+      _fieldToLib[field.name.text] = libInfo;
+    }
+  }
+
+  /// 生成多文件模式的 import 语句
+  void _emitMultiFileImports(Library lib, _LibraryInfo currentLibInfo) {
+    // 首先导入运行时
+    _emitRuntimeImport();
+
+    // 遍历当前库的 dependencies，找到对应的用户库
+    for (final dep in lib.dependencies) {
+      final depUri = dep.targetLibrary.importUri.toString();
+      if (depUri.startsWith('dart:') || depUri.startsWith('package:')) continue;
+
+      final depLibInfo = _libInfos[depUri];
+      if (depLibInfo != null && depLibInfo != currentLibInfo) {
+        // 导入其他用户库，使用 prefix
+        _buf.write("import '${depLibInfo.outputFileName}' as ${depLibInfo.prefix};\n");
+      }
+    }
+
+    _buf.write('\n');
   }
 
   // ---- 第一遍：收集类信息 ----
@@ -1474,19 +1789,39 @@ class DartRestorer extends _DartRestorerBase
 
   void _collectVTableEntries(Class cls, {String? overrideName}) {
     final className = overrideName ?? cls.name;
+
+    // 多文件支持：使用完全限定名作为键，避免同名类冲突
+    final vtableKey = _isMultiFileMode
+        ? _classNodeToLib[cls]?.qualifiedName(className) ?? className
+        : className;
+
     final entries = <_VTableEntry>[];
 
     // 先继承父类的虚表条目
-    final parentName = _classHierarchy[className];
-    if (parentName != null && _classVTableEntries.containsKey(parentName)) {
-      entries.addAll(_classVTableEntries[parentName]!);
+    // 多文件支持：使用 cls.supertype 获取正确的父类，避免同名类冲突
+    if (_isMultiFileMode && cls.supertype != null) {
+      final parentClass = cls.supertype!.classNode;
+      final parentName = _loweredClassName(parentClass.name);
+      if (_isUserClass(parentName)) {
+        final parentEntries = _getVTableEntries(parentClass, parentName);
+        entries.addAll(parentEntries);
+      }
+    } else {
+      final parentName = _classHierarchy[className];
+      if (parentName != null) {
+        final parentEntries = _getVTableEntriesByName(parentName);
+        if (parentEntries != null) {
+          entries.addAll(parentEntries);
+        }
+      }
     }
 
     // 收集 implements 接口中的方法（如果本类或父类尚未声明）
     for (final impl in cls.implementedTypes) {
       final ifaceName = impl.classNode.name;
-      if (_classVTableEntries.containsKey(ifaceName)) {
-        for (final ifaceEntry in _classVTableEntries[ifaceName]!) {
+      final ifaceEntries = _getVTableEntriesByName(ifaceName);
+      if (ifaceEntries != null) {
+        for (final ifaceEntry in ifaceEntries) {
           final alreadyExists = entries.any(
               (e) => e.name == ifaceEntry.name && e.kind == ifaceEntry.kind);
           if (!alreadyExists) {
@@ -1536,7 +1871,7 @@ class DartRestorer extends _DartRestorerBase
       }
     }
 
-    _classVTableEntries[className] = entries;
+    _classVTableEntries[vtableKey] = entries;
   }
 
   /// 从 Procedure 构建 VTable 条目
@@ -1631,11 +1966,7 @@ class DartRestorer extends _DartRestorerBase
   /// 输出运行时基础类的 import 语句
   /// VPtr 基类和 Box 类型已抽取到 runtime_classes.dart
   void _emitRuntimeImport() {
-    _buf.write("import 'package:dart2cpp/restorer/runtime_classes.dart';\n\n");
-  }
-
-  bool _isSyntheticMixinClass(Class cls) {
-    return cls.name.contains('&');
+    _buf.write("import 'package:dart2cpp/platform/dart/runtime_classes.dart';\n\n");
   }
 
 }

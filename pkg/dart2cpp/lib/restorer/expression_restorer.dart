@@ -189,7 +189,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
       if (parentName != null && _needsLowering(parentName)) {
         // 检查父类是否有这个 getter 的静态函数
-        final parentEntries = _classVTableEntries[parentName];
+        final parentEntries = _getVTableEntriesByName(parentName);
         if (parentEntries != null && parentEntries.any((e) => e.name == fieldName && e.kind == 'getter')) {
           return '${parentName}_get_$fieldName($_thisReplacementName)';
         }
@@ -251,17 +251,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     final isVptrTarget = receiverClassName != null &&
         (_isUserClass(receiverClassName) || _isMixinName(receiverClassName));
-    final String callBody;
-    if (isVptrTarget) {
-      final vptrSigParams = [_thisParamType, ...paramTypes].join(', ');
-      final invokeArgs = ['_r', ...paramNames].join(', ');
-      callBody =
-          "(_r.vptr['$methodName'] as $returnType Function($vptrSigParams))($invokeArgs)";
-    } else {
-      // 非 vptr 场景：保留普通方法调用形式（Dart 原生能解析）。
-      final invokeArgs = paramNames.join(', ');
-      callBody = '_r.$methodName($invokeArgs)';
-    }
 
     final typeArgs = [returnType, ...paramTypes].join(', ');
     final newFuncName = '${envClassName}_new';
@@ -520,7 +509,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
     // 普通方法 → Map 查找精确类型转换调用
     final vtableField = _vtableFieldName(name);
-    final allArgs = _restoreArgs(expr.arguments);
 
     // 检查方法是否有方法级类型参数（如 fold<T>、mapRight<R2>）
     final hasMethodTypeParams = expr.interfaceTarget.function.typeParameters.isNotEmpty;
@@ -717,6 +705,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
   /// 还原 enum 方法调用
   String _restoreEnumMethodInvocation(String recv, String name, String receiverClassName, Arguments args) {
+    // 特殊处理内置的 toString() 方法
+    // 枚举的 toString() 应该返回 "EnumName.valueName" 格式的字符串
+    if (name == 'toString' && args.positional.isEmpty && args.named.isEmpty) {
+      return "'$receiverClassName.\${$recv.name}'";
+    }
+
     final staticName = '${receiverClassName}_$name';
     final allArgs = _restoreArgs(args);
     if (allArgs.isEmpty) {
@@ -1081,12 +1075,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final funcName = name.isEmpty
             ? '${className}_new'
             : '${className}_new_$name';
+        // 多文件支持：添加跨库前缀
+        final prefix = _crossLibPrefix(className);
         // 显式传递泛型类型参数（this_ 为 dynamic 后编译器无法从参数推断）
         final typeArgs = expr.arguments.types;
         final typeArgStr = typeArgs.isNotEmpty
             ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
             : '';
-        return '$funcName$typeArgStr($args)';
+        return '$prefix$funcName$typeArgStr($args)';
       }
       // 语义脱钩: SDK 类 factory 构造函数映射
       final mappedFactoryClass = _mapSdkTypeName(className);
@@ -1105,12 +1101,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         if (_syntheticLoweredNames.contains(className)) {
           className = _findUserClassForSynthetic(className);
         }
+        // 多文件支持：添加跨库前缀
+        final prefix = _crossLibPrefix(className);
         // 显式传递泛型类型参数（this_ 为 dynamic 后编译器无法推断）
         final typeArgs = expr.arguments.types;
         final typeArgStr = typeArgs.isNotEmpty
             ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
             : '';
-        return '${className}_$name$typeArgStr($args)';
+        return '$prefix${className}_$name$typeArgStr($args)';
       }
       // 语义脱钩: SDK 静态方法映射
       return '${_mapSdkTypeName(className)}.$name($args)';
@@ -1119,12 +1117,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 顶层函数（包括 mixin lowering 后提升的构造函数和方法）
     // 语义脱钩: print → staticPrint
     final mappedName = _mapTopLevelFuncName(name);
+    // 多文件支持：添加跨库前缀
+    final prefix = _crossLibPrefix(mappedName);
     // 显式传递泛型类型参数（this_ 为 dynamic 后编译器可能无法从参数推断）
     final typeArgs = expr.arguments.types;
     final typeArgStr = typeArgs.isNotEmpty
         ? '<${typeArgs.map((t) => _restoreType(t)).join(', ')}>'
         : '';
-    return '$mappedName$typeArgStr($args)';
+    return '$prefix$mappedName$typeArgStr($args)';
   }
 
   /// 顶层函数名称映射（语义脱钩）
@@ -1140,13 +1140,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final memberName = target.name.text;
       // OOP Lowering: 用户自定义类/mixin 的静态字段/getter → 使用 lowered 名称
       if (_isUserClass(className) || _isMixinName(className)) {
+        // 多文件支持：添加跨库前缀
+        final prefix = _crossLibPrefix(className);
         // 静态字段和静态 getter 都被提升为顶层函数/变量 ClassName_memberName
         // 静态 getter 生成为 ClassName_memberName() 函数
         if (target is Procedure && target.isGetter) {
-          return '${className}_$memberName()';
+          return '$prefix${className}_$memberName()';
         }
         // 静态字段 → 顶层变量 ClassName_memberName
-        return '${className}_$memberName';
+        return '$prefix${className}_$memberName';
       }
       // SDK 扩展类（如 _EnumName）的 getter → 直接在对象上访问
       // 例如 EnumName.name getter → p.name
@@ -1166,7 +1168,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // OOP Lowering: 用户自定义类的静态字段 → 使用 lowered 名称
       if (_isUserClass(className)) {
         final memberName = target.name.text;
-        return '${className}_$memberName = $value';
+        // 多文件支持：添加跨库前缀
+        final prefix = _crossLibPrefix(className);
+        return '$prefix${className}_$memberName = $value';
       }
       return '$className.${target.name.text} = $value';
     }
@@ -1205,18 +1209,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final funcName = ctorName.isEmpty
           ? '${className}_new'
           : '${className}_new_$ctorName';
+      // 多文件支持：添加跨库前缀
+      final prefix = _crossLibPrefix(className);
       // 获取类型参数（如 Pair<String, int>）
       // ConstructorInvocation 中类级泛型参数存储在 arguments.types
       final typeArgs = expr.arguments.types.isNotEmpty
           ? '<${expr.arguments.types.map(_restoreType).join(', ')}>'
           : '';
-      final valueType = '${className}Value$typeArgs';
+      final valueType = '${prefix}${className}Value$typeArgs';
       final gcMethod = _isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal';
       final gcWrappedValue = 'GC.$gcMethod($valueType())';
       // 显式传递泛型类型参数（this_ 为 dynamic 后编译器无法从参数推断）
       return allArgs.isEmpty
-          ? '$funcName$typeArgs($gcWrappedValue)'
-          : '$funcName$typeArgs($gcWrappedValue, $allArgs)';
+          ? '$prefix$funcName$typeArgs($gcWrappedValue)'
+          : '$prefix$funcName$typeArgs($gcWrappedValue, $allArgs)';
     }
 
     // 语义脱钩: SDK 类构造函数映射到包装类型
@@ -1326,7 +1332,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
   String _restoreListLiteral(ListLiteral expr) {
     final typeArg = _restoreType(expr.typeArgument);
-    final items = expr.expressions.map((e) => _restoreExpr(e)).join(', ');
+    // 处理展开元素 ...
+    final items = expr.expressions.map((e) {
+      // 检查是否是展开元素（内核中表示为带有展开标记的表达式）
+      // 对于列表，展开元素通常是 VariableGet 或 InstanceGet，需要添加 ...
+      final restored = _restoreExpr(e);
+      // 如果表达式本身已经是展开形式（如 ...list），直接返回
+      if (restored.startsWith('...')) return restored;
+      return restored;
+    }).join(', ');
     // 静态集合: ListLiteral → StaticList<T>.of([...])
     if (expr.isConst) {
       return 'StaticList<$typeArg>.of([$items])';
