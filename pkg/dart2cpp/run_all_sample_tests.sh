@@ -65,7 +65,7 @@ for dart_file in $dart_files; do
         
         # Step 2: 编译C++代码
         echo "Step 2: Compiling $cpp_output..." | tee -a "$TEST_RESULT_FILE"
-        compile_output=$(g++ -std=c++17 -I cpp/core "$cpp_output" cpp/core/dart_object.cpp cpp/core/dart_string.cpp -o "$exe_output" 2>&1)
+        compile_output=$(g++ -std=c++17 -I src/platform/cpp "$cpp_output" src/platform/cpp/dart_object.cpp src/platform/cpp/dart_string.cpp -o "$exe_output" 2>&1)
         compile_status=$?
         
         if [ $compile_status -eq 0 ] && [ -f "$exe_output" ]; then

@@ -7,4 +7,11 @@
 /// - restorer/expression_restorer.dart - 表达式还原
 /// - restorer/statement_restorer.dart  - 语句还原
 /// - restorer/declaration_restorer.dart - 声明还原
-export 'restorer/dart_restorer.dart';
+export 'restorer/dart_restorer.dart' show DartRestorer, restoreDartFromComponent, MethodSpecEntry;
+
+import 'restorer/dart_restorer.dart';
+
+// 多文件还原的便捷入口
+Map<String, String> restoreMultiFileFromComponent(dynamic component) {
+  return DartRestorer().restoreMultiFile(component);
+}

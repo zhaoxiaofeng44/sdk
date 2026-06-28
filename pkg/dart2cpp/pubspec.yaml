@@ -7,16 +7,9 @@ environment:
 
 dependencies:
   args: ^2.0.0
-  path: ^1.8.0
-  meta: ^1.7.0
- 
 
 dev_dependencies:
   test: ^1.16.0
-
-executables:
-  dart2cpp: dart2cpp
-
 
 dependency_overrides:
   _fe_analyzer_shared: 
