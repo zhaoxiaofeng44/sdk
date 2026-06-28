@@ -1,11 +1,18 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 class ShapeValue extends VPtr {
-  ShapeValue() {
-    vptr['get_name'] = Shape_get_name;
-    vptr['area'] = Shape_area;
-    vptr['perimeter'] = Shape_perimeter;
-    vptr['toString'] = Shape_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_name'] = Shape_get_name;
+      vptrMap!['area'] = Shape_area;
+      vptrMap!['perimeter'] = Shape_perimeter;
+      vptrMap!['toString'] = Shape_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -35,9 +42,24 @@ String Shape_toString(dynamic this__) {
 class PairValue<A, B> extends VPtr {
   late A first;
   late B second;
-  PairValue() {
-    vptr['swap'] = Pair_swap<A, B>;
-    vptr['toString'] = Pair_toString<A, B>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = PairValue<A, B>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['swap'] = Pair_swap<A, B>;
+    target['toString'] = Pair_toString<A, B>;
   }
   @override
   void gcMark(int flag) {
@@ -68,13 +90,20 @@ String Pair_toString<A, B>(dynamic this__) {
 
 class CircleValue extends ShapeValue {
   late double _radius;
-  CircleValue() {
-    vptr['get_name'] = Circle_get_name;
-    vptr['area'] = Circle_area;
-    vptr['perimeter'] = Circle_perimeter;
-    vptr['toString'] = Circle_toString;
-    vptr['get_radius'] = Circle_get_radius;
-    vptr['set_radius'] = Circle_set_radius;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
+      vptrMap!['get_name'] = Circle_get_name;
+      vptrMap!['area'] = Circle_area;
+      vptrMap!['perimeter'] = Circle_perimeter;
+      vptrMap!['toString'] = Circle_toString;
+      vptrMap!['get_radius'] = Circle_get_radius;
+      vptrMap!['set_radius'] = Circle_set_radius;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -132,11 +161,18 @@ String Circle_toString(dynamic this__) {
 class RectangleValue extends ShapeValue {
   late double width;
   late double height;
-  RectangleValue() {
-    vptr['get_name'] = Rectangle_get_name;
-    vptr['area'] = Rectangle_area;
-    vptr['perimeter'] = Rectangle_perimeter;
-    vptr['toString'] = Rectangle_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
+      vptrMap!['get_name'] = Rectangle_get_name;
+      vptrMap!['area'] = Rectangle_area;
+      vptrMap!['perimeter'] = Rectangle_perimeter;
+      vptrMap!['toString'] = Rectangle_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -273,30 +309,29 @@ void main() {
   final StaticList<Direction> directions = StaticList<Direction>.of([Direction.north, Direction.east, Direction.south]);
   for (final dir in directions) {
     final String label = (() {     late String _v2;
-    do {
-      switch (dir) {
-        case Direction.north:
+    _label3:
+    switch (dir) {
+      case Direction.north:
 {
-            _v2 = 'N';
-            break;
-          }
-        case Direction.south:
+          _v2 = 'N';
+          break;
+        }
+      case Direction.south:
 {
-            _v2 = 'S';
-            break;
-          }
-        case Direction.east:
+          _v2 = 'S';
+          break;
+        }
+      case Direction.east:
 {
-            _v2 = 'E';
-            break;
-          }
-        case Direction.west:
+          _v2 = 'E';
+          break;
+        }
+      case Direction.west:
 {
-            _v2 = 'W';
-            break;
-          }
-      }
-    } while (false);
+          _v2 = 'W';
+          break;
+        }
+    }
  return _v2; })();
     staticPrint('  ${dir} -> ${label}');
   }

@@ -1,9 +1,18 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 class LazyConfigValue extends VPtr {
   late String computed = LazyConfig__expensiveInit(this);
   late int counter = LazyConfig__nextId();
   late String name;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
 }
 
 int LazyConfig__idCounter = 0;
@@ -27,8 +36,15 @@ class LateWithDependencyValue extends VPtr {
   late int base = 10;
   late int doubled = (this.base * 2);
   late String label = 'val=${this.doubled}';
-  LateWithDependencyValue() {
-    vptr['describe'] = LateWithDependency_describe;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['describe'] = LateWithDependency_describe;
+    }
+    return vptrMap!;
   }
 }
 
@@ -68,13 +84,20 @@ Promise<bool> Validator_validateAsync<T>(dynamic this__, T value) {
 
 class ServiceValue extends Service_Object_Logger_ValidatorValue {
   late StaticList<String> messages = StaticList<String>.of([]);
-  ServiceValue() {
-    vptr['get_messages'] = Service_get_messages;
-    vptr['logAsync'] = Service_logAsync;
-    vptr['logSync'] = Service_logSync;
-    vptr['validate'] = Service_validate;
-    vptr['validateAsync'] = Service_validateAsync;
-    vptr['process'] = Service_process;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Service_Object_Logger_ValidatorValue.getVptrMap());
+      vptrMap!['get_messages'] = Service_get_messages;
+      vptrMap!['logAsync'] = Service_logAsync;
+      vptrMap!['logSync'] = Service_logSync;
+      vptrMap!['validate'] = Service_validate;
+      vptrMap!['validateAsync'] = Service_validateAsync;
+      vptrMap!['process'] = Service_process;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -125,14 +148,21 @@ Promise<bool> Service_validateAsync(dynamic this__, String value) {
 class Vector2DValue extends VPtr {
   late double x;
   late double y;
-  Vector2DValue() {
-    vptr['operatorPlus'] = Vector2D_operatorPlus;
-    vptr['operatorMinus'] = Vector2D_operatorMinus;
-    vptr['operatorStar'] = Vector2D_operatorStar;
-    vptr['operatorEq'] = Vector2D_operatorEq;
-    vptr['get_hashCode'] = Vector2D_get_hashCode;
-    vptr['magnitude'] = Vector2D_magnitude;
-    vptr['toString'] = Vector2D_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['operatorPlus'] = Vector2D_operatorPlus;
+      vptrMap!['operatorMinus'] = Vector2D_operatorMinus;
+      vptrMap!['operatorStar'] = Vector2D_operatorStar;
+      vptrMap!['operatorEq'] = Vector2D_operatorEq;
+      vptrMap!['get_hashCode'] = Vector2D_get_hashCode;
+      vptrMap!['magnitude'] = Vector2D_magnitude;
+      vptrMap!['toString'] = Vector2D_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -180,11 +210,8 @@ String Vector2D_toString(dynamic this__) {
 
 
 class RepositoryValue<T> extends VPtr {
-  RepositoryValue() {
-    vptr['findById'] = Repository_findById<T>;
-    vptr['findAll'] = Repository_findAll<T>;
-    vptr['save'] = Repository_save<T>;
-  }
+  @override
+  Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
 RepositoryValue<T> Repository_new<T>(dynamic this__) {
@@ -206,9 +233,16 @@ Promise<void> Repository_save<T>(dynamic this_, String id, T item) {
 
 
 class CacheableValue extends VPtr {
-  CacheableValue() {
-    vptr['isCached'] = Cacheable_isCached;
-    vptr['invalidate'] = Cacheable_invalidate;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['isCached'] = Cacheable_isCached;
+      vptrMap!['invalidate'] = Cacheable_invalidate;
+    }
+    return vptrMap!;
   }
 }
 
@@ -247,13 +281,29 @@ Promise<T?> InMemoryCache_cachedFindById<T>(dynamic this__, String id) {
 
 class ItemRepoValue extends ItemRepo_Repository_InMemoryCacheValue {
   late StaticMap<String, String> _store = StaticMap<String, String>.of({});
-  ItemRepoValue() {
-    vptr['findById'] = ItemRepo_findById;
-    vptr['findAll'] = ItemRepo_findAll;
-    vptr['save'] = ItemRepo_save;
-    vptr['isCached'] = ItemRepo_isCached;
-    vptr['invalidate'] = ItemRepo_invalidate;
-    vptr['cachedFindById'] = ItemRepo_cachedFindById;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ItemRepoValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['findById'] = ItemRepo_findById;
+    target['findAll'] = ItemRepo_findAll;
+    target['save'] = ItemRepo_save;
+    target['isCached'] = ItemRepo_isCached;
+    target['invalidate'] = ItemRepo_invalidate;
+    target['cachedFindById'] = ItemRepo_cachedFindById;
   }
   @override
   void gcMark(int flag) {
@@ -310,8 +360,15 @@ class ConfigValue extends VPtr {
   late String env;
   late int port;
   late bool debug;
-  ConfigValue() {
-    vptr['toString'] = Config_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['toString'] = Config_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -342,16 +399,30 @@ String Config_toString(dynamic this__) {
 
 
 class Service_Object_LoggerValue extends VPtr {
-  Service_Object_LoggerValue() {
-    vptr['logAsync'] = Logger_logAsync;
-    vptr['logSync'] = Logger_logSync;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['logAsync'] = Logger_logAsync;
+      vptrMap!['logSync'] = Logger_logSync;
+    }
+    return vptrMap!;
   }
 }
 
 
 class Service_Object_Logger_ValidatorValue extends Service_Object_LoggerValue {
-  Service_Object_Logger_ValidatorValue() {
-    vptr['validateAsync'] = Validator_validateAsync<String>;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Service_Object_LoggerValue.getVptrMap());
+      vptrMap!['validateAsync'] = Validator_validateAsync<String>;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -363,10 +434,26 @@ class Service_Object_Logger_ValidatorValue extends Service_Object_LoggerValue {
 
 class ItemRepo_Repository_InMemoryCacheValue extends RepositoryValue<String> {
   late StaticMap<String, String> _cache = StaticMap<String, String>.of({});
-  ItemRepo_Repository_InMemoryCacheValue() {
-    vptr['isCached'] = InMemoryCache_isCached<String>;
-    vptr['invalidate'] = InMemoryCache_invalidate<String>;
-    vptr['cachedFindById'] = InMemoryCache_cachedFindById<String>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ItemRepo_Repository_InMemoryCacheValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['isCached'] = InMemoryCache_isCached<String>;
+    target['invalidate'] = InMemoryCache_invalidate<String>;
+    target['cachedFindById'] = InMemoryCache_cachedFindById<String>;
   }
   @override
   void gcMark(int flag) {
@@ -438,40 +525,39 @@ StaticList<String> skipEmpty(StaticList<String> items) {
 
 String classify(int n) {
   final StaticStringBuffer result = StaticStringBuffer();
-  do {
-    switch ((n % 5)) {
-      case 0:
+  _label0:
+  switch ((n % 5)) {
+    case 0:
 {
-          result.write('div5');
-          continue _case_0;
-        }
-      case 1:
+        result.write('div5');
+        continue _case_0;
+      }
+    case 1:
 {
-          result.write('mod1');
-          break;
-        }
-      case 2:
+        result.write('mod1');
+        break;
+      }
+    case 2:
 {
-          result.write('mod2');
-          break;
-        }
-      case 3:
+        result.write('mod2');
+        break;
+      }
+    case 3:
 {
-          result.write('mod3');
-          continue _case_0;
-        }
-      case 4:
+        result.write('mod3');
+        continue _case_0;
+      }
+    case 4:
 {
-          result.write('mod4');
-          break;
-        }
-      _case_0:
-      default:
+        result.write('mod4');
+        break;
+      }
+    _case_0:
+    default:
 {
-          result.write('(default)');
-        }
-    }
-  } while (false);
+        result.write('(default)');
+      }
+  }
   return result.toString();
 }
 
@@ -537,7 +623,7 @@ StaticList<Vector2DValue> scaleAll(StaticList<Vector2DValue> vectors, double fac
 }
 
 ({int age, String name, String role}) personInfo(String n, int a, String r) {
-  return (() { final _let0 = n; return (age: a, name: _let0, role: r); })();
+  return (() { final _let1 = n; return (age: a, name: _let1, role: r); })();
 }
 
 StaticList<(String, int)> topN(StaticList<(String, int)> data, int n) {
@@ -547,73 +633,72 @@ StaticList<(String, int)> topN(StaticList<(String, int)> data, int n) {
 }
 
 String describeValue(Object value) {
-  do {
+  _label2:
 {
-      final Object _v1 = value;
+    final Object _v3 = value;
 {
-        late int n;
-        if ((((_v1 is int) && (() { final _let2 = n = _v1; return true; })()) && (n < 0))) {
+      late int n;
+      if ((((_v3 is int) && (() { final _let4 = n = _v3; return true; })()) && (n < 0))) {
 {
-            return 'negative int: ${n}';
-          }
-        }
-      }
-{
-        late int n;
-        if ((((_v1 is int) && (() { final _let3 = n = _v1; return true; })()) && (n == 0))) {
-{
-            return 'zero';
-          }
-        }
-      }
-{
-        late int n;
-        if (((_v1 is int) && (() { final _let4 = n = _v1; return true; })())) {
-{
-            return 'positive int: ${n}';
-          }
-        }
-      }
-{
-        late String s;
-        if ((((_v1 is String) && (() { final _let5 = s = _v1; return true; })()) && s.isEmpty)) {
-{
-            return 'empty string';
-          }
-        }
-      }
-{
-        late String s;
-        if (((_v1 is String) && (() { final _let6 = s = _v1; return true; })())) {
-{
-            return 'string: ${s} (len=${s.length})';
-          }
-        }
-      }
-{
-        late StaticList<dynamic> l;
-        if (((_v1 is StaticList<dynamic>) && (() { final _let7 = l = _v1; return true; })())) {
-{
-            return 'list of ${l.length}';
-          }
-        }
-      }
-{
-        if ((_v1 == null)) {
-{
-            return 'null';
-          }
-        }
-      }
-{
-{
-{
-            return 'unknown: ${value.runtimeType}';
-          }
+          return 'negative int: ${n}';
         }
       }
     }
-  } while (false);
+{
+      late int n;
+      if ((((_v3 is int) && (() { final _let5 = n = _v3; return true; })()) && (n == 0))) {
+{
+          return 'zero';
+        }
+      }
+    }
+{
+      late int n;
+      if (((_v3 is int) && (() { final _let6 = n = _v3; return true; })())) {
+{
+          return 'positive int: ${n}';
+        }
+      }
+    }
+{
+      late String s;
+      if ((((_v3 is String) && (() { final _let7 = s = _v3; return true; })()) && s.isEmpty)) {
+{
+          return 'empty string';
+        }
+      }
+    }
+{
+      late String s;
+      if (((_v3 is String) && (() { final _let8 = s = _v3; return true; })())) {
+{
+          return 'string: ${s} (len=${s.length})';
+        }
+      }
+    }
+{
+      late StaticList<dynamic> l;
+      if (((_v3 is StaticList<dynamic>) && (() { final _let9 = l = _v3; return true; })())) {
+{
+          return 'list of ${l.length}';
+        }
+      }
+    }
+{
+      if ((_v3 == null)) {
+{
+          return 'null';
+        }
+      }
+    }
+{
+{
+{
+          return 'unknown: ${value.runtimeType}';
+        }
+      }
+    }
+  }
 }
 
 void main() {

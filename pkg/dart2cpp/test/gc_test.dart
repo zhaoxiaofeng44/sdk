@@ -2,7 +2,7 @@
 // GC 标记-清除端到端测试
 // 模拟 restorer 生成的代码模式，全面验证 GC 能力
 // ============================================================================
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 // ============================================================================
 // 模拟 restored 代码：Node 类（树结构，验证递归标记）
@@ -12,9 +12,18 @@ class NodeValue extends VPtr {
   late NodeValue? left;
   late NodeValue? right;
 
-  NodeValue() {
-    vptr['toString'] = Node_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['toString'] = Node_toString;
+    }
+    return vptrMap!;
   }
+
+  NodeValue() {}
 
   @override
   void gcMark(int flag) {
@@ -44,6 +53,16 @@ String Node_toString(dynamic this__) {
 class ContainerValue<T> extends VPtr {
   late T value;
 
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
+
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -61,7 +80,17 @@ ContainerValue<T> Container_new<T>(dynamic this__, T value) {
 // ============================================================================
 // 模拟 restored 代码：Registry 类（含静态字段 → allocateGlobal）
 // ============================================================================
-class RegistryValue extends VPtr {}
+class RegistryValue extends VPtr {
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
+}
 
 // 静态字段 → allocateGlobal 包裹 Value 创建（与 restorer 生成的格式一致）
 NodeValue Registry_defaultNode = Node_new(GC.allocateGlobal(NodeValue()), 'default');

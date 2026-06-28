@@ -1,16 +1,31 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 class FibStateMachineValue extends AsyncStateMachine<int> {
   late int n;
   late int _a = 0;
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  FibStateMachineValue() {
-    vptr['step'] = FibStateMachine_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = FibStateMachineValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = FibStateMachine_step;
   }
   @override
   void gcMark(int flag) {
@@ -28,49 +43,63 @@ FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
 
 bool FibStateMachine_step(dynamic this__) {
   final this_ = this__ as FibStateMachineValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label0:
+  switch (this_.smState) {
+    case 0:
 {
-          if ((this_.n <= 1)) {
-            this_.completeWith(this_.n);
-            return true;
-          }
-          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 1)).start();
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
-{
-          if (this_._pending!.isPending)           return false;
-          this_._a = this_._pending!.result;
-          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 2)).start();
-          this_.smState = 2;
-          return false;
-        }
-      case 2:
-{
-          if (this_._pending!.isPending)           return false;
-          this_.completeWith((this_._a + this_._pending!.result));
+        if ((this_.n <= 1)) {
+          this_.completeWith(this_.n);
           return true;
         }
-      default:
+        this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 1)).start();
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          return true;
-        }
-    }
-  } while (false);
+        if (this_._pending!.isPending)         return false;
+        this_._a = this_._pending!.result;
+        this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 2)).start();
+        this_.smState = 2;
+        return false;
+      }
+    case 2:
+{
+        if (this_._pending!.isPending)         return false;
+        this_.completeWith((this_._a + this_._pending!.result));
+        return true;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
 class Level3SMValue extends AsyncStateMachine<int> {
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  Level3SMValue() {
-    vptr['step'] = Level3SM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = Level3SMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = Level3SM_step;
   }
 }
 
@@ -88,13 +117,28 @@ bool Level3SM_step(dynamic this__) {
 
 class Level2SMValue extends AsyncStateMachine<int> {
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  Level2SMValue() {
-    vptr['step'] = Level2SM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = Level2SMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = Level2SM_step;
   }
   @override
   void gcMark(int flag) {
@@ -111,42 +155,56 @@ Level2SMValue Level2SM_new(dynamic this__) {
 
 bool Level2SM_step(dynamic this__) {
   final this_ = this__ as Level2SMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label1:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._pending = Level3SM_new(GC.allocateLocal(Level3SMValue())).start();
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
+        this_._pending = Level3SM_new(GC.allocateLocal(Level3SMValue())).start();
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          if (this_._pending!.isPending)           return false;
-          if (this_._pending!.isError) {
-            this_.completeWithError(this_._pending!.error!);
-            return true;
-          }
-          this_.completeWith(this_._pending!.result);
+        if (this_._pending!.isPending)         return false;
+        if (this_._pending!.isError) {
+          this_.completeWithError(this_._pending!.error!);
           return true;
         }
-      default:
+        this_.completeWith(this_._pending!.result);
+        return true;
+      }
+    default:
 {
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
 class Level1SMValue extends AsyncStateMachine<String> {
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  Level1SMValue() {
-    vptr['step'] = Level1SM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = Level1SMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = Level1SM_step;
   }
   @override
   void gcMark(int flag) {
@@ -163,43 +221,57 @@ Level1SMValue Level1SM_new(dynamic this__) {
 
 bool Level1SM_step(dynamic this__) {
   final this_ = this__ as Level1SMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label2:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._pending = Level2SM_new(GC.allocateLocal(Level2SMValue())).start();
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
+        this_._pending = Level2SM_new(GC.allocateLocal(Level2SMValue())).start();
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          if (this_._pending!.isPending)           return false;
-          if (this_._pending!.isError) {
-            this_.completeWith('caught: ${this_._pending!.error}');
-            return true;
-          }
-          this_.completeWith('ok');
+        if (this_._pending!.isPending)         return false;
+        if (this_._pending!.isError) {
+          this_.completeWith('caught: ${this_._pending!.error}');
           return true;
         }
-      default:
+        this_.completeWith('ok');
+        return true;
+      }
+    default:
 {
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
 class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   late bool flag;
   late Promise<String>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  ConditionalAwaitSMValue() {
-    vptr['step'] = ConditionalAwaitSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ConditionalAwaitSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = ConditionalAwaitSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -217,38 +289,37 @@ ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
 
 bool ConditionalAwaitSM_step(dynamic this__) {
   final this_ = this__ as ConditionalAwaitSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label3:
+  switch (this_.smState) {
+    case 0:
 {
-          if (this_.flag) {
-            this_._pending = Promise.delayed(2, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
-            this_.smState = 1;
-          }
+        if (this_.flag) {
+          this_._pending = Promise.delayed(2, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
+          this_.smState = 1;
+        }
  else {
-            this_._pending = Promise.delayed(1, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
-            this_.smState = 2;
-          }
-          return false;
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
+          this_.smState = 2;
         }
-      case 1:
+        return false;
+      }
+    case 1:
 {
-          if (this_._pending!.isPending)           return false;
-          this_.completeWith(this_._pending!.result);
-          return true;
-        }
-      case 2:
+        if (this_._pending!.isPending)         return false;
+        this_.completeWith(this_._pending!.result);
+        return true;
+      }
+    case 2:
 {
-          if (this_._pending!.isPending)           return false;
-          this_.completeWith(this_._pending!.result);
-          return true;
-        }
-      default:
+        if (this_._pending!.isPending)         return false;
+        this_.completeWith(this_._pending!.result);
+        return true;
+      }
+    default:
 {
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
@@ -256,13 +327,28 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   late StaticList<int> items;
   late int _index = 0;
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  FindFirstSMValue() {
-    vptr['step'] = FindFirstSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = FindFirstSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = FindFirstSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -281,49 +367,63 @@ FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
 
 bool FindFirstSM_step(dynamic this__) {
   final this_ = this__ as FindFirstSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label4:
+  switch (this_.smState) {
+    case 0:
 {
-          if ((this_._index >= this_.items.length)) {
-            this_.completeWith((-1));
-            return true;
-          }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
-{
-          if (this_._pending!.isPending)           return false;
-          final int result = this_._pending!.result;
-          if ((result > 10)) {
-            this_.completeWith(result);
-            return true;
-          }
-          this_._index = (this_._index + 1);
-          this_.smState = 0;
-          return false;
-        }
-      default:
-{
+        if ((this_._index >= this_.items.length)) {
+          this_.completeWith((-1));
           return true;
         }
-    }
-  } while (false);
+        this_._pending = Promise.delayed(1, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
+{
+        if (this_._pending!.isPending)         return false;
+        final int result = this_._pending!.result;
+        if ((result > 10)) {
+          this_.completeWith(result);
+          return true;
+        }
+        this_._index = (this_._index + 1);
+        this_.smState = 0;
+        return false;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
 class TryCatchSMValue extends AsyncStateMachine<String> {
   late String _log = '';
   late Promise<dynamic>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  TryCatchSMValue() {
-    vptr['step'] = TryCatchSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = TryCatchSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = TryCatchSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -340,52 +440,66 @@ TryCatchSMValue TryCatchSM_new(dynamic this__) {
 
 bool TryCatchSM_step(dynamic this__) {
   final this_ = this__ as TryCatchSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label5:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._log = (this_._log + 'try;');
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3())));
-          this_.smState = 1;
+        this_._log = (this_._log + 'try;');
+        this_._pending = Promise.delayed(1, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3())));
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
+{
+        if (this_._pending!.isPending)         return false;
+        if (this_._pending!.isError) {
+          this_._log = (this_._log + 'catch:${this_._pending!.error};');
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4())));
+          this_.smState = 2;
           return false;
         }
-      case 1:
+        this_.completeWith(this_._log);
+        return true;
+      }
+    case 2:
 {
-          if (this_._pending!.isPending)           return false;
-          if (this_._pending!.isError) {
-            this_._log = (this_._log + 'catch:${this_._pending!.error};');
-            this_._pending = Promise.delayed(1, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4())));
-            this_.smState = 2;
-            return false;
-          }
-          this_.completeWith(this_._log);
-          return true;
-        }
-      case 2:
+        if (this_._pending!.isPending)         return false;
+        this_._log = (this_._log + (this_._pending!.result as String));
+        this_.completeWith(this_._log);
+        return true;
+      }
+    default:
 {
-          if (this_._pending!.isPending)           return false;
-          this_._log = (this_._log + (this_._pending!.result as String));
-          this_.completeWith(this_._log);
-          return true;
-        }
-      default:
-{
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
 class FutureAnySMValue extends AsyncStateMachine<String> {
   late StaticList<Promise<String>> _futures;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  FutureAnySMValue() {
-    vptr['step'] = FutureAnySM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = FutureAnySMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = FutureAnySM_step;
   }
   @override
   void gcMark(int flag) {
@@ -402,30 +516,29 @@ FutureAnySMValue FutureAnySM_new(dynamic this__) {
 
 bool FutureAnySM_step(dynamic this__) {
   final this_ = this__ as FutureAnySMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label6:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
+        this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          for (final f in this_._futures) {
-            if (f.isCompleted) {
-              this_.completeWith(f.result);
-              return true;
-            }
+        for (final f in this_._futures) {
+          if (f.isCompleted) {
+            this_.completeWith(f.result);
+            return true;
           }
-          return false;
         }
-      default:
+        return false;
+      }
+    default:
 {
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
@@ -434,13 +547,28 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   late int timeoutDelay;
   late Promise<String> _taskFuture;
   late Promise<String> _timeoutFuture;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  TimeoutSMValue() {
-    vptr['step'] = TimeoutSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = TimeoutSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = TimeoutSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -460,33 +588,32 @@ TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required i
 
 bool TimeoutSM_step(dynamic this__) {
   final this_ = this__ as TimeoutSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label7:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
-          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
+        this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
+        this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          if (this_._taskFuture.isCompleted) {
-            this_.completeWith(this_._taskFuture.result);
-            return true;
-          }
-          if (this_._timeoutFuture.isCompleted) {
-            this_.completeWith(this_._timeoutFuture.result);
-            return true;
-          }
-          return false;
-        }
-      default:
-{
+        if (this_._taskFuture.isCompleted) {
+          this_.completeWith(this_._taskFuture.result);
           return true;
         }
-    }
-  } while (false);
+        if (this_._timeoutFuture.isCompleted) {
+          this_.completeWith(this_._timeoutFuture.result);
+          return true;
+        }
+        return false;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
@@ -495,13 +622,28 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late StaticList<String> _results = StaticList<String>.of([]);
   late int _index = 0;
   late Promise<String>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  AsyncMapSMValue() {
-    vptr['step'] = AsyncMapSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = AsyncMapSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = AsyncMapSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -521,33 +663,32 @@ AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
 
 bool AsyncMapSM_step(dynamic this__) {
   final this_ = this__ as AsyncMapSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label8:
+  switch (this_.smState) {
+    case 0:
 {
-          if ((this_._index >= this_.items.length)) {
-            this_.completeWith(this_._results);
-            return true;
-          }
-          IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
-{
-          if (this_._pending!.isPending)           return false;
-          this_._results.add(this_._pending!.result);
-          this_._index = (this_._index + 1);
-          this_.smState = 0;
-          return false;
-        }
-      default:
-{
+        if ((this_._index >= this_.items.length)) {
+          this_.completeWith(this_._results);
           return true;
         }
-    }
-  } while (false);
+        IntBox item = IntBox(this_.items[this_._index]);
+        this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
+{
+        if (this_._pending!.isPending)         return false;
+        this_._results.add(this_._pending!.result);
+        this_._index = (this_._index + 1);
+        this_.smState = 0;
+        return false;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
@@ -557,13 +698,28 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late StaticList<String> _items = StaticList<String>.of([]);
   late int _index = 0;
   late String _acc = '';
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  AsyncReduceSMValue() {
-    vptr['step'] = AsyncReduceSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = AsyncReduceSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = AsyncReduceSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -582,52 +738,58 @@ AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
 
 bool AsyncReduceSM_step(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label9:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._mapFuture = AsyncMapSM_new(GC.allocateLocal(AsyncMapSMValue()), StaticList<int>.of([1, 2, 3, 4])).start();
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
+        this_._mapFuture = AsyncMapSM_new(GC.allocateLocal(AsyncMapSMValue()), StaticList<int>.of([1, 2, 3, 4])).start();
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
-          if (this_._mapFuture.isPending)           return false;
-          this_._items = this_._mapFuture.result;
-          this_.smState = 2;
-          return false;
-        }
-      case 2:
+        if (this_._mapFuture.isPending)         return false;
+        this_._items = this_._mapFuture.result;
+        this_.smState = 2;
+        return false;
+      }
+    case 2:
 {
-          if ((this_._index >= this_._items.length)) {
-            this_.completeWith(this_._acc);
-            return true;
-          }
-          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
-          this_.smState = 3;
-          return false;
-        }
-      case 3:
-{
-          if (this_._reducePending!.isPending)           return false;
-          this_._acc = this_._reducePending!.result;
-          this_._index = (this_._index + 1);
-          this_.smState = 2;
-          return false;
-        }
-      default:
-{
+        if ((this_._index >= this_._items.length)) {
+          this_.completeWith(this_._acc);
           return true;
         }
-    }
-  } while (false);
+        this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
+        this_.smState = 3;
+        return false;
+      }
+    case 3:
+{
+        if (this_._reducePending!.isPending)         return false;
+        this_._acc = this_._reducePending!.result;
+        this_._index = (this_._index + 1);
+        this_.smState = 2;
+        return false;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
 class ClosureEnv_process_0Value extends VPtr {
   late int factor;
-  ClosureEnv_process_0Value() {
-    vptr['call'] = ClosureEnv_process_0_call;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['call'] = ClosureEnv_process_0_call;
+    }
+    return vptrMap!;
   }
 }
 
@@ -649,13 +811,28 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late StaticList<int> _results = StaticList<int>.of([]);
   late int _index = 0;
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  ProcessWithClosureSMValue() {
-    vptr['step'] = ProcessWithClosureSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ProcessWithClosureSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = ProcessWithClosureSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -676,46 +853,45 @@ ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<in
 
 bool ProcessWithClosureSM_step(dynamic this__) {
   final this_ = this__ as ProcessWithClosureSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label10:
+  switch (this_.smState) {
+    case 0:
 {
-          this_._env = ClosureEnv_process_0_new(GC.allocateLocal(ClosureEnv_process_0Value()), 3);
-          this_.smState = 1;
+        this_._env = ClosureEnv_process_0_new(GC.allocateLocal(ClosureEnv_process_0Value()), 3);
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
+{
+        if ((this_._index >= this_.items.length)) {
+          this_.smState = 3;
           return false;
         }
-      case 1:
+        IntBox item = IntBox(this_.items[this_._index]);
+        this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
+        this_.smState = 2;
+        return false;
+      }
+    case 2:
 {
-          if ((this_._index >= this_.items.length)) {
-            this_.smState = 3;
-            return false;
-          }
-          IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
-          this_.smState = 2;
-          return false;
-        }
-      case 2:
+        if (this_._pending!.isPending)         return false;
+        this_._results.add(this_._pending!.result);
+        this_._index = (this_._index + 1);
+        this_.smState = 1;
+        return false;
+      }
+    case 3:
 {
-          if (this_._pending!.isPending)           return false;
-          this_._results.add(this_._pending!.result);
-          this_._index = (this_._index + 1);
-          this_.smState = 1;
-          return false;
-        }
-      case 3:
+        this_._env.factor = 5;
+        this_._results.add((this_._env.vptr['call'] as int Function(dynamic, int))(this_._env, 100));
+        this_.completeWith(this_._results);
+        return true;
+      }
+    default:
 {
-          this_._env.factor = 5;
-          this_._results.add((this_._env.vptr['call'] as int Function(dynamic, int))(this_._env, 100));
-          this_.completeWith(this_._results);
-          return true;
-        }
-      default:
-{
-          return true;
-        }
-    }
-  } while (false);
+        return true;
+      }
+  }
 }
 
 
@@ -724,13 +900,28 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late int _i = 0;
   late StaticList<int> _yielded = StaticList<int>.of([]);
   late Promise<int>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  AsyncGeneratorSMValue() {
-    vptr['step'] = AsyncGeneratorSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = AsyncGeneratorSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = AsyncGeneratorSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -749,45 +940,59 @@ AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
 
 bool AsyncGeneratorSM_step(dynamic this__) {
   final this_ = this__ as AsyncGeneratorSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label11:
+  switch (this_.smState) {
+    case 0:
 {
-          if ((this_._i >= this_.max)) {
-            this_.completeWith(this_._yielded);
-            return true;
-          }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
-{
-          if (this_._pending!.isPending)           return false;
-          this_._yielded.add(this_._pending!.result);
-          this_._i = (this_._i + 1);
-          this_.smState = 0;
-          return false;
-        }
-      default:
-{
+        if ((this_._i >= this_.max)) {
+          this_.completeWith(this_._yielded);
           return true;
         }
-    }
-  } while (false);
+        this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
+{
+        if (this_._pending!.isPending)         return false;
+        this_._yielded.add(this_._pending!.result);
+        this_._i = (this_._i + 1);
+        this_.smState = 0;
+        return false;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
 class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic>> {
   late int depth;
   late Promise<StaticMap<String, dynamic>>? _pending = null;
-  late Map<String, dynamic> vptr = <String, dynamic>{};
   @override
   bool step() {
     return (vptr['step'] as bool Function(dynamic))(this);
   }
-  ComplexBusinessSMValue() {
-    vptr['step'] = ComplexBusinessSM_step;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ComplexBusinessSMValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['step'] = ComplexBusinessSM_step;
   }
   @override
   void gcMark(int flag) {
@@ -805,34 +1010,33 @@ ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
 
 bool ComplexBusinessSM_step(dynamic this__) {
   final this_ = this__ as ComplexBusinessSMValue;
-  do {
-    switch (this_.smState) {
-      case 0:
+  _label12:
+  switch (this_.smState) {
+    case 0:
 {
-          if ((this_.depth <= 0)) {
-            this_.completeWithError(Exception('max depth'));
-            return true;
-          }
-          this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
-          this_.smState = 1;
-          return false;
-        }
-      case 1:
-{
-          if (this_._pending!.isPending)           return false;
-          if (this_._pending!.isError) {
-            this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'error': '${this_._pending!.error}'}));
-            return true;
-          }
-          this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'child': this_._pending!.result}));
+        if ((this_.depth <= 0)) {
+          this_.completeWithError(Exception('max depth'));
           return true;
         }
-      default:
+        this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
+        this_.smState = 1;
+        return false;
+      }
+    case 1:
 {
+        if (this_._pending!.isPending)         return false;
+        if (this_._pending!.isError) {
+          this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'error': '${this_._pending!.error}'}));
           return true;
         }
-    }
-  } while (false);
+        this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'child': this_._pending!.result}));
+        return true;
+      }
+    default:
+{
+        return true;
+      }
+  }
 }
 
 
@@ -1162,9 +1366,9 @@ ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, AsyncReduceSM
 String ClosureEnv_anon_11_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_11;
 
-            final String sep = (env.this_._acc.isEmpty ? '' : '+');
-            return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
-          }
+          final String sep = (env.this_._acc.isEmpty ? '' : '+');
+          return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
+        }
 
 class ClosureEnv_anon_12 extends TypeFunction0<int> {
   late ProcessWithClosureSMValue this_;

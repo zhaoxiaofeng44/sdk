@@ -1,4 +1,4 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 Promise<void> main() {
   final env = ClosureEnv_main_0();
@@ -1345,7 +1345,7 @@ void DartRestorer__restoreLibrary(dynamic this__, Library lib) {
 
 void DartRestorer__emitRuntimeImport(dynamic this__) {
   final this_ = this__ as DartRestorerValue;
-  this_._buf.write('import \'package:dart2cpp/restorer/runtime_classes.dart\';\n\n');
+  this_._buf.write('import \'package:dart2cpp/platform/dart/runtime_classes.dart\';\n\n');
 }
 
 bool DartRestorer__isSyntheticMixinClass(dynamic this__, Class cls) {

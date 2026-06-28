@@ -1,4 +1,4 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 Promise<String> greetAsync(String name) {
   final env = ClosureEnv_greetAsync_0(name);

@@ -1,6 +1,6 @@
 /// Promise 增强功能测试
 /// 验证：catchError、whenComplete、then flatMap、promiseDelayed Duration 映射、smAwait 递归深度保护
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 void main() {
   print('═══════════════════════════════════════════');

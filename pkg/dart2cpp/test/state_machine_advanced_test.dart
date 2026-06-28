@@ -11,7 +11,7 @@
 /// 8. 链式异步变换管道
 /// 9. 闭包捕获 + await（模拟 restorer 闭包环境类）
 /// 10. async 生成器模拟（yield 模拟）
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 // ============================================================================
 // 场景 1: 递归异步 — async fibonacci

@@ -1,4 +1,4 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 // mixin Logger → static functions for delegation
 String Logger_get_prefix(dynamic this__) {
@@ -26,10 +26,17 @@ String Formatter_format(dynamic this__, String msg) {
 
 class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
   late String name;
-  DiamondClassValue() {
-    vptr['get_prefix'] = DiamondClass_get_prefix;
-    vptr['format'] = DiamondClass_format;
-    vptr['display'] = DiamondClass_display;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(DiamondClass_Object_Logger_FormatterValue.getVptrMap());
+      vptrMap!['get_prefix'] = DiamondClass_get_prefix;
+      vptrMap!['format'] = DiamondClass_format;
+      vptrMap!['display'] = DiamondClass_display;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -89,13 +96,20 @@ String StatefulMixin_get_counterStatus(dynamic this__) {
 
 class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
   late String id;
-  StatefulWidgetValue() {
-    vptr['get_counter'] = StatefulWidget_get_counter;
-    vptr['set_counter'] = StatefulWidget_set_counter;
-    vptr['increment'] = StatefulWidget_increment;
-    vptr['decrement'] = StatefulWidget_decrement;
-    vptr['get_counterStatus'] = StatefulWidget_get_counterStatus;
-    vptr['toString'] = StatefulWidget_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(StatefulWidget_Object_StatefulMixinValue.getVptrMap());
+      vptrMap!['get_counter'] = StatefulWidget_get_counter;
+      vptrMap!['set_counter'] = StatefulWidget_set_counter;
+      vptrMap!['increment'] = StatefulWidget_increment;
+      vptrMap!['decrement'] = StatefulWidget_decrement;
+      vptrMap!['get_counterStatus'] = StatefulWidget_get_counterStatus;
+      vptrMap!['toString'] = StatefulWidget_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -178,12 +192,19 @@ String LayerC_onlyC(dynamic this__) {
 
 
 class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValue {
-  DeepMixinClassValue() {
-    vptr['layer'] = DeepMixinClass_layer;
-    vptr['onlyA'] = DeepMixinClass_onlyA;
-    vptr['onlyB'] = DeepMixinClass_onlyB;
-    vptr['onlyC'] = DeepMixinClass_onlyC;
-    vptr['allLayers'] = DeepMixinClass_allLayers;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(DeepMixinClass_Object_LayerA_LayerB_LayerCValue.getVptrMap());
+      vptrMap!['layer'] = DeepMixinClass_layer;
+      vptrMap!['onlyA'] = DeepMixinClass_onlyA;
+      vptrMap!['onlyB'] = DeepMixinClass_onlyB;
+      vptrMap!['onlyC'] = DeepMixinClass_onlyC;
+      vptrMap!['allLayers'] = DeepMixinClass_allLayers;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -244,11 +265,29 @@ bool Filterable_test<T>(dynamic this__, TypeFunction1<bool, T> predicate) {
 
 class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
   late T value;
-  BoxValue() {
-    vptr['get_value'] = Box_get_value<T>;
-    vptr['describe'] = Box_describe<T>;
-    vptr['test'] = Box_test<T>;
-    vptr['toString'] = Box_toString<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = BoxValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['get_value'] = Box_get_value<T>;
+    target['describe'] = Box_describe<T>;
+    target['test'] = Box_test<T>;
+    target['toString'] = Box_toString<T>;
+    target['mapValue_int'] = Box_mapValue<T, int>;
+    target['mapValue_String'] = Box_mapValue<T, String>;
   }
   @override
   void gcMark(int flag) {
@@ -260,8 +299,6 @@ class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
 
 BoxValue<T> Box_new<T>(dynamic this__, T value) {
   final this_ = this__ as BoxValue<T>;
-  this_.vptr['mapValue_int'] = Box_mapValue<T, int>;
-  this_.vptr['mapValue_String'] = Box_mapValue<T, String>;
   this_.value = value;
   return this_;
 }
@@ -293,8 +330,15 @@ bool Box_test<T>(dynamic this__, TypeFunction1<bool, T> predicate) {
 
 
 class IdentifiableValue extends VPtr {
-  IdentifiableValue() {
-    vptr['get_id'] = Identifiable_get_id;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_id'] = Identifiable_get_id;
+    }
+    return vptrMap!;
   }
 }
 
@@ -309,8 +353,15 @@ String Identifiable_get_id(dynamic this_) {
 
 
 class DescribableValue extends VPtr {
-  DescribableValue() {
-    vptr['describe'] = Describable_describe;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['describe'] = Describable_describe;
+    }
+    return vptrMap!;
   }
 }
 
@@ -344,9 +395,16 @@ bool Taggable_hasTag(dynamic this__, String t) {
 class ResourceValue extends VPtr implements IdentifiableValue, DescribableValue {
   late String id;
   late String type;
-  ResourceValue() {
-    vptr['get_id'] = Resource_get_id;
-    vptr['describe'] = Resource_describe;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_id'] = Resource_get_id;
+      vptrMap!['describe'] = Resource_describe;
+    }
+    return vptrMap!;
   }
 }
 
@@ -368,12 +426,19 @@ dynamic Resource_get_id(ResourceValue this_) {
 
 
 class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
-  TaggedResourceValue() {
-    vptr['get_id'] = TaggedResource_get_id;
-    vptr['describe'] = TaggedResource_describe;
-    vptr['tag'] = TaggedResource_tag;
-    vptr['get_allTags'] = TaggedResource_get_allTags;
-    vptr['hasTag'] = TaggedResource_hasTag;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(TaggedResource_Resource_TaggableValue.getVptrMap());
+      vptrMap!['get_id'] = TaggedResource_get_id;
+      vptrMap!['describe'] = TaggedResource_describe;
+      vptrMap!['tag'] = TaggedResource_tag;
+      vptrMap!['get_allTags'] = TaggedResource_get_allTags;
+      vptrMap!['hasTag'] = TaggedResource_hasTag;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -414,9 +479,16 @@ bool TaggedResource_hasTag(dynamic this__, String t) {
 
 
 class BaseProcessorValue extends VPtr {
-  BaseProcessorValue() {
-    vptr['process'] = BaseProcessor_process;
-    vptr['get_processorName'] = BaseProcessor_get_processorName;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['process'] = BaseProcessor_process;
+      vptrMap!['get_processorName'] = BaseProcessor_get_processorName;
+    }
+    return vptrMap!;
   }
 }
 
@@ -437,9 +509,16 @@ String BaseProcessor_get_processorName(dynamic this__) {
 
 
 class UpperProcessorValue extends BaseProcessorValue {
-  UpperProcessorValue() {
-    vptr['process'] = UpperProcessor_process;
-    vptr['get_processorName'] = UpperProcessor_get_processorName;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(BaseProcessorValue.getVptrMap());
+      vptrMap!['process'] = UpperProcessor_process;
+      vptrMap!['get_processorName'] = UpperProcessor_get_processorName;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -467,9 +546,16 @@ String UpperProcessor_get_processorName(dynamic this__) {
 
 class PrefixProcessorValue extends UpperProcessorValue {
   late String prefix;
-  PrefixProcessorValue() {
-    vptr['process'] = PrefixProcessor_process;
-    vptr['get_processorName'] = PrefixProcessor_get_processorName;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(UpperProcessorValue.getVptrMap());
+      vptrMap!['process'] = PrefixProcessor_process;
+      vptrMap!['get_processorName'] = PrefixProcessor_get_processorName;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -510,15 +596,22 @@ int Addable_doubleValue(dynamic this__) {
 
 class AmountValue extends Amount_Object_AddableValue {
   late int numericValue;
-  AmountValue() {
-    vptr['get_numericValue'] = Amount_get_numericValue;
-    vptr['addValues'] = Amount_addValues;
-    vptr['doubleValue'] = Amount_doubleValue;
-    vptr['operatorPlus'] = Amount_operatorPlus;
-    vptr['operatorMinus'] = Amount_operatorMinus;
-    vptr['operatorLt'] = Amount_operatorLt;
-    vptr['operatorGt'] = Amount_operatorGt;
-    vptr['toString'] = Amount_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Amount_Object_AddableValue.getVptrMap());
+      vptrMap!['get_numericValue'] = Amount_get_numericValue;
+      vptrMap!['addValues'] = Amount_addValues;
+      vptrMap!['doubleValue'] = Amount_doubleValue;
+      vptrMap!['operatorPlus'] = Amount_operatorPlus;
+      vptrMap!['operatorMinus'] = Amount_operatorMinus;
+      vptrMap!['operatorLt'] = Amount_operatorLt;
+      vptrMap!['operatorGt'] = Amount_operatorGt;
+      vptrMap!['toString'] = Amount_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -584,8 +677,15 @@ void Printable2_prettyPrint(dynamic this__) {
 class VehicleValue extends VPtr {
   late String make;
   late int year;
-  VehicleValue() {
-    vptr['toString'] = Vehicle_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['toString'] = Vehicle_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -604,10 +704,17 @@ String Vehicle_toString(dynamic this__) {
 
 class CarValue extends Car_Vehicle_Printable2Value {
   late int doors;
-  CarValue() {
-    vptr['toString'] = Car_toString;
-    vptr['toPrettyString'] = Car_toPrettyString;
-    vptr['prettyPrint'] = Car_prettyPrint;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Car_Vehicle_Printable2Value.getVptrMap());
+      vptrMap!['toString'] = Car_toString;
+      vptrMap!['toPrettyString'] = Car_toPrettyString;
+      vptrMap!['prettyPrint'] = Car_prettyPrint;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -641,10 +748,17 @@ void Car_prettyPrint(dynamic this__) {
 
 class ElectricCarValue extends CarValue {
   late int range;
-  ElectricCarValue() {
-    vptr['toString'] = ElectricCar_toString;
-    vptr['toPrettyString'] = ElectricCar_toPrettyString;
-    vptr['prettyPrint'] = ElectricCar_prettyPrint;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(CarValue.getVptrMap());
+      vptrMap!['toString'] = ElectricCar_toString;
+      vptrMap!['toPrettyString'] = ElectricCar_toPrettyString;
+      vptrMap!['prettyPrint'] = ElectricCar_prettyPrint;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -677,8 +791,15 @@ void ElectricCar_prettyPrint(dynamic this__) {
 
 
 class MeasurableValue extends VPtr {
-  MeasurableValue() {
-    vptr['measure'] = Measurable_measure;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['measure'] = Measurable_measure;
+    }
+    return vptrMap!;
   }
 }
 
@@ -706,11 +827,18 @@ String Scalable_measureInfo(dynamic this__) {
 
 class SegmentValue extends Segment_Measurable_ScalableValue {
   late double length;
-  SegmentValue() {
-    vptr['measure'] = Segment_measure;
-    vptr['scale'] = Segment_scale;
-    vptr['measureInfo'] = Segment_measureInfo;
-    vptr['toString'] = Segment_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Segment_Measurable_ScalableValue.getVptrMap());
+      vptrMap!['measure'] = Segment_measure;
+      vptrMap!['scale'] = Segment_scale;
+      vptrMap!['measureInfo'] = Segment_measureInfo;
+      vptrMap!['toString'] = Segment_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -749,11 +877,18 @@ String Segment_measureInfo(dynamic this__) {
 
 class WeightedSegmentValue extends SegmentValue {
   late double weight;
-  WeightedSegmentValue() {
-    vptr['measure'] = WeightedSegment_measure;
-    vptr['scale'] = WeightedSegment_scale;
-    vptr['measureInfo'] = WeightedSegment_measureInfo;
-    vptr['toString'] = WeightedSegment_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(SegmentValue.getVptrMap());
+      vptrMap!['measure'] = WeightedSegment_measure;
+      vptrMap!['scale'] = WeightedSegment_scale;
+      vptrMap!['measureInfo'] = WeightedSegment_measureInfo;
+      vptrMap!['toString'] = WeightedSegment_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -815,11 +950,18 @@ String DescribedMixin_info(dynamic this__) {
 
 
 class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_DescribedMixinValue {
-  MultiMixinEntityValue() {
-    vptr['get_label'] = MultiMixinEntity_get_label;
-    vptr['greet'] = MultiMixinEntity_greet;
-    vptr['info'] = MultiMixinEntity_info;
-    vptr['fullInfo'] = MultiMixinEntity_fullInfo;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MultiMixinEntity_Object_NamedMixin_DescribedMixinValue.getVptrMap());
+      vptrMap!['get_label'] = MultiMixinEntity_get_label;
+      vptrMap!['greet'] = MultiMixinEntity_greet;
+      vptrMap!['info'] = MultiMixinEntity_info;
+      vptrMap!['fullInfo'] = MultiMixinEntity_fullInfo;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -855,8 +997,15 @@ String MultiMixinEntity_info(dynamic this__) {
 
 
 class EncoderValue extends VPtr {
-  EncoderValue() {
-    vptr['encode'] = Encoder_encode;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['encode'] = Encoder_encode;
+    }
+    return vptrMap!;
   }
 }
 
@@ -885,9 +1034,16 @@ String HexMixin_encode(dynamic this__, String input) {
 
 
 class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
-  MultiEncoderValue() {
-    vptr['encode'] = MultiEncoder_encode;
-    vptr['encodeAll'] = MultiEncoder_encodeAll;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MultiEncoder_Object_Base64Mixin_HexMixinValue.getVptrMap());
+      vptrMap!['encode'] = MultiEncoder_encode;
+      vptrMap!['encodeAll'] = MultiEncoder_encodeAll;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -913,9 +1069,16 @@ String MultiEncoder_encode(dynamic this__, String input) {
 
 
 class CustomEncoderValue extends MultiEncoderValue {
-  CustomEncoderValue() {
-    vptr['encode'] = CustomEncoder_encode;
-    vptr['encodeAll'] = CustomEncoder_encodeAll;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MultiEncoderValue.getVptrMap());
+      vptrMap!['encode'] = CustomEncoder_encode;
+      vptrMap!['encodeAll'] = CustomEncoder_encodeAll;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -943,9 +1106,24 @@ String CustomEncoder_encodeAll(dynamic this__, String input) {
 
 class ContainerValue<T> extends VPtr {
   late T item;
-  ContainerValue() {
-    vptr['describe'] = Container_describe<T>;
-    vptr['get_content'] = Container_get_content<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ContainerValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['describe'] = Container_describe<T>;
+    target['get_content'] = Container_get_content<T>;
   }
   @override
   void gcMark(int flag) {
@@ -974,9 +1152,25 @@ T Container_get_content<T>(dynamic this__) {
 
 class LabeledContainerValue<T> extends ContainerValue<T> {
   late String label;
-  LabeledContainerValue() {
-    vptr['describe'] = LabeledContainer_describe<T>;
-    vptr['get_content'] = LabeledContainer_get_content<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = LabeledContainerValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['describe'] = LabeledContainer_describe<T>;
+    target['get_content'] = LabeledContainer_get_content<T>;
   }
   @override
   void gcMark(int flag) {
@@ -1005,9 +1199,25 @@ T LabeledContainer_get_content<T>(dynamic this__) {
 
 class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   late int priority;
-  PriorityContainerValue() {
-    vptr['describe'] = PriorityContainer_describe<T>;
-    vptr['get_content'] = PriorityContainer_get_content<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = PriorityContainerValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['describe'] = PriorityContainer_describe<T>;
+    target['get_content'] = PriorityContainer_get_content<T>;
   }
   @override
   void gcMark(int flag) {
@@ -1057,11 +1267,18 @@ String ChainMixin_fullChain(dynamic this__) {
 
 
 class ChainClassValue extends ChainClass_Object_ChainMixinValue {
-  ChainClassValue() {
-    vptr['step1'] = ChainClass_step1;
-    vptr['step2'] = ChainClass_step2;
-    vptr['step3'] = ChainClass_step3;
-    vptr['fullChain'] = ChainClass_fullChain;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ChainClass_Object_ChainMixinValue.getVptrMap());
+      vptrMap!['step1'] = ChainClass_step1;
+      vptrMap!['step2'] = ChainClass_step2;
+      vptrMap!['step3'] = ChainClass_step3;
+      vptrMap!['fullChain'] = ChainClass_fullChain;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1097,11 +1314,18 @@ String ChainClass_fullChain(dynamic this__) {
 
 
 class ChainSubClassValue extends ChainClassValue {
-  ChainSubClassValue() {
-    vptr['step1'] = ChainSubClass_step1;
-    vptr['step2'] = ChainSubClass_step2;
-    vptr['step3'] = ChainSubClass_step3;
-    vptr['fullChain'] = ChainSubClass_fullChain;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ChainClassValue.getVptrMap());
+      vptrMap!['step1'] = ChainSubClass_step1;
+      vptrMap!['step2'] = ChainSubClass_step2;
+      vptrMap!['step3'] = ChainSubClass_step3;
+      vptrMap!['fullChain'] = ChainSubClass_fullChain;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1138,9 +1362,16 @@ String ChainSubClass_fullChain(dynamic this__) {
 
 
 class Expression2Value extends VPtr {
-  Expression2Value() {
-    vptr['evaluate'] = Expression2_evaluate;
-    vptr['display'] = Expression2_display;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['evaluate'] = Expression2_evaluate;
+      vptrMap!['display'] = Expression2_display;
+    }
+    return vptrMap!;
   }
 }
 
@@ -1160,9 +1391,16 @@ String Expression2_display(dynamic this_) {
 
 class NumberExprValue extends Expression2Value {
   late double value;
-  NumberExprValue() {
-    vptr['evaluate'] = NumberExpr_evaluate;
-    vptr['display'] = NumberExpr_display;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Expression2Value.getVptrMap());
+      vptrMap!['evaluate'] = NumberExpr_evaluate;
+      vptrMap!['display'] = NumberExpr_display;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1194,9 +1432,16 @@ class BinaryExprValue extends Expression2Value {
   late Expression2Value right;
   late String op;
   late TypeFunction2<double, double, double> _compute;
-  BinaryExprValue() {
-    vptr['evaluate'] = BinaryExpr_evaluate;
-    vptr['display'] = BinaryExpr_display;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Expression2Value.getVptrMap());
+      vptrMap!['evaluate'] = BinaryExpr_evaluate;
+      vptrMap!['display'] = BinaryExpr_display;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1290,17 +1535,24 @@ String StaminaMixin_staminaBar(dynamic this__) {
 
 class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue {
   late String name;
-  GameCharacterValue() {
-    vptr['get_maxHealth'] = GameCharacter_get_maxHealth;
-    vptr['get_health'] = GameCharacter_get_health;
-    vptr['healthBar'] = GameCharacter_healthBar;
-    vptr['get_maxMana'] = GameCharacter_get_maxMana;
-    vptr['get_mana'] = GameCharacter_get_mana;
-    vptr['manaBar'] = GameCharacter_manaBar;
-    vptr['get_maxStamina'] = GameCharacter_get_maxStamina;
-    vptr['get_stamina'] = GameCharacter_get_stamina;
-    vptr['staminaBar'] = GameCharacter_staminaBar;
-    vptr['statusBars'] = GameCharacter_statusBars;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue.getVptrMap());
+      vptrMap!['get_maxHealth'] = GameCharacter_get_maxHealth;
+      vptrMap!['get_health'] = GameCharacter_get_health;
+      vptrMap!['healthBar'] = GameCharacter_healthBar;
+      vptrMap!['get_maxMana'] = GameCharacter_get_maxMana;
+      vptrMap!['get_mana'] = GameCharacter_get_mana;
+      vptrMap!['manaBar'] = GameCharacter_manaBar;
+      vptrMap!['get_maxStamina'] = GameCharacter_get_maxStamina;
+      vptrMap!['get_stamina'] = GameCharacter_get_stamina;
+      vptrMap!['staminaBar'] = GameCharacter_staminaBar;
+      vptrMap!['statusBars'] = GameCharacter_statusBars;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1367,17 +1619,24 @@ String GameCharacter_staminaBar(dynamic this__) {
 
 
 class WarriorValue extends GameCharacterValue {
-  WarriorValue() {
-    vptr['get_maxHealth'] = Warrior_get_maxHealth;
-    vptr['get_health'] = Warrior_get_health;
-    vptr['healthBar'] = Warrior_healthBar;
-    vptr['get_maxMana'] = Warrior_get_maxMana;
-    vptr['get_mana'] = Warrior_get_mana;
-    vptr['manaBar'] = Warrior_manaBar;
-    vptr['get_maxStamina'] = Warrior_get_maxStamina;
-    vptr['get_stamina'] = Warrior_get_stamina;
-    vptr['staminaBar'] = Warrior_staminaBar;
-    vptr['statusBars'] = Warrior_statusBars;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(GameCharacterValue.getVptrMap());
+      vptrMap!['get_maxHealth'] = Warrior_get_maxHealth;
+      vptrMap!['get_health'] = Warrior_get_health;
+      vptrMap!['healthBar'] = Warrior_healthBar;
+      vptrMap!['get_maxMana'] = Warrior_get_maxMana;
+      vptrMap!['get_mana'] = Warrior_get_mana;
+      vptrMap!['manaBar'] = Warrior_manaBar;
+      vptrMap!['get_maxStamina'] = Warrior_get_maxStamina;
+      vptrMap!['get_stamina'] = Warrior_get_stamina;
+      vptrMap!['staminaBar'] = Warrior_staminaBar;
+      vptrMap!['statusBars'] = Warrior_statusBars;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1444,17 +1703,24 @@ String Warrior_statusBars(dynamic this__) {
 
 
 class MageValue extends GameCharacterValue {
-  MageValue() {
-    vptr['get_maxHealth'] = Mage_get_maxHealth;
-    vptr['get_health'] = Mage_get_health;
-    vptr['healthBar'] = Mage_healthBar;
-    vptr['get_maxMana'] = Mage_get_maxMana;
-    vptr['get_mana'] = Mage_get_mana;
-    vptr['manaBar'] = Mage_manaBar;
-    vptr['get_maxStamina'] = Mage_get_maxStamina;
-    vptr['get_stamina'] = Mage_get_stamina;
-    vptr['staminaBar'] = Mage_staminaBar;
-    vptr['statusBars'] = Mage_statusBars;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(GameCharacterValue.getVptrMap());
+      vptrMap!['get_maxHealth'] = Mage_get_maxHealth;
+      vptrMap!['get_health'] = Mage_get_health;
+      vptrMap!['healthBar'] = Mage_healthBar;
+      vptrMap!['get_maxMana'] = Mage_get_maxMana;
+      vptrMap!['get_mana'] = Mage_get_mana;
+      vptrMap!['manaBar'] = Mage_manaBar;
+      vptrMap!['get_maxStamina'] = Mage_get_maxStamina;
+      vptrMap!['get_stamina'] = Mage_get_stamina;
+      vptrMap!['staminaBar'] = Mage_staminaBar;
+      vptrMap!['statusBars'] = Mage_statusBars;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1521,17 +1787,31 @@ String Mage_statusBars(dynamic this__) {
 
 
 class DiamondClass_Object_LoggerValue extends VPtr {
-  DiamondClass_Object_LoggerValue() {
-    vptr['get_prefix'] = Logger_get_prefix;
-    vptr['format'] = Logger_format;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_prefix'] = Logger_get_prefix;
+      vptrMap!['format'] = Logger_format;
+    }
+    return vptrMap!;
   }
 }
 
 
 class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_LoggerValue {
-  DiamondClass_Object_Logger_FormatterValue() {
-    vptr['get_prefix'] = Formatter_get_prefix;
-    vptr['format'] = Formatter_format;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(DiamondClass_Object_LoggerValue.getVptrMap());
+      vptrMap!['get_prefix'] = Formatter_get_prefix;
+      vptrMap!['format'] = Formatter_format;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1543,28 +1823,49 @@ class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_Logg
 
 class StatefulWidget_Object_StatefulMixinValue extends VPtr {
   late int _counter = 0;
-  StatefulWidget_Object_StatefulMixinValue() {
-    vptr['get_counter'] = StatefulMixin_get_counter;
-    vptr['set_counter'] = StatefulMixin_set_counter;
-    vptr['increment'] = StatefulMixin_increment;
-    vptr['decrement'] = StatefulMixin_decrement;
-    vptr['get_counterStatus'] = StatefulMixin_get_counterStatus;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_counter'] = StatefulMixin_get_counter;
+      vptrMap!['set_counter'] = StatefulMixin_set_counter;
+      vptrMap!['increment'] = StatefulMixin_increment;
+      vptrMap!['decrement'] = StatefulMixin_decrement;
+      vptrMap!['get_counterStatus'] = StatefulMixin_get_counterStatus;
+    }
+    return vptrMap!;
   }
 }
 
 
 class DeepMixinClass_Object_LayerAValue extends VPtr {
-  DeepMixinClass_Object_LayerAValue() {
-    vptr['layer'] = LayerA_layer;
-    vptr['onlyA'] = LayerA_onlyA;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['layer'] = LayerA_layer;
+      vptrMap!['onlyA'] = LayerA_onlyA;
+    }
+    return vptrMap!;
   }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_LayerAValue {
-  DeepMixinClass_Object_LayerA_LayerBValue() {
-    vptr['layer'] = LayerB_layer;
-    vptr['onlyB'] = LayerB_onlyB;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(DeepMixinClass_Object_LayerAValue.getVptrMap());
+      vptrMap!['layer'] = LayerB_layer;
+      vptrMap!['onlyB'] = LayerB_onlyB;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1575,9 +1876,16 @@ class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_Lay
 
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Object_LayerA_LayerBValue {
-  DeepMixinClass_Object_LayerA_LayerB_LayerCValue() {
-    vptr['layer'] = LayerC_layer;
-    vptr['onlyC'] = LayerC_onlyC;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(DeepMixinClass_Object_LayerA_LayerBValue.getVptrMap());
+      vptrMap!['layer'] = LayerC_layer;
+      vptrMap!['onlyC'] = LayerC_onlyC;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1588,16 +1896,47 @@ class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Obj
 
 
 class Box_Object_MappableValue<T> extends VPtr {
-  Box_Object_MappableValue() {
-    vptr['mapValue'] = Mappable_mapValue<T, dynamic>;
-    vptr['describe'] = Mappable_describe<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = Box_Object_MappableValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['mapValue'] = Mappable_mapValue<T, dynamic>;
+    target['describe'] = Mappable_describe<T>;
   }
 }
 
 
 class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
-  Box_Object_Mappable_FilterableValue() {
-    vptr['test'] = Filterable_test<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = Box_Object_Mappable_FilterableValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['test'] = Filterable_test<T>;
   }
   @override
   void gcMark(int flag) {
@@ -1609,10 +1948,17 @@ class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T>
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
   late StaticList<String> _tags = StaticList<String>.of([]);
-  TaggedResource_Resource_TaggableValue() {
-    vptr['tag'] = Taggable_tag;
-    vptr['get_allTags'] = Taggable_get_allTags;
-    vptr['hasTag'] = Taggable_hasTag;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ResourceValue.getVptrMap());
+      vptrMap!['tag'] = Taggable_tag;
+      vptrMap!['get_allTags'] = Taggable_get_allTags;
+      vptrMap!['hasTag'] = Taggable_hasTag;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1624,16 +1970,30 @@ class TaggedResource_Resource_TaggableValue extends ResourceValue {
 
 
 class Amount_Object_AddableValue extends VPtr {
-  Amount_Object_AddableValue() {
-    vptr['addValues'] = Addable_addValues;
-    vptr['doubleValue'] = Addable_doubleValue;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['addValues'] = Addable_addValues;
+      vptrMap!['doubleValue'] = Addable_doubleValue;
+    }
+    return vptrMap!;
   }
 }
 
 
 class Car_Vehicle_Printable2Value extends VehicleValue {
-  Car_Vehicle_Printable2Value() {
-    vptr['prettyPrint'] = Printable2_prettyPrint;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(VehicleValue.getVptrMap());
+      vptrMap!['prettyPrint'] = Printable2_prettyPrint;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1644,9 +2004,16 @@ class Car_Vehicle_Printable2Value extends VehicleValue {
 
 
 class Segment_Measurable_ScalableValue extends MeasurableValue {
-  Segment_Measurable_ScalableValue() {
-    vptr['scale'] = Scalable_scale;
-    vptr['measureInfo'] = Scalable_measureInfo;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MeasurableValue.getVptrMap());
+      vptrMap!['scale'] = Scalable_scale;
+      vptrMap!['measureInfo'] = Scalable_measureInfo;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1657,17 +2024,31 @@ class Segment_Measurable_ScalableValue extends MeasurableValue {
 
 
 class MultiMixinEntity_Object_NamedMixinValue extends VPtr {
-  MultiMixinEntity_Object_NamedMixinValue() {
-    vptr['get_label'] = NamedMixin_get_label;
-    vptr['greet'] = NamedMixin_greet;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_label'] = NamedMixin_get_label;
+      vptrMap!['greet'] = NamedMixin_greet;
+    }
+    return vptrMap!;
   }
 }
 
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinEntity_Object_NamedMixinValue {
-  MultiMixinEntity_Object_NamedMixin_DescribedMixinValue() {
-    vptr['get_label'] = DescribedMixin_get_label;
-    vptr['info'] = DescribedMixin_info;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MultiMixinEntity_Object_NamedMixinValue.getVptrMap());
+      vptrMap!['get_label'] = DescribedMixin_get_label;
+      vptrMap!['info'] = DescribedMixin_info;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1678,15 +2059,29 @@ class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinE
 
 
 class MultiEncoder_Object_Base64MixinValue extends VPtr {
-  MultiEncoder_Object_Base64MixinValue() {
-    vptr['encode'] = Base64Mixin_encode;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['encode'] = Base64Mixin_encode;
+    }
+    return vptrMap!;
   }
 }
 
 
 class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_Base64MixinValue {
-  MultiEncoder_Object_Base64Mixin_HexMixinValue() {
-    vptr['encode'] = HexMixin_encode;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(MultiEncoder_Object_Base64MixinValue.getVptrMap());
+      vptrMap!['encode'] = HexMixin_encode;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1697,29 +2092,50 @@ class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_
 
 
 class ChainClass_Object_ChainMixinValue extends VPtr {
-  ChainClass_Object_ChainMixinValue() {
-    vptr['step1'] = ChainMixin_step1;
-    vptr['step2'] = ChainMixin_step2;
-    vptr['step3'] = ChainMixin_step3;
-    vptr['fullChain'] = ChainMixin_fullChain;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['step1'] = ChainMixin_step1;
+      vptrMap!['step2'] = ChainMixin_step2;
+      vptrMap!['step3'] = ChainMixin_step3;
+      vptrMap!['fullChain'] = ChainMixin_fullChain;
+    }
+    return vptrMap!;
   }
 }
 
 
 class GameCharacter_Object_HealthMixinValue extends VPtr {
-  GameCharacter_Object_HealthMixinValue() {
-    vptr['get_maxHealth'] = HealthMixin_get_maxHealth;
-    vptr['get_health'] = HealthMixin_get_health;
-    vptr['healthBar'] = HealthMixin_healthBar;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_maxHealth'] = HealthMixin_get_maxHealth;
+      vptrMap!['get_health'] = HealthMixin_get_health;
+      vptrMap!['healthBar'] = HealthMixin_healthBar;
+    }
+    return vptrMap!;
   }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Object_HealthMixinValue {
-  GameCharacter_Object_HealthMixin_ManaMixinValue() {
-    vptr['get_maxMana'] = ManaMixin_get_maxMana;
-    vptr['get_mana'] = ManaMixin_get_mana;
-    vptr['manaBar'] = ManaMixin_manaBar;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(GameCharacter_Object_HealthMixinValue.getVptrMap());
+      vptrMap!['get_maxMana'] = ManaMixin_get_maxMana;
+      vptrMap!['get_mana'] = ManaMixin_get_mana;
+      vptrMap!['manaBar'] = ManaMixin_manaBar;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1730,10 +2146,17 @@ class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Obje
 
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameCharacter_Object_HealthMixin_ManaMixinValue {
-  GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue() {
-    vptr['get_maxStamina'] = StaminaMixin_get_maxStamina;
-    vptr['get_stamina'] = StaminaMixin_get_stamina;
-    vptr['staminaBar'] = StaminaMixin_staminaBar;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(GameCharacter_Object_HealthMixin_ManaMixinValue.getVptrMap());
+      vptrMap!['get_maxStamina'] = StaminaMixin_get_maxStamina;
+      vptrMap!['get_stamina'] = StaminaMixin_get_stamina;
+      vptrMap!['staminaBar'] = StaminaMixin_staminaBar;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1769,11 +2192,11 @@ void main() {
   final BoxValue<int> intBox = Box_new<int>(GC.allocateLocal(BoxValue<int>()), 42);
   staticPrint('intBox: ${intBox}');
   staticPrint('describe: ${(intBox.vptr['describe'] as String Function(dynamic))(intBox)}');
-  staticPrint('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(dynamic, TypeFunction1<int, int>))(intBox, ClosureEnv_main_3_new(GC.allocateLocal(ClosureEnv_main_3())))}');
-  staticPrint('test >10: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())))}');
-  staticPrint('test >100: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())))}');
+  staticPrint('mapValue: ${(intBox.vptr['mapValue_int'] as int Function(dynamic, TypeFunction1<int, int>))(intBox, ClosureEnv_main_2_new(GC.allocateLocal(ClosureEnv_main_2())))}');
+  staticPrint('test >10: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_3_new(GC.allocateLocal(ClosureEnv_main_3())))}');
+  staticPrint('test >100: ${(intBox.vptr['test'] as bool Function(dynamic, TypeFunction1<bool, int>))(intBox, ClosureEnv_main_4_new(GC.allocateLocal(ClosureEnv_main_4())))}');
   final BoxValue<String> strBox = Box_new<String>(GC.allocateLocal(BoxValue<String>()), 'dart');
-  staticPrint('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(dynamic, TypeFunction1<String, String>))(strBox, ClosureEnv_main_9_new(GC.allocateLocal(ClosureEnv_main_9())))}');
+  staticPrint('strBox mapValue: ${(strBox.vptr['mapValue_String'] as String Function(dynamic, TypeFunction1<String, String>))(strBox, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())))}');
   staticPrint('\n--- 5. 抽象+mixin+implements ---');
   final TaggedResourceValue res = TaggedResource_new(GC.allocateLocal(TaggedResourceValue()), 'r1', 'file');
   (res.vptr['tag'] as void Function(dynamic, String))(res, 'important');
@@ -1899,19 +2322,19 @@ int ClosureEnv_main_2_call(dynamic env__, int v) {
   return (v * 2);
 }
 
-class ClosureEnv_main_3 extends TypeFunction1<int, int> {
+class ClosureEnv_main_3 extends TypeFunction1<bool, int> {
   ClosureEnv_main_3();
   @override
-  int call(int v) => closureCall(this, v);
+  bool call(int v) => closureCall(this, v);
 }
 ClosureEnv_main_3 ClosureEnv_main_3_new(ClosureEnv_main_3 env_) {
   env_.closureCall = ClosureEnv_main_3_call;
   return env_;
 }
-int ClosureEnv_main_3_call(dynamic env__, int v) {
+bool ClosureEnv_main_3_call(dynamic env__, int v) {
   final env = env__ as ClosureEnv_main_3;
 
-  return (v * 2);
+  return (v > 10);
 }
 
 class ClosureEnv_main_4 extends TypeFunction1<bool, int> {
@@ -1926,80 +2349,20 @@ ClosureEnv_main_4 ClosureEnv_main_4_new(ClosureEnv_main_4 env_) {
 bool ClosureEnv_main_4_call(dynamic env__, int v) {
   final env = env__ as ClosureEnv_main_4;
 
-  return (v > 10);
+  return (v > 100);
 }
 
-class ClosureEnv_main_5 extends TypeFunction1<bool, int> {
+class ClosureEnv_main_5 extends TypeFunction1<String, String> {
   ClosureEnv_main_5();
   @override
-  bool call(int v) => closureCall(this, v);
+  String call(String s) => closureCall(this, s);
 }
 ClosureEnv_main_5 ClosureEnv_main_5_new(ClosureEnv_main_5 env_) {
   env_.closureCall = ClosureEnv_main_5_call;
   return env_;
 }
-bool ClosureEnv_main_5_call(dynamic env__, int v) {
+String ClosureEnv_main_5_call(dynamic env__, String s) {
   final env = env__ as ClosureEnv_main_5;
-
-  return (v > 10);
-}
-
-class ClosureEnv_main_6 extends TypeFunction1<bool, int> {
-  ClosureEnv_main_6();
-  @override
-  bool call(int v) => closureCall(this, v);
-}
-ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
-  env_.closureCall = ClosureEnv_main_6_call;
-  return env_;
-}
-bool ClosureEnv_main_6_call(dynamic env__, int v) {
-  final env = env__ as ClosureEnv_main_6;
-
-  return (v > 100);
-}
-
-class ClosureEnv_main_7 extends TypeFunction1<bool, int> {
-  ClosureEnv_main_7();
-  @override
-  bool call(int v) => closureCall(this, v);
-}
-ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
-  env_.closureCall = ClosureEnv_main_7_call;
-  return env_;
-}
-bool ClosureEnv_main_7_call(dynamic env__, int v) {
-  final env = env__ as ClosureEnv_main_7;
-
-  return (v > 100);
-}
-
-class ClosureEnv_main_8 extends TypeFunction1<String, String> {
-  ClosureEnv_main_8();
-  @override
-  String call(String s) => closureCall(this, s);
-}
-ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_) {
-  env_.closureCall = ClosureEnv_main_8_call;
-  return env_;
-}
-String ClosureEnv_main_8_call(dynamic env__, String s) {
-  final env = env__ as ClosureEnv_main_8;
-
-  return s.toUpperCase();
-}
-
-class ClosureEnv_main_9 extends TypeFunction1<String, String> {
-  ClosureEnv_main_9();
-  @override
-  String call(String s) => closureCall(this, s);
-}
-ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
-  env_.closureCall = ClosureEnv_main_9_call;
-  return env_;
-}
-String ClosureEnv_main_9_call(dynamic env__, String s) {
-  final env = env__ as ClosureEnv_main_9;
 
   return s.toUpperCase();
 }

@@ -1,4 +1,4 @@
-import 'package:dart2cpp/restorer/runtime_classes.dart';
+import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 typedef UnaryFunc<A, B> = TypeFunction1<B, A>;
 
@@ -6,11 +6,27 @@ class TreeNodeValue<T> extends VPtr {
   late T value;
   late TreeNodeValue<T>? left;
   late TreeNodeValue<T>? right;
-  TreeNodeValue() {
-    vptr['preorder'] = TreeNode_preorder<T>;
-    vptr['inorder'] = TreeNode_inorder<T>;
-    vptr['get_depth'] = TreeNode_get_depth<T>;
-    vptr['toString'] = TreeNode_toString<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = TreeNodeValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['preorder'] = TreeNode_preorder<T>;
+    target['inorder'] = TreeNode_inorder<T>;
+    target['get_depth'] = TreeNode_get_depth<T>;
+    target['toString'] = TreeNode_toString<T>;
+    target['map_String'] = TreeNode_map<T, String>;
   }
   @override
   void gcMark(int flag) {
@@ -24,7 +40,6 @@ class TreeNodeValue<T> extends VPtr {
 
 TreeNodeValue<T> TreeNode_new<T>(dynamic this__, T value, [TreeNodeValue<T>? left = null, TreeNodeValue<T>? right = null]) {
   final this_ = this__ as TreeNodeValue<T>;
-  this_.vptr['map_String'] = TreeNode_map<T, String>;
   this_.value = value;
   this_.left = left;
   this_.right = right;
@@ -69,11 +84,26 @@ String TreeNode_toString<T>(dynamic this__) {
 class LinkedNodeValue<T> extends VPtr {
   late T data;
   late LinkedNodeValue<T>? next;
-  LinkedNodeValue() {
-    vptr['reversed'] = LinkedNode_reversed<T>;
-    vptr['toList'] = LinkedNode_toList<T>;
-    vptr['get_length'] = LinkedNode_get_length<T>;
-    vptr['toString'] = LinkedNode_toString<T>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = LinkedNodeValue<T>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['reversed'] = LinkedNode_reversed<T>;
+    target['toList'] = LinkedNode_toList<T>;
+    target['get_length'] = LinkedNode_get_length<T>;
+    target['toString'] = LinkedNode_toString<T>;
   }
   @override
   void gcMark(int flag) {
@@ -135,12 +165,30 @@ class EitherValue<L, R> extends VPtr {
   late L? _left;
   late R? _right;
   late bool _isRight;
-  EitherValue() {
-    vptr['get_isLeft'] = Either_get_isLeft<L, R>;
-    vptr['get_isRight'] = Either_get_isRight<L, R>;
-    vptr['get_leftValue'] = Either_get_leftValue<L, R>;
-    vptr['get_rightValue'] = Either_get_rightValue<L, R>;
-    vptr['toString'] = Either_toString<L, R>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = EitherValue<L, R>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  void initVptr(Map<String, dynamic> target) {
+    target['get_isLeft'] = Either_get_isLeft<L, R>;
+    target['get_isRight'] = Either_get_isRight<L, R>;
+    target['get_leftValue'] = Either_get_leftValue<L, R>;
+    target['get_rightValue'] = Either_get_rightValue<L, R>;
+    target['toString'] = Either_toString<L, R>;
+    target['fold_String'] = Either_fold<L, R, String>;
+    target['mapRight_int'] = Either_mapRight<L, R, int>;
+    target['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
   }
   @override
   void gcMark(int flag) {
@@ -153,9 +201,6 @@ class EitherValue<L, R> extends VPtr {
 
 EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['fold_String'] = Either_fold<L, R, String>;
-  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
-  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
   this_._left = value;
   this_._right = null;
   this_._isRight = false;
@@ -164,9 +209,6 @@ EitherValue<L, R> Either_new_left<L, R>(dynamic this__, L value) {
 
 EitherValue<L, R> Either_new_right<L, R>(dynamic this__, R value) {
   final this_ = this__ as EitherValue<L, R>;
-  this_.vptr['fold_String'] = Either_fold<L, R, String>;
-  this_.vptr['mapRight_int'] = Either_mapRight<L, R, int>;
-  this_.vptr['flatMap_dynamic'] = Either_flatMap<L, R, dynamic>;
   this_._left = null;
   this_._right = value;
   this_._isRight = true;
@@ -249,13 +291,20 @@ class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue 
   late String name;
   late String email;
   late int age;
-  UserProfileValue() {
-    vptr['toMap'] = UserProfile_toMap;
-    vptr['serialize'] = UserProfile_serialize;
-    vptr['validate'] = UserProfile_validate;
-    vptr['get_isValid'] = UserProfile_get_isValid;
-    vptr['get_validationSummary'] = UserProfile_get_validationSummary;
-    vptr['toString'] = UserProfile_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(UserProfile_Object_Serializable_ValidatableValue.getVptrMap());
+      vptrMap!['toMap'] = UserProfile_toMap;
+      vptrMap!['serialize'] = UserProfile_serialize;
+      vptrMap!['validate'] = UserProfile_validate;
+      vptrMap!['get_isValid'] = UserProfile_get_isValid;
+      vptrMap!['get_validationSummary'] = UserProfile_get_validationSummary;
+      vptrMap!['toString'] = UserProfile_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -308,12 +357,8 @@ String UserProfile_get_validationSummary(dynamic this__) {
 
 
 class DataTransformerValue<TInput, TOutput> extends VPtr {
-  DataTransformerValue() {
-    vptr['transform'] = DataTransformer_transform<TInput, TOutput>;
-    vptr['preValidate'] = DataTransformer_preValidate<TInput, TOutput>;
-    vptr['process'] = DataTransformer_process<TInput, TOutput>;
-    vptr['postProcess'] = DataTransformer_postProcess<TInput, TOutput>;
-  }
+  @override
+  Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
 DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(dynamic this__) {
@@ -344,11 +389,27 @@ TOutput DataTransformer_postProcess<TInput, TOutput>(dynamic this__, TOutput out
 
 
 class StringToIntTransformerValue extends DataTransformerValue<String, int> {
-  StringToIntTransformerValue() {
-    vptr['transform'] = StringToIntTransformer_transform;
-    vptr['preValidate'] = StringToIntTransformer_preValidate;
-    vptr['process'] = StringToIntTransformer_process;
-    vptr['postProcess'] = StringToIntTransformer_postProcess;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = StringToIntTransformerValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['transform'] = StringToIntTransformer_transform;
+    target['preValidate'] = StringToIntTransformer_preValidate;
+    target['process'] = StringToIntTransformer_process;
+    target['postProcess'] = StringToIntTransformer_postProcess;
   }
   @override
   void gcMark(int flag) {
@@ -386,11 +447,27 @@ int StringToIntTransformer_postProcess(dynamic this__, int output) {
 
 class IntToStringTransformerValue extends DataTransformerValue<int, String> {
   late String prefix;
-  IntToStringTransformerValue() {
-    vptr['transform'] = IntToStringTransformer_transform;
-    vptr['preValidate'] = IntToStringTransformer_preValidate;
-    vptr['process'] = IntToStringTransformer_process;
-    vptr['postProcess'] = IntToStringTransformer_postProcess;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = IntToStringTransformerValue;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['transform'] = IntToStringTransformer_transform;
+    target['preValidate'] = IntToStringTransformer_preValidate;
+    target['process'] = IntToStringTransformer_process;
+    target['postProcess'] = IntToStringTransformer_postProcess;
   }
   @override
   void gcMark(int flag) {
@@ -430,11 +507,27 @@ int IntToStringTransformer_preValidate(dynamic this__, int input) {
 class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
   late DataTransformerValue<A, B> first;
   late DataTransformerValue<B, C> second;
-  ChainedTransformerValue() {
-    vptr['transform'] = ChainedTransformer_transform<A, B, C>;
-    vptr['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
-    vptr['process'] = ChainedTransformer_process<A, B, C>;
-    vptr['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
+  static final Map<Type, Map<String, dynamic>> vptrCache = {};
+  Map<String, dynamic>? instanceVptr;
+  @override
+  Map<String, dynamic> get vptr {
+    if (instanceVptr == null) {
+      final _typeKey = ChainedTransformerValue<A, B, C>;
+      instanceVptr = vptrCache[_typeKey];
+      if (instanceVptr == null) {
+        instanceVptr = Map<String, dynamic>.from((super.vptr));
+        initVptr(instanceVptr!);
+        vptrCache[_typeKey] = instanceVptr!;
+      }
+    }
+    return instanceVptr!;
+  }
+  @override
+  void initVptr(Map<String, dynamic> target) {
+    target['transform'] = ChainedTransformer_transform<A, B, C>;
+    target['preValidate'] = ChainedTransformer_preValidate<A, B, C>;
+    target['process'] = ChainedTransformer_process<A, B, C>;
+    target['postProcess'] = ChainedTransformer_postProcess<A, B, C>;
   }
   @override
   void gcMark(int flag) {
@@ -478,15 +571,22 @@ C ChainedTransformer_postProcess<A, B, C>(dynamic this__, C output) {
 class RegistryValue extends VPtr {
   late StaticMap<String, dynamic> _store = StaticMap<String, dynamic>.of({});
   late int _accessCount = 0;
-  RegistryValue() {
-    vptr['register'] = Registry_register;
-    vptr['lookup'] = Registry_lookup;
-    vptr['contains'] = Registry_contains;
-    vptr['get_size'] = Registry_get_size;
-    vptr['get_accessCount'] = Registry_get_accessCount;
-    vptr['get_keys'] = Registry_get_keys;
-    vptr['clear'] = Registry_clear;
-    vptr['toString'] = Registry_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['register'] = Registry_register;
+      vptrMap!['lookup'] = Registry_lookup;
+      vptrMap!['contains'] = Registry_contains;
+      vptrMap!['get_size'] = Registry_get_size;
+      vptrMap!['get_accessCount'] = Registry_get_accessCount;
+      vptrMap!['get_keys'] = Registry_get_keys;
+      vptrMap!['clear'] = Registry_clear;
+      vptrMap!['toString'] = Registry_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -551,6 +651,15 @@ String Registry_toString(dynamic this__) {
 
 
 class DataProcessorValue extends VPtr {
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
 }
 
 DataProcessorValue DataProcessor_new(dynamic this__) {
@@ -590,9 +699,16 @@ class ExpensiveComputationValue extends VPtr {
   late int seed;
   late int computedValue = ExpensiveComputation__computeExpensive(this);
   late String description;
-  ExpensiveComputationValue() {
-    vptr['initialize'] = ExpensiveComputation_initialize;
-    vptr['toString'] = ExpensiveComputation_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['initialize'] = ExpensiveComputation_initialize;
+      vptrMap!['toString'] = ExpensiveComputation_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -623,6 +739,15 @@ String ExpensiveComputation_toString(dynamic this__) {
 
 
 class MathUtilsValue extends VPtr {
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
 }
 
 MathUtilsValue MathUtils_new(dynamic this__) {
@@ -675,8 +800,15 @@ int MathUtils_lcm(int a, int b) {
 
 
 class Printable3Value extends VPtr {
-  Printable3Value() {
-    vptr['prettyPrint'] = Printable3_prettyPrint;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['prettyPrint'] = Printable3_prettyPrint;
+    }
+    return vptrMap!;
   }
 }
 
@@ -693,12 +825,19 @@ String Printable3_prettyPrint(dynamic this_) {
 class ScoreValue extends VPtr implements Printable3Value {
   late String subject;
   late int points;
-  ScoreValue() {
-    vptr['prettyPrint'] = Score_prettyPrint;
-    vptr['compareTo2'] = Score_compareTo2;
-    vptr['isLessThan'] = Score_isLessThan;
-    vptr['isGreaterThan'] = Score_isGreaterThan;
-    vptr['toString'] = Score_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['prettyPrint'] = Score_prettyPrint;
+      vptrMap!['compareTo2'] = Score_compareTo2;
+      vptrMap!['isLessThan'] = Score_isLessThan;
+      vptrMap!['isGreaterThan'] = Score_isGreaterThan;
+      vptrMap!['toString'] = Score_toString;
+    }
+    return vptrMap!;
   }
 }
 
@@ -737,13 +876,20 @@ String Score_toString(dynamic this__) {
 
 class WeightedScoreValue extends ScoreValue {
   late double weight;
-  WeightedScoreValue() {
-    vptr['prettyPrint'] = WeightedScore_prettyPrint;
-    vptr['compareTo2'] = WeightedScore_compareTo2;
-    vptr['isLessThan'] = WeightedScore_isLessThan;
-    vptr['isGreaterThan'] = WeightedScore_isGreaterThan;
-    vptr['toString'] = WeightedScore_toString;
-    vptr['get_weightedPoints'] = WeightedScore_get_weightedPoints;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(ScoreValue.getVptrMap());
+      vptrMap!['prettyPrint'] = WeightedScore_prettyPrint;
+      vptrMap!['compareTo2'] = WeightedScore_compareTo2;
+      vptrMap!['isLessThan'] = WeightedScore_isLessThan;
+      vptrMap!['isGreaterThan'] = WeightedScore_isGreaterThan;
+      vptrMap!['toString'] = WeightedScore_toString;
+      vptrMap!['get_weightedPoints'] = WeightedScore_get_weightedPoints;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -794,6 +940,15 @@ bool WeightedScore_isGreaterThan(dynamic this__, ScoreValue other) {
 
 
 class TextProcessorValue extends VPtr {
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
 }
 
 TextProcessorValue TextProcessor_new(dynamic this__) {
@@ -844,49 +999,47 @@ enum Season {
 }
 
 String Season_get_displayName(Season this_) {
-  do {
-    switch (this_) {
-      case Season.spring:
+  _label14:
+  switch (this_) {
+    case Season.spring:
 {
-          return 'Spring';
-        }
-      case Season.summer:
+        return 'Spring';
+      }
+    case Season.summer:
 {
-          return 'Summer';
-        }
-      case Season.autumn:
+        return 'Summer';
+      }
+    case Season.autumn:
 {
-          return 'Autumn';
-        }
-      case Season.winter:
+        return 'Autumn';
+      }
+    case Season.winter:
 {
-          return 'Winter';
-        }
-    }
-  } while (false);
+        return 'Winter';
+      }
+  }
 }
 
 Season Season_get_next(Season this_) {
-  do {
-    switch (this_) {
-      case Season.spring:
+  _label15:
+  switch (this_) {
+    case Season.spring:
 {
-          return Season.summer;
-        }
-      case Season.summer:
+        return Season.summer;
+      }
+    case Season.summer:
 {
-          return Season.autumn;
-        }
-      case Season.autumn:
+        return Season.autumn;
+      }
+    case Season.autumn:
 {
-          return Season.winter;
-        }
-      case Season.winter:
+        return Season.winter;
+      }
+    case Season.winter:
 {
-          return Season.spring;
-        }
-    }
-  } while (false);
+        return Season.spring;
+      }
+  }
 }
 
 bool Season_get_isWarm(Season this_) {
@@ -894,6 +1047,15 @@ bool Season_get_isWarm(Season this_) {
 }
 
 class JsonLikeProcessorValue extends VPtr {
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+    }
+    return vptrMap!;
+  }
 }
 
 JsonLikeProcessorValue JsonLikeProcessor_new(dynamic this__) {
@@ -933,12 +1095,19 @@ class Matrix2DValue extends VPtr {
   late StaticList<StaticList<double>> _data;
   late int rows;
   late int cols;
-  Matrix2DValue() {
-    vptr['get'] = Matrix2D_get;
-    vptr['operatorPlus'] = Matrix2D_operatorPlus;
-    vptr['operatorStar'] = Matrix2D_operatorStar;
-    vptr['get_trace'] = Matrix2D_get_trace;
-    vptr['toString'] = Matrix2D_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get'] = Matrix2D_get;
+      vptrMap!['operatorPlus'] = Matrix2D_operatorPlus;
+      vptrMap!['operatorStar'] = Matrix2D_operatorStar;
+      vptrMap!['get_trace'] = Matrix2D_get_trace;
+      vptrMap!['toString'] = Matrix2D_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1021,8 +1190,15 @@ String Matrix2D_toString(dynamic this__) {
 
 
 class EntityValue extends VPtr {
-  EntityValue() {
-    vptr['get_entityId'] = Entity_get_entityId;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['get_entityId'] = Entity_get_entityId;
+    }
+    return vptrMap!;
   }
 }
 
@@ -1075,15 +1251,22 @@ class ProductValue extends Product_Entity_Auditable_CacheableValue {
   late String entityId;
   late String name;
   late double price;
-  ProductValue() {
-    vptr['get_entityId'] = Product_get_entityId;
-    vptr['audit'] = Product_audit;
-    vptr['get_auditLog'] = Product_get_auditLog;
-    vptr['markDirty'] = Product_markDirty;
-    vptr['markCached'] = Product_markCached;
-    vptr['get_isDirty'] = Product_get_isDirty;
-    vptr['get_cacheStatus'] = Product_get_cacheStatus;
-    vptr['toString'] = Product_toString;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Product_Entity_Auditable_CacheableValue.getVptrMap());
+      vptrMap!['get_entityId'] = Product_get_entityId;
+      vptrMap!['audit'] = Product_audit;
+      vptrMap!['get_auditLog'] = Product_get_auditLog;
+      vptrMap!['markDirty'] = Product_markDirty;
+      vptrMap!['markCached'] = Product_markCached;
+      vptrMap!['get_isDirty'] = Product_get_isDirty;
+      vptrMap!['get_cacheStatus'] = Product_get_cacheStatus;
+      vptrMap!['toString'] = Product_toString;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1143,16 +1326,30 @@ String Product_get_cacheStatus(dynamic this__) {
 
 
 class UserProfile_Object_SerializableValue extends VPtr {
-  UserProfile_Object_SerializableValue() {
-    vptr['serialize'] = Serializable_serialize;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['serialize'] = Serializable_serialize;
+    }
+    return vptrMap!;
   }
 }
 
 
 class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Object_SerializableValue {
-  UserProfile_Object_Serializable_ValidatableValue() {
-    vptr['get_isValid'] = Validatable_get_isValid;
-    vptr['get_validationSummary'] = Validatable_get_validationSummary;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(UserProfile_Object_SerializableValue.getVptrMap());
+      vptrMap!['get_isValid'] = Validatable_get_isValid;
+      vptrMap!['get_validationSummary'] = Validatable_get_validationSummary;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1164,9 +1361,16 @@ class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Objec
 
 class Product_Entity_AuditableValue extends EntityValue {
   late StaticList<String> _auditLog = StaticList<String>.of([]);
-  Product_Entity_AuditableValue() {
-    vptr['audit'] = Auditable_audit;
-    vptr['get_auditLog'] = Auditable_get_auditLog;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(EntityValue.getVptrMap());
+      vptrMap!['audit'] = Auditable_audit;
+      vptrMap!['get_auditLog'] = Auditable_get_auditLog;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1180,11 +1384,18 @@ class Product_Entity_AuditableValue extends EntityValue {
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
   late StaticDateTime? _cachedAt = null;
   late bool _isDirty = true;
-  Product_Entity_Auditable_CacheableValue() {
-    vptr['markDirty'] = Cacheable_markDirty;
-    vptr['markCached'] = Cacheable_markCached;
-    vptr['get_isDirty'] = Cacheable_get_isDirty;
-    vptr['get_cacheStatus'] = Cacheable_get_cacheStatus;
+  static Map<String, dynamic>? vptrMap;
+  @override
+  Map<String, dynamic> get vptr => getVptrMap();
+  static Map<String, dynamic> getVptrMap() {
+    if (vptrMap == null) {
+      vptrMap = Map<String, dynamic>.from(Product_Entity_AuditableValue.getVptrMap());
+      vptrMap!['markDirty'] = Cacheable_markDirty;
+      vptrMap!['markCached'] = Cacheable_markCached;
+      vptrMap!['get_isDirty'] = Cacheable_get_isDirty;
+      vptrMap!['get_cacheStatus'] = Cacheable_get_cacheStatus;
+    }
+    return vptrMap!;
   }
   @override
   void gcMark(int flag) {
@@ -1393,7 +1604,7 @@ void main() {
   staticPrint('preorder: ${(tree.vptr['preorder'] as StaticList<int> Function(dynamic))(tree)}');
   staticPrint('inorder: ${(tree.vptr['inorder'] as StaticList<int> Function(dynamic))(tree)}');
   staticPrint('depth: ${(tree.vptr['get_depth'] as int Function(dynamic))(tree)}');
-  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_31_new(GC.allocateLocal(ClosureEnv_main_31())));
+  final TreeNodeValue<String> strTree = (tree.vptr['map_String'] as TreeNodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_30_new(GC.allocateLocal(ClosureEnv_main_30())));
   staticPrint('mapped preorder: ${(strTree.vptr['preorder'] as StaticList<String> Function(dynamic))(strTree)}');
   staticPrint('\n--- 3. 链表 ---');
   final LinkedNodeValue<int> list = LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 1, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 2, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 3, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 4))));
@@ -1406,23 +1617,23 @@ void main() {
   final EitherValue<String, int> left = Either_new_left<String, int>(GC.allocateLocal(EitherValue<String, int>()), 'error');
   staticPrint('right: ${right}');
   staticPrint('left: ${left}');
-  staticPrint('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(right, ClosureEnv_main_34_new(GC.allocateLocal(ClosureEnv_main_34())), ClosureEnv_main_35_new(GC.allocateLocal(ClosureEnv_main_35())))}');
-  staticPrint('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(left, ClosureEnv_main_38_new(GC.allocateLocal(ClosureEnv_main_38())), ClosureEnv_main_39_new(GC.allocateLocal(ClosureEnv_main_39())))}');
-  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, TypeFunction1<int, int>))(right, ClosureEnv_main_41_new(GC.allocateLocal(ClosureEnv_main_41())));
+  staticPrint('right.fold: ${(right.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(right, ClosureEnv_main_31_new(GC.allocateLocal(ClosureEnv_main_31())), ClosureEnv_main_32_new(GC.allocateLocal(ClosureEnv_main_32())))}');
+  staticPrint('left.fold: ${(left.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, String>, TypeFunction1<String, int>))(left, ClosureEnv_main_33_new(GC.allocateLocal(ClosureEnv_main_33())), ClosureEnv_main_34_new(GC.allocateLocal(ClosureEnv_main_34())))}');
+  final EitherValue<String, int> mapped = (right.vptr['mapRight_int'] as EitherValue<String, int> Function(dynamic, TypeFunction1<int, int>))(right, ClosureEnv_main_35_new(GC.allocateLocal(ClosureEnv_main_35())));
   staticPrint('mapped right: ${mapped}');
-  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, TypeFunction1<EitherValue<String, dynamic>, int>))(right, ClosureEnv_main_43_new(GC.allocateLocal(ClosureEnv_main_43())));
+  final EitherValue<String, dynamic> chained = (right.vptr['flatMap_dynamic'] as EitherValue<String, dynamic> Function(dynamic, TypeFunction1<EitherValue<String, dynamic>, int>))(right, ClosureEnv_main_36_new(GC.allocateLocal(ClosureEnv_main_36())));
   staticPrint('chained: ${chained}');
   staticPrint('\n--- 5. 函数式编程 ---');
-  final TypeFunction1<int, int> double2 = ClosureEnv_main_44_new(GC.allocateLocal(ClosureEnv_main_44()));
-  final TypeFunction1<int, int> addOne = ClosureEnv_main_45_new(GC.allocateLocal(ClosureEnv_main_45()));
+  final TypeFunction1<int, int> double2 = ClosureEnv_main_37_new(GC.allocateLocal(ClosureEnv_main_37()));
+  final TypeFunction1<int, int> addOne = ClosureEnv_main_38_new(GC.allocateLocal(ClosureEnv_main_38()));
   final TypeFunction1<int, int> composed = composeFunc<int, int, int>(addOne, double2);
   staticPrint('compose(double, addOne)(5): ${composed.closureCall(composed, 5)}');
-  final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_46_new(GC.allocateLocal(ClosureEnv_main_46())));
+  final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_39_new(GC.allocateLocal(ClosureEnv_main_39())));
   final TypeFunction1<int, int> add10 = curriedAdd.closureCall(curriedAdd, 10);
   staticPrint('curriedAdd(10)(5): ${add10.closureCall(add10, 5)}');
-  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_47_new(GC.allocateLocal(ClosureEnv_main_47())), ClosureEnv_main_48_new(GC.allocateLocal(ClosureEnv_main_48())), ClosureEnv_main_49_new(GC.allocateLocal(ClosureEnv_main_49()))]));
+  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_40_new(GC.allocateLocal(ClosureEnv_main_40())), ClosureEnv_main_41_new(GC.allocateLocal(ClosureEnv_main_41())), ClosureEnv_main_42_new(GC.allocateLocal(ClosureEnv_main_42()))]));
   staticPrint('pipe(3, [*2, +10, ^2]): ${piped}');
-  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_50_new(GC.allocateLocal(ClosureEnv_main_50())));
+  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_43_new(GC.allocateLocal(ClosureEnv_main_43())));
   staticPrint('memoized(10): ${memoFib.closureCall(memoFib, 10)}');
   staticPrint('memoized(10) again: ${memoFib.closureCall(memoFib, 10)}');
   staticPrint('\n--- 6. 多重嵌套控制流 ---');
@@ -2117,302 +2328,197 @@ String ClosureEnv_main_30_call(dynamic env__, int v) {
   return 'N${v}';
 }
 
-class ClosureEnv_main_31 extends TypeFunction1<String, int> {
+class ClosureEnv_main_31 extends TypeFunction1<String, String> {
   ClosureEnv_main_31();
   @override
-  String call(int v) => closureCall(this, v);
+  String call(String l) => closureCall(this, l);
 }
 ClosureEnv_main_31 ClosureEnv_main_31_new(ClosureEnv_main_31 env_) {
   env_.closureCall = ClosureEnv_main_31_call;
   return env_;
 }
-String ClosureEnv_main_31_call(dynamic env__, int v) {
+String ClosureEnv_main_31_call(dynamic env__, String l) {
   final env = env__ as ClosureEnv_main_31;
 
-  return 'N${v}';
+  return 'L:${l}';
 }
 
-class ClosureEnv_main_32 extends TypeFunction1<String, String> {
+class ClosureEnv_main_32 extends TypeFunction1<String, int> {
   ClosureEnv_main_32();
   @override
-  String call(String l) => closureCall(this, l);
+  String call(int r) => closureCall(this, r);
 }
 ClosureEnv_main_32 ClosureEnv_main_32_new(ClosureEnv_main_32 env_) {
   env_.closureCall = ClosureEnv_main_32_call;
   return env_;
 }
-String ClosureEnv_main_32_call(dynamic env__, String l) {
+String ClosureEnv_main_32_call(dynamic env__, int r) {
   final env = env__ as ClosureEnv_main_32;
 
-  return 'L:${l}';
+  return 'R:${r}';
 }
 
-class ClosureEnv_main_33 extends TypeFunction1<String, int> {
+class ClosureEnv_main_33 extends TypeFunction1<String, String> {
   ClosureEnv_main_33();
   @override
-  String call(int r) => closureCall(this, r);
+  String call(String l) => closureCall(this, l);
 }
 ClosureEnv_main_33 ClosureEnv_main_33_new(ClosureEnv_main_33 env_) {
   env_.closureCall = ClosureEnv_main_33_call;
   return env_;
 }
-String ClosureEnv_main_33_call(dynamic env__, int r) {
+String ClosureEnv_main_33_call(dynamic env__, String l) {
   final env = env__ as ClosureEnv_main_33;
 
-  return 'R:${r}';
+  return 'L:${l}';
 }
 
-class ClosureEnv_main_34 extends TypeFunction1<String, String> {
+class ClosureEnv_main_34 extends TypeFunction1<String, int> {
   ClosureEnv_main_34();
   @override
-  String call(String l) => closureCall(this, l);
+  String call(int r) => closureCall(this, r);
 }
 ClosureEnv_main_34 ClosureEnv_main_34_new(ClosureEnv_main_34 env_) {
   env_.closureCall = ClosureEnv_main_34_call;
   return env_;
 }
-String ClosureEnv_main_34_call(dynamic env__, String l) {
+String ClosureEnv_main_34_call(dynamic env__, int r) {
   final env = env__ as ClosureEnv_main_34;
 
-  return 'L:${l}';
+  return 'R:${r}';
 }
 
-class ClosureEnv_main_35 extends TypeFunction1<String, int> {
+class ClosureEnv_main_35 extends TypeFunction1<int, int> {
   ClosureEnv_main_35();
   @override
-  String call(int r) => closureCall(this, r);
+  int call(int v) => closureCall(this, v);
 }
 ClosureEnv_main_35 ClosureEnv_main_35_new(ClosureEnv_main_35 env_) {
   env_.closureCall = ClosureEnv_main_35_call;
   return env_;
 }
-String ClosureEnv_main_35_call(dynamic env__, int r) {
+int ClosureEnv_main_35_call(dynamic env__, int v) {
   final env = env__ as ClosureEnv_main_35;
 
-  return 'R:${r}';
+  return (v * 2);
 }
 
-class ClosureEnv_main_36 extends TypeFunction1<String, String> {
+class ClosureEnv_main_36 extends TypeFunction1<EitherValue<String, dynamic>, int> {
   ClosureEnv_main_36();
   @override
-  String call(String l) => closureCall(this, l);
+  EitherValue<String, dynamic> call(int v) => closureCall(this, v);
 }
 ClosureEnv_main_36 ClosureEnv_main_36_new(ClosureEnv_main_36 env_) {
   env_.closureCall = ClosureEnv_main_36_call;
   return env_;
 }
-String ClosureEnv_main_36_call(dynamic env__, String l) {
+EitherValue<String, dynamic> ClosureEnv_main_36_call(dynamic env__, int v) {
   final env = env__ as ClosureEnv_main_36;
 
-  return 'L:${l}';
+  return ((v > 10) ? Either_new_right<String, String>(GC.allocateLocal(EitherValue<String, String>()), 'big_${v}') : Either_new_left<String, dynamic>(GC.allocateLocal(EitherValue<String, dynamic>()), 'too small'));
 }
 
-class ClosureEnv_main_37 extends TypeFunction1<String, int> {
+class ClosureEnv_main_37 extends TypeFunction1<int, int> {
   ClosureEnv_main_37();
   @override
-  String call(int r) => closureCall(this, r);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_37 ClosureEnv_main_37_new(ClosureEnv_main_37 env_) {
   env_.closureCall = ClosureEnv_main_37_call;
   return env_;
 }
-String ClosureEnv_main_37_call(dynamic env__, int r) {
+int ClosureEnv_main_37_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_37;
 
-  return 'R:${r}';
+  return (x * 2);
 }
 
-class ClosureEnv_main_38 extends TypeFunction1<String, String> {
+class ClosureEnv_main_38 extends TypeFunction1<int, int> {
   ClosureEnv_main_38();
   @override
-  String call(String l) => closureCall(this, l);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_38 ClosureEnv_main_38_new(ClosureEnv_main_38 env_) {
   env_.closureCall = ClosureEnv_main_38_call;
   return env_;
 }
-String ClosureEnv_main_38_call(dynamic env__, String l) {
+int ClosureEnv_main_38_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_38;
 
-  return 'L:${l}';
+  return (x + 1);
 }
 
-class ClosureEnv_main_39 extends TypeFunction1<String, int> {
+class ClosureEnv_main_39 extends TypeFunction2<int, int, int> {
   ClosureEnv_main_39();
   @override
-  String call(int r) => closureCall(this, r);
+  int call(int a, int b) => closureCall(this, a, b);
 }
 ClosureEnv_main_39 ClosureEnv_main_39_new(ClosureEnv_main_39 env_) {
   env_.closureCall = ClosureEnv_main_39_call;
   return env_;
 }
-String ClosureEnv_main_39_call(dynamic env__, int r) {
+int ClosureEnv_main_39_call(dynamic env__, int a, int b) {
   final env = env__ as ClosureEnv_main_39;
 
-  return 'R:${r}';
+  return (a + b);
 }
 
 class ClosureEnv_main_40 extends TypeFunction1<int, int> {
   ClosureEnv_main_40();
   @override
-  int call(int v) => closureCall(this, v);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_40 ClosureEnv_main_40_new(ClosureEnv_main_40 env_) {
   env_.closureCall = ClosureEnv_main_40_call;
   return env_;
 }
-int ClosureEnv_main_40_call(dynamic env__, int v) {
+int ClosureEnv_main_40_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_40;
 
-  return (v * 2);
+  return (x * 2);
 }
 
 class ClosureEnv_main_41 extends TypeFunction1<int, int> {
   ClosureEnv_main_41();
   @override
-  int call(int v) => closureCall(this, v);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_41 ClosureEnv_main_41_new(ClosureEnv_main_41 env_) {
   env_.closureCall = ClosureEnv_main_41_call;
   return env_;
 }
-int ClosureEnv_main_41_call(dynamic env__, int v) {
+int ClosureEnv_main_41_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_41;
 
-  return (v * 2);
+  return (x + 10);
 }
 
-class ClosureEnv_main_42 extends TypeFunction1<EitherValue<String, dynamic>, int> {
+class ClosureEnv_main_42 extends TypeFunction1<int, int> {
   ClosureEnv_main_42();
   @override
-  EitherValue<String, dynamic> call(int v) => closureCall(this, v);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_42 ClosureEnv_main_42_new(ClosureEnv_main_42 env_) {
   env_.closureCall = ClosureEnv_main_42_call;
   return env_;
 }
-EitherValue<String, dynamic> ClosureEnv_main_42_call(dynamic env__, int v) {
+int ClosureEnv_main_42_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_42;
 
-  return ((v > 10) ? Either_new_right<String, String>(GC.allocateLocal(EitherValue<String, String>()), 'big_${v}') : Either_new_left<String, dynamic>(GC.allocateLocal(EitherValue<String, dynamic>()), 'too small'));
+  return (x * x);
 }
 
-class ClosureEnv_main_43 extends TypeFunction1<EitherValue<String, dynamic>, int> {
+class ClosureEnv_main_43 extends TypeFunction1<int, int> {
   ClosureEnv_main_43();
   @override
-  EitherValue<String, dynamic> call(int v) => closureCall(this, v);
+  int call(int n) => closureCall(this, n);
 }
 ClosureEnv_main_43 ClosureEnv_main_43_new(ClosureEnv_main_43 env_) {
   env_.closureCall = ClosureEnv_main_43_call;
   return env_;
 }
-EitherValue<String, dynamic> ClosureEnv_main_43_call(dynamic env__, int v) {
+int ClosureEnv_main_43_call(dynamic env__, int n) {
   final env = env__ as ClosureEnv_main_43;
-
-  return ((v > 10) ? Either_new_right<String, String>(GC.allocateLocal(EitherValue<String, String>()), 'big_${v}') : Either_new_left<String, dynamic>(GC.allocateLocal(EitherValue<String, dynamic>()), 'too small'));
-}
-
-class ClosureEnv_main_44 extends TypeFunction1<int, int> {
-  ClosureEnv_main_44();
-  @override
-  int call(int x) => closureCall(this, x);
-}
-ClosureEnv_main_44 ClosureEnv_main_44_new(ClosureEnv_main_44 env_) {
-  env_.closureCall = ClosureEnv_main_44_call;
-  return env_;
-}
-int ClosureEnv_main_44_call(dynamic env__, int x) {
-  final env = env__ as ClosureEnv_main_44;
-
-  return (x * 2);
-}
-
-class ClosureEnv_main_45 extends TypeFunction1<int, int> {
-  ClosureEnv_main_45();
-  @override
-  int call(int x) => closureCall(this, x);
-}
-ClosureEnv_main_45 ClosureEnv_main_45_new(ClosureEnv_main_45 env_) {
-  env_.closureCall = ClosureEnv_main_45_call;
-  return env_;
-}
-int ClosureEnv_main_45_call(dynamic env__, int x) {
-  final env = env__ as ClosureEnv_main_45;
-
-  return (x + 1);
-}
-
-class ClosureEnv_main_46 extends TypeFunction2<int, int, int> {
-  ClosureEnv_main_46();
-  @override
-  int call(int a, int b) => closureCall(this, a, b);
-}
-ClosureEnv_main_46 ClosureEnv_main_46_new(ClosureEnv_main_46 env_) {
-  env_.closureCall = ClosureEnv_main_46_call;
-  return env_;
-}
-int ClosureEnv_main_46_call(dynamic env__, int a, int b) {
-  final env = env__ as ClosureEnv_main_46;
-
-  return (a + b);
-}
-
-class ClosureEnv_main_47 extends TypeFunction1<int, int> {
-  ClosureEnv_main_47();
-  @override
-  int call(int x) => closureCall(this, x);
-}
-ClosureEnv_main_47 ClosureEnv_main_47_new(ClosureEnv_main_47 env_) {
-  env_.closureCall = ClosureEnv_main_47_call;
-  return env_;
-}
-int ClosureEnv_main_47_call(dynamic env__, int x) {
-  final env = env__ as ClosureEnv_main_47;
-
-  return (x * 2);
-}
-
-class ClosureEnv_main_48 extends TypeFunction1<int, int> {
-  ClosureEnv_main_48();
-  @override
-  int call(int x) => closureCall(this, x);
-}
-ClosureEnv_main_48 ClosureEnv_main_48_new(ClosureEnv_main_48 env_) {
-  env_.closureCall = ClosureEnv_main_48_call;
-  return env_;
-}
-int ClosureEnv_main_48_call(dynamic env__, int x) {
-  final env = env__ as ClosureEnv_main_48;
-
-  return (x + 10);
-}
-
-class ClosureEnv_main_49 extends TypeFunction1<int, int> {
-  ClosureEnv_main_49();
-  @override
-  int call(int x) => closureCall(this, x);
-}
-ClosureEnv_main_49 ClosureEnv_main_49_new(ClosureEnv_main_49 env_) {
-  env_.closureCall = ClosureEnv_main_49_call;
-  return env_;
-}
-int ClosureEnv_main_49_call(dynamic env__, int x) {
-  final env = env__ as ClosureEnv_main_49;
-
-  return (x * x);
-}
-
-class ClosureEnv_main_50 extends TypeFunction1<int, int> {
-  ClosureEnv_main_50();
-  @override
-  int call(int n) => closureCall(this, n);
-}
-ClosureEnv_main_50 ClosureEnv_main_50_new(ClosureEnv_main_50 env_) {
-  env_.closureCall = ClosureEnv_main_50_call;
-  return env_;
-}
-int ClosureEnv_main_50_call(dynamic env__, int n) {
-  final env = env__ as ClosureEnv_main_50;
 
     if ((n <= 1))     return n;
     return n;
