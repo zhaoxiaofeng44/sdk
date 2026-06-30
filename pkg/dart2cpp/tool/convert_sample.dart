@@ -20,9 +20,10 @@ void main(List<String> args) {
     exit(1);
   }
 
-  // Use in-repo dart SDK if available
-  const inRepoDart = '/Users/tbsg/Project/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/bin/dart';
-  final dartExe = File(inRepoDart).existsSync() ? inRepoDart : Platform.resolvedExecutable;
+  // Allow overriding the dart executable via environment variable for in-repo
+  // SDK builds; otherwise fall back to the system dart.
+  final dartExe = Platform.environment['DART_SDK_BIN'] ??
+      Platform.resolvedExecutable;
 
   // Compile to kernel
   final dillPath = '/tmp/${basename(srcPath)}_convert.dill';

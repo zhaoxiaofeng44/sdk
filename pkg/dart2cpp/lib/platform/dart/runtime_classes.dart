@@ -1351,13 +1351,19 @@ class Promise<T> extends AnyGC {
   bool get isPending => state == PromiseState.pending;
   bool get isReady => state == PromiseState.ready;
 
-  /// gcMark — 递归标记 result 中的 GC 子对象
+  /// gcMark — 递归标记所有 GC 子对象
+  /// 标记 _result、error，以及 _onTick/_startCallback（restorer 生成的闭包
+  /// 是 TypeFunctionN 子类，继承 AnyGC）。
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_result is AnyGC) (_result as AnyGC).gcMark(flag);
     if (error is AnyGC) (error as AnyGC).gcMark(flag);
+    // 闭包字段：restorer 生成的闭包是 TypeFunctionN（extends AnyGC），
+    // 原生 Dart 函数（void Function()）不是 AnyGC，is 检查自动跳过。
+    if (_onTick is AnyGC) (_onTick as AnyGC).gcMark(flag);
+    if (_startCallback is AnyGC) (_startCallback as AnyGC).gcMark(flag);
   }
 
   T get result {
@@ -1368,11 +1374,21 @@ class Promise<T> extends AnyGC {
     return _result as T;
   }
 
+  /// 设置 tick 回调并注册到 Scheduler 活跃列表。
+  /// 每 tick 被 GlobalScheduler 调用，返回 true 表示已完成。
+  /// 供 AsyncStateMachine 和外部测试使用。
+  void setTickCallback(bool Function() onTick) {
+    _onTick = onTick;
+    GC.allocateLocal(this);
+    GlobalScheduler.instance.registerActivePromise(this);
+  }
+
   /// 设置启动回调并将状态切换为 ready。
   /// GlobalScheduler 在下一轮 tick 时会统一触发所有 ready 状态的 Promise，
   /// 调用其 _startCallback 并将状态改为 pending。
   void setStartCallback(void Function() callback) {
     _startCallback = callback;
+    GC.allocateLocal(this);
     state = PromiseState.ready;
     GlobalScheduler.instance.registerReadyPromise(this);
   }
@@ -1414,21 +1430,21 @@ class Promise<T> extends AnyGC {
   }
 
   static Promise<T> delayed<T>(int delayTicks, T Function() computation) {
-    final promise = Promise<T>();
+    final promise = GC.allocateLocal(Promise<T>());
     GlobalScheduler.instance.registerDelayedTask(delayTicks, () {
       try {
         promise.complete(computation());
       } catch (e) {
         promise.completeError(e);
       }
-    });
+    }, promise);
     return promise;
   }
 
   /// 链式调用：当本 Promise 完成时，执行 onValue 并将结果传递给新 Promise。
   /// 支持 flatMap 语义：若 onValue 返回 Promise<R>，自动展平为 Promise<R>。
   Promise<R> then<R>(dynamic Function(T) onValue) {
-    final nextPromise = Promise<R>();
+    final nextPromise = GC.allocateLocal(Promise<R>());
     nextPromise._onTick = () {
       if (isCompleted) {
         try {
@@ -1466,7 +1482,7 @@ class Promise<T> extends AnyGC {
 
   /// 错误处理链：当本 Promise 出错时，执行 onError 恢复
   Promise<T> catchError(T Function(Object) onError) {
-    final nextPromise = Promise<T>();
+    final nextPromise = GC.allocateLocal(Promise<T>());
     nextPromise._onTick = () {
       if (isCompleted) {
         nextPromise.complete(result);
@@ -1488,7 +1504,7 @@ class Promise<T> extends AnyGC {
 
   /// 无论成功失败都执行 action，然后传递原始结果/错误
   Promise<T> whenComplete(void Function() action) {
-    final nextPromise = Promise<T>();
+    final nextPromise = GC.allocateLocal(Promise<T>());
     nextPromise._onTick = () {
       if (isCompleted) {
         try {
@@ -1514,9 +1530,16 @@ class Promise<T> extends AnyGC {
 }
 
 /// 全局调度器 — 统一通过 Promise 驱动所有异步任务
-class GlobalScheduler {
+///
+/// 继承 AnyGC 并注册为 GC root，确保 Scheduler 持有的所有 Promise
+/// 和延迟任务闭包在标记阶段可达。在 C++ 环境中这是防止悬挂指针的关键。
+class GlobalScheduler extends AnyGC {
   static final GlobalScheduler instance = GlobalScheduler._();
-  GlobalScheduler._();
+
+  GlobalScheduler._() {
+    // 将 Scheduler 自身注册为 GC root，确保标记阶段可达所有异步对象
+    GC.allocateGlobal(this);
+  }
 
   final List<Promise> _activePromises = [];
   final List<_DelayedTask> _delayedTasks = [];
@@ -1525,13 +1548,34 @@ class GlobalScheduler {
 
   int get currentTick => _currentTick;
 
+  /// gcMark — 从 Scheduler root 出发，递归标记所有持有的 Promise
+  /// 和延迟任务闭包。这是 C++ 环境防止悬挂指针的关键。
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    for (final p in _activePromises) {
+      p.gcMark(flag);
+    }
+    for (final p in _readyPromises) {
+      p.gcMark(flag);
+    }
+    for (final t in _delayedTasks) {
+      // 标记延迟任务关联的 Promise（通过 targetPromise 字段）
+      if (t.targetPromise != null) t.targetPromise!.gcMark(flag);
+      // 回调闭包：restorer 生成的闭包是 TypeFunctionN（extends AnyGC）
+      if (t.callback is AnyGC) (t.callback as AnyGC).gcMark(flag);
+    }
+  }
+
   /// 注册一个有 _onTick 的活跃 Promise，每 tick 被驱动
   void registerActivePromise(Promise promise) {
     _activePromises.add(promise);
   }
 
-  void registerDelayedTask(int delayTicks, void Function() callback) {
-    _delayedTasks.add(_DelayedTask(_currentTick + delayTicks, callback));
+  void registerDelayedTask(int delayTicks, void Function() callback,
+      [Promise? targetPromise]) {
+    _delayedTasks.add(_DelayedTask(_currentTick + delayTicks, callback, targetPromise));
   }
 
   /// 注册一个 ready 状态的 Promise，等待下一轮 tick 触发其启动回调
@@ -1579,20 +1623,26 @@ class GlobalScheduler {
     _delayedTasks.clear();
     _readyPromises.clear();
     _currentTick = 0;
+    // 重置 gcFlag，防止与下一轮 GC flag 值冲突
+    gcFlag = 0;
+    // 重新注册为 GC root（GC.reset() 会清除所有 root）
+    GC.allocateGlobal(this);
   }
 }
 
 class _DelayedTask {
   final int targetTick;
   final void Function() callback;
-  _DelayedTask(this.targetTick, this.callback);
+  /// 延迟任务关联的 Promise（用于 GC 标记，可为 null）
+  final Promise? targetPromise;
+  _DelayedTask(this.targetTick, this.callback, [this.targetPromise]);
 }
 
 /// promiseDelayed — 兼容 Future.delayed(Duration, [computation]) 的异步延迟函数
 /// StaticDuration 按 10ms = 1 tick 映射，最小 1 tick。
 Promise<T> promiseDelayed<T>(StaticDuration duration, [T Function()? computation]) {
   final ticks = (duration.inMilliseconds / 10).ceil().clamp(1, 100000);
-  final promise = Promise<T>();
+  final promise = GC.allocateLocal(Promise<T>());
   GlobalScheduler.instance.registerDelayedTask(ticks, () {
     try {
       if (computation != null) {
@@ -1603,7 +1653,7 @@ Promise<T> promiseDelayed<T>(StaticDuration duration, [T Function()? computation
     } catch (e) {
       promise.completeError(e);
     }
-  });
+  }, promise);
   return promise;
 }
 
@@ -1699,6 +1749,14 @@ abstract class AsyncStateMachine<T> extends AnyGC {
 
   void completeWith(T value) { promise.complete(value); }
   void completeWithError(Object error) { promise.completeError(error); }
+
+  /// gcMark — 标记内部 promise，确保从 ASM root 可达
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    promise.gcMark(flag);
+  }
 
   Promise<T> start() {
     promise._onTick = step;

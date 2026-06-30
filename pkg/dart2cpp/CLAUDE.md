@@ -7,17 +7,28 @@ This project implements a Dart code restorer that reconstructs source code from 
 ```
 lib/
 ├── dart_to_dart_restorer.dart    # Public API entry point
-└── restorer/                      # Core restorer implementation
-    ├── dart_restorer.dart         # Main restorer class
-    ├── declaration_restorer.dart  # Declaration restoration (classes, methods, fields)
-    ├── expression_restorer.dart   # Expression restoration
-    ├── statement_restorer.dart    # Statement restoration
-    ├── constant_restorer.dart     # Constant expression handling
-    ├── type_utils.dart            # Type mapping and utilities
-    └── runtime_classes.dart       # Runtime support classes
+├── restorer/                      # Core restorer implementation
+│   ├── dart_restorer.dart         # Main restorer class + shared state
+│   ├── declaration_restorer.dart  # Classes, methods, fields, constructors
+│   ├── expression_restorer.dart   # Expression restoration
+│   ├── statement_restorer.dart    # Statement restoration
+│   ├── constant_restorer.dart     # Constant expression handling
+│   ├── type_utils.dart            # Type mapping and utilities
+│   ├── closure_restorer.dart      # Closure environment generation
+│   └── enum_restorer.dart         # Enum lowering
+└── platform/
+    └── dart/
+        └── runtime_classes.dart   # Runtime support (VPtr, Box, TypeFunction)
 
-test/                              # Test suite (10 test cases)
+src/platform/                      # Platform runtime source code
+├── cpp/                           # C++ runtime headers and sources
+└── dart/                          # Dart runtime (symlinked from lib/)
+
+test/                              # Test suite (12 test cases)
 tool/                              # Development utilities
+sample/                            # Conversion pipeline examples
+cpp/                               # C++ tests and build system
+docs/archive/                      # Archived analysis documents
 ```
 
 ## Core Functionality
@@ -36,7 +47,7 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
    ```dart
    // Original
    class Dog { void speak() { print("Woof!"); } }
-   
+
    // Lowered
    void Dog_speak(dynamic this_) { print("Woof!"); }
    ```
@@ -45,7 +56,7 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
    ```dart
    // Original
    animal.speak();
-   
+
    // Lowered
    (animal.vptr['speak'] as void Function(dynamic))(animal);
    ```
@@ -63,7 +74,6 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
 ## Architecture Highlights
 
 ### Expression Restoration
-- Map-based dispatch for O(1) type lookup
 - 15+ specialized helper methods for different expression types
 - Smart receiver wrapping to avoid double evaluation in complex expressions
 
@@ -77,14 +87,14 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
 - Eliminates code duplication across different traversal needs
 - Consistent handling of all AST node types
 
-### State Management
-- Generic `_withScope` helper for scoped state changes
-- Automatic save/restore to prevent state leakage
-- Clear separation of concerns
+### Mixin Architecture
+- `_TypeUtils` → `_ConstantRestorer` → `_ExpressionRestorer` → `_StatementRestorer` → `_DeclarationRestorer` → `_EnumRestorer` → `_ClosureRestorer`
+- Each mixin adds a focused set of capabilities
+- Clear separation of concerns with type-safe composition
 
 ## Testing
 
-All 10 test cases pass with identical output:
+All 12 test cases pass with identical output:
 
 ```bash
 dart test/run_all_restorer_tests.dart
@@ -99,6 +109,7 @@ Test coverage includes:
 - Async/await patterns
 - State machine coroutines
 - Collections and complex OOP patterns
+- Runtime gap analysis (spread, cascade, collection-if/for)
 
 ## Development Tools
 
@@ -112,25 +123,15 @@ dart tool/regen_restored.dart <test_base_name>
 dart tool/inspect_kernel.dart <dill_file> <class_name>
 ```
 
+### Environment Variables
+- `DART_SDK_BIN` — Override dart executable path (used by tools)
+- `DART_SDK_ROOT` — Override SDK root for platform dill resolution
+
 ## Dependencies
 
 - `args`: Command-line argument parsing (for tools)
 - `kernel`: Dart Kernel AST (via local path override)
 - `front_end`: Dart compiler frontend (via local path override)
-
-## Recent Improvements
-
-1. **Fixed Double Evaluation Bug**
-   - Complex receivers in vptr calls now use IIFE wrapping
-   - Prevents side effects from being executed twice
-   - Fixed state_machine_coroutine_test output inconsistency
-
-2. **Code Quality Optimization**
-   - Removed ~12,000 lines of dead code (old compiler)
-   - Simplified expression/statement dispatch
-   - Unified AST traversal patterns
-   - Improved state management
-   - 0 analyzer warnings
 
 ## Implementation Details
 

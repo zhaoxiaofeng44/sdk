@@ -354,13 +354,6 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     _buf.write(';\n');
   }
 
-  /// 检查类型是否是 TypeFunction 类型
-  bool _isTypeFunctionType(DartType type) {
-    if (type is! InterfaceType) return false;
-    final name = type.classNode.name;
-    return name.startsWith('TypeFunction');
-  }
-
   /// 将普通函数包装为 TypeFunction 实例
   /// 返回包装后的表达式字符串，如果无法包装则返回 null
   String? _wrapFunctionInTypeFunction(Expression init, DartType targetType) {

@@ -132,7 +132,7 @@ void testPromiseDelayedDuration() {
   GlobalScheduler.instance.reset();
 
   // 50ms → ceil(50/10) = 5 ticks
-  final promise = promiseDelayed<String>(Duration(milliseconds: 50), () => 'done');
+  final promise = promiseDelayed<String>(StaticDuration(milliseconds: 50), () => 'done');
   final result = smAwait(promise);
   assert(result == 'done', 'Unexpected: $result');
   // 验证至少用了 5 ticks

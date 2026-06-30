@@ -18,6 +18,8 @@ build/
 *.swp
 *.swo
 *~
+.cache/
+compile_commands.json
 
 # OS
 .DS_Store
@@ -35,6 +37,14 @@ test_output/
 # C++ build artifacts
 cpp/build/
 cpp/*.o
+cpp/core/*.o
+cpp/test/*_test
+!cpp/test/*_test.cpp
+cpp/test/.backup_*/
+
+# Compiled binaries
+a.out
+*.exe
 
 # Temporary tools
 tool/*_temp.dart

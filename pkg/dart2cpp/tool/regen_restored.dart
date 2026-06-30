@@ -28,13 +28,10 @@ Future<void> main(List<String> args) async {
     exit(2);
   }
 
-  // Use the in-repo dart SDK so the produced .dill's kernel format matches
-  // the version this restorer's `package:kernel` was built against.
-  const inRepoDart =
-      '/Users/tbsg/Project/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/bin/dart';
-  final dartExe = File(inRepoDart).existsSync()
-      ? inRepoDart
-      : Platform.resolvedExecutable;
+  // Allow overriding the dart executable via environment variable for in-repo
+  // SDK builds; otherwise fall back to the system dart.
+  final dartExe = Platform.environment['DART_SDK_BIN'] ??
+      Platform.resolvedExecutable;
   stdout.writeln('compiling $srcPath -> $dillPath');
   stdout.writeln('  using: $dartExe');
   final compile = await Process.run(

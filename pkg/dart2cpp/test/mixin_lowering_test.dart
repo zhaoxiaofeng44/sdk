@@ -5,8 +5,11 @@ import 'package:front_end/src/api_unstable/vm.dart';
 import 'package:vm/kernel_front_end.dart';
 import '../lib/dart_to_dart_restorer.dart';
 
-const String _sdkPlatformDill =
-    '/Users/alsc/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
+final String _sdkPlatformDill = () {
+  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
+      File(Platform.resolvedExecutable).parent.parent.path;
+  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
+}();
 
 Future<void> main() async {
   // 创建简化的测试源码

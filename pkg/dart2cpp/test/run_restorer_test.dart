@@ -115,8 +115,11 @@ Future<void> main(List<String> args) async {
 // ============================================================================
 
 /// SDK platform dill 路径（vm_platform_strong.dill）
-const String _sdkPlatformDill =
-    '/Users/tbsg/Project/MyProject.bundle/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
+String get _sdkPlatformDill {
+  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
+      File(Platform.resolvedExecutable).parent.parent.path;
+  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
+}
 
 Future<Component?> _compileToDill(String sourcePath, String dillPath) async {
   // 使用 front_end API 编译 Dart → Kernel

@@ -1079,18 +1079,35 @@ struct Promise : PromiseBase {
 
 // ── GlobalScheduler ──
 
-class GlobalScheduler {
+class GlobalScheduler : public AnyGC {
     std::vector<PromiseBase*> _activePromises;
     std::vector<std::pair<int, std::function<void()>>> _delayedTasks;
     std::vector<PromiseBase*> _readyPromises;
     int _tickCount = 0;
 
-    GlobalScheduler() = default;
+    GlobalScheduler() {
+        // Register self as GC root to protect all held Promise references
+        GC::allocateGlobal(this);
+    }
 
 public:
     static GlobalScheduler& instance() {
         static GlobalScheduler inst;
         return inst;
+    }
+
+    /// gcMark — mark all held Promises to prevent dangling pointers after GC::collect()
+    void gcMark(int flag) override {
+        if (gcFlag == flag) return;
+        AnyGC::gcMark(flag);
+        for (auto* p : _activePromises) {
+            if (p) p->gcMark(flag);
+        }
+        for (auto* p : _readyPromises) {
+            if (p) p->gcMark(flag);
+        }
+        // _delayedTasks callbacks are std::function, not AnyGC pointers,
+        // but the Promises they reference are already registered via allocateLocal
     }
 
     void registerActivePromise(PromiseBase* p) {
@@ -1149,6 +1166,10 @@ public:
         _delayedTasks.clear();
         _readyPromises.clear();
         _tickCount = 0;
+        // Reset gcFlag to avoid stale flag matching with next GC round
+        gcFlag = 0;
+        // Re-register as GC root (GC::reset() clears all roots)
+        GC::allocateGlobal(this);
     }
 };
 

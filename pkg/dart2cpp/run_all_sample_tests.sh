@@ -3,7 +3,8 @@
 # 批量测试sample/dart下的所有Dart测试用例
 # 将Dart转换为C++，编译并运行
 
-WORKSPACE="/Users/alsc/MyProject/sdk/mydart/sdk/pkg/dart2cpp"
+# Auto-detect workspace root from script location
+WORKSPACE="$(cd "$(dirname "$0")" && pwd)"
 cd "$WORKSPACE"
 
 # 创建输出目录

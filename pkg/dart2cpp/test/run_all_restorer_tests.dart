@@ -7,10 +7,18 @@ import 'package:front_end/src/api_prototype/kernel_generator.dart' show kernelFo
 
 import '../lib/dart_to_dart_restorer.dart';
 
-const String _sdkPlatformDill =
-    '/Users/tbsg/Project/MyProject/sdk/mydart/sdk/xcodebuild/DebugX64/dart-sdk/lib/_internal/vm_platform_strong.dill';
+/// Derive the SDK platform dill path from the running dart executable,
+/// with an optional DART_SDK_ROOT environment variable override.
+String _resolvePlatformDill() {
+  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
+      File(Platform.resolvedExecutable).parent.parent.path;
+  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
+}
+
+final String _sdkPlatformDill = _resolvePlatformDill();
 
 /// 所有待测试的用例（不含 _restored 后缀）
+/// 注意: mixin_lowering_test 是自包含测试脚本，不适用批量运行器
 const List<String> _testCases = [
   'restorer_complex_test',
   'restorer_full_test',
@@ -22,6 +30,7 @@ const List<String> _testCases = [
   'state_machine_advanced_test',
   'state_machine_coroutine_test',
   'static_collections_test',
+  'runtime_gap_test',
 ];
 
 class _TestResult {

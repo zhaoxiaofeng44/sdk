@@ -5,6 +5,8 @@ part 'type_utils.dart';
 part 'constant_restorer.dart';
 part 'expression_restorer.dart';
 part 'statement_restorer.dart';
+part 'enum_restorer.dart';
+part 'closure_restorer.dart';
 part 'declaration_restorer.dart';
 
 // ============================================================================
@@ -111,112 +113,6 @@ abstract class _DartRestorerBase {
   Map<SwitchCase, String> _currentSwitchContinueTargets = {};
 
   String get _pad => '  ' * _indent;
-
-  /// 通用作用域状态管理辅助方法
-  /// 自动保存和恢复状态，避免遗漏恢复导致的状态污染
-  T _withScope<T>(
-    Map<String, dynamic> stateToSave,
-    T Function() body, {
-    Map<String, dynamic>? stateToRestore,
-  }) {
-    // 保存状态
-    final saved = <String, dynamic>{};
-    for (final key in stateToSave.keys) {
-      saved[key] = _getState(key);
-    }
-
-    // 应用新状态
-    for (final entry in stateToSave.entries) {
-      _setState(entry.key, entry.value);
-    }
-
-    try {
-      return body();
-    } finally {
-      // 恢复状态
-      final restoreMap = stateToRestore ?? stateToSave;
-      for (final key in restoreMap.keys) {
-        _setState(key, saved[key]);
-      }
-    }
-  }
-
-  /// 获取状态值（内部辅助方法）
-  dynamic _getState(String key) {
-    switch (key) {
-      case 'activeTypeParamSubstitution':
-        return _activeTypeParamSubstitution;
-      case 'activeTypeParamTargets':
-        return _activeTypeParamTargets;
-      case 'boxedVars':
-        return Set<VariableDeclaration>.from(_boxedVars);
-      case 'currentFunctionParams':
-        return Set<VariableDeclaration>.from(_currentFunctionParams);
-      case 'insideMethodBody':
-        return _insideMethodBody;
-      case 'thisReplacementName':
-        return _thisReplacementName;
-      case 'isStaticFieldContext':
-        return _isStaticFieldContext;
-      case 'capturedVarEnvPrefix':
-        return Map<VariableDeclaration, String>.from(_capturedVarEnvPrefix);
-      case 'thisIsCapturedInEnv':
-        return _thisIsCapturedInEnv;
-      case 'insideAsyncFunction':
-        return _insideAsyncFunction;
-      case 'asyncInnerReturnType':
-        return _asyncInnerReturnType;
-      default:
-        throw ArgumentError('Unknown state key: $key');
-    }
-  }
-
-  /// 设置状态值（内部辅助方法）
-  void _setState(String key, dynamic value) {
-    switch (key) {
-      case 'activeTypeParamSubstitution':
-        _activeTypeParamSubstitution = value as Map<String, String>;
-        break;
-      case 'activeTypeParamTargets':
-        _activeTypeParamTargets = value as Set<TypeParameter>;
-        break;
-      case 'boxedVars':
-        _boxedVars
-          ..clear()
-          ..addAll(value as Set<VariableDeclaration>);
-        break;
-      case 'currentFunctionParams':
-        _currentFunctionParams
-          ..clear()
-          ..addAll(value as Set<VariableDeclaration>);
-        break;
-      case 'insideMethodBody':
-        _insideMethodBody = value as bool;
-        break;
-      case 'thisReplacementName':
-        _thisReplacementName = value as String;
-        break;
-      case 'isStaticFieldContext':
-        _isStaticFieldContext = value as bool;
-        break;
-      case 'capturedVarEnvPrefix':
-        _capturedVarEnvPrefix
-          ..clear()
-          ..addAll(value as Map<VariableDeclaration, String>);
-        break;
-      case 'thisIsCapturedInEnv':
-        _thisIsCapturedInEnv = value as bool;
-        break;
-      case 'insideAsyncFunction':
-        _insideAsyncFunction = value as bool;
-        break;
-      case 'asyncInnerReturnType':
-        _asyncInnerReturnType = value as String;
-        break;
-      default:
-        throw ArgumentError('Unknown state key: $key');
-    }
-  }
 
   /// 判断是否是运算符名称
   bool _isOperatorName(String name) {
@@ -359,20 +255,6 @@ abstract class _DartRestorerBase {
     }
 
     return '';
-  }
-
-  /// 获取类的显示名称（根据当前库决定是否需要前缀）
-  /// 如果 [cls] 属于当前库，返回简单名（如 'Animal'）
-  /// 如果属于其他库，返回带前缀的名称（如 'lib_0.Animal'）
-  String _getDisplayName(Class cls, [String? suffix]) {
-    final prefix = _crossLibPrefixForClass(cls);
-    final baseName = suffix != null ? '${cls.name}$suffix' : cls.name;
-    return '$prefix$baseName';
-  }
-
-  /// 获取指定名称所属的 Library 信息
-  _LibraryInfo? _getLibForName(String name) {
-    return _classToLib[name] ?? _procToLib[name] ?? _fieldToLib[name];
   }
 
   /// 获取类的 VTable 条目（多文件模式下使用完全限定名）
@@ -964,7 +846,7 @@ abstract class _DartRestorerBase {
   String _restoreExpr(Expression expr);
   void _restoreStmt(Statement stmt);
   void _writeTypeParams(List<TypeParameter> params);
-  void _writeParams(FunctionNode func, {Procedure? proc});
+  void _writeParams(FunctionNode func);
 }
 
 /// 闭包捕获变量分析结果（纯 AST 层面，不含类型字符串）
@@ -1392,7 +1274,9 @@ class DartRestorer extends _DartRestorerBase
         _ConstantRestorer,
         _ExpressionRestorer,
         _StatementRestorer,
-        _DeclarationRestorer {
+        _ClosureRestorer,
+        _DeclarationRestorer,
+        _EnumRestorer {
   String restore(Component component) {
     _buf.clear();
     _userClasses.clear();
