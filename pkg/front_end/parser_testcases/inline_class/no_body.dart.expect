@@ -1,0 +1,172 @@
+Problems reported:
+
+parser/inline_class/no_body:1:8: This requires the experimental 'primary-constructors' language feature to be enabled.
+class C;
+       ^
+
+parser/inline_class/no_body:2:7: A mixin declaration must have a body, even if it is empty.
+mixin M;
+      ^
+
+parser/inline_class/no_body:2:8: Unexpected token ';'.
+mixin M;
+       ^
+
+parser/inline_class/no_body:3:16: An extension declaration must have a body, even if it is empty.
+extension E on int;
+               ^^^
+
+parser/inline_class/no_body:3:19: Unexpected token ';'.
+extension E on int;
+                  ^
+
+parser/inline_class/no_body:4:26: This requires the experimental 'primary-constructors' language feature to be enabled.
+extension type ET1(int i);
+                         ^
+
+parser/inline_class/no_body:5:41: This requires the experimental 'primary-constructors' language feature to be enabled.
+extension type ET2(int i) implements Foo;
+                                        ^
+
+parser/inline_class/no_body:6:46: This requires the experimental 'primary-constructors' language feature to be enabled.
+extension type ET3(int i) implements Foo, Bar;
+                                             ^
+
+beginCompilationUnit(class)
+  beginMetadataStar(class)
+  endMetadataStar(0)
+  beginClassOrMixinOrNamedMixinApplicationPrelude(class)
+    handleIdentifier(C, classOrMixinDeclaration)
+    handleNoTypeVariables(;)
+    beginClassDeclaration(class, null, null, null, null, null, null, null, null, C)
+      handleNoPrimaryConstructor(C, null, false)
+      handleNoType(C)
+      handleClassExtends(null, 1)
+      handleClassNoWithClause()
+      handleImplements(null, 0)
+      handleClassHeader(class, class, null)
+      handleExperimentNotEnabled(ExperimentalFlag.primaryConstructors, ;, ;)
+      handleNoClassBody(;)
+    endClassDeclaration(class, ;)
+  endTopLevelDeclaration(;)
+  beginMetadataStar(mixin)
+  endMetadataStar(0)
+  beginClassOrMixinOrNamedMixinApplicationPrelude(mixin)
+    handleIdentifier(M, classOrMixinDeclaration)
+    handleNoTypeVariables(;)
+    beginMixinDeclaration(mixin, null, null, mixin, M)
+      handleMixinOn(null, 0)
+      handleImplements(null, 0)
+      handleMixinHeader(mixin)
+      handleMixinOn(null, 0)
+      handleImplements(null, 0)
+      handleRecoverMixinHeader()
+      handleRecoverableError(ExpectedMixinBody, M, M)
+      beginClassOrMixinOrExtensionBody(DeclarationKind.Mixin, {)
+      endClassOrMixinOrExtensionBody(DeclarationKind.Mixin, 0, {, })
+    endMixinDeclaration(mixin, })
+  endTopLevelDeclaration(})
+  beginMetadataStar(;)
+  endMetadataStar(0)
+  beginTopLevelMember(;)
+    handleRecoverableError(Message[Template(UnexpectedToken), Unexpected token ';'., null, {lexeme: ;}], ;, ;)
+    handleInvalidTopLevelDeclaration(;)
+  endTopLevelDeclaration(;)
+  beginMetadataStar(extension)
+  endMetadataStar(0)
+  beginExtensionDeclarationPrelude(extension)
+    handleNoTypeVariables(on)
+    beginExtensionDeclaration(null, extension, E)
+      handleIdentifier(int, typeReference)
+      handleNoTypeArguments(;)
+      handleType(int, null)
+      handleRecoverableError(ExpectedExtensionBody, int, int)
+      beginClassOrMixinOrExtensionBody(DeclarationKind.Extension, {)
+      endClassOrMixinOrExtensionBody(DeclarationKind.Extension, 0, {, })
+    endExtensionDeclaration(extension, extension, on, })
+  endTopLevelDeclaration(})
+  beginMetadataStar(;)
+  endMetadataStar(0)
+  beginTopLevelMember(;)
+    handleRecoverableError(Message[Template(UnexpectedToken), Unexpected token ';'., null, {lexeme: ;}], ;, ;)
+    handleInvalidTopLevelDeclaration(;)
+  endTopLevelDeclaration(;)
+  beginMetadataStar(extension)
+  endMetadataStar(0)
+  beginExtensionDeclarationPrelude(extension)
+    handleNoTypeVariables(()
+    beginExtensionTypeDeclaration(null, extension, ET1)
+      beginPrimaryConstructor(()
+        beginFormalParameters((, MemberKind.PrimaryConstructor)
+          beginMetadataStar(int)
+          endMetadataStar(0)
+          beginFormalParameter(int, MemberKind.PrimaryConstructor, null, null, null)
+            handleIdentifier(int, typeReference)
+            handleNoTypeArguments(i)
+            handleType(int, null)
+            handleIdentifier(i, formalParameterDeclaration)
+            handleFormalParameterWithoutValue())
+          endFormalParameter(null, null, null, null, i, null, null, FormalParameterKind.requiredPositional, MemberKind.PrimaryConstructor)
+        endFormalParameters(1, (, ), MemberKind.PrimaryConstructor)
+      endPrimaryConstructor((, null, false, true)
+      handleImplements(null, 0)
+      handleExperimentNotEnabled(ExperimentalFlag.primaryConstructors, ;, ;)
+      handleNoExtensionTypeBody(;)
+    endExtensionTypeDeclaration(extension, null, extension, type, ;)
+  endTopLevelDeclaration(;)
+  beginMetadataStar(extension)
+  endMetadataStar(0)
+  beginExtensionDeclarationPrelude(extension)
+    handleNoTypeVariables(()
+    beginExtensionTypeDeclaration(null, extension, ET2)
+      beginPrimaryConstructor(()
+        beginFormalParameters((, MemberKind.PrimaryConstructor)
+          beginMetadataStar(int)
+          endMetadataStar(0)
+          beginFormalParameter(int, MemberKind.PrimaryConstructor, null, null, null)
+            handleIdentifier(int, typeReference)
+            handleNoTypeArguments(i)
+            handleType(int, null)
+            handleIdentifier(i, formalParameterDeclaration)
+            handleFormalParameterWithoutValue())
+          endFormalParameter(null, null, null, null, i, null, null, FormalParameterKind.requiredPositional, MemberKind.PrimaryConstructor)
+        endFormalParameters(1, (, ), MemberKind.PrimaryConstructor)
+      endPrimaryConstructor((, null, false, true)
+      handleIdentifier(Foo, typeReference)
+      handleNoTypeArguments(;)
+      handleType(Foo, null)
+      handleImplements(implements, 1)
+      handleExperimentNotEnabled(ExperimentalFlag.primaryConstructors, ;, ;)
+      handleNoExtensionTypeBody(;)
+    endExtensionTypeDeclaration(extension, null, extension, type, ;)
+  endTopLevelDeclaration(;)
+  beginMetadataStar(extension)
+  endMetadataStar(0)
+  beginExtensionDeclarationPrelude(extension)
+    handleNoTypeVariables(()
+    beginExtensionTypeDeclaration(null, extension, ET3)
+      beginPrimaryConstructor(()
+        beginFormalParameters((, MemberKind.PrimaryConstructor)
+          beginMetadataStar(int)
+          endMetadataStar(0)
+          beginFormalParameter(int, MemberKind.PrimaryConstructor, null, null, null)
+            handleIdentifier(int, typeReference)
+            handleNoTypeArguments(i)
+            handleType(int, null)
+            handleIdentifier(i, formalParameterDeclaration)
+            handleFormalParameterWithoutValue())
+          endFormalParameter(null, null, null, null, i, null, null, FormalParameterKind.requiredPositional, MemberKind.PrimaryConstructor)
+        endFormalParameters(1, (, ), MemberKind.PrimaryConstructor)
+      endPrimaryConstructor((, null, false, true)
+      handleIdentifier(Foo, typeReference)
+      handleNoTypeArguments(,)
+      handleType(Foo, null)
+      handleIdentifier(Bar, typeReference)
+      handleNoTypeArguments(;)
+      handleType(Bar, null)
+      handleImplements(implements, 2)
+      handleExperimentNotEnabled(ExperimentalFlag.primaryConstructors, ;, ;)
+      handleNoExtensionTypeBody(;)
+    endExtensionTypeDeclaration(extension, null, extension, type, ;)
+  endTopLevelDeclaration(;)
+endCompilationUnit(8, )
