@@ -309,29 +309,30 @@ void main() {
   final StaticList<Direction> directions = StaticList<Direction>.of([Direction.north, Direction.east, Direction.south]);
   for (final dir in directions) {
     final String label = (() {     late String _v2;
-    _label3:
-    switch (dir) {
-      case Direction.north:
+    _L3: do {
+      switch (dir) {
+        case Direction.north:
 {
-          _v2 = 'N';
-          break;
-        }
-      case Direction.south:
+            _v2 = 'N';
+            break _L3;
+          }
+        case Direction.south:
 {
-          _v2 = 'S';
-          break;
-        }
-      case Direction.east:
+            _v2 = 'S';
+            break _L3;
+          }
+        case Direction.east:
 {
-          _v2 = 'E';
-          break;
-        }
-      case Direction.west:
+            _v2 = 'E';
+            break _L3;
+          }
+        case Direction.west:
 {
-          _v2 = 'W';
-          break;
-        }
-    }
+            _v2 = 'W';
+            break _L3;
+          }
+      }
+    } while (false);
  return _v2; })();
     staticPrint('  ${dir} -> ${label}');
   }
@@ -414,10 +415,14 @@ void main() {
   }
   staticPrint('result: ${result}');
   staticPrint('\n--- 14. 集合字面量 ---');
+  final StaticList<int> constList = StaticList<int>.of(const [1, 2, 3]);
+  final StaticMap<String, String> constMap = StaticMap<String, String>.of(const {'key': 'value'});
+  final StaticSet<int> constSet = StaticSet<int>.of(const {10, 20, 30});
   staticPrint('constList: ${const [1, 2, 3]}');
   staticPrint('constMap: ${const {'key': 'value'}}');
   staticPrint('constSet: ${const {10, 20, 30}}');
   staticPrint('\n=== 所有测试通过 ✅ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_StringExtensions_get_capitalize_0 extends TypeFunction0<String> {

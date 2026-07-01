@@ -336,6 +336,7 @@ class Duck_Object_FlyableValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+      vptrMap!['fly'] = Flyable_fly;
     }
     return vptrMap!;
   }
@@ -349,6 +350,7 @@ class Duck_Object_Flyable_SwimmableValue extends Duck_Object_FlyableValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Duck_Object_FlyableValue.getVptrMap());
+      vptrMap!['swim'] = Swimmable_swim;
     }
     return vptrMap!;
   }
@@ -481,14 +483,17 @@ void testRecords() {
 
 void testPatternMatching() {
   final StaticList<int> obj = StaticList<int>.of([1, 2, 3]);
-  do {
+  _L8: do {
 {
-      final StaticList<int> _v8 = obj;
+      final StaticList<int> _v9 = obj;
+      const int _v10 = 3;
+      const int _v11 = 1;
+      const int _v12 = 2;
 {
-        if (((((_v8.length == 3) && (1 == _v8[0])) && (2 == _v8[1])) && (3 == _v8[2]))) {
+        if (((((_v9.length == 3) && (1 == _v9[0])) && (2 == _v9[1])) && (3 == _v9[2]))) {
 {
             staticPrint('matched');
-            break;
+            break _L8;
           }
         }
       }
@@ -504,23 +509,17 @@ void testPatternMatching() {
   final int a;
   final int b;
 {
-    final (int, int) _v9 = (1, 2);
-    a = _v9.$1;
-    b = _v9.$2;
+    final (int, int) _v13 = (1, 2);
+    a = _v13.$1;
+    b = _v13.$2;
   }
   staticPrint('${a}, ${b}');
 }
 
 void testSealed() {
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Square_new(GC.allocateLocal(SquareValue()), 4.0)]);
-{
-    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
-    for (; sync_for_iterator.moveNext(); ) {
-      final ShapeValue shape = sync_for_iterator.current;
-{
-        staticPrint((shape.vptr['area'] as double Function(dynamic))(shape));
-      }
-    }
+  for (final shape in shapes) {
+    staticPrint((shape.vptr['area'] as double Function(dynamic))(shape));
   }
 }
 
@@ -574,14 +573,13 @@ void testAssert() {
 }
 
 void testLabels() {
-  do {
-    for (var i = 0; (i < 3); i = (i + 1)) {
-      for (var j = 0; (j < 3); j = (j + 1)) {
-        if (((i == 1) && (j == 1)))         break;
-        staticPrint('${i}, ${j}');
-      }
+  _L14:
+  for (var i = 0; (i < 3); i = (i + 1)) {
+    for (var j = 0; (j < 3); j = (j + 1)) {
+      if (((i == 1) && (j == 1)))       break _L14;
+      staticPrint('${i}, ${j}');
     }
-  } while (false);
+  }
 }
 
 void main() {
@@ -626,6 +624,7 @@ void main() {
   staticPrint('\n=== 20. Labels ===');
   testLabels();
   staticPrint('\n=== All tests completed ===');
+  drainScheduler();
 }
 
 class ClosureEnv_asyncInt_0 {

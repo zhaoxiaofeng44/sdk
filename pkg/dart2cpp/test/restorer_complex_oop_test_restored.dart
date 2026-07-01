@@ -2275,6 +2275,7 @@ void main() {
   final MageValue mage = Mage_new(GC.allocateLocal(MageValue()), 'Gandalf');
   staticPrint((mage.vptr['statusBars'] as String Function(dynamic))(mage));
   staticPrint('\n=== 所有复杂 OOP 测试通过 ✅ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_anon_0 extends TypeFunction2<double, double, double> {

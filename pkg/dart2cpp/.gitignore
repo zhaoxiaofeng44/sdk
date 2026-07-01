@@ -34,14 +34,6 @@ pubspec.lock
 test_output/
 *.log
 
-# C++ build artifacts
-cpp/build/
-cpp/*.o
-cpp/core/*.o
-cpp/test/*_test
-!cpp/test/*_test.cpp
-cpp/test/.backup_*/
-
 # Compiled binaries
 a.out
 *.exe

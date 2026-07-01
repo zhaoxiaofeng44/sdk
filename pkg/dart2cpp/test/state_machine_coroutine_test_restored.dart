@@ -185,11 +185,11 @@ void GlobalScheduler_tick(dynamic this__) {
   }
   final StaticList<PromiseValue<dynamic>> snapshot = StaticList<PromiseValue<dynamic>>.of(this_._activePromises);
   final StaticSet<PromiseValue<dynamic>> finished = StaticSet<PromiseValue<dynamic>>.of([]);
-  for (final promise in snapshot)   do {
+  for (final promise in snapshot)   _L0: do {
 {
       if (((promise.vptr['get_isCompleted'] as bool Function(dynamic))(promise) || (promise.vptr['get_isError'] as bool Function(dynamic))(promise))) {
         finished.add(promise);
-        break;
+        break _L0;
       }
       final TypeFunction0<bool>? onTick = promise._onTick;
       if ((!((onTick == null)) && onTick.closureCall(onTick))) {
@@ -334,37 +334,38 @@ String AddAsyncStateMachine_get_debugName(dynamic this__) {
 
 bool AddAsyncStateMachine_step(dynamic this__) {
   final this_ = this__ as AddAsyncStateMachineValue;
-  _label0:
-  switch (this_.smState) {
-    case 0:
+  _L1: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = Promise_value<int>(this_.a);
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created value future for ${this_.a}');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = Promise_value<int>(this_.a);
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created value future for ${this_.a}');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r1 = this_._pendingFuture!; return (_r1.vptr['get_isPending'] as bool Function(dynamic))(_r1); })())         return false;
-        this_._x = (() { final _r2 = this_._pendingFuture!; return (_r2.vptr['get_result'] as int Function(dynamic))(_r2); })();
-        this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()), this_));
-        this_.smState = 2;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, got x=${this_._x}, created delayed future for ${this_.b}');
-        return false;
-      }
-    case 2:
+          if ((() { final _r2 = this_._pendingFuture!; return (_r2.vptr['get_isPending'] as bool Function(dynamic))(_r2); })())           return false;
+          this_._x = (() { final _r3 = this_._pendingFuture!; return (_r3.vptr['get_result'] as int Function(dynamic))(_r3); })();
+          this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()), this_));
+          this_.smState = 2;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, got x=${this_._x}, created delayed future for ${this_.b}');
+          return false;
+        }
+      case 2:
 {
-        if ((() { final _r3 = this_._pendingFuture!; return (_r3.vptr['get_isPending'] as bool Function(dynamic))(_r3); })())         return false;
-        this_._y = (() { final _r4 = this_._pendingFuture!; return (_r4.vptr['get_result'] as int Function(dynamic))(_r4); })();
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, got y=${this_._y}, result=${(this_._x + this_._y)}');
-        (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, (this_._x + this_._y));
-        return true;
-      }
-    default:
+          if ((() { final _r4 = this_._pendingFuture!; return (_r4.vptr['get_isPending'] as bool Function(dynamic))(_r4); })())           return false;
+          this_._y = (() { final _r5 = this_._pendingFuture!; return (_r5.vptr['get_result'] as int Function(dynamic))(_r5); })();
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, got y=${this_._y}, result=${(this_._x + this_._y)}');
+          (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, (this_._x + this_._y));
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void AddAsyncStateMachine_completeWith(dynamic this__, int value) {
@@ -429,28 +430,29 @@ String InnerAsyncStateMachine_get_debugName(dynamic this__) {
 
 bool InnerAsyncStateMachine_step(dynamic this__) {
   final this_ = this__ as InnerAsyncStateMachineValue;
-  _label5:
-  switch (this_.smState) {
-    case 0:
+  _L6: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = Promise_delayed<String>(2, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())));
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = Promise_delayed<String>(2, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())));
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r6 = this_._pendingFuture!; return (_r6.vptr['get_isPending'] as bool Function(dynamic))(_r6); })())         return false;
-        final String val = (() { final _r7 = this_._pendingFuture!; return (_r7.vptr['get_result'] as String Function(dynamic))(_r7); })();
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, val=${val} → ${val.toUpperCase()}');
-        (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, val.toUpperCase());
-        return true;
-      }
-    default:
+          if ((() { final _r7 = this_._pendingFuture!; return (_r7.vptr['get_isPending'] as bool Function(dynamic))(_r7); })())           return false;
+          final String val = (() { final _r8 = this_._pendingFuture!; return (_r8.vptr['get_result'] as String Function(dynamic))(_r8); })();
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, val=${val} → ${val.toUpperCase()}');
+          (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, val.toUpperCase());
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void InnerAsyncStateMachine_completeWith(dynamic this__, String value) {
@@ -516,38 +518,39 @@ String OuterAsyncStateMachine_get_debugName(dynamic this__) {
 
 bool OuterAsyncStateMachine_step(dynamic this__) {
   final this_ = this__ as OuterAsyncStateMachineValue;
-  _label8:
-  switch (this_.smState) {
-    case 0:
+  _L9: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = Promise_value<String>('result:');
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created value future');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = Promise_value<String>('result:');
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created value future');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r9 = this_._pendingFuture!; return (_r9.vptr['get_isPending'] as bool Function(dynamic))(_r9); })())         return false;
-        this_._prefix = (() { final _r10 = this_._pendingFuture!; return (_r10.vptr['get_result'] as String Function(dynamic))(_r10); })();
-        final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(GC.allocateLocal(InnerAsyncStateMachineValue()));
-        this_._pendingFuture = (innerSm.vptr['start'] as PromiseValue<String> Function(dynamic))(innerSm);
-        this_.smState = 2;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, prefix=${this_._prefix}, started InnerAsync');
-        return false;
-      }
-    case 2:
+          if ((() { final _r10 = this_._pendingFuture!; return (_r10.vptr['get_isPending'] as bool Function(dynamic))(_r10); })())           return false;
+          this_._prefix = (() { final _r11 = this_._pendingFuture!; return (_r11.vptr['get_result'] as String Function(dynamic))(_r11); })();
+          final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(GC.allocateLocal(InnerAsyncStateMachineValue()));
+          this_._pendingFuture = (innerSm.vptr['start'] as PromiseValue<String> Function(dynamic))(innerSm);
+          this_.smState = 2;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, prefix=${this_._prefix}, started InnerAsync');
+          return false;
+        }
+      case 2:
 {
-        if ((() { final _r11 = this_._pendingFuture!; return (_r11.vptr['get_isPending'] as bool Function(dynamic))(_r11); })())         return false;
-        final String innerResult = (() { final _r12 = this_._pendingFuture!; return (_r12.vptr['get_result'] as String Function(dynamic))(_r12); })();
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, inner=${innerResult}');
-        (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, '${this_._prefix} ${innerResult}');
-        return true;
-      }
-    default:
+          if ((() { final _r12 = this_._pendingFuture!; return (_r12.vptr['get_isPending'] as bool Function(dynamic))(_r12); })())           return false;
+          final String innerResult = (() { final _r13 = this_._pendingFuture!; return (_r13.vptr['get_result'] as String Function(dynamic))(_r13); })();
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→done, inner=${innerResult}');
+          (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, '${this_._prefix} ${innerResult}');
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void OuterAsyncStateMachine_completeWith(dynamic this__, String value) {
@@ -612,31 +615,32 @@ String ErrorStateMachine_get_debugName(dynamic this__) {
 
 bool ErrorStateMachine_step(dynamic this__) {
   final this_ = this__ as ErrorStateMachineValue;
-  _label13:
-  switch (this_.smState) {
-    case 0:
+  _L14: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future (will throw)');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created delayed future (will throw)');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r14 = this_._pendingFuture!; return (_r14.vptr['get_isPending'] as bool Function(dynamic))(_r14); })())         return false;
-        if ((() { final _r15 = this_._pendingFuture!; return (_r15.vptr['get_isError'] as bool Function(dynamic))(_r15); })()) {
-          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, caught error');
-          (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'caught: ${(() { final _r16 = this_._pendingFuture!; return (_r16.vptr['get_error'] as Object? Function(dynamic))(_r16); })()}');
+          if ((() { final _r15 = this_._pendingFuture!; return (_r15.vptr['get_isPending'] as bool Function(dynamic))(_r15); })())           return false;
+          if ((() { final _r16 = this_._pendingFuture!; return (_r16.vptr['get_isError'] as bool Function(dynamic))(_r16); })()) {
+            log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, caught error');
+            (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'caught: ${(() { final _r17 = this_._pendingFuture!; return (_r17.vptr['get_error'] as Object? Function(dynamic))(_r17); })()}');
+            return true;
+          }
+          (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'unexpected success');
           return true;
         }
-        (this_.vptr['completeWith'] as void Function(dynamic, String))(this_, 'unexpected success');
-        return true;
-      }
-    default:
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void ErrorStateMachine_completeWith(dynamic this__, String value) {
@@ -701,29 +705,30 @@ String ParallelAwaitStateMachine_get_debugName(dynamic this__) {
 
 bool ParallelAwaitStateMachine_step(dynamic this__) {
   final this_ = this__ as ParallelAwaitStateMachineValue;
-  _label17:
-  switch (this_.smState) {
-    case 0:
+  _L18: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._futures = StaticList<PromiseValue<int>>.of([Promise_delayed<int>(3, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))), Promise_delayed<int>(2, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()))), Promise_delayed<int>(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11())))]);
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created 3 delayed futures');
-        return false;
-      }
-    case 1:
+          this_._futures = StaticList<PromiseValue<int>>.of([Promise_delayed<int>(3, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))), Promise_delayed<int>(2, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()))), Promise_delayed<int>(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11())))]);
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, created 3 delayed futures');
+          return false;
+        }
+      case 1:
 {
-        final bool allDone = this_._futures.every(ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12())));
-        if (!(allDone))         return false;
-        final StaticList<int> results = StaticList.of(this_._futures.map(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()))).toList());
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, all futures completed: ${results}');
-        (this_.vptr['completeWith'] as void Function(dynamic, StaticList<int>))(this_, results);
-        return true;
-      }
-    default:
+          final bool allDone = this_._futures.every(ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12())));
+          if (!(allDone))           return false;
+          final StaticList<int> results = StaticList.of(this_._futures.map(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()))).toList());
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, all futures completed: ${results}');
+          (this_.vptr['completeWith'] as void Function(dynamic, StaticList<int>))(this_, results);
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void ParallelAwaitStateMachine_completeWith(dynamic this__, StaticList<int> value) {
@@ -790,28 +795,29 @@ String ComputeStepStateMachine_get_debugName(dynamic this__) {
 
 bool ComputeStepStateMachine_step(dynamic this__) {
   final this_ = this__ as ComputeStepStateMachineValue;
-  _label18:
-  switch (this_.smState) {
-    case 0:
+  _L19: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_14_new(GC.allocateLocal(ClosureEnv_anon_14()), this_));
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = Promise_delayed<int>(1, ClosureEnv_anon_14_new(GC.allocateLocal(ClosureEnv_anon_14()), this_));
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r19 = this_._pendingFuture!; return (_r19.vptr['get_isPending'] as bool Function(dynamic))(_r19); })())         return false;
-        final int r = (() { final _r20 = this_._pendingFuture!; return (_r20.vptr['get_result'] as int Function(dynamic))(_r20); })();
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, result=${r}');
-        (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, r);
-        return true;
-      }
-    default:
+          if ((() { final _r20 = this_._pendingFuture!; return (_r20.vptr['get_isPending'] as bool Function(dynamic))(_r20); })())           return false;
+          final int r = (() { final _r21 = this_._pendingFuture!; return (_r21.vptr['get_result'] as int Function(dynamic))(_r21); })();
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→done, result=${r}');
+          (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, r);
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void ComputeStepStateMachine_completeWith(dynamic this__, int value) {
@@ -879,46 +885,47 @@ String PipelineStateMachine_get_debugName(dynamic this__) {
 
 bool PipelineStateMachine_step(dynamic this__) {
   final this_ = this__ as PipelineStateMachineValue;
-  _label21:
-  switch (this_.smState) {
-    case 0:
+  _L22: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pendingFuture = (() { final _r22 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1); return (_r22.vptr['start'] as PromiseValue<int> Function(dynamic))(_r22); })();
-        this_.smState = 1;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, started ComputeStep(1)');
-        return false;
-      }
-    case 1:
+          this_._pendingFuture = (() { final _r23 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1); return (_r23.vptr['start'] as PromiseValue<int> Function(dynamic))(_r23); })();
+          this_.smState = 1;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 0→1, started ComputeStep(1)');
+          return false;
+        }
+      case 1:
 {
-        if ((() { final _r23 = this_._pendingFuture!; return (_r23.vptr['get_isPending'] as bool Function(dynamic))(_r23); })())         return false;
-        this_._a = (() { final _r24 = this_._pendingFuture!; return (_r24.vptr['get_result'] as int Function(dynamic))(_r24); })();
-        this_._pendingFuture = (() { final _r25 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a); return (_r25.vptr['start'] as PromiseValue<int> Function(dynamic))(_r25); })();
-        this_.smState = 2;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, a=${this_._a}, started ComputeStep(${this_._a})');
-        return false;
-      }
-    case 2:
+          if ((() { final _r24 = this_._pendingFuture!; return (_r24.vptr['get_isPending'] as bool Function(dynamic))(_r24); })())           return false;
+          this_._a = (() { final _r25 = this_._pendingFuture!; return (_r25.vptr['get_result'] as int Function(dynamic))(_r25); })();
+          this_._pendingFuture = (() { final _r26 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a); return (_r26.vptr['start'] as PromiseValue<int> Function(dynamic))(_r26); })();
+          this_.smState = 2;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 1→2, a=${this_._a}, started ComputeStep(${this_._a})');
+          return false;
+        }
+      case 2:
 {
-        if ((() { final _r26 = this_._pendingFuture!; return (_r26.vptr['get_isPending'] as bool Function(dynamic))(_r26); })())         return false;
-        this_._b = (() { final _r27 = this_._pendingFuture!; return (_r27.vptr['get_result'] as int Function(dynamic))(_r27); })();
-        this_._pendingFuture = (() { final _r28 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b); return (_r28.vptr['start'] as PromiseValue<int> Function(dynamic))(_r28); })();
-        this_.smState = 3;
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→3, b=${this_._b}, started ComputeStep(${this_._b})');
-        return false;
-      }
-    case 3:
+          if ((() { final _r27 = this_._pendingFuture!; return (_r27.vptr['get_isPending'] as bool Function(dynamic))(_r27); })())           return false;
+          this_._b = (() { final _r28 = this_._pendingFuture!; return (_r28.vptr['get_result'] as int Function(dynamic))(_r28); })();
+          this_._pendingFuture = (() { final _r29 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b); return (_r29.vptr['start'] as PromiseValue<int> Function(dynamic))(_r29); })();
+          this_.smState = 3;
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 2→3, b=${this_._b}, started ComputeStep(${this_._b})');
+          return false;
+        }
+      case 3:
 {
-        if ((() { final _r29 = this_._pendingFuture!; return (_r29.vptr['get_isPending'] as bool Function(dynamic))(_r29); })())         return false;
-        this_._c = (() { final _r30 = this_._pendingFuture!; return (_r30.vptr['get_result'] as int Function(dynamic))(_r30); })();
-        log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 3→done, c=${this_._c}, sum=${((this_._a + this_._b) + this_._c)}');
-        (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, ((this_._a + this_._b) + this_._c));
-        return true;
-      }
-    default:
+          if ((() { final _r30 = this_._pendingFuture!; return (_r30.vptr['get_isPending'] as bool Function(dynamic))(_r30); })())           return false;
+          this_._c = (() { final _r31 = this_._pendingFuture!; return (_r31.vptr['get_result'] as int Function(dynamic))(_r31); })();
+          log('  ${(this_.vptr['get_debugName'] as String Function(dynamic))(this_)}: state 3→done, c=${this_._c}, sum=${((this_._a + this_._b) + this_._c)}');
+          (this_.vptr['completeWith'] as void Function(dynamic, int))(this_, ((this_._a + this_._b) + this_._c));
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 void PipelineStateMachine_completeWith(dynamic this__, int value) {
@@ -943,6 +950,7 @@ void log(String msg) {
 
 T smAwait<T>(PromiseValue<T> future) {
   int roundCount = 0;
+  const int maxRounds = 100000;
   log('smAwait: waiting for future (completed=${(future.vptr['get_isCompleted'] as bool Function(dynamic))(future)})');
   while ((!((future.vptr['get_isCompleted'] as bool Function(dynamic))(future)) && !((future.vptr['get_isError'] as bool Function(dynamic))(future)))) {
     (GlobalScheduler_instance.vptr['tick'] as void Function(dynamic))(GlobalScheduler_instance);
@@ -1000,7 +1008,7 @@ void testNestedAsync() {
 void testThenChain() {
   staticPrint('\n--- Demo 5: then 链式调用 ---');
   (GlobalScheduler_instance.vptr['reset'] as void Function(dynamic))(GlobalScheduler_instance);
-  final PromiseValue<String> future = (() { final _r32 = (() { final _r31 = Promise_value<int>(5); return (_r31.vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(_r31, ClosureEnv_testThenChain_16_new(GC.allocateLocal(ClosureEnv_testThenChain_16()))); })(); return (_r32.vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))(_r32, ClosureEnv_testThenChain_17_new(GC.allocateLocal(ClosureEnv_testThenChain_17()))); })();
+  final PromiseValue<String> future = (() { final _r33 = (() { final _r32 = Promise_value<int>(5); return (_r32.vptr['then_int'] as PromiseValue<int> Function(dynamic, TypeFunction1<int, int>))(_r32, ClosureEnv_testThenChain_16_new(GC.allocateLocal(ClosureEnv_testThenChain_16()))); })(); return (_r33.vptr['then_String'] as PromiseValue<String> Function(dynamic, TypeFunction1<String, int>))(_r33, ClosureEnv_testThenChain_17_new(GC.allocateLocal(ClosureEnv_testThenChain_17()))); })();
   final String result = smAwait<String>(future);
   assert((result == 'value=10'), 'Expected "value=10", got "${result}"');
   staticPrint('  ✓ Promise.value(5).then(*2).then(format) = "${result}"');
@@ -1066,6 +1074,7 @@ void main() {
   staticPrint('\n═══════════════════════════════════════════');
   staticPrint(' ✅ 全部 9 个测试通过！');
   staticPrint('═══════════════════════════════════════════');
+  drainScheduler();
 }
 
 bool enableLog = true;
@@ -1282,8 +1291,8 @@ ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
 Never ClosureEnv_anon_8_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_8;
 
-          throw Exception('something went wrong');
-        }
+            throw Exception('something went wrong');
+          }
 
 class ClosureEnv_anon_9 extends TypeFunction0<int> {
   ClosureEnv_anon_9();

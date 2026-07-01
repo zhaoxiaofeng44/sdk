@@ -1226,12 +1226,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
 
     // 语义脱钩: SDK 类构造函数映射到包装类型
+    // 注意：不保留 const 前缀，因为运行时包装类（如 StaticDuration、StaticList 等）
+    // 均没有 const 构造器，保留 const 会导致编译错误
     final mappedClassName = _mapSdkTypeName(className);
-    final prefix = expr.isConst ? 'const ' : '';
-    if (ctorName.isEmpty) return '$prefix$mappedClassName($allArgs)';
+    if (ctorName.isEmpty) return '$mappedClassName($allArgs)';
     // SDK 类的私有构造函数（如 MapEntry._）应还原为无名构造函数形式
-    if (ctorName.startsWith('_')) return '$prefix$mappedClassName($allArgs)';
-    return '$prefix$mappedClassName.$ctorName($allArgs)';
+    if (ctorName.startsWith('_')) return '$mappedClassName($allArgs)';
+    return '$mappedClassName.$ctorName($allArgs)';
   }
 
   /// SDK 类名 → 包装类名映射（语义脱钩）

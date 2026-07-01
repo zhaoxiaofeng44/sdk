@@ -2467,7 +2467,11 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         );
         _popClosureContext();
       } else {
-        if (isVoidReturn) {
+        if (isMainFunc2) {
+          // main 函数特殊处理：在 body 末尾添加 drainScheduler() 调用
+          // 模拟 Dart 事件循环在 main() 返回后继续处理异步任务的行为
+          _restoreMainBody(proc.function.body!, boxedParamsForProc);
+        } else if (isVoidReturn) {
           _restoreSetterBody(proc.function.body!);
         } else {
           if (boxedParamsForProc.isNotEmpty) {
@@ -2670,6 +2674,34 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     } else {
       _restoreBody(body);
     }
+  }
+
+  /// 还原 main 函数体，在末尾添加 drainScheduler() 调用
+  /// 模拟 Dart 事件循环在 main() 返回后继续处理异步任务的行为
+  void _restoreMainBody(Statement body, List<VariableDeclaration> boxedParams) {
+    _buf.write('{\n');
+    _indent++;
+
+    // 写入参数 Box 包装（仅基础值类型）
+    for (final p in boxedParams) {
+      final baseName = p.name!;
+      final boxType = _boxTypeNameFor(p.type)!;
+      _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
+    }
+
+    if (body is Block) {
+      for (final s in body.statements) {
+        _restoreStmt(s);
+      }
+    } else {
+      _restoreStmt(body);
+    }
+
+    // 在 body 末尾添加 drainScheduler() 调用
+    _buf.write('${_pad}drainScheduler();\n');
+
+    _indent--;
+    _buf.write('$_pad}\n');
   }
 
   // ---- Parameters ----

@@ -6,6 +6,7 @@ void main() {
   testStaticMap();
   testStaticSet();
   staticPrint('\n✅ All static collection tests passed!');
+  drainScheduler();
 }
 
 void testArray() {

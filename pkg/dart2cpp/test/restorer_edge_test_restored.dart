@@ -484,9 +484,9 @@ Promise<int> safeLog(String msg) {
 
 StaticList<int> collectOdds(int n) {
   final StaticList<int> result = StaticList<int>.of([]);
-  for (var i = 0; (i < n); i = (i + 1))   do {
+  for (var i = 0; (i < n); i = (i + 1))   _L0: do {
 {
-      if (((i % 2) == 0))       break;
+      if (((i % 2) == 0))       break _L0;
       result.add(i);
     }
   } while (false);
@@ -495,11 +495,11 @@ StaticList<int> collectOdds(int n) {
 
 int countDigits(int n) {
   int count = 0;
-  while ((n > 0))   do {
+  while ((n > 0))   _L1: do {
 {
       final int digit = (n % 10);
       n = (n ~/ 10);
-      if ((digit == 0))       break;
+      if ((digit == 0))       break _L1;
       count = (count + 1);
     }
   } while (false);
@@ -509,11 +509,11 @@ int countDigits(int n) {
 StaticList<String> skipEmpty(StaticList<String> items) {
   final StaticList<String> result = StaticList<String>.of([]);
   int i = 0;
-  do   do {
+  do   _L2: do {
 {
       if (items[i].isEmpty) {
         i = (i + 1);
-        break;
+        break _L2;
       }
       result.add(items[i]);
       i = (i + 1);
@@ -525,39 +525,40 @@ StaticList<String> skipEmpty(StaticList<String> items) {
 
 String classify(int n) {
   final StaticStringBuffer result = StaticStringBuffer();
-  _label0:
-  switch ((n % 5)) {
-    case 0:
+  _L3: do {
+    switch ((n % 5)) {
+      case 0:
 {
-        result.write('div5');
-        continue _case_0;
-      }
-    case 1:
+          result.write('div5');
+          continue _case_0;
+        }
+      case 1:
 {
-        result.write('mod1');
-        break;
-      }
-    case 2:
+          result.write('mod1');
+          break _L3;
+        }
+      case 2:
 {
-        result.write('mod2');
-        break;
-      }
-    case 3:
+          result.write('mod2');
+          break _L3;
+        }
+      case 3:
 {
-        result.write('mod3');
-        continue _case_0;
-      }
-    case 4:
+          result.write('mod3');
+          continue _case_0;
+        }
+      case 4:
 {
-        result.write('mod4');
-        break;
-      }
-    _case_0:
-    default:
+          result.write('mod4');
+          break _L3;
+        }
+      _case_0:
+      default:
 {
-        result.write('(default)');
-      }
-  }
+          result.write('(default)');
+        }
+    }
+  } while (false);
   return result.toString();
 }
 
@@ -623,7 +624,7 @@ StaticList<Vector2DValue> scaleAll(StaticList<Vector2DValue> vectors, double fac
 }
 
 ({int age, String name, String role}) personInfo(String n, int a, String r) {
-  return (() { final _let1 = n; return (age: a, name: _let1, role: r); })();
+  return (() { final _let4 = n; return (age: a, name: _let4, role: r); })();
 }
 
 StaticList<(String, int)> topN(StaticList<(String, int)> data, int n) {
@@ -633,72 +634,74 @@ StaticList<(String, int)> topN(StaticList<(String, int)> data, int n) {
 }
 
 String describeValue(Object value) {
-  _label2:
+  _L5: do {
 {
-    final Object _v3 = value;
+      final Object _v6 = value;
+      const dynamic _v7 = null;
 {
-      late int n;
-      if ((((_v3 is int) && (() { final _let4 = n = _v3; return true; })()) && (n < 0))) {
+        late int n;
+        if ((((_v6 is int) && (() { final _let8 = n = _v6; return true; })()) && (n < 0))) {
 {
-          return 'negative int: ${n}';
+            return 'negative int: ${n}';
+          }
+        }
+      }
+{
+        late int n;
+        if ((((_v6 is int) && (() { final _let9 = n = _v6; return true; })()) && (n == 0))) {
+{
+            return 'zero';
+          }
+        }
+      }
+{
+        late int n;
+        if (((_v6 is int) && (() { final _let10 = n = _v6; return true; })())) {
+{
+            return 'positive int: ${n}';
+          }
+        }
+      }
+{
+        late String s;
+        if ((((_v6 is String) && (() { final _let11 = s = _v6; return true; })()) && s.isEmpty)) {
+{
+            return 'empty string';
+          }
+        }
+      }
+{
+        late String s;
+        if (((_v6 is String) && (() { final _let12 = s = _v6; return true; })())) {
+{
+            return 'string: ${s} (len=${s.length})';
+          }
+        }
+      }
+{
+        late StaticList<dynamic> l;
+        if (((_v6 is StaticList<dynamic>) && (() { final _let13 = l = _v6; return true; })())) {
+{
+            return 'list of ${l.length}';
+          }
+        }
+      }
+{
+        if ((_v6 == null)) {
+{
+            return 'null';
+          }
+        }
+      }
+{
+{
+{
+            return 'unknown: ${value.runtimeType}';
+          }
         }
       }
     }
-{
-      late int n;
-      if ((((_v3 is int) && (() { final _let5 = n = _v3; return true; })()) && (n == 0))) {
-{
-          return 'zero';
-        }
-      }
-    }
-{
-      late int n;
-      if (((_v3 is int) && (() { final _let6 = n = _v3; return true; })())) {
-{
-          return 'positive int: ${n}';
-        }
-      }
-    }
-{
-      late String s;
-      if ((((_v3 is String) && (() { final _let7 = s = _v3; return true; })()) && s.isEmpty)) {
-{
-          return 'empty string';
-        }
-      }
-    }
-{
-      late String s;
-      if (((_v3 is String) && (() { final _let8 = s = _v3; return true; })())) {
-{
-          return 'string: ${s} (len=${s.length})';
-        }
-      }
-    }
-{
-      late StaticList<dynamic> l;
-      if (((_v3 is StaticList<dynamic>) && (() { final _let9 = l = _v3; return true; })())) {
-{
-          return 'list of ${l.length}';
-        }
-      }
-    }
-{
-      if ((_v3 == null)) {
-{
-          return 'null';
-        }
-      }
-    }
-{
-{
-{
-          return 'unknown: ${value.runtimeType}';
-        }
-      }
-    }
-  }
+  } while (false);
 }
 
 void main() {
@@ -785,6 +788,7 @@ void main() {
     staticPrint('  ${v} => ${describeValue(v)}');
   }
   staticPrint('\n=== all edge case tests passed ===');
+  drainScheduler();
 }
 
 StaticList<String> log = StaticList<String>.of([]);

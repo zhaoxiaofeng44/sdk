@@ -33,7 +33,12 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     } else if (stmt is LabeledStatement) {
       _restoreLabeledStatement(stmt);
     } else if (stmt is BreakStatement) {
-      _buf.write('${_pad}break;\n');
+      final label = _breakTargetLabels[stmt.target];
+      if (label != null) {
+        _buf.write('${_pad}break $label;\n');
+      } else {
+        _buf.write('${_pad}break;\n');
+      }
     } else if (stmt is ContinueSwitchStatement) {
       _restoreContinueSwitchStatement(stmt);
     } else if (stmt is EmptyStatement) {
@@ -182,60 +187,36 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
 
   /// 还原 LabeledStatement
   void _restoreLabeledStatement(LabeledStatement stmt) {
-    // 检查是否是 switch pattern 脱糖后的标签（包含 break 语句）
-    // 如果是，需要用 do-while(false) 包裹
-    // 用户定义的循环标签也使用 do-while 包裹（内核将 continue 表示为 break）
-    if (_containsBreakStatement(stmt.body)) {
-      _buf.write('${_pad}do {\n');
+    // 为当前标签生成名称并注册到映射中
+    // 用于 BreakStatement 查找目标标签
+    final labelName = '_L${_varCounter++}';
+    _breakTargetLabels[stmt] = labelName;
+
+    if (_isLoopStatement(stmt.body)) {
+      // 标签包裹循环体：使用原生 Dart 标签语法（label: for/while/do-while）
+      // 配合 break label; 可实现跨层跳出
+      _buf.write('${_pad}$labelName:\n');
+      _restoreStmt(stmt.body);
+    } else {
+      // 标签包裹非循环体（如 switch pattern 脱糖后的 Block）：
+      // 需要 do-while(false) 包裹，使 break 可以跳出
+      // 同时添加标签，使 break label; 可以定位到此语句
+      _buf.write('${_pad}$labelName: do {\n');
       _indent++;
       _restoreStmt(stmt.body);
       _indent--;
       _buf.write('$_pad} while (false);\n');
-    } else {
-      // 没有 break 语句的标签：直接保留标签形式（Dart 支持，C++ 可用 goto）
-      final labelName = '_label${_varCounter++}';
-      _buf.write('${_pad}$labelName:\n');
-      _restoreStmt(stmt.body);
     }
+
+    _breakTargetLabels.remove(stmt);
   }
 
-  /// 检查语句中是否包含 BreakStatement（用于区分 switch pattern 和用户标签）
-  /// 递归检查所有语句，包括循环体内的
-  bool _containsBreakStatement(Statement stmt) {
-    if (stmt is BreakStatement) return true;
-    if (stmt is Block) {
-      return stmt.statements.any(_containsBreakStatement);
-    }
-    if (stmt is IfStatement) {
-      if (_containsBreakStatement(stmt.then)) return true;
-      if (stmt.otherwise != null && _containsBreakStatement(stmt.otherwise!)) return true;
-    }
-    if (stmt is LabeledStatement) {
-      return _containsBreakStatement(stmt.body);
-    }
-    if (stmt is ForStatement) {
-      return _containsBreakStatement(stmt.body);
-    }
-    if (stmt is WhileStatement) {
-      return _containsBreakStatement(stmt.body);
-    }
-    if (stmt is DoStatement) {
-      return _containsBreakStatement(stmt.body);
-    }
-    if (stmt is ForInStatement) {
-      return _containsBreakStatement(stmt.body);
-    }
-    if (stmt is TryCatch) {
-      if (_containsBreakStatement(stmt.body)) return true;
-      for (final c in stmt.catches) {
-        if (_containsBreakStatement(c.body)) return true;
-      }
-    }
-    if (stmt is TryFinally) {
-      if (_containsBreakStatement(stmt.body)) return true;
-      if (_containsBreakStatement(stmt.finalizer)) return true;
-    }
-    return false;
+  /// 判断是否是循环语句
+  bool _isLoopStatement(Statement stmt) {
+    return stmt is ForStatement ||
+        stmt is WhileStatement ||
+        stmt is DoStatement ||
+        stmt is ForInStatement;
   }
 
   /// 还原 ContinueSwitchStatement
@@ -329,8 +310,8 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
         final wrappedInit = _wrapFunctionInTypeFunction(v.initializer!, v.type);
         if (wrappedInit != null) {
           _buf.write(_pad);
-          if (v.isConst) _buf.write('const ');
-          else if (v.isFinal) _buf.write('final ');
+          // ClosureEnv 包装不是 const 表达式，const 需降级为 final
+          if (v.isFinal || v.isConst) _buf.write('final ');
           _buf.write(restoredType);
           _buf.write(' $name = $wrappedInit;\n');
           return;
@@ -343,13 +324,25 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // 这处理了 pattern matching 脱糖后的变量声明（如 int n; 在赋值前使用）
     final needsLate = v.isLate || (v.initializer == null && !v.isFinal && !v.isConst && v.type.nullability != Nullability.nullable);
     if (needsLate) _buf.write('late ');
-    if (v.isConst) _buf.write('const ');
-    else if (v.isFinal) _buf.write('final ');
-    _buf.write(_restoreType(v.type));
-    _buf.write(' $name');
+
+    // 先计算初始化器字符串（包括 _adaptInitForStaticCollection 的适配）
+    String? adaptedInitStr;
     if (v.initializer != null) {
       final initStr = _restoreExpr(v.initializer!);
-      _buf.write(' = ${_adaptInitForStaticCollection(v, initStr)}');
+      adaptedInitStr = _adaptInitForStaticCollection(v, initStr);
+    }
+
+    // const 降级：检查适配后的初始化器是否仍然是合法的 const 表达式
+    // _adaptInitForStaticCollection 可能将 const [1,2,3] 包装为 StaticList.of(const [1,2,3])
+    // 后者不是合法的 const 表达式
+    final effectiveConst = v.isConst &&
+        (adaptedInitStr == null || _isAdaptedInitConstCompatible(adaptedInitStr));
+    if (effectiveConst) _buf.write('const ');
+    else if (v.isFinal || v.isConst) _buf.write('final ');
+    _buf.write(_restoreType(v.type));
+    _buf.write(' $name');
+    if (adaptedInitStr != null) {
+      _buf.write(' = $adaptedInitStr');
     }
     _buf.write(';\n');
   }
@@ -530,6 +523,33 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       return '$staticName.of($initStr)';
     }
     return '$staticName<$typeArgs>.of($initStr)';
+  }
+
+  /// 判断适配后的初始化器字符串是否是合法的 const 表达式。
+  ///
+  /// `_adaptInitForStaticCollection` 可能将 `const [1,2,3]` 包装为
+  /// `StaticList<int>.of(const [1,2,3])`，后者不是合法的 const 表达式
+  /// （因为 `StaticList.of` 不是 const 构造器）。
+  ///
+  /// 类似地，`X_new(...)` 等 lowered 形式也不是 const 表达式。
+  bool _isAdaptedInitConstCompatible(String initStr) {
+    final trimmed = initStr.trimLeft();
+    // StaticList.of(...) / StaticMap.of(...) / StaticSet.of(...) — 非 const 工厂
+    if (trimmed.startsWith('StaticList') ||
+        trimmed.startsWith('StaticMap') ||
+        trimmed.startsWith('StaticSet')) {
+      return false;
+    }
+    // X_new(...) 或 X_new_name(...) — 用户类构造器 lowering 后的普通函数调用
+    if (RegExp(r'\w+_new[_<(]').hasMatch(trimmed)) {
+      return false;
+    }
+    // GC.allocateLocal/Global(...) — GC 包装，非 const
+    if (trimmed.startsWith('GC.')) {
+      return false;
+    }
+    // 基本字面量、const 字面量、字符串插值等仍然是合法的 const 表达式
+    return true;
   }
 
   void _restoreCatch(Catch c) {

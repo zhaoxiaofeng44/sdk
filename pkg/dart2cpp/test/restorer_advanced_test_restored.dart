@@ -999,47 +999,49 @@ enum Season {
 }
 
 String Season_get_displayName(Season this_) {
-  _label14:
-  switch (this_) {
-    case Season.spring:
+  _L14: do {
+    switch (this_) {
+      case Season.spring:
 {
-        return 'Spring';
-      }
-    case Season.summer:
+          return 'Spring';
+        }
+      case Season.summer:
 {
-        return 'Summer';
-      }
-    case Season.autumn:
+          return 'Summer';
+        }
+      case Season.autumn:
 {
-        return 'Autumn';
-      }
-    case Season.winter:
+          return 'Autumn';
+        }
+      case Season.winter:
 {
-        return 'Winter';
-      }
-  }
+          return 'Winter';
+        }
+    }
+  } while (false);
 }
 
 Season Season_get_next(Season this_) {
-  _label15:
-  switch (this_) {
-    case Season.spring:
+  _L15: do {
+    switch (this_) {
+      case Season.spring:
 {
-        return Season.summer;
-      }
-    case Season.summer:
+          return Season.summer;
+        }
+      case Season.summer:
 {
-        return Season.autumn;
-      }
-    case Season.autumn:
+          return Season.autumn;
+        }
+      case Season.autumn:
 {
-        return Season.winter;
-      }
-    case Season.winter:
+          return Season.winter;
+        }
+      case Season.winter:
 {
-        return Season.spring;
-      }
-  }
+          return Season.spring;
+        }
+    }
+  } while (false);
 }
 
 bool Season_get_isWarm(Season this_) {
@@ -1471,26 +1473,24 @@ String classifyNumber(int number) {
  else {
     result = 'positive';
     bool isPrime = (number > 1);
-    do {
-      for (var i = 2; ((i * i) <= number); i = (i + 1)) {
-        if (((number % i) == 0)) {
-          isPrime = false;
-          break;
-        }
+    _L17:
+    for (var i = 2; ((i * i) <= number); i = (i + 1)) {
+      if (((number % i) == 0)) {
+        isPrime = false;
+        break _L17;
       }
-    } while (false);
+    }
     if ((isPrime && (number > 1))) {
       result = (result + '_prime');
     }
  else     if ((number > 1)) {
-      do {
-        for (var i = 2; (i <= number); i = (i + 1)) {
-          if (((number % i) == 0)) {
-            result = (result + '_composite(smallest_factor=${i})');
-            break;
-          }
+      _L18:
+      for (var i = 2; (i <= number); i = (i + 1)) {
+        if (((number % i) == 0)) {
+          result = (result + '_composite(smallest_factor=${i})');
+          break _L18;
         }
-      } while (false);
+      }
     }
   }
   return result;
@@ -1498,11 +1498,11 @@ String classifyNumber(int number) {
 
 StaticList<int> parseNumbers(StaticList<String> inputs) {
   final StaticList<int> results = StaticList<int>.of([]);
-  for (var i = 0; (i < inputs.length); i = (i + 1))   do {
+  for (var i = 0; (i < inputs.length); i = (i + 1))   _L19: do {
 {
       try {
         final String trimmed = inputs[i].trim();
-        if (trimmed.isEmpty)         break;
+        if (trimmed.isEmpty)         break _L19;
         final int value = int.parse(trimmed);
         if ((value < 0)) {
           throw DartArgumentError('Negative value at index ${i}: ${value}');
@@ -1743,6 +1743,7 @@ void main() {
   (product.vptr['markDirty'] as void Function(dynamic))(product);
   staticPrint('after markDirty: ${(product.vptr['get_cacheStatus'] as String Function(dynamic))(product)}');
   staticPrint('\n=== 所有高级语法测试通过 ✅ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_anon_0 extends TypeFunction1<String, StaticMapEntry<String, dynamic>> {

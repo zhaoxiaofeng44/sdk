@@ -1628,6 +1628,13 @@ class GlobalScheduler extends AnyGC {
     // 重新注册为 GC root（GC.reset() 会清除所有 root）
     GC.allocateGlobal(this);
   }
+
+  /// 检查是否有活跃的异步工作（Promise、延迟任务等）
+  bool hasActiveWork() {
+    return _activePromises.isNotEmpty ||
+        _delayedTasks.isNotEmpty ||
+        _readyPromises.isNotEmpty;
+  }
 }
 
 class _DelayedTask {
@@ -1735,6 +1742,56 @@ T _smAwaitImpl<T>(dynamic promiseOrFuture) {
   // Dart 语义：await 非 Future/Promise 值 → 自动包装为已完成的 Future 并返回
   // 例如: await 42 等价于 await Future.value(42)
   return promiseOrFuture as T;
+}
+
+/// drainScheduler — 运行调度器直到所有 Promise 和原生 Future 完成
+/// 模拟 Dart 事件循环在 main() 返回后的行为：继续处理异步任务直到队列为空
+///
+/// 用法：在 main() 函数末尾调用，确保所有异步操作完成
+/// 示例：
+/// ```dart
+/// void main() {
+///   asyncInt().then(print);
+///   drainScheduler(); // 等待所有 Promise 完成
+/// }
+/// ```
+///
+/// 此函数交替处理两种异步系统：
+/// 1. 原生 Dart Future（如 async* 返回的 Future）- 优先处理
+/// 2. 自定义 Promise 系统（由 GlobalScheduler 管理）
+///
+/// 通过多次 `await Future<void>.microtask(() {})` 让出控制权，
+/// 让原生 Future 有足够时间完成（模拟真实事件循环行为），
+/// 然后继续处理自定义 Promise。
+Future<void> drainScheduler() async {
+  int roundCount = 0;
+  while (true) {
+    // 先让出控制权多次，让原生 Future（如 async*）有机会完成
+    // async* 生成器需要多次事件循环迭代来 yield 值
+    for (int i = 0; i < 10; i++) {
+      await Future<void>.microtask(() {});
+    }
+
+    // 处理所有自定义 Promise
+    while (GlobalScheduler.instance.hasActiveWork()) {
+      GlobalScheduler.instance.tick();
+      roundCount++;
+      if (roundCount > 1000000) {
+        throw DartStateError('drainScheduler exceeded max rounds — possible deadlock');
+      }
+    }
+
+    // 再次让出控制权，处理在 tick() 期间产生的新原生 Future
+    for (int i = 0; i < 10; i++) {
+      await Future<void>.microtask(() {});
+    }
+
+    // 检查是否还有自定义 Promise 需要处理
+    // 如果没有，说明所有异步工作都已完成
+    if (!GlobalScheduler.instance.hasActiveWork()) {
+      break;
+    }
+  }
 }
 
 /// AsyncStateMachine — 异步函数转状态机的基类

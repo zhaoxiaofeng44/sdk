@@ -12,17 +12,15 @@ dev_dependencies:
   test: ^1.16.0
 
 dependency_overrides:
-  _fe_analyzer_shared: 
-    path: ../../../pkg/_fe_analyzer_shared
-  _js_interop_checks: 
-    path: ../../../pkg/_js_interop_checks
+  _fe_analyzer_shared:
+    path: ../_fe_analyzer_shared
   args: any
   collection: any
-  build_integration: 
-    path: ../../../pkg/build_integration
-  front_end: 
-    path: ../../../pkg/front_end
-  kernel: 
-    path: ../../../pkg/kernel
-  vm: 
-    path: ../../../pkg/vm
+  build_integration:
+    path: ../build_integration
+  front_end:
+    path: ../front_end
+  kernel:
+    path: ../kernel
+  vm:
+    path: ../vm

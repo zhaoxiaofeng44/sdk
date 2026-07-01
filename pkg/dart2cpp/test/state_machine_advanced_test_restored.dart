@@ -43,37 +43,38 @@ FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
 
 bool FibStateMachine_step(dynamic this__) {
   final this_ = this__ as FibStateMachineValue;
-  _label0:
-  switch (this_.smState) {
-    case 0:
+  _L0: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if ((this_.n <= 1)) {
-          this_.completeWith(this_.n);
+          if ((this_.n <= 1)) {
+            this_.completeWith(this_.n);
+            return true;
+          }
+          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 1)).start();
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
+{
+          if (this_._pending!.isPending)           return false;
+          this_._a = this_._pending!.result;
+          this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 2)).start();
+          this_.smState = 2;
+          return false;
+        }
+      case 2:
+{
+          if (this_._pending!.isPending)           return false;
+          this_.completeWith((this_._a + this_._pending!.result));
           return true;
         }
-        this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 1)).start();
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+      default:
 {
-        if (this_._pending!.isPending)         return false;
-        this_._a = this_._pending!.result;
-        this_._pending = FibStateMachine_new(GC.allocateLocal(FibStateMachineValue()), (this_.n - 2)).start();
-        this_.smState = 2;
-        return false;
-      }
-    case 2:
-{
-        if (this_._pending!.isPending)         return false;
-        this_.completeWith((this_._a + this_._pending!.result));
-        return true;
-      }
-    default:
-{
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -155,29 +156,30 @@ Level2SMValue Level2SM_new(dynamic this__) {
 
 bool Level2SM_step(dynamic this__) {
   final this_ = this__ as Level2SMValue;
-  _label1:
-  switch (this_.smState) {
-    case 0:
+  _L1: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pending = Level3SM_new(GC.allocateLocal(Level3SMValue())).start();
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+          this_._pending = Level3SM_new(GC.allocateLocal(Level3SMValue())).start();
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
 {
-        if (this_._pending!.isPending)         return false;
-        if (this_._pending!.isError) {
-          this_.completeWithError(this_._pending!.error!);
+          if (this_._pending!.isPending)           return false;
+          if (this_._pending!.isError) {
+            this_.completeWithError(this_._pending!.error!);
+            return true;
+          }
+          this_.completeWith(this_._pending!.result);
           return true;
         }
-        this_.completeWith(this_._pending!.result);
-        return true;
-      }
-    default:
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -221,29 +223,30 @@ Level1SMValue Level1SM_new(dynamic this__) {
 
 bool Level1SM_step(dynamic this__) {
   final this_ = this__ as Level1SMValue;
-  _label2:
-  switch (this_.smState) {
-    case 0:
+  _L2: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._pending = Level2SM_new(GC.allocateLocal(Level2SMValue())).start();
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+          this_._pending = Level2SM_new(GC.allocateLocal(Level2SMValue())).start();
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
 {
-        if (this_._pending!.isPending)         return false;
-        if (this_._pending!.isError) {
-          this_.completeWith('caught: ${this_._pending!.error}');
+          if (this_._pending!.isPending)           return false;
+          if (this_._pending!.isError) {
+            this_.completeWith('caught: ${this_._pending!.error}');
+            return true;
+          }
+          this_.completeWith('ok');
           return true;
         }
-        this_.completeWith('ok');
-        return true;
-      }
-    default:
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -289,37 +292,38 @@ ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
 
 bool ConditionalAwaitSM_step(dynamic this__) {
   final this_ = this__ as ConditionalAwaitSMValue;
-  _label3:
-  switch (this_.smState) {
-    case 0:
+  _L3: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if (this_.flag) {
-          this_._pending = Promise.delayed(2, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
-          this_.smState = 1;
-        }
+          if (this_.flag) {
+            this_._pending = Promise.delayed(2, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())));
+            this_.smState = 1;
+          }
  else {
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
-          this_.smState = 2;
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())));
+            this_.smState = 2;
+          }
+          return false;
         }
-        return false;
-      }
-    case 1:
+      case 1:
 {
-        if (this_._pending!.isPending)         return false;
-        this_.completeWith(this_._pending!.result);
-        return true;
-      }
-    case 2:
+          if (this_._pending!.isPending)           return false;
+          this_.completeWith(this_._pending!.result);
+          return true;
+        }
+      case 2:
 {
-        if (this_._pending!.isPending)         return false;
-        this_.completeWith(this_._pending!.result);
-        return true;
-      }
-    default:
+          if (this_._pending!.isPending)           return false;
+          this_.completeWith(this_._pending!.result);
+          return true;
+        }
+      default:
 {
-        return true;
-      }
-  }
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -367,35 +371,36 @@ FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
 
 bool FindFirstSM_step(dynamic this__) {
   final this_ = this__ as FindFirstSMValue;
-  _label4:
-  switch (this_.smState) {
-    case 0:
+  _L4: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if ((this_._index >= this_.items.length)) {
-          this_.completeWith((-1));
+          if ((this_._index >= this_.items.length)) {
+            this_.completeWith((-1));
+            return true;
+          }
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
+{
+          if (this_._pending!.isPending)           return false;
+          final int result = this_._pending!.result;
+          if ((result > 10)) {
+            this_.completeWith(result);
+            return true;
+          }
+          this_._index = (this_._index + 1);
+          this_.smState = 0;
+          return false;
+        }
+      default:
+{
           return true;
         }
-        this_._pending = Promise.delayed(1, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_));
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        if (this_._pending!.isPending)         return false;
-        final int result = this_._pending!.result;
-        if ((result > 10)) {
-          this_.completeWith(result);
-          return true;
-        }
-        this_._index = (this_._index + 1);
-        this_.smState = 0;
-        return false;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -440,39 +445,40 @@ TryCatchSMValue TryCatchSM_new(dynamic this__) {
 
 bool TryCatchSM_step(dynamic this__) {
   final this_ = this__ as TryCatchSMValue;
-  _label5:
-  switch (this_.smState) {
-    case 0:
+  _L5: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._log = (this_._log + 'try;');
-        this_._pending = Promise.delayed(1, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3())));
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        if (this_._pending!.isPending)         return false;
-        if (this_._pending!.isError) {
-          this_._log = (this_._log + 'catch:${this_._pending!.error};');
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4())));
-          this_.smState = 2;
+          this_._log = (this_._log + 'try;');
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3())));
+          this_.smState = 1;
           return false;
         }
-        this_.completeWith(this_._log);
-        return true;
-      }
-    case 2:
+      case 1:
 {
-        if (this_._pending!.isPending)         return false;
-        this_._log = (this_._log + (this_._pending!.result as String));
-        this_.completeWith(this_._log);
-        return true;
-      }
-    default:
+          if (this_._pending!.isPending)           return false;
+          if (this_._pending!.isError) {
+            this_._log = (this_._log + 'catch:${this_._pending!.error};');
+            this_._pending = Promise.delayed(1, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4())));
+            this_.smState = 2;
+            return false;
+          }
+          this_.completeWith(this_._log);
+          return true;
+        }
+      case 2:
 {
-        return true;
-      }
-  }
+          if (this_._pending!.isPending)           return false;
+          this_._log = (this_._log + (this_._pending!.result as String));
+          this_.completeWith(this_._log);
+          return true;
+        }
+      default:
+{
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -516,29 +522,30 @@ FutureAnySMValue FutureAnySM_new(dynamic this__) {
 
 bool FutureAnySM_step(dynamic this__) {
   final this_ = this__ as FutureAnySMValue;
-  _label6:
-  switch (this_.smState) {
-    case 0:
+  _L6: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        for (final f in this_._futures) {
-          if (f.isCompleted) {
-            this_.completeWith(f.result);
-            return true;
-          }
+          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
+          this_.smState = 1;
+          return false;
         }
-        return false;
-      }
-    default:
+      case 1:
 {
-        return true;
-      }
-  }
+          for (final f in this_._futures) {
+            if (f.isCompleted) {
+              this_.completeWith(f.result);
+              return true;
+            }
+          }
+          return false;
+        }
+      default:
+{
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -588,32 +595,33 @@ TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required i
 
 bool TimeoutSM_step(dynamic this__) {
   final this_ = this__ as TimeoutSMValue;
-  _label7:
-  switch (this_.smState) {
-    case 0:
+  _L7: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
-        this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
+          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
 {
-        if (this_._taskFuture.isCompleted) {
-          this_.completeWith(this_._taskFuture.result);
+          if (this_._taskFuture.isCompleted) {
+            this_.completeWith(this_._taskFuture.result);
+            return true;
+          }
+          if (this_._timeoutFuture.isCompleted) {
+            this_.completeWith(this_._timeoutFuture.result);
+            return true;
+          }
+          return false;
+        }
+      default:
+{
           return true;
         }
-        if (this_._timeoutFuture.isCompleted) {
-          this_.completeWith(this_._timeoutFuture.result);
-          return true;
-        }
-        return false;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -663,32 +671,33 @@ AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
 
 bool AsyncMapSM_step(dynamic this__) {
   final this_ = this__ as AsyncMapSMValue;
-  _label8:
-  switch (this_.smState) {
-    case 0:
+  _L8: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if ((this_._index >= this_.items.length)) {
-          this_.completeWith(this_._results);
+          if ((this_._index >= this_.items.length)) {
+            this_.completeWith(this_._results);
+            return true;
+          }
+          IntBox item = IntBox(this_.items[this_._index]);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
+{
+          if (this_._pending!.isPending)           return false;
+          this_._results.add(this_._pending!.result);
+          this_._index = (this_._index + 1);
+          this_.smState = 0;
+          return false;
+        }
+      default:
+{
           return true;
         }
-        IntBox item = IntBox(this_.items[this_._index]);
-        this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        if (this_._pending!.isPending)         return false;
-        this_._results.add(this_._pending!.result);
-        this_._index = (this_._index + 1);
-        this_.smState = 0;
-        return false;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -738,44 +747,45 @@ AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
 
 bool AsyncReduceSM_step(dynamic this__) {
   final this_ = this__ as AsyncReduceSMValue;
-  _label9:
-  switch (this_.smState) {
-    case 0:
+  _L9: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._mapFuture = AsyncMapSM_new(GC.allocateLocal(AsyncMapSMValue()), StaticList<int>.of([1, 2, 3, 4])).start();
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+          this_._mapFuture = AsyncMapSM_new(GC.allocateLocal(AsyncMapSMValue()), StaticList<int>.of([1, 2, 3, 4])).start();
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
 {
-        if (this_._mapFuture.isPending)         return false;
-        this_._items = this_._mapFuture.result;
-        this_.smState = 2;
-        return false;
-      }
-    case 2:
+          if (this_._mapFuture.isPending)           return false;
+          this_._items = this_._mapFuture.result;
+          this_.smState = 2;
+          return false;
+        }
+      case 2:
 {
-        if ((this_._index >= this_._items.length)) {
-          this_.completeWith(this_._acc);
+          if ((this_._index >= this_._items.length)) {
+            this_.completeWith(this_._acc);
+            return true;
+          }
+          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
+          this_.smState = 3;
+          return false;
+        }
+      case 3:
+{
+          if (this_._reducePending!.isPending)           return false;
+          this_._acc = this_._reducePending!.result;
+          this_._index = (this_._index + 1);
+          this_.smState = 2;
+          return false;
+        }
+      default:
+{
           return true;
         }
-        this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
-        this_.smState = 3;
-        return false;
-      }
-    case 3:
-{
-        if (this_._reducePending!.isPending)         return false;
-        this_._acc = this_._reducePending!.result;
-        this_._index = (this_._index + 1);
-        this_.smState = 2;
-        return false;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -853,45 +863,46 @@ ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<in
 
 bool ProcessWithClosureSM_step(dynamic this__) {
   final this_ = this__ as ProcessWithClosureSMValue;
-  _label10:
-  switch (this_.smState) {
-    case 0:
+  _L10: do {
+    switch (this_.smState) {
+      case 0:
 {
-        this_._env = ClosureEnv_process_0_new(GC.allocateLocal(ClosureEnv_process_0Value()), 3);
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        if ((this_._index >= this_.items.length)) {
-          this_.smState = 3;
+          this_._env = ClosureEnv_process_0_new(GC.allocateLocal(ClosureEnv_process_0Value()), 3);
+          this_.smState = 1;
           return false;
         }
-        IntBox item = IntBox(this_.items[this_._index]);
-        this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
-        this_.smState = 2;
-        return false;
-      }
-    case 2:
+      case 1:
 {
-        if (this_._pending!.isPending)         return false;
-        this_._results.add(this_._pending!.result);
-        this_._index = (this_._index + 1);
-        this_.smState = 1;
-        return false;
-      }
-    case 3:
+          if ((this_._index >= this_.items.length)) {
+            this_.smState = 3;
+            return false;
+          }
+          IntBox item = IntBox(this_.items[this_._index]);
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
+          this_.smState = 2;
+          return false;
+        }
+      case 2:
 {
-        this_._env.factor = 5;
-        this_._results.add((this_._env.vptr['call'] as int Function(dynamic, int))(this_._env, 100));
-        this_.completeWith(this_._results);
-        return true;
-      }
-    default:
+          if (this_._pending!.isPending)           return false;
+          this_._results.add(this_._pending!.result);
+          this_._index = (this_._index + 1);
+          this_.smState = 1;
+          return false;
+        }
+      case 3:
 {
-        return true;
-      }
-  }
+          this_._env.factor = 5;
+          this_._results.add((this_._env.vptr['call'] as int Function(dynamic, int))(this_._env, 100));
+          this_.completeWith(this_._results);
+          return true;
+        }
+      default:
+{
+          return true;
+        }
+    }
+  } while (false);
 }
 
 
@@ -940,31 +951,32 @@ AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
 
 bool AsyncGeneratorSM_step(dynamic this__) {
   final this_ = this__ as AsyncGeneratorSMValue;
-  _label11:
-  switch (this_.smState) {
-    case 0:
+  _L11: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if ((this_._i >= this_.max)) {
-          this_.completeWith(this_._yielded);
+          if ((this_._i >= this_.max)) {
+            this_.completeWith(this_._yielded);
+            return true;
+          }
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
+{
+          if (this_._pending!.isPending)           return false;
+          this_._yielded.add(this_._pending!.result);
+          this_._i = (this_._i + 1);
+          this_.smState = 0;
+          return false;
+        }
+      default:
+{
           return true;
         }
-        this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
-{
-        if (this_._pending!.isPending)         return false;
-        this_._yielded.add(this_._pending!.result);
-        this_._i = (this_._i + 1);
-        this_.smState = 0;
-        return false;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -1010,33 +1022,34 @@ ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
 
 bool ComplexBusinessSM_step(dynamic this__) {
   final this_ = this__ as ComplexBusinessSMValue;
-  _label12:
-  switch (this_.smState) {
-    case 0:
+  _L12: do {
+    switch (this_.smState) {
+      case 0:
 {
-        if ((this_.depth <= 0)) {
-          this_.completeWithError(Exception('max depth'));
+          if ((this_.depth <= 0)) {
+            this_.completeWithError(Exception('max depth'));
+            return true;
+          }
+          this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
+          this_.smState = 1;
+          return false;
+        }
+      case 1:
+{
+          if (this_._pending!.isPending)           return false;
+          if (this_._pending!.isError) {
+            this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'error': '${this_._pending!.error}'}));
+            return true;
+          }
+          this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'child': this_._pending!.result}));
           return true;
         }
-        this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
-        this_.smState = 1;
-        return false;
-      }
-    case 1:
+      default:
 {
-        if (this_._pending!.isPending)         return false;
-        if (this_._pending!.isError) {
-          this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'error': '${this_._pending!.error}'}));
           return true;
         }
-        this_.completeWith(StaticMap<String, dynamic>.of({'depth': this_.depth, 'child': this_._pending!.result}));
-        return true;
-      }
-    default:
-{
-        return true;
-      }
-  }
+    }
+  } while (false);
 }
 
 
@@ -1163,6 +1176,7 @@ void main() {
   staticPrint('\n═══════════════════════════════════════════');
   staticPrint(' ✅ 全部 11 个复杂场景测试通过！');
   staticPrint('═══════════════════════════════════════════');
+  drainScheduler();
 }
 
 class ClosureEnv_anon_0 extends TypeFunction0<String> {
@@ -1366,9 +1380,9 @@ ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, AsyncReduceSM
 String ClosureEnv_anon_11_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_11;
 
-          final String sep = (env.this_._acc.isEmpty ? '' : '+');
-          return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
-        }
+            final String sep = (env.this_._acc.isEmpty ? '' : '+');
+            return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
+          }
 
 class ClosureEnv_anon_12 extends TypeFunction0<int> {
   late ProcessWithClosureSMValue this_;

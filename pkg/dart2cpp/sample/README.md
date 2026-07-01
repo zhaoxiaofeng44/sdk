@@ -104,7 +104,7 @@ If you see `import 'package:dart2cpp/platform/dart/runtime_classes.dart'` errors
 If the conversion fails:
 - Check the Dart syntax in your source file
 - Ensure all classes and functions are properly defined
-- Look for unsupported features (see `RUNTIME_GAP_DEEP_ANALYSIS.md`)
+- Look for unsupported features (see `docs/archive/RUNTIME_GAP_DEEP_ANALYSIS.md`)
 
 ### Execution errors
 If the converted code doesn't run:
@@ -114,6 +114,5 @@ If the converted code doesn't run:
 
 ## Related Documentation
 
-- [Runtime Gap Analysis](../RUNTIME_GAP_DEEP_ANALYSIS.md) - Feature coverage
-- [Runtime Optimization Summary](../RUNTIME_OPTIMIZATION_SUMMARY.md) - Recent fixes
-- [C++ Runtime](../cpp/README.md) - C++ conversion target
+- [Runtime Gap Analysis](../docs/archive/RUNTIME_GAP_DEEP_ANALYSIS.md) - Feature coverage
+- [Runtime Optimization Summary](../docs/archive/RUNTIME_OPTIMIZATION_SUMMARY.md) - Recent fixes

@@ -20,21 +20,22 @@ enum Color {
 }
 
 String Color_get_hex(Color this_) {
-  _label0:
-  switch (this_) {
-    case Color.red:
+  _L0: do {
+    switch (this_) {
+      case Color.red:
 {
-        return '#FF0000';
-      }
-    case Color.green:
+          return '#FF0000';
+        }
+      case Color.green:
 {
-        return '#00FF00';
-      }
-    case Color.blue:
+          return '#00FF00';
+        }
+      case Color.blue:
 {
-        return '#0000FF';
-      }
-  }
+          return '#0000FF';
+        }
+    }
+  } while (false);
 }
 
 bool Color_get_isWarm(Color this_) {
@@ -1819,33 +1820,34 @@ String describeShape(ShapeValue shape) {
 String evaluateGrade(int score) {
   final String letter = ((score >= 90) ? 'A' : ((score >= 80) ? 'B' : ((score >= 70) ? 'C' : ((score >= 60) ? 'D' : 'F'))));
   late String description;
-  _label8:
-  switch (letter) {
-    case 'A':
+  _L8: do {
+    switch (letter) {
+      case 'A':
 {
-        description = 'Excellent';
-        break;
-      }
-    case 'B':
+          description = 'Excellent';
+          break _L8;
+        }
+      case 'B':
 {
-        description = 'Good';
-        break;
-      }
-    case 'C':
+          description = 'Good';
+          break _L8;
+        }
+      case 'C':
 {
-        description = 'Average';
-        break;
-      }
-    case 'D':
+          description = 'Average';
+          break _L8;
+        }
+      case 'D':
 {
-        description = 'Below Average';
-        break;
-      }
-    default:
+          description = 'Below Average';
+          break _L8;
+        }
+      default:
 {
-        description = 'Failing';
-      }
-  }
+          description = 'Failing';
+        }
+    }
+  } while (false);
   return '${score} → ${letter} (${description})';
 }
 
@@ -1985,6 +1987,7 @@ void main() {
   staticPrint(evaluateGrade(67));
   staticPrint(evaluateGrade(55));
   staticPrint('\n=== 所有压力测试通过 ✅ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_anon_0 extends TypeFunction1<String, String> {

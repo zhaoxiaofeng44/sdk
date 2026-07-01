@@ -112,6 +112,9 @@ abstract class _DartRestorerBase {
   /// 当前 switch 语句中 ContinueSwitchStatement 的目标 case 标签映射
   Map<SwitchCase, String> _currentSwitchContinueTargets = {};
 
+  /// LabeledStatement → 生成的标签名，用于 break label; 还原
+  final Map<LabeledStatement, String> _breakTargetLabels = {};
+
   String get _pad => '  ' * _indent;
 
   /// 判断是否是运算符名称

@@ -16,7 +16,6 @@ The core component is a **Dart Restorer** that reconstructs readable Dart source
 ### Prerequisites
 
 - Dart SDK ≥ 3.0.0
-- C++17 compiler (for C++ runtime tests)
 
 ### Run Tests
 
@@ -50,18 +49,16 @@ lib/                              # Core converter
 │   ├── type_utils.dart           # Type mapping utilities
 │   ├── closure_restorer.dart     # Closure environment generation
 │   └── enum_restorer.dart        # Enum lowering
-└── platform/
-    └── dart/
-        └── runtime_classes.dart  # Runtime support (VPtr, Box, TypeFunction)
+└── platform/dart/                # Dart runtime (VPtr, Box, TypeFunction, etc.)
+    ├── runtime_classes.dart      # Barrel re-export for all runtime classes
+    └── _*.dart                   # Internal implementation files
 
-src/platform/                     # Platform runtime source
-├── cpp/                          # C++ runtime headers and sources
-└── dart/                         # Dart runtime (symlinked from lib/)
+src/platform/
+└── cpp/                          # C++ runtime headers and sources
 
 test/                             # Test suite (12 cases)
 tool/                             # Development utilities
 sample/                           # Conversion pipeline examples
-cpp/                              # C++ tests and build system
 docs/archive/                     # Archived analysis documents
 ```
 
@@ -112,7 +109,6 @@ Automatically generates `ClosureEnv_*` classes for closures with captured variab
 - **[DART_TO_CPP_MAPPING.md](DART_TO_CPP_MAPPING.md)** — Comprehensive Dart-to-C++ type and feature mapping
 - **[RESTORER_ANALYSIS.md](RESTORER_ANALYSIS.md)** — Restorer architecture analysis
 - **[CLAUDE.md](CLAUDE.md)** — Development guide for AI assistants
-- **[cpp/README.md](cpp/README.md)** — C++ runtime documentation
 
 ## License
 

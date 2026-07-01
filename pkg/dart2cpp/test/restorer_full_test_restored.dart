@@ -1496,19 +1496,20 @@ Promise<StaticList<String>> countDown(int from) {
 String describeValue(Object? value) {
   return (() {   late String _v8;
   final Object? _v9 = value;
-  do {
+  const dynamic _v10 = null;
+  _L11: do {
 {
 {
         if ((_v9 == null)) {
           _v8 = 'null';
-          break;
+          break _L11;
         }
       }
 {
         late int n;
-        if ((((_v9 is int) && (() { final _let10 = n = _v9; return true; })()) && (n < 0))) {
+        if ((((_v9 is int) && (() { final _let12 = n = _v9; return true; })()) && (n < 0))) {
           _v8 = 'negative int: ${n}';
-          break;
+          break _L11;
         }
       }
 {
@@ -1516,14 +1517,14 @@ String describeValue(Object? value) {
         if ((_v9 is int)) {
           n = _v9;
           _v8 = 'positive int: ${n}';
-          break;
+          break _L11;
         }
       }
 {
         late String s;
-        if ((((_v9 is String) && (() { final _let11 = s = _v9; return true; })()) && s.isEmpty)) {
+        if ((((_v9 is String) && (() { final _let13 = s = _v9; return true; })()) && s.isEmpty)) {
           _v8 = 'empty string';
-          break;
+          break _L11;
         }
       }
 {
@@ -1531,14 +1532,14 @@ String describeValue(Object? value) {
         if ((_v9 is String)) {
           s = _v9;
           _v8 = 'string: "${s}"';
-          break;
+          break _L11;
         }
       }
 {
         late StaticList<dynamic> list;
-        if ((((_v9 is StaticList<dynamic>) && (() { final _let12 = list = _v9; return true; })()) && list.isEmpty)) {
+        if ((((_v9 is StaticList<dynamic>) && (() { final _let14 = list = _v9; return true; })()) && list.isEmpty)) {
           _v8 = 'empty list';
-          break;
+          break _L11;
         }
       }
 {
@@ -1546,13 +1547,13 @@ String describeValue(Object? value) {
         if ((_v9 is StaticList<dynamic>)) {
           list = _v9;
           _v8 = 'list of ${list.length}';
-          break;
+          break _L11;
         }
       }
 {
         if (true) {
           _v8 = 'unknown: ${value.runtimeType}';
-          break;
+          break _L11;
         }
       }
     }
@@ -1569,18 +1570,18 @@ StaticStringBuffer buildBuffer() {
 }
 
 StaticList<int> mergeAndFilter(StaticList<int> a, StaticList<int> b, bool includeNegative) {
-  return (() {   final StaticList<int> _v15 = StaticList<int>.of(a);
-  _v15.addAll(b);
-  if (includeNegative)   _v15.add((-1));
-  for (var i = 10; (i <= 12); i = (i + 1))   _v15.add(i);
- return _v15; })();
+  return (() {   final StaticList<int> _v17 = StaticList<int>.of(a);
+  _v17.addAll(b);
+  if (includeNegative)   _v17.add((-1));
+  for (var i = 10; (i <= 12); i = (i + 1))   _v17.add(i);
+ return _v17; })();
 }
 
 StaticMap<String, int> buildScoreMap(StaticList<String> names, bool addBonus) {
-  return (() {   final StaticMap<String, int> _v16 = StaticMap<String, int>.of({});
-  for (var i = 0; (i < names.length); i = (i + 1))   _v16[names[i]] = ((i + 1) * 10);
-  if (addBonus)   _v16['bonus'] = 999;
- return _v16; })();
+  return (() {   final StaticMap<String, int> _v18 = StaticMap<String, int>.of({});
+  for (var i = 0; (i < names.length); i = (i + 1))   _v18[names[i]] = ((i + 1) * 10);
+  if (addBonus)   _v18['bonus'] = 999;
+ return _v18; })();
 }
 
 int parseAndDivide(String a, String b) {
@@ -1650,19 +1651,18 @@ StaticList<int> filterWithForIn(StaticList<int> items) {
 
 int collatzSteps(int n) {
   int steps = 0;
+  _L19:
   do {
-    do {
-      if ((n == 1))       break;
-      if (((n % 2) == 0)) {
-        n = (n ~/ 2);
-      }
- else {
-        n = ((3 * n) + 1);
-      }
-      steps = (steps + 1);
+    if ((n == 1))     break _L19;
+    if (((n % 2) == 0)) {
+      n = (n ~/ 2);
     }
+ else {
+      n = ((3 * n) + 1);
+    }
+    steps = (steps + 1);
+  }
  while (!((n == 1)));
-  } while (false);
   return steps;
 }
 
@@ -1715,26 +1715,27 @@ String tryCatchFinally(int code) {
 }
 
 String dayType(int day) {
-  _label17:
-  switch (day) {
-    case 1:
-    case 7:
+  _L20: do {
+    switch (day) {
+      case 1:
+      case 7:
 {
-        return 'weekend';
-      }
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
+          return 'weekend';
+        }
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
 {
-        return 'weekday';
-      }
-    default:
+          return 'weekday';
+        }
+      default:
 {
-        return 'invalid';
-      }
-  }
+          return 'invalid';
+        }
+    }
+  } while (false);
 }
 
 void main() {
@@ -1752,13 +1753,15 @@ void main() {
   (cat.vptr['set_mood'] as void Function(dynamic, String))(cat, 'sleepy');
   staticPrint('mood after set: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
   staticPrint('\n--- 2. operator 重载 ---');
-  final Vector2DValue sum = (() { final _r18 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r18.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r18, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue diff = (() { final _r19 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r19.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r19, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue scaled = (() { final _r20 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r20.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r20, 2.0); })();
+  final Vector2DValue v1 = Vector2D_new(Vector2DValue(), 3.0, 4.0);
+  final Vector2DValue v2 = Vector2D_new(Vector2DValue(), 1.0, 2.0);
+  final Vector2DValue sum = (() { final _r21 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r21.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r21, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue diff = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue scaled = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r23, 2.0); })();
   staticPrint('v1 + v2 = ${sum}');
   staticPrint('v1 - v2 = ${diff}');
   staticPrint('v1 * 2 = ${scaled}');
-  staticPrint('v1.length = ${(() { final _r21 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r21.vptr['get_length'] as double Function(dynamic))(_r21); })().toStringAsFixed(2)}');
+  staticPrint('v1.length = ${(() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.vptr['get_length'] as double Function(dynamic))(_r24); })().toStringAsFixed(2)}');
   staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
   staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
@@ -1771,10 +1774,12 @@ void main() {
   staticPrint('instances: ${Counter_instanceCount()}');
   staticPrint('maxValue: 100');
   staticPrint('\n--- 4. Result<T> + named params ---');
+  final ResultValue<int> ok = Result_new_success<int>(ResultValue<int>(), 42);
+  final ResultValue<int> err = Result_new_failure<int>(ResultValue<int>(), 'not found');
   staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
   staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (() { final _r22 = Result_new_success<int>(ResultValue<int>(), 42); return (_r22.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r22, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
-  final String errMsg = (() { final _r23 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r23.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r23, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
+  final String okMsg = (() { final _r25 = Result_new_success<int>(ResultValue<int>(), 42); return (_r25.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r25, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
+  final String errMsg = (() { final _r26 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r26.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r26, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
   staticPrint('okMsg: ${okMsg}');
   staticPrint('errMsg: ${errMsg}');
   staticPrint('\n--- 5. 可选参数 ---');
@@ -1948,7 +1953,7 @@ void main() {
   staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(dynamic))(renderer)}');
   (renderer.vptr['render'] as void Function(dynamic, String))(renderer, 'circle');
   staticPrint('\n--- 30. Pipeline 泛型链 ---');
-  final PipelineValue<int, String> pipeline = (() { final _r25 = (() { final _r24 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r24.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r24, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r25.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r25, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
+  final PipelineValue<int, String> pipeline = (() { final _r28 = (() { final _r27 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r27.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r27, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r28.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r28, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
   staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 42)}');
   staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 12345)}');
   staticPrint('\n--- 31. switch-case ---');
@@ -1977,6 +1982,7 @@ void main() {
   (impEvent.vptr['log'] as void Function(dynamic, String))(impEvent, 'created');
   staticPrint(impEvent);
   staticPrint('\n=== 所有测试通过 ✅ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_anon_0<TNewOutput, TOutput, TInput> extends TypeFunction1<TNewOutput, TInput> {

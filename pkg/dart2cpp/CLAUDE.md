@@ -16,18 +16,16 @@ lib/
 │   ├── type_utils.dart            # Type mapping and utilities
 │   ├── closure_restorer.dart      # Closure environment generation
 │   └── enum_restorer.dart         # Enum lowering
-└── platform/
-    └── dart/
-        └── runtime_classes.dart   # Runtime support (VPtr, Box, TypeFunction)
+└── platform/dart/                 # Dart runtime (VPtr, Box, TypeFunction, etc.)
+    ├── runtime_classes.dart       # Barrel re-export for all runtime classes
+    └── _*.dart                    # Internal implementation files
 
-src/platform/                      # Platform runtime source code
-├── cpp/                           # C++ runtime headers and sources
-└── dart/                          # Dart runtime (symlinked from lib/)
+src/platform/
+└── cpp/                           # C++ runtime headers and sources
 
 test/                              # Test suite (12 test cases)
 tool/                              # Development utilities
 sample/                            # Conversion pipeline examples
-cpp/                               # C++ tests and build system
 docs/archive/                      # Archived analysis documents
 ```
 

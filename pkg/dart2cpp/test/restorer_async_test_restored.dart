@@ -59,6 +59,7 @@ void main() {
   staticPrint('  ✓ conditionalAsync(true) = "${v5a}"');
   staticPrint('  ✓ conditionalAsync(false) = "${v5b}"');
   staticPrint('\n=== ✅ 全部 5 个 async/await 测试通过！ ===');
+  drainScheduler();
 }
 
 class ClosureEnv_greetAsync_0 {
