@@ -6,8 +6,6 @@
 
 import 'dart:io';
 import 'package:kernel/kernel.dart';
-import 'package:front_end/src/api_unstable/vm.dart';
-import 'package:vm/kernel_front_end.dart';
 
 import '../lib/dart_to_dart_restorer.dart';
 
@@ -114,42 +112,25 @@ Future<void> main(List<String> args) async {
 // 编译 Dart → Kernel
 // ============================================================================
 
-/// SDK platform dill 路径（vm_platform_strong.dill）
-String get _sdkPlatformDill {
-  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
-      File(Platform.resolvedExecutable).parent.parent.path;
-  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
-}
-
 Future<Component?> _compileToDill(String sourcePath, String dillPath) async {
-  // 使用 front_end API 编译 Dart → Kernel
+  // 使用 dart compile kernel CLI 编译
   try {
-    final compilerOptions = CompilerOptions()
-      ..sdkSummary = Uri.file(_sdkPlatformDill)
-      ..fileSystem = createFrontEndFileSystem(null, null)
-      ..embedSourceText = false
-      ..target = createFrontEndTarget('vm',
-          trackWidgetCreation: false, supportMirrors: false);
+    final result = await Process.run(
+      Platform.resolvedExecutable,
+      ['compile', 'kernel', sourcePath, '-o', dillPath],
+    );
 
-    final results = await compileToKernel(KernelCompilationArguments(
-      source: Uri.file(sourcePath),
-      options: compilerOptions,
-      requireMain: false,
-      includePlatform: false,
-      environmentDefines: {},
-      enableAsserts: false,
-    ));
-
-    if (results.component == null) {
-      printRed('  ❌ front_end 编译失败：component 为 null');
+    if (result.exitCode != 0) {
+      printRed('  ❌ dart compile kernel 编译失败');
+      printRed('  stderr:\n${result.stderr}');
       return null;
     }
 
-    // 写入 .dill 文件（供调试用）
-    await writeComponentToBinary(results.component!, dillPath);
-    return results.component;
+    // 加载编译后的 component
+    final component = loadComponentFromBinary(dillPath);
+    return component;
   } catch (e, stack) {
-    printRed('  ❌ front_end 编译异常: $e');
+    printRed('  ❌ 编译异常: $e');
     print(stack);
     return null;
   }

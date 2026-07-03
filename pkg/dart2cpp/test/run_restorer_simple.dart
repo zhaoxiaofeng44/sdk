@@ -1,18 +1,10 @@
 #!/usr/bin/env dart
 /// 简化版还原器测试脚本
-/// 使用 front_end kernelForProgram API 编译
+/// 使用 dart compile kernel CLI 编译
 import 'dart:io';
 import 'package:kernel/kernel.dart';
-import 'package:front_end/src/api_unstable/vm.dart' show CompilerOptions, StandardFileSystem;
-import 'package:front_end/src/api_prototype/kernel_generator.dart' show kernelForProgram, CompilerResult;
 
 import '../lib/dart_to_dart_restorer.dart';
-
-String get _sdkPlatformDill {
-  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
-      File(Platform.resolvedExecutable).parent.parent.path;
-  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
-}
 
 Future<void> main(List<String> args) async {
   final scriptDir = File(Platform.script.toFilePath()).parent.path;
@@ -22,35 +14,40 @@ Future<void> main(List<String> args) async {
       : testFileName;
   final testSourcePath = '$scriptDir/$baseName.dart';
   final restoredOutputPath = '$scriptDir/${baseName}_restored.dart';
+  final dillPath = '/tmp/${baseName}_simple.dill';
 
   if (!File(testSourcePath).existsSync()) {
     print('❌ 测试源文件不存在: $testSourcePath');
     exit(1);
   }
 
-  // 步骤 1: 编译为 Kernel AST
+  // 步骤 1: 使用 dart compile kernel CLI 编译
   print('🔨 步骤 1: 编译 Dart 源码 → Kernel AST');
-  final compilerOptions = CompilerOptions()
-    ..sdkSummary = Uri.file(_sdkPlatformDill)
-    ..fileSystem = StandardFileSystem.instance
-    ..embedSourceText = false;
-
-  final CompilerResult? result = await kernelForProgram(
-    Uri.file(testSourcePath),
-    compilerOptions,
+  final compileResult = await Process.run(
+    Platform.resolvedExecutable,
+    ['compile', 'kernel', testSourcePath, '-o', dillPath],
   );
 
-  if (result == null || result.component == null) {
+  if (compileResult.exitCode != 0) {
     print('❌ Kernel 编译失败');
+    print('stderr:\n${compileResult.stderr}');
     exit(1);
   }
   print('✅ Kernel 编译成功');
 
-  // 步骤 2: 用 DartRestorer 还原
+  // 步骤 2: 加载 Kernel 并用 DartRestorer 还原
   print('🔄 步骤 2: DartRestorer 还原');
+  Component component;
+  try {
+    component = loadComponentFromBinary(dillPath);
+  } catch (e) {
+    print('❌ Kernel 加载失败: $e');
+    exit(1);
+  }
+
   String restoredSource;
   try {
-    restoredSource = restoreDartFromComponent(result.component!);
+    restoredSource = restoreDartFromComponent(component);
     print('✅ 还原成功 (${restoredSource.length} 字符, ${restoredSource.split('\n').length} 行)');
   } catch (e, stack) {
     print('❌ 还原失败: $e');

@@ -56,7 +56,7 @@ StaticList<T> TreeNode_preorder<T>(dynamic this__) {
 
 StaticList<T> TreeNode_inorder<T>(dynamic this__) {
   final this_ = this__ as TreeNodeValue<T>;
-  final StaticList<T> result = StaticList<T>.of([]);
+  final StaticList<T> result = StaticList<T>();
   if (!((this_.left == null)))   result.addAll((() { final _r2 = this_.left!; return (_r2.vptr['inorder'] as StaticList<T> Function(dynamic))(_r2); })());
   result.add(this_.value);
   if (!((this_.right == null)))   result.addAll((() { final _r3 = this_.right!; return (_r3.vptr['inorder'] as StaticList<T> Function(dynamic))(_r3); })());
@@ -328,7 +328,7 @@ StaticMap<String, dynamic> UserProfile_toMap(dynamic this__) {
 
 StaticList<String> UserProfile_validate(dynamic this__) {
   final this_ = this__ as UserProfileValue;
-  final StaticList<String> errors = StaticList<String>.of([]);
+  final StaticList<String> errors = StaticList<String>();
   if (this_.name.isEmpty)   errors.add('name is empty');
   if (!(this_.email.contains('@')))   errors.add('invalid email');
   if (((this_.age < 0) || (this_.age > 150)))   errors.add('invalid age');
@@ -681,10 +681,16 @@ String DataProcessor__scoreToGrade(int score) {
 
 StaticMap<String, StaticList<StaticMap<String, dynamic>>> DataProcessor_groupByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of({});
-  for (final record in records) {
-    final String grade = (record['grade'] as String);
-    groups.putIfAbsent(grade, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5())));
-    groups[grade]!.add(record);
+{
+    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(records.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final StaticMap<String, dynamic> record = StaticMap<String, dynamic>.of(sync_for_iterator.current);
+{
+        final String grade = (record['grade'] as String);
+        groups.putIfAbsent(grade, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5())));
+        groups[grade]!.add(record);
+      }
+    }
   }
   return groups;
 }
@@ -769,7 +775,7 @@ int MathUtils_fibonacci(int n) {
 }
 
 StaticList<int> MathUtils_primeFactors(int n) {
-  final StaticList<int> factors = StaticList<int>.of([]);
+  final StaticList<int> factors = StaticList<int>();
   void extractFactor(int factor) {
     while (((n % factor) == 0)) {
       factors.add(factor);
@@ -979,8 +985,14 @@ String TextProcessor_snakeToCamel(String input) {
 StaticMap<String, int> TextProcessor_wordFrequency(String text) {
   final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+')).where(ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))).toList());
   final StaticMap<String, int> freq = StaticMap<String, int>.of({});
-  for (final word in words) {
-    freq[word] = ((freq[word] ?? 0) + 1);
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(words.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String word = sync_for_iterator.current;
+{
+        freq[word] = ((freq[word] ?? 0) + 1);
+      }
+    }
   }
   return freq;
 }
@@ -999,7 +1011,7 @@ enum Season {
 }
 
 String Season_get_displayName(Season this_) {
-  _L14: do {
+  _L22: do {
     switch (this_) {
       case Season.spring:
 {
@@ -1022,7 +1034,7 @@ String Season_get_displayName(Season this_) {
 }
 
 Season Season_get_next(Season this_) {
-  _L15: do {
+  _L23: do {
     switch (this_) {
       case Season.spring:
 {
@@ -1067,26 +1079,38 @@ JsonLikeProcessorValue JsonLikeProcessor_new(dynamic this__) {
 
 dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<String, dynamic> overlay) {
   final StaticMap<String, dynamic> result = StaticMap<String, dynamic>.from(base);
-  for (final key in overlay.keys) {
-    if (((result.containsKey(key) && (result[key] is StaticMap<String, dynamic>)) && (overlay[key] is StaticMap<String, dynamic>))) {
-      result[key] = JsonLikeProcessor_deepMerge((result[key] as StaticMap<String, dynamic>), (overlay[key] as StaticMap<String, dynamic>));
-    }
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(overlay.keys.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String key = sync_for_iterator.current;
+{
+        if (((result.containsKey(key) && (result[key] is StaticMap<String, dynamic>)) && (overlay[key] is StaticMap<String, dynamic>))) {
+          result[key] = JsonLikeProcessor_deepMerge((result[key] as StaticMap<String, dynamic>), (overlay[key] as StaticMap<String, dynamic>));
+        }
  else {
-      result[key] = overlay[key];
+          result[key] = overlay[key];
+        }
+      }
     }
   }
   return result;
 }
 
 StaticList<String> JsonLikeProcessor_flattenKeys(StaticMap<String, dynamic> map, {String prefix = ''}) {
-  final StaticList<String> keys = StaticList<String>.of([]);
-  for (final entry in map.entries) {
-    final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
-    if ((entry.value is StaticMap<String, dynamic>)) {
-      keys.addAll(JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
-    }
+  final StaticList<String> keys = StaticList<String>();
+{
+    StaticIterator<StaticMapEntry<String, dynamic>> sync_for_iterator = StaticIterator(map.entries.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final StaticMapEntry<String, dynamic> entry = sync_for_iterator.current;
+{
+        final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
+        if ((entry.value is StaticMap<String, dynamic>)) {
+          keys.addAll(JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
+        }
  else {
-      keys.add(fullKey);
+          keys.add(fullKey);
+        }
+      }
     }
   }
   return (keys..sort());
@@ -1334,7 +1358,6 @@ class UserProfile_Object_SerializableValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['serialize'] = Serializable_serialize;
     }
     return vptrMap!;
   }
@@ -1348,8 +1371,6 @@ class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Objec
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(UserProfile_Object_SerializableValue.getVptrMap());
-      vptrMap!['get_isValid'] = Validatable_get_isValid;
-      vptrMap!['get_validationSummary'] = Validatable_get_validationSummary;
     }
     return vptrMap!;
   }
@@ -1362,15 +1383,13 @@ class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Objec
 
 
 class Product_Entity_AuditableValue extends EntityValue {
-  late StaticList<String> _auditLog = StaticList<String>.of([]);
+  late StaticList<String> _auditLog = StaticList<String>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(EntityValue.getVptrMap());
-      vptrMap!['audit'] = Auditable_audit;
-      vptrMap!['get_auditLog'] = Auditable_get_auditLog;
     }
     return vptrMap!;
   }
@@ -1392,10 +1411,6 @@ class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableVa
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Product_Entity_AuditableValue.getVptrMap());
-      vptrMap!['markDirty'] = Cacheable_markDirty;
-      vptrMap!['markCached'] = Cacheable_markCached;
-      vptrMap!['get_isDirty'] = Cacheable_get_isDirty;
-      vptrMap!['get_cacheStatus'] = Cacheable_get_cacheStatus;
     }
     return vptrMap!;
   }
@@ -1419,7 +1434,7 @@ dynamic makeAccumulator(int initial) {
 }
 
 StaticList<dynamic> makeClosureList(int count) {
-  final StaticList<dynamic> closures = StaticList.of([]);
+  final StaticList<dynamic> closures = StaticList<dynamic>();
   for (var i = 0; (i < count); i = (i + 1)) {
     closures.add(ClosureEnv_makeClosureList_19_new(GC.allocateLocal(ClosureEnv_makeClosureList_19()), i));
   }
@@ -1436,8 +1451,14 @@ TypeFunction1<TypeFunction1<C, B>, A> curry<A, B, C>(TypeFunction2<C, A, B> biFu
 
 T pipe<T>(T value, StaticList<TypeFunction1<T, T>> transforms) {
   T result = value;
-  for (final transform in transforms) {
-    result = transform.closureCall(transform, result);
+{
+    StaticIterator<TypeFunction1<T, T>> sync_for_iterator = StaticIterator(transforms.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final TypeFunction1<T, T> transform = sync_for_iterator.current;
+{
+        result = transform.closureCall(transform, result);
+      }
+    }
   }
   return result;
 }
@@ -1473,22 +1494,22 @@ String classifyNumber(int number) {
  else {
     result = 'positive';
     bool isPrime = (number > 1);
-    _L17:
+    _L26:
     for (var i = 2; ((i * i) <= number); i = (i + 1)) {
       if (((number % i) == 0)) {
         isPrime = false;
-        break _L17;
+        break _L26;
       }
     }
     if ((isPrime && (number > 1))) {
       result = (result + '_prime');
     }
  else     if ((number > 1)) {
-      _L18:
+      _L27:
       for (var i = 2; (i <= number); i = (i + 1)) {
         if (((number % i) == 0)) {
           result = (result + '_composite(smallest_factor=${i})');
-          break _L18;
+          break _L27;
         }
       }
     }
@@ -1497,12 +1518,12 @@ String classifyNumber(int number) {
 }
 
 StaticList<int> parseNumbers(StaticList<String> inputs) {
-  final StaticList<int> results = StaticList<int>.of([]);
-  for (var i = 0; (i < inputs.length); i = (i + 1))   _L19: do {
+  final StaticList<int> results = StaticList<int>();
+  for (var i = 0; (i < inputs.length); i = (i + 1))   _L28: do {
 {
       try {
         final String trimmed = inputs[i].trim();
-        if (trimmed.isEmpty)         break _L19;
+        if (trimmed.isEmpty)         break _L28;
         final int value = int.parse(trimmed);
         if ((value < 0)) {
           throw DartArgumentError('Negative value at index ${i}: ${value}');
@@ -1560,7 +1581,7 @@ int IntMathExtension_get_factorial(final int this_) {
 
 StaticList<int> IntMathExtension_get_digits(final int this_) {
   if ((this_ == 0))   return StaticList<int>.of([0]);
-  final StaticList<int> result = StaticList<int>.of([]);
+  final StaticList<int> result = StaticList<int>();
   int n = this_.abs();
   while ((n > 0)) {
     result.insert(0, (n % 10));
@@ -1596,8 +1617,14 @@ void main() {
   staticPrint('snap1: ${snap1.call()}');
   staticPrint('snap2: ${snap2.call()}');
   final StaticList<dynamic> closures = StaticList<dynamic>.of(makeClosureList(4));
-  for (final cl in closures) {
-    staticPrint('  ${cl.closureCall(cl)}');
+{
+    StaticIterator<dynamic> sync_for_iterator = StaticIterator(closures.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final dynamic cl = sync_for_iterator.current;
+{
+        staticPrint('  ${cl.closureCall(cl)}');
+      }
+    }
   }
   staticPrint('\n--- 2. 二叉树 ---');
   final TreeNodeValue<int> tree = TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 1, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 2, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 4), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 5)), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 3, null, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 6)));
@@ -1631,15 +1658,21 @@ void main() {
   final TypeFunction1<TypeFunction1<int, int>, int> curriedAdd = curry<int, int, int>(ClosureEnv_main_39_new(GC.allocateLocal(ClosureEnv_main_39())));
   final TypeFunction1<int, int> add10 = curriedAdd.closureCall(curriedAdd, 10);
   staticPrint('curriedAdd(10)(5): ${add10.closureCall(add10, 5)}');
-  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_40_new(GC.allocateLocal(ClosureEnv_main_40())), ClosureEnv_main_41_new(GC.allocateLocal(ClosureEnv_main_41())), ClosureEnv_main_42_new(GC.allocateLocal(ClosureEnv_main_42()))]));
+  final int piped = pipe<int>(3, StaticList<TypeFunction1<int, int>>.of([ClosureEnv_main_43_new(GC.allocateLocal(ClosureEnv_main_43())), ClosureEnv_main_44_new(GC.allocateLocal(ClosureEnv_main_44())), ClosureEnv_main_45_new(GC.allocateLocal(ClosureEnv_main_45()))]));
   staticPrint('pipe(3, [*2, +10, ^2]): ${piped}');
-  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_43_new(GC.allocateLocal(ClosureEnv_main_43())));
+  final TypeFunction1<int, int> memoFib = memoize<int, int>(ClosureEnv_main_46_new(GC.allocateLocal(ClosureEnv_main_46())));
   staticPrint('memoized(10): ${memoFib.closureCall(memoFib, 10)}');
   staticPrint('memoized(10) again: ${memoFib.closureCall(memoFib, 10)}');
   staticPrint('\n--- 6. 多重嵌套控制流 ---');
   final StaticList<int> testNumbers = StaticList<int>.of([(-150), (-42), (-3), 0, 1, 7, 12, 97]);
-  for (final n in testNumbers) {
-    staticPrint('  ${n} → ${classifyNumber(n)}');
+{
+    StaticIterator<int> sync_for_iterator = StaticIterator(testNumbers.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final int n = sync_for_iterator.current;
+{
+        staticPrint('  ${n} → ${classifyNumber(n)}');
+      }
+    }
   }
   staticPrint('parseNumbers: ${parseNumbers(StaticList<String>.of(['10', 'abc', ' 42 ', '-5', '', '7']))}');
   staticPrint('\n--- 7. mixin 组合 ---');
@@ -1669,8 +1702,14 @@ void main() {
   staticPrint('\n--- 10. 集合操作链 ---');
   final StaticList<StaticMap<String, Object>> records = StaticList<StaticMap<String, Object>>.of([StaticMap<String, Object>.of({'name': 'Alice', 'score': 95}), StaticMap<String, Object>.of({'name': 'Bob', 'score': 72}), StaticMap<String, Object>.of({'name': 'Carol', 'score': 88}), StaticMap<String, Object>.of({'name': 'Dave', 'score': 45}), StaticMap<String, Object>.of({'name': 'Eve', 'score': 91}), StaticMap<String, Object>.of({'name': 'Frank', 'score': 63})]);
   final StaticList<StaticMap<String, dynamic>> processed = StaticList<StaticMap<String, dynamic>>.of(DataProcessor_processRecords(records));
-  for (final r in processed) {
-    staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
+{
+    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(processed.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final StaticMap<String, dynamic> r = StaticMap<String, dynamic>.of(sync_for_iterator.current);
+{
+        staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
+      }
+    }
   }
   final StaticMap<String, double> averages = StaticMap<String, double>.of(DataProcessor_averageByGrade(processed));
   staticPrint('averages: ${averages}');
@@ -1688,8 +1727,14 @@ void main() {
   staticPrint('lcm(12, 18): ${MathUtils_lcm(12, 18)}');
   staticPrint('\n--- 13. 多重 implements ---');
   final StaticList<ScoreValue> scores = StaticList<ScoreValue>.of([Score_new(GC.allocateLocal(ScoreValue()), 'Math', 90), Score_new(GC.allocateLocal(ScoreValue()), 'English', 75), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Physics', 85, 1.5), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Art', 95, 0.5)]);
-  for (final s in scores) {
-    staticPrint('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
+{
+    StaticIterator<ScoreValue> sync_for_iterator = StaticIterator(scores.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final ScoreValue s = sync_for_iterator.current;
+{
+        staticPrint('  ${(s.vptr['prettyPrint'] as String Function(dynamic))(s)}');
+      }
+    }
   }
   final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
   final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
@@ -1706,8 +1751,14 @@ void main() {
   final StaticList<int> asyncSeq = StaticList<int>.of(smAwait(asyncSequence(5)));
   staticPrint('asyncSequence(5): ${asyncSeq}');
   staticPrint('\n--- 16. 增强枚举 ---');
-  for (final s in const [Season.spring, Season.summer, Season.autumn, Season.winter]) {
-    staticPrint('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
+{
+    StaticIterator<Season> sync_for_iterator = StaticIterator(const [Season.spring, Season.summer, Season.autumn, Season.winter].iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final Season s = sync_for_iterator.current;
+{
+        staticPrint('  ${s} → ${Season_get_displayName(s)}, next=${Season_get_displayName(Season_get_next(s))}, warm=${Season_get_isWarm(s)}');
+      }
+    }
   }
   staticPrint('\n--- 17. 嵌套 Map 操作 ---');
   final StaticMap<String, Object> base = StaticMap<String, Object>.of({'a': 1, 'b': StaticMap<String, int>.of({'x': 10, 'y': 20}), 'c': 3});
@@ -1833,7 +1884,7 @@ ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_) {
 StaticList<StaticMap<String, dynamic>> ClosureEnv_anon_5_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_5;
 
-  return StaticList<StaticMap<String, dynamic>>.of([]);
+  return StaticList<StaticMap<String, dynamic>>();
 }
 
 class ClosureEnv_ClosureEnv_anon_6_7 extends TypeFunction2<int, int, StaticMap<String, dynamic>> {
@@ -2257,7 +2308,7 @@ class ClosureEnv_asyncSequence_26 {
   void call() => ClosureEnv_asyncSequence_26_call(this);
 }
 void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
-  final StaticList<int> results = StaticList<int>.of([]);
+  final StaticList<int> results = StaticList<int>();
   for (var i = 0; (i < env.count.value); i = (i + 1)) {
     final int value = smAwait(asyncAdd(i, (i * i)));
     results.add(value);
@@ -2512,14 +2563,59 @@ int ClosureEnv_main_42_call(dynamic env__, int x) {
 class ClosureEnv_main_43 extends TypeFunction1<int, int> {
   ClosureEnv_main_43();
   @override
-  int call(int n) => closureCall(this, n);
+  int call(int x) => closureCall(this, x);
 }
 ClosureEnv_main_43 ClosureEnv_main_43_new(ClosureEnv_main_43 env_) {
   env_.closureCall = ClosureEnv_main_43_call;
   return env_;
 }
-int ClosureEnv_main_43_call(dynamic env__, int n) {
+int ClosureEnv_main_43_call(dynamic env__, int x) {
   final env = env__ as ClosureEnv_main_43;
+
+  return (x * 2);
+}
+
+class ClosureEnv_main_44 extends TypeFunction1<int, int> {
+  ClosureEnv_main_44();
+  @override
+  int call(int x) => closureCall(this, x);
+}
+ClosureEnv_main_44 ClosureEnv_main_44_new(ClosureEnv_main_44 env_) {
+  env_.closureCall = ClosureEnv_main_44_call;
+  return env_;
+}
+int ClosureEnv_main_44_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_44;
+
+  return (x + 10);
+}
+
+class ClosureEnv_main_45 extends TypeFunction1<int, int> {
+  ClosureEnv_main_45();
+  @override
+  int call(int x) => closureCall(this, x);
+}
+ClosureEnv_main_45 ClosureEnv_main_45_new(ClosureEnv_main_45 env_) {
+  env_.closureCall = ClosureEnv_main_45_call;
+  return env_;
+}
+int ClosureEnv_main_45_call(dynamic env__, int x) {
+  final env = env__ as ClosureEnv_main_45;
+
+  return (x * x);
+}
+
+class ClosureEnv_main_46 extends TypeFunction1<int, int> {
+  ClosureEnv_main_46();
+  @override
+  int call(int n) => closureCall(this, n);
+}
+ClosureEnv_main_46 ClosureEnv_main_46_new(ClosureEnv_main_46 env_) {
+  env_.closureCall = ClosureEnv_main_46_call;
+  return env_;
+}
+int ClosureEnv_main_46_call(dynamic env__, int n) {
+  final env = env__ as ClosureEnv_main_46;
 
     if ((n <= 1))     return n;
     return n;

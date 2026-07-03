@@ -103,10 +103,10 @@ class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(StatefulWidget_Object_StatefulMixinValue.getVptrMap());
       vptrMap!['get_counter'] = StatefulWidget_get_counter;
-      vptrMap!['set_counter'] = StatefulWidget_set_counter;
       vptrMap!['increment'] = StatefulWidget_increment;
       vptrMap!['decrement'] = StatefulWidget_decrement;
       vptrMap!['get_counterStatus'] = StatefulWidget_get_counterStatus;
+      vptrMap!['set_counter'] = StatefulWidget_set_counter;
       vptrMap!['toString'] = StatefulWidget_toString;
     }
     return vptrMap!;
@@ -134,11 +134,6 @@ int StatefulWidget_get_counter(dynamic this__) {
   return StatefulMixin_get_counter(this_);
 }
 
-void StatefulWidget_set_counter(dynamic this__, int value) {
-  final this_ = this__ as StatefulWidgetValue;
-  StatefulMixin_set_counter(this_, value);
-}
-
 void StatefulWidget_increment(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   StatefulMixin_increment(this_);
@@ -152,6 +147,11 @@ void StatefulWidget_decrement(dynamic this__) {
 String StatefulWidget_get_counterStatus(dynamic this__) {
   final this_ = this__ as StatefulWidgetValue;
   return StatefulMixin_get_counterStatus(this_);
+}
+
+void StatefulWidget_set_counter(dynamic this__, int value) {
+  final this_ = this__ as StatefulWidgetValue;
+  StatefulMixin_set_counter(this_, value);
 }
 
 
@@ -1793,8 +1793,6 @@ class DiamondClass_Object_LoggerValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_prefix'] = Logger_get_prefix;
-      vptrMap!['format'] = Logger_format;
     }
     return vptrMap!;
   }
@@ -1808,8 +1806,6 @@ class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_Logg
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(DiamondClass_Object_LoggerValue.getVptrMap());
-      vptrMap!['get_prefix'] = Formatter_get_prefix;
-      vptrMap!['format'] = Formatter_format;
     }
     return vptrMap!;
   }
@@ -1829,11 +1825,6 @@ class StatefulWidget_Object_StatefulMixinValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_counter'] = StatefulMixin_get_counter;
-      vptrMap!['set_counter'] = StatefulMixin_set_counter;
-      vptrMap!['increment'] = StatefulMixin_increment;
-      vptrMap!['decrement'] = StatefulMixin_decrement;
-      vptrMap!['get_counterStatus'] = StatefulMixin_get_counterStatus;
     }
     return vptrMap!;
   }
@@ -1847,8 +1838,6 @@ class DeepMixinClass_Object_LayerAValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['layer'] = LayerA_layer;
-      vptrMap!['onlyA'] = LayerA_onlyA;
     }
     return vptrMap!;
   }
@@ -1862,8 +1851,6 @@ class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_Lay
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(DeepMixinClass_Object_LayerAValue.getVptrMap());
-      vptrMap!['layer'] = LayerB_layer;
-      vptrMap!['onlyB'] = LayerB_onlyB;
     }
     return vptrMap!;
   }
@@ -1882,8 +1869,6 @@ class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Obj
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(DeepMixinClass_Object_LayerA_LayerBValue.getVptrMap());
-      vptrMap!['layer'] = LayerC_layer;
-      vptrMap!['onlyC'] = LayerC_onlyC;
     }
     return vptrMap!;
   }
@@ -1912,8 +1897,6 @@ class Box_Object_MappableValue<T> extends VPtr {
     return instanceVptr!;
   }
   void initVptr(Map<String, dynamic> target) {
-    target['mapValue'] = Mappable_mapValue<T, dynamic>;
-    target['describe'] = Mappable_describe<T>;
   }
 }
 
@@ -1936,7 +1919,6 @@ class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T>
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['test'] = Filterable_test<T>;
   }
   @override
   void gcMark(int flag) {
@@ -1947,16 +1929,13 @@ class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T>
 
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
-  late StaticList<String> _tags = StaticList<String>.of([]);
+  late StaticList<String> _tags = StaticList<String>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(ResourceValue.getVptrMap());
-      vptrMap!['tag'] = Taggable_tag;
-      vptrMap!['get_allTags'] = Taggable_get_allTags;
-      vptrMap!['hasTag'] = Taggable_hasTag;
     }
     return vptrMap!;
   }
@@ -1976,8 +1955,6 @@ class Amount_Object_AddableValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['addValues'] = Addable_addValues;
-      vptrMap!['doubleValue'] = Addable_doubleValue;
     }
     return vptrMap!;
   }
@@ -1991,7 +1968,6 @@ class Car_Vehicle_Printable2Value extends VehicleValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(VehicleValue.getVptrMap());
-      vptrMap!['prettyPrint'] = Printable2_prettyPrint;
     }
     return vptrMap!;
   }
@@ -2010,8 +1986,6 @@ class Segment_Measurable_ScalableValue extends MeasurableValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(MeasurableValue.getVptrMap());
-      vptrMap!['scale'] = Scalable_scale;
-      vptrMap!['measureInfo'] = Scalable_measureInfo;
     }
     return vptrMap!;
   }
@@ -2030,8 +2004,6 @@ class MultiMixinEntity_Object_NamedMixinValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_label'] = NamedMixin_get_label;
-      vptrMap!['greet'] = NamedMixin_greet;
     }
     return vptrMap!;
   }
@@ -2045,8 +2017,6 @@ class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinE
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(MultiMixinEntity_Object_NamedMixinValue.getVptrMap());
-      vptrMap!['get_label'] = DescribedMixin_get_label;
-      vptrMap!['info'] = DescribedMixin_info;
     }
     return vptrMap!;
   }
@@ -2065,7 +2035,6 @@ class MultiEncoder_Object_Base64MixinValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['encode'] = Base64Mixin_encode;
     }
     return vptrMap!;
   }
@@ -2079,7 +2048,6 @@ class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(MultiEncoder_Object_Base64MixinValue.getVptrMap());
-      vptrMap!['encode'] = HexMixin_encode;
     }
     return vptrMap!;
   }
@@ -2098,10 +2066,6 @@ class ChainClass_Object_ChainMixinValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['step1'] = ChainMixin_step1;
-      vptrMap!['step2'] = ChainMixin_step2;
-      vptrMap!['step3'] = ChainMixin_step3;
-      vptrMap!['fullChain'] = ChainMixin_fullChain;
     }
     return vptrMap!;
   }
@@ -2115,9 +2079,6 @@ class GameCharacter_Object_HealthMixinValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_maxHealth'] = HealthMixin_get_maxHealth;
-      vptrMap!['get_health'] = HealthMixin_get_health;
-      vptrMap!['healthBar'] = HealthMixin_healthBar;
     }
     return vptrMap!;
   }
@@ -2131,9 +2092,6 @@ class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Obje
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(GameCharacter_Object_HealthMixinValue.getVptrMap());
-      vptrMap!['get_maxMana'] = ManaMixin_get_maxMana;
-      vptrMap!['get_mana'] = ManaMixin_get_mana;
-      vptrMap!['manaBar'] = ManaMixin_manaBar;
     }
     return vptrMap!;
   }
@@ -2152,9 +2110,6 @@ class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameC
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(GameCharacter_Object_HealthMixin_ManaMixinValue.getVptrMap());
-      vptrMap!['get_maxStamina'] = StaminaMixin_get_maxStamina;
-      vptrMap!['get_stamina'] = StaminaMixin_get_stamina;
-      vptrMap!['staminaBar'] = StaminaMixin_staminaBar;
     }
     return vptrMap!;
   }

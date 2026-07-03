@@ -336,7 +336,6 @@ class Duck_Object_FlyableValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['fly'] = Flyable_fly;
     }
     return vptrMap!;
   }
@@ -350,7 +349,6 @@ class Duck_Object_Flyable_SwimmableValue extends Duck_Object_FlyableValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Duck_Object_FlyableValue.getVptrMap());
-      vptrMap!['swim'] = Swimmable_swim;
     }
     return vptrMap!;
   }
@@ -518,8 +516,14 @@ void testPatternMatching() {
 
 void testSealed() {
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Square_new(GC.allocateLocal(SquareValue()), 4.0)]);
-  for (final shape in shapes) {
-    staticPrint((shape.vptr['area'] as double Function(dynamic))(shape));
+{
+    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final ShapeValue shape = sync_for_iterator.current;
+{
+        staticPrint((shape.vptr['area'] as double Function(dynamic))(shape));
+      }
+    }
   }
 }
 

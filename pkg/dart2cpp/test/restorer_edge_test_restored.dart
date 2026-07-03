@@ -83,7 +83,7 @@ Promise<bool> Validator_validateAsync<T>(dynamic this__, T value) {
 
 
 class ServiceValue extends Service_Object_Logger_ValidatorValue {
-  late StaticList<String> messages = StaticList<String>.of([]);
+  late StaticList<String> messages = StaticList<String>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
@@ -405,8 +405,6 @@ class Service_Object_LoggerValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['logAsync'] = Logger_logAsync;
-      vptrMap!['logSync'] = Logger_logSync;
     }
     return vptrMap!;
   }
@@ -420,7 +418,6 @@ class Service_Object_Logger_ValidatorValue extends Service_Object_LoggerValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Service_Object_LoggerValue.getVptrMap());
-      vptrMap!['validateAsync'] = Validator_validateAsync<String>;
     }
     return vptrMap!;
   }
@@ -451,9 +448,6 @@ class ItemRepo_Repository_InMemoryCacheValue extends RepositoryValue<String> {
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['isCached'] = InMemoryCache_isCached<String>;
-    target['invalidate'] = InMemoryCache_invalidate<String>;
-    target['cachedFindById'] = InMemoryCache_cachedFindById<String>;
   }
   @override
   void gcMark(int flag) {
@@ -483,7 +477,7 @@ Promise<int> safeLog(String msg) {
 }
 
 StaticList<int> collectOdds(int n) {
-  final StaticList<int> result = StaticList<int>.of([]);
+  final StaticList<int> result = StaticList<int>();
   for (var i = 0; (i < n); i = (i + 1))   _L0: do {
 {
       if (((i % 2) == 0))       break _L0;
@@ -507,7 +501,7 @@ int countDigits(int n) {
 }
 
 StaticList<String> skipEmpty(StaticList<String> items) {
-  final StaticList<String> result = StaticList<String>.of([]);
+  final StaticList<String> result = StaticList<String>();
   int i = 0;
   do   _L2: do {
 {
@@ -784,14 +778,20 @@ void main() {
   staticPrint('  prod: ${Config_new_production()}');
   staticPrint('  custom: ${Config_new_custom('staging', 9090)}');
   staticPrint('\n--- 12. Switch patterns ---');
-  for (final v in StaticList<Object>.of([(-5), 0, 42, '', 'hello', StaticList<int>.of([1, 2, 3]), true])) {
-    staticPrint('  ${v} => ${describeValue(v)}');
+{
+    StaticIterator<Object> sync_for_iterator = StaticIterator(StaticList<Object>.of([(-5), 0, 42, '', 'hello', StaticList<int>.of([1, 2, 3]), true]).iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final Object v = sync_for_iterator.current;
+{
+        staticPrint('  ${v} => ${describeValue(v)}');
+      }
+    }
   }
   staticPrint('\n=== all edge case tests passed ===');
   drainScheduler();
 }
 
-StaticList<String> log = StaticList<String>.of([]);
+StaticList<String> log = StaticList<String>();
 class ClosureEnv_Logger_logAsync_0 {
   dynamic this_;
   StringBox msg;
@@ -1042,7 +1042,7 @@ class ClosureEnv_nestedTryAsync_15 {
   void call() => ClosureEnv_nestedTryAsync_15_call(this);
 }
 void ClosureEnv_nestedTryAsync_15_call(ClosureEnv_nestedTryAsync_15 env) {
-  final StaticList<String> steps = StaticList<String>.of([]);
+  final StaticList<String> steps = StaticList<String>();
   try {
     steps.add('outer-try');
     try {

@@ -270,8 +270,14 @@ Promise<StaticList<String>> fetchAll(StaticList<String> urls) {
 }
 
 String? findFirst(StaticList<String> items, TypeFunction1<bool, String> predicate) {
-  for (final item in items) {
-    if (predicate.closureCall(predicate, item))     return item;
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String item = sync_for_iterator.current;
+{
+        if (predicate.closureCall(predicate, item))         return item;
+      }
+    }
   }
   return null;
 }
@@ -291,8 +297,14 @@ void main() {
   assert((swapped.first == 42));
   staticPrint('\n--- 2. 继承 + 多态 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new_unit(GC.allocateLocal(CircleValue()))]);
-  for (final shape in shapes) {
-    staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
+{
+    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final ShapeValue shape = sync_for_iterator.current;
+{
+        staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
+      }
+    }
   }
   staticPrint('\n--- 3. getter/setter + 异常 ---');
   final CircleValue circle = Circle_new(GC.allocateLocal(CircleValue()), 3.0);
@@ -307,34 +319,40 @@ void main() {
   }
   staticPrint('\n--- 4. 枚举 + switch ---');
   final StaticList<Direction> directions = StaticList<Direction>.of([Direction.north, Direction.east, Direction.south]);
-  for (final dir in directions) {
-    final String label = (() {     late String _v2;
-    _L3: do {
-      switch (dir) {
-        case Direction.north:
 {
-            _v2 = 'N';
-            break _L3;
-          }
-        case Direction.south:
+    StaticIterator<Direction> sync_for_iterator = StaticIterator(directions.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final Direction dir = sync_for_iterator.current;
 {
-            _v2 = 'S';
-            break _L3;
-          }
-        case Direction.east:
+        final String label = (() {         late String _v2;
+        _L3: do {
+          switch (dir) {
+            case Direction.north:
 {
-            _v2 = 'E';
-            break _L3;
-          }
-        case Direction.west:
+                _v2 = 'N';
+                break _L3;
+              }
+            case Direction.south:
 {
-            _v2 = 'W';
-            break _L3;
+                _v2 = 'S';
+                break _L3;
+              }
+            case Direction.east:
+{
+                _v2 = 'E';
+                break _L3;
+              }
+            case Direction.west:
+{
+                _v2 = 'W';
+                break _L3;
+              }
           }
-      }
-    } while (false);
+        } while (false);
  return _v2; })();
-    staticPrint('  ${dir} -> ${label}');
+        staticPrint('  ${dir} -> ${label}');
+      }
+    }
   }
   staticPrint('\n--- 5. 扩展方法 ---');
   final String word = 'hello';
@@ -367,8 +385,18 @@ void main() {
   final StaticMap<String, int> map = StaticMap<String, int>.of({'a': 1, 'b': 2, 'c': 3});
   final StaticMap<String, int> filtered = StaticMap<String, int>.fromEntries(map.entries.where(ClosureEnv_main_11_new(GC.allocateLocal(ClosureEnv_main_11()))));
   staticPrint('filtered map: ${filtered}');
-  final StaticSet<int> set1 = StaticSet<int>.of([1, 2, 3, 4]);
-  final StaticSet<int> set2 = StaticSet<int>.of([3, 4, 5, 6]);
+  final StaticSet<int> set1 = StaticSet<int>.of((() {   final StaticSet<int> _v4 = StaticSet<int>();
+  _v4.add(1);
+  _v4.add(2);
+  _v4.add(3);
+  _v4.add(4);
+ return _v4; })());
+  final StaticSet<int> set2 = StaticSet<int>.of((() {   final StaticSet<int> _v5 = StaticSet<int>();
+  _v5.add(3);
+  _v5.add(4);
+  _v5.add(5);
+  _v5.add(6);
+ return _v5; })());
   final StaticSet<int> intersection = StaticSet<int>.of(set1.intersection(set2));
   staticPrint('intersection: ${intersection}');
   staticPrint('\n--- 10. 字符串插值 ---');
@@ -539,10 +567,16 @@ class ClosureEnv_fetchAll_5 {
   void call() => ClosureEnv_fetchAll_5_call(this);
 }
 void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
-  final StaticList<String> results = StaticList<String>.of([]);
-  for (final url in env.urls) {
-    final String data = smAwait(fetchData(url));
-    results.add(data);
+  final StaticList<String> results = StaticList<String>();
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(env.urls.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String url = sync_for_iterator.current;
+{
+        final String data = smAwait(fetchData(url));
+        results.add(data);
+      }
+    }
   }
 {
     env._promise.complete(results);

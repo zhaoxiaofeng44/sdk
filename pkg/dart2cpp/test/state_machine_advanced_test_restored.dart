@@ -526,16 +526,22 @@ bool FutureAnySM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))), Promise.delayed(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))), Promise.delayed(8, ClosureEnv_anon_7_new(GC.allocateLocal(ClosureEnv_anon_7())))]);
+          this_._futures = StaticList<Promise<String>>.of([Promise.delayed(5, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8()))), Promise.delayed(2, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))), Promise.delayed(8, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10())))]);
           this_.smState = 1;
           return false;
         }
       case 1:
 {
-          for (final f in this_._futures) {
-            if (f.isCompleted) {
-              this_.completeWith(f.result);
-              return true;
+{
+            StaticIterator<Promise<String>> sync_for_iterator = StaticIterator(this_._futures.iterator);
+            for (; sync_for_iterator.moveNext(); ) {
+              final Promise<String> f = sync_for_iterator.current;
+{
+                if (f.isCompleted) {
+                  this_.completeWith(f.result);
+                  return true;
+                }
+              }
             }
           }
           return false;
@@ -599,8 +605,8 @@ bool TimeoutSM_step(dynamic this__) {
     switch (this_.smState) {
       case 0:
 {
-          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8())));
-          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9())));
+          this_._taskFuture = Promise.delayed(this_.taskDelay, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11())));
+          this_._timeoutFuture = Promise.delayed(this_.timeoutDelay, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12())));
           this_.smState = 1;
           return false;
         }
@@ -627,7 +633,7 @@ bool TimeoutSM_step(dynamic this__) {
 
 class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late StaticList<int> items;
-  late StaticList<String> _results = StaticList<String>.of([]);
+  late StaticList<String> _results = StaticList<String>();
   late int _index = 0;
   late Promise<String>? _pending = null;
   @override
@@ -680,7 +686,7 @@ bool AsyncMapSM_step(dynamic this__) {
             return true;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_10_new(GC.allocateLocal(ClosureEnv_anon_10()), item));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), item));
           this_.smState = 1;
           return false;
         }
@@ -704,7 +710,7 @@ bool AsyncMapSM_step(dynamic this__) {
 class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late Promise<StaticList<String>> _mapFuture;
   late Promise<String>? _reducePending = null;
-  late StaticList<String> _items = StaticList<String>.of([]);
+  late StaticList<String> _items = StaticList<String>();
   late int _index = 0;
   late String _acc = '';
   @override
@@ -768,7 +774,7 @@ bool AsyncReduceSM_step(dynamic this__) {
             this_.completeWith(this_._acc);
             return true;
           }
-          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_11_new(GC.allocateLocal(ClosureEnv_anon_11()), this_));
+          this_._reducePending = Promise.delayed(1, ClosureEnv_anon_14_new(GC.allocateLocal(ClosureEnv_anon_14()), this_));
           this_.smState = 3;
           return false;
         }
@@ -818,7 +824,7 @@ int ClosureEnv_process_0_call(dynamic this__, int x) {
 class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late ClosureEnv_process_0Value _env;
   late StaticList<int> items;
-  late StaticList<int> _results = StaticList<int>.of([]);
+  late StaticList<int> _results = StaticList<int>();
   late int _index = 0;
   late Promise<int>? _pending = null;
   @override
@@ -878,7 +884,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
             return false;
           }
           IntBox item = IntBox(this_.items[this_._index]);
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_12_new(GC.allocateLocal(ClosureEnv_anon_12()), this_, item));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()), this_, item));
           this_.smState = 2;
           return false;
         }
@@ -909,7 +915,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
 class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late int max;
   late int _i = 0;
-  late StaticList<int> _yielded = StaticList<int>.of([]);
+  late StaticList<int> _yielded = StaticList<int>();
   late Promise<int>? _pending = null;
   @override
   bool step() {
@@ -959,7 +965,7 @@ bool AsyncGeneratorSM_step(dynamic this__) {
             this_.completeWith(this_._yielded);
             return true;
           }
-          this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), this_));
+          this_._pending = Promise.delayed(1, ClosureEnv_anon_16_new(GC.allocateLocal(ClosureEnv_anon_16()), this_));
           this_.smState = 1;
           return false;
         }
@@ -1319,7 +1325,7 @@ ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
 String ClosureEnv_anon_8_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_8;
 
-  return 'done';
+  return 'slow';
 }
 
 class ClosureEnv_anon_9 extends TypeFunction0<String> {
@@ -1334,35 +1340,80 @@ ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
 String ClosureEnv_anon_9_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_9;
 
-  return 'TIMEOUT';
+  return 'fast';
 }
 
 class ClosureEnv_anon_10 extends TypeFunction0<String> {
-  late IntBox item;
   ClosureEnv_anon_10();
   @override
   String call() => closureCall(this);
-  @override
-  void gcMark(int flag) {
-    if (gcFlag == flag) return;
-    super.gcMark(flag);
-    if (item is AnyGC) (item as AnyGC).gcMark(flag);
-  }
 }
-ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_, IntBox item) {
+ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_) {
   env_.closureCall = ClosureEnv_anon_10_call;
-  env_.item = item;
   return env_;
 }
 String ClosureEnv_anon_10_call(dynamic env__) {
   final env = env__ as ClosureEnv_anon_10;
 
-  return 'item_${(env.item.value * 2)}';
+  return 'slowest';
 }
 
 class ClosureEnv_anon_11 extends TypeFunction0<String> {
-  late AsyncReduceSMValue this_;
   ClosureEnv_anon_11();
+  @override
+  String call() => closureCall(this);
+}
+ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_) {
+  env_.closureCall = ClosureEnv_anon_11_call;
+  return env_;
+}
+String ClosureEnv_anon_11_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_11;
+
+  return 'done';
+}
+
+class ClosureEnv_anon_12 extends TypeFunction0<String> {
+  ClosureEnv_anon_12();
+  @override
+  String call() => closureCall(this);
+}
+ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_) {
+  env_.closureCall = ClosureEnv_anon_12_call;
+  return env_;
+}
+String ClosureEnv_anon_12_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_12;
+
+  return 'TIMEOUT';
+}
+
+class ClosureEnv_anon_13 extends TypeFunction0<String> {
+  late IntBox item;
+  ClosureEnv_anon_13();
+  @override
+  String call() => closureCall(this);
+  @override
+  void gcMark(int flag) {
+    if (gcFlag == flag) return;
+    super.gcMark(flag);
+    if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
+}
+ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, IntBox item) {
+  env_.closureCall = ClosureEnv_anon_13_call;
+  env_.item = item;
+  return env_;
+}
+String ClosureEnv_anon_13_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_13;
+
+  return 'item_${(env.item.value * 2)}';
+}
+
+class ClosureEnv_anon_14 extends TypeFunction0<String> {
+  late AsyncReduceSMValue this_;
+  ClosureEnv_anon_14();
   @override
   String call() => closureCall(this);
   @override
@@ -1372,22 +1423,22 @@ class ClosureEnv_anon_11 extends TypeFunction0<String> {
     if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
   }
 }
-ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_, AsyncReduceSMValue this_) {
-  env_.closureCall = ClosureEnv_anon_11_call;
+ClosureEnv_anon_14 ClosureEnv_anon_14_new(ClosureEnv_anon_14 env_, AsyncReduceSMValue this_) {
+  env_.closureCall = ClosureEnv_anon_14_call;
   env_.this_ = this_;
   return env_;
 }
-String ClosureEnv_anon_11_call(dynamic env__) {
-  final env = env__ as ClosureEnv_anon_11;
+String ClosureEnv_anon_14_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_14;
 
             final String sep = (env.this_._acc.isEmpty ? '' : '+');
             return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
           }
 
-class ClosureEnv_anon_12 extends TypeFunction0<int> {
+class ClosureEnv_anon_15 extends TypeFunction0<int> {
   late ProcessWithClosureSMValue this_;
   late IntBox item;
-  ClosureEnv_anon_12();
+  ClosureEnv_anon_15();
   @override
   int call() => closureCall(this);
   @override
@@ -1398,21 +1449,21 @@ class ClosureEnv_anon_12 extends TypeFunction0<int> {
     if (item is AnyGC) (item as AnyGC).gcMark(flag);
   }
 }
-ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_, ProcessWithClosureSMValue this_, IntBox item) {
-  env_.closureCall = ClosureEnv_anon_12_call;
+ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_, ProcessWithClosureSMValue this_, IntBox item) {
+  env_.closureCall = ClosureEnv_anon_15_call;
   env_.this_ = this_;
   env_.item = item;
   return env_;
 }
-int ClosureEnv_anon_12_call(dynamic env__) {
-  final env = env__ as ClosureEnv_anon_12;
+int ClosureEnv_anon_15_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_15;
 
   return (env.this_._env.vptr['call'] as int Function(dynamic, int))(env.this_._env, env.item.value);
 }
 
-class ClosureEnv_anon_13 extends TypeFunction0<int> {
+class ClosureEnv_anon_16 extends TypeFunction0<int> {
   late AsyncGeneratorSMValue this_;
-  ClosureEnv_anon_13();
+  ClosureEnv_anon_16();
   @override
   int call() => closureCall(this);
   @override
@@ -1422,13 +1473,13 @@ class ClosureEnv_anon_13 extends TypeFunction0<int> {
     if (this_ is AnyGC) (this_ as AnyGC).gcMark(flag);
   }
 }
-ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, AsyncGeneratorSMValue this_) {
-  env_.closureCall = ClosureEnv_anon_13_call;
+ClosureEnv_anon_16 ClosureEnv_anon_16_new(ClosureEnv_anon_16 env_, AsyncGeneratorSMValue this_) {
+  env_.closureCall = ClosureEnv_anon_16_call;
   env_.this_ = this_;
   return env_;
 }
-int ClosureEnv_anon_13_call(dynamic env__) {
-  final env = env__ as ClosureEnv_anon_13;
+int ClosureEnv_anon_16_call(dynamic env__) {
+  final env = env__ as ClosureEnv_anon_16;
 
   return (env.this_._i * env.this_._i);
 }

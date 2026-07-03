@@ -310,7 +310,7 @@ VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String n
   final this_ = this__ as VersionedEntityValue<ID>;
   TimestampedEntity_new<ID>(this_, id, name, createdAt, updatedAt);
   this_._version = 1;
-  this_._changelog = StaticList<String>.of([]);
+  this_._changelog = StaticList<String>();
   return this_;
 }
 
@@ -337,7 +337,7 @@ String VersionedEntity_serialize<ID>(dynamic this__) {
 
 StaticList<String> VersionedEntity_validate<ID>(dynamic this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
-  final StaticList<String> errors = StaticList<String>.of([]);
+  final StaticList<String> errors = StaticList<String>();
   if (this_.name.isEmpty)   errors.add('name is empty');
   if ((this_._version < 1))   errors.add('invalid version');
   return errors;
@@ -547,7 +547,13 @@ ConfigValue Config_new_empty(dynamic this__) {
 ConfigValue Config_new_fromPairs(dynamic this__, StaticList<StaticList<dynamic>> pairs) {
   final this_ = this__ as ConfigValue;
   this_._data = (() {   final StaticMap<String, dynamic> _v1 = StaticMap<String, dynamic>.of({});
-  for (final p in pairs)   _v1[(p[0] as String)] = p[1];
+{
+    StaticIterator<StaticList<dynamic>> sync_for_iterator = StaticIterator(pairs.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final StaticList<dynamic> p = StaticList<dynamic>.of(sync_for_iterator.current);
+      _v1[(p[0] as String)] = p[1];
+    }
+  }
  return _v1; })();
   return this_;
 }
@@ -587,7 +593,7 @@ String Config_toString(dynamic this__) {
 
 
 class EventBusValue extends VPtr {
-  late StaticList<TypeFunction1<void, String>> _listeners = StaticList<TypeFunction1<void, String>>.of([]);
+  late StaticList<TypeFunction1<void, String>> _listeners = StaticList<TypeFunction1<void, String>>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
@@ -619,8 +625,14 @@ void EventBus_on(dynamic this__, TypeFunction1<void, String> listener) {
 
 void EventBus_emit(dynamic this__, String event) {
   final this_ = this__ as EventBusValue;
-  for (final listener in this_._listeners) {
-    listener.closureCall(listener, event);
+{
+    StaticIterator<TypeFunction1<void, String>> sync_for_iterator = StaticIterator(this_._listeners.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final TypeFunction1<void, String> listener = sync_for_iterator.current;
+{
+        listener.closureCall(listener, event);
+      }
+    }
   }
 }
 
@@ -920,8 +932,14 @@ StringBuilderValue StringBuilder_add(dynamic this__, String text) {
 
 StringBuilderValue StringBuilder_addAll(dynamic this__, StaticList<String> texts) {
   final this_ = this__ as StringBuilderValue;
-  for (final t in texts) {
-    (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(texts.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String t = sync_for_iterator.current;
+{
+        (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
+      }
+    }
   }
   return this_;
 }
@@ -969,7 +987,7 @@ AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErro
 
 String AppError_toString(dynamic this__) {
   final this_ = this__ as AppErrorValue;
-  final StaticList<String> chain = StaticList<String>.of([]);
+  final StaticList<String> chain = StaticList<String>();
   AppErrorValue? current = this_;
   while (!((current == null))) {
     chain.add('${current.code}:${current.message}');
@@ -1144,7 +1162,7 @@ int MathUtils_factorial(int n) {
 
 StaticList<int> MathUtils_fibonacci(int count) {
   MathUtils__callCount = (MathUtils__callCount + 1);
-  if ((count <= 0))   return StaticList<int>.of([]);
+  if ((count <= 0))   return StaticList<int>();
   if ((count == 1))   return StaticList<int>.of([0]);
   final StaticList<int> fibs = StaticList<int>.of([0, 1]);
   for (var i = 2; (i < count); i = (i + 1)) {
@@ -1179,8 +1197,14 @@ void Observable_observe<T>(dynamic this__, TypeFunction1<void, T> callback) {
 
 void Observable_notify<T>(dynamic this__, T value) {
   final this_ = this__;
-  for (final cb in this_._observers) {
-    cb.closureCall(cb, value);
+{
+    StaticIterator<TypeFunction1<void, T>> sync_for_iterator = StaticIterator(this_._observers.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final TypeFunction1<void, T> cb = sync_for_iterator.current;
+{
+        cb.closureCall(cb, value);
+      }
+    }
   }
 }
 
@@ -1412,7 +1436,7 @@ class NodeValue<T> extends VPtr {
 NodeValue<T> Node_new<T>(dynamic this__, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as NodeValue<T>;
   this_.value = value;
-  this_.children = (children ?? StaticList<NodeValue<T>>.of([]));
+  this_.children = (children ?? StaticList<NodeValue<T>>());
   return this_;
 }
 
@@ -1424,8 +1448,14 @@ void Node_addChild<T>(dynamic this__, NodeValue<T> child) {
 StaticList<T> Node_flatten<T>(dynamic this__) {
   final this_ = this__ as NodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
-  for (final child in this_.children) {
-    result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
+{
+    StaticIterator<NodeValue<T>> sync_for_iterator = StaticIterator(this_.children.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final NodeValue<T> child = sync_for_iterator.current;
+{
+        result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
+      }
+    }
   }
   return result;
 }
@@ -1520,7 +1550,6 @@ class Entity_Object_PrintableValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['toPrettyString'] = Printable_toPrettyString;
     }
     return vptrMap!;
   }
@@ -1544,8 +1573,6 @@ class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_Printable
     return instanceVptr!;
   }
   void initVptr(Map<String, dynamic> target) {
-    target['cacheValue'] = Cacheable_cacheValue<ID>;
-    target['getCachedValue'] = Cacheable_getCachedValue<ID>;
   }
   @override
   void gcMark(int flag) {
@@ -1573,7 +1600,6 @@ class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends Timestampe
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['toJson'] = Serializable_toJson<String>;
   }
   @override
   void gcMark(int flag) {
@@ -1601,7 +1627,6 @@ class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extend
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['get_isValid'] = Validatable_get_isValid;
   }
   @override
   void gcMark(int flag) {
@@ -1629,7 +1654,6 @@ class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['toPrettyString'] = Printable_toPrettyString;
   }
   @override
   void gcMark(int flag) {
@@ -1640,15 +1664,13 @@ class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
 
 
 class ReactiveStore_Object_LoggableValue extends VPtr {
-  late StaticList<String> _logs = StaticList<String>.of([]);
+  late StaticList<String> _logs = StaticList<String>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['log'] = Loggable_log;
-      vptrMap!['get_logs'] = Loggable_get_logs;
     }
     return vptrMap!;
   }
@@ -1662,7 +1684,7 @@ class ReactiveStore_Object_LoggableValue extends VPtr {
 
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
-  late StaticList<TypeFunction1<void, V>> _observers = StaticList<TypeFunction1<void, V>>.of([]);
+  late StaticList<TypeFunction1<void, V>> _observers = StaticList<TypeFunction1<void, V>>();
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
   @override
@@ -1679,8 +1701,6 @@ class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Obj
     return instanceVptr!;
   }
   void initVptr(Map<String, dynamic> target) {
-    target['observe'] = Observable_observe<V>;
-    target['notify'] = Observable_notify<V>;
   }
   @override
   void gcMark(int flag) {
@@ -1709,7 +1729,6 @@ class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
   }
   @override
   void initVptr(Map<String, dynamic> target) {
-    target['toPrettyString'] = Printable_toPrettyString;
   }
   @override
   void gcMark(int flag) {
@@ -1724,9 +1743,15 @@ T applyTransform<T>(T value, TypeFunction1<T, T> transform) {
 }
 
 StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicate) {
-  final StaticList<T> result = StaticList<T>.of([]);
-  for (final item in items) {
-    if (predicate.closureCall(predicate, item))     result.add(item);
+  final StaticList<T> result = StaticList<T>();
+{
+    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final T item = sync_for_iterator.current;
+{
+        if (predicate.closureCall(predicate, item))         result.add(item);
+      }
+    }
   }
   return result;
 }
@@ -1740,13 +1765,13 @@ T reduceList<T>(StaticList<T> items, TypeFunction2<T, T, T> reducer) {
 }
 
 StaticList<String> testClosureBoxing() {
-  final StaticList<String> log = StaticList<String>.of([]);
+  final StaticList<String> log = StaticList<String>();
   IntBox counter = IntBox(0);
   final TypeFunction0<int> increment = ClosureEnv_testClosureBoxing_2_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_2()), counter);
   increment.closureCall(increment);
   increment.closureCall(increment);
   log.add('counter=${counter.value}');
-  final StaticList<TypeFunction0<int>> fns = StaticList<TypeFunction0<int>>.of([]);
+  final StaticList<TypeFunction0<int>> fns = StaticList<TypeFunction0<int>>();
   for (var i = 0; (i < 3); i = (i + 1)) {
     fns.add(ClosureEnv_testClosureBoxing_3_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_3()), i));
   }
@@ -1767,7 +1792,7 @@ StaticList<String> testClosureBoxing() {
 
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(GC.allocateLocal(EventBusValue()));
-  StaticList<String> received = StaticList<String>.of([]);
+  StaticList<String> received = StaticList<String>();
   (bus.vptr['on'] as void Function(dynamic, TypeFunction1<void, String>))(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
   (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
@@ -1897,15 +1922,21 @@ void main() {
   final ConfigValue cfg1 = Config_new_empty(GC.allocateLocal(ConfigValue()));
   (cfg1.vptr['operatorIndexSet'] as void Function(dynamic, String, dynamic))(cfg1, 'host', 'localhost');
   staticPrint('cfg1: ${cfg1}');
-  final ConfigValue cfg2 = Config_new_fromPairs(GC.allocateLocal(ConfigValue()), StaticList<StaticList<dynamic>>.of([StaticList.of(['a', 1]), StaticList.of(['b', 2])]));
+  final ConfigValue cfg2 = Config_new_fromPairs(GC.allocateLocal(ConfigValue()), StaticList<StaticList<dynamic>>.of([StaticList<dynamic>.of(['a', 1]), StaticList<dynamic>.of(['b', 2])]));
   staticPrint('cfg2: ${cfg2}');
   final ConfigValue cfg3 = Config_new_withDefaults(StaticMap<String, dynamic>.of({'debug': true, 'name': 'prod'}));
   staticPrint('cfg3: ${cfg3}');
   staticPrint('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
   staticPrint('\n--- 6. 闭包 Box 化 ---');
   final StaticList<String> closureLog = StaticList<String>.of(testClosureBoxing());
-  for (final line in closureLog) {
-    staticPrint(line);
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(closureLog.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String line = sync_for_iterator.current;
+{
+        staticPrint(line);
+      }
+    }
   }
   staticPrint('\n--- 7. 多重 implements ---');
   final WidgetValue widget = Widget_new(GC.allocateLocal(WidgetValue()));
@@ -1955,7 +1986,7 @@ void main() {
   staticPrint('callCount: ${MathUtils_callCount()}');
   staticPrint('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(GC.allocateLocal(ReactiveStoreValue<int>()));
-  final StaticList<int> observed = StaticList<int>.of([]);
+  final StaticList<int> observed = StaticList<int>();
   (store.vptr['observe'] as void Function(dynamic, TypeFunction1<void, int>))(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
   (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
@@ -1966,8 +1997,14 @@ void main() {
   staticPrint('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(dynamic))(store)}');
   staticPrint('\n--- 16. 类型转换 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new(GC.allocateLocal(CircleValue()), 1.0)]);
-  for (final s in shapes) {
-    staticPrint(describeShape(s));
+{
+    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final ShapeValue s = sync_for_iterator.current;
+{
+        staticPrint(describeShape(s));
+      }
+    }
   }
   staticPrint('\n--- 17. 树结构 ---');
   final NodeValue<int> tree = Node_new<int>(GC.allocateLocal(NodeValue<int>()), 1, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 2, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 4), Node_new<int>(GC.allocateLocal(NodeValue<int>()), 5)])), Node_new<int>(GC.allocateLocal(NodeValue<int>()), 3, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 6)]))]));

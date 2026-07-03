@@ -1,15 +1,7 @@
 // 简化测试：只验证 mixin lowering 是否正确
 import 'dart:io';
 import 'package:kernel/kernel.dart';
-import 'package:front_end/src/api_unstable/vm.dart';
-import 'package:vm/kernel_front_end.dart';
 import '../lib/dart_to_dart_restorer.dart';
-
-final String _sdkPlatformDill = () {
-  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
-      File(Platform.resolvedExecutable).parent.parent.path;
-  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
-}();
 
 Future<void> main() async {
   // 创建简化的测试源码
@@ -34,13 +26,13 @@ class Animal {
 class Dog extends Animal with Printable, Orderable<Dog> {
   final String breed;
   Dog(super.name, super.age, this.breed);
-  
+
   @override
   String get displayName => 'Dog:\$name';
-  
+
   @override
   String speak() => 'Woof!';
-  
+
   @override
   int compareTo(Dog other) => age.compareTo(other.age);
 }
@@ -57,35 +49,29 @@ void main() {
   // 写入临时文件
   final tempFile = File('/tmp/mixin_test_source.dart');
   await tempFile.writeAsString(testSource);
-  
+  final dillFile = File('/tmp/mixin_test_source.dill');
+
   print('=== 测试 Mixin Lowering ===\n');
   print('原始源码:');
   print(testSource);
   print('\n--- 编译为 Kernel AST ---');
-  
+
   // 编译
-  final compilerOptions = CompilerOptions()
-    ..sdkSummary = Uri.file(_sdkPlatformDill)
-    ..fileSystem = createFrontEndFileSystem(null, null)
-    ..embedSourceText = false
-    ..target = createFrontEndTarget('vm',
-        trackWidgetCreation: false, supportMirrors: false);
+  final compileResult = await Process.run(
+    'dart',
+    ['compile', 'kernel', tempFile.path, '-o', dillFile.path],
+  );
 
-  final results = await compileToKernel(KernelCompilationArguments(
-    source: tempFile.uri,
-    options: compilerOptions,
-    requireMain: false,
-    includePlatform: false,
-    environmentDefines: {},
-    enableAsserts: false,
-  ));
-
-  final component = results.component;
-  if (component == null) {
+  if (compileResult.exitCode != 0) {
     print('❌ 编译失败');
+    print('stderr:\n${compileResult.stderr}');
+    await tempFile.delete();
     return;
   }
   print('✅ 编译成功');
+
+  // 加载 component
+  final component = loadComponentFromBinary(dillFile.path);
 
   // 还原
   print('\n--- DartRestorer 还原 ---');
@@ -100,7 +86,7 @@ void main() {
 
   // 尝试运行还原后的代码
   print('\n--- 运行还原后的代码 ---');
-  final runResult = await Process.run('dart', ['/tmp/mixin_test_restored.dart']);
+  final runResult = await Process.run('dart', [restoredFile.path]);
   if (runResult.exitCode == 0) {
     print('✅ 运行成功');
     print('输出:');
@@ -113,4 +99,5 @@ void main() {
 
   // 清理
   await tempFile.delete();
+  await dillFile.delete();
 }

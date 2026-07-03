@@ -2,20 +2,8 @@
 /// 批量运行所有 restorer 测试用例
 import 'dart:io';
 import 'package:kernel/kernel.dart';
-import 'package:front_end/src/api_unstable/vm.dart' show CompilerOptions, StandardFileSystem;
-import 'package:front_end/src/api_prototype/kernel_generator.dart' show kernelForProgram, CompilerResult;
 
 import '../lib/dart_to_dart_restorer.dart';
-
-/// Derive the SDK platform dill path from the running dart executable,
-/// with an optional DART_SDK_ROOT environment variable override.
-String _resolvePlatformDill() {
-  final sdkRoot = Platform.environment['DART_SDK_ROOT'] ??
-      File(Platform.resolvedExecutable).parent.parent.path;
-  return '$sdkRoot/lib/_internal/vm_platform_strong.dill';
-}
-
-final String _sdkPlatformDill = _resolvePlatformDill();
 
 /// 所有待测试的用例（不含 _restored 后缀）
 /// 注意: mixin_lowering_test 是自包含测试脚本，不适用批量运行器
@@ -56,39 +44,52 @@ class _TestResult {
 Future<_TestResult> runOneTest(String baseName, String scriptDir) async {
   final testSourcePath = '$scriptDir/$baseName.dart';
   final restoredOutputPath = '$scriptDir/${baseName}_restored.dart';
+  final dillPath = '/tmp/${baseName}_test.dill';
   final dartExe = Platform.resolvedExecutable;
 
   print('\n${'─' * 60}');
   print('📦 测试: $baseName');
 
-  // 步骤 1: 编译
-  final compilerOptions = CompilerOptions()
-    ..sdkSummary = Uri.file(_sdkPlatformDill)
-    ..fileSystem = StandardFileSystem.instance
-    ..embedSourceText = false;
-
-  final CompilerResult? result = await kernelForProgram(
-    Uri.file(testSourcePath),
-    compilerOptions,
+  // 步骤 1: 使用 dart compile kernel CLI 编译
+  final compileResult = await Process.run(
+    dartExe,
+    ['compile', 'kernel', testSourcePath, '-o', dillPath],
   );
 
-  if (result == null || result.component == null) {
+  if (compileResult.exitCode != 0) {
+    final error = (compileResult.stderr as String).split('\n').take(3).join('\n');
     print('  ❌ Kernel 编译失败');
+    print('     $error');
     return _TestResult(
       name: baseName,
       compileOk: false,
       restoreOk: false,
       runOk: false,
       outputMatch: false,
-      errorDetail: 'Kernel 编译失败',
+      errorDetail: 'Kernel 编译失败: $error',
     );
   }
   print('  ✅ 编译成功');
 
-  // 步骤 2: 还原
+  // 步骤 2: 加载 kernel 并还原
+  Component component;
+  try {
+    component = loadComponentFromBinary(dillPath);
+  } catch (e) {
+    print('  ❌ Kernel 加载失败: $e');
+    return _TestResult(
+      name: baseName,
+      compileOk: true,
+      restoreOk: false,
+      runOk: false,
+      outputMatch: false,
+      errorDetail: 'Kernel 加载失败: $e',
+    );
+  }
+
   String restoredSource;
   try {
-    restoredSource = restoreDartFromComponent(result.component!);
+    restoredSource = restoreDartFromComponent(component);
     print('  ✅ 还原成功 (${restoredSource.length} 字符, ${restoredSource.split('\n').length} 行)');
   } catch (e) {
     print('  ❌ 还原失败: $e');

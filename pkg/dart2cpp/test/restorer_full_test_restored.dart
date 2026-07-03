@@ -881,7 +881,7 @@ String Config_toString(dynamic this__) {
 
 
 class SortedListValue<T extends Comparable<dynamic>> extends VPtr {
-  late StaticList<T> _items = StaticList<T>.of([]);
+  late StaticList<T> _items = StaticList<T>();
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
   @override
@@ -1084,7 +1084,7 @@ PipelineValue<TInput, TOutput> Pipeline_new<TInput, TOutput>(dynamic this__, Typ
 
 TOutput Pipeline_execute<TInput, TOutput>(dynamic this__, TInput input) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
-  return (() { final _let4 = input; return this_._transform.closureCall(this_._transform, _let4); })();
+  return (() { final _let5 = input; return this_._transform.closureCall(this_._transform, _let5); })();
 }
 
 PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dynamic this__, TypeFunction1<TNewOutput, TOutput> next) {
@@ -1136,7 +1136,7 @@ bool BitFlags_has(dynamic this__, int flag) {
 
 String BitFlags_toString(dynamic this__) {
   final this_ = this__ as BitFlagsValue;
-  final StaticList<String> parts = StaticList<String>.of([]);
+  final StaticList<String> parts = StaticList<String>();
   if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 1))   parts.add('r');
   if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 2))   parts.add('w');
   if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 4))   parts.add('x');
@@ -1299,7 +1299,6 @@ class Dog_Animal_PrintableValue extends AnimalValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(AnimalValue.getVptrMap());
-      vptrMap!['printInfo'] = Printable_printInfo;
     }
     return vptrMap!;
   }
@@ -1318,8 +1317,6 @@ class Dog_Animal_Printable_OrderableValue extends Dog_Animal_PrintableValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Dog_Animal_PrintableValue.getVptrMap());
-      vptrMap!['isLessThan'] = Orderable_isLessThan<DogValue>;
-      vptrMap!['isGreaterThan'] = Orderable_isGreaterThan<DogValue>;
     }
     return vptrMap!;
   }
@@ -1338,7 +1335,6 @@ class Cat_Animal_PrintableValue extends AnimalValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(AnimalValue.getVptrMap());
-      vptrMap!['printInfo'] = Printable_printInfo;
     }
     return vptrMap!;
   }
@@ -1357,7 +1353,6 @@ class LoggedDataPoint_DataPoint_LoggableValue extends DataPointValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(DataPointValue.getVptrMap());
-      vptrMap!['log'] = Loggable_log;
     }
     return vptrMap!;
   }
@@ -1376,7 +1371,6 @@ class LoggedDataPoint_DataPoint_Loggable_ValidatableValue extends LoggedDataPoin
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(LoggedDataPoint_DataPoint_LoggableValue.getVptrMap());
-      vptrMap!['validate'] = Validatable_validate;
     }
     return vptrMap!;
   }
@@ -1395,8 +1389,6 @@ class Event_Object_TimestampedValue extends VPtr {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_timestamp'] = Timestamped_get_timestamp;
-      vptrMap!['get_timeStr'] = Timestamped_get_timeStr;
     }
     return vptrMap!;
   }
@@ -1404,15 +1396,13 @@ class Event_Object_TimestampedValue extends VPtr {
 
 
 class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue {
-  late StaticList<String> _tags = StaticList<String>.of([]);
+  late StaticList<String> _tags = StaticList<String>();
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(Event_Object_TimestampedValue.getVptrMap());
-      vptrMap!['addTag'] = Tagged_addTag;
-      vptrMap!['get_tags'] = Tagged_get_tags;
     }
     return vptrMap!;
   }
@@ -1432,7 +1422,6 @@ class ImportantEvent_Event_LoggableValue extends EventValue {
   static Map<String, dynamic> getVptrMap() {
     if (vptrMap == null) {
       vptrMap = Map<String, dynamic>.from(EventValue.getVptrMap());
-      vptrMap!['log'] = Loggable_log;
     }
     return vptrMap!;
   }
@@ -1453,7 +1442,7 @@ String formatMessage(String template, [String? subject = null, int? count = null
 
 String buildQuery({required String endpoint, StaticMap<String, String>? params = null, int maxWait = 30, bool secure = true}) {
   final String scheme = (secure ? 'https' : 'http');
-  final String query = ((() { final _let7 = params; return (_let7 == null) ? null : _let7.entries.map(ClosureEnv_buildQuery_1_new(GC.allocateLocal(ClosureEnv_buildQuery_1()))).join('&'); })() ?? '');
+  final String query = ((() { final _let8 = params; return (_let8 == null) ? null : _let8.entries.map(ClosureEnv_buildQuery_1_new(GC.allocateLocal(ClosureEnv_buildQuery_1()))).join('&'); })() ?? '');
   final String suffix = (query.isEmpty ? '' : '?${query}');
   return '${scheme}://${endpoint}${suffix} (timeout=${maxWait}s)';
 }
@@ -1494,75 +1483,75 @@ Promise<StaticList<String>> countDown(int from) {
 }
 
 String describeValue(Object? value) {
-  return (() {   late String _v8;
-  final Object? _v9 = value;
-  const dynamic _v10 = null;
-  _L11: do {
+  return (() {   late String _v9;
+  final Object? _v10 = value;
+  const dynamic _v11 = null;
+  _L12: do {
 {
 {
-        if ((_v9 == null)) {
-          _v8 = 'null';
-          break _L11;
+        if ((_v10 == null)) {
+          _v9 = 'null';
+          break _L12;
         }
       }
 {
         late int n;
-        if ((((_v9 is int) && (() { final _let12 = n = _v9; return true; })()) && (n < 0))) {
-          _v8 = 'negative int: ${n}';
-          break _L11;
+        if ((((_v10 is int) && (() { final _let13 = n = _v10; return true; })()) && (n < 0))) {
+          _v9 = 'negative int: ${n}';
+          break _L12;
         }
       }
 {
         late int n;
-        if ((_v9 is int)) {
-          n = _v9;
-          _v8 = 'positive int: ${n}';
-          break _L11;
+        if ((_v10 is int)) {
+          n = _v10;
+          _v9 = 'positive int: ${n}';
+          break _L12;
         }
       }
 {
         late String s;
-        if ((((_v9 is String) && (() { final _let13 = s = _v9; return true; })()) && s.isEmpty)) {
-          _v8 = 'empty string';
-          break _L11;
+        if ((((_v10 is String) && (() { final _let14 = s = _v10; return true; })()) && s.isEmpty)) {
+          _v9 = 'empty string';
+          break _L12;
         }
       }
 {
         late String s;
-        if ((_v9 is String)) {
-          s = _v9;
-          _v8 = 'string: "${s}"';
-          break _L11;
+        if ((_v10 is String)) {
+          s = _v10;
+          _v9 = 'string: "${s}"';
+          break _L12;
         }
       }
 {
         late StaticList<dynamic> list;
-        if ((((_v9 is StaticList<dynamic>) && (() { final _let14 = list = _v9; return true; })()) && list.isEmpty)) {
-          _v8 = 'empty list';
-          break _L11;
+        if ((((_v10 is StaticList<dynamic>) && (() { final _let15 = list = _v10; return true; })()) && list.isEmpty)) {
+          _v9 = 'empty list';
+          break _L12;
         }
       }
 {
         late StaticList<dynamic> list;
-        if ((_v9 is StaticList<dynamic>)) {
-          list = _v9;
-          _v8 = 'list of ${list.length}';
-          break _L11;
+        if ((_v10 is StaticList<dynamic>)) {
+          list = _v10;
+          _v9 = 'list of ${list.length}';
+          break _L12;
         }
       }
 {
         if (true) {
-          _v8 = 'unknown: ${value.runtimeType}';
-          break _L11;
+          _v9 = 'unknown: ${value.runtimeType}';
+          break _L12;
         }
       }
     }
   } while (false);
- return _v8; })();
+ return _v9; })();
 }
 
 StaticList<int> buildList() {
-  return (StaticList<int>.of([])..add(1)..add(2)..addAll(StaticList<int>.of([3, 4, 5]))..sort());
+  return (StaticList<int>()..add(1)..add(2)..addAll(StaticList<int>.of([3, 4, 5]))..sort());
 }
 
 StaticStringBuffer buildBuffer() {
@@ -1570,18 +1559,18 @@ StaticStringBuffer buildBuffer() {
 }
 
 StaticList<int> mergeAndFilter(StaticList<int> a, StaticList<int> b, bool includeNegative) {
-  return (() {   final StaticList<int> _v17 = StaticList<int>.of(a);
-  _v17.addAll(b);
-  if (includeNegative)   _v17.add((-1));
-  for (var i = 10; (i <= 12); i = (i + 1))   _v17.add(i);
- return _v17; })();
+  return (() {   final StaticList<int> _v18 = StaticList<int>.of(a);
+  _v18.addAll(b);
+  if (includeNegative)   _v18.add((-1));
+  for (var i = 10; (i <= 12); i = (i + 1))   _v18.add(i);
+ return _v18; })();
 }
 
 StaticMap<String, int> buildScoreMap(StaticList<String> names, bool addBonus) {
-  return (() {   final StaticMap<String, int> _v18 = StaticMap<String, int>.of({});
-  for (var i = 0; (i < names.length); i = (i + 1))   _v18[names[i]] = ((i + 1) * 10);
-  if (addBonus)   _v18['bonus'] = 999;
- return _v18; })();
+  return (() {   final StaticMap<String, int> _v19 = StaticMap<String, int>.of({});
+  for (var i = 0; (i < names.length); i = (i + 1))   _v19[names[i]] = ((i + 1) * 10);
+  if (addBonus)   _v19['bonus'] = 999;
+ return _v19; })();
 }
 
 int parseAndDivide(String a, String b) {
@@ -1620,9 +1609,15 @@ StaticList<B> flatMap<A, B>(StaticList<A> list, TypeFunction1<StaticList<B>, A> 
 
 T findMax<T extends Comparable<dynamic>>(StaticList<T> items) {
   T maxItem = items.first;
-  for (final item in items) {
-    if ((item.compareTo(maxItem) > 0)) {
-      maxItem = item;
+{
+    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final T item = sync_for_iterator.current;
+{
+        if ((item.compareTo(maxItem) > 0)) {
+          maxItem = item;
+        }
+      }
     }
   }
   return maxItem;
@@ -1633,17 +1628,29 @@ R applyTwice<T, R>(T value, TypeFunction1<R, T> fn1, TypeFunction1<R, R> fn2) {
 }
 
 String? findFirst(StaticList<String> items, TypeFunction1<bool, String> test) {
-  for (final item in items) {
-    if (test.closureCall(test, item))     return item;
+{
+    StaticIterator<String> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final String item = sync_for_iterator.current;
+{
+        if (test.closureCall(test, item))         return item;
+      }
+    }
   }
   return null;
 }
 
 StaticList<int> filterWithForIn(StaticList<int> items) {
-  final StaticList<int> result = StaticList<int>.of([]);
-  for (final item in items) {
-    if (((item >= 0) && (item <= 100))) {
-      result.add(item);
+  final StaticList<int> result = StaticList<int>();
+{
+    StaticIterator<int> sync_for_iterator = StaticIterator(items.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final int item = sync_for_iterator.current;
+{
+        if (((item >= 0) && (item <= 100))) {
+          result.add(item);
+        }
+      }
     }
   }
   return result;
@@ -1651,9 +1658,9 @@ StaticList<int> filterWithForIn(StaticList<int> items) {
 
 int collatzSteps(int n) {
   int steps = 0;
-  _L19:
+  _L20:
   do {
-    if ((n == 1))     break _L19;
+    if ((n == 1))     break _L20;
     if (((n % 2) == 0)) {
       n = (n ~/ 2);
     }
@@ -1715,7 +1722,7 @@ String tryCatchFinally(int code) {
 }
 
 String dayType(int day) {
-  _L20: do {
+  _L21: do {
     switch (day) {
       case 1:
       case 7:
@@ -1755,13 +1762,13 @@ void main() {
   staticPrint('\n--- 2. operator 重载 ---');
   final Vector2DValue v1 = Vector2D_new(Vector2DValue(), 3.0, 4.0);
   final Vector2DValue v2 = Vector2D_new(Vector2DValue(), 1.0, 2.0);
-  final Vector2DValue sum = (() { final _r21 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r21.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r21, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue diff = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue scaled = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r23, 2.0); })();
+  final Vector2DValue sum = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue diff = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r23, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue scaled = (() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r24, 2.0); })();
   staticPrint('v1 + v2 = ${sum}');
   staticPrint('v1 - v2 = ${diff}');
   staticPrint('v1 * 2 = ${scaled}');
-  staticPrint('v1.length = ${(() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.vptr['get_length'] as double Function(dynamic))(_r24); })().toStringAsFixed(2)}');
+  staticPrint('v1.length = ${(() { final _r25 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r25.vptr['get_length'] as double Function(dynamic))(_r25); })().toStringAsFixed(2)}');
   staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
   staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
@@ -1778,8 +1785,8 @@ void main() {
   final ResultValue<int> err = Result_new_failure<int>(ResultValue<int>(), 'not found');
   staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
   staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (() { final _r25 = Result_new_success<int>(ResultValue<int>(), 42); return (_r25.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r25, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
-  final String errMsg = (() { final _r26 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r26.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r26, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
+  final String okMsg = (() { final _r26 = Result_new_success<int>(ResultValue<int>(), 42); return (_r26.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r26, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
+  final String errMsg = (() { final _r27 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r27.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r27, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
   staticPrint('okMsg: ${okMsg}');
   staticPrint('errMsg: ${errMsg}');
   staticPrint('\n--- 5. 可选参数 ---');
@@ -1804,15 +1811,21 @@ void main() {
   final int q;
   final int r2;
 {
-    final (int, int) _v9 = divmod(17, 5);
-    q = _v9.$1;
-    r2 = _v9.$2;
+    final (int, int) _v10 = divmod(17, 5);
+    q = _v10.$1;
+    r2 = _v10.$2;
   }
   staticPrint('divmod(17,5): quotient=${q}, remainder=${r2}');
   staticPrint('\n--- 9. pattern matching ---');
-  final StaticList<Object?> values = StaticList<Object?>.of([null, (-5), 42, '', 'hello', StaticList<int>.of([]), StaticList<int>.of([1, 2, 3])]);
-  for (final v in values) {
-    staticPrint('  ${describeValue(v)}');
+  final StaticList<Object?> values = StaticList<Object?>.of([null, (-5), 42, '', 'hello', StaticList<int>(), StaticList<int>.of([1, 2, 3])]);
+{
+    StaticIterator<Object?> sync_for_iterator = StaticIterator(values.iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final Object? v = sync_for_iterator.current;
+{
+        staticPrint('  ${describeValue(v)}');
+      }
+    }
   }
   staticPrint('\n--- 10. 级联操作符 ---');
   final StaticList<int> list = StaticList<int>.of(buildList());
@@ -1899,8 +1912,14 @@ void main() {
   staticPrint('Priority.high: ${Priority}.high');
   staticPrint('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
   staticPrint('low > high: ${Priority_isHigherThan(Priority.low, Priority.high)}');
-  for (final p in const [Priority.low, Priority.medium, Priority.high, Priority.critical]) {
-    staticPrint('  ${Priority_toString(p)}');
+{
+    StaticIterator<Priority> sync_for_iterator = StaticIterator(const [Priority.low, Priority.medium, Priority.high, Priority.critical].iterator);
+    for (; sync_for_iterator.moveNext(); ) {
+      final Priority p = sync_for_iterator.current;
+{
+        staticPrint('  ${Priority_toString(p)}');
+      }
+    }
   }
   staticPrint('GET isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.get)}');
   staticPrint('POST isReadOnly: ${HttpMethod_get_isReadOnly(HttpMethod.post)}');
@@ -1953,7 +1972,7 @@ void main() {
   staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(dynamic))(renderer)}');
   (renderer.vptr['render'] as void Function(dynamic, String))(renderer, 'circle');
   staticPrint('\n--- 30. Pipeline 泛型链 ---');
-  final PipelineValue<int, String> pipeline = (() { final _r28 = (() { final _r27 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r27.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r27, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r28.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r28, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
+  final PipelineValue<int, String> pipeline = (() { final _r29 = (() { final _r28 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r28.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r28, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r29.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r29, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
   staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 42)}');
   staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 12345)}');
   staticPrint('\n--- 31. switch-case ---');
@@ -2008,7 +2027,7 @@ ClosureEnv_anon_0<TNewOutput, TOutput, TInput> ClosureEnv_anon_0_new<TNewOutput,
 TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(dynamic env__, TInput input) {
   final env = env__ as ClosureEnv_anon_0<TNewOutput, TOutput, TInput>;
 
-  return env.next.closureCall(env.next, (() { final _let5 = input; return env.this_._transform.closureCall(env.this_._transform, _let5); })());
+  return env.next.closureCall(env.next, (() { final _let6 = input; return env.this_._transform.closureCall(env.this_._transform, _let6); })());
 }
 
 class ClosureEnv_buildQuery_1 extends TypeFunction1<String, StaticMapEntry<String, String>> {
@@ -2033,7 +2052,7 @@ class ClosureEnv_countDown_2 {
   void call() => ClosureEnv_countDown_2_call(this);
 }
 void ClosureEnv_countDown_2_call(ClosureEnv_countDown_2 env) {
-  final StaticList<String> result = StaticList<String>.of([]);
+  final StaticList<String> result = StaticList<String>();
   for (var i = env.from.value; (i >= 0); i = (i - 1)) {
     smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
     result.add(((i == 0) ? 'Go!' : '${i}...'));
