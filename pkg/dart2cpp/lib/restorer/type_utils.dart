@@ -97,6 +97,36 @@ mixin _TypeUtils on _DartRestorerBase {
     return parts.join(', ');
   }
 
+  /// 还原参数列表，对 dynamic（AnyGC）参数自动装箱基本类型
+  /// [target] 是目标函数的 FunctionNode，用于获取参数类型信息
+  String _restoreArgsForTarget(FunctionNode target, Arguments args) {
+    final parts = <String>[];
+    final pos = target.positionalParameters;
+    // positional
+    for (var i = 0; i < args.positional.length; i++) {
+      final argExpr = _restoreExpr(args.positional[i]);
+      if (i < pos.length) {
+        final argType = _getExpressionDartType(args.positional[i]);
+        parts.add(_maybeBoxForAnyGC(pos[i].type, argExpr, argType));
+      } else {
+        parts.add(argExpr);
+      }
+    }
+    // named
+    for (final n in args.named) {
+      final argExpr = _restoreExpr(n.value);
+      // 查找目标参数类型
+      final targetParam = target.namedParameters.where((p) => p.name == n.name).firstOrNull;
+      if (targetParam != null) {
+        final argType = _getExpressionDartType(n.value);
+        parts.add('${n.name}: ${_maybeBoxForAnyGC(targetParam.type, argExpr, argType)}');
+      } else {
+        parts.add('${n.name}: $argExpr');
+      }
+    }
+    return parts.join(', ');
+  }
+
   /// 按目标 lowered 静态函数的「全 positional」ABI 还原实参列表：
   ///   [positional_0, positional_1, ..., named_0, named_1, ...]
   ///
@@ -112,7 +142,9 @@ mixin _TypeUtils on _DartRestorerBase {
     final pos = target.positionalParameters;
     for (var i = 0; i < pos.length; i++) {
       if (i < args.positional.length) {
-        parts.add(_restoreExpr(args.positional[i]));
+        final argExpr = _restoreExpr(args.positional[i]);
+        final argType = _getExpressionDartType(args.positional[i]);
+        parts.add(_maybeBoxForAnyGC(pos[i].type, argExpr, argType));
       } else {
         final p = pos[i];
         parts.add(p.initializer != null
@@ -129,7 +161,9 @@ mixin _TypeUtils on _DartRestorerBase {
       for (final p in target.namedParameters) {
         final name = p.name;
         if (name != null && supplied.containsKey(name)) {
-          parts.add(_restoreExpr(supplied[name]!));
+          final argExpr = _restoreExpr(supplied[name]!);
+          final argType = _getExpressionDartType(supplied[name]!);
+          parts.add(_maybeBoxForAnyGC(p.type, argExpr, argType));
         } else {
           parts.add(p.initializer != null
               ? _restoreExpr(p.initializer!)
@@ -139,6 +173,17 @@ mixin _TypeUtils on _DartRestorerBase {
     }
 
     return parts.join(', ');
+  }
+
+  /// 从表达式中提取 DartType（用于自动装箱判断）
+  /// 支持常见的表达式类型：变量引用等
+  /// 对于字面量，返回 null 让调用方使用表达式模式匹配
+  DartType? _getExpressionDartType(Expression expr) {
+    if (expr is VariableGet) {
+      return expr.promotedType ?? expr.variable.type;
+    }
+    // 其他表达式返回 null，由 _maybeBoxForAnyGC 使用表达式模式匹配
+    return null;
   }
 
   // ---- Supertype ----
@@ -214,6 +259,14 @@ mixin _TypeUtils on _DartRestorerBase {
       return '(${parts.join(', ')})$suffix';
     }
     return 'dynamic';
+  }
+
+  /// 仅在函数参数位置使用：将 DynamicType 映射为 AnyGC（而非 dynamic）
+  /// 其他类型保持与 _restoreType 相同的行为
+  String _restoreParamType(DartType type) {
+    if (type is DynamicType) return 'AnyGC';
+    // 其他类型委托给 _restoreType
+    return _restoreType(type);
   }
 
   /// 为 async 函数计算包装后的返回类型字符串。

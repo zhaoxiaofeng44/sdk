@@ -47,7 +47,7 @@ class Comparable2Value<T> extends VPtr {
   Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
-Comparable2Value<T> Comparable2_new<T>(dynamic this__) {
+Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
   final this_ = this__ as Comparable2Value<T>;
   return this_;
 }
@@ -56,58 +56,58 @@ int Comparable2_compareTo<T>(dynamic this_, T other) {
   throw UnimplementedError('Comparable2.compareTo is abstract');
 }
 
-bool Comparable2_operatorLt<T>(dynamic this__, T other) {
+bool Comparable2_operatorLt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) < 0);
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) < 0);
 }
 
-bool Comparable2_operatorGt<T>(dynamic this__, T other) {
+bool Comparable2_operatorGt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) > 0);
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) > 0);
 }
 
-bool Comparable2_operatorLte<T>(dynamic this__, T other) {
+bool Comparable2_operatorLte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) <= 0);
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) <= 0);
 }
 
-bool Comparable2_operatorGte<T>(dynamic this__, T other) {
+bool Comparable2_operatorGte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) >= 0);
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) >= 0);
 }
 
 
 // mixin Printable → static functions for delegation
-String Printable_toPrettyString(dynamic this__) {
-  final this_ = this__;
-  return '[${(this_.vptr['get_label'] as String Function(dynamic))(this_)}]';
+String Printable_toPrettyString(AnyGC this__) {
+  final dynamic this_ = this__;
+  return '[${(this_.vptr['get_label'] as String Function(AnyGC))(this_)}]';
 }
 
 
 // mixin Serializable → static functions for delegation
-String Serializable_toJson<T>(dynamic this__) {
-  final this_ = this__;
-  return '{"data": "${(this_.vptr['serialize'] as T Function(dynamic))(this_)}"}';
+String Serializable_toJson<T>(AnyGC this__) {
+  final dynamic this_ = this__;
+  return '{"data": "${(this_.vptr['serialize'] as T Function(AnyGC))(this_)}"}';
 }
 
 
 // mixin Cacheable → static functions for delegation
 final StaticMap<String, dynamic> Cacheable__cache = StaticMap<String, dynamic>.of({});
-void Cacheable_cacheValue<K>(dynamic this__, dynamic value) {
-  final this_ = this__;
-  Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(dynamic))(this_)}'] = value;
+void Cacheable_cacheValue<K>(AnyGC this__, dynamic value) {
+  final dynamic this_ = this__;
+  Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(AnyGC))(this_)}'] = value;
 }
 
-dynamic Cacheable_getCachedValue<K>(dynamic this__) {
-  final this_ = this__;
-  return Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(dynamic))(this_)}'];
+dynamic Cacheable_getCachedValue<K>(AnyGC this__) {
+  final dynamic this_ = this__;
+  return Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(AnyGC))(this_)}'];
 }
 
 
 // mixin Validatable → static functions for delegation
-bool Validatable_get_isValid(dynamic this__) {
-  final this_ = this__;
-  return (this_.vptr['validate'] as StaticList<String> Function(dynamic))(this_).isEmpty;
+bool Validatable_get_isValid(AnyGC this__) {
+  final dynamic this_ = this__;
+  return (this_.vptr['validate'] as StaticList<String> Function(AnyGC))(this_).isEmpty;
 }
 
 
@@ -146,39 +146,39 @@ class EntityValue<ID> extends Entity_Object_Printable_CacheableValue<ID> {
   }
 }
 
-EntityValue<ID> Entity_new<ID>(dynamic this__, ID id, String name) {
+EntityValue<ID> Entity_new<ID>(AnyGC this__, ID id, String name) {
   final this_ = this__ as EntityValue<ID>;
   this_.id = id;
   this_.name = name;
   return this_;
 }
 
-String Entity_get_label<ID>(dynamic this__) {
+String Entity_get_label<ID>(AnyGC this__) {
   final this_ = this__ as EntityValue<ID>;
   return '${this_.name}(${this_.id})';
 }
 
-ID Entity_get_cacheKey<ID>(dynamic this__) {
+ID Entity_get_cacheKey<ID>(AnyGC this__) {
   final this_ = this__ as EntityValue<ID>;
   return this_.id;
 }
 
-String Entity_toString<ID>(dynamic this__) {
+String Entity_toString<ID>(AnyGC this__) {
   final this_ = this__ as EntityValue<ID>;
   return 'Entity(${this_.id}, ${this_.name})';
 }
 
-String Entity_toPrettyString<ID>(dynamic this__) {
+String Entity_toPrettyString<ID>(AnyGC this__) {
   final this_ = this__ as EntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-void Entity_cacheValue<ID>(dynamic this__, dynamic value) {
+void Entity_cacheValue<ID>(AnyGC this__, dynamic value) {
   final this_ = this__ as EntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic Entity_getCachedValue<ID>(dynamic this__) {
+dynamic Entity_getCachedValue<ID>(AnyGC this__) {
   final this_ = this__ as EntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
@@ -219,7 +219,7 @@ class TimestampedEntityValue<ID> extends EntityValue<ID> {
   }
 }
 
-TimestampedEntityValue<ID> TimestampedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
+TimestampedEntityValue<ID> TimestampedEntity_new<ID>(AnyGC this__, ID id, String name, int createdAt, int updatedAt) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   Entity_new<ID>(this_, id, name);
   this_.createdAt = createdAt;
@@ -227,37 +227,37 @@ TimestampedEntityValue<ID> TimestampedEntity_new<ID>(dynamic this__, ID id, Stri
   return this_;
 }
 
-StaticDuration TimestampedEntity_get_age<ID>(dynamic this__) {
+StaticDuration TimestampedEntity_get_age<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   return StaticDuration(milliseconds: (this_.updatedAt - this_.createdAt));
 }
 
-String TimestampedEntity_get_label<ID>(dynamic this__) {
+String TimestampedEntity_get_label<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as StaticDuration Function(dynamic))(this_).inMilliseconds}ms)';
+  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as StaticDuration Function(AnyGC))(this_).inMilliseconds}ms)';
 }
 
-String TimestampedEntity_toPrettyString<ID>(dynamic this__) {
+String TimestampedEntity_toPrettyString<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-ID TimestampedEntity_get_cacheKey<ID>(dynamic this__) {
+ID TimestampedEntity_get_cacheKey<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   return Entity_get_cacheKey<ID>(this_);
 }
 
-void TimestampedEntity_cacheValue<ID>(dynamic this__, dynamic value) {
+void TimestampedEntity_cacheValue<ID>(AnyGC this__, dynamic value) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic TimestampedEntity_getCachedValue<ID>(dynamic this__) {
+dynamic TimestampedEntity_getCachedValue<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
 
-String TimestampedEntity_toString<ID>(dynamic this__) {
+String TimestampedEntity_toString<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
   return Entity_toString<ID>(this_);
 }
@@ -306,7 +306,7 @@ class VersionedEntityValue<ID> extends VersionedEntity_TimestampedEntity_Seriali
   }
 }
 
-VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String name, int createdAt, int updatedAt) {
+VersionedEntityValue<ID> VersionedEntity_new<ID>(AnyGC this__, ID id, String name, int createdAt, int updatedAt) {
   final this_ = this__ as VersionedEntityValue<ID>;
   TimestampedEntity_new<ID>(this_, id, name, createdAt, updatedAt);
   this_._version = 1;
@@ -314,28 +314,28 @@ VersionedEntityValue<ID> VersionedEntity_new<ID>(dynamic this__, ID id, String n
   return this_;
 }
 
-int VersionedEntity_get_version<ID>(dynamic this__) {
+int VersionedEntity_get_version<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return this_._version;
 }
 
-void VersionedEntity_bump<ID>(dynamic this__, String change) {
+void VersionedEntity_bump<ID>(AnyGC this__, String change) {
   final this_ = this__ as VersionedEntityValue<ID>;
   this_._version = (this_._version + 1);
   this_._changelog.add('v${this_._version}: ${change}');
 }
 
-StaticList<String> VersionedEntity_get_changelog<ID>(dynamic this__) {
+StaticList<String> VersionedEntity_get_changelog<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return StaticList<String>.unmodifiable(this_._changelog);
 }
 
-String VersionedEntity_serialize<ID>(dynamic this__) {
+String VersionedEntity_serialize<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return '${this_.id}:${this_.name}:v${this_._version}';
 }
 
-StaticList<String> VersionedEntity_validate<ID>(dynamic this__) {
+StaticList<String> VersionedEntity_validate<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   final StaticList<String> errors = StaticList<String>();
   if (this_.name.isEmpty)   errors.add('name is empty');
@@ -343,47 +343,47 @@ StaticList<String> VersionedEntity_validate<ID>(dynamic this__) {
   return errors;
 }
 
-String VersionedEntity_get_label<ID>(dynamic this__) {
+String VersionedEntity_get_label<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return '${this_.name}(v${this_._version})';
 }
 
-String VersionedEntity_toPrettyString<ID>(dynamic this__) {
+String VersionedEntity_toPrettyString<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Printable_toPrettyString(this_);
 }
 
-ID VersionedEntity_get_cacheKey<ID>(dynamic this__) {
+ID VersionedEntity_get_cacheKey<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Entity_get_cacheKey<ID>(this_);
 }
 
-void VersionedEntity_cacheValue<ID>(dynamic this__, dynamic value) {
+void VersionedEntity_cacheValue<ID>(AnyGC this__, dynamic value) {
   final this_ = this__ as VersionedEntityValue<ID>;
   Cacheable_cacheValue<ID>(this_, value);
 }
 
-dynamic VersionedEntity_getCachedValue<ID>(dynamic this__) {
+dynamic VersionedEntity_getCachedValue<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Cacheable_getCachedValue<ID>(this_);
 }
 
-String VersionedEntity_toString<ID>(dynamic this__) {
+String VersionedEntity_toString<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Entity_toString<ID>(this_);
 }
 
-StaticDuration VersionedEntity_get_age<ID>(dynamic this__) {
+StaticDuration VersionedEntity_get_age<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return TimestampedEntity_get_age<ID>(this_);
 }
 
-String VersionedEntity_toJson<ID>(dynamic this__) {
+String VersionedEntity_toJson<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Serializable_toJson<String>(this_);
 }
 
-bool VersionedEntity_get_isValid<ID>(dynamic this__) {
+bool VersionedEntity_get_isValid<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   return Validatable_get_isValid(this_);
 }
@@ -429,7 +429,7 @@ class MoneyValue extends Money_Comparable2_PrintableValue {
   }
 }
 
-MoneyValue Money_new(dynamic this__, int cents, [String currency = 'USD']) {
+MoneyValue Money_new(AnyGC this__, int cents, [String currency = 'USD']) {
   final this_ = this__ as MoneyValue;
   Comparable2_new<MoneyValue>(this_);
   this_.cents = cents;
@@ -437,7 +437,7 @@ MoneyValue Money_new(dynamic this__, int cents, [String currency = 'USD']) {
   return this_;
 }
 
-MoneyValue Money_new_fromDollars(dynamic this__, double dollars, [String currency = 'USD']) {
+MoneyValue Money_new_fromDollars(AnyGC this__, double dollars, [String currency = 'USD']) {
   final this_ = this__ as MoneyValue;
   Comparable2_new<MoneyValue>(this_);
   this_.cents = (dollars * 100).round();
@@ -445,64 +445,64 @@ MoneyValue Money_new_fromDollars(dynamic this__, double dollars, [String currenc
   return this_;
 }
 
-MoneyValue Money_operatorPlus(dynamic this__, MoneyValue other) {
+MoneyValue Money_operatorPlus(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   if (!((this_.currency == other.currency)))   throw DartArgumentError('Currency mismatch');
   return Money_new(GC.allocateLocal(MoneyValue()), (this_.cents + other.cents), this_.currency);
 }
 
-MoneyValue Money_operatorMinus(dynamic this__, MoneyValue other) {
+MoneyValue Money_operatorMinus(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   if (!((this_.currency == other.currency)))   throw DartArgumentError('Currency mismatch');
   return Money_new(GC.allocateLocal(MoneyValue()), (this_.cents - other.cents), this_.currency);
 }
 
-MoneyValue Money_operatorStar(dynamic this__, int factor) {
+MoneyValue Money_operatorStar(AnyGC this__, int factor) {
   final this_ = this__ as MoneyValue;
   return Money_new(GC.allocateLocal(MoneyValue()), (this_.cents * factor), this_.currency);
 }
 
-MoneyValue Money_operatorNeg(dynamic this__) {
+MoneyValue Money_operatorNeg(AnyGC this__) {
   final this_ = this__ as MoneyValue;
   return Money_new(GC.allocateLocal(MoneyValue()), (-this_.cents), this_.currency);
 }
 
-int Money_compareTo(dynamic this__, MoneyValue other) {
+int Money_compareTo(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return (this_.cents - other.cents);
 }
 
-String Money_get_label(dynamic this__) {
+String Money_get_label(AnyGC this__) {
   final this_ = this__ as MoneyValue;
   return '\$${(this_.cents / 100).toStringAsFixed(2)} ${this_.currency}';
 }
 
-String Money_toString(dynamic this__) {
+String Money_toString(AnyGC this__) {
   final this_ = this__ as MoneyValue;
-  return (this_.vptr['get_label'] as String Function(dynamic))(this_);
+  return (this_.vptr['get_label'] as String Function(AnyGC))(this_);
 }
 
-bool Money_operatorLt(dynamic this__, MoneyValue other) {
+bool Money_operatorLt(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return Comparable2_operatorLt<MoneyValue>(this_, other);
 }
 
-bool Money_operatorGt(dynamic this__, MoneyValue other) {
+bool Money_operatorGt(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return Comparable2_operatorGt<MoneyValue>(this_, other);
 }
 
-bool Money_operatorLte(dynamic this__, MoneyValue other) {
+bool Money_operatorLte(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return Comparable2_operatorLte<MoneyValue>(this_, other);
 }
 
-bool Money_operatorGte(dynamic this__, MoneyValue other) {
+bool Money_operatorGte(AnyGC this__, MoneyValue other) {
   final this_ = this__ as MoneyValue;
   return Comparable2_operatorGte<MoneyValue>(this_, other);
 }
 
-String Money_toPrettyString(dynamic this__) {
+String Money_toPrettyString(AnyGC this__) {
   final this_ = this__ as MoneyValue;
   return Printable_toPrettyString(this_);
 }
@@ -532,19 +532,19 @@ class ConfigValue extends VPtr {
   }
 }
 
-ConfigValue Config_new(dynamic this__, StaticMap<String, dynamic> _data) {
+ConfigValue Config_new(AnyGC this__, StaticMap<String, dynamic> _data) {
   final this_ = this__ as ConfigValue;
   this_._data = _data;
   return this_;
 }
 
-ConfigValue Config_new_empty(dynamic this__) {
+ConfigValue Config_new_empty(AnyGC this__) {
   final this_ = this__ as ConfigValue;
   this_._data = StaticMap<String, dynamic>.of({});
   return this_;
 }
 
-ConfigValue Config_new_fromPairs(dynamic this__, StaticList<StaticList<dynamic>> pairs) {
+ConfigValue Config_new_fromPairs(AnyGC this__, StaticList<StaticList<dynamic>> pairs) {
   final this_ = this__ as ConfigValue;
   this_._data = (() {   final StaticMap<String, dynamic> _v1 = StaticMap<String, dynamic>.of({});
 {
@@ -564,27 +564,27 @@ ConfigValue Config_new_withDefaults(StaticMap<String, dynamic> overrides) {
   return Config_new(GC.allocateLocal(ConfigValue()), defaults);
 }
 
-dynamic Config_operatorIndex(dynamic this__, String key) {
+dynamic Config_operatorIndex(AnyGC this__, String key) {
   final this_ = this__ as ConfigValue;
   return this_._data[key];
 }
 
-void Config_operatorIndexSet(dynamic this__, String key, dynamic value) {
+void Config_operatorIndexSet(AnyGC this__, String key, AnyGC value) {
   final this_ = this__ as ConfigValue;
   (() { final _let2 = this_._data; return (() { final _let3 = key; return (() { final _let4 = value; return (() { final _let5 = _let2[_let3] = _let4; return _let4; })(); })(); })(); })();
 }
 
-bool Config_containsKey(dynamic this__, String key) {
+bool Config_containsKey(AnyGC this__, String key) {
   final this_ = this__ as ConfigValue;
   return this_._data.containsKey(key);
 }
 
-int Config_get_length(dynamic this__) {
+int Config_get_length(AnyGC this__) {
   final this_ = this__ as ConfigValue;
   return this_._data.length;
 }
 
-String Config_toString(dynamic this__) {
+String Config_toString(AnyGC this__) {
   final this_ = this__ as ConfigValue;
   final StaticList<String> sorted = (StaticList.of(this_._data.keys.toList())..sort());
   final Iterable<String> entries = sorted.map(ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0()), this_));
@@ -613,17 +613,17 @@ class EventBusValue extends VPtr {
   }
 }
 
-EventBusValue EventBus_new(dynamic this__) {
+EventBusValue EventBus_new(AnyGC this__) {
   final this_ = this__ as EventBusValue;
   return this_;
 }
 
-void EventBus_on(dynamic this__, TypeFunction1<void, String> listener) {
+void EventBus_on(AnyGC this__, TypeFunction1<void, String> listener) {
   final this_ = this__ as EventBusValue;
   this_._listeners.add(listener);
 }
 
-void EventBus_emit(dynamic this__, String event) {
+void EventBus_emit(AnyGC this__, String event) {
   final this_ = this__ as EventBusValue;
 {
     StaticIterator<TypeFunction1<void, String>> sync_for_iterator = StaticIterator(this_._listeners.iterator);
@@ -650,7 +650,7 @@ class DrawableValue extends VPtr {
   }
 }
 
-DrawableValue Drawable_new(dynamic this__) {
+DrawableValue Drawable_new(AnyGC this__) {
   final this_ = this__ as DrawableValue;
   return this_;
 }
@@ -673,7 +673,7 @@ class ResizableValue extends VPtr {
   }
 }
 
-ResizableValue Resizable_new(dynamic this__) {
+ResizableValue Resizable_new(AnyGC this__) {
   final this_ = this__ as ResizableValue;
   return this_;
 }
@@ -696,7 +696,7 @@ class ClickableValue extends VPtr {
   }
 }
 
-ClickableValue Clickable_new(dynamic this__) {
+ClickableValue Clickable_new(AnyGC this__) {
   final this_ = this__ as ClickableValue;
   return this_;
 }
@@ -725,28 +725,28 @@ class WidgetValue extends VPtr implements DrawableValue, ResizableValue, Clickab
   }
 }
 
-WidgetValue Widget_new(dynamic this__) {
+WidgetValue Widget_new(AnyGC this__) {
   final this_ = this__ as WidgetValue;
   return this_;
 }
 
-void Widget_draw(dynamic this__) {
+void Widget_draw(AnyGC this__) {
   final this_ = this__ as WidgetValue;
   this_._state = 'drawn';
 }
 
-void Widget_resize(dynamic this__, double factor) {
+void Widget_resize(AnyGC this__, double factor) {
   final this_ = this__ as WidgetValue;
   this_._scale = (this_._scale * factor);
 }
 
-void Widget_onClick(dynamic this__) {
+void Widget_onClick(AnyGC this__) {
   final this_ = this__ as WidgetValue;
   this_._clickCount = (this_._clickCount + 1);
   this_._state = 'clicked(${this_._clickCount})';
 }
 
-String Widget_get_info(dynamic this__) {
+String Widget_get_info(AnyGC this__) {
   final this_ = this__ as WidgetValue;
   return 'Widget(state=${this_._state}, scale=${this_._scale.toStringAsFixed(1)}, clicks=${this_._clickCount})';
 }
@@ -786,34 +786,34 @@ class PairValue<A, B> extends VPtr {
   }
 }
 
-PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
+PairValue<A, B> Pair_new<A, B>(AnyGC this__, A first, B second) {
   final this_ = this__ as PairValue<A, B>;
   this_.first = first;
   this_.second = second;
   return this_;
 }
 
-PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
+PairValue<B, A> Pair_swap<A, B>(AnyGC this__) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<B, A>(GC.allocateLocal(PairValue<B, A>()), this_.second, this_.first);
 }
 
-PairValue<C, B> Pair_mapFirst<A, B, C>(dynamic this__, TypeFunction1<C, A> transform) {
+PairValue<C, B> Pair_mapFirst<A, B, C>(AnyGC this__, TypeFunction1<C, A> transform) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<C, B>(GC.allocateLocal(PairValue<C, B>()), transform.closureCall(transform, this_.first), this_.second);
 }
 
-PairValue<A, C> Pair_mapSecond<A, B, C>(dynamic this__, TypeFunction1<C, B> transform) {
+PairValue<A, C> Pair_mapSecond<A, B, C>(AnyGC this__, TypeFunction1<C, B> transform) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<A, C>(GC.allocateLocal(PairValue<A, C>()), this_.first, transform.closureCall(transform, this_.second));
 }
 
-R Pair_fold<A, B, R>(dynamic this__, TypeFunction2<R, A, B> combine) {
+R Pair_fold<A, B, R>(AnyGC this__, TypeFunction2<R, A, B> combine) {
   final this_ = this__ as PairValue<A, B>;
   return combine.closureCall(combine, this_.first, this_.second);
 }
 
-String Pair_toString<A, B>(dynamic this__) {
+String Pair_toString<A, B>(AnyGC this__) {
   final this_ = this__ as PairValue<A, B>;
   return 'Pair(${this_.first}, ${this_.second})';
 }
@@ -852,34 +852,34 @@ class TripleValue<A, B, C> extends PairValue<A, B> {
   }
 }
 
-TripleValue<A, B, C> Triple_new<A, B, C>(dynamic this__, A first, B second, C third) {
+TripleValue<A, B, C> Triple_new<A, B, C>(AnyGC this__, A first, B second, C third) {
   final this_ = this__ as TripleValue<A, B, C>;
   Pair_new<A, B>(this_, first, second);
   this_.third = third;
   return this_;
 }
 
-String Triple_toString<A, B, C>(dynamic this__) {
+String Triple_toString<A, B, C>(AnyGC this__) {
   final this_ = this__ as TripleValue<A, B, C>;
   return 'Triple(${this_.first}, ${this_.second}, ${this_.third})';
 }
 
-PairValue<B, A> Triple_swap<A, B, C>(dynamic this__) {
+PairValue<B, A> Triple_swap<A, B, C>(AnyGC this__) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_swap<A, B>(this_);
 }
 
-PairValue<C, B> Triple_mapFirst<A, B, C>(dynamic this__, TypeFunction1<C, A> transform) {
+PairValue<C, B> Triple_mapFirst<A, B, C>(AnyGC this__, TypeFunction1<C, A> transform) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapFirst<A, B, C>(this_, transform);
 }
 
-PairValue<A, C> Triple_mapSecond<A, B, C>(dynamic this__, TypeFunction1<C, B> transform) {
+PairValue<A, C> Triple_mapSecond<A, B, C>(AnyGC this__, TypeFunction1<C, B> transform) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_mapSecond<A, B, C>(this_, transform);
 }
 
-R Triple_fold<A, B, C, R>(dynamic this__, TypeFunction2<R, A, B> combine) {
+R Triple_fold<A, B, C, R>(AnyGC this__, TypeFunction2<R, A, B> combine) {
   final this_ = this__ as TripleValue<A, B, C>;
   return Pair_fold<A, B, R>(this_, combine);
 }
@@ -910,18 +910,18 @@ class StringBuilderValue extends VPtr {
   }
 }
 
-StringBuilderValue StringBuilder_new(dynamic this__) {
+StringBuilderValue StringBuilder_new(AnyGC this__) {
   final this_ = this__ as StringBuilderValue;
   return this_;
 }
 
-StringBuilderValue StringBuilder_withSeparator(dynamic this__, String sep) {
+StringBuilderValue StringBuilder_withSeparator(AnyGC this__, String sep) {
   final this_ = this__ as StringBuilderValue;
   this_._separator = sep;
   return this_;
 }
 
-StringBuilderValue StringBuilder_add(dynamic this__, String text) {
+StringBuilderValue StringBuilder_add(AnyGC this__, String text) {
   final this_ = this__ as StringBuilderValue;
   if ((this_._buf.isNotEmpty && this_._separator.isNotEmpty)) {
     this_._buf.write(this_._separator);
@@ -930,26 +930,26 @@ StringBuilderValue StringBuilder_add(dynamic this__, String text) {
   return this_;
 }
 
-StringBuilderValue StringBuilder_addAll(dynamic this__, StaticList<String> texts) {
+StringBuilderValue StringBuilder_addAll(AnyGC this__, StaticList<String> texts) {
   final this_ = this__ as StringBuilderValue;
 {
     StaticIterator<String> sync_for_iterator = StaticIterator(texts.iterator);
     for (; sync_for_iterator.moveNext(); ) {
       final String t = sync_for_iterator.current;
 {
-        (this_.vptr['add'] as StringBuilderValue Function(dynamic, String))(this_, t);
+        (this_.vptr['add'] as StringBuilderValue Function(AnyGC, String))(this_, t);
       }
     }
   }
   return this_;
 }
 
-int StringBuilder_get_length(dynamic this__) {
+int StringBuilder_get_length(AnyGC this__) {
   final this_ = this__ as StringBuilderValue;
   return this_._buf.length;
 }
 
-String StringBuilder_toString(dynamic this__) {
+String StringBuilder_toString(AnyGC this__) {
   final this_ = this__ as StringBuilderValue;
   return this_._buf.toString();
 }
@@ -977,7 +977,7 @@ class AppErrorValue extends VPtr {
   }
 }
 
-AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErrorValue? cause = null]) {
+AppErrorValue AppError_new(AnyGC this__, String message, String code, [AppErrorValue? cause = null]) {
   final this_ = this__ as AppErrorValue;
   this_.message = message;
   this_.code = code;
@@ -985,7 +985,7 @@ AppErrorValue AppError_new(dynamic this__, String message, String code, [AppErro
   return this_;
 }
 
-String AppError_toString(dynamic this__) {
+String AppError_toString(AnyGC this__) {
   final this_ = this__ as AppErrorValue;
   final StaticList<String> chain = StaticList<String>();
   AppErrorValue? current = this_;
@@ -1031,45 +1031,45 @@ class DataPipelineValue<T> extends VPtr {
   }
 }
 
-DataPipelineValue<T> DataPipeline_new<T>(dynamic this__, StaticList<T> _data) {
+DataPipelineValue<T> DataPipeline_new<T>(AnyGC this__, StaticList<T> _data) {
   final this_ = this__ as DataPipelineValue<T>;
   this_._data = _data;
   return this_;
 }
 
-DataPipelineValue<T> DataPipeline_where<T>(dynamic this__, TypeFunction1<bool, T> test) {
+DataPipelineValue<T> DataPipeline_where<T>(AnyGC this__, TypeFunction1<bool, T> test) {
   final this_ = this__ as DataPipelineValue<T>;
   return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList.of(this_._data.where(test).toList()));
 }
 
-DataPipelineValue<R> DataPipeline_map<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
+DataPipelineValue<R> DataPipeline_map<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as DataPipelineValue<T>;
   return DataPipeline_new<R>(GC.allocateLocal(DataPipelineValue<R>()), StaticList.of(this_._data.map(transform).toList()));
 }
 
-DataPipelineValue<T> DataPipeline_sorted<T>(dynamic this__, TypeFunction2<int, T, T> compare) {
+DataPipelineValue<T> DataPipeline_sorted<T>(AnyGC this__, TypeFunction2<int, T, T> compare) {
   final this_ = this__ as DataPipelineValue<T>;
   final StaticList<T> copy = StaticList<T>.of(this_._data);
   copy.sort(compare);
   return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), copy);
 }
 
-DataPipelineValue<T> DataPipeline_take<T>(dynamic this__, int count) {
+DataPipelineValue<T> DataPipeline_take<T>(AnyGC this__, int count) {
   final this_ = this__ as DataPipelineValue<T>;
   return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList.of(this_._data.take(count).toList()));
 }
 
-R DataPipeline_fold<T, R>(dynamic this__, R initial, TypeFunction2<R, R, T> combine) {
+R DataPipeline_fold<T, R>(AnyGC this__, R initial, TypeFunction2<R, R, T> combine) {
   final this_ = this__ as DataPipelineValue<T>;
   return this_._data.fold(initial, combine);
 }
 
-StaticList<T> DataPipeline_toList<T>(dynamic this__) {
+StaticList<T> DataPipeline_toList<T>(AnyGC this__) {
   final this_ = this__ as DataPipelineValue<T>;
   return StaticList<T>.unmodifiable(this_._data);
 }
 
-String DataPipeline_toString<T>(dynamic this__) {
+String DataPipeline_toString<T>(AnyGC this__) {
   final this_ = this__ as DataPipelineValue<T>;
   return 'Pipeline(${this_._data})';
 }
@@ -1094,7 +1094,7 @@ class BoundedValueValue extends VPtr {
   }
 }
 
-BoundedValueValue BoundedValue_new(dynamic this__, double _value, double _min, double _max) {
+BoundedValueValue BoundedValue_new(AnyGC this__, double _value, double _min, double _max) {
   final this_ = this__ as BoundedValueValue;
   this_._value = _value;
   this_._min = _min;
@@ -1103,29 +1103,29 @@ BoundedValueValue BoundedValue_new(dynamic this__, double _value, double _min, d
   return this_;
 }
 
-double BoundedValue_get_value(dynamic this__) {
+double BoundedValue_get_value(AnyGC this__) {
   final this_ = this__ as BoundedValueValue;
   return this_._value;
 }
 
-void BoundedValue_set_value(dynamic this__, double v) {
+void BoundedValue_set_value(AnyGC this__, double v) {
   final this_ = this__ as BoundedValueValue;
   this_._value = v;
   BoundedValue__clamp(this_);
 }
 
-void BoundedValue__clamp(dynamic this__) {
+void BoundedValue__clamp(AnyGC this__) {
   final this_ = this__ as BoundedValueValue;
   if ((this_._value < this_._min))   this_._value = this_._min;
   if ((this_._value > this_._max))   this_._value = this_._max;
 }
 
-BoundedValueValue BoundedValue_operatorPlus(dynamic this__, double delta) {
+BoundedValueValue BoundedValue_operatorPlus(AnyGC this__, double delta) {
   final this_ = this__ as BoundedValueValue;
   return BoundedValue_new(GC.allocateLocal(BoundedValueValue()), (this_._value + delta), this_._min, this_._max);
 }
 
-String BoundedValue_toString(dynamic this__) {
+String BoundedValue_toString(AnyGC this__) {
   final this_ = this__ as BoundedValueValue;
   return 'BoundedValue(${this_._value}, min=${this_._min}, max=${this_._max})';
 }
@@ -1145,7 +1145,7 @@ class MathUtilsValue extends VPtr {
 
 const double MathUtils_pi = 3.14159265358979;
 int MathUtils__callCount = 0;
-MathUtilsValue MathUtils_new(dynamic this__) {
+MathUtilsValue MathUtils_new(AnyGC this__) {
   final this_ = this__ as MathUtilsValue;
   return this_;
 }
@@ -1178,25 +1178,25 @@ double MathUtils_lerp(double a, double b, double t) {
 
 
 // mixin Loggable → static functions for delegation
-void Loggable_log(dynamic this__, String message) {
-  final this_ = this__;
+void Loggable_log(AnyGC this__, String message) {
+  final dynamic this_ = this__;
   this_._logs.add(message);
 }
 
-StaticList<String> Loggable_get_logs(dynamic this__) {
-  final this_ = this__;
+StaticList<String> Loggable_get_logs(AnyGC this__) {
+  final dynamic this_ = this__;
   return StaticList<String>.unmodifiable(this_._logs);
 }
 
 
 // mixin Observable → static functions for delegation
-void Observable_observe<T>(dynamic this__, TypeFunction1<void, T> callback) {
-  final this_ = this__;
+void Observable_observe<T>(AnyGC this__, TypeFunction1<void, T> callback) {
+  final dynamic this_ = this__;
   this_._observers.add(callback);
 }
 
-void Observable_notify<T>(dynamic this__, T value) {
-  final this_ = this__;
+void Observable_notify<T>(AnyGC this__, T value) {
+  final dynamic this_ = this__;
 {
     StaticIterator<TypeFunction1<void, T>> sync_for_iterator = StaticIterator(this_._observers.iterator);
     for (; sync_for_iterator.moveNext(); ) {
@@ -1245,50 +1245,50 @@ class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValu
   }
 }
 
-ReactiveStoreValue<V> ReactiveStore_new<V>(dynamic this__) {
+ReactiveStoreValue<V> ReactiveStore_new<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
   return this_;
 }
 
-V? ReactiveStore_get<V>(dynamic this__, String key) {
+V? ReactiveStore_get<V>(AnyGC this__, String key) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.vptr['log'] as void Function(dynamic, String))(this_, 'get: ${key}');
+  (this_.vptr['log'] as void Function(AnyGC, String))(this_, 'get: ${key}');
   return this_._store[key];
 }
 
-void ReactiveStore_set<V>(dynamic this__, String key, V value) {
+void ReactiveStore_set<V>(AnyGC this__, String key, V value) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.vptr['log'] as void Function(dynamic, String))(this_, 'set: ${key}=${value}');
+  (this_.vptr['log'] as void Function(AnyGC, String))(this_, 'set: ${key}=${value}');
   this_._store[key] = value;
-  (this_.vptr['notify'] as void Function(dynamic, V))(this_, value);
+  (this_.vptr['notify'] as void Function(AnyGC, V))(this_, value);
 }
 
-int ReactiveStore_get_size<V>(dynamic this__) {
+int ReactiveStore_get_size<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
   return this_._store.length;
 }
 
-String ReactiveStore_toString<V>(dynamic this__) {
+String ReactiveStore_toString<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
   return 'Store(${this_._store})';
 }
 
-void ReactiveStore_log<V>(dynamic this__, String message) {
+void ReactiveStore_log<V>(AnyGC this__, String message) {
   final this_ = this__ as ReactiveStoreValue<V>;
   Loggable_log(this_, message);
 }
 
-StaticList<String> ReactiveStore_get_logs<V>(dynamic this__) {
+StaticList<String> ReactiveStore_get_logs<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
   return Loggable_get_logs(this_);
 }
 
-void ReactiveStore_observe<V>(dynamic this__, TypeFunction1<void, V> callback) {
+void ReactiveStore_observe<V>(AnyGC this__, TypeFunction1<void, V> callback) {
   final this_ = this__ as ReactiveStoreValue<V>;
   Observable_observe<V>(this_, callback);
 }
 
-void ReactiveStore_notify<V>(dynamic this__, V value) {
+void ReactiveStore_notify<V>(AnyGC this__, V value) {
   final this_ = this__ as ReactiveStoreValue<V>;
   Observable_notify<V>(this_, value);
 }
@@ -1308,7 +1308,7 @@ class ShapeValue extends VPtr {
   }
 }
 
-ShapeValue Shape_new(dynamic this__) {
+ShapeValue Shape_new(AnyGC this__) {
   final this_ = this__ as ShapeValue;
   return this_;
 }
@@ -1338,23 +1338,23 @@ class CircleValue extends VPtr implements ShapeValue {
   }
 }
 
-CircleValue Circle_new(dynamic this__, double radius) {
+CircleValue Circle_new(AnyGC this__, double radius) {
   final this_ = this__ as CircleValue;
   this_.radius = radius;
   return this_;
 }
 
-double Circle_area(dynamic this__) {
+double Circle_area(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return ((3.14159 * this_.radius) * this_.radius);
 }
 
-String Circle_get_shapeName(dynamic this__) {
+String Circle_get_shapeName(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return 'Circle';
 }
 
-String Circle_toString(dynamic this__) {
+String Circle_toString(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return 'Circle(r=${this_.radius})';
 }
@@ -1377,24 +1377,24 @@ class RectangleValue extends VPtr implements ShapeValue {
   }
 }
 
-RectangleValue Rectangle_new(dynamic this__, double width, double height) {
+RectangleValue Rectangle_new(AnyGC this__, double width, double height) {
   final this_ = this__ as RectangleValue;
   this_.width = width;
   this_.height = height;
   return this_;
 }
 
-double Rectangle_area(dynamic this__) {
+double Rectangle_area(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return (this_.width * this_.height);
 }
 
-String Rectangle_get_shapeName(dynamic this__) {
+String Rectangle_get_shapeName(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return 'Rectangle';
 }
 
-String Rectangle_toString(dynamic this__) {
+String Rectangle_toString(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return 'Rectangle(${this_.width}x${this_.height})';
 }
@@ -1433,19 +1433,19 @@ class NodeValue<T> extends VPtr {
   }
 }
 
-NodeValue<T> Node_new<T>(dynamic this__, T value, [StaticList<NodeValue<T>>? children = null]) {
+NodeValue<T> Node_new<T>(AnyGC this__, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as NodeValue<T>;
   this_.value = value;
   this_.children = (children ?? StaticList<NodeValue<T>>());
   return this_;
 }
 
-void Node_addChild<T>(dynamic this__, NodeValue<T> child) {
+void Node_addChild<T>(AnyGC this__, NodeValue<T> child) {
   final this_ = this__ as NodeValue<T>;
   this_.children.add(child);
 }
 
-StaticList<T> Node_flatten<T>(dynamic this__) {
+StaticList<T> Node_flatten<T>(AnyGC this__) {
   final this_ = this__ as NodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
 {
@@ -1453,19 +1453,19 @@ StaticList<T> Node_flatten<T>(dynamic this__) {
     for (; sync_for_iterator.moveNext(); ) {
       final NodeValue<T> child = sync_for_iterator.current;
 {
-        result.addAll((child.vptr['flatten'] as StaticList<T> Function(dynamic))(child));
+        result.addAll((child.vptr['flatten'] as StaticList<T> Function(AnyGC))(child));
       }
     }
   }
   return result;
 }
 
-NodeValue<R> Node_mapTree<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
+NodeValue<R> Node_mapTree<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as NodeValue<T>;
   return Node_new<R>(GC.allocateLocal(NodeValue<R>()), transform.closureCall(transform, this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1_new<R, T>(GC.allocateLocal(ClosureEnv_anon_1<R, T>()), transform)).toList()));
 }
 
-String Node_toString<T>(dynamic this__) {
+String Node_toString<T>(AnyGC this__) {
   final this_ = this__ as NodeValue<T>;
   if (this_.children.isEmpty)   return '${this_.value}';
   return '${this_.value}(${this_.children.join(', ')})';
@@ -1505,39 +1505,39 @@ class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   }
 }
 
-LabeledNodeValue<T> LabeledNode_new<T>(dynamic this__, String nodeLabel, T value, [StaticList<NodeValue<T>>? children = null]) {
+LabeledNodeValue<T> LabeledNode_new<T>(AnyGC this__, String nodeLabel, T value, [StaticList<NodeValue<T>>? children = null]) {
   final this_ = this__ as LabeledNodeValue<T>;
   Node_new<T>(this_, value, children);
   this_.nodeLabel = nodeLabel;
   return this_;
 }
 
-String LabeledNode_get_label<T>(dynamic this__) {
+String LabeledNode_get_label<T>(AnyGC this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return '${this_.nodeLabel}:${this_.value}';
 }
 
-String LabeledNode_toString<T>(dynamic this__) {
+String LabeledNode_toString<T>(AnyGC this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return '[${this_.nodeLabel}]${this_.value}';
 }
 
-void LabeledNode_addChild<T>(dynamic this__, NodeValue<T> child) {
+void LabeledNode_addChild<T>(AnyGC this__, NodeValue<T> child) {
   final this_ = this__ as LabeledNodeValue<T>;
   Node_addChild<T>(this_, child);
 }
 
-StaticList<T> LabeledNode_flatten<T>(dynamic this__) {
+StaticList<T> LabeledNode_flatten<T>(AnyGC this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return Node_flatten<T>(this_);
 }
 
-NodeValue<R> LabeledNode_mapTree<T, R>(dynamic this__, TypeFunction1<R, T> transform) {
+NodeValue<R> LabeledNode_mapTree<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as LabeledNodeValue<T>;
   return Node_mapTree<T, R>(this_, transform);
 }
 
-String LabeledNode_toPrettyString<T>(dynamic this__) {
+String LabeledNode_toPrettyString<T>(AnyGC this__) {
   final this_ = this__ as LabeledNodeValue<T>;
   return Printable_toPrettyString(this_);
 }
@@ -1793,9 +1793,9 @@ StaticList<String> testClosureBoxing() {
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(GC.allocateLocal(EventBusValue()));
   StaticList<String> received = StaticList<String>();
-  (bus.vptr['on'] as void Function(dynamic, TypeFunction1<void, String>))(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
-  (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'hello');
-  (bus.vptr['emit'] as void Function(dynamic, String))(bus, 'world');
+  (bus.vptr['on'] as void Function(AnyGC, TypeFunction1<void, String>))(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
+  (bus.vptr['emit'] as void Function(AnyGC, String))(bus, 'hello');
+  (bus.vptr['emit'] as void Function(AnyGC, String))(bus, 'world');
   log.add('received=${received}');
   return log;
 }
@@ -1834,12 +1834,12 @@ String greetAll(String greeting, [String name = 'World', String suffix = '!']) {
 
 String describeShape(ShapeValue shape) {
   if ((shape is CircleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(dynamic))(shape)}: r=${shape.radius}, area=${(shape.vptr['area'] as double Function(dynamic))(shape).toStringAsFixed(2)}';
+    return '${(shape.vptr['get_shapeName'] as String Function(AnyGC))(shape)}: r=${shape.radius}, area=${(shape.vptr['area'] as double Function(AnyGC))(shape).toStringAsFixed(2)}';
   }
  else   if ((shape is RectangleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(dynamic))(shape)}: ${shape.width}x${shape.height}, area=${(shape.vptr['area'] as double Function(dynamic))(shape).toStringAsFixed(2)}';
+    return '${(shape.vptr['get_shapeName'] as String Function(AnyGC))(shape)}: ${shape.width}x${shape.height}, area=${(shape.vptr['area'] as double Function(AnyGC))(shape).toStringAsFixed(2)}';
   }
-  return 'Unknown shape: area=${(shape.vptr['area'] as double Function(dynamic))(shape)}';
+  return 'Unknown shape: area=${(shape.vptr['area'] as double Function(AnyGC))(shape)}';
 }
 
 String evaluateGrade(int score) {
@@ -1891,42 +1891,42 @@ void main() {
   staticPrint('\n--- 3. 运算符重载 ---');
   final MoneyValue price1 = Money_new(GC.allocateLocal(MoneyValue()), 1099, 'USD');
   final MoneyValue price2 = Money_new_fromDollars(GC.allocateLocal(MoneyValue()), 5.5);
-  final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(dynamic, MoneyValue))(price1, price2);
-  final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(dynamic))(price2);
-  staticPrint('price1: ${(price1.vptr['toPrettyString'] as String Function(dynamic))(price1)}');
+  final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(AnyGC, MoneyValue))(price1, price2);
+  final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(AnyGC))(price2);
+  staticPrint('price1: ${(price1.vptr['toPrettyString'] as String Function(AnyGC))(price1)}');
   staticPrint('price2: ${price2}');
   staticPrint('total: ${total}');
   staticPrint('negated: ${negated}');
-  staticPrint('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
-  staticPrint('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(dynamic, MoneyValue))(price1, price2)}');
-  staticPrint('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(dynamic, int))(price1, 3)}');
+  staticPrint('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(AnyGC, MoneyValue))(price1, price2)}');
+  staticPrint('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(AnyGC, MoneyValue))(price1, price2)}');
+  staticPrint('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(AnyGC, int))(price1, 3)}');
   staticPrint('\n--- 4. 多层泛型继承 ---');
   final EntityValue<int> entity = Entity_new<int>(GC.allocateLocal(EntityValue<int>()), 1, 'alice');
   staticPrint('entity: ${entity}');
-  staticPrint('entity label: ${(entity.vptr['toPrettyString'] as String Function(dynamic))(entity)}');
-  (entity.vptr['cacheValue'] as void Function(dynamic, dynamic))(entity, 'cached_data');
-  staticPrint('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(dynamic))(entity)}');
+  staticPrint('entity label: ${(entity.vptr['toPrettyString'] as String Function(AnyGC))(entity)}');
+  (entity.vptr['cacheValue'] as void Function(AnyGC, AnyGC))(entity, StringBox('cached_data'));
+  staticPrint('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(AnyGC))(entity)}');
   final TimestampedEntityValue<String> tsEntity = TimestampedEntity_new<String>(GC.allocateLocal(TimestampedEntityValue<String>()), 'u1', 'bob', 1000, 2000);
-  staticPrint('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(dynamic))(tsEntity)}');
+  staticPrint('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(AnyGC))(tsEntity)}');
   final VersionedEntityValue<int> vEntity = VersionedEntity_new<int>(GC.allocateLocal(VersionedEntityValue<int>()), 42, 'project', 1000, 5000);
-  (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'initial release');
-  (vEntity.vptr['bump'] as void Function(dynamic, String))(vEntity, 'bug fix');
-  staticPrint('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(dynamic))(vEntity)}');
-  staticPrint('vEntity version: ${(vEntity.vptr['get_version'] as int Function(dynamic))(vEntity)}');
-  staticPrint('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(dynamic))(vEntity)}');
-  staticPrint('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(dynamic))(vEntity)}');
-  staticPrint('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(dynamic))(vEntity)}');
-  staticPrint('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(dynamic))(vEntity)}');
-  staticPrint('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(dynamic))(vEntity)}');
+  (vEntity.vptr['bump'] as void Function(AnyGC, String))(vEntity, 'initial release');
+  (vEntity.vptr['bump'] as void Function(AnyGC, String))(vEntity, 'bug fix');
+  staticPrint('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity version: ${(vEntity.vptr['get_version'] as int Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(AnyGC))(vEntity)}');
+  staticPrint('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(AnyGC))(vEntity)}');
   staticPrint('\n--- 5. 工厂构造 ---');
   final ConfigValue cfg1 = Config_new_empty(GC.allocateLocal(ConfigValue()));
-  (cfg1.vptr['operatorIndexSet'] as void Function(dynamic, String, dynamic))(cfg1, 'host', 'localhost');
+  (cfg1.vptr['operatorIndexSet'] as void Function(AnyGC, String, AnyGC))(cfg1, 'host', StringBox('localhost'));
   staticPrint('cfg1: ${cfg1}');
   final ConfigValue cfg2 = Config_new_fromPairs(GC.allocateLocal(ConfigValue()), StaticList<StaticList<dynamic>>.of([StaticList<dynamic>.of(['a', 1]), StaticList<dynamic>.of(['b', 2])]));
   staticPrint('cfg2: ${cfg2}');
   final ConfigValue cfg3 = Config_new_withDefaults(StaticMap<String, dynamic>.of({'debug': true, 'name': 'prod'}));
   staticPrint('cfg3: ${cfg3}');
-  staticPrint('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(dynamic, String))(cfg3, 'maxRetries')}');
+  staticPrint('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(AnyGC, String))(cfg3, 'maxRetries')}');
   staticPrint('\n--- 6. 闭包 Box 化 ---');
   final StaticList<String> closureLog = StaticList<String>.of(testClosureBoxing());
 {
@@ -1940,30 +1940,30 @@ void main() {
   }
   staticPrint('\n--- 7. 多重 implements ---');
   final WidgetValue widget = Widget_new(GC.allocateLocal(WidgetValue()));
-  (widget.vptr['draw'] as void Function(dynamic))(widget);
-  (widget.vptr['resize'] as void Function(dynamic, double))(widget, 1.5);
-  (widget.vptr['onClick'] as void Function(dynamic))(widget);
-  (widget.vptr['onClick'] as void Function(dynamic))(widget);
-  staticPrint('widget: ${(widget.vptr['get_info'] as String Function(dynamic))(widget)}');
+  (widget.vptr['draw'] as void Function(AnyGC))(widget);
+  (widget.vptr['resize'] as void Function(AnyGC, double))(widget, 1.5);
+  (widget.vptr['onClick'] as void Function(AnyGC))(widget);
+  (widget.vptr['onClick'] as void Function(AnyGC))(widget);
+  staticPrint('widget: ${(widget.vptr['get_info'] as String Function(AnyGC))(widget)}');
   staticPrint('\n--- 8. 泛型 Pair ---');
   final PairValue<int, String> pair = Pair_new<int, String>(GC.allocateLocal(PairValue<int, String>()), 42, 'hello');
   staticPrint('pair: ${pair}');
-  staticPrint('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(dynamic))(pair)}');
-  staticPrint('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(dynamic, TypeFunction1<int, int>))(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
-  staticPrint('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(dynamic, TypeFunction1<String, String>))(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
-  staticPrint('fold: ${(pair.vptr['fold_String'] as String Function(dynamic, TypeFunction2<String, int, String>))(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
+  staticPrint('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(AnyGC))(pair)}');
+  staticPrint('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(AnyGC, TypeFunction1<int, int>))(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
+  staticPrint('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(AnyGC, TypeFunction1<String, String>))(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
+  staticPrint('fold: ${(pair.vptr['fold_String'] as String Function(AnyGC, TypeFunction2<String, int, String>))(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
   final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(GC.allocateLocal(TripleValue<int, String, bool>()), 1, 'yes', true);
   staticPrint('triple: ${triple}');
   staticPrint('\n--- 9. 级联操作 ---');
-  final StringBuilderValue sb = (() { final _let9 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let9.vptr['withSeparator'] as StringBuilderValue Function(dynamic, String))(_let9, ', '); (_let9.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let9, 'alpha'); (_let9.vptr['add'] as StringBuilderValue Function(dynamic, String))(_let9, 'beta'); (_let9.vptr['addAll'] as StringBuilderValue Function(dynamic, StaticList<String>))(_let9, StaticList<String>.of(['gamma', 'delta'])); return _let9; })();
+  final StringBuilderValue sb = (() { final _let9 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let9.vptr['withSeparator'] as StringBuilderValue Function(AnyGC, String))(_let9, ', '); (_let9.vptr['add'] as StringBuilderValue Function(AnyGC, String))(_let9, 'alpha'); (_let9.vptr['add'] as StringBuilderValue Function(AnyGC, String))(_let9, 'beta'); (_let9.vptr['addAll'] as StringBuilderValue Function(AnyGC, StaticList<String>))(_let9, StaticList<String>.of(['gamma', 'delta'])); return _let9; })();
   staticPrint('builder: ${sb}');
-  staticPrint('length: ${(sb.vptr['get_length'] as int Function(dynamic))(sb)}');
+  staticPrint('length: ${(sb.vptr['get_length'] as int Function(AnyGC))(sb)}');
   staticPrint('\n--- 10. 异常处理链 ---');
   staticPrint('chain: ${testExceptionChain()}');
   staticPrint('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = (() { final _r13 = (() { final _r12 = (() { final _r11 = (() { final _r10 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r10.vptr['where'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<bool, int>))(_r10, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r11.vptr['sorted'] as DataPipelineValue<int> Function(dynamic, TypeFunction2<int, int, int>))(_r11, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r12.vptr['take'] as DataPipelineValue<int> Function(dynamic, int))(_r12, 5); })(); return (_r13.vptr['map_int'] as DataPipelineValue<int> Function(dynamic, TypeFunction1<int, int>))(_r13, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
-  staticPrint('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(dynamic))(pipeline)}');
-  final int pipeSum = (() { final _r14 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r14.vptr['fold_int'] as int Function(dynamic, int, TypeFunction2<int, int, int>))(_r14, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
+  final DataPipelineValue<int> pipeline = (() { final _r13 = (() { final _r12 = (() { final _r11 = (() { final _r10 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r10.vptr['where'] as DataPipelineValue<int> Function(AnyGC, TypeFunction1<bool, int>))(_r10, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r11.vptr['sorted'] as DataPipelineValue<int> Function(AnyGC, TypeFunction2<int, int, int>))(_r11, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r12.vptr['take'] as DataPipelineValue<int> Function(AnyGC, int))(_r12, 5); })(); return (_r13.vptr['map_int'] as DataPipelineValue<int> Function(AnyGC, TypeFunction1<int, int>))(_r13, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
+  staticPrint('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(AnyGC))(pipeline)}');
+  final int pipeSum = (() { final _r14 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r14.vptr['fold_int'] as int Function(AnyGC, int, TypeFunction2<int, int, int>))(_r14, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
   staticPrint('pipeSum: ${pipeSum}');
   staticPrint('\n--- 12. 可选参数 ---');
   staticPrint(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
@@ -1973,11 +1973,11 @@ void main() {
   staticPrint('\n--- 13. BoundedValue ---');
   final BoundedValueValue bv = BoundedValue_new(GC.allocateLocal(BoundedValueValue()), 5.0, 0.0, 10.0);
   staticPrint('bv: ${bv}');
-  (bv.vptr['set_value'] as void Function(dynamic, double))(bv, 15.0);
+  (bv.vptr['set_value'] as void Function(AnyGC, double))(bv, 15.0);
   staticPrint('after set 15: ${bv}');
-  (bv.vptr['set_value'] as void Function(dynamic, double))(bv, (-5.0));
+  (bv.vptr['set_value'] as void Function(AnyGC, double))(bv, (-5.0));
   staticPrint('after set -5: ${bv}');
-  final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(dynamic, double))(bv, 7.0);
+  final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(AnyGC, double))(bv, 7.0);
   staticPrint('bv + 7: ${bv2}');
   staticPrint('\n--- 14. 静态方法 ---');
   staticPrint('5! = ${MathUtils_factorial(5)}');
@@ -1987,14 +1987,14 @@ void main() {
   staticPrint('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(GC.allocateLocal(ReactiveStoreValue<int>()));
   final StaticList<int> observed = StaticList<int>();
-  (store.vptr['observe'] as void Function(dynamic, TypeFunction1<void, int>))(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
-  (store.vptr['set'] as void Function(dynamic, String, int))(store, 'x', 10);
-  (store.vptr['set'] as void Function(dynamic, String, int))(store, 'y', 20);
+  (store.vptr['observe'] as void Function(AnyGC, TypeFunction1<void, int>))(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
+  (store.vptr['set'] as void Function(AnyGC, String, int))(store, 'x', 10);
+  (store.vptr['set'] as void Function(AnyGC, String, int))(store, 'y', 20);
   staticPrint('store: ${store}');
-  staticPrint('store.get(x): ${(store.vptr['get'] as int? Function(dynamic, String))(store, 'x')}');
-  staticPrint('store.size: ${(store.vptr['get_size'] as int Function(dynamic))(store)}');
+  staticPrint('store.get(x): ${(store.vptr['get'] as int? Function(AnyGC, String))(store, 'x')}');
+  staticPrint('store.size: ${(store.vptr['get_size'] as int Function(AnyGC))(store)}');
   staticPrint('observed: ${observed}');
-  staticPrint('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(dynamic))(store)}');
+  staticPrint('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(AnyGC))(store)}');
   staticPrint('\n--- 16. 类型转换 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new(GC.allocateLocal(CircleValue()), 1.0)]);
 {
@@ -2009,15 +2009,15 @@ void main() {
   staticPrint('\n--- 17. 树结构 ---');
   final NodeValue<int> tree = Node_new<int>(GC.allocateLocal(NodeValue<int>()), 1, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 2, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 4), Node_new<int>(GC.allocateLocal(NodeValue<int>()), 5)])), Node_new<int>(GC.allocateLocal(NodeValue<int>()), 3, StaticList<NodeValue<int>>.of([Node_new<int>(GC.allocateLocal(NodeValue<int>()), 6)]))]));
   staticPrint('tree: ${tree}');
-  staticPrint('flatten: ${(tree.vptr['flatten'] as StaticList<int> Function(dynamic))(tree)}');
-  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(dynamic, TypeFunction1<String, int>))(tree, ClosureEnv_main_21_new(GC.allocateLocal(ClosureEnv_main_21())));
+  staticPrint('flatten: ${(tree.vptr['flatten'] as StaticList<int> Function(AnyGC))(tree)}');
+  final NodeValue<String> strTree = (tree.vptr['mapTree_String'] as NodeValue<String> Function(AnyGC, TypeFunction1<String, int>))(tree, ClosureEnv_main_21_new(GC.allocateLocal(ClosureEnv_main_21())));
   staticPrint('mapped: ${strTree}');
   final LabeledNodeValue<int> labeled = LabeledNode_new<int>(GC.allocateLocal(LabeledNodeValue<int>()), 'root', 100);
-  (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(GC.allocateLocal(NodeValue<int>()), 200));
-  (labeled.vptr['addChild'] as void Function(dynamic, NodeValue<int>))(labeled, Node_new<int>(GC.allocateLocal(NodeValue<int>()), 300));
+  (labeled.vptr['addChild'] as void Function(AnyGC, NodeValue<int>))(labeled, Node_new<int>(GC.allocateLocal(NodeValue<int>()), 200));
+  (labeled.vptr['addChild'] as void Function(AnyGC, NodeValue<int>))(labeled, Node_new<int>(GC.allocateLocal(NodeValue<int>()), 300));
   staticPrint('labeled: ${labeled}');
-  staticPrint('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(dynamic))(labeled)}');
-  staticPrint('labeled flatten: ${(labeled.vptr['flatten'] as StaticList<int> Function(dynamic))(labeled)}');
+  staticPrint('labeled pretty: ${(labeled.vptr['toPrettyString'] as String Function(AnyGC))(labeled)}');
+  staticPrint('labeled flatten: ${(labeled.vptr['flatten'] as StaticList<int> Function(AnyGC))(labeled)}');
   staticPrint('\n--- 18. 评分 ---');
   staticPrint(evaluateGrade(95));
   staticPrint(evaluateGrade(82));
@@ -2044,7 +2044,7 @@ ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_, ConfigValue this
   env_.this_ = this_;
   return env_;
 }
-String ClosureEnv_anon_0_call(dynamic env__, String k) {
+String ClosureEnv_anon_0_call(AnyGC env__, String k) {
   final env = env__ as ClosureEnv_anon_0;
 
   return '${k}=${env.this_._data[k]}';
@@ -2067,7 +2067,7 @@ ClosureEnv_anon_1<R, T> ClosureEnv_anon_1_new<R, T>(ClosureEnv_anon_1<R, T> env_
   env_.transform = transform;
   return env_;
 }
-NodeValue<R> ClosureEnv_anon_1_call<R, T>(dynamic env__, NodeValue<T> c) {
+NodeValue<R> ClosureEnv_anon_1_call<R, T>(AnyGC env__, NodeValue<T> c) {
   final env = env__ as ClosureEnv_anon_1<R, T>;
 
   return Node_mapTree<T, R>(c, env.transform);
@@ -2090,7 +2090,7 @@ ClosureEnv_testClosureBoxing_2 ClosureEnv_testClosureBoxing_2_new(ClosureEnv_tes
   env_.counter = counter;
   return env_;
 }
-int ClosureEnv_testClosureBoxing_2_call(dynamic env__) {
+int ClosureEnv_testClosureBoxing_2_call(AnyGC env__) {
   final env = env__ as ClosureEnv_testClosureBoxing_2;
 
     env.counter.value = (env.counter.value + 1);
@@ -2114,7 +2114,7 @@ ClosureEnv_testClosureBoxing_3 ClosureEnv_testClosureBoxing_3_new(ClosureEnv_tes
   env_.i = i;
   return env_;
 }
-int ClosureEnv_testClosureBoxing_3_call(dynamic env__) {
+int ClosureEnv_testClosureBoxing_3_call(AnyGC env__) {
   final env = env__ as ClosureEnv_testClosureBoxing_3;
 
   return (env.i * 10);
@@ -2129,7 +2129,7 @@ ClosureEnv_testClosureBoxing_4 ClosureEnv_testClosureBoxing_4_new(ClosureEnv_tes
   env_.closureCall = ClosureEnv_testClosureBoxing_4_call;
   return env_;
 }
-int ClosureEnv_testClosureBoxing_4_call(dynamic env__, TypeFunction0<int> f) {
+int ClosureEnv_testClosureBoxing_4_call(AnyGC env__, TypeFunction0<int> f) {
   final env = env__ as ClosureEnv_testClosureBoxing_4;
 
   return f.closureCall(f);
@@ -2155,7 +2155,7 @@ ClosureEnv_ClosureEnv_testClosureBoxing_5_6 ClosureEnv_ClosureEnv_testClosureBox
   env_.outer = outer;
   return env_;
 }
-int ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call(dynamic env__, int x) {
+int ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_ClosureEnv_testClosureBoxing_5_6;
 
       env.inner.value = (env.inner.value + x);
@@ -2180,7 +2180,7 @@ ClosureEnv_testClosureBoxing_5 ClosureEnv_testClosureBoxing_5_new(ClosureEnv_tes
   env_.outer = outer;
   return env_;
 }
-TypeFunction1<int, int> ClosureEnv_testClosureBoxing_5_call(dynamic env__, int base) {
+TypeFunction1<int, int> ClosureEnv_testClosureBoxing_5_call(AnyGC env__, int base) {
   final env = env__ as ClosureEnv_testClosureBoxing_5;
 
     IntBox inner = IntBox(base);
@@ -2207,7 +2207,7 @@ ClosureEnv_testClosureBoxing_7 ClosureEnv_testClosureBoxing_7_new(ClosureEnv_tes
   env_.prefix = prefix;
   return env_;
 }
-String ClosureEnv_testClosureBoxing_7_call(dynamic env__) {
+String ClosureEnv_testClosureBoxing_7_call(AnyGC env__) {
   final env = env__ as ClosureEnv_testClosureBoxing_7;
 
       env.count = (env.count + 1);
@@ -2231,7 +2231,7 @@ ClosureEnv_testClosureBoxing_8 ClosureEnv_testClosureBoxing_8_new(ClosureEnv_tes
   env_.received = received;
   return env_;
 }
-void ClosureEnv_testClosureBoxing_8_call(dynamic env__, String event) {
+void ClosureEnv_testClosureBoxing_8_call(AnyGC env__, String event) {
   final env = env__ as ClosureEnv_testClosureBoxing_8;
 
     env.received.add(event);
@@ -2246,7 +2246,7 @@ ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
   env_.closureCall = ClosureEnv_main_9_call;
   return env_;
 }
-int ClosureEnv_main_9_call(dynamic env__, int x) {
+int ClosureEnv_main_9_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_9;
 
   return (x * 2);
@@ -2261,7 +2261,7 @@ ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
   env_.closureCall = ClosureEnv_main_10_call;
   return env_;
 }
-bool ClosureEnv_main_10_call(dynamic env__, int x) {
+bool ClosureEnv_main_10_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_10;
 
   return ((x % 2) == 0);
@@ -2276,7 +2276,7 @@ ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
   env_.closureCall = ClosureEnv_main_11_call;
   return env_;
 }
-int ClosureEnv_main_11_call(dynamic env__, int a, int b) {
+int ClosureEnv_main_11_call(AnyGC env__, int a, int b) {
   final env = env__ as ClosureEnv_main_11;
 
   return (a + b);
@@ -2291,7 +2291,7 @@ ClosureEnv_main_12 ClosureEnv_main_12_new(ClosureEnv_main_12 env_) {
   env_.closureCall = ClosureEnv_main_12_call;
   return env_;
 }
-String ClosureEnv_main_12_call(dynamic env__, Priority p) {
+String ClosureEnv_main_12_call(AnyGC env__, Priority p) {
   final env = env__ as ClosureEnv_main_12;
 
   return '${p}'.split('.').last;
@@ -2306,7 +2306,7 @@ ClosureEnv_main_13 ClosureEnv_main_13_new(ClosureEnv_main_13 env_) {
   env_.closureCall = ClosureEnv_main_13_call;
   return env_;
 }
-int ClosureEnv_main_13_call(dynamic env__, int x) {
+int ClosureEnv_main_13_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_13;
 
   return (x * 2);
@@ -2321,7 +2321,7 @@ ClosureEnv_main_14 ClosureEnv_main_14_new(ClosureEnv_main_14 env_) {
   env_.closureCall = ClosureEnv_main_14_call;
   return env_;
 }
-String ClosureEnv_main_14_call(dynamic env__, String s) {
+String ClosureEnv_main_14_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_14;
 
   return s.toUpperCase();
@@ -2336,7 +2336,7 @@ ClosureEnv_main_15 ClosureEnv_main_15_new(ClosureEnv_main_15 env_) {
   env_.closureCall = ClosureEnv_main_15_call;
   return env_;
 }
-String ClosureEnv_main_15_call(dynamic env__, int a, String b) {
+String ClosureEnv_main_15_call(AnyGC env__, int a, String b) {
   final env = env__ as ClosureEnv_main_15;
 
   return '${b}=${a}';
@@ -2351,7 +2351,7 @@ ClosureEnv_main_16 ClosureEnv_main_16_new(ClosureEnv_main_16 env_) {
   env_.closureCall = ClosureEnv_main_16_call;
   return env_;
 }
-bool ClosureEnv_main_16_call(dynamic env__, int x) {
+bool ClosureEnv_main_16_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_16;
 
   return (x > 2);
@@ -2366,7 +2366,7 @@ ClosureEnv_main_17 ClosureEnv_main_17_new(ClosureEnv_main_17 env_) {
   env_.closureCall = ClosureEnv_main_17_call;
   return env_;
 }
-int ClosureEnv_main_17_call(dynamic env__, int a, int b) {
+int ClosureEnv_main_17_call(AnyGC env__, int a, int b) {
   final env = env__ as ClosureEnv_main_17;
 
   return (a - b);
@@ -2381,7 +2381,7 @@ ClosureEnv_main_18 ClosureEnv_main_18_new(ClosureEnv_main_18 env_) {
   env_.closureCall = ClosureEnv_main_18_call;
   return env_;
 }
-int ClosureEnv_main_18_call(dynamic env__, int x) {
+int ClosureEnv_main_18_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_18;
 
   return (x * 10);
@@ -2396,7 +2396,7 @@ ClosureEnv_main_19 ClosureEnv_main_19_new(ClosureEnv_main_19 env_) {
   env_.closureCall = ClosureEnv_main_19_call;
   return env_;
 }
-int ClosureEnv_main_19_call(dynamic env__, int acc, int x) {
+int ClosureEnv_main_19_call(AnyGC env__, int acc, int x) {
   final env = env__ as ClosureEnv_main_19;
 
   return (acc + x);
@@ -2419,7 +2419,7 @@ ClosureEnv_main_20 ClosureEnv_main_20_new(ClosureEnv_main_20 env_, StaticList<in
   env_.observed = observed;
   return env_;
 }
-void ClosureEnv_main_20_call(dynamic env__, int v) {
+void ClosureEnv_main_20_call(AnyGC env__, int v) {
   final env = env__ as ClosureEnv_main_20;
 
     env.observed.add(v);
@@ -2434,7 +2434,7 @@ ClosureEnv_main_21 ClosureEnv_main_21_new(ClosureEnv_main_21 env_) {
   env_.closureCall = ClosureEnv_main_21_call;
   return env_;
 }
-String ClosureEnv_main_21_call(dynamic env__, int x) {
+String ClosureEnv_main_21_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_21;
 
   return 'N${x}';

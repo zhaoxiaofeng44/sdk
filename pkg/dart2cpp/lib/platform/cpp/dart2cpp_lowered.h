@@ -44,6 +44,10 @@
 #include <unordered_set>
 #include <vector>
 
+// Forward declarations for template functions used in collection templates
+template<typename... Args>
+std::string dart_str(Args&&... args);
+
 // ============================================================================
 // 1. AnyGC — GC 管理基类
 // ============================================================================
@@ -72,6 +76,7 @@ class GC {
 
 public:
     /// 分配局部对象（非 root），注册到 GC 并返回
+    /// 版本1: 接受已创建的对象指针（向后兼容）
     template<typename T>
     static T* allocateLocal(T* obj) {
         if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
@@ -80,7 +85,29 @@ public:
         return obj;
     }
 
+    /// 版本2: 接受类型和构造参数，内部创建对象（新 API）
+    /// 用法: GC::allocateLocal<StaticList<int>>({1, 2, 3})
+    template<typename T, typename... Args>
+    static T* createLocal(Args&&... args) {
+        T* obj = new T(std::forward<Args>(args)...);
+        if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
+            _objects.push_back(static_cast<AnyGC*>(obj));
+        }
+        return obj;
+    }
+
+    /// 版本3: 专门处理 initializer_list
+    template<typename T, typename U>
+    static T* createLocal(std::initializer_list<U> init) {
+        T* obj = new T(init);
+        if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
+            _objects.push_back(static_cast<AnyGC*>(obj));
+        }
+        return obj;
+    }
+
     /// 分配全局对象（root），注册到 GC 并标记为 root
+    /// 版本1: 接受已创建的对象指针（向后兼容）
     template<typename T>
     static T* allocateGlobal(T* obj) {
         auto* base = static_cast<AnyGC*>(obj);
@@ -88,6 +115,42 @@ public:
             _objects.push_back(base);
         }
         // 添加到 roots（避免重复）
+        bool found = false;
+        for (auto* r : _roots) {
+            if (r == base) { found = true; break; }
+        }
+        if (!found) {
+            _roots.push_back(base);
+        }
+        return obj;
+    }
+
+    /// 版本2: 接受类型和构造参数，内部创建对象（新 API）
+    template<typename T, typename... Args>
+    static T* createGlobal(Args&&... args) {
+        T* obj = new T(std::forward<Args>(args)...);
+        auto* base = static_cast<AnyGC*>(obj);
+        if (_registered.insert(base).second) {
+            _objects.push_back(base);
+        }
+        bool found = false;
+        for (auto* r : _roots) {
+            if (r == base) { found = true; break; }
+        }
+        if (!found) {
+            _roots.push_back(base);
+        }
+        return obj;
+    }
+
+    /// 版本3: 专门处理 initializer_list
+    template<typename T, typename U>
+    static T* createGlobal(std::initializer_list<U> init) {
+        T* obj = new T(init);
+        auto* base = static_cast<AnyGC*>(obj);
+        if (_registered.insert(base).second) {
+            _objects.push_back(base);
+        }
         bool found = false;
         for (auto* r : _roots) {
             if (r == base) { found = true; break; }
@@ -338,6 +401,9 @@ struct TypeFunction;
 // 4. AnyPtr — 标签联合（替代 Dart 的 dynamic）
 // ============================================================================
 
+// Forward declaration for DartException (defined later)
+struct DartException;
+
 struct AnyPtr {
     enum Tag {
         NULL_TAG = 0,
@@ -393,6 +459,26 @@ struct AnyPtr {
     // 隐式转换构造函数 - 允许 AnyGC* 隐式转换为 AnyPtr
     AnyPtr(AnyGC* gc) : tag(GC_TAG) {
         data.gcPtr = gc;
+    }
+
+    // 隐式转换构造函数 - 允许基本类型隐式转换为 AnyPtr
+    AnyPtr(int64_t val) : tag(INT_TAG) {
+        data.intVal = val;
+    }
+    AnyPtr(int val) : tag(INT_TAG) {
+        data.intVal = static_cast<int64_t>(val);
+    }
+    AnyPtr(double val) : tag(DOUBLE_TAG) {
+        data.doubleVal = val;
+    }
+    AnyPtr(bool val) : tag(BOOL_TAG) {
+        data.boolVal = val;
+    }
+    AnyPtr(const char* val) : tag(STRING_TAG) {
+        data.stringPtr = new DartString(val);
+    }
+    AnyPtr(const std::string& val) : tag(STRING_TAG) {
+        data.stringPtr = new DartString(val);
     }
 
     // 拷贝赋值
@@ -493,6 +579,8 @@ struct AnyPtr {
         return p;
     }
 
+    static AnyPtr fromException(const DartException& v);
+
     /// 自动分发：根据 C++ 类型选择正确的工厂方法
     static AnyPtr fromAuto(int64_t v) { return fromInt(v); }
     static AnyPtr fromAuto(int v) { return fromInt(static_cast<int64_t>(v)); }
@@ -504,6 +592,14 @@ struct AnyPtr {
     static AnyPtr fromAuto(TypeFunction* v) { return fromTypeFunction(v); }
     static AnyPtr fromAuto(AnyGC* v) { return fromGC(v); }
     static AnyPtr fromAuto(AnyPtr v) { return v; }
+
+    // 泛型 fromAuto — 处理 std::tuple 等未知类型，装箱为 VPtr
+    template<typename T>
+    static AnyPtr fromAuto(T v) {
+        // 将任意类型装箱到堆上并通过 VPtr 包装
+        auto* boxed = new T(std::move(v));
+        return fromVPtr(reinterpret_cast<VPtr*>(boxed));
+    }
 
     // ── 类型查询 ──
 
@@ -547,6 +643,8 @@ struct AnyPtr {
         }
     }
 
+    explicit operator bool() const { return toBool(); }
+
     std::string toStringValue() const;  // 声明，实现在 VPtr 之后
     const DartString* toDartString() const;  // 获取 DartString 指针
 
@@ -575,7 +673,52 @@ struct AnyPtr {
         }
     }
 
+    // 与基本类型的比较
+    bool operator==(int64_t other) const {
+        return tag == INT_TAG && data.intVal == other;
+    }
+    bool operator==(int other) const {
+        return tag == INT_TAG && data.intVal == static_cast<int64_t>(other);
+    }
+    bool operator==(double other) const {
+        return tag == DOUBLE_TAG && data.doubleVal == other;
+    }
+    bool operator==(bool other) const {
+        return tag == BOOL_TAG && data.boolVal == other;
+    }
+    bool operator==(const std::string& other) const {
+        return tag == STRING_TAG && data.stringPtr && *data.stringPtr == other;
+    }
+    bool operator==(const char* other) const {
+        return tag == STRING_TAG && data.stringPtr && *data.stringPtr == other;
+    }
+
     bool operator!=(const AnyPtr& other) const { return !(*this == other); }
+    bool operator!=(int64_t other) const { return !(*this == other); }
+    bool operator!=(int other) const { return !(*this == other); }
+    bool operator!=(double other) const { return !(*this == other); }
+    bool operator!=(bool other) const { return !(*this == other); }
+    bool operator!=(const std::string& other) const { return !(*this == other); }
+    bool operator!=(const char* other) const { return !(*this == other); }
+
+    // ── 有序比较（用于 std::less / std::map 等排序容器） ──
+    bool operator<(const AnyPtr& other) const {
+        if (tag != other.tag) return tag < other.tag;
+        switch (tag) {
+            case NULL_TAG: return false;
+            case INT_TAG: return data.intVal < other.data.intVal;
+            case DOUBLE_TAG: return data.doubleVal < other.data.doubleVal;
+            case BOOL_TAG: return data.boolVal < other.data.boolVal;
+            case STRING_TAG: return *data.stringPtr < *other.data.stringPtr;
+            case VPTR_TAG: return data.vptrPtr < other.data.vptrPtr;
+            case TYPE_FUNC_TAG: return data.typeFnPtr < other.data.typeFnPtr;
+            case GC_TAG: return data.gcPtr < other.data.gcPtr;
+            default: return false;
+        }
+    }
+    bool operator>(const AnyPtr& other) const { return other < *this; }
+    bool operator<=(const AnyPtr& other) const { return !(other < *this); }
+    bool operator>=(const AnyPtr& other) const { return !(*this < other); }
 
 private:
     void _cleanup() {
@@ -604,7 +747,15 @@ struct DartException : std::exception {
     DartException(const std::string& msg) : message(msg) {}
     const char* what() const noexcept override { return message.c_str(); }
     virtual std::string toString() const { return "Exception: " + message; }
+
+    // Implicit conversion to AnyPtr for use as function arguments
+    operator AnyPtr() const { return AnyPtr::fromString(message); }
 };
+
+// AnyPtr::fromException implementation (defined here after DartException is complete)
+inline AnyPtr AnyPtr::fromException(const DartException& v) {
+    return AnyPtr::fromString(v.message);
+}
 
 struct DartStateError : DartException {
     DartStateError(const std::string& msg) : DartException(msg) {}
@@ -636,6 +787,18 @@ struct DartUnimplementedError : DartException {
     std::string toString() const override { return "UnimplementedError: " + message; }
 };
 
+/// ReachabilityErrorValue — 用于模式匹配穷尽性检查的占位类型
+struct ReachabilityErrorValue : AnyGC {};
+
+struct ReachabilityError {
+    std::string _msg;
+    std::string toStringValue() const { return _msg; }
+};
+
+inline ReachabilityError ReachabilityError_new(ReachabilityErrorValue* /*this_*/, const std::string& msg) {
+    return ReachabilityError{msg};
+}
+
 // ============================================================================
 // 5. VPtr — 虚表基类
 // ============================================================================
@@ -650,12 +813,14 @@ struct VPtr : AnyGC {
         vptr["get_hashCode"] = nullptr;
     }
 
+    std::unordered_map<std::string, void*>& getVptrMap() { return vptr; }
+
     virtual std::string toString() {
         auto it = vptr.find("toString");
         if (it != vptr.end() && it->second != nullptr) {
-            using Fn = std::string(*)(AnyPtr);
+            using Fn = std::string(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(AnyPtr::fromVPtr(this));
+            return fn(static_cast<AnyGC*>(this));
         }
         return _typeName;
     }
@@ -663,10 +828,10 @@ struct VPtr : AnyGC {
     bool equals(const VPtr& other) const {
         auto it = vptr.find("operatorEq");
         if (it != vptr.end() && it->second != nullptr) {
-            using Fn = bool(*)(AnyPtr, AnyPtr);
+            using Fn = bool(*)(AnyGC*, AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(AnyPtr::fromVPtr(const_cast<VPtr*>(this)),
-                      AnyPtr::fromVPtr(const_cast<VPtr*>(&other)));
+            return fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
+                      static_cast<AnyGC*>(const_cast<VPtr*>(&other)));
         }
         return this == &other;
     }
@@ -674,9 +839,9 @@ struct VPtr : AnyGC {
     int64_t getHashCode() const {
         auto it = vptr.find("get_hashCode");
         if (it != vptr.end() && it->second != nullptr) {
-            using Fn = int64_t(*)(AnyPtr);
+            using Fn = int64_t(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(AnyPtr::fromVPtr(const_cast<VPtr*>(this)));
+            return fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
         }
         return reinterpret_cast<int64_t>(this);
     }
@@ -737,6 +902,19 @@ template<> inline std::string AnyPtr::castTo<std::string>() const {
 }
 template<> inline AnyPtr AnyPtr::castTo<AnyPtr>() const { return *this; }
 
+// 通用指针类型 castTo：将 AnyPtr 转换为具体指针类型
+template<typename T>
+inline T AnyPtr::castTo() const {
+    if constexpr (std::is_pointer_v<T>) {
+        // 指针类型：通过 toGC() 获取 AnyGC*，再 static_cast 到目标类型
+        return static_cast<T>(toGC());
+    } else {
+        // 非指针类型：默认返回默认构造值（应由特化覆盖）
+        static_assert(sizeof(T) == 0, "castTo: unsupported type, add a specialization");
+        return T{};
+    }
+}
+
 // ============================================================================
 // 6. Box 类型 — 闭包捕获引用语义
 // ============================================================================
@@ -774,11 +952,81 @@ struct ObjectBox : AnyGC {
 };
 
 // ============================================================================
+// dynAs<T> — 类型安全转换：拆箱 + 向下转型
+// ============================================================================
+
+/// 将 AnyGC* 对象转换为目标类型 T。
+/// 自动处理基本类型的拆箱（IntBox → int64_t 等）和 AnyGC 子类的向下转型。
+template<typename T>
+T dynAs(AnyGC* obj) {
+    if (!obj) {
+        if constexpr (std::is_pointer_v<T>) return nullptr;
+        else return T{};
+    }
+    // int64_t: 尝试从 IntBox 拆箱
+    if constexpr (std::is_same_v<T, int64_t>) {
+        if (auto* box = dynamic_cast<IntBox*>(obj)) return box->value;
+        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toInt();
+        return 0;
+    }
+    else if constexpr (std::is_same_v<T, double>) {
+        if (auto* box = dynamic_cast<DoubleBox*>(obj)) return box->value;
+        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toDouble();
+        return 0.0;
+    }
+    else if constexpr (std::is_same_v<T, bool>) {
+        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value;
+        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toBool();
+        return false;
+    }
+    else if constexpr (std::is_same_v<T, std::string>) {
+        if (auto* box = dynamic_cast<StringBox*>(obj)) return box->value;
+        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toStringValue();
+        return "";
+    }
+    // 指针类型：直接 static_cast（向下转型）
+    else if constexpr (std::is_pointer_v<T>) {
+        return static_cast<T>(obj);
+    }
+    else {
+        // 兜底：默认构造
+        return T{};
+    }
+}
+
+/// AnyPtr 重载：将 AnyPtr 转为 AnyGC* 后调用 dynAs<T>(AnyGC*)
+template<typename T>
+T dynAs(AnyPtr obj) {
+    return dynAs<T>(obj.toGC());
+}
+
+// ============================================================================
 // 8. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
 // ============================================================================
 
 struct TypeFunction : AnyGC {
     void* closureCall = nullptr;
+
+    // 动态调用（无参数）— 当具体类型未知时使用
+    AnyPtr dynCall() {
+        using Fn = AnyPtr(*)(AnyPtr);
+        auto fn = reinterpret_cast<Fn>(closureCall);
+        return fn(AnyPtr::fromTypeFunction(this));
+    }
+
+    // 动态调用（一个参数）
+    AnyPtr dynCall(AnyPtr arg1) {
+        using Fn = AnyPtr(*)(AnyPtr, AnyPtr);
+        auto fn = reinterpret_cast<Fn>(closureCall);
+        return fn(AnyPtr::fromTypeFunction(this), arg1);
+    }
+
+    // 动态调用（两个参数）
+    AnyPtr dynCall(AnyPtr arg1, AnyPtr arg2) {
+        using Fn = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr);
+        auto fn = reinterpret_cast<Fn>(closureCall);
+        return fn(AnyPtr::fromTypeFunction(this), arg1, arg2);
+    }
 
     void gcMark(int flag) override {
         if (gcFlag == flag) return;
@@ -893,6 +1141,11 @@ using TypeFunction16 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10,
 
 // ── StaticMapEntry<K,V> ──
 
+// 前向声明
+template<typename T> struct StaticList;
+template<typename T> struct StaticSet;
+template<typename K, typename V> struct StaticMap;
+
 // ── Array<T> ──
 
 template<typename T>
@@ -905,6 +1158,9 @@ struct Array : AnyGC {
 
     template<typename Iter>
     Array(Iter begin, Iter end) : _storage(begin, end) {}
+
+    // 从 StaticList 构造（前向声明，实现在 StaticList 定义之后）
+    Array(StaticList<T>* list);
 
     int length() const { return static_cast<int>(_storage.size()); }
 
@@ -941,6 +1197,13 @@ struct Array : AnyGC {
         T val = std::move(_storage[index]);
         _storage.erase(_storage.begin() + index);
         return val;
+    }
+
+    bool remove(const T& element) {
+        int idx = indexOf(element);
+        if (idx == -1) return false;
+        removeAt(idx);
+        return true;
     }
 
     int indexOf(const T& element) const {
@@ -1021,6 +1284,38 @@ struct StaticList : AnyGC {
         return GC::allocateLocal(new StaticList());
     }
 
+    /// 对齐 Dart: StaticList.filled(length, fill)
+    static StaticList* filled(int length, T fill) {
+        auto* result = GC::allocateLocal(new StaticList());
+        for (int i = 0; i < length; i++) result->add(fill);
+        return result;
+    }
+
+    /// 对齐 Dart: StaticList.generate(length, generator)
+    static StaticList* generate(int length, std::function<T(int)> generator) {
+        auto* result = GC::allocateLocal(new StaticList());
+        for (int i = 0; i < length; i++) result->add(generator(i));
+        return result;
+    }
+
+    /// 对齐 Dart: StaticList.generate(length, generator) — TypeFunction 版本
+    static StaticList* generate(int length, TypeFunction1<T, int64_t>* generator) {
+        auto* result = GC::allocateLocal(new StaticList());
+        if (generator) {
+            for (int i = 0; i < length; i++) result->add(generator->call(static_cast<int64_t>(i)));
+        }
+        return result;
+    }
+
+    /// 对齐 Dart: StaticList.from(elements)
+    static StaticList* from(StaticList<T>* source) {
+        auto* result = GC::allocateLocal(new StaticList());
+        if (source) {
+            for (int i = 0; i < source->length(); i++) result->add((*source)[i]);
+        }
+        return result;
+    }
+
     // ── 核心属性 ──
 
     int length() const { return _data->length(); }
@@ -1089,10 +1384,20 @@ struct StaticList : AnyGC {
             if (test((*_data)[i])) _data->removeAt(i);
         }
     }
+    void removeWhere(TypeFunction1<bool, T>* test) {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (test->call((*_data)[i])) _data->removeAt(i);
+        }
+    }
 
     void retainWhere(std::function<bool(T)> test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
             if (!test((*_data)[i])) _data->removeAt(i);
+        }
+    }
+    void retainWhere(TypeFunction1<bool, T>* test) {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (!test->call((*_data)[i])) _data->removeAt(i);
         }
     }
 
@@ -1118,6 +1423,12 @@ struct StaticList : AnyGC {
     int indexWhere(std::function<bool(T)> test, int start = 0) const {
         for (int i = start; i < _data->length(); i++) {
             if (test((*_data)[i])) return i;
+        }
+        return -1;
+    }
+    int indexWhere(TypeFunction1<bool, T>* test, int start = 0) const {
+        for (int i = start; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) return i;
         }
         return -1;
     }
@@ -1167,6 +1478,18 @@ struct StaticList : AnyGC {
         return GC::allocateLocal(result);
     }
 
+    template<typename R>
+    StaticList<R>* expand(TypeFunction1<StaticList<R>*, T>* func) const {
+        auto* result = new StaticList<R>();
+        for (int i = 0; i < _data->length(); i++) {
+            auto* inner = func->call((*_data)[i]);
+            if (inner) {
+                for (int j = 0; j < inner->length(); j++) result->add((*inner)[j]);
+            }
+        }
+        return GC::allocateLocal(result);
+    }
+
     StaticList<T>* where(std::function<bool(T)> func) const {
         auto* result = new StaticList<T>();
         for (int i = 0; i < _data->length(); i++) {
@@ -1181,6 +1504,13 @@ struct StaticList : AnyGC {
         }
         return GC::allocateLocal(result);
     }
+    StaticList<T>* where(TypeFunction1<bool, T>* func) const {
+        auto* result = new StaticList<T>();
+        for (int i = 0; i < _data->length(); i++) {
+            if (func->call((*_data)[i])) result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
 
     bool any(std::function<bool(T)> test) const {
         for (int i = 0; i < _data->length(); i++) {
@@ -1188,10 +1518,22 @@ struct StaticList : AnyGC {
         }
         return false;
     }
+    bool any(TypeFunction1<bool, T>* test) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) return true;
+        }
+        return false;
+    }
 
     bool every(std::function<bool(T)> test) const {
         for (int i = 0; i < _data->length(); i++) {
             if (!test((*_data)[i])) return false;
+        }
+        return true;
+    }
+    bool every(TypeFunction1<bool, T>* test) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (!test->call((*_data)[i])) return false;
         }
         return true;
     }
@@ -1203,12 +1545,26 @@ struct StaticList : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
+    T firstWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) return (*_data)[i];
+        }
+        if (orElse) return orElse->call();
+        throw DartStateError("No element");
+    }
 
     T lastWhere(std::function<bool(T)> test, std::function<T()> orElse = nullptr) const {
         for (int i = _data->length() - 1; i >= 0; i--) {
             if (test((*_data)[i])) return (*_data)[i];
         }
         if (orElse) return orElse();
+        throw DartStateError("No element");
+    }
+    T lastWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (test->call((*_data)[i])) return (*_data)[i];
+        }
+        if (orElse) return orElse->call();
         throw DartStateError("No element");
     }
 
@@ -1228,6 +1584,22 @@ struct StaticList : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
+    T singleWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        bool foundMultiple = false;
+        T found{};
+        bool hasFound = false;
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) {
+                if (hasFound) { foundMultiple = true; break; }
+                found = (*_data)[i];
+                hasFound = true;
+            }
+        }
+        if (foundMultiple) throw DartStateError("Too many elements");
+        if (hasFound) return found;
+        if (orElse) return orElse->call();
+        throw DartStateError("No element");
+    }
 
     template<typename R>
     R fold(R initialValue, std::function<R(R, T)> combine) const {
@@ -1236,10 +1608,23 @@ struct StaticList : AnyGC {
         return value;
     }
 
+    template<typename R>
+    R fold(R initialValue, TypeFunction2<R, R, T>* combine) const {
+        R value = initialValue;
+        for (int i = 0; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
+        return value;
+    }
+
     T reduce(std::function<T(T, T)> combine) const {
         if (isEmpty()) throw DartStateError("No element");
         T value = (*_data)[0];
         for (int i = 1; i < _data->length(); i++) value = combine(value, (*_data)[i]);
+        return value;
+    }
+    T reduce(TypeFunction2<T, T, T>* combine) const {
+        if (isEmpty()) throw DartStateError("No element");
+        T value = (*_data)[0];
+        for (int i = 1; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
         return value;
     }
 
@@ -1266,12 +1651,30 @@ struct StaticList : AnyGC {
         }
         return GC::allocateLocal(result);
     }
+    StaticList<T>* takeWhile(TypeFunction1<bool, T>* test) const {
+        auto* result = new StaticList<T>();
+        for (int i = 0; i < _data->length(); i++) {
+            if (!test->call((*_data)[i])) break;
+            result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
 
     StaticList<T>* skipWhile(std::function<bool(T)> test) const {
         auto* result = new StaticList<T>();
         bool skipping = true;
         for (int i = 0; i < _data->length(); i++) {
             if (skipping && test((*_data)[i])) continue;
+            skipping = false;
+            result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
+    StaticList<T>* skipWhile(TypeFunction1<bool, T>* test) const {
+        auto* result = new StaticList<T>();
+        bool skipping = true;
+        for (int i = 0; i < _data->length(); i++) {
+            if (skipping && test->call((*_data)[i])) continue;
             skipping = false;
             result->add((*_data)[i]);
         }
@@ -1306,6 +1709,14 @@ struct StaticList : AnyGC {
     void sort(std::function<bool(T, T)> compare = nullptr) {
         if (compare) {
             std::sort(_data->_storage.begin(), _data->_storage.end(), compare);
+        } else {
+            std::sort(_data->_storage.begin(), _data->_storage.end());
+        }
+    }
+    void sort(TypeFunction2<bool, T, T>* compare) {
+        if (compare) {
+            std::sort(_data->_storage.begin(), _data->_storage.end(),
+                [compare](const T& a, const T& b) { return compare->call(a, b); });
         } else {
             std::sort(_data->_storage.begin(), _data->_storage.end());
         }
@@ -1367,6 +1778,18 @@ struct StaticList : AnyGC {
     }
 };
 
+// ── Array<T>::Array(StaticList<T>*) 实现（需要 StaticList 完整定义） ──
+
+template<typename T>
+Array<T>::Array(StaticList<T>* list) {
+    if (list) {
+        _storage.reserve(list->length());
+        for (int i = 0; i < list->length(); i++) {
+            _storage.push_back((*list)[i]);
+        }
+    }
+}
+
 // ── StaticMapEntry<K,V> ──
 
 template<typename K, typename V>
@@ -1375,6 +1798,17 @@ struct StaticMapEntry {
     V value;
 
     StaticMapEntry(K k, V v) : key(std::move(k)), value(std::move(v)) {}
+};
+
+// ── MapEntryValue<K,V> ──
+// Dart's MapEntry<K, V> class lowered to C++
+
+template<typename K, typename V>
+struct MapEntryValue : AnyGC {
+    K key;
+    V value;
+    MapEntryValue() : key(), value() {}
+    MapEntryValue(K k, V v) : key(std::move(k)), value(std::move(v)) {}
 };
 
 // ── StaticMap<K,V> ──
@@ -1391,6 +1825,46 @@ struct StaticMap : AnyGC {
 
     static StaticMap* empty() {
         return GC::allocateLocal(new StaticMap());
+    }
+
+    /// 对齐 Dart: StaticMap.of(source) — 从已有 map 复制
+    static StaticMap* of(StaticMap<K, V>* source) {
+        auto* result = GC::allocateLocal(new StaticMap());
+        if (source) {
+            for (int i = 0; i < source->_keys->length(); i++) {
+                result->set((*source->_keys)[i], (*source->_values)[i]);
+            }
+        }
+        return result;
+    }
+
+    /// 对齐 Dart: StaticMap.fromEntries(entries)
+    static StaticMap* fromEntries(StaticList<StaticMapEntry<K, V>>* entries) {
+        auto* result = GC::allocateLocal(new StaticMap());
+        if (entries) {
+            for (int i = 0; i < entries->length(); i++) {
+                auto& e = (*entries)[i];
+                result->set(e.key, e.value);
+            }
+        }
+        return result;
+    }
+
+    /// 对齐 Dart: StaticMap.unmodifiable(source) — 语义上等同 of（C++ 不强制不可变）
+    static StaticMap* unmodifiable(StaticMap<K, V>* source) {
+        return of(source);
+    }
+
+    /// 对齐 Dart: StaticMap.fromIterables(keys, values)
+    static StaticMap* fromIterables(StaticList<K>* keys, StaticList<V>* values) {
+        auto* result = GC::allocateLocal(new StaticMap());
+        if (keys && values) {
+            int len = std::min(keys->length(), values->length());
+            for (int i = 0; i < len; i++) {
+                result->set((*keys)[i], (*values)[i]);
+            }
+        }
+        return result;
     }
 
     // ── 核心属性 ──
@@ -1449,6 +1923,14 @@ struct StaticMap : AnyGC {
             }
         }
     }
+    void removeWhere(TypeFunction2<bool, K, V>* test) {
+        for (int i = _keys->length() - 1; i >= 0; i--) {
+            if (test->call((*_keys)[i], (*_values)[i])) {
+                _keys->removeAt(i);
+                _values->removeAt(i);
+            }
+        }
+    }
 
     void clear() {
         _keys->clear();
@@ -1459,6 +1941,14 @@ struct StaticMap : AnyGC {
         int idx = _keys->indexOf(key);
         if (idx != -1) return (*_values)[idx];
         V value = ifAbsent();
+        _keys->add(key);
+        _values->add(value);
+        return value;
+    }
+    V putIfAbsent(const K& key, TypeFunction0<V>* ifAbsent) {
+        int idx = _keys->indexOf(key);
+        if (idx != -1) return (*_values)[idx];
+        V value = ifAbsent->call();
         _keys->add(key);
         _values->add(value);
         return value;
@@ -1479,10 +1969,30 @@ struct StaticMap : AnyGC {
         }
         throw DartArgumentError("Key not found");
     }
+    V update(const K& key, TypeFunction1<V, V>* updateFn, TypeFunction0<V>* ifAbsent = nullptr) {
+        int idx = _keys->indexOf(key);
+        if (idx != -1) {
+            V newVal = updateFn->call((*_values)[idx]);
+            (*_values)[idx] = newVal;
+            return newVal;
+        }
+        if (ifAbsent) {
+            V newVal = ifAbsent->call();
+            _keys->add(key);
+            _values->add(newVal);
+            return newVal;
+        }
+        throw DartArgumentError("Key not found");
+    }
 
     void updateAll(std::function<V(K, V)> updateFn) {
         for (int i = 0; i < _keys->length(); i++) {
             (*_values)[i] = updateFn((*_keys)[i], (*_values)[i]);
+        }
+    }
+    void updateAll(TypeFunction2<V, K, V>* updateFn) {
+        for (int i = 0; i < _keys->length(); i++) {
+            (*_values)[i] = updateFn->call((*_keys)[i], (*_values)[i]);
         }
     }
 
@@ -1507,12 +2017,26 @@ struct StaticMap : AnyGC {
             action((*_keys)[i], (*_values)[i]);
         }
     }
+    void forEach(TypeFunction2<void, K, V>* action) const {
+        for (int i = 0; i < _keys->length(); i++) {
+            action->call((*_keys)[i], (*_values)[i]);
+        }
+    }
 
     template<typename K2, typename V2>
     StaticMap<K2, V2>* map(std::function<StaticMapEntry<K2, V2>(const K&, const V&)> convert) const {
         auto* result = new StaticMap<K2, V2>();
         for (int i = 0; i < _keys->length(); i++) {
             auto entry = convert((*_keys)[i], (*_values)[i]);
+            result->set(entry.key, entry.value);
+        }
+        return GC::allocateLocal(result);
+    }
+    template<typename K2, typename V2>
+    StaticMap<K2, V2>* map(TypeFunction2<StaticMapEntry<K2, V2>, K, V>* convert) const {
+        auto* result = new StaticMap<K2, V2>();
+        for (int i = 0; i < _keys->length(); i++) {
+            auto entry = convert->call((*_keys)[i], (*_values)[i]);
             result->set(entry.key, entry.value);
         }
         return GC::allocateLocal(result);
@@ -1570,6 +2094,24 @@ struct StaticSet : AnyGC {
         return GC::allocateLocal(new StaticSet());
     }
 
+    /// 对齐 Dart: StaticSet.from(iterable)
+    static StaticSet* from(StaticList<T>* source) {
+        auto* result = GC::allocateLocal(new StaticSet());
+        if (source) {
+            for (int i = 0; i < source->length(); i++) result->add((*source)[i]);
+        }
+        return result;
+    }
+
+    /// 对齐 Dart: StaticSet.unmodifiable(source) — 语义等同 from
+    static StaticSet* unmodifiable(StaticSet<T>* source) {
+        auto* result = GC::allocateLocal(new StaticSet());
+        if (source) {
+            for (int i = 0; i < source->length(); i++) result->add(source->elementAt(i));
+        }
+        return result;
+    }
+
     // ── 核心属性 ──
 
     int length() const { return _data->length(); }
@@ -1613,10 +2155,20 @@ struct StaticSet : AnyGC {
             if (test((*_data)[i])) _data->removeAt(i);
         }
     }
+    void removeWhere(TypeFunction1<bool, T>* test) {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (test->call((*_data)[i])) _data->removeAt(i);
+        }
+    }
 
     void retainWhere(std::function<bool(T)> test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
             if (!test((*_data)[i])) _data->removeAt(i);
+        }
+    }
+    void retainWhere(TypeFunction1<bool, T>* test) {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (!test->call((*_data)[i])) _data->removeAt(i);
         }
     }
 
@@ -1652,11 +2204,20 @@ struct StaticSet : AnyGC {
     void forEach(std::function<void(T)> action) const {
         for (int i = 0; i < _data->length(); i++) action((*_data)[i]);
     }
+    void forEach(TypeFunction1<void, T>* action) const {
+        for (int i = 0; i < _data->length(); i++) action->call((*_data)[i]);
+    }
 
     template<typename R>
     StaticList<R>* map(std::function<R(T)> convert) const {
         auto* result = new StaticList<R>();
         for (int i = 0; i < _data->length(); i++) result->add(convert((*_data)[i]));
+        return GC::allocateLocal(result);
+    }
+    template<typename R>
+    StaticList<R>* map(TypeFunction1<R, T>* convert) const {
+        auto* result = new StaticList<R>();
+        for (int i = 0; i < _data->length(); i++) result->add(convert->call((*_data)[i]));
         return GC::allocateLocal(result);
     }
 
@@ -1667,10 +2228,23 @@ struct StaticSet : AnyGC {
         }
         return GC::allocateLocal(result);
     }
+    StaticSet<T>* where(TypeFunction1<bool, T>* test) const {
+        auto* result = new StaticSet<T>();
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
 
     bool any(std::function<bool(T)> test) const {
         for (int i = 0; i < _data->length(); i++) {
             if (test((*_data)[i])) return true;
+        }
+        return false;
+    }
+    bool any(TypeFunction1<bool, T>* test) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) return true;
         }
         return false;
     }
@@ -1682,10 +2256,23 @@ struct StaticSet : AnyGC {
         return true;
     }
 
+    bool every(TypeFunction1<bool, T>* test) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (!test->call((*_data)[i])) return false;
+        }
+        return true;
+    }
+
     T reduce(std::function<T(T, T)> combine) const {
         if (isEmpty()) throw DartStateError("No element");
         T value = (*_data)[0];
         for (int i = 1; i < _data->length(); i++) value = combine(value, (*_data)[i]);
+        return value;
+    }
+    T reduce(TypeFunction2<T, T, T>* combine) const {
+        if (isEmpty()) throw DartStateError("No element");
+        T value = (*_data)[0];
+        for (int i = 1; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
         return value;
     }
 
@@ -1693,6 +2280,12 @@ struct StaticSet : AnyGC {
     R fold(R initialValue, std::function<R(R, T)> combine) const {
         R value = initialValue;
         for (int i = 0; i < _data->length(); i++) value = combine(value, (*_data)[i]);
+        return value;
+    }
+    template<typename R>
+    R fold(R initialValue, TypeFunction2<R, R, T>* combine) const {
+        R value = initialValue;
+        for (int i = 0; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
         return value;
     }
 
@@ -1703,12 +2296,26 @@ struct StaticSet : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
+    T firstWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) return (*_data)[i];
+        }
+        if (orElse) return orElse->call();
+        throw DartStateError("No element");
+    }
 
     T lastWhere(std::function<bool(T)> test, std::function<T()> orElse = nullptr) const {
         for (int i = _data->length() - 1; i >= 0; i--) {
             if (test((*_data)[i])) return (*_data)[i];
         }
         if (orElse) return orElse();
+        throw DartStateError("No element");
+    }
+    T lastWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        for (int i = _data->length() - 1; i >= 0; i--) {
+            if (test->call((*_data)[i])) return (*_data)[i];
+        }
+        if (orElse) return orElse->call();
         throw DartStateError("No element");
     }
 
@@ -1726,6 +2333,22 @@ struct StaticSet : AnyGC {
         if (foundMultiple) throw DartStateError("Too many elements");
         if (hasFound) return found;
         if (orElse) return orElse();
+        throw DartStateError("No element");
+    }
+    T singleWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+        bool foundMultiple = false;
+        T found{};
+        bool hasFound = false;
+        for (int i = 0; i < _data->length(); i++) {
+            if (test->call((*_data)[i])) {
+                if (hasFound) { foundMultiple = true; break; }
+                found = (*_data)[i];
+                hasFound = true;
+            }
+        }
+        if (foundMultiple) throw DartStateError("Too many elements");
+        if (hasFound) return found;
+        if (orElse) return orElse->call();
         throw DartStateError("No element");
     }
 
@@ -1815,12 +2438,30 @@ struct StaticSet : AnyGC {
         }
         return GC::allocateLocal(result);
     }
+    StaticSet<T>* takeWhile(TypeFunction1<bool, T>* test) const {
+        auto* result = new StaticSet<T>();
+        for (int i = 0; i < _data->length(); i++) {
+            if (!test->call((*_data)[i])) break;
+            result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
 
     StaticSet<T>* skipWhile(std::function<bool(T)> test) const {
         auto* result = new StaticSet<T>();
         bool skipping = true;
         for (int i = 0; i < _data->length(); i++) {
             if (skipping && test((*_data)[i])) continue;
+            skipping = false;
+            result->add((*_data)[i]);
+        }
+        return GC::allocateLocal(result);
+    }
+    StaticSet<T>* skipWhile(TypeFunction1<bool, T>* test) const {
+        auto* result = new StaticSet<T>();
+        bool skipping = true;
+        for (int i = 0; i < _data->length(); i++) {
+            if (skipping && test->call((*_data)[i])) continue;
             skipping = false;
             result->add((*_data)[i]);
         }
@@ -1963,12 +2604,47 @@ struct Promise : PromiseBase {
     // delayed / then / catchError / whenComplete — 声明在类内，定义在 GlobalScheduler 之后
     static Promise<T>* delayed(int ticks, std::function<T()> computation);
 
-    template<typename R>
+    template<typename R = AnyPtr>
     Promise<R>* then(std::function<AnyPtr(T)> onValue);
 
     Promise<T>* catchError(std::function<T(AnyPtr)> onError);
 
     Promise<T>* whenComplete(std::function<void()> action);
+
+    // ── 静态组合方法 — 对标 Future.wait / Future.any / Future.forEach ──
+    // 声明在类内，定义在 GlobalScheduler 之后
+
+    /// Promise<T>::waitAll — 等待所有 Promise 完成，返回结果列表
+    static Promise<StaticList<T>*>* waitAll(std::vector<Promise<T>*> promises);
+
+    /// Promise<T>::any — 返回第一个完成的 Promise 的结果（竞赛语义）
+    static Promise<T>* any(std::vector<Promise<T>*> promises);
+};
+
+// ── Promise<void> 特化 — 避免 void 参数类型问题 ──
+template<>
+struct Promise<void> : PromiseBase {
+    void completeTyped() {
+        complete(AnyPtr::null());
+    }
+
+    static Promise<void>* resolved() {
+        auto* promise = GC::allocateLocal(new Promise<void>());
+        promise->complete(AnyPtr::null());
+        return promise;
+    }
+
+    static Promise<void>* value() {
+        return resolved();
+    }
+
+    static Promise<void>* rejected(AnyPtr err) {
+        auto* promise = GC::allocateLocal(new Promise<void>());
+        promise->completeError(std::move(err));
+        return promise;
+    }
+
+    static Promise<void>* delayed(int ticks, std::function<void()> computation);
 };
 
 // ── GlobalScheduler ──
@@ -1987,7 +2663,6 @@ class GlobalScheduler : public AnyGC {
     std::vector<PromiseBase*> _activePromises;
     std::vector<_DelayedTask> _delayedTasks;
     std::vector<PromiseBase*> _readyPromises;
-    int _tickCount = 0;
 
     GlobalScheduler() {
         _gcStatic = true;  // 静态 singleton，GC 不管理其生命周期
@@ -1995,6 +2670,8 @@ class GlobalScheduler : public AnyGC {
     }
 
 public:
+    int64_t _currentTick = 0;
+
     static GlobalScheduler& instance() {
         static GlobalScheduler inst;
         return inst;
@@ -2021,7 +2698,7 @@ public:
 
     void registerDelayedTask(int ticks, std::function<void()> cb,
                              PromiseBase* targetPromise = nullptr) {
-        _delayedTasks.emplace_back(_tickCount + ticks, std::move(cb), targetPromise);
+        _delayedTasks.emplace_back(_currentTick + ticks, std::move(cb), targetPromise);
     }
 
     void registerReadyPromise(PromiseBase* p) {
@@ -2029,7 +2706,7 @@ public:
     }
 
     void tick() {
-        _tickCount++;
+        _currentTick++;
 
         // 第一阶段：触发所有 ready 状态的 Promise 的启动回调
         auto readyCopy = _readyPromises;
@@ -2044,7 +2721,7 @@ public:
 
         // 第二阶段：触发到期的延迟任务
         for (auto it = _delayedTasks.begin(); it != _delayedTasks.end(); ) {
-            if (it->targetTick <= _tickCount) {
+            if (it->targetTick <= _currentTick) {
                 it->callback();
                 it = _delayedTasks.erase(it);
             } else {
@@ -2066,13 +2743,13 @@ public:
         }
     }
 
-    int tickCount() const { return _tickCount; }
+    int tickCount() const { return static_cast<int>(_currentTick); }
 
     void reset() {
         _activePromises.clear();
         _delayedTasks.clear();
         _readyPromises.clear();
-        _tickCount = 0;
+        _currentTick = 0;
         gcFlag = 0;
         GC::allocateGlobal(this);
     }
@@ -2280,6 +2957,111 @@ Promise<T>* Promise<T>::whenComplete(std::function<void()> action) {
     return nextPromise;
 }
 
+// ── Promise<T>::waitAll — 等待所有 Promise 完成，返回结果列表 ──
+
+template<typename T>
+Promise<StaticList<T>*>* Promise<T>::waitAll(std::vector<Promise<T>*> promises) {
+    auto* resultPromise = GC::allocateLocal(new Promise<StaticList<T>*>());
+    if (promises.empty()) {
+        resultPromise->complete(AnyPtr::fromAuto(
+            GC::allocateLocal(new StaticList<T>())));
+        return resultPromise;
+    }
+
+    auto* results = new std::vector<AnyPtr>(promises.size(), AnyPtr::null());
+    auto* completedCount = new int(0);
+    auto total = promises.size();
+
+    resultPromise->onTick = [promises, resultPromise, results, completedCount, total]() -> bool {
+        for (size_t i = 0; i < promises.size(); i++) {
+            auto* p = promises[i];
+            if (p->state == ERROR) {
+                resultPromise->completeError(p->error);
+                delete results; delete completedCount;
+                return true;
+            }
+            if (p->state == COMPLETED && (*results)[i].isNull()) {
+                (*results)[i] = p->result;
+                (*completedCount)++;
+            }
+        }
+        if (*completedCount == static_cast<int>(total)) {
+            auto* list = GC::allocateLocal(new StaticList<T>());
+            for (const auto& r : *results) {
+                list->add(r.castTo<T>());
+            }
+            resultPromise->complete(AnyPtr::fromAuto(list));
+            delete results; delete completedCount;
+            return true;
+        }
+        return false;
+    };
+    GlobalScheduler::instance().registerActivePromise(resultPromise);
+    return resultPromise;
+}
+
+// ── Promise<T>::any — 返回第一个完成的 Promise 的结果（竞赛语义） ──
+
+template<typename T>
+Promise<T>* Promise<T>::any(std::vector<Promise<T>*> promises) {
+    auto* resultPromise = GC::allocateLocal(new Promise<T>());
+    if (promises.empty()) {
+        return resultPromise; // 永远 pending
+    }
+
+    resultPromise->onTick = [promises, resultPromise]() -> bool {
+        for (auto* p : promises) {
+            if (p->state == COMPLETED) {
+                resultPromise->complete(p->result);
+                return true;
+            }
+            if (p->state == ERROR) {
+                resultPromise->completeError(p->error);
+                return true;
+            }
+        }
+        return false;
+    };
+    GlobalScheduler::instance().registerActivePromise(resultPromise);
+    return resultPromise;
+}
+
+// ── delayed() free function — mirrors Promise.delayed in Dart ──
+template<typename T>
+Promise<T>* delayed(int ticks, TypeFunction0<T>* computation) {
+    return Promise<T>::delayed(ticks, [computation]() -> T {
+        return computation->call();
+    });
+}
+
+// ── Promise_value / Promise_delayed / Promise_then — lowered 函数包装器 ──
+// 这些函数对应 lowered Dart 代码中的 Promise_value, Promise_delayed, Promise_then
+
+template<typename T>
+Promise<T>* Promise_value(T val) {
+    return Promise<T>::resolved(val);
+}
+
+template<typename T>
+Promise<T>* Promise_delayed(int64_t delayTicks, TypeFunction0<T>* computation) {
+    return Promise<T>::delayed(static_cast<int>(delayTicks), [computation]() -> T {
+        return computation->call();
+    });
+}
+
+template<typename T, typename R>
+Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, T>* onValue) {
+    // Create a new promise for the result
+    auto* resultPromise = GC::allocateLocal(new Promise<R>());
+    this__->then([onValue, resultPromise](AnyPtr val) -> AnyPtr {
+        T typed = val.castTo<T>();
+        R result = onValue->call(typed);
+        resultPromise->completeTyped(std::move(result));
+        return AnyPtr::null();
+    });
+    return resultPromise;
+}
+
 // ── smAwait<T> — 阻塞式 await（对齐 Dart smAwait，含递归深度计数） ──
 
 static int _smAwaitDepth = 0;
@@ -2351,6 +3133,66 @@ T smAwait(PromiseBase* promise) {
     return promise->result.castTo<T>();
 }
 
+// ── smAwait<void> specialization ──
+template<>
+inline void smAwait<void>(PromiseBase* promise) {
+    if (!promise) {
+        throw DartStateError("smAwait: null promise");
+    }
+    SmAwaitDepthGuard depthGuard;
+    if (promise->isCompleted()) return;
+    if (promise->isError()) {
+        throw DartException("Promise completed with error: " +
+            promise->error.toStringValue());
+    }
+    if (promise->isReady() && promise->startCallback) {
+        promise->state = PromiseBase::PENDING;
+        promise->startCallback();
+        promise->startCallback = nullptr;
+        if (promise->isCompleted()) return;
+        if (promise->isError()) {
+            throw DartException("Promise completed with error");
+        }
+    }
+    int maxRounds = 100000;
+    int rounds = 0;
+    while (!promise->isCompleted() && !promise->isError() && rounds < maxRounds) {
+        GlobalScheduler::instance().tick();
+        rounds++;
+    }
+    if (rounds >= maxRounds) {
+        throw DartStateError("smAwait: deadlock detected");
+    }
+    if (promise->isError()) {
+        throw DartException("Promise completed with error: " +
+            promise->error.toStringValue());
+    }
+}
+
+// ── smAwait passthrough for non-Promise values ──
+template<typename T>
+inline T smAwait(T value) {
+    return value;
+}
+
+// ── smAwait(AnyPtr) overloads — 从 AnyPtr 中提取 PromiseBase* ──
+template<typename T>
+inline T smAwait(AnyPtr promiseValue) {
+    PromiseBase* promise = static_cast<PromiseBase*>(promiseValue.toGC());
+    return smAwait<T>(promise);
+}
+
+template<>
+inline void smAwait<void>(AnyPtr promiseValue) {
+    PromiseBase* promise = static_cast<PromiseBase*>(promiseValue.toGC());
+    smAwait<void>(promise);
+}
+
+// Overload for AnyPtr passthrough
+inline AnyPtr smAwait(AnyPtr value) {
+    return value;
+}
+
 // ── promiseDelayed（对齐 Dart promiseDelayed） ──
 
 inline PromiseBase* promiseDelayed(int ticks, std::function<AnyPtr()> computation) {
@@ -2398,6 +3240,25 @@ struct AsyncStateMachine : AnyGC {
     }
 };
 
+// ── AsyncStateMachine lowered 函数包装器 ──
+template<typename T> void AsyncStateMachine_completeWith(AsyncStateMachine<T>* this__, T value) {
+    this__->completeWith(std::move(value));
+}
+template<typename T> void AsyncStateMachine_completeWithError(AsyncStateMachine<T>* this__, AnyGC* error) {
+    this__->completeWithError(AnyPtr::fromGC(error));
+}
+template<typename T> Promise<T>* AsyncStateMachine_start(AsyncStateMachine<T>* this__) {
+    return this__->start();
+}
+template<typename T> bool AsyncStateMachine_step(AsyncStateMachine<T>* this__) {
+    return this__->step();
+}
+template<typename T> AsyncStateMachine<T>* AsyncStateMachine_new(AsyncStateMachine<T>* this__) {
+    this__->smState = 0;
+    this__->promise = GC::allocateLocal(new Promise<T>());
+    return this__;
+}
+
 // ============================================================================
 // 10. 语义包装 — staticPrint / StaticStringBuffer
 // ============================================================================
@@ -2428,6 +3289,34 @@ inline void staticPrint(const char* value) {
     std::cout << value << std::endl;
 }
 
+/// staticPrint 重载 — VPtr* 类型（通过 toString 派发）
+inline void staticPrint(VPtr* value) {
+    std::cout << (value ? value->toString() : "null") << std::endl;
+}
+
+/// staticPrint 重载 — 任意 GC 管理的对象指针（StaticList*, StaticMap* 等）
+template<typename T>
+inline typename std::enable_if<std::is_base_of<AnyGC, T>::value &&
+    !std::is_same<T, AnyPtr>::value && !std::is_same<T, VPtr>::value &&
+    !std::is_same<T, std::string>::value, void>::type
+staticPrint(T* value) {
+    if (!value) {
+        std::cout << "null" << std::endl;
+    } else {
+        std::cout << value->toString() << std::endl;
+    }
+}
+
+/// staticPrint 重载 — 异常类型
+inline void staticPrint(const std::exception& e) {
+    std::cout << e.what() << std::endl;
+}
+
+/// staticPrint 重载 — nullptr
+inline void staticPrint(std::nullptr_t) {
+    std::cout << "null" << std::endl;
+}
+
 /// StaticStringBuffer — 替代 Dart 的 StringBuffer
 struct StaticStringBuffer : AnyGC {
     std::ostringstream _buf;
@@ -2452,12 +3341,32 @@ struct StaticStringBuffer : AnyGC {
         _buf << (value ? "true" : "false");
     }
 
+    void writeln() {
+        _buf << "\n";
+    }
+
+    void writeln(const std::string& value) {
+        _buf << value << "\n";
+    }
+
+    void writeln(const AnyPtr& value) {
+        _buf << value.toStringValue() << "\n";
+    }
+
     std::string toString() const {
         return _buf.str();
     }
 
     int length() const {
         return static_cast<int>(_buf.str().length());
+    }
+
+    bool isEmpty() const {
+        return _buf.str().empty();
+    }
+
+    bool isNotEmpty() const {
+        return !_buf.str().empty();
     }
 
     void clear() {
@@ -2520,6 +3429,26 @@ inline std::string _toStr(const std::string& v) { return v; }
 inline std::string _toStr(const char* v) { return v ? v : "null"; }
 inline std::string _toStr(const AnyPtr& v) { return v.toStringValue(); }
 inline std::string _toStr(VPtr* v) { return v ? v->toString() : "null"; }
+inline std::string _toStr(const VPtr* v) { return v ? const_cast<VPtr*>(v)->toString() : "null"; }
+inline std::string _toStr(AnyGC* v) { return v ? "[AnyGC]" : "null"; }
+inline std::string _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
+inline std::string _toStr(const std::exception& e) { return e.what(); }
+inline std::string _toStr(const DartException& e) { return e.toString(); }
+inline std::string _toStr(std::nullptr_t) { return "null"; }
+inline std::string _toStr(const ReachabilityError& v) { return v.toStringValue(); }
+// 指针类型 _toStr — 处理任意指针（StaticList*, StaticMap* 等）
+template<typename T>
+inline typename std::enable_if<std::is_base_of<AnyGC, T>::value && !std::is_same<T, AnyPtr>::value, std::string>::type
+_toStr(T* v) {
+    if (!v) return "null";
+    // 如果 T 继承 VPtr，调用 toString()
+    if constexpr (std::is_base_of<VPtr, T>::value) {
+        return v->toString();
+    } else {
+        // StaticList, StaticMap, StaticSet 等 AnyGC 子类也有 toString()
+        return v->toString();
+    }
+}
 
 /// dart_str — 字符串插值辅助（可变参数拼接）
 template<typename... Args>
@@ -2705,5 +3634,144 @@ struct StaticRegExp {
 
     std::string toString() const { return "RegExp(" + pattern + ")"; }
 };
+
+// ============================================================================
+// Utility functions for collection operations
+// ============================================================================
+
+// List.unmodifiable - creates an unmodifiable copy of a list
+template<typename T>
+StaticList<T>* unmodifiable(StaticList<T>* source) {
+    if (!source) return GC::allocateLocal(new StaticList<T>());
+    return StaticList<T>::from(source);
+}
+
+// safeLength - safely get length of potentially null string
+inline int64_t safeLength(AnyGC* str) {
+    if (!str) return 0;
+    auto* strBox = dynamic_cast<StringBox*>(str);
+    if (strBox) return static_cast<int64_t>(strBox->value.length());
+    return 0;
+}
+
+// of - factory function for collections (used in some contexts)
+template<typename T>
+StaticList<T>* of(StaticList<T>* source) {
+    if (!source) return GC::allocateLocal(new StaticList<T>());
+    return StaticList<T>::from(source);
+}
+
+template<typename K, typename V>
+StaticMap<K, V>* of(StaticMap<K, V>* source) {
+    if (!source) return GC::allocateLocal(new StaticMap<K, V>());
+    auto* result = GC::allocateLocal(new StaticMap<K, V>());
+    for (int i = 0; i < source->length(); i++) {
+        auto* keys = source->keys();
+        auto* values = source->values();
+        result->set((*keys)[i], (*values)[i]);
+    }
+    return result;
+}
+
+template<typename T>
+StaticSet<T>* of(StaticSet<T>* source) {
+    if (!source) return GC::allocateLocal(new StaticSet<T>());
+    return StaticSet<T>::from(source->toStaticList());
+}
+
+// get - safe map get with default value
+template<typename K, typename V>
+V get(StaticMap<K, V>* map, const K& key, V defaultValue = V{}) {
+    if (!map) return defaultValue;
+    return map->getOrDefault(key, defaultValue);
+}
+
+// fromEntries - create a StaticMap from a list of entries
+template<typename K, typename V>
+StaticMap<K, V>* fromEntries(StaticList<StaticMapEntry<K, V>>* entries) {
+    if (!entries) return StaticMap<K, V>::empty();
+    return StaticMap<K, V>::fromEntries(entries);
+}
+
+// _SetValue - wrapper struct for Set constructor
+template<typename T>
+struct _SetValue : AnyGC {};
+
+// _Set_new - factory function for StaticSet
+template<typename T>
+StaticSet<T>* _Set_new(_SetValue<T>* /*unused*/) {
+    return StaticSet<T>::empty();
+}
+
+// generate - create a list by calling a generator function
+template<typename T>
+StaticList<T>* generate(int count, TypeFunction1<T, int64_t>* generator) {
+    auto* result = GC::allocateLocal(new StaticList<T>());
+    for (int i = 0; i < count; i++) {
+        result->add(generator->call(i));
+    }
+    return result;
+}
+
+template<typename T>
+StaticList<T>* generate(int count, std::function<T(int)> generator) {
+    auto* result = GC::allocateLocal(new StaticList<T>());
+    for (int i = 0; i < count; i++) {
+        result->add(generator(i));
+    }
+    return result;
+}
+
+// StreamValue - wrapper struct for Stream (simplified as StaticList)
+template<typename T>
+struct StreamValue : AnyGC {
+    StaticList<T>* data;
+    static std::unordered_map<std::string, void*> _vptrMap;
+
+    StreamValue() : data(GC::allocateLocal(new StaticList<T>())) {}
+    StreamValue(StaticList<T>* d) : data(d) {}
+
+    StaticList<T>* toList() const { return data; }
+
+    static std::unordered_map<std::string, void*>& getVptrMap() {
+        if (_vptrMap.empty()) {
+            // toList returns Promise<StaticList<T>*>* which is a Promise
+            // We'll handle this specially in the emitter
+            _vptrMap["toList"] = nullptr; // Placeholder, actual call handled by emitter
+        }
+        return _vptrMap;
+    }
+
+    template<typename R>
+    StreamValue<R>* map(std::function<R(T)> convert) {
+        auto* mapped = data->template map<R>(convert);
+        return GC::allocateLocal(new StreamValue<R>(mapped));
+    }
+
+    StreamValue<T>* where(std::function<bool(T)> test) {
+        auto* filtered = data->where(test);
+        return GC::allocateLocal(new StreamValue<T>(filtered));
+    }
+
+    template<typename R>
+    R fold(R initialValue, std::function<R(R, T)> combine) {
+        return data->fold(initialValue, combine);
+    }
+};
+
+// Static member definition
+template<typename T>
+std::unordered_map<std::string, void*> StreamValue<T>::_vptrMap;
+
+// Stream_new - factory function for StreamValue
+template<typename T>
+StreamValue<T>* Stream_new() {
+    return GC::allocateLocal(new StreamValue<T>());
+}
+
+template<typename T>
+StreamValue<T>* Stream_fromIterable(StaticList<T>* source) {
+    return GC::allocateLocal(new StreamValue<T>(source));
+}
 
 #endif // DART2CPP_LOWERED_H

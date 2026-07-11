@@ -8,6 +8,7 @@ part 'statement_restorer.dart';
 part 'enum_restorer.dart';
 part 'closure_restorer.dart';
 part 'declaration_restorer.dart';
+part 'cpp_emitter.dart';
 
 // ============================================================================
 // 预编译正则表达式（性能优化）
@@ -843,6 +844,36 @@ abstract class _DartRestorerBase {
       if (name == 'String' && type.nullability != Nullability.nullable) return "''";
     }
     return 'null';
+  }
+
+  /// 当参数目标是 AnyGC（原 dynamic）且实参是基本类型时，自动装箱
+  /// [paramType] 是目标函数的声明参数类型（DartType）
+  /// [argExpr] 是已还原的参数表达式字符串
+  /// [argType] 是参数表达式的静态类型（DartType，可为 null）
+  String _maybeBoxForAnyGC(DartType paramType, String argExpr, DartType? argType) {
+    // 只有参数类型是 dynamic（现在映射为 AnyGC）时才需要装箱
+    if (paramType is! DynamicType) return argExpr;
+
+    // 检查参数的静态类型是否是基础值类型
+    if (argType != null) {
+      final boxName = _primitiveBoxName(argType);
+      if (boxName != null) return '$boxName($argExpr)';
+    }
+
+    // 如果类型未知，通过表达式模式匹配判断是否是字面量
+    // 整数字面量（正整数或负整数）
+    if (RegExp(r'^-?\d+$').hasMatch(argExpr)) return 'IntBox($argExpr)';
+    // 浮点数字面量
+    if (RegExp(r'^-?\d+\.\d+$').hasMatch(argExpr)) return 'DoubleBox($argExpr)';
+    // 布尔字面量
+    if (argExpr == 'true' || argExpr == 'false') return 'BoolBox($argExpr)';
+    // 字符串字面量（以引号开头和结尾）
+    if ((argExpr.startsWith("'") && argExpr.endsWith("'")) ||
+        (argExpr.startsWith('"') && argExpr.endsWith('"'))) {
+      return 'StringBox($argExpr)';
+    }
+
+    return argExpr;
   }
 
   // 跨模块方法的抽象声明（打破 mixin 循环依赖）

@@ -7,21 +7,21 @@ typedef Transformer<A, B> = TypeFunction1<B, A>;
 typedef VoidCallback = TypeFunction0<void>;
 
 // mixin Printable → static functions for delegation
-void Printable_printInfo(dynamic this__) {
-  final this_ = this__;
-  staticPrint('[${(this_.vptr['get_displayName'] as String Function(dynamic))(this_)}]');
+void Printable_printInfo(AnyGC this__) {
+  final dynamic this_ = this__;
+  staticPrint('[${(this_.vptr['get_displayName'] as String Function(AnyGC))(this_)}]');
 }
 
 
 // mixin Orderable → static functions for delegation
-bool Orderable_isLessThan<T>(dynamic this__, T other) {
-  final this_ = this__;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) < 0);
+bool Orderable_isLessThan<T>(AnyGC this__, T other) {
+  final dynamic this_ = this__;
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) < 0);
 }
 
-bool Orderable_isGreaterThan<T>(dynamic this__, T other) {
-  final this_ = this__;
-  return ((this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other) > 0);
+bool Orderable_isGreaterThan<T>(AnyGC this__, T other) {
+  final dynamic this_ = this__;
+  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) > 0);
 }
 
 
@@ -41,7 +41,7 @@ class AnimalValue extends VPtr {
   }
 }
 
-AnimalValue Animal_new(dynamic this__, String name, int age) {
+AnimalValue Animal_new(AnyGC this__, String name, int age) {
   final this_ = this__ as AnimalValue;
   this_.name = name;
   this_.age = age;
@@ -52,7 +52,7 @@ String Animal_speak(dynamic this_) {
   throw UnimplementedError('Animal.speak is abstract');
 }
 
-String Animal_toString(dynamic this__) {
+String Animal_toString(AnyGC this__) {
   final this_ = this__ as AnimalValue;
   return '${this_.name}(age=${this_.age})';
 }
@@ -83,44 +83,44 @@ class DogValue extends Dog_Animal_Printable_OrderableValue {
   }
 }
 
-DogValue Dog_new(dynamic this__, String name, int age, String breed) {
+DogValue Dog_new(AnyGC this__, String name, int age, String breed) {
   final this_ = this__ as DogValue;
   Animal_new(this_, name, age);
   this_.breed = breed;
   return this_;
 }
 
-String Dog_get_displayName(dynamic this__) {
+String Dog_get_displayName(AnyGC this__) {
   final this_ = this__ as DogValue;
   return 'Dog:${this_.name}';
 }
 
-String Dog_speak(dynamic this__) {
+String Dog_speak(AnyGC this__) {
   final this_ = this__ as DogValue;
   return 'Woof!';
 }
 
-int Dog_compareTo(dynamic this__, DogValue other) {
+int Dog_compareTo(AnyGC this__, DogValue other) {
   final this_ = this__ as DogValue;
   return this_.age.compareTo(other.age);
 }
 
-String Dog_toString(dynamic this__) {
+String Dog_toString(AnyGC this__) {
   final this_ = this__ as DogValue;
   return Animal_toString(this_);
 }
 
-void Dog_printInfo(dynamic this__) {
+void Dog_printInfo(AnyGC this__) {
   final this_ = this__ as DogValue;
   Printable_printInfo(this_);
 }
 
-bool Dog_isLessThan(dynamic this__, DogValue other) {
+bool Dog_isLessThan(AnyGC this__, DogValue other) {
   final this_ = this__ as DogValue;
   return Orderable_isLessThan<DogValue>(this_, other);
 }
 
-bool Dog_isGreaterThan(dynamic this__, DogValue other) {
+bool Dog_isGreaterThan(AnyGC this__, DogValue other) {
   final this_ = this__ as DogValue;
   return Orderable_isGreaterThan<DogValue>(this_, other);
 }
@@ -150,39 +150,39 @@ class CatValue extends Cat_Animal_PrintableValue {
   }
 }
 
-CatValue Cat_new(dynamic this__, String name, int age) {
+CatValue Cat_new(AnyGC this__, String name, int age) {
   final this_ = this__ as CatValue;
   Animal_new(this_, name, age);
   this_._mood = 'happy';
   return this_;
 }
 
-String Cat_get_displayName(dynamic this__) {
+String Cat_get_displayName(AnyGC this__) {
   final this_ = this__ as CatValue;
   return 'Cat:${this_.name}';
 }
 
-String Cat_speak(dynamic this__) {
+String Cat_speak(AnyGC this__) {
   final this_ = this__ as CatValue;
   return 'Meow!';
 }
 
-String Cat_get_mood(dynamic this__) {
+String Cat_get_mood(AnyGC this__) {
   final this_ = this__ as CatValue;
   return this_._mood;
 }
 
-void Cat_set_mood(dynamic this__, String value) {
+void Cat_set_mood(AnyGC this__, String value) {
   final this_ = this__ as CatValue;
   this_._mood = value;
 }
 
-String Cat_toString(dynamic this__) {
+String Cat_toString(AnyGC this__) {
   final this_ = this__ as CatValue;
   return Animal_toString(this_);
 }
 
-void Cat_printInfo(dynamic this__) {
+void Cat_printInfo(AnyGC this__) {
   final this_ = this__ as CatValue;
   Printable_printInfo(this_);
 }
@@ -208,34 +208,34 @@ class Vector2DValue extends VPtr {
   }
 }
 
-Vector2DValue Vector2D_new(dynamic this__, double x, double y) {
+Vector2DValue Vector2D_new(AnyGC this__, double x, double y) {
   final this_ = this__ as Vector2DValue;
   this_.x = x;
   this_.y = y;
   return this_;
 }
 
-Vector2DValue Vector2D_operatorPlus(dynamic this__, Vector2DValue other) {
+Vector2DValue Vector2D_operatorPlus(AnyGC this__, Vector2DValue other) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x + other.x), (this_.y + other.y));
 }
 
-Vector2DValue Vector2D_operatorMinus(dynamic this__, Vector2DValue other) {
+Vector2DValue Vector2D_operatorMinus(AnyGC this__, Vector2DValue other) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x - other.x), (this_.y - other.y));
 }
 
-Vector2DValue Vector2D_operatorStar(dynamic this__, double scalar) {
+Vector2DValue Vector2D_operatorStar(AnyGC this__, double scalar) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x * scalar), (this_.y * scalar));
 }
 
-bool Vector2D_operatorEq(dynamic this__, Object other) {
+bool Vector2D_operatorEq(AnyGC this__, Object other) {
   final this_ = this__ as Vector2DValue;
   return (((other is Vector2DValue) && (this_.x == other.x)) && (this_.y == other.y));
 }
 
-double Vector2D_get_length(dynamic this__) {
+double Vector2D_get_length(AnyGC this__) {
   final this_ = this__ as Vector2DValue;
   return ((((this_.x * this_.x) + (this_.y * this_.y)) < 0) ? 0.0 : Vector2D__sqrt(((this_.x * this_.x) + (this_.y * this_.y))));
 }
@@ -249,7 +249,7 @@ double Vector2D__sqrt(double v) {
   return guess;
 }
 
-String Vector2D_toString(dynamic this__) {
+String Vector2D_toString(AnyGC this__) {
   final this_ = this__ as Vector2DValue;
   return 'Vector2D(${this_.x}, ${this_.y})';
 }
@@ -275,7 +275,7 @@ class CounterValue extends VPtr {
 
 int Counter__instanceCount = 0;
 const int Counter_maxValue = 100;
-CounterValue Counter_new__(dynamic this__, String label, int _value) {
+CounterValue Counter_new__(AnyGC this__, String label, int _value) {
   final this_ = this__ as CounterValue;
   this_.label = label;
   this_._value = _value;
@@ -296,22 +296,22 @@ int Counter_instanceCount() {
   return Counter__instanceCount;
 }
 
-void Counter_increment(dynamic this__, int step) {
+void Counter_increment(AnyGC this__, int step) {
   final this_ = this__ as CounterValue;
   this_._value = (this_._value + step).clamp(0, 100);
 }
 
-void Counter_decrement(dynamic this__, int step) {
+void Counter_decrement(AnyGC this__, int step) {
   final this_ = this__ as CounterValue;
   this_._value = (this_._value - step).clamp(0, 100);
 }
 
-int Counter_get_value(dynamic this__) {
+int Counter_get_value(AnyGC this__) {
   final this_ = this__ as CounterValue;
   return this_._value;
 }
 
-String Counter_toString(dynamic this__) {
+String Counter_toString(AnyGC this__) {
   final this_ = this__ as CounterValue;
   return '${this_.label}: ${this_._value}';
 }
@@ -348,7 +348,7 @@ class ResultValue<T> extends VPtr {
   }
 }
 
-ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
+ResultValue<T> Result_new_success<T>(AnyGC this__, T value) {
   final this_ = this__ as ResultValue<T>;
   this_.data = value;
   this_.error = null;
@@ -356,7 +356,7 @@ ResultValue<T> Result_new_success<T>(dynamic this__, T value) {
   return this_;
 }
 
-ResultValue<T> Result_new_failure<T>(dynamic this__, String message) {
+ResultValue<T> Result_new_failure<T>(AnyGC this__, String message) {
   final this_ = this__ as ResultValue<T>;
   this_.data = null;
   this_.error = message;
@@ -364,7 +364,7 @@ ResultValue<T> Result_new_failure<T>(dynamic this__, String message) {
   return this_;
 }
 
-R Result_fold<T, R>(dynamic this__, TypeFunction1<R, T> onSuccess, TypeFunction1<R, String> onFailure) {
+R Result_fold<T, R>(AnyGC this__, TypeFunction1<R, T> onSuccess, TypeFunction1<R, String> onFailure) {
   final this_ = this__ as ResultValue<T>;
   if ((this_.isSuccess && !((this_.data == null)))) {
     return onSuccess.closureCall(onSuccess, (this_.data as T));
@@ -372,7 +372,7 @@ R Result_fold<T, R>(dynamic this__, TypeFunction1<R, T> onSuccess, TypeFunction1
   return onFailure.closureCall(onFailure, (this_.error ?? 'Unknown error'));
 }
 
-String Result_toString<T>(dynamic this__) {
+String Result_toString<T>(AnyGC this__) {
   final this_ = this__ as ResultValue<T>;
   return (this_.isSuccess ? 'Result.success(${this_.data})' : 'Result.failure(${this_.error})');
 }
@@ -396,24 +396,24 @@ class LazyLoaderValue extends VPtr {
   }
 }
 
-LazyLoaderValue LazyLoader_new(dynamic this__) {
+LazyLoaderValue LazyLoader_new(AnyGC this__) {
   final this_ = this__ as LazyLoaderValue;
   return this_;
 }
 
-void LazyLoader_initialize(dynamic this__, String data) {
+void LazyLoader_initialize(AnyGC this__, String data) {
   final this_ = this__ as LazyLoaderValue;
   this_._data = data;
   this_._computedValue = (data.length * 2);
   this_._initialized = true;
 }
 
-String LazyLoader_get_data(dynamic this__) {
+String LazyLoader_get_data(AnyGC this__) {
   final this_ = this__ as LazyLoaderValue;
   return (this_._initialized ? this_._data : 'not initialized');
 }
 
-int LazyLoader_get_computedValue(dynamic this__) {
+int LazyLoader_get_computedValue(AnyGC this__) {
   final this_ = this__ as LazyLoaderValue;
   return (this_._initialized ? this_._computedValue : (-1));
 }
@@ -436,7 +436,7 @@ class BoundedValueValue extends VPtr {
   }
 }
 
-BoundedValueValue BoundedValue_new(dynamic this__, double min, double max, double initial) {
+BoundedValueValue BoundedValue_new(AnyGC this__, double min, double max, double initial) {
   final this_ = this__ as BoundedValueValue;
   this_.min = min;
   this_.max = max;
@@ -446,13 +446,13 @@ BoundedValueValue BoundedValue_new(dynamic this__, double min, double max, doubl
   return this_;
 }
 
-void BoundedValue_set(dynamic this__, double value) {
+void BoundedValue_set(AnyGC this__, double value) {
   final this_ = this__ as BoundedValueValue;
   assert(((value >= this_.min) && (value <= this_.max)), 'value ${value} out of bounds [${this_.min}, ${this_.max}]');
   this_._current = value;
 }
 
-double BoundedValue_get_current(dynamic this__) {
+double BoundedValue_get_current(AnyGC this__) {
   final this_ = this__ as BoundedValueValue;
   return this_._current;
 }
@@ -473,20 +473,20 @@ class ShapeValue extends VPtr {
   }
 }
 
-ShapeValue Shape_new(dynamic this__, String color, {double opacity = 1.0}) {
+ShapeValue Shape_new(AnyGC this__, String color, {double opacity = 1.0}) {
   final this_ = this__ as ShapeValue;
   this_.color = color;
   this_.opacity = opacity;
   return this_;
 }
 
-ShapeValue Shape_new_transparent(dynamic this__, String color) {
+ShapeValue Shape_new_transparent(AnyGC this__, String color) {
   final this_ = this__ as ShapeValue;
   Shape_new(this_, color, opacity: 0.5);
   return this_;
 }
 
-String Shape_describe(dynamic this__) {
+String Shape_describe(AnyGC this__) {
   final this_ = this__ as ShapeValue;
   return 'Shape(color=${this_.color}, opacity=${this_.opacity})';
 }
@@ -512,19 +512,19 @@ class PolygonValue extends ShapeValue {
   }
 }
 
-PolygonValue Polygon_new(dynamic this__, String color, int sides, {double opacity = 1.0}) {
+PolygonValue Polygon_new(AnyGC this__, String color, int sides, {double opacity = 1.0}) {
   final this_ = this__ as PolygonValue;
   Shape_new(this_, color, opacity: opacity);
   this_.sides = sides;
   return this_;
 }
 
-String Polygon_describe(dynamic this__) {
+String Polygon_describe(AnyGC this__) {
   final this_ = this__ as PolygonValue;
   return 'Polygon(sides=${this_.sides}, ${Shape_describe(this_)})';
 }
 
-double Polygon_perimeter(dynamic this__, double sideLength) {
+double Polygon_perimeter(AnyGC this__, double sideLength) {
   final this_ = this__ as PolygonValue;
   return (this_.sides * sideLength);
 }
@@ -551,24 +551,24 @@ class RegularPolygonValue extends PolygonValue {
   }
 }
 
-RegularPolygonValue RegularPolygon_new(dynamic this__, String color, int sides, double sideLength, {double opacity = 1.0}) {
+RegularPolygonValue RegularPolygon_new(AnyGC this__, String color, int sides, double sideLength, {double opacity = 1.0}) {
   final this_ = this__ as RegularPolygonValue;
   Polygon_new(this_, color, sides, opacity: opacity);
   this_.sideLength = sideLength;
   return this_;
 }
 
-String RegularPolygon_describe(dynamic this__) {
+String RegularPolygon_describe(AnyGC this__) {
   final this_ = this__ as RegularPolygonValue;
   return 'RegularPolygon(sideLen=${this_.sideLength}, ${Polygon_describe(this_)})';
 }
 
-double RegularPolygon_perimeter(dynamic this__, double? overrideSideLength) {
+double RegularPolygon_perimeter(AnyGC this__, double? overrideSideLength) {
   final this_ = this__ as RegularPolygonValue;
   return (this_.sides * (overrideSideLength ?? this_.sideLength));
 }
 
-double RegularPolygon_area(dynamic this__) {
+double RegularPolygon_area(AnyGC this__) {
   final this_ = this__ as RegularPolygonValue;
   return (((this_.sides * this_.sideLength) * this_.sideLength) / 4.0);
 }
@@ -594,23 +594,23 @@ class SquareValue extends RegularPolygonValue {
   }
 }
 
-SquareValue Square_new(dynamic this__, String color, double size, {double opacity = 1.0}) {
+SquareValue Square_new(AnyGC this__, String color, double size, {double opacity = 1.0}) {
   final this_ = this__ as SquareValue;
   RegularPolygon_new(this_, color, 4, size, opacity: opacity);
   return this_;
 }
 
-String Square_describe(dynamic this__) {
+String Square_describe(AnyGC this__) {
   final this_ = this__ as SquareValue;
   return 'Square(size=${this_.sideLength}, color=${this_.color})';
 }
 
-double Square_perimeter(dynamic this__, double? overrideSideLength) {
+double Square_perimeter(AnyGC this__, double? overrideSideLength) {
   final this_ = this__ as SquareValue;
   return RegularPolygon_perimeter(this_, overrideSideLength);
 }
 
-double Square_area(dynamic this__) {
+double Square_area(AnyGC this__) {
   final this_ = this__ as SquareValue;
   return RegularPolygon_area(this_);
 }
@@ -629,7 +629,7 @@ class SerializableValue extends VPtr {
   }
 }
 
-SerializableValue Serializable_new(dynamic this__) {
+SerializableValue Serializable_new(AnyGC this__) {
   final this_ = this__ as SerializableValue;
   return this_;
 }
@@ -644,7 +644,7 @@ class CloneableValue<T> extends VPtr {
   Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
-CloneableValue<T> Cloneable_new<T>(dynamic this__) {
+CloneableValue<T> Cloneable_new<T>(AnyGC this__) {
   final this_ = this__ as CloneableValue<T>;
   return this_;
 }
@@ -659,7 +659,7 @@ class Comparable2Value<T> extends VPtr {
   Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
-Comparable2Value<T> Comparable2_new<T>(dynamic this__) {
+Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
   final this_ = this__ as Comparable2Value<T>;
   return this_;
 }
@@ -688,7 +688,7 @@ class DataPointValue extends VPtr implements SerializableValue, CloneableValue<D
   }
 }
 
-DataPointValue DataPoint_new(dynamic this__, double x, double y, String label) {
+DataPointValue DataPoint_new(AnyGC this__, double x, double y, String label) {
   final this_ = this__ as DataPointValue;
   this_.x = x;
   this_.y = y;
@@ -696,17 +696,17 @@ DataPointValue DataPoint_new(dynamic this__, double x, double y, String label) {
   return this_;
 }
 
-String DataPoint_serialize(dynamic this__) {
+String DataPoint_serialize(AnyGC this__) {
   final this_ = this__ as DataPointValue;
   return '{"x":${this_.x},"y":${this_.y},"label":"${this_.label}"}';
 }
 
-DataPointValue DataPoint_clone(dynamic this__) {
+DataPointValue DataPoint_clone(AnyGC this__) {
   final this_ = this__ as DataPointValue;
   return DataPoint_new(GC.allocateLocal(DataPointValue()), this_.x, this_.y, this_.label);
 }
 
-int DataPoint_compareTo2(dynamic this__, DataPointValue other) {
+int DataPoint_compareTo2(AnyGC this__, DataPointValue other) {
   final this_ = this__ as DataPointValue;
   final double dx = (this_.x - other.x);
   if (!((dx == 0)))   return ((dx > 0) ? 1 : (-1));
@@ -715,23 +715,23 @@ int DataPoint_compareTo2(dynamic this__, DataPointValue other) {
   return 0;
 }
 
-String DataPoint_toString(dynamic this__) {
+String DataPoint_toString(AnyGC this__) {
   final this_ = this__ as DataPointValue;
   return 'DataPoint(${this_.x}, ${this_.y}, "${this_.label}")';
 }
 
 
 // mixin Loggable → static functions for delegation
-void Loggable_log(dynamic this__, String message) {
-  final this_ = this__;
-  staticPrint('[${(this_.vptr['get_logTag'] as String Function(dynamic))(this_)}] ${message}');
+void Loggable_log(AnyGC this__, String message) {
+  final dynamic this_ = this__;
+  staticPrint('[${(this_.vptr['get_logTag'] as String Function(AnyGC))(this_)}] ${message}');
 }
 
 
 // mixin Validatable → static functions for delegation
-bool Validatable_validate(dynamic this__) {
-  final this_ = this__;
-  return (this_.vptr['serialize'] as String Function(dynamic))(this_).isNotEmpty;
+bool Validatable_validate(AnyGC this__) {
+  final dynamic this_ = this__;
+  return (this_.vptr['serialize'] as String Function(AnyGC))(this_).isNotEmpty;
 }
 
 
@@ -759,43 +759,43 @@ class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_Validatabl
   }
 }
 
-LoggedDataPointValue LoggedDataPoint_new(dynamic this__, double x, double y, String label) {
+LoggedDataPointValue LoggedDataPoint_new(AnyGC this__, double x, double y, String label) {
   final this_ = this__ as LoggedDataPointValue;
   DataPoint_new(this_, x, y, label);
   return this_;
 }
 
-String LoggedDataPoint_get_logTag(dynamic this__) {
+String LoggedDataPoint_get_logTag(AnyGC this__) {
   final this_ = this__ as LoggedDataPointValue;
   return 'DataPoint';
 }
 
-String LoggedDataPoint_serialize(dynamic this__) {
+String LoggedDataPoint_serialize(AnyGC this__) {
   final this_ = this__ as LoggedDataPointValue;
   return DataPoint_serialize(this_);
 }
 
-DataPointValue LoggedDataPoint_clone(dynamic this__) {
+DataPointValue LoggedDataPoint_clone(AnyGC this__) {
   final this_ = this__ as LoggedDataPointValue;
   return DataPoint_clone(this_);
 }
 
-int LoggedDataPoint_compareTo2(dynamic this__, DataPointValue other) {
+int LoggedDataPoint_compareTo2(AnyGC this__, DataPointValue other) {
   final this_ = this__ as LoggedDataPointValue;
   return DataPoint_compareTo2(this_, other);
 }
 
-String LoggedDataPoint_toString(dynamic this__) {
+String LoggedDataPoint_toString(AnyGC this__) {
   final this_ = this__ as LoggedDataPointValue;
   return DataPoint_toString(this_);
 }
 
-void LoggedDataPoint_log(dynamic this__, String message) {
+void LoggedDataPoint_log(AnyGC this__, String message) {
   final this_ = this__ as LoggedDataPointValue;
   Loggable_log(this_, message);
 }
 
-bool LoggedDataPoint_validate(dynamic this__) {
+bool LoggedDataPoint_validate(AnyGC this__) {
   final this_ = this__ as LoggedDataPointValue;
   return Validatable_validate(this_);
 }
@@ -853,7 +853,7 @@ class ConfigValue extends VPtr {
   }
 }
 
-ConfigValue Config_new(dynamic this__, String host, int port, {bool secure = false}) {
+ConfigValue Config_new(AnyGC this__, String host, int port, {bool secure = false}) {
   final this_ = this__ as ConfigValue;
   this_.host = host;
   this_.port = port;
@@ -862,19 +862,19 @@ ConfigValue Config_new(dynamic this__, String host, int port, {bool secure = fal
   return this_;
 }
 
-ConfigValue Config_new_localhost(dynamic this__, {int port = 8080}) {
+ConfigValue Config_new_localhost(AnyGC this__, {int port = 8080}) {
   final this_ = this__ as ConfigValue;
   Config_new(this_, 'localhost', port);
   return this_;
 }
 
-ConfigValue Config_new_production(dynamic this__, String host) {
+ConfigValue Config_new_production(AnyGC this__, String host) {
   final this_ = this__ as ConfigValue;
   Config_new(this_, host, 443, secure: true);
   return this_;
 }
 
-String Config_toString(dynamic this__) {
+String Config_toString(AnyGC this__) {
   final this_ = this__ as ConfigValue;
   return 'Config(${this_.baseUrl})';
 }
@@ -913,38 +913,38 @@ class SortedListValue<T extends Comparable<dynamic>> extends VPtr {
   }
 }
 
-SortedListValue<T> SortedList_new<T extends Comparable<dynamic>>(dynamic this__) {
+SortedListValue<T> SortedList_new<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return this_;
 }
 
-void SortedList_add<T extends Comparable<dynamic>>(dynamic this__, T item) {
+void SortedList_add<T extends Comparable<dynamic>>(AnyGC this__, T item) {
   final this_ = this__ as SortedListValue<T>;
   this_._items.add(item);
   this_._items.sort();
 }
 
-T SortedList_get_first<T extends Comparable<dynamic>>(dynamic this__) {
+T SortedList_get_first<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return this_._items.first;
 }
 
-T SortedList_get_last<T extends Comparable<dynamic>>(dynamic this__) {
+T SortedList_get_last<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return this_._items.last;
 }
 
-int SortedList_get_length<T extends Comparable<dynamic>>(dynamic this__) {
+int SortedList_get_length<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return this_._items.length;
 }
 
-StaticList<T> SortedList_toList<T extends Comparable<dynamic>>(dynamic this__) {
+StaticList<T> SortedList_toList<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return StaticList<T>.unmodifiable(this_._items);
 }
 
-String SortedList_toString<T extends Comparable<dynamic>>(dynamic this__) {
+String SortedList_toString<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
   return 'SortedList(${this_._items})';
 }
@@ -965,14 +965,14 @@ class NullSafetyDemoValue extends VPtr {
   }
 }
 
-NullSafetyDemoValue NullSafetyDemo_new(dynamic this__, String nonNullField, [String? nullableField = null]) {
+NullSafetyDemoValue NullSafetyDemo_new(AnyGC this__, String nonNullField, [String? nullableField = null]) {
   final this_ = this__ as NullSafetyDemoValue;
   this_.nonNullField = nonNullField;
   this_.nullableField = nullableField;
   return this_;
 }
 
-String NullSafetyDemo_demonstrate(dynamic this__) {
+String NullSafetyDemo_demonstrate(AnyGC this__) {
   final this_ = this__ as NullSafetyDemoValue;
   final int? len = this_.nullableField?.length;
   final int safeLen = (len ?? (-1));
@@ -996,7 +996,7 @@ class RendererValue extends VPtr {
   }
 }
 
-RendererValue Renderer_new(dynamic this__) {
+RendererValue Renderer_new(AnyGC this__) {
   final this_ = this__ as RendererValue;
   return this_;
 }
@@ -1029,18 +1029,18 @@ class CircleRendererValue extends RendererValue {
   }
 }
 
-CircleRendererValue CircleRenderer_new(dynamic this__) {
+CircleRendererValue CircleRenderer_new(AnyGC this__) {
   final this_ = this__ as CircleRendererValue;
   Renderer_new(this_);
   return this_;
 }
 
-void CircleRenderer_render(dynamic this__, String shape) {
+void CircleRenderer_render(AnyGC this__, String shape) {
   final this_ = this__ as CircleRendererValue;
   staticPrint('  CircleRenderer: drawing ${shape}');
 }
 
-String CircleRenderer_get_name(dynamic this__) {
+String CircleRenderer_get_name(AnyGC this__) {
   final this_ = this__ as CircleRendererValue;
   return 'CircleRenderer';
 }
@@ -1076,18 +1076,18 @@ class PipelineValue<TInput, TOutput> extends VPtr {
   }
 }
 
-PipelineValue<TInput, TOutput> Pipeline_new<TInput, TOutput>(dynamic this__, TypeFunction1<TOutput, TInput> _transform) {
+PipelineValue<TInput, TOutput> Pipeline_new<TInput, TOutput>(AnyGC this__, TypeFunction1<TOutput, TInput> _transform) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
   this_._transform = _transform;
   return this_;
 }
 
-TOutput Pipeline_execute<TInput, TOutput>(dynamic this__, TInput input) {
+TOutput Pipeline_execute<TInput, TOutput>(AnyGC this__, TInput input) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
   return (() { final _let5 = input; return this_._transform.closureCall(this_._transform, _let5); })();
 }
 
-PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(dynamic this__, TypeFunction1<TNewOutput, TOutput> next) {
+PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(AnyGC this__, TypeFunction1<TNewOutput, TOutput> next) {
   final this_ = this__ as PipelineValue<TInput, TOutput>;
   return Pipeline_new<TInput, TNewOutput>(GC.allocateLocal(PipelineValue<TInput, TNewOutput>()), ClosureEnv_anon_0_new<TNewOutput, TOutput, TInput>(GC.allocateLocal(ClosureEnv_anon_0<TNewOutput, TOutput, TInput>()), this_, next));
 }
@@ -1113,57 +1113,57 @@ class BitFlagsValue extends VPtr {
 const int BitFlags_read = 1;
 const int BitFlags_write = 2;
 const int BitFlags_execute = 4;
-BitFlagsValue BitFlags_new(dynamic this__, [int _flags = 0]) {
+BitFlagsValue BitFlags_new(AnyGC this__, [int _flags = 0]) {
   final this_ = this__ as BitFlagsValue;
   this_._flags = _flags;
   return this_;
 }
 
-void BitFlags_set(dynamic this__, int flag) {
+void BitFlags_set(AnyGC this__, int flag) {
   final this_ = this__ as BitFlagsValue;
   this_._flags = (this_._flags | flag);
 }
 
-void BitFlags_clear(dynamic this__, int flag) {
+void BitFlags_clear(AnyGC this__, int flag) {
   final this_ = this__ as BitFlagsValue;
   this_._flags = (this_._flags & (~flag));
 }
 
-bool BitFlags_has(dynamic this__, int flag) {
+bool BitFlags_has(AnyGC this__, int flag) {
   final this_ = this__ as BitFlagsValue;
   return !(((this_._flags & flag) == 0));
 }
 
-String BitFlags_toString(dynamic this__) {
+String BitFlags_toString(AnyGC this__) {
   final this_ = this__ as BitFlagsValue;
   final StaticList<String> parts = StaticList<String>();
-  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 1))   parts.add('r');
-  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 2))   parts.add('w');
-  if ((this_.vptr['has'] as bool Function(dynamic, int))(this_, 4))   parts.add('x');
+  if ((this_.vptr['has'] as bool Function(AnyGC, int))(this_, 1))   parts.add('r');
+  if ((this_.vptr['has'] as bool Function(AnyGC, int))(this_, 2))   parts.add('w');
+  if ((this_.vptr['has'] as bool Function(AnyGC, int))(this_, 4))   parts.add('x');
   return (parts.isEmpty ? '-' : parts.join(''));
 }
 
 
 // mixin Timestamped → static functions for delegation
-int Timestamped_get_timestamp(dynamic this__) {
-  final this_ = this__;
+int Timestamped_get_timestamp(AnyGC this__) {
+  final dynamic this_ = this__;
   return 1234567890;
 }
 
-String Timestamped_get_timeStr(dynamic this__) {
-  final this_ = this__;
-  return 'T:${(this_.vptr['get_timestamp'] as int Function(dynamic))(this_)}';
+String Timestamped_get_timeStr(AnyGC this__) {
+  final dynamic this_ = this__;
+  return 'T:${(this_.vptr['get_timestamp'] as int Function(AnyGC))(this_)}';
 }
 
 
 // mixin Tagged → static functions for delegation
-void Tagged_addTag(dynamic this__, String tag) {
-  final this_ = this__;
+void Tagged_addTag(AnyGC this__, String tag) {
+  final dynamic this_ = this__;
   this_._tags.add(tag);
 }
 
-StaticList<String> Tagged_get_tags(dynamic this__) {
-  final this_ = this__;
+StaticList<String> Tagged_get_tags(AnyGC this__) {
+  final dynamic this_ = this__;
   return StaticList<String>.unmodifiable(this_._tags);
 }
 
@@ -1191,33 +1191,33 @@ class EventValue extends Event_Object_Timestamped_TaggedValue {
   }
 }
 
-EventValue Event_new(dynamic this__, String name) {
+EventValue Event_new(AnyGC this__, String name) {
   final this_ = this__ as EventValue;
   this_.name = name;
   return this_;
 }
 
-String Event_toString(dynamic this__) {
+String Event_toString(AnyGC this__) {
   final this_ = this__ as EventValue;
-  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as String Function(dynamic))(this_)}, tags=${(this_.vptr['get_tags'] as StaticList<String> Function(dynamic))(this_)})';
+  return 'Event(${this_.name}, ${(this_.vptr['get_timeStr'] as String Function(AnyGC))(this_)}, tags=${(this_.vptr['get_tags'] as StaticList<String> Function(AnyGC))(this_)})';
 }
 
-int Event_get_timestamp(dynamic this__) {
+int Event_get_timestamp(AnyGC this__) {
   final this_ = this__ as EventValue;
   return Timestamped_get_timestamp(this_);
 }
 
-String Event_get_timeStr(dynamic this__) {
+String Event_get_timeStr(AnyGC this__) {
   final this_ = this__ as EventValue;
   return Timestamped_get_timeStr(this_);
 }
 
-void Event_addTag(dynamic this__, String tag) {
+void Event_addTag(AnyGC this__, String tag) {
   final this_ = this__ as EventValue;
   Tagged_addTag(this_, tag);
 }
 
-StaticList<String> Event_get_tags(dynamic this__) {
+StaticList<String> Event_get_tags(AnyGC this__) {
   final this_ = this__ as EventValue;
   return Tagged_get_tags(this_);
 }
@@ -1249,44 +1249,44 @@ class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
   }
 }
 
-ImportantEventValue ImportantEvent_new(dynamic this__, String name, Priority priority) {
+ImportantEventValue ImportantEvent_new(AnyGC this__, String name, Priority priority) {
   final this_ = this__ as ImportantEventValue;
   Event_new(this_, name);
   this_.priority = priority;
   return this_;
 }
 
-String ImportantEvent_get_logTag(dynamic this__) {
+String ImportantEvent_get_logTag(AnyGC this__) {
   final this_ = this__ as ImportantEventValue;
   return 'ImportantEvent';
 }
 
-String ImportantEvent_toString(dynamic this__) {
+String ImportantEvent_toString(AnyGC this__) {
   final this_ = this__ as ImportantEventValue;
-  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as String Function(dynamic))(this_)})';
+  return 'ImportantEvent(${this_.name}, ${Priority_toString(this_.priority)}, ${(this_.vptr['get_timeStr'] as String Function(AnyGC))(this_)})';
 }
 
-int ImportantEvent_get_timestamp(dynamic this__) {
+int ImportantEvent_get_timestamp(AnyGC this__) {
   final this_ = this__ as ImportantEventValue;
   return Timestamped_get_timestamp(this_);
 }
 
-String ImportantEvent_get_timeStr(dynamic this__) {
+String ImportantEvent_get_timeStr(AnyGC this__) {
   final this_ = this__ as ImportantEventValue;
   return Timestamped_get_timeStr(this_);
 }
 
-void ImportantEvent_addTag(dynamic this__, String tag) {
+void ImportantEvent_addTag(AnyGC this__, String tag) {
   final this_ = this__ as ImportantEventValue;
   Tagged_addTag(this_, tag);
 }
 
-StaticList<String> ImportantEvent_get_tags(dynamic this__) {
+StaticList<String> ImportantEvent_get_tags(AnyGC this__) {
   final this_ = this__ as ImportantEventValue;
   return Tagged_get_tags(this_);
 }
 
-void ImportantEvent_log(dynamic this__, String message) {
+void ImportantEvent_log(AnyGC this__, String message) {
   final this_ = this__ as ImportantEventValue;
   Loggable_log(this_, message);
 }
@@ -1750,33 +1750,33 @@ void main() {
   staticPrint('--- 1. mixin + implements ---');
   final DogValue dog1 = Dog_new(GC.allocateLocal(DogValue()), 'Rex', 3, 'Labrador');
   final DogValue dog2 = Dog_new(GC.allocateLocal(DogValue()), 'Max', 5, 'Poodle');
-  (dog1.vptr['printInfo'] as void Function(dynamic))(dog1);
-  staticPrint('${(dog1.vptr['speak'] as String Function(dynamic))(dog1)} (${dog1.breed})');
-  staticPrint('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(dynamic, DogValue))(dog1, dog2)}');
-  staticPrint('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(dynamic, DogValue))(dog1, dog2)}');
+  (dog1.vptr['printInfo'] as void Function(AnyGC))(dog1);
+  staticPrint('${(dog1.vptr['speak'] as String Function(AnyGC))(dog1)} (${dog1.breed})');
+  staticPrint('dog1 < dog2: ${(dog1.vptr['isLessThan'] as bool Function(AnyGC, DogValue))(dog1, dog2)}');
+  staticPrint('dog1 > dog2: ${(dog1.vptr['isGreaterThan'] as bool Function(AnyGC, DogValue))(dog1, dog2)}');
   final CatValue cat = Cat_new(GC.allocateLocal(CatValue()), 'Whiskers', 2);
-  (cat.vptr['printInfo'] as void Function(dynamic))(cat);
-  staticPrint('${(cat.vptr['speak'] as String Function(dynamic))(cat)}, mood: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
-  (cat.vptr['set_mood'] as void Function(dynamic, String))(cat, 'sleepy');
-  staticPrint('mood after set: ${(cat.vptr['get_mood'] as String Function(dynamic))(cat)}');
+  (cat.vptr['printInfo'] as void Function(AnyGC))(cat);
+  staticPrint('${(cat.vptr['speak'] as String Function(AnyGC))(cat)}, mood: ${(cat.vptr['get_mood'] as String Function(AnyGC))(cat)}');
+  (cat.vptr['set_mood'] as void Function(AnyGC, String))(cat, 'sleepy');
+  staticPrint('mood after set: ${(cat.vptr['get_mood'] as String Function(AnyGC))(cat)}');
   staticPrint('\n--- 2. operator 重载 ---');
   final Vector2DValue v1 = Vector2D_new(Vector2DValue(), 3.0, 4.0);
   final Vector2DValue v2 = Vector2D_new(Vector2DValue(), 1.0, 2.0);
-  final Vector2DValue sum = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue diff = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(_r23, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue scaled = (() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(_r24, 2.0); })();
+  final Vector2DValue sum = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.vptr['operatorPlus'] as Vector2DValue Function(AnyGC, Vector2DValue))(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue diff = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.vptr['operatorMinus'] as Vector2DValue Function(AnyGC, Vector2DValue))(_r23, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue scaled = (() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.vptr['operatorStar'] as Vector2DValue Function(AnyGC, double))(_r24, 2.0); })();
   staticPrint('v1 + v2 = ${sum}');
   staticPrint('v1 - v2 = ${diff}');
   staticPrint('v1 * 2 = ${scaled}');
-  staticPrint('v1.length = ${(() { final _r25 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r25.vptr['get_length'] as double Function(dynamic))(_r25); })().toStringAsFixed(2)}');
+  staticPrint('v1.length = ${(() { final _r25 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r25.vptr['get_length'] as double Function(AnyGC))(_r25); })().toStringAsFixed(2)}');
   staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
   staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
   final CounterValue c2 = Counter_new('beta', initialValue: 50);
   final CounterValue c3 = Counter_new_fromString('gamma:25');
-  (c1.vptr['increment'] as void Function(dynamic, int))(c1, 10);
-  (c2.vptr['decrement'] as void Function(dynamic, int))(c2, 5);
-  (c3.vptr['increment'] as void Function(dynamic, int))(c3, 1);
+  (c1.vptr['increment'] as void Function(AnyGC, int))(c1, 10);
+  (c2.vptr['decrement'] as void Function(AnyGC, int))(c2, 5);
+  (c3.vptr['increment'] as void Function(AnyGC, int))(c3, 1);
   staticPrint('${c1}, ${c2}, ${c3}');
   staticPrint('instances: ${Counter_instanceCount()}');
   staticPrint('maxValue: 100');
@@ -1785,8 +1785,8 @@ void main() {
   final ResultValue<int> err = Result_new_failure<int>(ResultValue<int>(), 'not found');
   staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
   staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (() { final _r26 = Result_new_success<int>(ResultValue<int>(), 42); return (_r26.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r26, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
-  final String errMsg = (() { final _r27 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r27.vptr['fold_String'] as String Function(dynamic, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r27, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
+  final String okMsg = (() { final _r26 = Result_new_success<int>(ResultValue<int>(), 42); return (_r26.vptr['fold_String'] as String Function(AnyGC, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r26, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
+  final String errMsg = (() { final _r27 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r27.vptr['fold_String'] as String Function(AnyGC, TypeFunction1<String, int>, TypeFunction1<String, String>))(_r27, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
   staticPrint('okMsg: ${okMsg}');
   staticPrint('errMsg: ${errMsg}');
   staticPrint('\n--- 5. 可选参数 ---');
@@ -1841,9 +1841,9 @@ void main() {
   staticPrint('scores: ${scores}');
   staticPrint('\n--- 12. late 变量 ---');
   final LazyLoaderValue loader = LazyLoader_new(GC.allocateLocal(LazyLoaderValue()));
-  staticPrint('before init: ${(loader.vptr['get_data'] as String Function(dynamic))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(dynamic))(loader)}');
-  (loader.vptr['initialize'] as void Function(dynamic, String))(loader, 'hello');
-  staticPrint('after init: ${(loader.vptr['get_data'] as String Function(dynamic))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(dynamic))(loader)}');
+  staticPrint('before init: ${(loader.vptr['get_data'] as String Function(AnyGC))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(AnyGC))(loader)}');
+  (loader.vptr['initialize'] as void Function(AnyGC, String))(loader, 'hello');
+  staticPrint('after init: ${(loader.vptr['get_data'] as String Function(AnyGC))(loader)}, ${(loader.vptr['get_computedValue'] as int Function(AnyGC))(loader)}');
   staticPrint('\n--- 13. rethrow ---');
   try {
     parseAndDivide('10', '2');
@@ -1866,8 +1866,8 @@ void main() {
   }
   staticPrint('\n--- 14. assert ---');
   final BoundedValueValue bv = BoundedValue_new(GC.allocateLocal(BoundedValueValue()), 0.0, 10.0, 5.0);
-  (bv.vptr['set'] as void Function(dynamic, double))(bv, 7.5);
-  staticPrint('BoundedValue: ${(bv.vptr['get_current'] as double Function(dynamic))(bv)}');
+  (bv.vptr['set'] as void Function(AnyGC, double))(bv, 7.5);
+  staticPrint('BoundedValue: ${(bv.vptr['get_current'] as double Function(AnyGC))(bv)}');
   staticPrint('\n--- 15. 字符串 ---');
   staticPrint(multiLineExample());
   staticPrint('\n--- 16. typedef + 函数式组合 ---');
@@ -1882,32 +1882,32 @@ void main() {
   staticPrint('flatMap: ${nested}');
   staticPrint('\n--- 19. 多层继承链 ---');
   final ShapeValue shape = Shape_new(GC.allocateLocal(ShapeValue()), 'red');
-  staticPrint((shape.vptr['describe'] as String Function(dynamic))(shape));
+  staticPrint((shape.vptr['describe'] as String Function(AnyGC))(shape));
   final ShapeValue transparentShape = Shape_new_transparent(GC.allocateLocal(ShapeValue()), 'blue');
-  staticPrint((transparentShape.vptr['describe'] as String Function(dynamic))(transparentShape));
+  staticPrint((transparentShape.vptr['describe'] as String Function(AnyGC))(transparentShape));
   final PolygonValue polygon = Polygon_new(GC.allocateLocal(PolygonValue()), 'green', 6, opacity: 0.8);
-  staticPrint((polygon.vptr['describe'] as String Function(dynamic))(polygon));
-  staticPrint('perimeter: ${(polygon.vptr['perimeter'] as double Function(dynamic, double))(polygon, 3.0)}');
+  staticPrint((polygon.vptr['describe'] as String Function(AnyGC))(polygon));
+  staticPrint('perimeter: ${(polygon.vptr['perimeter'] as double Function(AnyGC, double))(polygon, 3.0)}');
   final RegularPolygonValue hexagon = RegularPolygon_new(GC.allocateLocal(RegularPolygonValue()), 'yellow', 6, 5.0);
-  staticPrint((hexagon.vptr['describe'] as String Function(dynamic))(hexagon));
-  staticPrint('perimeter: ${(hexagon.vptr['perimeter'] as double Function(dynamic, double?))(hexagon, null)}');
-  staticPrint('area: ${(hexagon.vptr['area'] as double Function(dynamic))(hexagon)}');
+  staticPrint((hexagon.vptr['describe'] as String Function(AnyGC))(hexagon));
+  staticPrint('perimeter: ${(hexagon.vptr['perimeter'] as double Function(AnyGC, double?))(hexagon, null)}');
+  staticPrint('area: ${(hexagon.vptr['area'] as double Function(AnyGC))(hexagon)}');
   final SquareValue square = Square_new(GC.allocateLocal(SquareValue()), 'white', 10.0, opacity: 0.9);
-  staticPrint((square.vptr['describe'] as String Function(dynamic))(square));
-  staticPrint('square perimeter: ${(square.vptr['perimeter'] as double Function(dynamic, double?))(square, null)}');
+  staticPrint((square.vptr['describe'] as String Function(AnyGC))(square));
+  staticPrint('square perimeter: ${(square.vptr['perimeter'] as double Function(AnyGC, double?))(square, null)}');
   staticPrint('\n--- 20. implements 多接口 ---');
   final DataPointValue dp1 = DataPoint_new(GC.allocateLocal(DataPointValue()), 1.0, 2.0, 'A');
   final DataPointValue dp2 = DataPoint_new(GC.allocateLocal(DataPointValue()), 3.0, 1.0, 'B');
   staticPrint('dp1: ${dp1}');
-  staticPrint('dp1.serialize: ${(dp1.vptr['serialize'] as String Function(dynamic))(dp1)}');
-  final DataPointValue dp1Clone = (dp1.vptr['clone'] as DataPointValue Function(dynamic))(dp1);
+  staticPrint('dp1.serialize: ${(dp1.vptr['serialize'] as String Function(AnyGC))(dp1)}');
+  final DataPointValue dp1Clone = (dp1.vptr['clone'] as DataPointValue Function(AnyGC))(dp1);
   staticPrint('dp1.clone: ${dp1Clone}');
-  staticPrint('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(dynamic, DataPointValue))(dp1, dp2)}');
+  staticPrint('dp1.compareTo2(dp2): ${(dp1.vptr['compareTo2'] as int Function(AnyGC, DataPointValue))(dp1, dp2)}');
   staticPrint('\n--- 21. mixin on 约束 ---');
   final LoggedDataPointValue ldp = LoggedDataPoint_new(GC.allocateLocal(LoggedDataPointValue()), 5.0, 6.0, 'logged');
-  (ldp.vptr['log'] as void Function(dynamic, String))(ldp, 'created');
-  staticPrint('validate: ${(ldp.vptr['validate'] as bool Function(dynamic))(ldp)}');
-  staticPrint('serialize: ${(ldp.vptr['serialize'] as String Function(dynamic))(ldp)}');
+  (ldp.vptr['log'] as void Function(AnyGC, String))(ldp, 'created');
+  staticPrint('validate: ${(ldp.vptr['validate'] as bool Function(AnyGC))(ldp)}');
+  staticPrint('serialize: ${(ldp.vptr['serialize'] as String Function(AnyGC))(ldp)}');
   staticPrint('\n--- 22. 增强枚举 ---');
   staticPrint('Priority.high: ${Priority}.high');
   staticPrint('high > medium: ${Priority_isHigherThan(Priority.high, Priority.medium)}');
@@ -1932,21 +1932,21 @@ void main() {
   staticPrint('cfg3: ${cfg3}');
   staticPrint('\n--- 24. 泛型约束 ---');
   final SortedListValue<int> sortedList = SortedList_new<int>(GC.allocateLocal(SortedListValue<int>()));
-  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 5);
-  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 1);
-  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 3);
-  (sortedList.vptr['add'] as void Function(dynamic, int))(sortedList, 2);
+  (sortedList.vptr['add'] as void Function(AnyGC, int))(sortedList, 5);
+  (sortedList.vptr['add'] as void Function(AnyGC, int))(sortedList, 1);
+  (sortedList.vptr['add'] as void Function(AnyGC, int))(sortedList, 3);
+  (sortedList.vptr['add'] as void Function(AnyGC, int))(sortedList, 2);
   staticPrint('sorted: ${sortedList}');
-  staticPrint('first: ${(sortedList.vptr['get_first'] as int Function(dynamic))(sortedList)}, last: ${(sortedList.vptr['get_last'] as int Function(dynamic))(sortedList)}');
+  staticPrint('first: ${(sortedList.vptr['get_first'] as int Function(AnyGC))(sortedList)}, last: ${(sortedList.vptr['get_last'] as int Function(AnyGC))(sortedList)}');
   final int maxVal = findMax<int>(StaticList<int>.of([3, 7, 1, 9, 4]));
   staticPrint('findMax: ${maxVal}');
   final String result = applyTwice<int, String>(5, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())), ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())));
   staticPrint('applyTwice: ${result}');
   staticPrint('\n--- 25. null safety ---');
   final NullSafetyDemoValue ns1 = NullSafetyDemo_new(GC.allocateLocal(NullSafetyDemoValue()), 'hello', 'world');
-  staticPrint('ns1: ${(ns1.vptr['demonstrate'] as String Function(dynamic))(ns1)}');
+  staticPrint('ns1: ${(ns1.vptr['demonstrate'] as String Function(AnyGC))(ns1)}');
   final NullSafetyDemoValue ns2 = NullSafetyDemo_new(GC.allocateLocal(NullSafetyDemoValue()), 'hello');
-  staticPrint('ns2: ${(ns2.vptr['demonstrate'] as String Function(dynamic))(ns2)}');
+  staticPrint('ns2: ${(ns2.vptr['demonstrate'] as String Function(AnyGC))(ns2)}');
   final String? found = findFirst(StaticList<String>.of(['apple', 'banana', 'cherry']), ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16())));
   staticPrint('findFirst(b): ${found}');
   final String? notFound = findFirst(StaticList<String>.of(['apple', 'banana']), ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17())));
@@ -1969,12 +1969,12 @@ void main() {
   staticPrint('code=2: ${tryCatchFinally(2)}');
   staticPrint('\n--- 29. covariant ---');
   final CircleRendererValue renderer = CircleRenderer_new(GC.allocateLocal(CircleRendererValue()));
-  staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(dynamic))(renderer)}');
-  (renderer.vptr['render'] as void Function(dynamic, String))(renderer, 'circle');
+  staticPrint('renderer: ${(renderer.vptr['get_name'] as String Function(AnyGC))(renderer)}');
+  (renderer.vptr['render'] as void Function(AnyGC, String))(renderer, 'circle');
   staticPrint('\n--- 30. Pipeline 泛型链 ---');
-  final PipelineValue<int, String> pipeline = (() { final _r29 = (() { final _r28 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r28.vptr['then_int'] as PipelineValue<int, int> Function(dynamic, TypeFunction1<int, String>))(_r28, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r29.vptr['then_String'] as PipelineValue<int, String> Function(dynamic, TypeFunction1<String, int>))(_r29, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
-  staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 42)}');
-  staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(dynamic, int))(pipeline, 12345)}');
+  final PipelineValue<int, String> pipeline = (() { final _r29 = (() { final _r28 = Pipeline_new<int, String>(GC.allocateLocal(PipelineValue<int, String>()), ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); return (_r28.vptr['then_int'] as PipelineValue<int, int> Function(AnyGC, TypeFunction1<int, String>))(_r28, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })(); return (_r29.vptr['then_String'] as PipelineValue<int, String> Function(AnyGC, TypeFunction1<String, int>))(_r29, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()))); })();
+  staticPrint('pipeline(42): ${(pipeline.vptr['execute'] as String Function(AnyGC, int))(pipeline, 42)}');
+  staticPrint('pipeline(12345): ${(pipeline.vptr['execute'] as String Function(AnyGC, int))(pipeline, 12345)}');
   staticPrint('\n--- 31. switch-case ---');
   staticPrint('day 1: ${dayType(1)}');
   staticPrint('day 3: ${dayType(3)}');
@@ -1982,23 +1982,23 @@ void main() {
   staticPrint('day 9: ${dayType(9)}');
   staticPrint('\n--- 32. 位运算 ---');
   final BitFlagsValue flags = BitFlags_new(GC.allocateLocal(BitFlagsValue()));
-  (flags.vptr['set'] as void Function(dynamic, int))(flags, 1);
-  (flags.vptr['set'] as void Function(dynamic, int))(flags, 4);
+  (flags.vptr['set'] as void Function(AnyGC, int))(flags, 1);
+  (flags.vptr['set'] as void Function(AnyGC, int))(flags, 4);
   staticPrint('flags: ${flags}');
-  staticPrint('has read: ${(flags.vptr['has'] as bool Function(dynamic, int))(flags, 1)}');
-  staticPrint('has write: ${(flags.vptr['has'] as bool Function(dynamic, int))(flags, 2)}');
-  (flags.vptr['set'] as void Function(dynamic, int))(flags, 2);
+  staticPrint('has read: ${(flags.vptr['has'] as bool Function(AnyGC, int))(flags, 1)}');
+  staticPrint('has write: ${(flags.vptr['has'] as bool Function(AnyGC, int))(flags, 2)}');
+  (flags.vptr['set'] as void Function(AnyGC, int))(flags, 2);
   staticPrint('after set write: ${flags}');
-  (flags.vptr['clear'] as void Function(dynamic, int))(flags, 4);
+  (flags.vptr['clear'] as void Function(AnyGC, int))(flags, 4);
   staticPrint('after clear execute: ${flags}');
   staticPrint('\n--- 33. 多层 mixin ---');
   final EventValue event = Event_new(GC.allocateLocal(EventValue()), 'meeting');
-  (event.vptr['addTag'] as void Function(dynamic, String))(event, 'work');
-  (event.vptr['addTag'] as void Function(dynamic, String))(event, 'important');
+  (event.vptr['addTag'] as void Function(AnyGC, String))(event, 'work');
+  (event.vptr['addTag'] as void Function(AnyGC, String))(event, 'important');
   staticPrint(event);
   final ImportantEventValue impEvent = ImportantEvent_new(GC.allocateLocal(ImportantEventValue()), 'deadline', Priority.critical);
-  (impEvent.vptr['addTag'] as void Function(dynamic, String))(impEvent, 'urgent');
-  (impEvent.vptr['log'] as void Function(dynamic, String))(impEvent, 'created');
+  (impEvent.vptr['addTag'] as void Function(AnyGC, String))(impEvent, 'urgent');
+  (impEvent.vptr['log'] as void Function(AnyGC, String))(impEvent, 'created');
   staticPrint(impEvent);
   staticPrint('\n=== 所有测试通过 ✅ ===');
   drainScheduler();
@@ -2024,7 +2024,7 @@ ClosureEnv_anon_0<TNewOutput, TOutput, TInput> ClosureEnv_anon_0_new<TNewOutput,
   env_.next = next;
   return env_;
 }
-TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(dynamic env__, TInput input) {
+TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(AnyGC env__, TInput input) {
   final env = env__ as ClosureEnv_anon_0<TNewOutput, TOutput, TInput>;
 
   return env.next.closureCall(env.next, (() { final _let6 = input; return env.this_._transform.closureCall(env.this_._transform, _let6); })());
@@ -2039,7 +2039,7 @@ ClosureEnv_buildQuery_1 ClosureEnv_buildQuery_1_new(ClosureEnv_buildQuery_1 env_
   env_.closureCall = ClosureEnv_buildQuery_1_call;
   return env_;
 }
-String ClosureEnv_buildQuery_1_call(dynamic env__, StaticMapEntry<String, String> e) {
+String ClosureEnv_buildQuery_1_call(AnyGC env__, StaticMapEntry<String, String> e) {
   final env = env__ as ClosureEnv_buildQuery_1;
 
   return '${e.key}=${e.value}';
@@ -2084,7 +2084,7 @@ ClosureEnv_compose_3<C, B, A> ClosureEnv_compose_3_new<C, B, A>(ClosureEnv_compo
   env_.f = f;
   return env_;
 }
-C ClosureEnv_compose_3_call<C, B, A>(dynamic env__, A input) {
+C ClosureEnv_compose_3_call<C, B, A>(AnyGC env__, A input) {
   final env = env__ as ClosureEnv_compose_3<C, B, A>;
 
   return env.g.closureCall(env.g, env.f.closureCall(env.f, input));
@@ -2110,7 +2110,7 @@ ClosureEnv_and_4<T> ClosureEnv_and_4_new<T>(ClosureEnv_and_4<T> env_, TypeFuncti
   env_.p2 = p2;
   return env_;
 }
-bool ClosureEnv_and_4_call<T>(dynamic env__, T value) {
+bool ClosureEnv_and_4_call<T>(AnyGC env__, T value) {
   final env = env__ as ClosureEnv_and_4<T>;
 
   return (env.p1.closureCall(env.p1, value) && env.p2.closureCall(env.p2, value));
@@ -2125,7 +2125,7 @@ ClosureEnv_main_5 ClosureEnv_main_5_new(ClosureEnv_main_5 env_) {
   env_.closureCall = ClosureEnv_main_5_call;
   return env_;
 }
-String ClosureEnv_main_5_call(dynamic env__, int d) {
+String ClosureEnv_main_5_call(AnyGC env__, int d) {
   final env = env__ as ClosureEnv_main_5;
 
   return 'got ${d}';
@@ -2140,7 +2140,7 @@ ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
   env_.closureCall = ClosureEnv_main_6_call;
   return env_;
 }
-String ClosureEnv_main_6_call(dynamic env__, String e) {
+String ClosureEnv_main_6_call(AnyGC env__, String e) {
   final env = env__ as ClosureEnv_main_6;
 
   return 'error: ${e}';
@@ -2155,7 +2155,7 @@ ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
   env_.closureCall = ClosureEnv_main_7_call;
   return env_;
 }
-String ClosureEnv_main_7_call(dynamic env__, int d) {
+String ClosureEnv_main_7_call(AnyGC env__, int d) {
   final env = env__ as ClosureEnv_main_7;
 
   return 'got ${d}';
@@ -2170,7 +2170,7 @@ ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_) {
   env_.closureCall = ClosureEnv_main_8_call;
   return env_;
 }
-String ClosureEnv_main_8_call(dynamic env__, String e) {
+String ClosureEnv_main_8_call(AnyGC env__, String e) {
   final env = env__ as ClosureEnv_main_8;
 
   return 'error: ${e}';
@@ -2185,7 +2185,7 @@ ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
   env_.closureCall = ClosureEnv_main_9_call;
   return env_;
 }
-int ClosureEnv_main_9_call(dynamic env__, int x) {
+int ClosureEnv_main_9_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_9;
 
   return (x * 2);
@@ -2200,7 +2200,7 @@ ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
   env_.closureCall = ClosureEnv_main_10_call;
   return env_;
 }
-String ClosureEnv_main_10_call(dynamic env__, int x) {
+String ClosureEnv_main_10_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_10;
 
   return 'result=${x}';
@@ -2215,7 +2215,7 @@ ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
   env_.closureCall = ClosureEnv_main_11_call;
   return env_;
 }
-bool ClosureEnv_main_11_call(dynamic env__, int n) {
+bool ClosureEnv_main_11_call(AnyGC env__, int n) {
   final env = env__ as ClosureEnv_main_11;
 
   return (n > 0);
@@ -2230,7 +2230,7 @@ ClosureEnv_main_12 ClosureEnv_main_12_new(ClosureEnv_main_12 env_) {
   env_.closureCall = ClosureEnv_main_12_call;
   return env_;
 }
-bool ClosureEnv_main_12_call(dynamic env__, int n) {
+bool ClosureEnv_main_12_call(AnyGC env__, int n) {
   final env = env__ as ClosureEnv_main_12;
 
   return ((n % 2) == 0);
@@ -2245,7 +2245,7 @@ ClosureEnv_main_13 ClosureEnv_main_13_new(ClosureEnv_main_13 env_) {
   env_.closureCall = ClosureEnv_main_13_call;
   return env_;
 }
-StaticList<int> ClosureEnv_main_13_call(dynamic env__, int x) {
+StaticList<int> ClosureEnv_main_13_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_13;
 
   return StaticList<int>.of([x, (x * x)]);
@@ -2260,7 +2260,7 @@ ClosureEnv_main_14 ClosureEnv_main_14_new(ClosureEnv_main_14 env_) {
   env_.closureCall = ClosureEnv_main_14_call;
   return env_;
 }
-String ClosureEnv_main_14_call(dynamic env__, int x) {
+String ClosureEnv_main_14_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_14;
 
   return 'n=${x}';
@@ -2275,7 +2275,7 @@ ClosureEnv_main_15 ClosureEnv_main_15_new(ClosureEnv_main_15 env_) {
   env_.closureCall = ClosureEnv_main_15_call;
   return env_;
 }
-String ClosureEnv_main_15_call(dynamic env__, String s) {
+String ClosureEnv_main_15_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_15;
 
   return '${s}!';
@@ -2290,7 +2290,7 @@ ClosureEnv_main_16 ClosureEnv_main_16_new(ClosureEnv_main_16 env_) {
   env_.closureCall = ClosureEnv_main_16_call;
   return env_;
 }
-bool ClosureEnv_main_16_call(dynamic env__, String s) {
+bool ClosureEnv_main_16_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_16;
 
   return s.startsWith('b');
@@ -2305,7 +2305,7 @@ ClosureEnv_main_17 ClosureEnv_main_17_new(ClosureEnv_main_17 env_) {
   env_.closureCall = ClosureEnv_main_17_call;
   return env_;
 }
-bool ClosureEnv_main_17_call(dynamic env__, String s) {
+bool ClosureEnv_main_17_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_17;
 
   return s.startsWith('z');
@@ -2320,7 +2320,7 @@ ClosureEnv_main_18 ClosureEnv_main_18_new(ClosureEnv_main_18 env_) {
   env_.closureCall = ClosureEnv_main_18_call;
   return env_;
 }
-String ClosureEnv_main_18_call(dynamic env__, int n) {
+String ClosureEnv_main_18_call(AnyGC env__, int n) {
   final env = env__ as ClosureEnv_main_18;
 
   return 'val=${n}';
@@ -2335,7 +2335,7 @@ ClosureEnv_main_19 ClosureEnv_main_19_new(ClosureEnv_main_19 env_) {
   env_.closureCall = ClosureEnv_main_19_call;
   return env_;
 }
-int ClosureEnv_main_19_call(dynamic env__, String s) {
+int ClosureEnv_main_19_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_19;
 
   return s.length;
@@ -2350,7 +2350,7 @@ ClosureEnv_main_20 ClosureEnv_main_20_new(ClosureEnv_main_20 env_) {
   env_.closureCall = ClosureEnv_main_20_call;
   return env_;
 }
-String ClosureEnv_main_20_call(dynamic env__, int len) {
+String ClosureEnv_main_20_call(AnyGC env__, int len) {
   final env = env__ as ClosureEnv_main_20;
 
   return 'len=${len}';

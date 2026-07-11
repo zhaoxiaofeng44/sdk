@@ -7,7 +7,8 @@
 /// - restorer/expression_restorer.dart - 表达式还原
 /// - restorer/statement_restorer.dart  - 语句还原
 /// - restorer/declaration_restorer.dart - 声明还原
-export 'restorer/dart_restorer.dart' show DartRestorer, restoreDartFromComponent, MethodSpecEntry;
+/// - restorer/cpp_emitter.dart         - C++ 代码生成
+export 'restorer/dart_restorer.dart' show DartRestorer, restoreDartFromComponent, MethodSpecEntry, CppEmitter, emitCppFromComponent;
 
 import 'restorer/dart_restorer.dart';
 

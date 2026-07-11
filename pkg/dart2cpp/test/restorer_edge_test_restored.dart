@@ -16,7 +16,7 @@ class LazyConfigValue extends VPtr {
 }
 
 int LazyConfig__idCounter = 0;
-LazyConfigValue LazyConfig_new(dynamic this__, String name) {
+LazyConfigValue LazyConfig_new(AnyGC this__, String name) {
   final this_ = this__ as LazyConfigValue;
   this_.name = name;
   return this_;
@@ -26,7 +26,7 @@ int LazyConfig__nextId() {
   return LazyConfig__idCounter = (LazyConfig__idCounter + 1);
 }
 
-String LazyConfig__expensiveInit(dynamic this__) {
+String LazyConfig__expensiveInit(AnyGC this__) {
   final this_ = this__ as LazyConfigValue;
   return '${this_.name}_config_initialized';
 }
@@ -48,33 +48,33 @@ class LateWithDependencyValue extends VPtr {
   }
 }
 
-LateWithDependencyValue LateWithDependency_new(dynamic this__) {
+LateWithDependencyValue LateWithDependency_new(AnyGC this__) {
   final this_ = this__ as LateWithDependencyValue;
   return this_;
 }
 
-String LateWithDependency_describe(dynamic this__) {
+String LateWithDependency_describe(AnyGC this__) {
   final this_ = this__ as LateWithDependencyValue;
   return this_.label;
 }
 
 
 // mixin Logger → static functions for delegation
-Promise<void> Logger_logAsync(dynamic this__, String msg) {
+Promise<void> Logger_logAsync(AnyGC this__, String msg) {
   final this_ = this__ as dynamic;
   final env = ClosureEnv_Logger_logAsync_0(this_, msg);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-void Logger_logSync(dynamic this__, String msg) {
-  final this_ = this__;
-  (this_.vptr['get_messages'] as StaticList<String> Function(dynamic))(this_).add('[sync] ${msg}');
+void Logger_logSync(AnyGC this__, String msg) {
+  final dynamic this_ = this__;
+  (this_.vptr['get_messages'] as StaticList<String> Function(AnyGC))(this_).add('[sync] ${msg}');
 }
 
 
 // mixin Validator → static functions for delegation
-Promise<bool> Validator_validateAsync<T>(dynamic this__, T value) {
+Promise<bool> Validator_validateAsync<T>(AnyGC this__, T value) {
   final this_ = this__ as dynamic;
   final env = ClosureEnv_Validator_validateAsync_1<T>(this_, value);
   env._promise.setStartCallback(env.call);
@@ -107,39 +107,39 @@ class ServiceValue extends Service_Object_Logger_ValidatorValue {
   }
 }
 
-ServiceValue Service_new(dynamic this__) {
+ServiceValue Service_new(AnyGC this__) {
   final this_ = this__ as ServiceValue;
   return this_;
 }
 
-bool Service_validate(dynamic this__, String value) {
+bool Service_validate(AnyGC this__, String value) {
   final this_ = this__ as ServiceValue;
   return value.isNotEmpty;
 }
 
-Promise<String> Service_process(dynamic this__, String input) {
+Promise<String> Service_process(AnyGC this__, String input) {
   final this_ = this__ as ServiceValue;
   final env = ClosureEnv_Service_process_2(this_, input);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-StaticList<String> Service_get_messages(dynamic this__) {
+StaticList<String> Service_get_messages(AnyGC this__) {
   final this_ = this__ as ServiceValue;
   return this_.messages;
 }
 
-Promise<void> Service_logAsync(dynamic this__, String msg) {
+Promise<void> Service_logAsync(AnyGC this__, String msg) {
   final this_ = this__ as ServiceValue;
   return Logger_logAsync(this_, msg);
 }
 
-void Service_logSync(dynamic this__, String msg) {
+void Service_logSync(AnyGC this__, String msg) {
   final this_ = this__ as ServiceValue;
   Logger_logSync(this_, msg);
 }
 
-Promise<bool> Service_validateAsync(dynamic this__, String value) {
+Promise<bool> Service_validateAsync(AnyGC this__, String value) {
   final this_ = this__ as ServiceValue;
   return Validator_validateAsync<String>(this_, value);
 }
@@ -166,44 +166,44 @@ class Vector2DValue extends VPtr {
   }
 }
 
-Vector2DValue Vector2D_new(dynamic this__, double x, double y) {
+Vector2DValue Vector2D_new(AnyGC this__, double x, double y) {
   final this_ = this__ as Vector2DValue;
   this_.x = x;
   this_.y = y;
   return this_;
 }
 
-Vector2DValue Vector2D_operatorPlus(dynamic this__, Vector2DValue other) {
+Vector2DValue Vector2D_operatorPlus(AnyGC this__, Vector2DValue other) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x + other.x), (this_.y + other.y));
 }
 
-Vector2DValue Vector2D_operatorMinus(dynamic this__, Vector2DValue other) {
+Vector2DValue Vector2D_operatorMinus(AnyGC this__, Vector2DValue other) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x - other.x), (this_.y - other.y));
 }
 
-Vector2DValue Vector2D_operatorStar(dynamic this__, double scalar) {
+Vector2DValue Vector2D_operatorStar(AnyGC this__, double scalar) {
   final this_ = this__ as Vector2DValue;
   return Vector2D_new(GC.allocateLocal(Vector2DValue()), (this_.x * scalar), (this_.y * scalar));
 }
 
-bool Vector2D_operatorEq(dynamic this__, Object other) {
+bool Vector2D_operatorEq(AnyGC this__, Object other) {
   final this_ = this__ as Vector2DValue;
   return (((other is Vector2DValue) && (this_.x == other.x)) && (this_.y == other.y));
 }
 
-int Vector2D_get_hashCode(dynamic this__) {
+int Vector2D_get_hashCode(AnyGC this__) {
   final this_ = this__ as Vector2DValue;
   return (this_.x.hashCode ^ this_.y.hashCode);
 }
 
-double Vector2D_magnitude(dynamic this__) {
+double Vector2D_magnitude(AnyGC this__) {
   final this_ = this__ as Vector2DValue;
   return ((this_.x * this_.x) + (this_.y * this_.y)).abs();
 }
 
-String Vector2D_toString(dynamic this__) {
+String Vector2D_toString(AnyGC this__) {
   final this_ = this__ as Vector2DValue;
   return '(${this_.x}, ${this_.y})';
 }
@@ -214,7 +214,7 @@ class RepositoryValue<T> extends VPtr {
   Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
 }
 
-RepositoryValue<T> Repository_new<T>(dynamic this__) {
+RepositoryValue<T> Repository_new<T>(AnyGC this__) {
   final this_ = this__ as RepositoryValue<T>;
   return this_;
 }
@@ -246,7 +246,7 @@ class CacheableValue extends VPtr {
   }
 }
 
-CacheableValue Cacheable_new(dynamic this__) {
+CacheableValue Cacheable_new(AnyGC this__) {
   final this_ = this__ as CacheableValue;
   return this_;
 }
@@ -261,17 +261,17 @@ void Cacheable_invalidate(dynamic this_, String key) {
 
 
 // mixin InMemoryCache → static functions for delegation
-bool InMemoryCache_isCached<T>(dynamic this__, String key) {
-  final this_ = this__;
+bool InMemoryCache_isCached<T>(AnyGC this__, String key) {
+  final dynamic this_ = this__;
   return this_._cache.containsKey(key);
 }
 
-void InMemoryCache_invalidate<T>(dynamic this__, String key) {
-  final this_ = this__;
+void InMemoryCache_invalidate<T>(AnyGC this__, String key) {
+  final dynamic this_ = this__;
   this_._cache.remove(key);
 }
 
-Promise<T?> InMemoryCache_cachedFindById<T>(dynamic this__, String id) {
+Promise<T?> InMemoryCache_cachedFindById<T>(AnyGC this__, String id) {
   final this_ = this__ as dynamic;
   final env = ClosureEnv_InMemoryCache_cachedFindById_3<T>(this_, id);
   env._promise.setStartCallback(env.call);
@@ -313,44 +313,44 @@ class ItemRepoValue extends ItemRepo_Repository_InMemoryCacheValue {
   }
 }
 
-ItemRepoValue ItemRepo_new(dynamic this__) {
+ItemRepoValue ItemRepo_new(AnyGC this__) {
   final this_ = this__ as ItemRepoValue;
   Repository_new<String>(this_);
   return this_;
 }
 
-Promise<String?> ItemRepo_findById(dynamic this__, String id) {
+Promise<String?> ItemRepo_findById(AnyGC this__, String id) {
   final this_ = this__ as ItemRepoValue;
   final env = ClosureEnv_ItemRepo_findById_4(this_, id);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-Promise<StaticList<String>> ItemRepo_findAll(dynamic this__) {
+Promise<StaticList<String>> ItemRepo_findAll(AnyGC this__) {
   final this_ = this__ as ItemRepoValue;
   final env = ClosureEnv_ItemRepo_findAll_5(this_);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-Promise<void> ItemRepo_save(dynamic this__, String id, String item) {
+Promise<void> ItemRepo_save(AnyGC this__, String id, String item) {
   final this_ = this__ as ItemRepoValue;
   final env = ClosureEnv_ItemRepo_save_6(this_, id, item);
   env._promise.setStartCallback(env.call);
   return env._promise;
 }
 
-bool ItemRepo_isCached(dynamic this__, String key) {
+bool ItemRepo_isCached(AnyGC this__, String key) {
   final this_ = this__ as ItemRepoValue;
   return InMemoryCache_isCached<String>(this_, key);
 }
 
-void ItemRepo_invalidate(dynamic this__, String key) {
+void ItemRepo_invalidate(AnyGC this__, String key) {
   final this_ = this__ as ItemRepoValue;
   InMemoryCache_invalidate<String>(this_, key);
 }
 
-Promise<String?> ItemRepo_cachedFindById(dynamic this__, String id) {
+Promise<String?> ItemRepo_cachedFindById(AnyGC this__, String id) {
   final this_ = this__ as ItemRepoValue;
   return InMemoryCache_cachedFindById<String>(this_, id);
 }
@@ -372,7 +372,7 @@ class ConfigValue extends VPtr {
   }
 }
 
-ConfigValue Config_new__internal(dynamic this__, String env, int port, bool debug) {
+ConfigValue Config_new__internal(AnyGC this__, String env, int port, bool debug) {
   final this_ = this__ as ConfigValue;
   this_.env = env;
   this_.port = port;
@@ -392,7 +392,7 @@ ConfigValue Config_new_custom(String env, int port) {
   return Config_new__internal(GC.allocateLocal(ConfigValue()), env, port, (env == 'dev'));
 }
 
-String Config_toString(dynamic this__) {
+String Config_toString(AnyGC this__) {
   final this_ = this__ as ConfigValue;
   return 'Config(${this_.env}, port=${this_.port}, debug=${this_.debug})';
 }
@@ -724,7 +724,7 @@ void main() {
   staticPrint('  computed: ${cfg.computed}');
   staticPrint('  counter: ${cfg.counter}');
   final LateWithDependencyValue dep = LateWithDependency_new(GC.allocateLocal(LateWithDependencyValue()));
-  staticPrint('  describe: ${(dep.vptr['describe'] as String Function(dynamic))(dep)}');
+  staticPrint('  describe: ${(dep.vptr['describe'] as String Function(AnyGC))(dep)}');
   staticPrint('\n--- 4. await non-Future ---');
   staticPrint('  awaitNonFuture: ${smAwait(awaitNonFuture())}');
   staticPrint('  awaitMixed: ${smAwait(awaitMixed())}');
@@ -737,17 +737,17 @@ void main() {
   staticPrint('  nestedClosureAsync: ${smAwait(nestedClosureAsync())}');
   staticPrint('\n--- 7. mixin + async ---');
   final ServiceValue svc = Service_new(GC.allocateLocal(ServiceValue()));
-  final String r = smAwait((svc.vptr['process'] as Promise<String> Function(dynamic, String))(svc, 'hello'));
+  final String r = smAwait((svc.vptr['process'] as Promise<String> Function(AnyGC, String))(svc, 'hello'));
   staticPrint('  process result: ${r}');
   staticPrint('  messages: ${svc.messages}');
-  final String invalidResult = smAwait((svc.vptr['process'] as Promise<String> Function(dynamic, String))(svc, ''));
+  final String invalidResult = smAwait((svc.vptr['process'] as Promise<String> Function(AnyGC, String))(svc, ''));
   staticPrint('  invalid result: ${invalidResult}');
   staticPrint('\n--- 8. operators ---');
   final Vector2DValue v1 = Vector2D_new(GC.allocateLocal(Vector2DValue()), 1.0, 2.0);
   final Vector2DValue v2 = Vector2D_new(GC.allocateLocal(Vector2DValue()), 3.0, 4.0);
-  staticPrint('  v1 + v2 = ${(v1.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(v1, v2)}');
-  staticPrint('  v1 - v2 = ${(v1.vptr['operatorMinus'] as Vector2DValue Function(dynamic, Vector2DValue))(v1, v2)}');
-  staticPrint('  v1 * 3 = ${(v1.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(v1, 3.0)}');
+  staticPrint('  v1 + v2 = ${(v1.vptr['operatorPlus'] as Vector2DValue Function(AnyGC, Vector2DValue))(v1, v2)}');
+  staticPrint('  v1 - v2 = ${(v1.vptr['operatorMinus'] as Vector2DValue Function(AnyGC, Vector2DValue))(v1, v2)}');
+  staticPrint('  v1 * 3 = ${(v1.vptr['operatorStar'] as Vector2DValue Function(AnyGC, double))(v1, 3.0)}');
   staticPrint('  v1 == Vector2D(1,2): ${(v1 == Vector2D_new(GC.allocateLocal(Vector2DValue()), 1.0, 2.0))}');
   final Vector2DValue sum = sumVectors(StaticList<Vector2DValue>.of([v1, v2, Vector2D_new(GC.allocateLocal(Vector2DValue()), 5.0, 6.0)]));
   staticPrint('  sumVectors: ${sum}');
@@ -762,17 +762,17 @@ void main() {
   staticPrint('  topN(2): ${topN(data, 2)}');
   staticPrint('\n--- 10. Repository ---');
   final ItemRepoValue repo = ItemRepo_new(GC.allocateLocal(ItemRepoValue()));
-  smAwait((repo.vptr['save'] as Promise<void> Function(dynamic, String, String))(repo, '1', 'item-A'));
-  smAwait((repo.vptr['save'] as Promise<void> Function(dynamic, String, String))(repo, '2', 'item-B'));
-  smAwait((repo.vptr['save'] as Promise<void> Function(dynamic, String, String))(repo, '3', 'item-C'));
-  staticPrint('  findById(1): ${smAwait((repo.vptr['findById'] as Promise<String?> Function(dynamic, String))(repo, '1'))}');
-  staticPrint('  findAll: ${smAwait((repo.vptr['findAll'] as Promise<StaticList<String>> Function(dynamic))(repo))}');
-  staticPrint('  isCached(1): ${(repo.vptr['isCached'] as bool Function(dynamic, String))(repo, '1')}');
-  final String? cached = smAwait((repo.vptr['cachedFindById'] as Promise<String?> Function(dynamic, String))(repo, '2'));
+  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '1', 'item-A'));
+  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '2', 'item-B'));
+  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '3', 'item-C'));
+  staticPrint('  findById(1): ${smAwait((repo.vptr['findById'] as Promise<String?> Function(AnyGC, String))(repo, '1'))}');
+  staticPrint('  findAll: ${smAwait((repo.vptr['findAll'] as Promise<StaticList<String>> Function(AnyGC))(repo))}');
+  staticPrint('  isCached(1): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '1')}');
+  final String? cached = smAwait((repo.vptr['cachedFindById'] as Promise<String?> Function(AnyGC, String))(repo, '2'));
   staticPrint('  cachedFindById(2): ${cached}');
-  staticPrint('  isCached(2): ${(repo.vptr['isCached'] as bool Function(dynamic, String))(repo, '2')}');
-  (repo.vptr['invalidate'] as void Function(dynamic, String))(repo, '2');
-  staticPrint('  after invalidate(2), isCached(2): ${(repo.vptr['isCached'] as bool Function(dynamic, String))(repo, '2')}');
+  staticPrint('  isCached(2): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '2')}');
+  (repo.vptr['invalidate'] as void Function(AnyGC, String))(repo, '2');
+  staticPrint('  after invalidate(2), isCached(2): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '2')}');
   staticPrint('\n--- 11. Factory constructors ---');
   staticPrint('  dev: ${Config_new_development()}');
   staticPrint('  prod: ${Config_new_production()}');
@@ -801,7 +801,7 @@ class ClosureEnv_Logger_logAsync_0 {
 }
 void ClosureEnv_Logger_logAsync_0_call(ClosureEnv_Logger_logAsync_0 env) {
   smAwait(Promise.value<int>(0));
-  (env.this_.vptr['get_messages'] as StaticList<String> Function(dynamic))(env.this_).add('[async] ${env.msg.value}');
+  (env.this_.vptr['get_messages'] as StaticList<String> Function(AnyGC))(env.this_).add('[async] ${env.msg.value}');
   env._promise.complete(null as dynamic);
   return;
 }
@@ -815,7 +815,7 @@ class ClosureEnv_Validator_validateAsync_1<T> {
 void ClosureEnv_Validator_validateAsync_1_call<T>(ClosureEnv_Validator_validateAsync_1<T> env) {
   smAwait(Promise.value<int>(0));
 {
-    env._promise.complete((env.this_.vptr['validate'] as bool Function(dynamic, T))(env.this_, env.value.value));
+    env._promise.complete((env.this_.vptr['validate'] as bool Function(AnyGC, T))(env.this_, env.value.value));
     return;
   }
   env._promise.complete(false);
@@ -829,14 +829,14 @@ class ClosureEnv_Service_process_2 {
   void call() => ClosureEnv_Service_process_2_call(this);
 }
 void ClosureEnv_Service_process_2_call(ClosureEnv_Service_process_2 env) {
-  (env.this_.vptr['logSync'] as void Function(dynamic, String))(env.this_, 'processing: ${env.input.value}');
-  smAwait((env.this_.vptr['logAsync'] as Promise<void> Function(dynamic, String))(env.this_, 'validating: ${env.input.value}'));
-  final bool valid = smAwait((env.this_.vptr['validateAsync'] as Promise<bool> Function(dynamic, String))(env.this_, env.input.value));
+  (env.this_.vptr['logSync'] as void Function(AnyGC, String))(env.this_, 'processing: ${env.input.value}');
+  smAwait((env.this_.vptr['logAsync'] as Promise<void> Function(AnyGC, String))(env.this_, 'validating: ${env.input.value}'));
+  final bool valid = smAwait((env.this_.vptr['validateAsync'] as Promise<bool> Function(AnyGC, String))(env.this_, env.input.value));
   if (!(valid)) {
     env._promise.complete('invalid');
     return;
   }
-  (env.this_.vptr['logSync'] as void Function(dynamic, String))(env.this_, 'done');
+  (env.this_.vptr['logSync'] as void Function(AnyGC, String))(env.this_, 'done');
 {
     env._promise.complete('ok: ${env.input.value}');
     return;
@@ -852,11 +852,11 @@ class ClosureEnv_InMemoryCache_cachedFindById_3<T> {
   void call() => ClosureEnv_InMemoryCache_cachedFindById_3_call<T>(this);
 }
 void ClosureEnv_InMemoryCache_cachedFindById_3_call<T>(ClosureEnv_InMemoryCache_cachedFindById_3<T> env) {
-  if ((env.this_.vptr['isCached'] as bool Function(dynamic, String))(env.this_, env.id.value)) {
+  if ((env.this_.vptr['isCached'] as bool Function(AnyGC, String))(env.this_, env.id.value)) {
     env._promise.complete(env.this_._cache[env.id.value]);
     return;
   }
-  final T? item = smAwait((env.this_.vptr['findById'] as Promise<T?> Function(dynamic, String))(env.this_, env.id.value));
+  final T? item = smAwait((env.this_.vptr['findById'] as Promise<T?> Function(AnyGC, String))(env.this_, env.id.value));
   if (!((item == null)))   env.this_._cache[env.id.value] = item;
 {
     env._promise.complete(item);
@@ -1032,7 +1032,7 @@ class ClosureEnv__failingAsync_14 {
 }
 void ClosureEnv__failingAsync_14_call(ClosureEnv__failingAsync_14 env) {
   smAwait(Promise.value<int>(0));
-  throw Exception('deep failure');
+  throw Exception(StringBox('deep failure'));
   env._promise.complete(0);
   return;
 }
@@ -1048,11 +1048,11 @@ void ClosureEnv_nestedTryAsync_15_call(ClosureEnv_nestedTryAsync_15 env) {
     try {
       steps.add('inner-try');
       smAwait(Promise.value<int>(1));
-      throw Exception('inner');
+      throw Exception(StringBox('inner'));
     }
  catch (e) {
       steps.add('inner-catch: ${e}');
-      throw Exception('rethrown');
+      throw Exception(StringBox('rethrown'));
     }
  finally {
       steps.add('inner-finally');
@@ -1124,10 +1124,10 @@ ClosureEnv_sumVectors_18 ClosureEnv_sumVectors_18_new(ClosureEnv_sumVectors_18 e
   env_.closureCall = ClosureEnv_sumVectors_18_call;
   return env_;
 }
-Vector2DValue ClosureEnv_sumVectors_18_call(dynamic env__, Vector2DValue a, Vector2DValue b) {
+Vector2DValue ClosureEnv_sumVectors_18_call(AnyGC env__, Vector2DValue a, Vector2DValue b) {
   final env = env__ as ClosureEnv_sumVectors_18;
 
-  return (a.vptr['operatorPlus'] as Vector2DValue Function(dynamic, Vector2DValue))(a, b);
+  return (a.vptr['operatorPlus'] as Vector2DValue Function(AnyGC, Vector2DValue))(a, b);
 }
 
 class ClosureEnv_scaleAll_19 extends TypeFunction1<Vector2DValue, Vector2DValue> {
@@ -1147,10 +1147,10 @@ ClosureEnv_scaleAll_19 ClosureEnv_scaleAll_19_new(ClosureEnv_scaleAll_19 env_, D
   env_.factor = factor;
   return env_;
 }
-Vector2DValue ClosureEnv_scaleAll_19_call(dynamic env__, Vector2DValue v) {
+Vector2DValue ClosureEnv_scaleAll_19_call(AnyGC env__, Vector2DValue v) {
   final env = env__ as ClosureEnv_scaleAll_19;
 
-  return (v.vptr['operatorStar'] as Vector2DValue Function(dynamic, double))(v, env.factor.value);
+  return (v.vptr['operatorStar'] as Vector2DValue Function(AnyGC, double))(v, env.factor.value);
 }
 
 class ClosureEnv_topN_20 extends TypeFunction2<int, (String, int), (String, int)> {
@@ -1162,7 +1162,7 @@ ClosureEnv_topN_20 ClosureEnv_topN_20_new(ClosureEnv_topN_20 env_) {
   env_.closureCall = ClosureEnv_topN_20_call;
   return env_;
 }
-int ClosureEnv_topN_20_call(dynamic env__, (String, int) a, (String, int) b) {
+int ClosureEnv_topN_20_call(AnyGC env__, (String, int) a, (String, int) b) {
   final env = env__ as ClosureEnv_topN_20;
 
   return b.$2.compareTo(a.$2);

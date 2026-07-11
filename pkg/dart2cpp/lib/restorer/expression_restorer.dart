@@ -76,7 +76,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // 下划线字段直接赋值，非下划线字段通过 vptr setter
       if (!fieldName.startsWith('_')) {
         // DynamicSet 没有 interfaceTarget，签名退化为 (dynamic, dynamic) → void
-        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', 'void Function(dynamic, dynamic)', value);
+        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', 'void Function(AnyGC, AnyGC)', value);
       }
     }
     return '$recv.$fieldName = $value';
@@ -276,14 +276,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       ..writeln('}');
     // _call 静态函数：第一个参数为 dynamic，内部 cast
     if (isVptrTarget) {
-      decl.writeln('$returnType $staticCallName(dynamic env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
+      decl.writeln('$returnType $staticCallName(AnyGC env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
       decl.writeln('  final _r = (env__ as $envClassName)._r;');
       final vptrSigParams = [_thisParamType, ...paramTypes].join(', ');
       final invokeArgs = ['_r', ...paramNames].join(', ');
       decl.writeln("  return (_r.vptr['$methodName'] as $returnType Function($vptrSigParams))($invokeArgs);");
       decl.writeln('}');
     } else {
-      decl.writeln('$returnType $staticCallName(dynamic env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
+      decl.writeln('$returnType $staticCallName(AnyGC env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
       decl.writeln('  final _r = (env__ as $envClassName)._r;');
       final invokeArgs = paramNames.join(', ');
       decl.writeln('  return _r.$methodName($invokeArgs);');
@@ -522,16 +522,16 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final sigParamTypes = <String>[thisType];
     for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
       if (i < expr.functionType.positionalParameters.length) {
-        sigParamTypes.add(_restoreTypeForSignature(expr.functionType.positionalParameters[i]));
+        sigParamTypes.add(_restoreParamType(expr.functionType.positionalParameters[i]));
       } else {
-        sigParamTypes.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
+        sigParamTypes.add(_restoreParamType(targetFunc.positionalParameters[i].type));
       }
     }
     // Lowered ABI：named 已铺平到 positional，这里只把类型透传给 sig
     // builder，由它接到 positional 列表末尾。
     final namedTypes = <String>[
       for (final np in expr.functionType.namedParameters)
-        _restoreTypeForSignature(np.type),
+        _restoreParamType(np.type),
     ];
     final sig = _emitFuncSig(returnType, sigParamTypes, namedTypes: namedTypes);
 
@@ -589,8 +589,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       InstanceInvocation expr, String recv, String name, String returnType, String thisType) {
     // 二元运算符 → Map 查找精确类型转换调用
     if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
-      final right = _restoreExpr(expr.arguments.positional[0]);
-      final rightType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
+      final rightParamType = expr.functionType.positionalParameters[0];
+      final rightExpr = _restoreExpr(expr.arguments.positional[0]);
+      final rightDartType = _getExpressionDartType(expr.arguments.positional[0]);
+      final right = _maybeBoxForAnyGC(rightParamType, rightExpr, rightDartType);
+      final rightType = _restoreParamType(rightParamType);
       final sig = _emitFuncSig(returnType, [thisType, rightType]);
       final vtableField = 'operator${_operatorFuncName(name)}';
       return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, right);
@@ -605,18 +608,31 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return _emitVptrMethodCall(recv, expr.receiver, 'operatorBitNot', sig, '');
     }
     if (name == '[]') {
-      final idx = _restoreExpr(expr.arguments.positional[0]);
-      final idxType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
+      final idxParamType = expr.functionType.positionalParameters[0];
+      final idxExpr = _restoreExpr(expr.arguments.positional[0]);
+      final idxDartType = _getExpressionDartType(expr.arguments.positional[0]);
+      final idx = _maybeBoxForAnyGC(idxParamType, idxExpr, idxDartType);
+      final idxType = _restoreParamType(idxParamType);
       final sig = _emitFuncSig(returnType, [thisType, idxType]);
       return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndex', sig, idx);
     }
     if (name == '[]=') {
-      final idx = _restoreExpr(expr.arguments.positional[0]);
-      final val = _restoreExpr(expr.arguments.positional[1]);
-      final idxType = _restoreTypeForSignature(expr.functionType.positionalParameters[0]);
-      final valType = expr.functionType.positionalParameters.length > 1
-          ? _restoreTypeForSignature(expr.functionType.positionalParameters[1])
-          : 'dynamic';
+      final idxParamType = expr.functionType.positionalParameters[0];
+      final idxExpr = _restoreExpr(expr.arguments.positional[0]);
+      final idxDartType = _getExpressionDartType(expr.arguments.positional[0]);
+      final idx = _maybeBoxForAnyGC(idxParamType, idxExpr, idxDartType);
+      final idxType = _restoreParamType(idxParamType);
+      final valParamType = expr.functionType.positionalParameters.length > 1
+          ? expr.functionType.positionalParameters[1]
+          : null;
+      final valExpr = _restoreExpr(expr.arguments.positional[1]);
+      final valDartType = _getExpressionDartType(expr.arguments.positional[1]);
+      final val = valParamType != null
+          ? _maybeBoxForAnyGC(valParamType, valExpr, valDartType)
+          : valExpr;
+      final valType = valParamType != null
+          ? _restoreParamType(valParamType)
+          : 'AnyGC';
       final sig = _emitFuncSig(returnType, [thisType, idxType, valType]);
       return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndexSet', sig, '$idx, $val');
     }
@@ -659,9 +675,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final targetFunc = expr.interfaceTarget.function;
       for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
         if (i < expr.functionType.positionalParameters.length) {
-          specSigParams.add(_restoreTypeForSignature(expr.functionType.positionalParameters[i]));
+          specSigParams.add(_restoreParamType(expr.functionType.positionalParameters[i]));
         } else {
-          specSigParams.add(_restoreTypeForSignature(targetFunc.positionalParameters[i].type));
+          specSigParams.add(_restoreParamType(targetFunc.positionalParameters[i].type));
         }
       }
       // Lowered ABI：named 已铺平到 positional，按 **target 的声明顺序**
@@ -675,7 +691,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       };
       final specNamedTypes = <String>[
         for (final np in targetFunc.namedParameters)
-          _restoreTypeForSignature(ftNamedByName[np.name] ?? np.type),
+          _restoreParamType(ftNamedByName[np.name] ?? np.type),
       ];
       final specSig = _emitFuncSig(specReturnType, specSigParams, namedTypes: specNamedTypes);
 
@@ -759,17 +775,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         proc.function.returnType, proc.function.asyncMarker);
     final paramTypes = <String>[_thisParamType];
     for (final param in proc.function.positionalParameters) {
-      paramTypes.add(_restoreTypeForSignature(param.type));
+      paramTypes.add(_restoreParamType(param.type));
     }
     final namedTypes = <String>[
       for (final np in proc.function.namedParameters)
-        _restoreTypeForSignature(np.type),
+        _restoreParamType(np.type),
     ];
     return _emitFuncSig(returnType, paramTypes, namedTypes: namedTypes);
   }
 
-  /// this_ 参数统一为 dynamic（声明侧和调用侧一致，消除 as Function 转换）
-  static const String _thisParamType = 'dynamic';
+  /// this_ 参数统一为 AnyGC（声明侧和调用侧一致，支持 GC 追踪）
+  static const String _thisParamType = 'AnyGC';
 
   /// 将函数签名构造为 `R Function(T1, T2, ...)` 字符串，用于把 vptr 槽里
   /// 保存的静态函数 tear-off 强转为可调用的 Function。
@@ -959,7 +975,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String _restoreStaticInvocation(StaticInvocation expr) {
     final target = expr.target;
     final name = target.name.text;
-    final args = _restoreArgs(expr.arguments);
+    // 使用带目标函数类型信息的参数还原，支持 dynamic(AnyGC) 参数自动装箱
+    final args = _restoreArgsForTarget(target.function, expr.arguments);
 
     // 静态集合: _GrowableList → StaticList
     // 只在这里处理 *字面量*（_literal* 系列，没有真实命名构造的入口）和
@@ -1377,8 +1394,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   }
 
   String _restoreAsExpr(AsExpression expr) {
-    return '(${_restoreExpr(expr.operand)} as ${_restoreType(expr.type)})';
+    final operandStr = _restoreExpr(expr.operand);
+    final typeStr = _restoreType(expr.type);
+    final operandType = _getExpressionDartType(expr.operand);
+
+    // 如果操作数原类型是 dynamic（现为 AnyGC），且目标是基本类型，使用 dynAs 拆箱
+    if (operandType is DynamicType && _isPrimitiveTypeName(typeStr)) {
+      return 'dynAs<$typeStr>($operandStr)';
+    }
+    return '($operandStr as $typeStr)';
   }
+
+  /// 判断类型名是否是基本类型（int, double, bool, String）
+  bool _isPrimitiveTypeName(String name) =>
+      name == 'int' || name == 'double' || name == 'bool' || name == 'String';
 
   String _restoreLet(Let expr) {
     final v = expr.variable;
@@ -1615,18 +1644,52 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     List<VariableDeclaration> capturedDecls,
     bool capturesThis,
   ) {
-    // 生成唯一的闭包名称
     final closureId = _closureCounter++;
     final envClassName = 'ClosureEnv_${_closureContext}_$closureId';
 
-    // 构建捕获变量列表（名称 + 类型）
-    final capturedFields = <_CapturedVar>[];
+    // Phase 1: 收集捕获变量
+    final capturedFields = _collectCapturedFields(capturedDecls, capturesThis);
+
+    // Phase 2: 清理参数名 + 预分析 Box 化
+    _cleanClosureParamNames(func);
+    _preanalyzeBoxedVarsForFunc(func);
+    final boxedParams = _getBoxedParams(func);
+
+    // Phase 3: 构建参数列表
+    final returnType = _restoreType(func.returnType);
+    final callParamStr = _buildCallParamStr(func);
+    final callArgStr = _buildCallArgStr(func);
+
+    // Phase 4: 收集泛型参数
+    final typeParamStr = _collectClosureTypeParams(func, capturedDecls);
+    final typeParamDeclStr = _buildTypeParamDeclStr(func, capturedDecls);
+
+    // Phase 5: 生成闭包体
+    final bodyInfo = _generateClosureBody(func, boxedParams, capturesThis, capturedDecls, envClassName);
+
+    // Phase 6: 生成 ClosureEnv 类 + _new + _call
+    final declBuf = StringBuffer();
+    _generateClosureClassDef(declBuf, envClassName, capturedFields, returnType,
+        callParamStr, callArgStr, typeParamDeclStr, typeParamStr, func);
+    _generateClosureNewFunc(declBuf, envClassName, capturedFields, typeParamStr, typeParamDeclStr);
+    _generateClosureStaticCall(declBuf, envClassName, returnType, callParamStr,
+        typeParamDeclStr, typeParamStr, func, bodyInfo.bodyStr);
+    _pendingClosureDecls.add(declBuf.toString());
+
+    // Phase 7: 恢复状态并返回构造表达式
+    bodyInfo.restoreState();
+    return _buildClosureConstructExpr(envClassName, capturedFields, capturedDecls,
+        capturesThis, typeParamStr, bodyInfo.savedEnvPrefix, bodyInfo.savedThisInEnv);
+  }
+
+  /// 收集闭包捕获的变量列表（this + 普通变量）
+  List<_CapturedVar> _collectCapturedFields(List<VariableDeclaration> capturedDecls, bool capturesThis) {
+    final fields = <_CapturedVar>[];
 
     // this 捕获
     if (capturesThis && _insideMethodBody && _currentClass != null && _needsLowering(_currentClass!.name)) {
       String thisTypeStr;
       if (_isUserClass(_currentClass!.name)) {
-        // 包含类的类型参数，如 PipelineValue<TInput, TOutput>
         final classTypeParams = _currentClass!.typeParameters;
         final typeParamSuffix = classTypeParams.isNotEmpty
             ? '<${classTypeParams.map((tp) => tp.name ?? 'T').join(', ')}>'
@@ -1637,124 +1700,98 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       } else {
         thisTypeStr = 'dynamic';
       }
-      capturedFields.add(_CapturedVar(
-        name: _thisReplacementName,
-        typeStr: thisTypeStr,
-        isThis: true,
-      ));
+      fields.add(_CapturedVar(name: _thisReplacementName, typeStr: thisTypeStr, isThis: true));
     }
 
     // 普通变量捕获
-    // Bug 11: 被 Box 化的捕获变量，env 字段类型为 Box 类型（而非原类型），
-    // 构造时传入外层的 Box 实例（外层变量已是 Box，或参数已被包装为 Box）。
-    // 这样多个闭包共享同一个 Box，实现引用语义。
     for (final decl in capturedDecls) {
       final varName = _cleanVarName(decl.name ?? '_cap${_varCounter++}');
       decl.name = varName;
       final isBoxed = _boxedVars.contains(decl);
       final typeStr = isBoxed ? _boxTypeNameFor(decl.type)! : _restoreType(decl.type);
-      capturedFields.add(_CapturedVar(
-        name: varName,
-        typeStr: typeStr,
-        isBoxed: isBoxed,
-      ));
+      fields.add(_CapturedVar(name: varName, typeStr: typeStr, isBoxed: isBoxed));
     }
+    return fields;
+  }
 
-    // 清理闭包参数名
+  /// 清理闭包参数名
+  void _cleanClosureParamNames(FunctionNode func) {
     for (final p in func.positionalParameters) {
-      final pName = _cleanVarName(p.name ?? '_p${_varCounter++}');
-      p.name = pName;
+      p.name = _cleanVarName(p.name ?? '_p${_varCounter++}');
     }
     for (final p in func.namedParameters) {
-      final pName = _cleanVarName(p.name ?? '_n${_varCounter++}');
-      p.name = pName;
+      p.name = _cleanVarName(p.name ?? '_n${_varCounter++}');
     }
+  }
 
-    // Bug 11: 对闭包自身做预分析，识别哪些参数/局部变量被更深层嵌套闭包捕获
-    // 使得闭包 body 内的 VarDecl/VarGet/VarSet 能正确 Box 化
-    _preanalyzeBoxedVarsForFunc(func);
-
-    // 识别被 Box 化的参数（需要在参数名后加 _raw 后缀，并在函数体开头插入 Box 包装）
-    final boxedParams = <VariableDeclaration>[];
+  /// 获取被 Box 化的参数
+  List<VariableDeclaration> _getBoxedParams(FunctionNode func) {
+    final boxed = <VariableDeclaration>[];
     for (final p in func.positionalParameters) {
-      if (_boxedVars.contains(p)) boxedParams.add(p);
+      if (_boxedVars.contains(p)) boxed.add(p);
     }
     for (final p in func.namedParameters) {
-      if (_boxedVars.contains(p)) boxedParams.add(p);
+      if (_boxedVars.contains(p)) boxed.add(p);
     }
+    return boxed;
+  }
 
-    // 构建参数列表字符串（用于 call 方法和静态函数）
-    // 被 Box 化的参数在外部接口上仍是原类型，参数名加 _raw 后缀
-    //
-    // Object/dynamic 兼容性：kernel 对闭包参数有时会推断出 `Map<K, Object>` 而上下
-    // 文期望 `Map<K, dynamic>`（典型场景：map literal 推断成 `Map<String, Object>`
-    // 然后做为 sort 的比较函数参数）。对闭包参数侧把容器类型实参中的 `Object`
-    // 归一为 `dynamic`，可让 `TypeFunctionN`/`call`/静态函数三处签名保持自洽，
-    // 也能匹配调用点的期望签名。Static 集合 + 用户类型 + 基础类型均不受影响。
-    final callParams = <String>[];
+  /// 构建 call 方法的参数声明字符串
+  String _buildCallParamStr(FunctionNode func) {
+    final params = <String>[];
     for (final p in func.positionalParameters) {
       final baseName = p.name!;
       final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callParams.add('${_restoreClosureParamType(p.type)} $pName');
+      params.add('${_restoreClosureParamType(p.type)} $pName');
     }
     for (final p in func.namedParameters) {
       final baseName = p.name!;
       final pName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callParams.add('${_restoreClosureParamType(p.type)} $pName');
+      params.add('${_restoreClosureParamType(p.type)} $pName');
     }
-    final callParamStr = callParams.join(', ');
+    return params.join(', ');
+  }
 
-    // 参数名列表（用于转发调用 call → staticFunc）：
-    // 转发时直接透传原始参数（_raw 名对应外部接口的传入值），让静态函数内部自己包装 Box
-    final callArgNames = <String>[];
+  /// 构建 call → staticFunc 的转发参数字符串
+  String _buildCallArgStr(FunctionNode func) {
+    final args = <String>[];
     for (final p in func.positionalParameters) {
       final baseName = p.name!;
-      final argName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callArgNames.add(argName);
+      args.add(_boxedVars.contains(p) ? '${baseName}_raw' : baseName);
     }
     for (final p in func.namedParameters) {
       final baseName = p.name!;
-      final argName = _boxedVars.contains(p) ? '${baseName}_raw' : baseName;
-      callArgNames.add(argName);
+      args.add(_boxedVars.contains(p) ? '${baseName}_raw' : baseName);
     }
-    final callArgStr = callArgNames.join(', ');
+    return args.join(', ');
+  }
 
-    // 返回类型
-    final returnType = _restoreType(func.returnType);
-
-    // ---- 收集闭包中用到的泛型参数 ----
-    // 从捕获变量类型、参数类型、返回类型中递归收集所有 TypeParameter
+  /// 收集闭包中用到的泛型参数名称字符串（仅名称形式，如 `<T, U>`）
+  String _collectClosureTypeParams(FunctionNode func, List<VariableDeclaration> capturedDecls) {
     final typeParams = <TypeParameter>{};
-    for (final decl in capturedDecls) {
-      _collectTypeParameters(decl.type, typeParams);
-    }
-    for (final p in func.positionalParameters) {
-      _collectTypeParameters(p.type, typeParams);
-    }
-    for (final p in func.namedParameters) {
-      _collectTypeParameters(p.type, typeParams);
-    }
+    for (final decl in capturedDecls) _collectTypeParameters(decl.type, typeParams);
+    for (final p in func.positionalParameters) _collectTypeParameters(p.type, typeParams);
+    for (final p in func.namedParameters) _collectTypeParameters(p.type, typeParams);
     _collectTypeParameters(func.returnType, typeParams);
+    return typeParams.isEmpty ? '' : '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
+  }
 
-    // 泛型参数串：
-    // - typeParamNameStr：仅名称（`<T>`），用于类型引用 / 实例化 / 转发调用。
-    // - typeParamDeclStr：带 `extends Bound`（`<T extends num>`），用于
-    //   闭包类与静态 _call 函数的声明位。若 bound 是 Object/Object?/dynamic，
-    //   保持仅名称形式（与 _writeTypeParams 一致）。
-    //   修复点：之前两处都只写名称，导致 `extends Iterable<num>` 这种带约束的
-    //   闭包（如 IterableStats.sum/max/min）丢失 `T extends num` 约束，闭包体
-    //   `(a + b)` / `a > b` 因 T 可空而报 unchecked_use_of_nullable_value。
-    final typeParamNameStr = typeParams.isEmpty
-        ? ''
-        : '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
-    final typeParamDeclStr = typeParams.isEmpty
-        ? ''
-        : '<${typeParams.map(_formatTypeParamDecl).join(', ')}>';
-    // 兼容旧变量名（其余引用仍用 typeParamStr 时也指仅名称形式）
-    final typeParamStr = typeParamNameStr;
+  /// 构建泛型参数声明字符串（带 extends Bound，如 `<T extends num>`）
+  String _buildTypeParamDeclStr(FunctionNode func, List<VariableDeclaration> capturedDecls) {
+    final typeParams = <TypeParameter>{};
+    for (final decl in capturedDecls) _collectTypeParameters(decl.type, typeParams);
+    for (final p in func.positionalParameters) _collectTypeParameters(p.type, typeParams);
+    for (final p in func.namedParameters) _collectTypeParameters(p.type, typeParams);
+    _collectTypeParameters(func.returnType, typeParams);
+    return typeParams.isEmpty ? '' : '<${typeParams.map(_formatTypeParamDecl).join(', ')}>';
+  }
 
-    // ---- 生成闭包体（在 env 上下文中还原） ----
-    // 设置 env 映射，让 _restoreVarGet/Set 知道哪些变量需要加 env. 前缀
+  /// 生成闭包体字符串，同时保存/设置闭包上下文状态
+  /// 返回 (bodyStr, restoreState, savedEnvPrefix, savedThisInEnv) 记录
+  ({String bodyStr, void Function() restoreState, Map<VariableDeclaration, String> savedEnvPrefix, bool savedThisInEnv}) _generateClosureBody(FunctionNode func,
+      List<VariableDeclaration> boxedParams, bool capturesThis,
+      List<VariableDeclaration> capturedDecls, String envClassName) {
+    // 设置 env 映射
     final savedEnvPrefix = Map<VariableDeclaration, String>.from(_capturedVarEnvPrefix);
     final savedThisInEnv = _thisIsCapturedInEnv;
 
@@ -1765,17 +1802,14 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       _thisIsCapturedInEnv = true;
     }
 
-    // 推入闭包上下文（用于嵌套闭包命名）
     _pushClosureContext(envClassName);
-
-    // Bug 11: 在生成闭包 body 之前，切换当前函数参数作用域（用于 _isParameter 判定）
     final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
-    _currentFunctionParams.clear();
-    _currentFunctionParams.addAll(func.positionalParameters);
-    _currentFunctionParams.addAll(func.namedParameters);
+    _currentFunctionParams
+      ..clear()
+      ..addAll(func.positionalParameters)
+      ..addAll(func.namedParameters);
 
-    // Bug 11: 生成参数 Box 包装语句（插入到闭包 body 最开头）
-    // 形式：`BoxType x = BoxType(x_raw);`
+    // 生成参数 Box 包装语句
     final paramBoxInitLines = <String>[];
     for (final p in boxedParams) {
       final baseName = p.name!;
@@ -1795,19 +1829,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final oldBuf = _buf;
       final tmpBuf = StringBuffer();
       _buf = tmpBuf;
-      // 若有参数 Box 包装，先写入包装语句；再还原 body
       if (paramBoxInitLines.isNotEmpty) {
         tmpBuf.write('{\n');
-        for (final line in paramBoxInitLines) {
-          tmpBuf.write(line);
-        }
-        // body 若本身是 Block，则继续使用其内容但去掉外层大括号
+        for (final line in paramBoxInitLines) tmpBuf.write(line);
         if (func.body is Block) {
           final oldIndent = _indent;
           _indent = 1;
-          for (final s in (func.body as Block).statements) {
-            _restoreStmt(s);
-          }
+          for (final s in (func.body as Block).statements) _restoreStmt(s);
           _indent = oldIndent;
         } else if (func.body is ReturnStatement) {
           final ret = func.body as ReturnStatement;
@@ -1827,32 +1855,32 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       bodyStr = ' {}\n';
     }
 
-    // 恢复 _currentFunctionParams
-    _currentFunctionParams.clear();
-    _currentFunctionParams.addAll(savedCurrentParams);
+    void restoreState() {
+      _currentFunctionParams
+        ..clear()
+        ..addAll(savedCurrentParams);
+      _popClosureContext();
+      _capturedVarEnvPrefix
+        ..clear()
+        ..addAll(savedEnvPrefix);
+      _thisIsCapturedInEnv = savedThisInEnv;
+    }
 
-    _popClosureContext();
+    return (bodyStr: bodyStr, restoreState: restoreState, savedEnvPrefix: savedEnvPrefix, savedThisInEnv: savedThisInEnv);
+  }
 
-    // 恢复 env 映射
-    _capturedVarEnvPrefix.clear();
-    _capturedVarEnvPrefix.addAll(savedEnvPrefix);
-    _thisIsCapturedInEnv = savedThisInEnv;
-
-    // ---- 生成 ClosureEnv 类定义 ----
-    // ClosureEnv 现在是 TypeFunctionN 的具名子类：值本身就是 callable class
-    // 实例，不再需要 `.call` tear-off 把它适配成 Function。
-    final declBuf = StringBuffer();
-
-    // 选择 base：无命名参数且 arity ≤ 上限 → TypeFunctionN<R, T1..Tn>
-    // 否则 → TypeFunction<R> 基类（仍由本类自带的 call 方法提供 callable 语义）
+  /// 生成 ClosureEnv 类定义
+  void _generateClosureClassDef(StringBuffer declBuf, String envClassName,
+      List<_CapturedVar> capturedFields, String returnType,
+      String callParamStr, String callArgStr, String typeParamDeclStr,
+      String typeParamStr, FunctionNode func) {
     final positionalParamTypes = <String>[
       for (final p in func.positionalParameters) _restoreClosureParamType(p.type),
     ];
     final hasNamedParam = func.namedParameters.isNotEmpty;
     String baseClause;
     bool callIsOverride;
-    if (!hasNamedParam &&
-        positionalParamTypes.length <= _TypeUtils.kMaxArity) {
+    if (!hasNamedParam && positionalParamTypes.length <= _TypeUtils.kMaxArity) {
       final arity = positionalParamTypes.length;
       final args = [returnType, ...positionalParamTypes].join(', ');
       baseClause = ' extends TypeFunction$arity<$args>';
@@ -1862,10 +1890,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       callIsOverride = false;
     }
 
-    // class ClosureEnv_xxx<T extends Bound> extends TypeFunctionN<...> {
     declBuf.write('class $envClassName$typeParamDeclStr$baseClause {\n');
 
-    // 捕获变量字段（late，在 _new 函数中赋值）
+    // 捕获变量字段
     for (final field in capturedFields) {
       declBuf.write('  late ${field.typeStr} ${field.name};\n');
     }
@@ -1873,18 +1900,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 无参构造函数
     declBuf.write('  $envClassName();\n');
 
-    // closureCall 从 TypeFunction 基类继承，不需要声明
-    final staticCallName = '${envClassName}_call';
-
-    // call 方法：保留以兼容 Dart 原生 API（where/map 等期望 Function 类型），
-    // 内部通过 closureCall 间接调用（C++ 侧可忽略 call 直接用 closureCall）
+    // call 方法
     final callArgs = callArgStr.isEmpty ? 'this' : 'this, $callArgStr';
-    if (callIsOverride) {
-      declBuf.write('  @override\n');
-    }
+    if (callIsOverride) declBuf.write('  @override\n');
     declBuf.write('  $returnType call($callParamStr) => closureCall($callArgs);\n');
 
-    // gcMark 覆写：递归标记捕获的 AnyGC 字段
+    // gcMark 覆写
     if (capturedFields.isNotEmpty) {
       declBuf.write('  @override\n');
       declBuf.write('  void gcMark(int flag) {\n');
@@ -1897,69 +1918,59 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     }
 
     declBuf.write('}\n');
+  }
 
-    // ---- 生成 _new 函数 ----
+  /// 生成 _new 工厂函数
+  void _generateClosureNewFunc(StringBuffer declBuf, String envClassName,
+      List<_CapturedVar> capturedFields, String typeParamStr, String typeParamDeclStr) {
     final newFuncName = '${envClassName}_new';
-    final envClassWithTypeParamsForNew = '$envClassName$typeParamStr';
-    final newParams = <String>['$envClassWithTypeParamsForNew env_'];
+    final envClassWithTypeParams = '$envClassName$typeParamStr';
+    final newParams = <String>['$envClassWithTypeParams env_'];
     for (final field in capturedFields) {
       newParams.add('${field.typeStr} ${field.name}');
     }
-    declBuf.write('$envClassWithTypeParamsForNew $newFuncName$typeParamDeclStr(${newParams.join(', ')}) {\n');
-    // 赋值 closureCall 指向静态 _call 函数
-    declBuf.write('  env_.closureCall = $staticCallName$typeParamStr;\n');
+    declBuf.write('$envClassWithTypeParams $newFuncName$typeParamDeclStr(${newParams.join(', ')}) {\n');
+    declBuf.write('  env_.closureCall = ${envClassName}_call$typeParamStr;\n');
     for (final field in capturedFields) {
       declBuf.write('  env_.${field.name} = ${field.name};\n');
     }
     declBuf.write('  return env_;\n');
     declBuf.write('}\n');
+  }
 
-    // ---- 生成静态 call 函数 ----
-    // 第一个参数为 dynamic，内部 cast 成具体类型
+  /// 生成静态 _call 函数
+  void _generateClosureStaticCall(StringBuffer declBuf, String envClassName,
+      String returnType, String callParamStr, String typeParamDeclStr,
+      String typeParamStr, FunctionNode func, String bodyStr) {
     final envClassWithTypeParams = '$envClassName$typeParamStr';
     final staticParams = callParamStr.isEmpty
-        ? 'dynamic env__'
-        : 'dynamic env__, $callParamStr';
+        ? 'AnyGC env__'
+        : 'AnyGC env__, $callParamStr';
 
-    // async marker: Async 已由状态机替代，不输出；保留 async*/sync*
     final marker = func.asyncMarker;
     String asyncStr = '';
     if (marker == AsyncMarker.AsyncStar) asyncStr = ' async*';
     if (marker == AsyncMarker.SyncStar) asyncStr = ' sync*';
 
-    // bodyStr 使用 `env.` 前缀引用捕获变量，需要在函数开头插入 cast 语句
-    // bodyStr 格式为 " { stmts }" 或 " { return expr; }"
     final castLine = '  final env = env__ as $envClassWithTypeParams;\n';
     final adjustedBody = _insertCastIntoBody(bodyStr, castLine);
-    declBuf.write('$returnType $staticCallName$typeParamDeclStr($staticParams)$asyncStr$adjustedBody\n');
+    declBuf.write('$returnType ${envClassName}_call$typeParamDeclStr($staticParams)$asyncStr$adjustedBody\n');
+  }
 
-    // 将闭包声明添加到待输出列表
-    _pendingClosureDecls.add(declBuf.toString());
-
-    // ---- 返回构造表达式 ----
-    // 使用处: ClosureEnv_foo_0(captured1, captured2, ...)
-    // 构造参数：如果当前已在外层闭包的 env 上下文中，
-    // 被捕获变量需要加 env. 前缀
+  /// 构建闭包构造表达式
+  String _buildClosureConstructExpr(String envClassName, List<_CapturedVar> capturedFields,
+      List<VariableDeclaration> capturedDecls, bool capturesThis, String typeParamStr,
+      Map<VariableDeclaration, String> savedEnvPrefix, bool savedThisInEnv) {
     final constructArgsList = <String>[];
     for (int _i = 0; _i < capturedFields.length; _i++) {
       final field = capturedFields[_i];
       if (field.isThis) {
-        // this 捕获：检查是否在外层 env 中
-        if (savedThisInEnv) {
-          constructArgsList.add('env.${field.name}');
-        } else {
-          constructArgsList.add(field.name);
-        }
+        constructArgsList.add(savedThisInEnv ? 'env.${field.name}' : field.name);
       } else if (_i < capturedDecls.length + (capturesThis && _insideMethodBody && _currentClass != null && _needsLowering(_currentClass!.name) ? 1 : 0)) {
-        // 对应的 VariableDeclaration 在 savedEnvPrefix 中有映射则加前缀
         final declIdx = field.isThis ? -1 : _i - (capturedFields.any((f) => f.isThis) ? 1 : 0);
         if (declIdx >= 0 && declIdx < capturedDecls.length) {
           final prefix = savedEnvPrefix[capturedDecls[declIdx]];
-          if (prefix != null) {
-            constructArgsList.add('$prefix${field.name}');
-          } else {
-            constructArgsList.add(field.name);
-          }
+          constructArgsList.add(prefix != null ? '$prefix${field.name}' : field.name);
         } else {
           constructArgsList.add(field.name);
         }
@@ -1968,15 +1979,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
     }
     final constructArgs = constructArgsList.join(', ');
-    // ClosureEnv 拆分为 Value + _new 模式，构造时用 GC 包裹。
-    // 使用处: ClosureEnv_xxx_new(GC.allocateLocal(ClosureEnv_xxx()), captured1, ...)
-    final newFuncNameRef = '${envClassName}_new';
     final gcMethod = _isStaticFieldContext ? 'allocateGlobal' : 'allocateLocal';
     final gcWrappedValue = 'GC.$gcMethod($envClassName$typeParamStr())';
     if (constructArgs.isEmpty) {
-      return '$newFuncNameRef$typeParamStr($gcWrappedValue)';
+      return '${envClassName}_new$typeParamStr($gcWrappedValue)';
     }
-    return '$newFuncNameRef$typeParamStr($gcWrappedValue, $constructArgs)';
+    return '${envClassName}_new$typeParamStr($gcWrappedValue, $constructArgs)';
   }
 
   /// 将 cast 语句插入到 bodyStr 的 `{` 之后。

@@ -117,7 +117,7 @@ class ClosureEnv_tryCatchAsync_3 {
 void ClosureEnv_tryCatchAsync_3_call(ClosureEnv_tryCatchAsync_3 env) {
   try {
     if ((env.input.value == 'fail')) {
-      throw Exception('expected failure');
+      throw Exception(StringBox('expected failure'));
     }
     final String result = smAwait(greetAsync(env.input.value));
 {

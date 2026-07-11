@@ -62,7 +62,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write('$returnType $funcName');
     // 类型参数声明：mixin 类的类型参数 + 方法自身的类型参数
     _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
-    _buf.write('(dynamic this__');
+    _buf.write('(AnyGC this__');
     
     if (proc.isSetter) {
       if (proc.function.positionalParameters.isNotEmpty) {
@@ -133,7 +133,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         // 非 async 路径：保持原有逻辑
         _buf.write(' {\n');
         _indent++;
-        _buf.write('${_pad}final this_ = this__;\n');
+        _buf.write('${_pad}final dynamic this_ = this__;\n');
 
         final body = proc.function.body!;
         if (body is Block) {
@@ -295,7 +295,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       funcName = _staticMethodName(className, methodName);
     }
     
-    _buf.write('${_pad}dynamic $funcName(${className}Value this_) {\n');
+    _buf.write('${_pad}AnyGC $funcName(${className}Value this_) {\n');
     _indent++;
     _buf.write("${_pad}throw UnimplementedError('$className.$methodName delegate missing proc');\n");
     _indent--;
@@ -306,106 +306,21 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// 委托函数直接调用原始定义该方法的类的静态函数，避免通过 vptr 调用自己形成无限递归
   void _emitDelegateFromProc(Class cls, Procedure proc, _VTableEntry entry, String className) {
     final methodName = entry.name;
-    String funcName;
-    if (entry.kind == 'getter') {
-      funcName = _staticGetterName(className, methodName);
-    } else if (entry.kind == 'setter') {
-      funcName = _staticSetterName(className, methodName);
-    } else {
-      funcName = _staticMethodName(className, methodName);
-    }
-    
+    final funcName = _staticFuncName(className, methodName, entry.kind);
+
     // 找到原始定义该方法的类名
     final originClass = proc.enclosingClass;
-    String originClassName = originClass != null ? _loweredClassName(originClass.name) : className;
-    
-    // 如果原始类是合成中间类（不生成静态函数），
-    // 需要找到真正定义该方法的 mixin 或用户类
-    if (_syntheticLoweredNames.contains(originClassName)) {
-      // 策略 1: 沿着 stubTarget 链找到真正定义该方法的类
-      var realProc = proc;
-      var visited = <Procedure>{proc};
-      while (realProc.stubTarget is Procedure) {
-        final target = realProc.stubTarget as Procedure;
-        if (visited.contains(target)) break;
-        visited.add(target);
-        realProc = target;
-      }
-      
-      // 检查 realProc 的 enclosingClass 是否是 mixin 或非合成用户类
-      final realOriginClass = realProc.enclosingClass;
-      if (realOriginClass != null) {
-        final realOriginName = _loweredClassName(realOriginClass.name);
-        if (_isMixinName(realOriginName) || (!_syntheticLoweredNames.contains(realOriginName) && _isUserClass(realOriginName))) {
-          originClassName = realOriginName;
-        }
-      }
-      
-      // 策略 2: 如果仍然是合成类，从合成类名中提取 mixin 名
-      // 合成类名格式：Dog_Animal_Printable_Orderable，对应原始名 _Dog&Animal&Printable&Orderable
-      // 最后一个部分是 mixin 名
-      if (_syntheticLoweredNames.contains(originClassName) && originClass != null && originClass.name.contains('&')) {
-        final parts = originClass.name.split('&');
-        if (parts.isNotEmpty) {
-          final lastMixin = parts.last.trim();
-          if (_isMixinName(lastMixin)) {
-            originClassName = lastMixin;
-          }
-        }
-      }
-      
-      // 策略 3: 如果仍然是合成类，在合成类的继承链中查找有方法体的 Procedure
-      if (_syntheticLoweredNames.contains(originClassName)) {
-        var searchClass = originClass;
-        while (searchClass != null) {
-          final superType = searchClass.supertype;
-          if (superType == null) break;
-          searchClass = superType.classNode;
-          for (final p in searchClass.procedures) {
-            if (p.name.text == proc.name.text && p.kind == proc.kind) {
-              final searchName = _loweredClassName(searchClass.name);
-              if (_isMixinName(searchName) || (!_syntheticLoweredNames.contains(searchName) && _isUserClass(searchName))) {
-                originClassName = searchName;
-                break;
-              }
-            }
-          }
-          if (!_syntheticLoweredNames.contains(originClassName)) break;
-        }
-      }
-      
-      // 策略 4: 沿当前类的继承链向上找非合成用户类
-      if (_syntheticLoweredNames.contains(originClassName)) {
-        var parentName = _getParentClassName(className);
-        while (parentName != null) {
-          if (!_syntheticLoweredNames.contains(parentName) && !_isMixinName(parentName) && _isUserClass(parentName)) {
-            final parentEntries = _getVTableEntriesByName(parentName);
-            if (parentEntries != null && parentEntries.any((e) => e.name == methodName && e.kind == entry.kind)) {
-              originClassName = parentName;
-              break;
-            }
-          }
-          parentName = _getParentClassName(parentName);
-        }
-      }
-    }
-    
+    final originClassName = _resolveOriginClassName(cls, proc, entry, className, originClass);
+
     // 原始定义类的静态函数名
-    String originFuncName;
-    if (entry.kind == 'getter') {
-      originFuncName = _staticGetterName(originClassName, methodName);
-    } else if (entry.kind == 'setter') {
-      originFuncName = _staticSetterName(originClassName, methodName);
-    } else {
-      originFuncName = _staticMethodName(originClassName, methodName);
-    }
-    
+    final originFuncName = _staticFuncName(originClassName, methodName, entry.kind);
+
     // 构建类型参数替换映射：当子类不声明父类的类型参数时，
     // 需要将父类类型参数替换为从继承链中解析出的具体类型
     // 例如：StringToIntTransformer extends DataTransformer<String, int>
     // proc 来自 DataTransformer，其类型参数 TInput/TOutput 需替换为 String/int
     final typeSubstitution = _buildTypeSubstitutionForDelegate(cls, proc);
-    
+
     // 还原类型时使用替换映射（支持嵌套类型如 Promise<T> → Promise<int>）
     String restoreTypeWithSub(DartType type) {
       if (typeSubstitution.isEmpty) return _restoreType(type);
@@ -425,26 +340,123 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
       return result;
     }
-    
+
     // 返回类型
     final returnType = restoreTypeWithSub(proc.function.returnType);
-    
+
     _buf.write(_pad);
     _buf.write('$returnType $funcName');
     // 类型参数声明：类的类型参数 + 方法自身的类型参数
-    // 但不包含已被具体化（替换掉）的父类类型参数
-    if (typeSubstitution.isNotEmpty) {
-      // 只写方法自身的类型参数（非来自类的类型参数）
-      _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
-    } else {
-      _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
-    }
+    _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
     // this_ 参数类型：统一使用 dynamic，消除调用侧的 as Function
-    _buf.write('(dynamic this__');
-    
+    _buf.write('(AnyGC this__');
+
     // 构建参数列表和转发参数
     final forwardArgs = <String>['this_'];
-    
+    _emitDelegateParams(proc, entry, restoreTypeWithSub, forwardArgs);
+
+    _buf.write(') {\n');
+    _indent++;
+    _emitDelegateBody(cls, proc, entry, className, returnType, forwardArgs, originClassName, originFuncName);
+    _indent--;
+    _buf.write('}\n\n');
+  }
+
+  /// 根据 entry.kind 生成对应的静态函数名（getter/setter/method）
+  String _staticFuncName(String className, String methodName, String kind) {
+    if (kind == 'getter') return _staticGetterName(className, methodName);
+    if (kind == 'setter') return _staticSetterName(className, methodName);
+    return _staticMethodName(className, methodName);
+  }
+
+  /// 解析原始定义该方法的类名
+  /// 当原始类是合成中间类（不生成静态函数）时，需要找到真正定义该方法的 mixin 或用户类
+  /// 使用 4 个策略依次尝试：
+  ///   1. 沿 stubTarget 链找到真正定义该方法的类
+  ///   2. 从合成类名中提取最后一个 mixin 名
+  ///   3. 在合成类的继承链中查找有方法体的 Procedure
+  ///   4. 沿当前类的继承链向上找非合成用户类
+  String _resolveOriginClassName(Class cls, Procedure proc, _VTableEntry entry,
+      String className, Class? originClass) {
+    var originClassName = originClass != null ? _loweredClassName(originClass.name) : className;
+
+    if (!_syntheticLoweredNames.contains(originClassName)) {
+      return originClassName;
+    }
+
+    // 策略 1: 沿着 stubTarget 链找到真正定义该方法的类
+    var realProc = proc;
+    var visited = <Procedure>{proc};
+    while (realProc.stubTarget is Procedure) {
+      final target = realProc.stubTarget as Procedure;
+      if (visited.contains(target)) break;
+      visited.add(target);
+      realProc = target;
+    }
+
+    // 检查 realProc 的 enclosingClass 是否是 mixin 或非合成用户类
+    final realOriginClass = realProc.enclosingClass;
+    if (realOriginClass != null) {
+      final realOriginName = _loweredClassName(realOriginClass.name);
+      if (_isMixinName(realOriginName) || (!_syntheticLoweredNames.contains(realOriginName) && _isUserClass(realOriginName))) {
+        originClassName = realOriginName;
+      }
+    }
+
+    // 策略 2: 如果仍然是合成类，从合成类名中提取 mixin 名
+    // 合成类名格式：Dog_Animal_Printable_Orderable，对应原始名 _Dog&Animal&Printable&Orderable
+    // 最后一个部分是 mixin 名
+    if (_syntheticLoweredNames.contains(originClassName) && originClass != null && originClass.name.contains('&')) {
+      final parts = originClass.name.split('&');
+      if (parts.isNotEmpty) {
+        final lastMixin = parts.last.trim();
+        if (_isMixinName(lastMixin)) {
+          originClassName = lastMixin;
+        }
+      }
+    }
+
+    // 策略 3: 如果仍然是合成类，在合成类的继承链中查找有方法体的 Procedure
+    if (_syntheticLoweredNames.contains(originClassName)) {
+      var searchClass = originClass;
+      while (searchClass != null) {
+        final superType = searchClass.supertype;
+        if (superType == null) break;
+        searchClass = superType.classNode;
+        for (final p in searchClass.procedures) {
+          if (p.name.text == proc.name.text && p.kind == proc.kind) {
+            final searchName = _loweredClassName(searchClass.name);
+            if (_isMixinName(searchName) || (!_syntheticLoweredNames.contains(searchName) && _isUserClass(searchName))) {
+              originClassName = searchName;
+              break;
+            }
+          }
+        }
+        if (!_syntheticLoweredNames.contains(originClassName)) break;
+      }
+    }
+
+    // 策略 4: 沿当前类的继承链向上找非合成用户类
+    if (_syntheticLoweredNames.contains(originClassName)) {
+      var parentName = _getParentClassName(className);
+      while (parentName != null) {
+        if (!_syntheticLoweredNames.contains(parentName) && !_isMixinName(parentName) && _isUserClass(parentName)) {
+          final parentEntries = _getVTableEntriesByName(parentName);
+          if (parentEntries != null && parentEntries.any((e) => e.name == entry.name && e.kind == entry.kind)) {
+            originClassName = parentName;
+            break;
+          }
+        }
+        parentName = _getParentClassName(parentName);
+      }
+    }
+
+    return originClassName;
+  }
+
+  /// 发射委托函数的参数列表
+  void _emitDelegateParams(Procedure proc, _VTableEntry entry,
+      String Function(DartType) restoreTypeWithSub, List<String> forwardArgs) {
     if (entry.kind == 'setter') {
       if (proc.function.positionalParameters.isNotEmpty) {
         final p = proc.function.positionalParameters.first;
@@ -464,15 +476,19 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         _buf.write(', {${restoreTypeWithSub(p.type)} $paramName}');
       }
     }
-    
-    _buf.write(') {\n');
-    _indent++;
+  }
+
+  /// 发射委托函数体
+  void _emitDelegateBody(Class cls, Procedure proc, _VTableEntry entry,
+      String className, String returnType, List<String> forwardArgs,
+      String originClassName, String originFuncName) {
+    final methodName = entry.name;
     // this__ 是 dynamic，cast 为当前类类型
     final delegateClassTypeParamStr = cls.typeParameters.isNotEmpty
         ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
         : '';
     _buf.write('${_pad}final this_ = this__ as ${className}Value$delegateClassTypeParamStr;\n');
-    
+
     // 检查原始方法是否是抽象的（无方法体）
     // 抽象方法（如 mixin 中的抽象 getter）不会生成静态函数，
     // 委托函数应该直接访问字段
@@ -509,9 +525,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
       _buf.write('$prefix$originFuncName$originTypeArgStr(${forwardArgs.join(', ')});\n');
     }
-    
-    _indent--;
-    _buf.write('}\n\n');
   }
 
   /// Bug 17: 为 origin 静态函数调用构建实参类型列表
@@ -1394,7 +1407,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _buf.write('${_pad}@override\n');
       _buf.write('${_pad}$returnType $methodName($paramStr) {\n');
       _indent++;
-      _buf.write('${_pad}return (vptr[\'$methodName\'] as $returnType Function(dynamic))(this);\n');
+      _buf.write('${_pad}return (vptr[\'$methodName\'] as $returnType Function(AnyGC))(this);\n');
       _indent--;
       _buf.write('${_pad}}\n');
     }
@@ -1708,7 +1721,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     _buf.write('$returnType $funcName');
     // 构造函数也需要类型参数（如 Pair_new<A, B>），声明位置用完整约束
     _writeTypeParams(cls.typeParameters);
-    _buf.write('(dynamic this__');
+    _buf.write('(AnyGC this__');
 
     // 其余参数列表（排除 this. 语义，直接作为普通参数）
     final hasParams = _hasParams(ctor.function);
@@ -1972,8 +1985,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// 生成实例方法 → 静态函数
   void _emitInstanceMethodAsStatic(Class cls, Procedure proc, String className) {
     if (proc.isAbstract && proc.function.body == null) {
-      // 抽象方法：生成一个抛出 UnimplementedError 的占位实现
-      // 这样虚表中的槽位可以正确引用到这个函数
       _emitAbstractMethodPlaceholder(cls, proc, className);
       return;
     }
@@ -1981,45 +1992,66 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // Bug 11: 预分析本方法，识别哪些参数/局部变量被内部闭包捕获，需要 Box 化
     final savedBoxedVars = Set<VariableDeclaration>.from(_boxedVars);
     final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
-    if (proc.function.body != null) {
-      _preanalyzeBoxedVarsForFunc(proc.function);
-      _currentFunctionParams.clear();
-      _currentFunctionParams.addAll(proc.function.positionalParameters);
-      _currentFunctionParams.addAll(proc.function.namedParameters);
-    }
-    final boxedParamsForMethod = <VariableDeclaration>[];
-    for (final p in proc.function.positionalParameters) {
-      if (_boxedVars.contains(p)) boxedParamsForMethod.add(p);
-    }
-    for (final p in proc.function.namedParameters) {
-      if (_boxedVars.contains(p)) boxedParamsForMethod.add(p);
-    }
+    final boxedParamsForMethod = _preanalyzeBoxedParams(proc);
 
     final methodName = proc.name.text;
-    String funcName;
-    if (proc.isGetter) {
-      funcName = _staticGetterName(className, methodName);
-    } else if (proc.isSetter) {
-      funcName = _staticSetterName(className, methodName);
+    final funcName = proc.isGetter
+        ? _staticGetterName(className, methodName)
+        : proc.isSetter
+            ? _staticSetterName(className, methodName)
+            : _staticMethodName(className, methodName);
+
+    _emitInstanceMethodSignature(cls, proc, className, funcName);
+
+    // body
+    final marker = proc.function.asyncMarker;
+    if (proc.function.body != null) {
+      _buf.write(' ');
+      _insideMethodBody = true;
+      final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
+      _emitInstanceMethodBody(cls, proc, className, boxedParamsForMethod, isVoidReturn, marker);
+      _insideMethodBody = false;
     } else {
-      funcName = _staticMethodName(className, methodName);
+      _buf.write(';\n');
     }
+    _buf.write('\n');
 
+    // Bug 11: 恢复快照
+    _boxedVars
+      ..clear()
+      ..addAll(savedBoxedVars);
+    _currentFunctionParams
+      ..clear()
+      ..addAll(savedCurrentParams);
+  }
+
+  /// 预分析方法参数，识别被闭包捕获需要 Box 化的参数
+  List<VariableDeclaration> _preanalyzeBoxedParams(Procedure proc) {
+    if (proc.function.body != null) {
+      _preanalyzeBoxedVarsForFunc(proc.function);
+      _currentFunctionParams
+        ..clear()
+        ..addAll(proc.function.positionalParameters)
+        ..addAll(proc.function.namedParameters);
+    }
+    final boxedParams = <VariableDeclaration>[];
+    for (final p in proc.function.positionalParameters) {
+      if (_boxedVars.contains(p)) boxedParams.add(p);
+    }
+    for (final p in proc.function.namedParameters) {
+      if (_boxedVars.contains(p)) boxedParams.add(p);
+    }
+    return boxedParams;
+  }
+
+  /// 发射实例方法转静态函数的签名
+  void _emitInstanceMethodSignature(Class cls, Procedure proc, String className, String funcName) {
     _buf.write(_pad);
-
-    // 返回类型（包含类型参数，如 PairValue<B, A> Pair_swap<A, B>(...)）
-    // async 函数：void → Promise<int>，裸值类型 → Promise<T>
     _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
     _buf.write(' $funcName');
-    // 类型参数声明：类的类型参数 + 方法自身的类型参数
     _writeCombinedTypeParams(cls.typeParameters, proc.function.typeParameters);
-    _buf.write('(');
+    _buf.write('(AnyGC this__');
 
-    // 第一个参数：this_ 统一使用 dynamic 类型
-    // 所有注册到 vptr 的函数 this_ 都是 dynamic，消除调用侧的 as Function
-    _buf.write('dynamic this__');
-
-    // 其余参数（顶层静态函数中不允许 covariant）
     if (proc.isSetter) {
       if (proc.function.positionalParameters.isNotEmpty) {
         final p = proc.function.positionalParameters.first;
@@ -2028,9 +2060,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         _buf.write(', ${_restoreType(p.type)} $cleanName');
       }
     } else if (!proc.isGetter) {
-      // 普通方法的参数
-      // flattenOptional: true → 去掉可选参数的默认值和 [] 括号，
-      // 所有参数变成必需的，默认值在调用处补齐
       final pos = proc.function.positionalParameters;
       final named = proc.function.namedParameters;
       if (pos.isNotEmpty || named.isNotEmpty) {
@@ -2040,91 +2069,84 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
 
     _buf.write(')');
-
-    // async marker
     final marker = proc.function.asyncMarker;
-    // async marker removed: replaced by state machine smAwait
     if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
     if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
+  }
 
-    // body
-    if (proc.function.body != null) {
-      _buf.write(' ');
-      _insideMethodBody = true;
-
-      final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
-
-      // async 实例方法 → ClosureEnv 闭包延迟执行模式
-      // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
-      if (marker == AsyncMarker.Async) {
-        final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
-        final allParams = <VariableDeclaration>[
-          ...proc.function.positionalParameters,
-          ...proc.function.namedParameters,
-        ];
-        final classTypeParamStr = cls.typeParameters.isNotEmpty
-            ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
-            : '';
-        final thisTypeStr = '${className}Value$classTypeParamStr';
-        final envBaseName = '${className}_$methodName';
-        _pushClosureContext(envBaseName);
-        _emitAsyncClosureEnvForMethod(
-          envBaseName: _closureContext,
-          func: proc.function,
-          innerReturnType: innerRetType,
-          params: allParams,
-          thisParam: thisTypeStr,
-          thisRawParam: 'this__',
-          boxedParams: boxedParamsForMethod,
-          classTypeParams: classTypeParamStr,
-        );
-        _popClosureContext();
-      } else {
-        // 非 async 路径：保持原有逻辑
-        _buf.write('{\n');
-        _indent++;
-        final classTypeParamStr = cls.typeParameters.isNotEmpty
-            ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
-            : '';
-        _buf.write('${_pad}final this_ = this__ as ${className}Value$classTypeParamStr;\n');
-        // Bug 11: 参数 Box 包装（仅基础值类型）
-        for (final p in boxedParamsForMethod) {
-          final baseName = p.name!;
-          final boxType = _boxTypeNameFor(p.type)!;
-          _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
-        }
-        final body = proc.function.body!;
-        if (body is Block) {
-          for (final s in body.statements) {
-            if (isVoidReturn && s is ReturnStatement) {
-              if (s.expression != null) {
-                _buf.write('$_pad${_restoreExpr(s.expression!)};\n');
-              }
-              continue;
-            }
-            _restoreStmt(s);
-          }
-        } else if (isVoidReturn && body is ReturnStatement) {
-          if (body.expression != null) {
-            _buf.write('$_pad${_restoreExpr(body.expression!)};\n');
-          }
-        } else {
-          _restoreStmt(body);
-        }
-        _indent--;
-        _buf.write('$_pad}\n');
-      }
-      _insideMethodBody = false;
+  /// 发射实例方法的方法体（区分 async 和 sync 路径）
+  void _emitInstanceMethodBody(Class cls, Procedure proc, String className,
+      List<VariableDeclaration> boxedParams, bool isVoidReturn, AsyncMarker marker) {
+    if (marker == AsyncMarker.Async) {
+      _emitAsyncInstanceMethodBody(cls, proc, className, boxedParams);
     } else {
-      _buf.write(';\n');
+      _emitSyncInstanceMethodBody(cls, proc, className, boxedParams, isVoidReturn);
     }
-    _buf.write('\n');
+  }
 
-    // Bug 11: 恢复快照
-    _boxedVars.clear();
-    _boxedVars.addAll(savedBoxedVars);
-    _currentFunctionParams.clear();
-    _currentFunctionParams.addAll(savedCurrentParams);
+  /// 发射 async 实例方法体 — ClosureEnv 闭包延迟执行模式
+  void _emitAsyncInstanceMethodBody(Class cls, Procedure proc, String className,
+      List<VariableDeclaration> boxedParams) {
+    final methodName = proc.name.text;
+    final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
+    final allParams = <VariableDeclaration>[
+      ...proc.function.positionalParameters,
+      ...proc.function.namedParameters,
+    ];
+    final classTypeParamStr = cls.typeParameters.isNotEmpty
+        ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
+        : '';
+    final thisTypeStr = '${className}Value$classTypeParamStr';
+    final envBaseName = '${className}_$methodName';
+    _pushClosureContext(envBaseName);
+    _emitAsyncClosureEnvForMethod(
+      envBaseName: _closureContext,
+      func: proc.function,
+      innerReturnType: innerRetType,
+      params: allParams,
+      thisParam: thisTypeStr,
+      thisRawParam: 'this__',
+      boxedParams: boxedParams,
+      classTypeParams: classTypeParamStr,
+    );
+    _popClosureContext();
+  }
+
+  /// 发射 sync 实例方法体 — 直接内联
+  void _emitSyncInstanceMethodBody(Class cls, Procedure proc, String className,
+      List<VariableDeclaration> boxedParams, bool isVoidReturn) {
+    _buf.write('{\n');
+    _indent++;
+    final classTypeParamStr = cls.typeParameters.isNotEmpty
+        ? '<${cls.typeParameters.map((tp) => tp.name ?? 'T').join(', ')}>'
+        : '';
+    _buf.write('${_pad}final this_ = this__ as ${className}Value$classTypeParamStr;\n');
+    // Bug 11: 参数 Box 包装（仅基础值类型）
+    for (final p in boxedParams) {
+      final baseName = p.name!;
+      final boxType = _boxTypeNameFor(p.type)!;
+      _buf.write('$_pad$boxType $baseName = $boxType(${baseName}_raw);\n');
+    }
+    final body = proc.function.body!;
+    if (body is Block) {
+      for (final s in body.statements) {
+        if (isVoidReturn && s is ReturnStatement) {
+          if (s.expression != null) {
+            _buf.write('$_pad${_restoreExpr(s.expression!)};\n');
+          }
+          continue;
+        }
+        _restoreStmt(s);
+      }
+    } else if (isVoidReturn && body is ReturnStatement) {
+      if (body.expression != null) {
+        _buf.write('$_pad${_restoreExpr(body.expression!)};\n');
+      }
+    } else {
+      _restoreStmt(body);
+    }
+    _indent--;
+    _buf.write('$_pad}\n');
   }
 
   /// 为抽象方法生成占位实现（抛出 UnimplementedError）
@@ -2357,7 +2379,6 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
 
     // 扩展方法：函数名包含 | 字符（如 "StringExtensions|capitalize"）
-    // 直接输出为顶层静态函数，函数名清理为合法标识符
     final rawName = proc.name.text;
     if (_isExtensionMethodName(rawName)) {
       _restoreExtensionProcedure(proc);
@@ -2365,24 +2386,32 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     }
 
     // Bug 11: 预分析本函数，识别哪些参数/局部变量被内部闭包捕获，需要 Box 化
-    // 记录 _boxedVars 的快照，退出时恢复（避免跨函数污染）
     final savedBoxedVars = Set<VariableDeclaration>.from(_boxedVars);
     final savedCurrentParams = Set<VariableDeclaration>.from(_currentFunctionParams);
-    if (proc.function.body != null) {
-      _preanalyzeBoxedVarsForFunc(proc.function);
-      _currentFunctionParams.clear();
-      _currentFunctionParams.addAll(proc.function.positionalParameters);
-      _currentFunctionParams.addAll(proc.function.namedParameters);
-    }
-    // 识别本函数中被 Box 化的参数
-    final boxedParamsForProc = <VariableDeclaration>[];
-    for (final p in proc.function.positionalParameters) {
-      if (_boxedVars.contains(p)) boxedParamsForProc.add(p);
-    }
-    for (final p in proc.function.namedParameters) {
-      if (_boxedVars.contains(p)) boxedParamsForProc.add(p);
-    }
+    final boxedParamsForProc = _preanalyzeBoxedParams(proc);
 
+    _emitProcedureSignature(proc);
+
+    // async marker
+    final marker = proc.function.asyncMarker;
+    if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
+    if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
+
+    // body
+    _emitProcedureBody(proc, boxedParamsForProc);
+    _buf.write('\n');
+
+    // Bug 11: 恢复快照
+    _boxedVars
+      ..clear()
+      ..addAll(savedBoxedVars);
+    _currentFunctionParams
+      ..clear()
+      ..addAll(savedCurrentParams);
+  }
+
+  /// 发射普通过程的签名（工厂/getter/setter/普通方法/运算符）
+  void _emitProcedureSignature(Procedure proc) {
     _buf.write(_pad);
     if (proc.isStatic && proc.enclosingClass != null && !proc.isFactory) _buf.write('static ');
     if (proc.isFactory) {
@@ -2402,95 +2431,84 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       _writeParams(proc.function);
       _buf.write(')');
     } else {
-      // 普通方法/函数
-      if (proc.enclosingClass != null) {
-        // 检查是否是 @override
-        for (final ann in proc.annotations) {
-          if (ann is ConstantExpression && ann.constant is InstanceConstant) {
-            final ic = ann.constant as InstanceConstant;
-            if (ic.classNode.name == 'override') {
-              _buf.write('@override\n$_pad');
-            }
-          }
-        }
-      }
-      // main 函数特殊处理：保持 void 返回，body 同步执行
-      // 其他 async 函数：void → Promise<int>，裸值类型 → Promise<T>
-      final isMainFunc = proc.name.text == 'main' && proc.enclosingClass == null;
-      if (isMainFunc) {
-        _buf.write(_restoreType(proc.function.returnType));
-      } else {
-        _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
-      }
-      _buf.write(' ');
-      final name = proc.name.text;
-      if (_isOperatorName(name)) {
-        _buf.write('operator $name');
-      } else {
-        _buf.write(name);
-      }
-      _writeTypeParams(proc.function.typeParameters);
-      _buf.write('(');
-      _writeParams(proc.function, proc: proc);
-      _buf.write(')');
+      _emitNormalProcedureSignature(proc);
     }
+  }
 
-    // async marker
-    final marker = proc.function.asyncMarker;
-    // async marker removed: replaced by state machine smAwait
-    if (marker == AsyncMarker.AsyncStar) _buf.write(' async*');
-    if (marker == AsyncMarker.SyncStar) _buf.write(' sync*');
-
-    // body
-    if (proc.function.body != null) {
-      _buf.write(' ');
-      final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
-
-      // async 函数 → ClosureEnv 闭包延迟执行模式
-      // 所有 async 函数统一 lowering（含 void → int、裸值类型 → Promise<T>）
-      // main 函数例外：保持同步执行以确保程序入口正常驱动
-      final isMainFunc2 = proc.name.text == 'main' && proc.enclosingClass == null;
-      if (marker == AsyncMarker.Async && !isMainFunc2) {
-        final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
-        final allParams = <VariableDeclaration>[
-          ...proc.function.positionalParameters,
-          ...proc.function.namedParameters,
-        ];
-        final funcName = proc.name.text;
-        _pushClosureContext(funcName);
-        _emitAsyncClosureEnv(
-          envBaseName: _closureContext,
-          func: proc.function,
-          innerReturnType: innerRetType,
-          params: allParams,
-          boxedParams: boxedParamsForProc,
-        );
-        _popClosureContext();
-      } else {
-        if (isMainFunc2) {
-          // main 函数特殊处理：在 body 末尾添加 drainScheduler() 调用
-          // 模拟 Dart 事件循环在 main() 返回后继续处理异步任务的行为
-          _restoreMainBody(proc.function.body!, boxedParamsForProc);
-        } else if (isVoidReturn) {
-          _restoreSetterBody(proc.function.body!);
-        } else {
-          if (boxedParamsForProc.isNotEmpty) {
-            _restoreBodyWithBoxedParams(proc.function.body!, boxedParamsForProc);
-          } else {
-            _restoreBody(proc.function.body!);
+  /// 发射普通方法/函数的签名（含 @override 检查、main 特殊处理、运算符）
+  void _emitNormalProcedureSignature(Procedure proc) {
+    if (proc.enclosingClass != null) {
+      for (final ann in proc.annotations) {
+        if (ann is ConstantExpression && ann.constant is InstanceConstant) {
+          final ic = ann.constant as InstanceConstant;
+          if (ic.classNode.name == 'override') {
+            _buf.write('@override\n$_pad');
           }
         }
       }
+    }
+    // main 函数特殊处理：保持 void 返回，body 同步执行
+    final isMainFunc = proc.name.text == 'main' && proc.enclosingClass == null;
+    if (isMainFunc) {
+      _buf.write(_restoreType(proc.function.returnType));
     } else {
-      _buf.write(';\n');
+      _buf.write(_asyncAwareRestoreType(proc.function.returnType, proc.function.asyncMarker));
     }
-    _buf.write('\n');
+    _buf.write(' ');
+    final name = proc.name.text;
+    if (_isOperatorName(name)) {
+      _buf.write('operator $name');
+    } else {
+      _buf.write(name);
+    }
+    _writeTypeParams(proc.function.typeParameters);
+    _buf.write('(');
+    _writeParams(proc.function, proc: proc);
+    _buf.write(')');
+  }
 
-    // Bug 11: 恢复快照
-    _boxedVars.clear();
-    _boxedVars.addAll(savedBoxedVars);
-    _currentFunctionParams.clear();
-    _currentFunctionParams.addAll(savedCurrentParams);
+  /// 发射过程的方法体（区分 async 和 sync 路径）
+  void _emitProcedureBody(Procedure proc, List<VariableDeclaration> boxedParams) {
+    if (proc.function.body == null) {
+      _buf.write(';\n');
+      return;
+    }
+    _buf.write(' ');
+    final isVoidReturn = proc.function.returnType is VoidType || proc.isSetter;
+    final marker = proc.function.asyncMarker;
+    final isMainFunc = proc.name.text == 'main' && proc.enclosingClass == null;
+
+    // async 函数 → ClosureEnv 闭包延迟执行模式（main 函数例外）
+    if (marker == AsyncMarker.Async && !isMainFunc) {
+      _emitAsyncProcedureBody(proc, boxedParams);
+    } else if (isMainFunc) {
+      _restoreMainBody(proc.function.body!, boxedParams);
+    } else if (isVoidReturn) {
+      _restoreSetterBody(proc.function.body!);
+    } else if (boxedParams.isNotEmpty) {
+      _restoreBodyWithBoxedParams(proc.function.body!, boxedParams);
+    } else {
+      _restoreBody(proc.function.body!);
+    }
+  }
+
+  /// 发射 async 过程体 — ClosureEnv 闭包延迟执行模式
+  void _emitAsyncProcedureBody(Procedure proc, List<VariableDeclaration> boxedParams) {
+    final innerRetType = _computeAsyncInnerReturnType(proc.function.returnType);
+    final allParams = <VariableDeclaration>[
+      ...proc.function.positionalParameters,
+      ...proc.function.namedParameters,
+    ];
+    final funcName = proc.name.text;
+    _pushClosureContext(funcName);
+    _emitAsyncClosureEnv(
+      envBaseName: _closureContext,
+      func: proc.function,
+      innerReturnType: innerRetType,
+      params: allParams,
+      boxedParams: boxedParams,
+    );
+    _popClosureContext();
   }
 
   /// 还原扩展方法（函数名包含 | 字符）为顶层静态函数
@@ -2789,7 +2807,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       for (final p in named) {
         final sb = StringBuffer();
         if (p.isFinal) sb.write('final ');
-        sb.write(_restoreType(p.type));
+        sb.write(_restoreParamType(p.type));
         sb.write(' ');
         final cleanName = _cleanVarName(p.name ?? '_n');
         p.name = cleanName;
@@ -2852,7 +2870,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
   /// 以兼容 compile-time constant 约束。StaticList extends Iterable<T>，所以
   /// 调用端传入 StaticList 实例兼容 Iterable<T> 参数。
   String _paramTypeForDefault(DartType type, String? defaultExpr) {
-    final restored = _restoreType(type);
+    final restored = _restoreParamType(type);
     if (defaultExpr == null) return restored;
     if (!_isConstCollectionLiteral(defaultExpr)) return restored;
     return _demoteStaticCollectionType(restored);

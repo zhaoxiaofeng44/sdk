@@ -17,12 +17,12 @@ class PersonValue extends VPtr {
   }
 }
 
-PersonValue Person_new(dynamic this__) {
+PersonValue Person_new(AnyGC this__) {
   final this_ = this__ as PersonValue;
   return this_;
 }
 
-void Person_greet(dynamic this__) {
+void Person_greet(AnyGC this__) {
   final this_ = this__ as PersonValue;
   staticPrint('Hello, ${this_.name}');
 }
@@ -43,17 +43,17 @@ class LateTestValue extends VPtr {
   }
 }
 
-LateTestValue LateTest_new(dynamic this__) {
+LateTestValue LateTest_new(AnyGC this__) {
   final this_ = this__ as LateTestValue;
   return this_;
 }
 
-void LateTest_init(dynamic this__) {
+void LateTest_init(AnyGC this__) {
   final this_ = this__ as LateTestValue;
   this_.value = 'initialized';
 }
 
-String LateTest_get(dynamic this__) {
+String LateTest_get(AnyGC this__) {
   final this_ = this__ as LateTestValue;
   return this_.value;
 }
@@ -86,7 +86,7 @@ class ShapeValue extends VPtr {
   }
 }
 
-ShapeValue Shape_new(dynamic this__) {
+ShapeValue Shape_new(AnyGC this__) {
   final this_ = this__ as ShapeValue;
   return this_;
 }
@@ -115,14 +115,14 @@ class CircleValue extends ShapeValue {
   }
 }
 
-CircleValue Circle_new(dynamic this__, double radius) {
+CircleValue Circle_new(AnyGC this__, double radius) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);
   this_.radius = radius;
   return this_;
 }
 
-double Circle_area(dynamic this__) {
+double Circle_area(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return ((3.14 * this_.radius) * this_.radius);
 }
@@ -147,14 +147,14 @@ class SquareValue extends ShapeValue {
   }
 }
 
-SquareValue Square_new(dynamic this__, double side) {
+SquareValue Square_new(AnyGC this__, double side) {
   final this_ = this__ as SquareValue;
   Shape_new(this_);
   this_.side = side;
   return this_;
 }
 
-double Square_area(dynamic this__) {
+double Square_area(AnyGC this__) {
   final this_ = this__ as SquareValue;
   return (this_.side * this_.side);
 }
@@ -177,24 +177,24 @@ class VectorValue extends VPtr {
   }
 }
 
-VectorValue Vector_new(dynamic this__, double x, double y) {
+VectorValue Vector_new(AnyGC this__, double x, double y) {
   final this_ = this__ as VectorValue;
   this_.x = x;
   this_.y = y;
   return this_;
 }
 
-VectorValue Vector_operatorPlus(dynamic this__, VectorValue other) {
+VectorValue Vector_operatorPlus(AnyGC this__, VectorValue other) {
   final this_ = this__ as VectorValue;
   return Vector_new(GC.allocateLocal(VectorValue()), (this_.x + other.x), (this_.y + other.y));
 }
 
-VectorValue Vector_operatorStar(dynamic this__, double scalar) {
+VectorValue Vector_operatorStar(AnyGC this__, double scalar) {
   final this_ = this__ as VectorValue;
   return Vector_new(GC.allocateLocal(VectorValue()), (this_.x * scalar), (this_.y * scalar));
 }
 
-String Vector_toString(dynamic this__) {
+String Vector_toString(AnyGC this__) {
   final this_ = this__ as VectorValue;
   return '(${this_.x}, ${this_.y})';
 }
@@ -213,7 +213,7 @@ class CounterValue extends VPtr {
 }
 
 int Counter_count = 0;
-CounterValue Counter_new(dynamic this__) {
+CounterValue Counter_new(AnyGC this__) {
   final this_ = this__ as CounterValue;
   return this_;
 }
@@ -240,7 +240,7 @@ class AnimalValue extends VPtr {
   }
 }
 
-AnimalValue Animal_new(dynamic this__) {
+AnimalValue Animal_new(AnyGC this__) {
   final this_ = this__ as AnimalValue;
   return this_;
 }
@@ -263,27 +263,27 @@ class DogValue extends VPtr implements AnimalValue {
   }
 }
 
-DogValue Dog_new(dynamic this__) {
+DogValue Dog_new(AnyGC this__) {
   final this_ = this__ as DogValue;
   return this_;
 }
 
-void Dog_speak(dynamic this__) {
+void Dog_speak(AnyGC this__) {
   final this_ = this__ as DogValue;
   staticPrint('Woof!');
 }
 
 
 // mixin Flyable → static functions for delegation
-void Flyable_fly(dynamic this__) {
-  final this_ = this__;
+void Flyable_fly(AnyGC this__) {
+  final dynamic this_ = this__;
   staticPrint('Flying!');
 }
 
 
 // mixin Swimmable → static functions for delegation
-void Swimmable_swim(dynamic this__) {
-  final this_ = this__;
+void Swimmable_swim(AnyGC this__) {
+  final dynamic this_ = this__;
   staticPrint('Swimming!');
 }
 
@@ -308,22 +308,22 @@ class DuckValue extends Duck_Object_Flyable_SwimmableValue {
   }
 }
 
-DuckValue Duck_new(dynamic this__) {
+DuckValue Duck_new(AnyGC this__) {
   final this_ = this__ as DuckValue;
   return this_;
 }
 
-void Duck_quack(dynamic this__) {
+void Duck_quack(AnyGC this__) {
   final this_ = this__ as DuckValue;
   staticPrint('Quack!');
 }
 
-void Duck_fly(dynamic this__) {
+void Duck_fly(AnyGC this__) {
   final this_ = this__ as DuckValue;
   Flyable_fly(this_);
 }
 
-void Duck_swim(dynamic this__) {
+void Duck_swim(AnyGC this__) {
   final this_ = this__ as DuckValue;
   Swimmable_swim(this_);
 }
@@ -385,7 +385,7 @@ void testCollectionIfFor() {
 }
 
 void testCascade() {
-  final PersonValue p = (() { final _let3 = Person_new(GC.allocateLocal(PersonValue())); _let3.name = 'Alice'; _let3.age = 30; (_let3.vptr['greet'] as void Function(dynamic))(_let3); return _let3; })();
+  final PersonValue p = (() { final _let3 = Person_new(GC.allocateLocal(PersonValue())); _let3.name = 'Alice'; _let3.age = 30; (_let3.vptr['greet'] as void Function(AnyGC))(_let3); return _let3; })();
   staticPrint(p.name);
 }
 
@@ -401,8 +401,8 @@ void testNullAware() {
 
 void testLate() {
   final LateTestValue t = LateTest_new(GC.allocateLocal(LateTestValue()));
-  (t.vptr['init'] as void Function(dynamic))(t);
-  staticPrint((t.vptr['get'] as String Function(dynamic))(t));
+  (t.vptr['init'] as void Function(AnyGC))(t);
+  staticPrint((t.vptr['get'] as String Function(AnyGC))(t));
 }
 
 Promise<int> asyncInt() {
@@ -521,7 +521,7 @@ void testSealed() {
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue shape = sync_for_iterator.current;
 {
-        staticPrint((shape.vptr['area'] as double Function(dynamic))(shape));
+        staticPrint((shape.vptr['area'] as double Function(AnyGC))(shape));
       }
     }
   }
@@ -530,8 +530,8 @@ void testSealed() {
 void testOperators() {
   final VectorValue v1 = Vector_new(GC.allocateLocal(VectorValue()), 1.0, 2.0);
   final VectorValue v2 = Vector_new(GC.allocateLocal(VectorValue()), 3.0, 4.0);
-  staticPrint((v1.vptr['operatorPlus'] as VectorValue Function(dynamic, VectorValue))(v1, v2));
-  staticPrint((v1.vptr['operatorStar'] as VectorValue Function(dynamic, double))(v1, 2.0));
+  staticPrint((v1.vptr['operatorPlus'] as VectorValue Function(AnyGC, VectorValue))(v1, v2));
+  staticPrint((v1.vptr['operatorStar'] as VectorValue Function(AnyGC, double))(v1, 2.0));
 }
 
 void testStatic() {
@@ -542,14 +542,14 @@ void testStatic() {
 
 void testAbstract() {
   final AnimalValue a = Dog_new(GC.allocateLocal(DogValue()));
-  (a.vptr['speak'] as void Function(dynamic))(a);
+  (a.vptr['speak'] as void Function(AnyGC))(a);
 }
 
 void testMixin() {
   final DuckValue d = Duck_new(GC.allocateLocal(DuckValue()));
-  (d.vptr['fly'] as void Function(dynamic))(d);
-  (d.vptr['swim'] as void Function(dynamic))(d);
-  (d.vptr['quack'] as void Function(dynamic))(d);
+  (d.vptr['fly'] as void Function(AnyGC))(d);
+  (d.vptr['swim'] as void Function(AnyGC))(d);
+  (d.vptr['quack'] as void Function(AnyGC))(d);
 }
 
 T max<T extends Comparable<dynamic>>(T a, T b) {
@@ -687,7 +687,7 @@ ClosureEnv_StringExtension_get_capitalize_3 ClosureEnv_StringExtension_get_capit
   env_.this_ = this_;
   return env_;
 }
-String ClosureEnv_StringExtension_get_capitalize_3_call(dynamic env__) {
+String ClosureEnv_StringExtension_get_capitalize_3_call(AnyGC env__) {
   final env = env__ as ClosureEnv_StringExtension_get_capitalize_3;
 
   return StringExtension_capitalize(env.this_);

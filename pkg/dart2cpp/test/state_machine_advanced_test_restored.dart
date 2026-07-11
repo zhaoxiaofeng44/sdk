@@ -6,7 +6,7 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -35,13 +35,13 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
   }
 }
 
-FibStateMachineValue FibStateMachine_new(dynamic this__, int n) {
+FibStateMachineValue FibStateMachine_new(AnyGC this__, int n) {
   final this_ = this__ as FibStateMachineValue;
   this_.n = n;
   return this_;
 }
 
-bool FibStateMachine_step(dynamic this__) {
+bool FibStateMachine_step(AnyGC this__) {
   final this_ = this__ as FibStateMachineValue;
   _L0: do {
     switch (this_.smState) {
@@ -81,7 +81,7 @@ bool FibStateMachine_step(dynamic this__) {
 class Level3SMValue extends AsyncStateMachine<int> {
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -104,14 +104,14 @@ class Level3SMValue extends AsyncStateMachine<int> {
   }
 }
 
-Level3SMValue Level3SM_new(dynamic this__) {
+Level3SMValue Level3SM_new(AnyGC this__) {
   final this_ = this__ as Level3SMValue;
   return this_;
 }
 
-bool Level3SM_step(dynamic this__) {
+bool Level3SM_step(AnyGC this__) {
   final this_ = this__ as Level3SMValue;
-  this_.completeWithError(Exception('deep error'));
+  this_.completeWithError(Exception(StringBox('deep error')));
   return true;
 }
 
@@ -120,7 +120,7 @@ class Level2SMValue extends AsyncStateMachine<int> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -149,12 +149,12 @@ class Level2SMValue extends AsyncStateMachine<int> {
   }
 }
 
-Level2SMValue Level2SM_new(dynamic this__) {
+Level2SMValue Level2SM_new(AnyGC this__) {
   final this_ = this__ as Level2SMValue;
   return this_;
 }
 
-bool Level2SM_step(dynamic this__) {
+bool Level2SM_step(AnyGC this__) {
   final this_ = this__ as Level2SMValue;
   _L1: do {
     switch (this_.smState) {
@@ -187,7 +187,7 @@ class Level1SMValue extends AsyncStateMachine<String> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -216,12 +216,12 @@ class Level1SMValue extends AsyncStateMachine<String> {
   }
 }
 
-Level1SMValue Level1SM_new(dynamic this__) {
+Level1SMValue Level1SM_new(AnyGC this__) {
   final this_ = this__ as Level1SMValue;
   return this_;
 }
 
-bool Level1SM_step(dynamic this__) {
+bool Level1SM_step(AnyGC this__) {
   final this_ = this__ as Level1SMValue;
   _L2: do {
     switch (this_.smState) {
@@ -255,7 +255,7 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   late Promise<String>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -284,13 +284,13 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   }
 }
 
-ConditionalAwaitSMValue ConditionalAwaitSM_new(dynamic this__, bool flag) {
+ConditionalAwaitSMValue ConditionalAwaitSM_new(AnyGC this__, bool flag) {
   final this_ = this__ as ConditionalAwaitSMValue;
   this_.flag = flag;
   return this_;
 }
 
-bool ConditionalAwaitSM_step(dynamic this__) {
+bool ConditionalAwaitSM_step(AnyGC this__) {
   final this_ = this__ as ConditionalAwaitSMValue;
   _L3: do {
     switch (this_.smState) {
@@ -333,7 +333,7 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -363,13 +363,13 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   }
 }
 
-FindFirstSMValue FindFirstSM_new(dynamic this__, StaticList<int> items) {
+FindFirstSMValue FindFirstSM_new(AnyGC this__, StaticList<int> items) {
   final this_ = this__ as FindFirstSMValue;
   this_.items = items;
   return this_;
 }
 
-bool FindFirstSM_step(dynamic this__) {
+bool FindFirstSM_step(AnyGC this__) {
   final this_ = this__ as FindFirstSMValue;
   _L4: do {
     switch (this_.smState) {
@@ -409,7 +409,7 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   late Promise<dynamic>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -438,12 +438,12 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   }
 }
 
-TryCatchSMValue TryCatchSM_new(dynamic this__) {
+TryCatchSMValue TryCatchSM_new(AnyGC this__) {
   final this_ = this__ as TryCatchSMValue;
   return this_;
 }
 
-bool TryCatchSM_step(dynamic this__) {
+bool TryCatchSM_step(AnyGC this__) {
   final this_ = this__ as TryCatchSMValue;
   _L5: do {
     switch (this_.smState) {
@@ -486,7 +486,7 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   late StaticList<Promise<String>> _futures;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -515,12 +515,12 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   }
 }
 
-FutureAnySMValue FutureAnySM_new(dynamic this__) {
+FutureAnySMValue FutureAnySM_new(AnyGC this__) {
   final this_ = this__ as FutureAnySMValue;
   return this_;
 }
 
-bool FutureAnySM_step(dynamic this__) {
+bool FutureAnySM_step(AnyGC this__) {
   final this_ = this__ as FutureAnySMValue;
   _L6: do {
     switch (this_.smState) {
@@ -562,7 +562,7 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   late Promise<String> _timeoutFuture;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -592,14 +592,14 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   }
 }
 
-TimeoutSMValue TimeoutSM_new(dynamic this__, {required int taskDelay, required int timeoutDelay}) {
+TimeoutSMValue TimeoutSM_new(AnyGC this__, {required int taskDelay, required int timeoutDelay}) {
   final this_ = this__ as TimeoutSMValue;
   this_.taskDelay = taskDelay;
   this_.timeoutDelay = timeoutDelay;
   return this_;
 }
 
-bool TimeoutSM_step(dynamic this__) {
+bool TimeoutSM_step(AnyGC this__) {
   final this_ = this__ as TimeoutSMValue;
   _L7: do {
     switch (this_.smState) {
@@ -638,7 +638,7 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late Promise<String>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -669,13 +669,13 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   }
 }
 
-AsyncMapSMValue AsyncMapSM_new(dynamic this__, StaticList<int> items) {
+AsyncMapSMValue AsyncMapSM_new(AnyGC this__, StaticList<int> items) {
   final this_ = this__ as AsyncMapSMValue;
   this_.items = items;
   return this_;
 }
 
-bool AsyncMapSM_step(dynamic this__) {
+bool AsyncMapSM_step(AnyGC this__) {
   final this_ = this__ as AsyncMapSMValue;
   _L8: do {
     switch (this_.smState) {
@@ -715,7 +715,7 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late String _acc = '';
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -746,12 +746,12 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   }
 }
 
-AsyncReduceSMValue AsyncReduceSM_new(dynamic this__) {
+AsyncReduceSMValue AsyncReduceSM_new(AnyGC this__) {
   final this_ = this__ as AsyncReduceSMValue;
   return this_;
 }
 
-bool AsyncReduceSM_step(dynamic this__) {
+bool AsyncReduceSM_step(AnyGC this__) {
   final this_ = this__ as AsyncReduceSMValue;
   _L9: do {
     switch (this_.smState) {
@@ -809,13 +809,13 @@ class ClosureEnv_process_0Value extends VPtr {
   }
 }
 
-ClosureEnv_process_0Value ClosureEnv_process_0_new(dynamic this__, int factor) {
+ClosureEnv_process_0Value ClosureEnv_process_0_new(AnyGC this__, int factor) {
   final this_ = this__ as ClosureEnv_process_0Value;
   this_.factor = factor;
   return this_;
 }
 
-int ClosureEnv_process_0_call(dynamic this__, int x) {
+int ClosureEnv_process_0_call(AnyGC this__, int x) {
   final this_ = this__ as ClosureEnv_process_0Value;
   return (x * this_.factor);
 }
@@ -829,7 +829,7 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -861,13 +861,13 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   }
 }
 
-ProcessWithClosureSMValue ProcessWithClosureSM_new(dynamic this__, StaticList<int> items) {
+ProcessWithClosureSMValue ProcessWithClosureSM_new(AnyGC this__, StaticList<int> items) {
   final this_ = this__ as ProcessWithClosureSMValue;
   this_.items = items;
   return this_;
 }
 
-bool ProcessWithClosureSM_step(dynamic this__) {
+bool ProcessWithClosureSM_step(AnyGC this__) {
   final this_ = this__ as ProcessWithClosureSMValue;
   _L10: do {
     switch (this_.smState) {
@@ -899,7 +899,7 @@ bool ProcessWithClosureSM_step(dynamic this__) {
       case 3:
 {
           this_._env.factor = 5;
-          this_._results.add((this_._env.vptr['call'] as int Function(dynamic, int))(this_._env, 100));
+          this_._results.add((this_._env.vptr['call'] as int Function(AnyGC, int))(this_._env, 100));
           this_.completeWith(this_._results);
           return true;
         }
@@ -919,7 +919,7 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -949,13 +949,13 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   }
 }
 
-AsyncGeneratorSMValue AsyncGeneratorSM_new(dynamic this__, int max) {
+AsyncGeneratorSMValue AsyncGeneratorSM_new(AnyGC this__, int max) {
   final this_ = this__ as AsyncGeneratorSMValue;
   this_.max = max;
   return this_;
 }
 
-bool AsyncGeneratorSM_step(dynamic this__) {
+bool AsyncGeneratorSM_step(AnyGC this__) {
   final this_ = this__ as AsyncGeneratorSMValue;
   _L11: do {
     switch (this_.smState) {
@@ -991,7 +991,7 @@ class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic
   late Promise<StaticMap<String, dynamic>>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(dynamic))(this);
+    return (vptr['step'] as bool Function(AnyGC))(this);
   }
   static final Map<Type, Map<String, dynamic>> vptrCache = {};
   Map<String, dynamic>? instanceVptr;
@@ -1020,20 +1020,20 @@ class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic
   }
 }
 
-ComplexBusinessSMValue ComplexBusinessSM_new(dynamic this__, int depth) {
+ComplexBusinessSMValue ComplexBusinessSM_new(AnyGC this__, int depth) {
   final this_ = this__ as ComplexBusinessSMValue;
   this_.depth = depth;
   return this_;
 }
 
-bool ComplexBusinessSM_step(dynamic this__) {
+bool ComplexBusinessSM_step(AnyGC this__) {
   final this_ = this__ as ComplexBusinessSMValue;
   _L12: do {
     switch (this_.smState) {
       case 0:
 {
           if ((this_.depth <= 0)) {
-            this_.completeWithError(Exception('max depth'));
+            this_.completeWithError(Exception(StringBox('max depth')));
             return true;
           }
           this_._pending = ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), (this_.depth - 1)).start();
@@ -1194,7 +1194,7 @@ ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
   env_.closureCall = ClosureEnv_anon_0_call;
   return env_;
 }
-String ClosureEnv_anon_0_call(dynamic env__) {
+String ClosureEnv_anon_0_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_0;
 
   return 'branch_true';
@@ -1209,7 +1209,7 @@ ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
   env_.closureCall = ClosureEnv_anon_1_call;
   return env_;
 }
-String ClosureEnv_anon_1_call(dynamic env__) {
+String ClosureEnv_anon_1_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_1;
 
   return 'branch_false';
@@ -1232,7 +1232,7 @@ ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_, FindFirstSMValue
   env_.this_ = this_;
   return env_;
 }
-int ClosureEnv_anon_2_call(dynamic env__) {
+int ClosureEnv_anon_2_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_2;
 
   return (env.this_.items[env.this_._index] * 3);
@@ -1247,7 +1247,7 @@ ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_) {
   env_.closureCall = ClosureEnv_anon_3_call;
   return env_;
 }
-Never ClosureEnv_anon_3_call(dynamic env__) {
+Never ClosureEnv_anon_3_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_3;
 
   return throw 'boom';
@@ -1262,7 +1262,7 @@ ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_) {
   env_.closureCall = ClosureEnv_anon_4_call;
   return env_;
 }
-String ClosureEnv_anon_4_call(dynamic env__) {
+String ClosureEnv_anon_4_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_4;
 
   return 'recovered';
@@ -1277,7 +1277,7 @@ ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_) {
   env_.closureCall = ClosureEnv_anon_5_call;
   return env_;
 }
-String ClosureEnv_anon_5_call(dynamic env__) {
+String ClosureEnv_anon_5_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_5;
 
   return 'slow';
@@ -1292,7 +1292,7 @@ ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_) {
   env_.closureCall = ClosureEnv_anon_6_call;
   return env_;
 }
-String ClosureEnv_anon_6_call(dynamic env__) {
+String ClosureEnv_anon_6_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_6;
 
   return 'fast';
@@ -1307,7 +1307,7 @@ ClosureEnv_anon_7 ClosureEnv_anon_7_new(ClosureEnv_anon_7 env_) {
   env_.closureCall = ClosureEnv_anon_7_call;
   return env_;
 }
-String ClosureEnv_anon_7_call(dynamic env__) {
+String ClosureEnv_anon_7_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_7;
 
   return 'slowest';
@@ -1322,7 +1322,7 @@ ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
   env_.closureCall = ClosureEnv_anon_8_call;
   return env_;
 }
-String ClosureEnv_anon_8_call(dynamic env__) {
+String ClosureEnv_anon_8_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_8;
 
   return 'slow';
@@ -1337,7 +1337,7 @@ ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
   env_.closureCall = ClosureEnv_anon_9_call;
   return env_;
 }
-String ClosureEnv_anon_9_call(dynamic env__) {
+String ClosureEnv_anon_9_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_9;
 
   return 'fast';
@@ -1352,7 +1352,7 @@ ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_) {
   env_.closureCall = ClosureEnv_anon_10_call;
   return env_;
 }
-String ClosureEnv_anon_10_call(dynamic env__) {
+String ClosureEnv_anon_10_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_10;
 
   return 'slowest';
@@ -1367,7 +1367,7 @@ ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_) {
   env_.closureCall = ClosureEnv_anon_11_call;
   return env_;
 }
-String ClosureEnv_anon_11_call(dynamic env__) {
+String ClosureEnv_anon_11_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_11;
 
   return 'done';
@@ -1382,7 +1382,7 @@ ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_) {
   env_.closureCall = ClosureEnv_anon_12_call;
   return env_;
 }
-String ClosureEnv_anon_12_call(dynamic env__) {
+String ClosureEnv_anon_12_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_12;
 
   return 'TIMEOUT';
@@ -1405,7 +1405,7 @@ ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, IntBox item) 
   env_.item = item;
   return env_;
 }
-String ClosureEnv_anon_13_call(dynamic env__) {
+String ClosureEnv_anon_13_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_13;
 
   return 'item_${(env.item.value * 2)}';
@@ -1428,7 +1428,7 @@ ClosureEnv_anon_14 ClosureEnv_anon_14_new(ClosureEnv_anon_14 env_, AsyncReduceSM
   env_.this_ = this_;
   return env_;
 }
-String ClosureEnv_anon_14_call(dynamic env__) {
+String ClosureEnv_anon_14_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_14;
 
             final String sep = (env.this_._acc.isEmpty ? '' : '+');
@@ -1455,10 +1455,10 @@ ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_, ProcessWithCl
   env_.item = item;
   return env_;
 }
-int ClosureEnv_anon_15_call(dynamic env__) {
+int ClosureEnv_anon_15_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_15;
 
-  return (env.this_._env.vptr['call'] as int Function(dynamic, int))(env.this_._env, env.item.value);
+  return (env.this_._env.vptr['call'] as int Function(AnyGC, int))(env.this_._env, env.item.value);
 }
 
 class ClosureEnv_anon_16 extends TypeFunction0<int> {
@@ -1478,7 +1478,7 @@ ClosureEnv_anon_16 ClosureEnv_anon_16_new(ClosureEnv_anon_16 env_, AsyncGenerato
   env_.this_ = this_;
   return env_;
 }
-int ClosureEnv_anon_16_call(dynamic env__) {
+int ClosureEnv_anon_16_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_16;
 
   return (env.this_._i * env.this_._i);

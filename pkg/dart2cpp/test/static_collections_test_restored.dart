@@ -168,7 +168,7 @@ ClosureEnv_testStaticList_0 ClosureEnv_testStaticList_0_new(ClosureEnv_testStati
   env_.closureCall = ClosureEnv_testStaticList_0_call;
   return env_;
 }
-int ClosureEnv_testStaticList_0_call(dynamic env__, int x) {
+int ClosureEnv_testStaticList_0_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_testStaticList_0;
 
   return (x * 2);
@@ -183,7 +183,7 @@ ClosureEnv_testStaticList_1 ClosureEnv_testStaticList_1_new(ClosureEnv_testStati
   env_.closureCall = ClosureEnv_testStaticList_1_call;
   return env_;
 }
-bool ClosureEnv_testStaticList_1_call(dynamic env__, int x) {
+bool ClosureEnv_testStaticList_1_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_testStaticList_1;
 
   return (x > 3);
@@ -198,7 +198,7 @@ ClosureEnv_testStaticList_2 ClosureEnv_testStaticList_2_new(ClosureEnv_testStati
   env_.closureCall = ClosureEnv_testStaticList_2_call;
   return env_;
 }
-int ClosureEnv_testStaticList_2_call(dynamic env__, int a, int b) {
+int ClosureEnv_testStaticList_2_call(AnyGC env__, int a, int b) {
   final env = env__ as ClosureEnv_testStaticList_2;
 
   return (a + b);

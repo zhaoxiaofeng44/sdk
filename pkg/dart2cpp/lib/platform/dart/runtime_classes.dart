@@ -284,6 +284,8 @@ class IntBox extends AnyGC {
   IntBox(this.value) {
     GC.allocateLocal(this);
   }
+  @override
+  String toString() => value.toString();
 }
 
 class DoubleBox extends AnyGC {
@@ -291,6 +293,8 @@ class DoubleBox extends AnyGC {
   DoubleBox(this.value) {
     GC.allocateLocal(this);
   }
+  @override
+  String toString() => value.toString();
 }
 
 class StringBox extends AnyGC {
@@ -298,6 +302,8 @@ class StringBox extends AnyGC {
   StringBox(this.value) {
     GC.allocateLocal(this);
   }
+  @override
+  String toString() => value;
 }
 
 class BoolBox extends AnyGC {
@@ -305,6 +311,8 @@ class BoolBox extends AnyGC {
   BoolBox(this.value) {
     GC.allocateLocal(this);
   }
+  @override
+  String toString() => value.toString();
 }
 
 class ObjectBox<T> extends AnyGC {
@@ -312,6 +320,8 @@ class ObjectBox<T> extends AnyGC {
   ObjectBox(this.value) {
     GC.allocateLocal(this);
   }
+  @override
+  String toString() => value.toString();
 
   @override
   void gcMark(int flag) {
@@ -323,6 +333,30 @@ class ObjectBox<T> extends AnyGC {
       v.gcMark(flag);
     }
   }
+}
+
+// ============================================================================
+// dynAs<T> — 类型安全转换：拆箱 + 向下转型
+// ============================================================================
+
+/// 将 AnyGC 对象转换为目标类型 T。
+/// 自动处理基本类型的拆箱（IntBox → int 等）和 AnyGC 子类的向下转型。
+///
+/// 使用场景：
+/// - 从 AnyGC 参数中提取基本类型值：`dynAs<int>(param)`
+/// - 从 Box 中拆箱：`dynAs<String>(boxedStr)`
+/// - AnyGC 子类转型：`dynAs<DogValue>(animal)`
+T dynAs<T>(dynamic obj) {
+  if (obj == null) return null as T;
+  if (obj is T) return obj;
+  // 拆箱：IntBox → int
+  if (T == int && obj is IntBox) return obj.value as T;
+  if (T == double && obj is DoubleBox) return obj.value as T;
+  if (T == String && obj is StringBox) return obj.value as T;
+  if (T == bool && obj is BoolBox) return obj.value as T;
+  // 通用 ObjectBox 拆箱
+  if (obj is ObjectBox) return obj.value as T;
+  return obj as T;
 }
 
 // ============================================================================
@@ -1526,6 +1560,110 @@ class Promise<T> extends AnyGC {
     };
     GlobalScheduler.instance.registerActivePromise(nextPromise);
     return nextPromise;
+  }
+
+  // ==========================================================================
+  // 静态组合方法 — 对标 Future.wait / Future.any / Future.forEach
+  // ==========================================================================
+
+  /// Promise.wait — 等待所有 Promise 完成，返回结果列表。
+  /// 等价于 Future.wait(List<Future<T>>)。
+  static Promise<StaticList<T>> wait<T>(List<Promise<T>> promises) {
+    if (promises.isEmpty) {
+      final empty = Promise<StaticList<T>>();
+      empty.complete(StaticList<T>.of([]));
+      return empty;
+    }
+
+    final resultPromise = GC.allocateLocal(Promise<StaticList<T>>());
+    final results = List<T?>.filled(promises.length, null);
+    var completedCount = 0;
+
+    resultPromise._onTick = () {
+      for (var i = 0; i < promises.length; i++) {
+        final p = promises[i];
+        if (p.isError) {
+          resultPromise.completeError(p.error!);
+          return true;
+        }
+        if (p.isCompleted) {
+          if (results[i] == null) {
+            results[i] = p.result;
+            completedCount++;
+          }
+        }
+      }
+      if (completedCount == promises.length) {
+        resultPromise.complete(StaticList<T>.of(results.cast<T>()));
+        return true;
+      }
+      return false;
+    };
+    GlobalScheduler.instance.registerActivePromise(resultPromise);
+    return resultPromise;
+  }
+
+  /// Promise.any — 返回第一个完成的 Promise 的结果（竞赛语义）。
+  /// 等价于 Future.any(List<Future<T>>)。
+  static Promise<T> any<T>(List<Promise<T>> promises) {
+    final resultPromise = GC.allocateLocal(Promise<T>());
+
+    if (promises.isEmpty) {
+      return resultPromise;
+    }
+
+    resultPromise._onTick = () {
+      for (final p in promises) {
+        if (p.isCompleted) {
+          resultPromise.complete(p.result);
+          return true;
+        }
+        if (p.isError) {
+          resultPromise.completeError(p.error!);
+          return true;
+        }
+      }
+      return false;
+    };
+    GlobalScheduler.instance.registerActivePromise(resultPromise);
+    return resultPromise;
+  }
+
+  /// Promise.forEach — 对迭代器中的每个元素依次执行异步操作。
+  /// 等价于 Future.forEach(Iterable<T>, FutureOr<R> Function(T) action)。
+  static Promise<void> forEach<T>(Iterable<T> elements, Promise Function(T) action) {
+    final resultPromise = GC.allocateLocal(Promise<void>());
+    final iterator = elements.iterator;
+    Promise? currentPromise;
+    var started = false;
+
+    resultPromise._onTick = () {
+      if (!started) {
+        started = true;
+        if (!iterator.moveNext()) {
+          resultPromise.complete(null);
+          return true;
+        }
+        currentPromise = action(iterator.current);
+      }
+
+      if (currentPromise != null) {
+        if (currentPromise!.isError) {
+          resultPromise.completeError(currentPromise!.error!);
+          return true;
+        }
+        if (currentPromise!.isCompleted) {
+          if (!iterator.moveNext()) {
+            resultPromise.complete(null);
+            return true;
+          }
+          currentPromise = action(iterator.current);
+        }
+      }
+      return false;
+    };
+    GlobalScheduler.instance.registerActivePromise(resultPromise);
+    return resultPromise;
   }
 }
 

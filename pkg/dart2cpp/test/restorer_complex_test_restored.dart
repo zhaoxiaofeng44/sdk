@@ -16,7 +16,7 @@ class ShapeValue extends VPtr {
   }
 }
 
-ShapeValue Shape_new(dynamic this__) {
+ShapeValue Shape_new(AnyGC this__) {
   final this_ = this__ as ShapeValue;
   return this_;
 }
@@ -33,9 +33,9 @@ double Shape_perimeter(dynamic this_) {
   throw UnimplementedError('Shape.perimeter is abstract');
 }
 
-String Shape_toString(dynamic this__) {
+String Shape_toString(AnyGC this__) {
   final this_ = this__ as ShapeValue;
-  return '${(this_.vptr['get_name'] as String Function(dynamic))(this_)}(area=${(this_.vptr['area'] as double Function(dynamic))(this_).toStringAsFixed(2)})';
+  return '${(this_.vptr['get_name'] as String Function(AnyGC))(this_)}(area=${(this_.vptr['area'] as double Function(AnyGC))(this_).toStringAsFixed(2)})';
 }
 
 
@@ -70,19 +70,19 @@ class PairValue<A, B> extends VPtr {
   }
 }
 
-PairValue<A, B> Pair_new<A, B>(dynamic this__, A first, B second) {
+PairValue<A, B> Pair_new<A, B>(AnyGC this__, A first, B second) {
   final this_ = this__ as PairValue<A, B>;
   this_.first = first;
   this_.second = second;
   return this_;
 }
 
-PairValue<B, A> Pair_swap<A, B>(dynamic this__) {
+PairValue<B, A> Pair_swap<A, B>(AnyGC this__) {
   final this_ = this__ as PairValue<A, B>;
   return Pair_new<B, A>(GC.allocateLocal(PairValue<B, A>()), this_.second, this_.first);
 }
 
-String Pair_toString<A, B>(dynamic this__) {
+String Pair_toString<A, B>(AnyGC this__) {
   final this_ = this__ as PairValue<A, B>;
   return '(${this_.first}, ${this_.second})';
 }
@@ -112,47 +112,47 @@ class CircleValue extends ShapeValue {
   }
 }
 
-CircleValue Circle_new(dynamic this__, double _radius) {
+CircleValue Circle_new(AnyGC this__, double _radius) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);
   this_._radius = _radius;
   return this_;
 }
 
-CircleValue Circle_new_unit(dynamic this__) {
+CircleValue Circle_new_unit(AnyGC this__) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);
   this_._radius = 1.0;
   return this_;
 }
 
-double Circle_get_radius(dynamic this__) {
+double Circle_get_radius(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return this_._radius;
 }
 
-void Circle_set_radius(dynamic this__, double value) {
+void Circle_set_radius(AnyGC this__, double value) {
   final this_ = this__ as CircleValue;
   if ((value < 0))   throw DartArgumentError('Radius must be non-negative');
   this_._radius = value;
 }
 
-String Circle_get_name(dynamic this__) {
+String Circle_get_name(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return 'Circle';
 }
 
-double Circle_area(dynamic this__) {
+double Circle_area(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return ((3.14159265 * this_._radius) * this_._radius);
 }
 
-double Circle_perimeter(dynamic this__) {
+double Circle_perimeter(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return ((2 * 3.14159265) * this_._radius);
 }
 
-String Circle_toString(dynamic this__) {
+String Circle_toString(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return Shape_toString(this_);
 }
@@ -181,7 +181,7 @@ class RectangleValue extends ShapeValue {
   }
 }
 
-RectangleValue Rectangle_new(dynamic this__, double width, double height) {
+RectangleValue Rectangle_new(AnyGC this__, double width, double height) {
   final this_ = this__ as RectangleValue;
   Shape_new(this_);
   this_.width = width;
@@ -189,22 +189,22 @@ RectangleValue Rectangle_new(dynamic this__, double width, double height) {
   return this_;
 }
 
-String Rectangle_get_name(dynamic this__) {
+String Rectangle_get_name(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return 'Rectangle';
 }
 
-double Rectangle_area(dynamic this__) {
+double Rectangle_area(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return (this_.width * this_.height);
 }
 
-double Rectangle_perimeter(dynamic this__) {
+double Rectangle_perimeter(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return (2 * (this_.width + this_.height));
 }
 
-String Rectangle_toString(dynamic this__) {
+String Rectangle_toString(AnyGC this__) {
   final this_ = this__ as RectangleValue;
   return Shape_toString(this_);
 }
@@ -290,7 +290,7 @@ void main() {
   staticPrint('=== 复杂语法节点还原测试 ===\n');
   staticPrint('--- 1. 泛型类 Pair ---');
   final PairValue<String, int> pair = Pair_new<String, int>(GC.allocateLocal(PairValue<String, int>()), 'hello', 42);
-  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(dynamic))(pair);
+  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(AnyGC))(pair);
   staticPrint('pair: ${pair}');
   staticPrint('swapped: ${swapped}');
   assert((pair.first == 'hello'));
@@ -302,16 +302,16 @@ void main() {
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue shape = sync_for_iterator.current;
 {
-        staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(dynamic))(shape).toStringAsFixed(2)}');
+        staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(AnyGC))(shape).toStringAsFixed(2)}');
       }
     }
   }
   staticPrint('\n--- 3. getter/setter + 异常 ---');
   final CircleValue circle = Circle_new(GC.allocateLocal(CircleValue()), 3.0);
-  (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, 5.0);
-  staticPrint('radius after set: ${(circle.vptr['get_radius'] as double Function(dynamic))(circle)}');
+  (circle.vptr['set_radius'] as void Function(AnyGC, double))(circle, 5.0);
+  staticPrint('radius after set: ${(circle.vptr['get_radius'] as double Function(AnyGC))(circle)}');
   try {
-    (circle.vptr['set_radius'] as void Function(dynamic, double))(circle, (-1.0));
+    (circle.vptr['set_radius'] as void Function(AnyGC, double))(circle, (-1.0));
     staticPrint('ERROR: should have thrown');
   }
  on ArgumentError catch (e) {
@@ -470,7 +470,7 @@ ClosureEnv_StringExtensions_get_capitalize_0 ClosureEnv_StringExtensions_get_cap
   env_.this_ = this_;
   return env_;
 }
-String ClosureEnv_StringExtensions_get_capitalize_0_call(dynamic env__) {
+String ClosureEnv_StringExtensions_get_capitalize_0_call(AnyGC env__) {
   final env = env__ as ClosureEnv_StringExtensions_get_capitalize_0;
 
   return StringExtensions_capitalize(env.this_);
@@ -493,7 +493,7 @@ ClosureEnv_ListExtensions_get_filterWhere_1<T> ClosureEnv_ListExtensions_get_fil
   env_.this_ = this_;
   return env_;
 }
-StaticList<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(dynamic env__, TypeFunction1<bool, T> predicate) {
+StaticList<T> ClosureEnv_ListExtensions_get_filterWhere_1_call<T>(AnyGC env__, TypeFunction1<bool, T> predicate) {
   final env = env__ as ClosureEnv_ListExtensions_get_filterWhere_1<T>;
 
   return ListExtensions_filterWhere(env.this_, predicate);
@@ -516,7 +516,7 @@ ClosureEnv_repeat_2<T> ClosureEnv_repeat_2_new<T>(ClosureEnv_repeat_2<T> env_, O
   env_.item = item;
   return env_;
 }
-T ClosureEnv_repeat_2_call<T>(dynamic env__, int _) {
+T ClosureEnv_repeat_2_call<T>(AnyGC env__, int _) {
   final env = env__ as ClosureEnv_repeat_2<T>;
 
   return env.item.value;
@@ -539,7 +539,7 @@ ClosureEnv_makeAdder_3 ClosureEnv_makeAdder_3_new(ClosureEnv_makeAdder_3 env_, I
   env_.base = base;
   return env_;
 }
-int ClosureEnv_makeAdder_3_call(dynamic env__, int x) {
+int ClosureEnv_makeAdder_3_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_makeAdder_3;
 
   return (env.base.value + x);
@@ -594,7 +594,7 @@ ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
   env_.closureCall = ClosureEnv_main_6_call;
   return env_;
 }
-bool ClosureEnv_main_6_call(dynamic env__, int n) {
+bool ClosureEnv_main_6_call(AnyGC env__, int n) {
   final env = env__ as ClosureEnv_main_6;
 
   return ((n % 2) == 0);
@@ -609,7 +609,7 @@ ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
   env_.closureCall = ClosureEnv_main_7_call;
   return env_;
 }
-int ClosureEnv_main_7_call(dynamic env__, int x) {
+int ClosureEnv_main_7_call(AnyGC env__, int x) {
   final env = env__ as ClosureEnv_main_7;
 
   return (x * 2);
@@ -632,7 +632,7 @@ ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_, IntBox counter) 
   env_.counter = counter;
   return env_;
 }
-int ClosureEnv_main_8_call(dynamic env__) {
+int ClosureEnv_main_8_call(AnyGC env__) {
   final env = env__ as ClosureEnv_main_8;
 
     env.counter.value = (env.counter.value + 1);
@@ -648,7 +648,7 @@ ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
   env_.closureCall = ClosureEnv_main_9_call;
   return env_;
 }
-bool ClosureEnv_main_9_call(dynamic env__, String s) {
+bool ClosureEnv_main_9_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_9;
 
   return s.startsWith('b');
@@ -663,7 +663,7 @@ ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
   env_.closureCall = ClosureEnv_main_10_call;
   return env_;
 }
-bool ClosureEnv_main_10_call(dynamic env__, String s) {
+bool ClosureEnv_main_10_call(AnyGC env__, String s) {
   final env = env__ as ClosureEnv_main_10;
 
   return s.startsWith('z');
@@ -678,7 +678,7 @@ ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
   env_.closureCall = ClosureEnv_main_11_call;
   return env_;
 }
-bool ClosureEnv_main_11_call(dynamic env__, StaticMapEntry<String, int> e) {
+bool ClosureEnv_main_11_call(AnyGC env__, StaticMapEntry<String, int> e) {
   final env = env__ as ClosureEnv_main_11;
 
   return (e.value > 1);
