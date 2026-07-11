@@ -1403,6 +1403,21 @@ struct StaticList : AnyGC {
 
     void clear() { _data->clear(); }
 
+    /// 对齐 Dart: list.sort([compare]) — 使用 TypeFunction2 比较器
+    void sort(TypeFunction2<int64_t, T, T>* compare) {
+        if (!compare || _data->length() <= 1) return;
+        std::sort(_data->_storage.begin(), _data->_storage.end(),
+            [compare](const T& a, const T& b) {
+                return compare->call(a, b) < 0;
+            });
+    }
+
+    /// 对齐 Dart: list.sort() — 默认排序（要求 T 支持 < 运算符）
+    void sort() {
+        if (_data->length() <= 1) return;
+        std::sort(_data->_storage.begin(), _data->_storage.end());
+    }
+
     // ── 查询操作 ──
 
     int indexOf(const T& element, int start = 0) const {
@@ -1704,22 +1719,6 @@ struct StaticList : AnyGC {
         auto* result = new StaticList<T>();
         for (int i = _data->length() - 1; i >= 0; i--) result->add((*_data)[i]);
         return GC::allocateLocal(result);
-    }
-
-    void sort(std::function<bool(T, T)> compare = nullptr) {
-        if (compare) {
-            std::sort(_data->_storage.begin(), _data->_storage.end(), compare);
-        } else {
-            std::sort(_data->_storage.begin(), _data->_storage.end());
-        }
-    }
-    void sort(TypeFunction2<bool, T, T>* compare) {
-        if (compare) {
-            std::sort(_data->_storage.begin(), _data->_storage.end(),
-                [compare](const T& a, const T& b) { return compare->call(a, b); });
-        } else {
-            std::sort(_data->_storage.begin(), _data->_storage.end());
-        }
     }
 
     StaticList<T>* operator+(StaticList<T>* other) const {

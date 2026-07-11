@@ -2280,7 +2280,11 @@ class CppEmitter {
   /// 查找当前类的父类名
   String? _findSuperClassName() {
     if (_currentClassName.isNotEmpty) {
-      final parent = _classHierarchy[_currentClassName];
+      var parent = _classHierarchy[_currentClassName];
+      // Skip synthetic mixin classes to find the real base class
+      while (parent != null && _syntheticLoweredNames.contains(parent)) {
+        parent = _classHierarchy[parent];
+      }
       if (parent != null && _userClasses.contains(parent)) {
         return parent;
       }
@@ -4045,6 +4049,27 @@ class CppEmitter {
             ? _emitCppExpr(expr.arguments.positional.first)
             : '""';
         return 'std::stod($arg)';
+      }
+      // Handle List.from, Set.from, Map.from static methods
+      if ((className == 'List' || className == 'StaticList') && methodName == 'from') {
+        final arg = expr.arguments.positional.isNotEmpty
+            ? _emitCppExpr(expr.arguments.positional.first)
+            : 'nullptr';
+        if (expr.arguments.types.isNotEmpty) {
+          final typeArg = _cppType(expr.arguments.types.first);
+          return 'StaticList<$typeArg>::from($arg)';
+        }
+        return 'StaticList<AnyGC*>::from($arg)';
+      }
+      if ((className == 'Set' || className == 'StaticSet') && methodName == 'from') {
+        final arg = expr.arguments.positional.isNotEmpty
+            ? _emitCppExpr(expr.arguments.positional.first)
+            : 'nullptr';
+        if (expr.arguments.types.isNotEmpty) {
+          final typeArg = _cppType(expr.arguments.types.first);
+          return 'StaticSet<$typeArg>::from($arg)';
+        }
+        return 'StaticSet<AnyGC*>::from($arg)';
       }
     }
 
