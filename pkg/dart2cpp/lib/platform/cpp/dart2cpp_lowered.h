@@ -61,6 +61,8 @@ struct AnyGC {
         gcFlag = flag;
     }
 
+    virtual std::string toString() const { return "Instance"; }
+
     virtual ~AnyGC() = default;
 };
 
@@ -594,8 +596,14 @@ struct AnyPtr {
     static AnyPtr fromAuto(AnyPtr v) { return v; }
 
     // 泛型 fromAuto — 处理 std::tuple 等未知类型，装箱为 VPtr
+    // SFINAE: 排除已被上方重载覆盖的类型（尤其是 AnyGC 子类指针）
     template<typename T>
-    static AnyPtr fromAuto(T v) {
+    static typename std::enable_if<
+        !std::is_same<typename std::decay<T>::type, AnyPtr>::value &&
+        !(std::is_pointer<typename std::decay<T>::type>::value &&
+          std::is_base_of<AnyGC, typename std::remove_pointer<typename std::decay<T>::type>::type>::value),
+        AnyPtr>::type
+    fromAuto(T v) {
         // 将任意类型装箱到堆上并通过 VPtr 包装
         auto* boxed = new T(std::move(v));
         return fromVPtr(reinterpret_cast<VPtr*>(boxed));
@@ -805,43 +813,47 @@ inline ReachabilityError ReachabilityError_new(ReachabilityErrorValue* /*this_*/
 
 struct VPtr : AnyGC {
     std::string _typeName;
-    std::unordered_map<std::string, void*> vptr;
 
-    VPtr() : _typeName("VPtr") {
-        vptr["toString"] = nullptr;
-        vptr["operatorEq"] = nullptr;
-        vptr["get_hashCode"] = nullptr;
+    VPtr() : _typeName("VPtr") {}
+
+    virtual std::unordered_map<std::string, void*>& getVptrMap() {
+        static std::unordered_map<std::string, void*> baseMap;
+        return baseMap;
     }
 
-    std::unordered_map<std::string, void*>& getVptrMap() { return vptr; }
-
-    virtual std::string toString() {
-        auto it = vptr.find("toString");
-        if (it != vptr.end() && it->second != nullptr) {
-            using Fn = std::string(*)(AnyGC*);
+    virtual std::string toString() const {
+        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
+        auto it = vmap.find("toString");
+        if (it != vmap.end() && it->second != nullptr) {
+            using Fn = AnyPtr(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(static_cast<AnyGC*>(this));
+            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
+            return result.toStringValue();
         }
         return _typeName;
     }
 
     bool equals(const VPtr& other) const {
-        auto it = vptr.find("operatorEq");
-        if (it != vptr.end() && it->second != nullptr) {
-            using Fn = bool(*)(AnyGC*, AnyGC*);
+        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
+        auto it = vmap.find("operatorEq");
+        if (it != vmap.end() && it->second != nullptr) {
+            using Fn = AnyPtr(*)(AnyGC*, AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
-                      static_cast<AnyGC*>(const_cast<VPtr*>(&other)));
+            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
+                               static_cast<AnyGC*>(const_cast<VPtr*>(&other)));
+            return result.toBool();
         }
         return this == &other;
     }
 
     int64_t getHashCode() const {
-        auto it = vptr.find("get_hashCode");
-        if (it != vptr.end() && it->second != nullptr) {
-            using Fn = int64_t(*)(AnyGC*);
+        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
+        auto it = vmap.find("get_hashCode");
+        if (it != vmap.end() && it->second != nullptr) {
+            using Fn = AnyPtr(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            return fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
+            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
+            return result.toInt();
         }
         return reinterpret_cast<int64_t>(this);
     }
@@ -875,7 +887,9 @@ inline std::string AnyPtr::toStringValue() const {
             if (data.vptrPtr) return data.vptrPtr->toString();
             return "null";
         case TYPE_FUNC_TAG: return "Closure";
-        case GC_TAG: return "Instance";
+        case GC_TAG:
+            if (data.gcPtr) return data.gcPtr->toString();
+            return "null";
         default: return "unknown";
     }
 }
@@ -1060,14 +1074,51 @@ inline AnyGC* AnyPtr::toGC() const {
     }
 }
 
+// Helper to generate function pointer type with N AnyPtr parameters
+template<size_t N>
+struct AnyPtrFnType;
+
+template<>
+struct AnyPtrFnType<0> { using type = AnyPtr(*)(AnyPtr); };
+
+template<>
+struct AnyPtrFnType<1> { using type = AnyPtr(*)(AnyPtr, AnyPtr); };
+
+template<>
+struct AnyPtrFnType<2> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr); };
+
+template<>
+struct AnyPtrFnType<3> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr, AnyPtr); };
+
+template<>
+struct AnyPtrFnType<4> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr, AnyPtr, AnyPtr); };
+
 // TypeFunctionN<R, Args...> — 可变参数模板版本
 // 替代原来的 TypeFunction0-16，消除重复代码
 template<typename R, typename... Args>
 struct TypeFunctionN : TypeFunction {
     R call(Args... args) {
-        using Fn = R(*)(AnyPtr, Args...);
+        // Trampoline 统一接受 AnyPtr 参数，使用 helper 生成正确的函数指针类型
+        using Fn = typename AnyPtrFnType<sizeof...(Args)>::type;
         auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(AnyPtr::fromTypeFunction(this), args...);
+        AnyPtr result = fn(AnyPtr::fromTypeFunction(this), AnyPtr::fromAuto(args)...);
+        if constexpr (std::is_same_v<R, AnyPtr>) {
+            return result;
+        } else if constexpr (std::is_same_v<R, int64_t>) {
+            return result.toInt();
+        } else if constexpr (std::is_same_v<R, double>) {
+            return result.toDouble();
+        } else if constexpr (std::is_same_v<R, bool>) {
+            return result.toBool();
+        } else if constexpr (std::is_same_v<R, std::string>) {
+            return result.toStringValue();
+        } else if constexpr (std::is_same_v<R, void>) {
+            return;
+        } else if constexpr (std::is_pointer_v<R>) {
+            return static_cast<R>(result.toGC());
+        } else {
+            return R{};
+        }
     }
 };
 
@@ -1773,7 +1824,7 @@ struct StaticList : AnyGC {
         return result;
     }
 
-    std::string toString() const {
+    std::string toString() const override {
         return "[" + join(", ") + "]";
     }
 
@@ -1805,6 +1856,7 @@ struct StaticMapEntry {
     K key;
     V value;
 
+    StaticMapEntry() : key(), value() {}
     StaticMapEntry(K k, V v) : key(std::move(k)), value(std::move(v)) {}
 };
 
@@ -2109,7 +2161,7 @@ struct StaticMap : AnyGC {
 
     // ── 字符串 ──
 
-    std::string toString() const {
+    std::string toString() const override {
         if (isEmpty()) return "{}";
         std::string result = "{";
         for (int i = 0; i < _keys->length(); i++) {
@@ -2535,7 +2587,7 @@ struct StaticSet : AnyGC {
         return result;
     }
 
-    std::string toString() const {
+    std::string toString() const override {
         return "{" + join(", ") + "}";
     }
 
@@ -3510,6 +3562,17 @@ T* dart_cast(const AnyPtr& ptr) {
     return dart_cast<T>(vp);
 }
 
+// dart_isNull — 类型安全的 null 检查（适用于指针和值类型）
+template<typename T>
+inline bool dart_isNull(const T& v) {
+    if constexpr (std::is_pointer_v<T>) return v == nullptr;
+    else return false;
+}
+template<typename T>
+inline bool dart_isNull(T* v) { return v == nullptr; }
+inline bool dart_isNull(std::nullptr_t) { return true; }
+inline bool dart_isNull(const AnyPtr& v) { return v.isNull(); }
+
 // _toStr 重载集（必须在 dart_str 模板之前声明）
 inline std::string _toStr(int64_t v) { return std::to_string(v); }
 inline std::string _toStr(int v) { return std::to_string(v); }
@@ -3542,6 +3605,12 @@ _toStr(T* v) {
         // StaticList, StaticMap, StaticSet 等 AnyGC 子类也有 toString()
         return v->toString();
     }
+}
+
+// _toStr for StaticMapEntry (value type, not pointer)
+template<typename K, typename V>
+inline std::string _toStr(const StaticMapEntry<K, V>& entry) {
+    return "MapEntry(" + _toStr(entry.key) + ": " + _toStr(entry.value) + ")";
 }
 
 /// dart_str — 字符串插值辅助（可变参数拼接）
