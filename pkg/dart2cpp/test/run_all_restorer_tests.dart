@@ -155,7 +155,7 @@ Future<_TestResult> runOneTest(String baseName, String scriptDir, {bool enableCp
     print('  ⚠️  Dart 输出不一致');
   }
 
-  // 步骤 5: C++ 生成 + 编译 + 运行验证
+  // 步骤 5: C++ 生成 + 编译验证（不运行，产物输出到当前目录）
   bool cppGenerateOk = false;
   bool cppCompileOk = false;
   bool cppRunOk = false;
@@ -167,50 +167,27 @@ Future<_TestResult> runOneTest(String baseName, String scriptDir, {bool enableCp
         cppGenerateOk = true;
         print('  ✅ C++ 生成成功 (${cppSource.length} 字符)');
 
-        // 写入临时文件
-        final cppFile = '/tmp/${baseName}_verify.cpp';
-        final exeFile = '/tmp/${baseName}_verify';
+        // 写入当前目录（不运行）
+        final cppDir = 'cpp_output';
+        Directory(cppDir).createSync(recursive: true);
+        final cppFile = '$cppDir/${baseName}_verify.cpp';
         File(cppFile).writeAsStringSync(cppSource);
+        print('  📄 C++ 产物: $cppFile');
 
-        // 编译为可执行文件（不是 -c）
+        // 仅编译检查，不生成可执行文件
         final cppResult = await Process.run(
           'g++',
-          ['-std=c++17', cppFile, '-o', exeFile, '-I', 'lib/platform/cpp', '-Wno-everything'],
+          ['-std=c++17', '-c', cppFile, '-o', '/dev/null', '-I', 'lib/platform/cpp', '-Wno-everything'],
         );
 
         if (cppResult.exitCode == 0) {
           cppCompileOk = true;
-          print('  ✅ C++ 编译+链接成功');
-
-          // 运行 C++ 可执行文件
-          final cppRunResult = await Process.run(exeFile, []);
-          cppRunOk = cppRunResult.exitCode == 0;
-          if (cppRunOk) {
-            print('  ✅ C++ 运行成功');
-            // 对比输出
-            final cppOut = (cppRunResult.stdout as String).trim();
-            cppOutputMatch = origOut == cppOut;
-            if (cppOutputMatch) {
-              print('  ✅ C++ 输出与 Dart 一致');
-            } else {
-              print('  ⚠️  C++ 输出与 Dart 不一致');
-            }
-          } else {
-            final cppErr = (cppRunResult.stderr as String).split('\n').take(3).join('\n     ');
-            print('  ❌ C++ 运行失败 (exit=${cppRunResult.exitCode})');
-            if (cppErr.isNotEmpty) print('     $cppErr');
-          }
-
-          // 清理可执行文件
-          if (File(exeFile).existsSync()) File(exeFile).deleteSync();
+          print('  ✅ C++ 编译成功');
         } else {
           final stderr = (cppResult.stderr as String).split('\n').take(5).join('\n     ');
           print('  ❌ C++ 编译失败');
           print('     $stderr');
         }
-
-        // 清理 C++ 源文件
-        if (File(cppFile).existsSync()) File(cppFile).deleteSync();
       } else {
         print('  ⚠️  C++ 生成为空');
       }

@@ -2317,7 +2317,7 @@ void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
     env._promise.complete(results);
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as StaticList<int>);
   return;
 }
 class ClosureEnv_IterableStats_get_sum_27<T extends num> extends TypeFunction2<T, T, T> {

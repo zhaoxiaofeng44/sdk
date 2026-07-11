@@ -667,7 +667,7 @@ class ClosureEnv_asyncVoid_2 {
 void ClosureEnv_asyncVoid_2_call(ClosureEnv_asyncVoid_2 env) {
   smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 10)));
   staticPrint('done');
-  env._promise.complete(null as dynamic);
+  env._promise.complete(0);
   return;
 }
 class ClosureEnv_StringExtension_get_capitalize_3 extends TypeFunction0<String> {

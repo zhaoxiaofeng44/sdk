@@ -922,26 +922,35 @@ inline T AnyPtr::castTo() const {
 struct IntBox : AnyGC {
     int64_t value;
     IntBox(int64_t v) : value(v) { GC::allocateLocal(this); }
+    std::string toString() const { return std::to_string(value); }
 };
 
 struct DoubleBox : AnyGC {
     double value;
     DoubleBox(double v) : value(v) { GC::allocateLocal(this); }
+    std::string toString() const {
+        std::ostringstream oss;
+        oss << value;
+        return oss.str();
+    }
 };
 
 struct BoolBox : AnyGC {
     bool value;
     BoolBox(bool v) : value(v) { GC::allocateLocal(this); }
+    std::string toString() const { return value ? "true" : "false"; }
 };
 
 struct StringBox : AnyGC {
     std::string value;
     StringBox(const std::string& v) : value(v) { GC::allocateLocal(this); }
+    std::string toString() const { return value; }
 };
 
 struct ObjectBox : AnyGC {
     AnyPtr value;
     ObjectBox(AnyPtr v) : value(std::move(v)) { GC::allocateLocal(this); }
+    std::string toString() const { return value.toStringValue(); }
 
     void gcMark(int flag) override {
         if (gcFlag == flag) return;
@@ -1837,6 +1846,41 @@ struct StaticMap : AnyGC {
         return result;
     }
 
+    /// 对齐 Dart: StaticMap.from(source) — 从已有 map 复制（允许类型转换）
+    static StaticMap* from(StaticMap<K, V>* source) {
+        return of(source);
+    }
+
+    /// StaticMap.from with different source value type (e.g., AnyGC* → int64_t)
+    template<typename SK, typename SV>
+    static StaticMap* from(StaticMap<SK, SV>* source) {
+        auto* result = GC::allocateLocal(new StaticMap());
+        if (source) {
+            for (int i = 0; i < source->_keys->length(); i++) {
+                auto& k = (*source->_keys)[i];
+                auto& v = (*source->_values)[i];
+                // Convert key
+                K ck;
+                if constexpr (std::is_same_v<K, SK>) { ck = k; }
+                else if constexpr (std::is_pointer_v<K> && std::is_pointer_v<SK>) { ck = static_cast<K>(k); }
+                else if constexpr (std::is_same_v<K, std::string> && std::is_pointer_v<SK>) { ck = dynAs<std::string>(k); }
+                else { ck = static_cast<K>(k); }
+                // Convert value
+                V cv;
+                if constexpr (std::is_same_v<V, SV>) { cv = v; }
+                else if constexpr (std::is_pointer_v<V> && std::is_pointer_v<SV>) { cv = static_cast<V>(v); }
+                else if constexpr (std::is_same_v<V, int64_t> && std::is_pointer_v<SV>) { cv = dynAs<int64_t>(v); }
+                else if constexpr (std::is_same_v<V, double> && std::is_pointer_v<SV>) { cv = dynAs<double>(v); }
+                else if constexpr (std::is_same_v<V, bool> && std::is_pointer_v<SV>) { cv = dynAs<bool>(v); }
+                else if constexpr (std::is_same_v<V, std::string> && std::is_pointer_v<SV>) { cv = dynAs<std::string>(v); }
+                else if constexpr (std::is_pointer_v<V> && std::is_same_v<SV, int64_t>) { cv = static_cast<V>(GC::allocateLocal(new IntBox(v))); }
+                else { cv = static_cast<V>(v); }
+                result->set(ck, cv);
+            }
+        }
+        return result;
+    }
+
     /// 对齐 Dart: StaticMap.fromEntries(entries)
     static StaticMap* fromEntries(StaticList<StaticMapEntry<K, V>>* entries) {
         auto* result = GC::allocateLocal(new StaticMap());
@@ -1900,8 +1944,21 @@ struct StaticMap : AnyGC {
 
     // ── 集合视图 ──
 
-    Array<K>* keys() const { return _keys; }
-    Array<V>* values() const { return _values; }
+    StaticList<K>* keys() const {
+        auto* result = GC::allocateLocal(new StaticList<K>());
+        for (int i = 0; i < _keys->length(); i++) {
+            result->add((*_keys)[i]);
+        }
+        return result;
+    }
+
+    StaticList<V>* values() const {
+        auto* result = GC::allocateLocal(new StaticList<V>());
+        for (int i = 0; i < _values->length(); i++) {
+            result->add((*_values)[i]);
+        }
+        return result;
+    }
 
     StaticList<StaticMapEntry<K, V>>* entries() const;  // 定义在 StaticMapEntry 之后
 
@@ -3054,8 +3111,31 @@ Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, T>* onValue) {
     auto* resultPromise = GC::allocateLocal(new Promise<R>());
     this__->then([onValue, resultPromise](AnyPtr val) -> AnyPtr {
         T typed = val.castTo<T>();
-        R result = onValue->call(typed);
-        resultPromise->completeTyped(std::move(result));
+        if constexpr (std::is_void_v<R>) {
+            onValue->call(typed);
+        } else {
+            R result = onValue->call(typed);
+            resultPromise->completeTyped(std::move(result));
+        }
+        return AnyPtr::null();
+    });
+    return resultPromise;
+}
+
+// Overload: callback uses AnyGC* parameter (common for tear-offs)
+// while Promise value type is a primitive (int64_t, double, bool, std::string)
+template<typename T, typename R>
+Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, AnyGC*>* onValue) {
+    auto* resultPromise = GC::allocateLocal(new Promise<R>());
+    this__->then([onValue, resultPromise](AnyPtr val) -> AnyPtr {
+        // Box the value as AnyGC* for the callback
+        AnyGC* boxed = val.toGC();
+        if constexpr (std::is_void_v<R>) {
+            onValue->call(boxed);
+        } else {
+            R result = onValue->call(boxed);
+            resultPromise->completeTyped(std::move(result));
+        }
         return AnyPtr::null();
     });
     return resultPromise;
@@ -3297,12 +3377,27 @@ inline void staticPrint(VPtr* value) {
 template<typename T>
 inline typename std::enable_if<std::is_base_of<AnyGC, T>::value &&
     !std::is_same<T, AnyPtr>::value && !std::is_same<T, VPtr>::value &&
-    !std::is_same<T, std::string>::value, void>::type
+    !std::is_same<T, AnyGC>::value && !std::is_same<T, std::string>::value, void>::type
 staticPrint(T* value) {
     if (!value) {
         std::cout << "null" << std::endl;
     } else {
-        std::cout << value->toString() << std::endl;
+        std::cout << dart_str(value) << std::endl;
+    }
+}
+
+/// staticPrint 重载 — AnyGC* 基类指针
+inline void staticPrint(AnyGC* value) {
+    if (!value) {
+        std::cout << "null" << std::endl;
+    } else {
+        // 尝试通过 VPtr 派发 toString，否则打印地址
+        auto* vp = dynamic_cast<VPtr*>(value);
+        if (vp) {
+            std::cout << vp->toString() << std::endl;
+        } else {
+            std::cout << "Instance@" << reinterpret_cast<uintptr_t>(value) << std::endl;
+        }
     }
 }
 

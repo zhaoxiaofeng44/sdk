@@ -8,11 +8,7 @@ mixin _ClosureRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer, _S
   /// 在 async _call 函数体末尾生成兜底的 promise complete 语句。
   /// 确保即使函数体没有显式 return，promise 也会完成。
   void _emitAsyncCompleteFallback(String innerReturnType) {
-    final fallbackValue = innerReturnType == 'int' ? '0' :
-        innerReturnType == 'bool' ? 'false' :
-        innerReturnType == 'double' ? '0.0' :
-        innerReturnType == 'String' ? "''" :
-        'null as dynamic';
+    final fallbackValue = _defaultPromiseValue(innerReturnType);
     _buf.write('${_pad}env._promise.complete($fallbackValue);\n');
     _buf.write('${_pad}return;\n');
   }

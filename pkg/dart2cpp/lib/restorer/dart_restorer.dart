@@ -176,6 +176,9 @@ abstract class _DartRestorerBase {
   /// 是否在 async 函数体内（用于 return 语句包装为 Promise.value）
   bool _insideAsyncFunction = false;
 
+  /// 当前函数的返回类型字符串（用于 return 语句中判断是否需要 ! 断言）
+  String _currentReturnType = '';
+
   /// 当前 async 函数的内部返回类型（Future<T> 中的 T）
   String _asyncInnerReturnType = 'dynamic';
 
@@ -663,6 +666,7 @@ abstract class _DartRestorerBase {
         mappedName = 'Promise';
       } else if (name == 'Function') {
         // dart:core 的 `Function` interface type 缺少 arity → 退化到 `dynamic`
+        // （在函数签名中保持 dynamic 以支持协变）
         return 'dynamic';
       } else if (name == 'StringBuffer') {
         mappedName = 'StaticStringBuffer';
@@ -719,6 +723,7 @@ abstract class _DartRestorerBase {
       }
       return '$paramName$suffix';
     }
+    // 在函数签名中保持 dynamic 以支持协变（dynamic 在函数参数/返回值位置具有特殊的子类型关系）
     if (type is DynamicType) return 'dynamic';
     if (type is VoidType) return 'void';
     if (type is NeverType) return 'Never$suffix';

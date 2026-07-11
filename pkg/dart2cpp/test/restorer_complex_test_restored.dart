@@ -582,7 +582,7 @@ void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
     env._promise.complete(results);
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as StaticList<String>);
   return;
 }
 class ClosureEnv_main_6 extends TypeFunction1<bool, int> {

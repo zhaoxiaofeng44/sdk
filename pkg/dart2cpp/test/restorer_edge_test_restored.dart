@@ -802,7 +802,7 @@ class ClosureEnv_Logger_logAsync_0 {
 void ClosureEnv_Logger_logAsync_0_call(ClosureEnv_Logger_logAsync_0 env) {
   smAwait(Promise.value<int>(0));
   (env.this_.vptr['get_messages'] as StaticList<String> Function(AnyGC))(env.this_).add('[async] ${env.msg.value}');
-  env._promise.complete(null as dynamic);
+  env._promise.complete(0);
   return;
 }
 class ClosureEnv_Validator_validateAsync_1<T> {
@@ -862,7 +862,7 @@ void ClosureEnv_InMemoryCache_cachedFindById_3_call<T>(ClosureEnv_InMemoryCache_
     env._promise.complete(item);
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as T?);
   return;
 }
 class ClosureEnv_ItemRepo_findById_4 {
@@ -878,7 +878,7 @@ void ClosureEnv_ItemRepo_findById_4_call(ClosureEnv_ItemRepo_findById_4 env) {
     env._promise.complete(env.this_._store[env.id.value]);
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as String?);
   return;
 }
 class ClosureEnv_ItemRepo_findAll_5 {
@@ -893,7 +893,7 @@ void ClosureEnv_ItemRepo_findAll_5_call(ClosureEnv_ItemRepo_findAll_5 env) {
     env._promise.complete(StaticList.of(env.this_._store.values.toList()));
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as StaticList<String>);
   return;
 }
 class ClosureEnv_ItemRepo_save_6 {
@@ -907,7 +907,7 @@ class ClosureEnv_ItemRepo_save_6 {
 void ClosureEnv_ItemRepo_save_6_call(ClosureEnv_ItemRepo_save_6 env) {
   smAwait(Promise.value<int>(0));
   env.this_._store[env.id.value] = env.item.value;
-  env._promise.complete(null as dynamic);
+  env._promise.complete(0);
   return;
 }
 class ClosureEnv_logMessage_7 {

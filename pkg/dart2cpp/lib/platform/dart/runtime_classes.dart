@@ -138,11 +138,36 @@ abstract class AnyGC {
   /// 使用公开字段以便跨 library 的 restored 代码子类可以访问。
   int gcFlag = 0;
 
+  /// 闭包调用入口。TypeFunction 子类会将其覆写为实际的静态调用函数。
+  /// 对于非闭包类型，访问此字段会返回 null，调用时抛出 NoSuchMethodError。
+  dynamic closureCall;
+
   /// 标记当前对象为存活。子类覆写时应先调用 super，再递归标记子对象。
   /// [flag] 是本轮 GC 的标记值，避免每轮都要重置所有对象的 flag。
   void gcMark(int flag) {
     if (gcFlag == flag) return; // 已标记，防止循环引用无限递归
     gcFlag = flag;
+  }
+
+  /// vptr 调度表。默认返回空 Map，子类（如 VPtr）应覆写以提供实际的调度表。
+  /// 这使得 AnyGC 类型的变量可以参与 vptr 调度，类似于 dynamic 的行为。
+  Map<String, dynamic> get vptr => <String, dynamic>{};
+
+  /// 动态方法/属性访问的兜底处理。当 AnyGC 子类没有定义某个方法或属性时，
+  /// 通过 noSuchMethod 转发到 vptr 调度表，实现类似 dynamic 的行为。
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    // 尝试从 vptr 调度表中查找方法
+    final vptrMap = vptr;
+    if (vptrMap.isNotEmpty) {
+      final memberName = invocation.memberName.toString().split('"')[1];
+      final fn = vptrMap[memberName];
+      if (fn != null) {
+        final args = [this, ...invocation.positionalArguments];
+        return Function.apply(fn as Function, args);
+      }
+    }
+    return super.noSuchMethod(invocation);
   }
 }
 

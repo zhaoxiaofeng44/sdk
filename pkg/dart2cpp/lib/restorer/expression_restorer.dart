@@ -320,7 +320,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final boxed = _boxedVars.contains(expr.variable);
     final suffix = boxed ? '.value' : '';
     final base = prefix != null ? '$prefix$name' : name;
-    return '$base$suffix = ${_restoreExpr(expr.value)}';
+    final valueStr = _restoreExpr(expr.value);
+    return '$base$suffix = $valueStr';
   }
 
   String _restoreInstanceGet(InstanceGet expr) {
@@ -385,7 +386,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // Bug 16（对称）：私有字段的 setter 不在 vtable 中，直接字段赋值
     // 见 _restoreInstanceGet 中的详细说明
     if (fieldName.startsWith('_')) {
-      return '$recv.$fieldName = ${_restoreExpr(expr.value)}';
+      final valueStr = _restoreExpr(expr.value);
+      return '$recv.$fieldName = $valueStr';
     }
 
     // 用户自定义类或 mixin 的 setter 调用 → 通过 Map 查找类型转换
@@ -393,7 +395,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isSetter) {
-        // this_ 统一为 dynamic，精确签名始终安全
+        // this_ 统一为 AnyGC，精确签名始终安全
         final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
         final value = _restoreExpr(expr.value);
         return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', sig, value);

@@ -133,6 +133,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
         // 非 async 路径：保持原有逻辑
         _buf.write(' {\n');
         _indent++;
+        // Mixin 方法需要访问私有字段，this_ 保持 dynamic 以支持动态派发
+        // （mixin 可以被任何类使用，静态函数无法知道具体类型）
         _buf.write('${_pad}final dynamic this_ = this__;\n');
 
         final body = proc.function.body!;
@@ -1289,7 +1291,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
               ...mixinTypeArgStrs
             else
               ...cls.typeParameters.map((tp) => tp.name ?? 'T'),
-          ...methodTpsDedup.map((_) => 'dynamic'),
+          ...methodTpsDedup.map((_) => 'AnyGC'),
         ];
         final callTypeArgsStr = callTypeArgsList.isEmpty
             ? ''

@@ -2061,7 +2061,7 @@ void ClosureEnv_countDown_2_call(ClosureEnv_countDown_2 env) {
     env._promise.complete(result);
     return;
   }
-  env._promise.complete(null as dynamic);
+  env._promise.complete(null as StaticList<String>);
   return;
 }
 class ClosureEnv_compose_3<C, B, A> extends TypeFunction1<C, A> {

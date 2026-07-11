@@ -71,10 +71,27 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     } else {
       _buf.write('${_pad}return');
       if (stmt.expression != null) {
-        _buf.write(' ${_restoreExpr(stmt.expression!)}');
+        var exprStr = _restoreExpr(stmt.expression!);
+        // 如果函数返回类型是 AnyGC（非可空），但表达式可能是可空的（如 map 查找），添加 ! 断言
+        if (_currentReturnType == 'AnyGC' && _mayBeNull(exprStr, stmt.expression!)) {
+          exprStr = '$exprStr!';
+        }
+        _buf.write(' $exprStr');
       }
       _buf.write(';\n');
     }
+  }
+
+  /// 检查表达式是否可能为 null（需要 ! 断言来转为非可空类型）
+  bool _mayBeNull(String exprStr, Expression expr) {
+    // Map 查找操作返回 nullable 类型
+    if (expr is InstanceInvocation) {
+      final name = expr.name.text;
+      if (name == '[]') return true;
+    }
+    // 表达式中包含 [] 操作符
+    if (exprStr.contains('[') && exprStr.contains(']') && !exprStr.endsWith(')')) return true;
+    return false;
   }
 
   /// 为 async 函数的裸 return 生成默认 Promise 完成值
@@ -84,10 +101,10 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     if (type == 'double') return '0.0';
     if (type == 'bool') return 'false';
     if (type == 'String') return "''";
-    if (type == 'void' || type == 'dynamic') return '0';
+    if (type == 'void' || type == 'dynamic' || type == 'AnyGC') return '0';
     if (type == 'num') return '0';
-    // 对于其他类型（包括自定义类），使用 null as dynamic
-    return 'null as dynamic';
+    // 对于其他类型（包括自定义类），使用 null as <actualType>
+    return 'null as $type';
   }
 
   /// 还原 IfStatement
@@ -336,10 +353,13 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // _adaptInitForStaticCollection 可能将 const [1,2,3] 包装为 StaticList.of(const [1,2,3])
     // 后者不是合法的 const 表达式
     final effectiveConst = v.isConst &&
-        (adaptedInitStr == null || _isAdaptedInitConstCompatible(adaptedInitStr));
+        (adaptedInitStr != null && _isAdaptedInitConstCompatible(adaptedInitStr));
     if (effectiveConst) _buf.write('const ');
     else if (v.isFinal || v.isConst) _buf.write('final ');
-    _buf.write(_restoreType(v.type));
+
+    // 还原类型：使用 _restoreType（dynamic 保留以支持隐式方法派发）
+    final restoredType = _restoreType(v.type);
+    _buf.write(restoredType);
     _buf.write(' $name');
     if (adaptedInitStr != null) {
       _buf.write(' = $adaptedInitStr');
