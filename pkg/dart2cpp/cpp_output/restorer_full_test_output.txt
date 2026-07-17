@@ -1,0 +1,169 @@
+=== 全面语法节点还原测试 ===
+
+--- 1. mixin + implements ---
+[Dog:Rex]
+Woof! (Labrador)
+dog1 < dog2: true
+dog1 > dog2: false
+[Cat:Whiskers]
+Meow!, mood: happy
+mood after set: sleepy
+
+--- 2. operator 重载 ---
+v1 + v2 = Vector2D(4.0, 6.0)
+v1 - v2 = Vector2D(2.0, 2.0)
+v1 * 2 = Vector2D(6.0, 8.0)
+v1.length = 5.00
+v1 == Vector2D(3,4): true
+
+--- 3. static + factory ---
+alpha: 10, beta: 45, gamma: 26
+instances: 3
+maxValue: 100
+
+--- 4. Result<T> + named params ---
+ok: Result.success(42)
+err: Result.failure(not found)
+okMsg: got 42
+errMsg: error: not found
+
+--- 5. 可选参数 ---
+Hello Dart!
+Count: 99
+No params
+https://api.example.com/users (timeout=30s)
+http://api.example.com/search?q=dart&page=1 (timeout=10s)
+
+--- 6. sync* 生成器 ---
+range(0,10,2): [0, 2, 4, 6, 8]
+fibonacci(8): [0, 1, 1, 2, 3, 5, 8, 13]
+
+--- 7. async countdown ---
+countdown: [3..., 2..., 1..., Go!]
+
+--- 8. record 类型 ---
+person: Alice, age=30
+location: Beijing (39.9, 116.4)
+divmod(17,5): quotient=3, remainder=2
+
+--- 9. pattern matching ---
+  null
+  negative int: -5
+  positive int: 42
+  empty string
+  string: "hello"
+
+--- 10. 级联操作符 ---
+buildList: [1, 2, 3, 4, 5]
+buildBuffer: Hello, World!
+
+--- 11. 展开 + 集合 if/for ---
+merged(includeNeg=true): [1, 2, 3, 4, -1, 10, 11, 12]
+merged(includeNeg=false): [1, 2, 3, 4, 10, 11, 12]
+scores: {Alice: 10, Bob: 20, Carol: 30, bonus: 999}
+
+--- 12. late 变量 ---
+before init: not initialized, -1
+after init: hello, 10
+
+--- 13. rethrow ---
+10/2 = 5
+StateError: Math error: Division by zero
+FormatException: abc
+
+--- 14. assert ---
+BoundedValue: 7.5
+
+--- 15. 字符串 ---
+lines: 3, raw: raw\nstring\ttabs
+
+--- 16. typedef + 函数式组合 ---
+compose(5): result=10
+positiveEvens: [2, 4]
+flatMap: [1, 1, 2, 4, 3, 9]
+
+--- 19. 多层继承链 ---
+Shape(color=red, opacity=1.0)
+Shape(color=, opacity=0.0)
+Polygon(sides=6, Shape(color=green, opacity=1.0))
+perimeter: 18.0
+RegularPolygon(sideLen=5.0, Polygon(sides=6, Shape(color=yellow, opacity=1.0)))
+perimeter: 0.0
+area: 37.5
+Square(size=10.0, color=white)
+square perimeter: 0.0
+
+--- 20. implements 多接口 ---
+dp1: DataPoint(1.0, 2.0, "A")
+dp1.serialize: {"x":1.0,"y":2.0,"label":"A"}
+dp1.clone: DataPoint(1.0, 2.0, "A")
+dp1.compareTo2(dp2): -1
+
+--- 21. mixin on 约束 ---
+[DataPoint] created
+validate: true
+serialize: {"x":5.0,"y":6.0,"label":"logged"}
+
+--- 22. 增强枚举 ---
+Priority.high: Priority.high
+high > medium: true
+low > high: false
+  Low(level=1)
+  Medium(level=5)
+  High(level=10)
+  Critical(level=100)
+GET isReadOnly: true
+POST isReadOnly: false
+
+--- 23. 重定向构造函数 ---
+cfg1: Config(http://example.com:8080)
+cfg2: Config()
+cfg3: Config()
+
+--- 25. null safety ---
+ns1: len=5, forced=WORLD
+ns2: len=0, forced=DEFAULT
+findFirst(b): banana
+findFirst(z): 
+
+--- 26. for-in + do-while ---
+filterWithForIn: [5, 10, 50, 80]
+collatz(6): 8
+collatz(27): 111
+
+--- 27. 类型测试 ---
+int: 84
+string: HELLO
+bool: true
+list<int>: 3 items
+safeCast(3.14): 3.14
+safeCast("x"): 0.0
+
+--- 28. try-catch-finally ---
+code=0: try ok finally
+code=1: try format:bad format finally
+code=2: try format:bad arg finally
+
+--- 29. covariant ---
+renderer: CircleRenderer
+  CircleRenderer: drawing circle
+
+--- 31. switch-case ---
+day 1: weekend
+day 3: weekday
+day 7: weekend
+day 9: invalid
+
+--- 32. 位运算 ---
+flags: rx
+has read: true
+has write: false
+after set write: rwx
+after clear execute: rw
+
+--- 33. 多层 mixin ---
+Event(meeting, T:1234567890, tags=[work, important])
+[ImportantEvent] created
+ImportantEvent(deadline, Critical(level=100), T:1234567890)
+
+=== 所有测试通过 ✅ ===

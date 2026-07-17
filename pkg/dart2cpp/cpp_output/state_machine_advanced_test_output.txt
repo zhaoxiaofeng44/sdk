@@ -1,0 +1,44 @@
+═══════════════════════════════════════════
+ 复杂协程场景验证测试
+═══════════════════════════════════════════
+
+--- 1. 递归异步 fibonacci ---
+  ✓ asyncFib(7) = 13
+
+--- 2. 异常传播链 (3层) ---
+  ✓ level1() caught 3-level exception: "caught: deep error"
+
+--- 3. 条件分支中的 await ---
+  ✓ conditionalAwait(true) = "branch_true"
+  ✓ conditionalAwait(false) = "branch_false"
+
+--- 4. 循环 + 提前 break 中的 await ---
+  ✓ findFirst([1,2,3,4,5]) = 12 (4*3=12 > 10)
+
+--- 5. try-catch 中的 await ---
+  ✓ tryCatchAwait() = "try;catch:boom;recovered"
+
+--- 6. Future.any 模拟（竞争取最先完成） ---
+  ✓ Future.any([slow(5), fast(2), slowest(8)]) = "fast"
+
+--- 7. 超时控制模拟 ---
+  ✓ task(2) timeout(5) = "done" (task wins)
+  ✓ task(10) timeout(3) = "TIMEOUT" (timeout wins)
+
+--- 8. 链式异步变换管道 (map → reduce) ---
+  ✓ asyncMap([1,2,3,4]).reduce(+) = "item_2+item_4+item_6+item_8"
+
+--- 9. 闭包捕获 + await (ClosureEnv 模式) ---
+  ✓ processWithClosure([1,2,3]) = [3, 6, 9, 500]
+    (factor=3→[3,6,9], mutate factor=5→100*5=500)
+
+--- 10. async* 生成器模拟 ---
+  ✓ countUp(5) yields [0, 1, 4, 9, 16]
+
+--- 11. 复合场景：递归+异常+条件 ---
+  ✓ complexBusiness(3) = nested map with error at bottom
+    depth=3 → child(depth=2) → child(depth=1, error:"max depth")
+
+═══════════════════════════════════════════
+ ✅ 全部 11 个复杂场景测试通过！
+═══════════════════════════════════════════

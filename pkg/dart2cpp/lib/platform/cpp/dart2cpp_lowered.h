@@ -8,7 +8,7 @@
 //   1. AnyGC — GC 管理基类
 //   2. GC — 标记-清除垃圾回收器
 //   3. DartString — 带引用计数的字符串池
-//   4. AnyPtr — 标签联合（替代 Dart 的 dynamic）
+//   4. AnyGC — 通用 GC 对象基类（替代 Dart 的 dynamic，基本类型通过 _box 装箱）
 //   5. 异常层级 — DartException / DartStateError / ...
 //   6. VPtr — 虚表基类
 //   7. Box 类型 — 闭包捕获引用语义
@@ -224,7 +224,7 @@ inline std::unordered_set<AnyGC*> GC::_registered;
 // ============================================================================
 // 3. DartString — 带引用计数的字符串池
 // ============================================================================
-// 优化：避免 AnyPtr 拷贝时频繁分配 std::string
+// 优化：避免频繁分配 std::string
 // 使用全局字符串池 + 引用计数，相同字符串共享同一份数据
 
 class StringPool {
@@ -399,352 +399,8 @@ namespace std {
 struct VPtr;
 struct TypeFunction;
 
-// ============================================================================
-// 4. AnyPtr — 标签联合（替代 Dart 的 dynamic）
-// ============================================================================
-
 // Forward declaration for DartException (defined later)
 struct DartException;
-
-struct AnyPtr {
-    enum Tag {
-        NULL_TAG = 0,
-        INT_TAG,
-        DOUBLE_TAG,
-        BOOL_TAG,
-        STRING_TAG,
-        VPTR_TAG,
-        TYPE_FUNC_TAG,
-        GC_TAG      // 其他 AnyGC 子类
-    };
-
-    Tag tag;
-    union Data {
-        int64_t intVal;
-        double doubleVal;
-        bool boolVal;
-        DartString* stringPtr;   // 使用 DartString（引用计数 + 字符串池）
-        VPtr* vptrPtr;
-        TypeFunction* typeFnPtr;
-        AnyGC* gcPtr;
-        void* rawPtr;
-
-        Data() : intVal(0) {}
-    } data;
-
-    // ── 构造函数 ──
-
-    AnyPtr() : tag(NULL_TAG) { data.intVal = 0; }
-
-    // 拷贝构造
-    AnyPtr(const AnyPtr& other) : tag(other.tag) {
-        _copyFrom(other);
-    }
-
-    // 移动构造
-    AnyPtr(AnyPtr&& other) noexcept : tag(other.tag) {
-        data = other.data;
-        other.tag = NULL_TAG;
-        other.data.intVal = 0;
-    }
-
-    // 隐式转换构造函数 - 允许 TypeFunction* 隐式转换为 AnyPtr
-    AnyPtr(TypeFunction* fn) : tag(TYPE_FUNC_TAG) {
-        data.typeFnPtr = fn;
-    }
-
-    // 隐式转换构造函数 - 允许 VPtr* 隐式转换为 AnyPtr
-    AnyPtr(VPtr* vptr) : tag(VPTR_TAG) {
-        data.vptrPtr = vptr;
-    }
-
-    // 隐式转换构造函数 - 允许 AnyGC* 隐式转换为 AnyPtr
-    AnyPtr(AnyGC* gc) : tag(GC_TAG) {
-        data.gcPtr = gc;
-    }
-
-    // 隐式转换构造函数 - 允许基本类型隐式转换为 AnyPtr
-    AnyPtr(int64_t val) : tag(INT_TAG) {
-        data.intVal = val;
-    }
-    AnyPtr(int val) : tag(INT_TAG) {
-        data.intVal = static_cast<int64_t>(val);
-    }
-    AnyPtr(double val) : tag(DOUBLE_TAG) {
-        data.doubleVal = val;
-    }
-    AnyPtr(bool val) : tag(BOOL_TAG) {
-        data.boolVal = val;
-    }
-    AnyPtr(const char* val) : tag(STRING_TAG) {
-        data.stringPtr = new DartString(val);
-    }
-    AnyPtr(const std::string& val) : tag(STRING_TAG) {
-        data.stringPtr = new DartString(val);
-    }
-
-    // 拷贝赋值
-    AnyPtr& operator=(const AnyPtr& other) {
-        if (this != &other) {
-            _cleanup();
-            tag = other.tag;
-            _copyFrom(other);
-        }
-        return *this;
-    }
-
-    // 移动赋值
-    AnyPtr& operator=(AnyPtr&& other) noexcept {
-        if (this != &other) {
-            _cleanup();
-            tag = other.tag;
-            data = other.data;
-            other.tag = NULL_TAG;
-            other.data.intVal = 0;
-        }
-        return *this;
-    }
-
-    ~AnyPtr() { _cleanup(); }
-
-    // ── 工厂方法 ──
-
-    static AnyPtr null() { return AnyPtr(); }
-
-    static AnyPtr fromInt(int64_t v) {
-        AnyPtr p;
-        p.tag = INT_TAG;
-        p.data.intVal = v;
-        return p;
-    }
-
-    static AnyPtr fromDouble(double v) {
-        AnyPtr p;
-        p.tag = DOUBLE_TAG;
-        p.data.doubleVal = v;
-        return p;
-    }
-
-    static AnyPtr fromBool(bool v) {
-        AnyPtr p;
-        p.tag = BOOL_TAG;
-        p.data.boolVal = v;
-        return p;
-    }
-
-    static AnyPtr fromString(const std::string& v) {
-        AnyPtr p;
-        p.tag = STRING_TAG;
-        p.data.stringPtr = new DartString(v);
-        return p;
-    }
-
-    static AnyPtr fromString(std::string&& v) {
-        AnyPtr p;
-        p.tag = STRING_TAG;
-        p.data.stringPtr = new DartString(std::move(v));
-        return p;
-    }
-
-    static AnyPtr fromString(const char* v) {
-        AnyPtr p;
-        p.tag = STRING_TAG;
-        p.data.stringPtr = new DartString(v);
-        return p;
-    }
-
-    static AnyPtr fromString(const DartString& v) {
-        AnyPtr p;
-        p.tag = STRING_TAG;
-        p.data.stringPtr = new DartString(v);
-        return p;
-    }
-
-    static AnyPtr fromVPtr(VPtr* v) {
-        AnyPtr p;
-        p.tag = VPTR_TAG;
-        p.data.vptrPtr = v;
-        return p;
-    }
-
-    static AnyPtr fromTypeFunction(TypeFunction* v) {
-        AnyPtr p;
-        p.tag = TYPE_FUNC_TAG;
-        p.data.typeFnPtr = v;
-        return p;
-    }
-
-    static AnyPtr fromGC(AnyGC* v) {
-        AnyPtr p;
-        p.tag = GC_TAG;
-        p.data.gcPtr = v;
-        return p;
-    }
-
-    static AnyPtr fromException(const DartException& v);
-
-    /// 自动分发：根据 C++ 类型选择正确的工厂方法
-    static AnyPtr fromAuto(int64_t v) { return fromInt(v); }
-    static AnyPtr fromAuto(int v) { return fromInt(static_cast<int64_t>(v)); }
-    static AnyPtr fromAuto(double v) { return fromDouble(v); }
-    static AnyPtr fromAuto(bool v) { return fromBool(v); }
-    static AnyPtr fromAuto(const std::string& v) { return fromString(v); }
-    static AnyPtr fromAuto(const char* v) { return fromString(std::string(v)); }
-    static AnyPtr fromAuto(VPtr* v) { return fromVPtr(v); }
-    static AnyPtr fromAuto(TypeFunction* v) { return fromTypeFunction(v); }
-    static AnyPtr fromAuto(AnyGC* v) { return fromGC(v); }
-    static AnyPtr fromAuto(AnyPtr v) { return v; }
-
-    // 泛型 fromAuto — 处理 std::tuple 等未知类型，装箱为 VPtr
-    // SFINAE: 排除已被上方重载覆盖的类型（尤其是 AnyGC 子类指针）
-    template<typename T>
-    static typename std::enable_if<
-        !std::is_same<typename std::decay<T>::type, AnyPtr>::value &&
-        !(std::is_pointer<typename std::decay<T>::type>::value &&
-          std::is_base_of<AnyGC, typename std::remove_pointer<typename std::decay<T>::type>::type>::value),
-        AnyPtr>::type
-    fromAuto(T v) {
-        // 将任意类型装箱到堆上并通过 VPtr 包装
-        auto* boxed = new T(std::move(v));
-        return fromVPtr(reinterpret_cast<VPtr*>(boxed));
-    }
-
-    // ── 类型查询 ──
-
-    bool isNull() const { return tag == NULL_TAG; }
-    bool isInt() const { return tag == INT_TAG; }
-    bool isDouble() const { return tag == DOUBLE_TAG; }
-    bool isBool() const { return tag == BOOL_TAG; }
-    bool isString() const { return tag == STRING_TAG; }
-    bool isVPtr() const { return tag == VPTR_TAG; }
-    bool isTypeFunction() const { return tag == TYPE_FUNC_TAG; }
-    bool isGC() const { return tag == GC_TAG; }
-
-    // ── 提取器 ──
-
-    int64_t toInt() const {
-        switch (tag) {
-            case INT_TAG: return data.intVal;
-            case DOUBLE_TAG: return static_cast<int64_t>(data.doubleVal);
-            case BOOL_TAG: return data.boolVal ? 1 : 0;
-            default: return 0;
-        }
-    }
-
-    double toDouble() const {
-        switch (tag) {
-            case INT_TAG: return static_cast<double>(data.intVal);
-            case DOUBLE_TAG: return data.doubleVal;
-            case BOOL_TAG: return data.boolVal ? 1.0 : 0.0;
-            default: return 0.0;
-        }
-    }
-
-    bool toBool() const {
-        switch (tag) {
-            case INT_TAG: return data.intVal != 0;
-            case DOUBLE_TAG: return data.doubleVal != 0.0;
-            case BOOL_TAG: return data.boolVal;
-            case STRING_TAG: return data.stringPtr && !data.stringPtr->empty();
-            case NULL_TAG: return false;
-            default: return true;  // 非空对象为 true
-        }
-    }
-
-    explicit operator bool() const { return toBool(); }
-
-    std::string toStringValue() const;  // 声明，实现在 VPtr 之后
-    const DartString* toDartString() const;  // 获取 DartString 指针
-
-    VPtr* toVPtr() const;          // 声明，实现在 VPtr 定义之后
-    TypeFunction* toTypeFunction() const;  // 声明，实现在 TypeFunction 定义之后
-    AnyGC* toGC() const;           // 声明，实现在 VPtr 定义之后
-
-    /// 模板 cast：将 AnyPtr 中的值提取为指定 C++ 类型
-    template<typename T>
-    T castTo() const;
-
-    // ── 比较 ──
-
-    bool operator==(const AnyPtr& other) const {
-        if (tag != other.tag) return false;
-        switch (tag) {
-            case NULL_TAG: return true;
-            case INT_TAG: return data.intVal == other.data.intVal;
-            case DOUBLE_TAG: return data.doubleVal == other.data.doubleVal;
-            case BOOL_TAG: return data.boolVal == other.data.boolVal;
-            case STRING_TAG: return *data.stringPtr == *other.data.stringPtr;
-            case VPTR_TAG: return data.vptrPtr == other.data.vptrPtr;
-            case TYPE_FUNC_TAG: return data.typeFnPtr == other.data.typeFnPtr;
-            case GC_TAG: return data.gcPtr == other.data.gcPtr;
-            default: return false;
-        }
-    }
-
-    // 与基本类型的比较
-    bool operator==(int64_t other) const {
-        return tag == INT_TAG && data.intVal == other;
-    }
-    bool operator==(int other) const {
-        return tag == INT_TAG && data.intVal == static_cast<int64_t>(other);
-    }
-    bool operator==(double other) const {
-        return tag == DOUBLE_TAG && data.doubleVal == other;
-    }
-    bool operator==(bool other) const {
-        return tag == BOOL_TAG && data.boolVal == other;
-    }
-    bool operator==(const std::string& other) const {
-        return tag == STRING_TAG && data.stringPtr && *data.stringPtr == other;
-    }
-    bool operator==(const char* other) const {
-        return tag == STRING_TAG && data.stringPtr && *data.stringPtr == other;
-    }
-
-    bool operator!=(const AnyPtr& other) const { return !(*this == other); }
-    bool operator!=(int64_t other) const { return !(*this == other); }
-    bool operator!=(int other) const { return !(*this == other); }
-    bool operator!=(double other) const { return !(*this == other); }
-    bool operator!=(bool other) const { return !(*this == other); }
-    bool operator!=(const std::string& other) const { return !(*this == other); }
-    bool operator!=(const char* other) const { return !(*this == other); }
-
-    // ── 有序比较（用于 std::less / std::map 等排序容器） ──
-    bool operator<(const AnyPtr& other) const {
-        if (tag != other.tag) return tag < other.tag;
-        switch (tag) {
-            case NULL_TAG: return false;
-            case INT_TAG: return data.intVal < other.data.intVal;
-            case DOUBLE_TAG: return data.doubleVal < other.data.doubleVal;
-            case BOOL_TAG: return data.boolVal < other.data.boolVal;
-            case STRING_TAG: return *data.stringPtr < *other.data.stringPtr;
-            case VPTR_TAG: return data.vptrPtr < other.data.vptrPtr;
-            case TYPE_FUNC_TAG: return data.typeFnPtr < other.data.typeFnPtr;
-            case GC_TAG: return data.gcPtr < other.data.gcPtr;
-            default: return false;
-        }
-    }
-    bool operator>(const AnyPtr& other) const { return other < *this; }
-    bool operator<=(const AnyPtr& other) const { return !(other < *this); }
-    bool operator>=(const AnyPtr& other) const { return !(*this < other); }
-
-private:
-    void _cleanup() {
-        if (tag == STRING_TAG && data.stringPtr) {
-            delete data.stringPtr;
-            data.stringPtr = nullptr;
-        }
-    }
-
-    void _copyFrom(const AnyPtr& other) {
-        if (other.tag == STRING_TAG && other.data.stringPtr) {
-            // DartString 使用引用计数，拷贝只是增加引用计数
-            data.stringPtr = new DartString(*other.data.stringPtr);
-        } else {
-            data = other.data;
-        }
-    }
-};
 
 // ============================================================================
 // 4. 异常层级 — DartException / DartStateError / ...
@@ -755,15 +411,7 @@ struct DartException : std::exception {
     DartException(const std::string& msg) : message(msg) {}
     const char* what() const noexcept override { return message.c_str(); }
     virtual std::string toString() const { return "Exception: " + message; }
-
-    // Implicit conversion to AnyPtr for use as function arguments
-    operator AnyPtr() const { return AnyPtr::fromString(message); }
 };
-
-// AnyPtr::fromException implementation (defined here after DartException is complete)
-inline AnyPtr AnyPtr::fromException(const DartException& v) {
-    return AnyPtr::fromString(v.message);
-}
 
 struct DartStateError : DartException {
     DartStateError(const std::string& msg) : DartException(msg) {}
@@ -784,6 +432,22 @@ struct DartFormatException : DartException {
     DartFormatException(const std::string& msg) : DartException(msg) {}
     std::string toString() const override { return "FormatException: " + message; }
 };
+
+inline int64_t dart_stoll(const std::string& s) {
+    try {
+        return std::stoll(s);
+    } catch (...) {
+        throw DartFormatException(s);
+    }
+}
+
+inline double dart_stod(const std::string& s) {
+    try {
+        return std::stod(s);
+    } catch (...) {
+        throw DartFormatException(s);
+    }
+}
 
 struct DartUnsupportedError : DartException {
     DartUnsupportedError(const std::string& msg) : DartException(msg) {}
@@ -807,6 +471,9 @@ inline ReachabilityError ReachabilityError_new(ReachabilityErrorValue* /*this_*/
     return ReachabilityError{msg};
 }
 
+// Forward declaration of dynAs (used by VPtr methods below)
+template<typename T> T dynAs(AnyGC* obj);
+
 // ============================================================================
 // 5. VPtr — 虚表基类
 // ============================================================================
@@ -825,10 +492,10 @@ struct VPtr : AnyGC {
         auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
         auto it = vmap.find("toString");
         if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyPtr(*)(AnyGC*);
+            using Fn = AnyGC*(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
-            return result.toStringValue();
+            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
+            return result ? result->toString() : "null";
         }
         return _typeName;
     }
@@ -837,11 +504,11 @@ struct VPtr : AnyGC {
         auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
         auto it = vmap.find("operatorEq");
         if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyPtr(*)(AnyGC*, AnyGC*);
+            using Fn = AnyGC*(*)(AnyGC*, AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
+            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
                                static_cast<AnyGC*>(const_cast<VPtr*>(&other)));
-            return result.toBool();
+            return dynAs<bool>(result);
         }
         return this == &other;
     }
@@ -850,10 +517,10 @@ struct VPtr : AnyGC {
         auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
         auto it = vmap.find("get_hashCode");
         if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyPtr(*)(AnyGC*);
+            using Fn = AnyGC*(*)(AnyGC*);
             auto fn = reinterpret_cast<Fn>(it->second);
-            AnyPtr result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
-            return result.toInt();
+            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
+            return dynAs<int64_t>(result);
         }
         return reinterpret_cast<int64_t>(this);
     }
@@ -871,108 +538,235 @@ struct VPtr : AnyGC {
     }
 };
 
-// AnyPtr::toStringValue 实现（依赖 VPtr）
-inline std::string AnyPtr::toStringValue() const {
-    switch (tag) {
-        case NULL_TAG: return "null";
-        case INT_TAG: return std::to_string(data.intVal);
-        case DOUBLE_TAG: {
-            std::ostringstream oss;
-            oss << data.doubleVal;
-            return oss.str();
-        }
-        case BOOL_TAG: return data.boolVal ? "true" : "false";
-        case STRING_TAG: return data.stringPtr ? data.stringPtr->str() : "null";
-        case VPTR_TAG:
-            if (data.vptrPtr) return data.vptrPtr->toString();
-            return "null";
-        case TYPE_FUNC_TAG: return "Closure";
-        case GC_TAG:
-            if (data.gcPtr) return data.gcPtr->toString();
-            return "null";
-        default: return "unknown";
-    }
-}
-
-inline const DartString* AnyPtr::toDartString() const {
-    if (tag == STRING_TAG) return data.stringPtr;
-    return nullptr;
-}
-
-// AnyPtr::toVPtr 实现（依赖 VPtr 完整类型）
-inline VPtr* AnyPtr::toVPtr() const {
-    if (tag == VPTR_TAG) return data.vptrPtr;
-    if (tag == GC_TAG) return dynamic_cast<VPtr*>(data.gcPtr);
-    return nullptr;
-}
-
-// AnyPtr::castTo 特化
-template<> inline int64_t AnyPtr::castTo<int64_t>() const { return toInt(); }
-template<> inline double AnyPtr::castTo<double>() const { return toDouble(); }
-template<> inline bool AnyPtr::castTo<bool>() const { return toBool(); }
-template<> inline std::string AnyPtr::castTo<std::string>() const {
-    if (tag == STRING_TAG && data.stringPtr) return data.stringPtr->str();
-    return toStringValue();
-}
-template<> inline AnyPtr AnyPtr::castTo<AnyPtr>() const { return *this; }
-
-// 通用指针类型 castTo：将 AnyPtr 转换为具体指针类型
-template<typename T>
-inline T AnyPtr::castTo() const {
-    if constexpr (std::is_pointer_v<T>) {
-        // 指针类型：通过 toGC() 获取 AnyGC*，再 static_cast 到目标类型
-        return static_cast<T>(toGC());
-    } else {
-        // 非指针类型：默认返回默认构造值（应由特化覆盖）
-        static_assert(sizeof(T) == 0, "castTo: unsupported type, add a specialization");
-        return T{};
-    }
-}
-
 // ============================================================================
 // 6. Box 类型 — 闭包捕获引用语义
 // ============================================================================
 
-struct IntBox : AnyGC {
+// Forward declarations for string helpers used in StringBox vptrMap
+inline std::string dart_str_toUpper(const std::string& s);
+inline std::string dart_str_toLower(const std::string& s);
+inline std::string dart_str_trim(const std::string& s);
+
+struct IntBox : VPtr {
     int64_t value;
-    IntBox(int64_t v) : value(v) { GC::allocateLocal(this); }
-    std::string toString() const { return std::to_string(value); }
+    IntBox(int64_t v) : VPtr(), value(v) { _typeName = "int"; GC::allocateLocal(this); }
+    std::string toString() const override { return std::to_string(value); }
+
+    static AnyGC* _vptr_toString(AnyGC* self);
+    static AnyGC* _vptr_runtimeType(AnyGC*);
+    static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
+        }
+        return map;
+    }
 };
 
-struct DoubleBox : AnyGC {
+struct DoubleBox : VPtr {
     double value;
-    DoubleBox(double v) : value(v) { GC::allocateLocal(this); }
-    std::string toString() const {
+    DoubleBox(double v) : VPtr(), value(v) { _typeName = "double"; GC::allocateLocal(this); }
+    std::string toString() const override {
         std::ostringstream oss;
         oss << value;
         return oss.str();
     }
-};
 
-struct BoolBox : AnyGC {
-    bool value;
-    BoolBox(bool v) : value(v) { GC::allocateLocal(this); }
-    std::string toString() const { return value ? "true" : "false"; }
-};
-
-struct StringBox : AnyGC {
-    std::string value;
-    StringBox(const std::string& v) : value(v) { GC::allocateLocal(this); }
-    std::string toString() const { return value; }
-};
-
-struct ObjectBox : AnyGC {
-    AnyPtr value;
-    ObjectBox(AnyPtr v) : value(std::move(v)) { GC::allocateLocal(this); }
-    std::string toString() const { return value.toStringValue(); }
-
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        AnyGC* held = value.toGC();
-        if (held) held->gcMark(flag);
+    static AnyGC* _vptr_toString(AnyGC* self);
+    static AnyGC* _vptr_runtimeType(AnyGC*);
+    static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
+        }
+        return map;
     }
 };
+
+struct BoolBox : VPtr {
+    bool value;
+    BoolBox(bool v) : VPtr(), value(v) { _typeName = "bool"; GC::allocateLocal(this); }
+    std::string toString() const override { return value ? "true" : "false"; }
+
+    static AnyGC* _vptr_toString(AnyGC* self);
+    static AnyGC* _vptr_runtimeType(AnyGC*);
+    static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
+        }
+        return map;
+    }
+};
+
+struct StringBox : VPtr {
+    std::string value;
+    StringBox(const std::string& v) : VPtr(), value(v) { _typeName = "String"; GC::allocateLocal(this); }
+    std::string toString() const override { return value; }
+
+    static AnyGC* _vptr_toString(AnyGC* self);
+    static AnyGC* _vptr_runtimeType(AnyGC*);
+    static AnyGC* _vptr_toUpperCase(AnyGC* self);
+    static AnyGC* _vptr_toLowerCase(AnyGC* self);
+    static AnyGC* _vptr_contains(AnyGC* self, AnyGC* other);
+    static AnyGC* _vptr_length(AnyGC* self);
+    static AnyGC* _vptr_trim(AnyGC* self);
+    static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["toUpperCase"] = reinterpret_cast<void*>(&_vptr_toUpperCase);
+            map["toLowerCase"] = reinterpret_cast<void*>(&_vptr_toLowerCase);
+            map["contains"] = reinterpret_cast<void*>(&_vptr_contains);
+            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
+            map["trim"] = reinterpret_cast<void*>(&_vptr_trim);
+            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
+        }
+        return map;
+    }
+};
+
+// TupleBox — wraps std::tuple* as a VPtr for record types (Dart records)
+struct TupleBox : VPtr {
+    void* data;
+    std::string str;
+    TupleBox(void* d, std::string s) : VPtr(), data(d), str(std::move(s)) {
+        _typeName = "Record";
+        GC::allocateLocal(this);
+    }
+    std::string toString() const override { return str; }
+    void gcMark(int flag) override {
+        if (gcFlag == flag) return;
+        VPtr::gcMark(flag);
+    }
+};
+
+// ValueBox<T> — wraps any value type as a VPtr for dynamic dispatch
+template<typename T>
+struct ValueBox : VPtr {
+    T value;
+    ValueBox(const T& v) : VPtr(), value(v) { _typeName = "ValueBox"; }
+    ValueBox(T&& v) : VPtr(), value(std::move(v)) { _typeName = "ValueBox"; }
+    void gcMark(int flag) override {
+        if (gcFlag == flag) return;
+        VPtr::gcMark(flag);
+    }
+};
+
+// ============================================================================
+// _box — universal boxing helper (replaces AnyPtr::fromAuto)
+// ============================================================================
+
+inline AnyGC* _box(AnyGC* v) { return v; }
+inline AnyGC* _box(VPtr* v) { return static_cast<AnyGC*>(v); }
+inline AnyGC* _box(TypeFunction* v) { return reinterpret_cast<AnyGC*>(v); }
+inline AnyGC* _box(std::nullptr_t) { return nullptr; }
+inline AnyGC* _box(int64_t v) { return GC::allocateLocal(new IntBox(v)); }
+inline AnyGC* _box(int v) { return GC::allocateLocal(new IntBox(static_cast<int64_t>(v))); }
+inline AnyGC* _box(double v) { return GC::allocateLocal(new DoubleBox(v)); }
+inline AnyGC* _box(bool v) { return GC::allocateLocal(new BoolBox(v)); }
+inline AnyGC* _box(const std::string& v) { return GC::allocateLocal(new StringBox(v)); }
+inline AnyGC* _box(const char* v) { return GC::allocateLocal(new StringBox(std::string(v))); }
+
+// _box overload for DartException — converts to StringBox
+inline AnyGC* _box(const DartException& v) {
+    return GC::allocateLocal(new StringBox(v.message));
+}
+
+/// _anyToString — convert AnyGC* to string (null-safe)
+inline std::string _anyToString(AnyGC* val) {
+    return val ? val->toString() : "null";
+}
+
+// Generic _box overload for value types not covered above
+template<typename T, typename = std::enable_if_t<
+    !std::is_pointer_v<std::decay_t<T>> &&
+    !std::is_same_v<std::decay_t<T>, int64_t> &&
+    !std::is_same_v<std::decay_t<T>, int> &&
+    !std::is_same_v<std::decay_t<T>, double> &&
+    !std::is_same_v<std::decay_t<T>, bool> &&
+    !std::is_same_v<std::decay_t<T>, std::string> &&
+    !std::is_same_v<std::decay_t<T>, DartException>
+>>
+AnyGC* _box(const T& v) {
+    return GC::allocateLocal(new ValueBox<T>(v));
+}
+
+// ── Box type vptrMap method definitions (after _box is available) ──
+
+inline AnyGC* IntBox::_vptr_toString(AnyGC* self) {
+    return _box(static_cast<IntBox*>(self)->toString());
+}
+inline AnyGC* IntBox::_vptr_runtimeType(AnyGC*) {
+    return _box(std::string("int"));
+}
+inline AnyGC* IntBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
+    int64_t a = static_cast<IntBox*>(self)->value;
+    int64_t b = dynAs<int64_t>(other);
+    return _box(static_cast<int64_t>(a > b ? 1 : (a < b ? -1 : 0)));
+}
+
+inline AnyGC* DoubleBox::_vptr_toString(AnyGC* self) {
+    return _box(static_cast<DoubleBox*>(self)->toString());
+}
+inline AnyGC* DoubleBox::_vptr_runtimeType(AnyGC*) {
+    return _box(std::string("double"));
+}
+inline AnyGC* DoubleBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
+    double a = static_cast<DoubleBox*>(self)->value;
+    double b = dynAs<double>(other);
+    return _box(static_cast<int64_t>(a > b ? 1 : (a < b ? -1 : 0)));
+}
+
+inline AnyGC* BoolBox::_vptr_toString(AnyGC* self) {
+    return _box(static_cast<BoolBox*>(self)->toString());
+}
+inline AnyGC* BoolBox::_vptr_runtimeType(AnyGC*) {
+    return _box(std::string("bool"));
+}
+inline AnyGC* BoolBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
+    bool a = static_cast<BoolBox*>(self)->value;
+    bool b = dynAs<bool>(other);
+    return _box(static_cast<int64_t>(a == b ? 0 : (a ? 1 : -1)));
+}
+
+inline AnyGC* StringBox::_vptr_toString(AnyGC* self) {
+    return _box(static_cast<StringBox*>(self)->value);
+}
+inline AnyGC* StringBox::_vptr_runtimeType(AnyGC*) {
+    return _box(std::string("String"));
+}
+inline AnyGC* StringBox::_vptr_toUpperCase(AnyGC* self) {
+    return _box(dart_str_toUpper(static_cast<StringBox*>(self)->value));
+}
+inline AnyGC* StringBox::_vptr_toLowerCase(AnyGC* self) {
+    return _box(dart_str_toLower(static_cast<StringBox*>(self)->value));
+}
+inline AnyGC* StringBox::_vptr_contains(AnyGC* self, AnyGC* other) {
+    return _box(static_cast<StringBox*>(self)->value.find(dynAs<std::string>(other)) != std::string::npos);
+}
+inline AnyGC* StringBox::_vptr_length(AnyGC* self) {
+    return _box(static_cast<int64_t>(static_cast<StringBox*>(self)->value.size()));
+}
+inline AnyGC* StringBox::_vptr_trim(AnyGC* self) {
+    return _box(dart_str_trim(static_cast<StringBox*>(self)->value));
+}
+inline AnyGC* StringBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
+    const auto& a = static_cast<StringBox*>(self)->value;
+    std::string b = dynAs<std::string>(other);
+    return _box(static_cast<int64_t>(a.compare(b)));
+}
 
 // ============================================================================
 // dynAs<T> — 类型安全转换：拆箱 + 向下转型
@@ -986,41 +780,34 @@ T dynAs(AnyGC* obj) {
         if constexpr (std::is_pointer_v<T>) return nullptr;
         else return T{};
     }
-    // int64_t: 尝试从 IntBox 拆箱
     if constexpr (std::is_same_v<T, int64_t>) {
         if (auto* box = dynamic_cast<IntBox*>(obj)) return box->value;
-        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toInt();
+        if (auto* box = dynamic_cast<DoubleBox*>(obj)) return static_cast<int64_t>(box->value);
+        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value ? 1 : 0;
         return 0;
     }
     else if constexpr (std::is_same_v<T, double>) {
         if (auto* box = dynamic_cast<DoubleBox*>(obj)) return box->value;
-        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toDouble();
+        if (auto* box = dynamic_cast<IntBox*>(obj)) return static_cast<double>(box->value);
+        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value ? 1.0 : 0.0;
         return 0.0;
     }
     else if constexpr (std::is_same_v<T, bool>) {
         if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value;
-        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toBool();
+        if (auto* box = dynamic_cast<IntBox*>(obj)) return box->value != 0;
         return false;
     }
     else if constexpr (std::is_same_v<T, std::string>) {
         if (auto* box = dynamic_cast<StringBox*>(obj)) return box->value;
-        if (auto* ob = dynamic_cast<ObjectBox*>(obj)) return ob->value.toStringValue();
-        return "";
+        return obj->toString();
     }
-    // 指针类型：直接 static_cast（向下转型）
     else if constexpr (std::is_pointer_v<T>) {
         return static_cast<T>(obj);
     }
     else {
-        // 兜底：默认构造
+        if (auto* vbox = dynamic_cast<ValueBox<T>*>(obj)) return vbox->value;
         return T{};
     }
-}
-
-/// AnyPtr 重载：将 AnyPtr 转为 AnyGC* 后调用 dynAs<T>(AnyGC*)
-template<typename T>
-T dynAs(AnyPtr obj) {
-    return dynAs<T>(obj.toGC());
 }
 
 // ============================================================================
@@ -1030,25 +817,22 @@ T dynAs(AnyPtr obj) {
 struct TypeFunction : AnyGC {
     void* closureCall = nullptr;
 
-    // 动态调用（无参数）— 当具体类型未知时使用
-    AnyPtr dynCall() {
-        using Fn = AnyPtr(*)(AnyPtr);
+    AnyGC* dynCall() {
+        using Fn = AnyGC*(*)(AnyGC*);
         auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(AnyPtr::fromTypeFunction(this));
+        return fn(this);
     }
 
-    // 动态调用（一个参数）
-    AnyPtr dynCall(AnyPtr arg1) {
-        using Fn = AnyPtr(*)(AnyPtr, AnyPtr);
+    AnyGC* dynCall(AnyGC* arg1) {
+        using Fn = AnyGC*(*)(AnyGC*, AnyGC*);
         auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(AnyPtr::fromTypeFunction(this), arg1);
+        return fn(this, arg1);
     }
 
-    // 动态调用（两个参数）
-    AnyPtr dynCall(AnyPtr arg1, AnyPtr arg2) {
-        using Fn = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr);
+    AnyGC* dynCall(AnyGC* arg1, AnyGC* arg2) {
+        using Fn = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*);
         auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(AnyPtr::fromTypeFunction(this), arg1, arg2);
+        return fn(this, arg1, arg2);
     }
 
     void gcMark(int flag) override {
@@ -1057,65 +841,46 @@ struct TypeFunction : AnyGC {
     }
 };
 
-// AnyPtr::toTypeFunction 实现（依赖 TypeFunction 完整类型）
-inline TypeFunction* AnyPtr::toTypeFunction() const {
-    if (tag == TYPE_FUNC_TAG) return data.typeFnPtr;
-    if (tag == GC_TAG) return dynamic_cast<TypeFunction*>(data.gcPtr);
-    return nullptr;
-}
-
-// AnyPtr::toGC 实现（依赖 VPtr + TypeFunction 完整类型）
-inline AnyGC* AnyPtr::toGC() const {
-    switch (tag) {
-        case VPTR_TAG: return static_cast<AnyGC*>(data.vptrPtr);
-        case TYPE_FUNC_TAG: return static_cast<AnyGC*>(data.typeFnPtr);
-        case GC_TAG: return data.gcPtr;
-        default: return nullptr;
-    }
-}
-
-// Helper to generate function pointer type with N AnyPtr parameters
+// Helper to generate function pointer type with N AnyGC* parameters
 template<size_t N>
-struct AnyPtrFnType;
+struct AnyGCFnType;
 
 template<>
-struct AnyPtrFnType<0> { using type = AnyPtr(*)(AnyPtr); };
+struct AnyGCFnType<0> { using type = AnyGC*(*)(AnyGC*); };
 
 template<>
-struct AnyPtrFnType<1> { using type = AnyPtr(*)(AnyPtr, AnyPtr); };
+struct AnyGCFnType<1> { using type = AnyGC*(*)(AnyGC*, AnyGC*); };
 
 template<>
-struct AnyPtrFnType<2> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr); };
+struct AnyGCFnType<2> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*); };
 
 template<>
-struct AnyPtrFnType<3> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr, AnyPtr); };
+struct AnyGCFnType<3> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*, AnyGC*); };
 
 template<>
-struct AnyPtrFnType<4> { using type = AnyPtr(*)(AnyPtr, AnyPtr, AnyPtr, AnyPtr, AnyPtr); };
+struct AnyGCFnType<4> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*, AnyGC*, AnyGC*); };
 
 // TypeFunctionN<R, Args...> — 可变参数模板版本
-// 替代原来的 TypeFunction0-16，消除重复代码
 template<typename R, typename... Args>
 struct TypeFunctionN : TypeFunction {
-    R call(Args... args) {
-        // Trampoline 统一接受 AnyPtr 参数，使用 helper 生成正确的函数指针类型
-        using Fn = typename AnyPtrFnType<sizeof...(Args)>::type;
+    virtual R call(Args... args) {
+        using Fn = typename AnyGCFnType<sizeof...(Args)>::type;
         auto fn = reinterpret_cast<Fn>(closureCall);
-        AnyPtr result = fn(AnyPtr::fromTypeFunction(this), AnyPtr::fromAuto(args)...);
-        if constexpr (std::is_same_v<R, AnyPtr>) {
+        AnyGC* result = fn(this, _box(args)...);
+        if constexpr (std::is_same_v<R, AnyGC*>) {
             return result;
         } else if constexpr (std::is_same_v<R, int64_t>) {
-            return result.toInt();
+            return dynAs<int64_t>(result);
         } else if constexpr (std::is_same_v<R, double>) {
-            return result.toDouble();
+            return dynAs<double>(result);
         } else if constexpr (std::is_same_v<R, bool>) {
-            return result.toBool();
+            return dynAs<bool>(result);
         } else if constexpr (std::is_same_v<R, std::string>) {
-            return result.toStringValue();
+            return dynAs<std::string>(result);
         } else if constexpr (std::is_same_v<R, void>) {
             return;
         } else if constexpr (std::is_pointer_v<R>) {
-            return static_cast<R>(result.toGC());
+            return static_cast<R>(result);
         } else {
             return R{};
         }
@@ -1131,6 +896,45 @@ using TypeFunction1 = TypeFunctionN<R, T1>;
 
 template<typename R, typename T1, typename T2>
 using TypeFunction2 = TypeFunctionN<R, T1, T2>;
+
+// Adapters for vptr dispatch: wrap type-erased TypeFunction* as typed TypeFunctionN<AnyGC*, ...>
+struct _TypeFnAdapter0 : TypeFunction0<AnyGC*> {
+    TypeFunction* inner;
+    _TypeFnAdapter0(TypeFunction* fn) : inner(fn) {
+        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+    }
+    static AnyGC* _trampoline(AnyGC* _env) {
+        auto* self = static_cast<_TypeFnAdapter0*>(_env);
+        return self->inner->dynCall();
+    }
+    AnyGC* call() override { return inner->dynCall(); }
+};
+
+template<typename T>
+struct _TypeFnAdapter1 : TypeFunction1<AnyGC*, T> {
+    TypeFunction* inner;
+    _TypeFnAdapter1(TypeFunction* fn) : inner(fn) {
+        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+    }
+    static AnyGC* _trampoline(AnyGC* _env, AnyGC* _p0) {
+        auto* self = static_cast<_TypeFnAdapter1*>(_env);
+        return self->inner->dynCall(_p0);
+    }
+    AnyGC* call(T arg) override { return inner->dynCall(_box(arg)); }
+};
+
+template<typename T1, typename T2>
+struct _TypeFnAdapter2 : TypeFunction2<AnyGC*, T1, T2> {
+    TypeFunction* inner;
+    _TypeFnAdapter2(TypeFunction* fn) : inner(fn) {
+        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+    }
+    static AnyGC* _trampoline(AnyGC* _env, AnyGC* _p0, AnyGC* _p1) {
+        auto* self = static_cast<_TypeFnAdapter2*>(_env);
+        return self->inner->dynCall(_p0, _p1);
+    }
+    AnyGC* call(T1 arg1, T2 arg2) override { return inner->dynCall(_box(arg1), _box(arg2)); }
+};
 
 template<typename R, typename T1, typename T2, typename T3>
 using TypeFunction3 = TypeFunctionN<R, T1, T2, T3>;
@@ -1328,13 +1132,13 @@ template<typename K, typename V> struct StaticMap;
 template<typename T> struct StaticSet;
 
 template<typename T>
-struct StaticList : AnyGC {
+struct StaticList : VPtr {
     Array<T>* _data;
 
-    StaticList() : _data(GC::allocateLocal(new Array<T>())) {}
+    StaticList() : VPtr(), _data(GC::allocateLocal(new Array<T>())) { _typeName = "List"; }
 
     StaticList(std::initializer_list<T> init)
-        : _data(GC::allocateLocal(new Array<T>(init))) {}
+        : VPtr(), _data(GC::allocateLocal(new Array<T>(init))) { _typeName = "List"; }
 
     static StaticList* of(std::initializer_list<T> elements) {
         return GC::allocateLocal(new StaticList(elements));
@@ -1395,6 +1199,12 @@ struct StaticList : AnyGC {
     T single() const {
         if (_data->length() != 1) throw DartStateError("Not single element");
         return (*_data)[0];
+    }
+
+    StaticList<T>* toList() const {
+        auto* result = GC::allocateLocal(new StaticList<T>());
+        for (int i = 0; i < _data->length(); i++) result->add((*_data)[i]);
+        return result;
     }
 
     // ── 索引访问 ──
@@ -1828,6 +1638,51 @@ struct StaticList : AnyGC {
         return "[" + join(", ") + "]";
     }
 
+    // vptrMap support
+    static AnyGC* _vptr_runtimeType(AnyGC*) {
+        return _box(std::string("List"));
+    }
+    static AnyGC* _vptr_length(AnyGC* self) {
+        return _box(static_cast<int64_t>(static_cast<StaticList*>(self)->length()));
+    }
+    static AnyGC* _vptr_toString(AnyGC* self) {
+        return _box(static_cast<StaticList*>(self)->toString());
+    }
+    static AnyGC* _vptr_index(AnyGC* self, AnyGC* idx) {
+        auto* list = static_cast<StaticList*>(self);
+        int64_t i = dynAs<int64_t>(idx);
+        return _box((*list)[static_cast<int>(i)]);
+    }
+    static AnyGC* _vptr_setIndex(AnyGC* self, AnyGC* idx, AnyGC* val) {
+        auto* list = static_cast<StaticList*>(self);
+        int64_t i = dynAs<int64_t>(idx);
+        if constexpr (std::is_same_v<T, int64_t>) {
+            (*list)[static_cast<int>(i)] = dynAs<int64_t>(val);
+        } else if constexpr (std::is_same_v<T, double>) {
+            (*list)[static_cast<int>(i)] = dynAs<double>(val);
+        } else if constexpr (std::is_same_v<T, bool>) {
+            (*list)[static_cast<int>(i)] = dynAs<bool>(val);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            (*list)[static_cast<int>(i)] = dynAs<std::string>(val);
+        } else if constexpr (std::is_pointer_v<T>) {
+            (*list)[static_cast<int>(i)] = static_cast<T>(val);
+        } else {
+            (*list)[static_cast<int>(i)] = *reinterpret_cast<T*>(dynamic_cast<VPtr*>(val));
+        }
+        return nullptr;
+    }
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["[]"] = reinterpret_cast<void*>(&_vptr_index);
+            map["[]="] = reinterpret_cast<void*>(&_vptr_setIndex);
+        }
+        return map;
+    }
+
     // ── GC ──
 
     void gcMark(int flag) override {
@@ -1875,13 +1730,14 @@ struct MapEntryValue : AnyGC {
 // 对齐 Dart _collections.dart StaticMap<K,V>
 
 template<typename K, typename V>
-struct StaticMap : AnyGC {
+struct StaticMap : VPtr {
     Array<K>* _keys;
     Array<V>* _values;
 
     StaticMap()
-        : _keys(GC::allocateLocal(new Array<K>())),
-          _values(GC::allocateLocal(new Array<V>())) {}
+        : VPtr(),
+          _keys(GC::allocateLocal(new Array<K>())),
+          _values(GC::allocateLocal(new Array<V>())) { _typeName = "Map"; }
 
     static StaticMap* empty() {
         return GC::allocateLocal(new StaticMap());
@@ -2172,11 +2028,57 @@ struct StaticMap : AnyGC {
         return result;
     }
 
+    // ── vptrMap support ──
+    static AnyGC* _vptr_runtimeType(AnyGC*) {
+        return _box(std::string("Map"));
+    }
+    static AnyGC* _vptr_length(AnyGC* self) {
+        return _box(static_cast<int64_t>(static_cast<StaticMap*>(self)->length()));
+    }
+    static AnyGC* _vptr_toString(AnyGC* self) {
+        return _box(static_cast<StaticMap*>(self)->toString());
+    }
+    static AnyGC* _vptr_index(AnyGC* self, AnyGC* key) {
+        auto* map = static_cast<StaticMap*>(self);
+        K k;
+        if constexpr (std::is_same_v<K, std::string>) k = dynAs<std::string>(key);
+        else if constexpr (std::is_same_v<K, int64_t>) k = dynAs<int64_t>(key);
+        else if constexpr (std::is_same_v<K, double>) k = dynAs<double>(key);
+        else if constexpr (std::is_same_v<K, bool>) k = dynAs<bool>(key);
+        else if constexpr (std::is_pointer_v<K>) k = static_cast<K>(key);
+        else k = *reinterpret_cast<K*>(dynamic_cast<VPtr*>(key));
+        V* val = (*map)[k];
+        if (!val) return nullptr;
+        return _box(*val);
+    }
+    static AnyGC* _vptr_containsKey(AnyGC* self, AnyGC* key) {
+        auto* map = static_cast<StaticMap*>(self);
+        K k;
+        if constexpr (std::is_same_v<K, std::string>) k = dynAs<std::string>(key);
+        else if constexpr (std::is_same_v<K, int64_t>) k = dynAs<int64_t>(key);
+        else if constexpr (std::is_same_v<K, double>) k = dynAs<double>(key);
+        else if constexpr (std::is_same_v<K, bool>) k = dynAs<bool>(key);
+        else if constexpr (std::is_pointer_v<K>) k = static_cast<K>(key);
+        else k = *reinterpret_cast<K*>(dynamic_cast<VPtr*>(key));
+        return _box(map->containsKey(k));
+    }
+    std::unordered_map<std::string, void*>& getVptrMap() override {
+        static std::unordered_map<std::string, void*> map;
+        if (map.empty()) {
+            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
+            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
+            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
+            map["[]"] = reinterpret_cast<void*>(&_vptr_index);
+            map["containsKey"] = reinterpret_cast<void*>(&_vptr_containsKey);
+        }
+        return map;
+    }
+
     // ── GC ──
 
     void gcMark(int flag) override {
         if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
+        VPtr::gcMark(flag);
         if (_keys) _keys->gcMark(flag);
         if (_values) _values->gcMark(flag);
     }
@@ -2192,7 +2094,9 @@ struct StaticSet : AnyGC {
     StaticSet() : _data(GC::allocateLocal(new Array<T>())) {}
 
     StaticSet(std::initializer_list<T> init)
-        : _data(GC::allocateLocal(new Array<T>(init))) {}
+        : _data(GC::allocateLocal(new Array<T>())) {
+        for (const auto& e : init) add(e);
+    }
 
     static StaticSet* of(std::initializer_list<T> elements) {
         return GC::allocateLocal(new StaticSet(elements));
@@ -2641,8 +2545,8 @@ struct PromiseBase : AnyGC {
     enum State { READY, PENDING, COMPLETED, ERROR };
 
     State state = PENDING;
-    AnyPtr result;
-    AnyPtr error;
+    AnyGC* result = nullptr;
+    AnyGC* error = nullptr;
     std::function<void()> startCallback;
     std::function<bool()> onTick;
 
@@ -2650,19 +2554,19 @@ struct PromiseBase : AnyGC {
     void setStartCallback(std::function<void()> cb);
     void setTickCallback(std::function<bool()> cb);
 
-    void complete(AnyPtr value) {
+    void complete(AnyGC* value) {
         if (state == COMPLETED || state == ERROR) {
             throw DartStateError("Promise already resolved");
         }
-        result = std::move(value);
+        result = value;
         state = COMPLETED;
     }
 
-    void completeError(AnyPtr err) {
+    void completeError(AnyGC* err) {
         if (state == COMPLETED || state == ERROR) {
             throw DartStateError("Promise already resolved");
         }
-        error = std::move(err);
+        error = err;
         state = ERROR;
     }
 
@@ -2674,10 +2578,8 @@ struct PromiseBase : AnyGC {
     void gcMark(int flag) override {
         if (gcFlag == flag) return;
         AnyGC::gcMark(flag);
-        AnyGC* r = result.toGC();
-        if (r) r->gcMark(flag);
-        AnyGC* e = error.toGC();
-        if (e) e->gcMark(flag);
+        if (result) result->gcMark(flag);
+        if (error) error->gcMark(flag);
     }
 };
 
@@ -2685,17 +2587,17 @@ struct PromiseBase : AnyGC {
 
 template<typename T>
 struct Promise : PromiseBase {
-    T typedResult() const { return result.castTo<T>(); }
+    T typedResult() const { return dynAs<T>(result); }
 
     void completeTyped(T value) {
-        complete(AnyPtr::fromAuto(std::move(value)));
+        complete(_box(std::move(value)));
     }
 
     // ── 静态工厂 ──
 
     static Promise<T>* resolved(T value) {
         auto* promise = GC::allocateLocal(new Promise<T>());
-        promise->complete(AnyPtr::fromAuto(std::move(value)));
+        promise->complete(_box(std::move(value)));
         return promise;
     }
 
@@ -2703,19 +2605,19 @@ struct Promise : PromiseBase {
         return resolved(std::move(value));
     }
 
-    static Promise<T>* rejected(AnyPtr err) {
+    static Promise<T>* rejected(AnyGC* err) {
         auto* promise = GC::allocateLocal(new Promise<T>());
-        promise->completeError(std::move(err));
+        promise->completeError(err);
         return promise;
     }
 
     // delayed / then / catchError / whenComplete — 声明在类内，定义在 GlobalScheduler 之后
     static Promise<T>* delayed(int ticks, std::function<T()> computation);
 
-    template<typename R = AnyPtr>
-    Promise<R>* then(std::function<AnyPtr(T)> onValue);
+    template<typename R = AnyGC*>
+    Promise<R>* then(std::function<AnyGC*(T)> onValue);
 
-    Promise<T>* catchError(std::function<T(AnyPtr)> onError);
+    Promise<T>* catchError(std::function<T(AnyGC*)> onError);
 
     Promise<T>* whenComplete(std::function<void()> action);
 
@@ -2733,12 +2635,12 @@ struct Promise : PromiseBase {
 template<>
 struct Promise<void> : PromiseBase {
     void completeTyped() {
-        complete(AnyPtr::null());
+        complete(nullptr);
     }
 
     static Promise<void>* resolved() {
         auto* promise = GC::allocateLocal(new Promise<void>());
-        promise->complete(AnyPtr::null());
+        promise->complete(nullptr);
         return promise;
     }
 
@@ -2746,9 +2648,9 @@ struct Promise<void> : PromiseBase {
         return resolved();
     }
 
-    static Promise<void>* rejected(AnyPtr err) {
+    static Promise<void>* rejected(AnyGC* err) {
         auto* promise = GC::allocateLocal(new Promise<void>());
-        promise->completeError(std::move(err));
+        promise->completeError(err);
         return promise;
     }
 
@@ -2885,9 +2787,11 @@ Promise<T>* Promise<T>::delayed(int ticks, std::function<T()> computation) {
     auto* promise = GC::allocateLocal(new Promise<T>());
     GlobalScheduler::instance().registerDelayedTask(ticks, [promise, computation]() {
         try {
-            promise->complete(AnyPtr::fromAuto(computation()));
+            promise->complete(_box(computation()));
         } catch (const std::exception& e) {
-            promise->completeError(AnyPtr::fromString(e.what()));
+            promise->completeError(_box(std::string(e.what())));
+        } catch (...) {
+            promise->completeError(nullptr);
         }
     }, promise);
     return promise;
@@ -2895,12 +2799,12 @@ Promise<T>* Promise<T>::delayed(int ticks, std::function<T()> computation) {
 
 template<typename T>
 template<typename R>
-Promise<R>* Promise<T>::then(std::function<AnyPtr(T)> onValue) {
+Promise<R>* Promise<T>::then(std::function<AnyGC*(T)> onValue) {
     // 延迟分配优化：如果已完成，直接执行回调并返回结果
     if (isCompleted()) {
         try {
-            AnyPtr callbackResult = onValue(result.template castTo<T>());
-            AnyGC* gcResult = callbackResult.toGC();
+            AnyGC* callbackResult = onValue(dynAs<T>(result));
+            AnyGC* gcResult = callbackResult;
             PromiseBase* innerPromise = gcResult ? dynamic_cast<PromiseBase*>(gcResult) : nullptr;
             if (innerPromise) {
                 // flatMap 场景：返回内部 Promise
@@ -2926,7 +2830,7 @@ Promise<R>* Promise<T>::then(std::function<AnyPtr(T)> onValue) {
             return nextPromise;
         } catch (const std::exception& e) {
             auto* nextPromise = GC::allocateLocal(new Promise<R>());
-            nextPromise->completeError(AnyPtr::fromString(e.what()));
+            nextPromise->completeError(_box(std::string(e.what())));
             return nextPromise;
         }
     }
@@ -2944,8 +2848,8 @@ Promise<R>* Promise<T>::then(std::function<AnyPtr(T)> onValue) {
     nextPromise->onTick = [self, onValue, nextPromise]() -> bool {
         if (self->isCompleted()) {
             try {
-                AnyPtr callbackResult = onValue(self->result.template castTo<T>());
-                AnyGC* gcResult = callbackResult.toGC();
+                AnyGC* callbackResult = onValue(dynAs<T>(self->result));
+                AnyGC* gcResult = callbackResult;
                 PromiseBase* innerPromise = gcResult ? dynamic_cast<PromiseBase*>(gcResult) : nullptr;
                 if (innerPromise) {
                     nextPromise->onTick = [innerPromise, nextPromise]() -> bool {
@@ -2963,7 +2867,7 @@ Promise<R>* Promise<T>::then(std::function<AnyPtr(T)> onValue) {
                 }
                 nextPromise->complete(callbackResult);
             } catch (const std::exception& e) {
-                nextPromise->completeError(AnyPtr::fromString(e.what()));
+                nextPromise->completeError(_box(std::string(e.what())));
             }
             return true;
         }
@@ -2978,7 +2882,7 @@ Promise<R>* Promise<T>::then(std::function<AnyPtr(T)> onValue) {
 }
 
 template<typename T>
-Promise<T>* Promise<T>::catchError(std::function<T(AnyPtr)> onError) {
+Promise<T>* Promise<T>::catchError(std::function<T(AnyGC*)> onError) {
     // 延迟分配优化：如果已完成，直接传递结果
     if (isCompleted()) {
         auto* nextPromise = GC::allocateLocal(new Promise<T>());
@@ -2990,9 +2894,9 @@ Promise<T>* Promise<T>::catchError(std::function<T(AnyPtr)> onError) {
     if (isError()) {
         auto* nextPromise = GC::allocateLocal(new Promise<T>());
         try {
-            nextPromise->complete(AnyPtr::fromAuto(onError(error)));
+            nextPromise->complete(_box(onError(error)));
         } catch (const std::exception& e) {
-            nextPromise->completeError(AnyPtr::fromString(e.what()));
+            nextPromise->completeError(_box(std::string(e.what())));
         }
         return nextPromise;
     }
@@ -3007,9 +2911,9 @@ Promise<T>* Promise<T>::catchError(std::function<T(AnyPtr)> onError) {
         }
         if (self->isError()) {
             try {
-                nextPromise->complete(AnyPtr::fromAuto(onError(self->error)));
+                nextPromise->complete(_box(onError(self->error)));
             } catch (const std::exception& e) {
-                nextPromise->completeError(AnyPtr::fromString(e.what()));
+                nextPromise->completeError(_box(std::string(e.what())));
             }
             return true;
         }
@@ -3028,7 +2932,7 @@ Promise<T>* Promise<T>::whenComplete(std::function<void()> action) {
             action();
             nextPromise->complete(result);
         } catch (const std::exception& e) {
-            nextPromise->completeError(AnyPtr::fromString(e.what()));
+            nextPromise->completeError(_box(std::string(e.what())));
         }
         return nextPromise;
     }
@@ -3050,7 +2954,7 @@ Promise<T>* Promise<T>::whenComplete(std::function<void()> action) {
                 action();
                 nextPromise->complete(self->result);
             } catch (const std::exception& e) {
-                nextPromise->completeError(AnyPtr::fromString(e.what()));
+                nextPromise->completeError(_box(std::string(e.what())));
             }
             return true;
         }
@@ -3071,12 +2975,12 @@ template<typename T>
 Promise<StaticList<T>*>* Promise<T>::waitAll(std::vector<Promise<T>*> promises) {
     auto* resultPromise = GC::allocateLocal(new Promise<StaticList<T>*>());
     if (promises.empty()) {
-        resultPromise->complete(AnyPtr::fromAuto(
+        resultPromise->complete(_box(
             GC::allocateLocal(new StaticList<T>())));
         return resultPromise;
     }
 
-    auto* results = new std::vector<AnyPtr>(promises.size(), AnyPtr::null());
+    auto* results = new std::vector<AnyGC*>(promises.size(), nullptr);
     auto* completedCount = new int(0);
     auto total = promises.size();
 
@@ -3088,7 +2992,7 @@ Promise<StaticList<T>*>* Promise<T>::waitAll(std::vector<Promise<T>*> promises) 
                 delete results; delete completedCount;
                 return true;
             }
-            if (p->state == COMPLETED && (*results)[i].isNull()) {
+            if (p->state == COMPLETED && (*results)[i] == nullptr) {
                 (*results)[i] = p->result;
                 (*completedCount)++;
             }
@@ -3096,9 +3000,9 @@ Promise<StaticList<T>*>* Promise<T>::waitAll(std::vector<Promise<T>*> promises) 
         if (*completedCount == static_cast<int>(total)) {
             auto* list = GC::allocateLocal(new StaticList<T>());
             for (const auto& r : *results) {
-                list->add(r.castTo<T>());
+                list->add(dynAs<T>(r));
             }
-            resultPromise->complete(AnyPtr::fromAuto(list));
+            resultPromise->complete(_box(list));
             delete results; delete completedCount;
             return true;
         }
@@ -3159,17 +3063,15 @@ Promise<T>* Promise_delayed(int64_t delayTicks, TypeFunction0<T>* computation) {
 
 template<typename T, typename R>
 Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, T>* onValue) {
-    // Create a new promise for the result
     auto* resultPromise = GC::allocateLocal(new Promise<R>());
-    this__->then([onValue, resultPromise](AnyPtr val) -> AnyPtr {
-        T typed = val.castTo<T>();
+    this__->then([onValue, resultPromise](T val) -> AnyGC* {
         if constexpr (std::is_void_v<R>) {
-            onValue->call(typed);
+            onValue->call(val);
         } else {
-            R result = onValue->call(typed);
+            R result = onValue->call(val);
             resultPromise->completeTyped(std::move(result));
         }
-        return AnyPtr::null();
+        return nullptr;
     });
     return resultPromise;
 }
@@ -3179,16 +3081,15 @@ Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, T>* onValue) {
 template<typename T, typename R>
 Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, AnyGC*>* onValue) {
     auto* resultPromise = GC::allocateLocal(new Promise<R>());
-    this__->then([onValue, resultPromise](AnyPtr val) -> AnyPtr {
-        // Box the value as AnyGC* for the callback
-        AnyGC* boxed = val.toGC();
+    this__->then([onValue, resultPromise](T val) -> AnyGC* {
+        AnyGC* boxed = _box(val);
         if constexpr (std::is_void_v<R>) {
             onValue->call(boxed);
         } else {
             R result = onValue->call(boxed);
             resultPromise->completeTyped(std::move(result));
         }
-        return AnyPtr::null();
+        return nullptr;
     });
     return resultPromise;
 }
@@ -3226,10 +3127,10 @@ T smAwait(PromiseBase* promise) {
     SmAwaitDepthGuard depthGuard;
 
     // 如果已完成，直接返回
-    if (promise->isCompleted()) return promise->result.castTo<T>();
+    if (promise->isCompleted()) return dynAs<T>(promise->result);
     if (promise->isError()) {
         throw DartException("Promise completed with error: " +
-            promise->error.toStringValue());
+            _anyToString(promise->error));
     }
 
     // 如果是 READY，启动回调
@@ -3237,7 +3138,7 @@ T smAwait(PromiseBase* promise) {
         promise->state = PromiseBase::PENDING;
         promise->startCallback();
         promise->startCallback = nullptr;
-        if (promise->isCompleted()) return promise->result.castTo<T>();
+        if (promise->isCompleted()) return dynAs<T>(promise->result);
         if (promise->isError()) {
             throw DartException("Promise completed with error");
         }
@@ -3258,10 +3159,14 @@ T smAwait(PromiseBase* promise) {
 
     if (promise->isError()) {
         throw DartException("Promise completed with error: " +
-            promise->error.toStringValue());
+            _anyToString(promise->error));
     }
 
-    return promise->result.castTo<T>();
+    if constexpr (std::is_same_v<T, AnyGC*>) {
+        return promise->result;
+    } else {
+        return dynAs<T>(promise->result);
+    }
 }
 
 // ── smAwait<void> specialization ──
@@ -3274,7 +3179,7 @@ inline void smAwait<void>(PromiseBase* promise) {
     if (promise->isCompleted()) return;
     if (promise->isError()) {
         throw DartException("Promise completed with error: " +
-            promise->error.toStringValue());
+            _anyToString(promise->error));
     }
     if (promise->isReady() && promise->startCallback) {
         promise->state = PromiseBase::PENDING;
@@ -3296,7 +3201,7 @@ inline void smAwait<void>(PromiseBase* promise) {
     }
     if (promise->isError()) {
         throw DartException("Promise completed with error: " +
-            promise->error.toStringValue());
+            _anyToString(promise->error));
     }
 }
 
@@ -3306,34 +3211,44 @@ inline T smAwait(T value) {
     return value;
 }
 
-// ── smAwait(AnyPtr) overloads — 从 AnyPtr 中提取 PromiseBase* ──
+// ── smAwait(AnyGC*) overloads — 从 AnyGC* 中提取 PromiseBase* ──
 template<typename T>
-inline T smAwait(AnyPtr promiseValue) {
-    PromiseBase* promise = static_cast<PromiseBase*>(promiseValue.toGC());
+inline T smAwait(AnyGC* promiseValue) {
+    // 检查是否真的是 Promise
+    PromiseBase* promise = promiseValue ? dynamic_cast<PromiseBase*>(promiseValue) : nullptr;
+    if (!promise) {
+        // 不是 Promise，直接透传（await non-Future）
+        if constexpr (std::is_same_v<T, AnyGC*>) {
+            return promiseValue;
+        } else {
+            return dynAs<T>(promiseValue);
+        }
+    }
     return smAwait<T>(promise);
 }
 
 template<>
-inline void smAwait<void>(AnyPtr promiseValue) {
-    PromiseBase* promise = static_cast<PromiseBase*>(promiseValue.toGC());
+inline void smAwait<void>(AnyGC* promiseValue) {
+    PromiseBase* promise = promiseValue ? dynamic_cast<PromiseBase*>(promiseValue) : nullptr;
+    if (!promise) return;
     smAwait<void>(promise);
 }
 
-// Overload for AnyPtr passthrough
-inline AnyPtr smAwait(AnyPtr value) {
+// Overload for AnyGC* passthrough
+inline AnyGC* smAwait(AnyGC* value) {
     return value;
 }
 
 // ── promiseDelayed（对齐 Dart promiseDelayed） ──
 
-inline PromiseBase* promiseDelayed(int ticks, std::function<AnyPtr()> computation) {
+inline PromiseBase* promiseDelayed(int ticks, std::function<AnyGC*()> computation) {
     auto* promise = GC::allocateLocal(new PromiseBase());
     GlobalScheduler::instance().registerDelayedTask(ticks, [promise, computation]() {
         try {
-            AnyPtr result = computation();
-            promise->complete(std::move(result));
+            AnyGC* result = computation();
+            promise->complete(result);
         } catch (const std::exception& e) {
-            promise->completeError(AnyPtr::fromString(e.what()));
+            promise->completeError(_box(std::string(e.what())));
         }
     }, promise);
     return promise;
@@ -3353,7 +3268,7 @@ struct AsyncStateMachine : AnyGC {
     virtual bool step() = 0;
 
     void completeWith(T value) { promise->completeTyped(std::move(value)); }
-    void completeWithError(AnyPtr error) { promise->completeError(std::move(error)); }
+    void completeWithError(AnyGC* error) { promise->completeError(error); }
 
     Promise<T>* start() {
         auto* self = this;
@@ -3376,7 +3291,7 @@ template<typename T> void AsyncStateMachine_completeWith(AsyncStateMachine<T>* t
     this__->completeWith(std::move(value));
 }
 template<typename T> void AsyncStateMachine_completeWithError(AsyncStateMachine<T>* this__, AnyGC* error) {
-    this__->completeWithError(AnyPtr::fromGC(error));
+    this__->completeWithError(error);
 }
 template<typename T> Promise<T>* AsyncStateMachine_start(AsyncStateMachine<T>* this__) {
     return this__->start();
@@ -3393,11 +3308,6 @@ template<typename T> AsyncStateMachine<T>* AsyncStateMachine_new(AsyncStateMachi
 // ============================================================================
 // 10. 语义包装 — staticPrint / StaticStringBuffer
 // ============================================================================
-
-/// 替代 Dart 的 print()，将 AnyPtr 转为字符串输出
-inline void staticPrint(const AnyPtr& value) {
-    std::cout << value.toStringValue() << std::endl;
-}
 
 /// 替代 Dart 的 print()，支持各种类型
 inline void staticPrint(int64_t value) {
@@ -3428,7 +3338,7 @@ inline void staticPrint(VPtr* value) {
 /// staticPrint 重载 — 任意 GC 管理的对象指针（StaticList*, StaticMap* 等）
 template<typename T>
 inline typename std::enable_if<std::is_base_of<AnyGC, T>::value &&
-    !std::is_same<T, AnyPtr>::value && !std::is_same<T, VPtr>::value &&
+    !std::is_same<T, VPtr>::value &&
     !std::is_same<T, AnyGC>::value && !std::is_same<T, std::string>::value, void>::type
 staticPrint(T* value) {
     if (!value) {
@@ -3467,8 +3377,8 @@ inline void staticPrint(std::nullptr_t) {
 struct StaticStringBuffer : AnyGC {
     std::ostringstream _buf;
 
-    void write(const AnyPtr& value) {
-        _buf << value.toStringValue();
+    void write(AnyGC* value) {
+        _buf << _anyToString(value);
     }
 
     void write(const std::string& value) {
@@ -3495,8 +3405,8 @@ struct StaticStringBuffer : AnyGC {
         _buf << value << "\n";
     }
 
-    void writeln(const AnyPtr& value) {
-        _buf << value.toStringValue() << "\n";
+    void writeln(AnyGC* value) {
+        _buf << _anyToString(value) << "\n";
     }
 
     std::string toString() const {
@@ -3532,10 +3442,11 @@ bool dart_is(VPtr* obj) {
     return dynamic_cast<T*>(obj) != nullptr;
 }
 
-/// dart_is<T> — AnyPtr 版本
+/// dart_is<T> — AnyGC* 版本
 template<typename T>
-bool dart_is(const AnyPtr& ptr) {
-    VPtr* vp = ptr.toVPtr();
+bool dart_is(AnyGC* obj) {
+    if (!obj) return false;
+    auto* vp = dynamic_cast<VPtr*>(obj);
     if (!vp) return false;
     return dynamic_cast<T*>(vp) != nullptr;
 }
@@ -3552,10 +3463,10 @@ T* dart_cast(VPtr* obj) {
     return result;
 }
 
-/// dart_cast<T> — AnyPtr 版本
+/// dart_cast<T> — AnyGC* 版本
 template<typename T>
-T* dart_cast(const AnyPtr& ptr) {
-    VPtr* vp = ptr.toVPtr();
+T* dart_cast(AnyGC* obj) {
+    auto* vp = dynamic_cast<VPtr*>(obj);
     if (!vp) {
         throw DartException("Type cast failed: null or non-VPtr");
     }
@@ -3571,7 +3482,6 @@ inline bool dart_isNull(const T& v) {
 template<typename T>
 inline bool dart_isNull(T* v) { return v == nullptr; }
 inline bool dart_isNull(std::nullptr_t) { return true; }
-inline bool dart_isNull(const AnyPtr& v) { return v.isNull(); }
 
 // _toStr 重载集（必须在 dart_str 模板之前声明）
 inline std::string _toStr(int64_t v) { return std::to_string(v); }
@@ -3579,15 +3489,19 @@ inline std::string _toStr(int v) { return std::to_string(v); }
 inline std::string _toStr(double v) {
     std::ostringstream oss;
     oss << v;
-    return oss.str();
+    std::string s = oss.str();
+    if (s.find('.') == std::string::npos && s.find('e') == std::string::npos &&
+        s.find('i') == std::string::npos && s.find('n') == std::string::npos) {
+        s += ".0";
+    }
+    return s;
 }
 inline std::string _toStr(bool v) { return v ? "true" : "false"; }
 inline std::string _toStr(const std::string& v) { return v; }
 inline std::string _toStr(const char* v) { return v ? v : "null"; }
-inline std::string _toStr(const AnyPtr& v) { return v.toStringValue(); }
 inline std::string _toStr(VPtr* v) { return v ? v->toString() : "null"; }
 inline std::string _toStr(const VPtr* v) { return v ? const_cast<VPtr*>(v)->toString() : "null"; }
-inline std::string _toStr(AnyGC* v) { return v ? "[AnyGC]" : "null"; }
+inline std::string _toStr(AnyGC* v) { return v ? v->toString() : "null"; }
 inline std::string _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
 inline std::string _toStr(const std::exception& e) { return e.what(); }
 inline std::string _toStr(const DartException& e) { return e.toString(); }
@@ -3595,7 +3509,7 @@ inline std::string _toStr(std::nullptr_t) { return "null"; }
 inline std::string _toStr(const ReachabilityError& v) { return v.toStringValue(); }
 // 指针类型 _toStr — 处理任意指针（StaticList*, StaticMap* 等）
 template<typename T>
-inline typename std::enable_if<std::is_base_of<AnyGC, T>::value && !std::is_same<T, AnyPtr>::value, std::string>::type
+inline typename std::enable_if<std::is_base_of<AnyGC, T>::value, std::string>::type
 _toStr(T* v) {
     if (!v) return "null";
     // 如果 T 继承 VPtr，调用 toString()
@@ -3774,6 +3688,7 @@ struct StaticDateTime : AnyGC {
 
     StaticDateTime() : _epochMs(0) {}
     StaticDateTime(int64_t epochMs) : _epochMs(epochMs) {}
+    StaticDateTime& operator=(AnyGC* v) { _epochMs = v ? dynAs<int64_t>(v) : 0; return *this; }
 
     static StaticDateTime now() {
         auto now = std::chrono::system_clock::now();

@@ -1,0 +1,74 @@
+═══════════════════════════════════════════
+ 状态机协程验证测试
+═══════════════════════════════════════════
+
+--- Demo 1: 基础 await (Promise.value) ---
+  [LOG] smAwait: waiting for future (completed=true)
+  [LOG] smAwait: future resolved with value after 0 ticks
+  ✓ smAwait(Promise.value(42)) = 42
+
+--- Demo 2: 延迟 Future ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG] smAwait: future resolved with value after 3 ticks
+  ✓ smAwait(delayed(3 ticks)) = "hello after delay"
+
+--- Demo 3: 多 await 串行 (addAsync(10, 20)) ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG]   AddAsync(10,20): state 0→1, created value future for 10
+  [LOG]   AddAsync(10,20): state 1→2, got x=10, created delayed future for 20
+  [LOG]   AddAsync(10,20): state 2→done, got y=20, result=30
+  [LOG] smAwait: future resolved with value after 4 ticks
+  ✓ addAsync(10, 20) = 30
+
+--- Demo 4: 嵌套异步调用 ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG]   OuterAsync: state 0→1, created value future
+  [LOG]   OuterAsync: state 1→2, prefix=result:, started InnerAsync
+  [LOG]   InnerAsync: state 0→1, created delayed future
+  [LOG]   InnerAsync: state 1→done, val=inner → INNER
+  [LOG]   OuterAsync: state 2→done, inner=INNER
+  [LOG] smAwait: future resolved with value after 5 ticks
+  ✓ outerAsync() = "result: INNER"
+
+--- Demo 5: then 链式调用 ---
+  [LOG] smAwait: waiting for future (completed=true)
+  [LOG] smAwait: future resolved with value after 0 ticks
+  ✓ Promise.value(5).then(*2).then(format) = "value=10"
+
+--- Demo 6: 异常处理 ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG]   ErrorSM: state 0→1, created delayed future (will throw)
+  [LOG]   ErrorSM: state 1→done, caught error
+  [LOG] smAwait: future resolved with value after 2 ticks
+  ✓ error caught and recovered: "caught: something went wrong"
+
+--- Demo 7: 并行 await (Future.wait 模拟) ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG]   ParallelSM: state 0→1, created 3 delayed futures
+  [LOG]   ParallelSM: state 1→done, all futures completed: [10, 20, 30]
+  [LOG] smAwait: future resolved with value after 4 ticks
+  ✓ parallel([d3→10, d2→20, d1→30]) = [10, 20, 30]
+
+--- Demo 8: 多层嵌套管道 pipeline ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG]   PipelineSM: state 0→1, started ComputeStep(1)
+  [LOG]   ComputeStep(1): state 0→1
+  [LOG]   ComputeStep(1): state 1→done, result=2
+  [LOG]   PipelineSM: state 1→2, a=2, started ComputeStep(2)
+  [LOG]   ComputeStep(2): state 0→1
+  [LOG]   ComputeStep(2): state 1→done, result=4
+  [LOG]   PipelineSM: state 2→3, b=4, started ComputeStep(4)
+  [LOG]   ComputeStep(4): state 0→1
+  [LOG]   ComputeStep(4): state 1→done, result=8
+  [LOG]   PipelineSM: state 3→done, c=8, sum=14
+  [LOG] smAwait: future resolved with value after 7 ticks
+  ✓ pipeline(1→2→4→8, sum=14) = 14
+
+--- Demo 9: tick 计数验证 ---
+  [LOG] smAwait: waiting for future (completed=false)
+  [LOG] smAwait: future resolved with value after 5 ticks
+  ✓ delayed(5 ticks) completed in 5 ticks, result=99
+
+═══════════════════════════════════════════
+ ✅ 全部 9 个测试通过！
+═══════════════════════════════════════════

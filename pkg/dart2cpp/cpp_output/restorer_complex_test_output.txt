@@ -1,0 +1,66 @@
+=== 复杂语法节点还原测试 ===
+
+--- 1. 泛型类 Pair ---
+pair: (hello, 42)
+swapped: (42, hello)
+
+--- 2. 继承 + 多态 ---
+  Circle(area=78.54), perimeter=31.42
+  Rectangle(area=12.00), perimeter=14.00
+  Circle(area=3.14), perimeter=6.28
+
+--- 3. getter/setter + 异常 ---
+radius after set: 5.0
+Caught expected error: ArgumentError: Radius must be non-negative
+
+--- 4. 枚举 + switch ---
+  Direction.north -> N
+  Direction.east -> E
+  Direction.south -> S
+
+--- 5. 扩展方法 ---
+capitalize: Hello
+isPalindrome("racecar"): true
+isPalindrome("hello"): false
+evens: [2, 4, 6]
+
+--- 6. 泛型函数 ---
+identity<int>(99): 99
+repeat("x", 3): [x, x, x]
+
+--- 7. 高阶函数 + 闭包 ---
+add10(5): 15
+doubled: [2, 4, 6, 8]
+counter: 1, 2, 3
+
+--- 8. 可空类型 ---
+found: banana
+notFound: 
+safeLength(null): 0
+safeLength("dart"): 4
+
+--- 9. 集合操作 ---
+filtered map: {b: 2, c: 3}
+intersection: {3, 4}
+
+--- 10. 字符串插值 ---
+Hello, Dart 3!
+Sum: 6, Upper: DART
+
+--- 11. 条件表达式 + 类型检查 ---
+typeLabel: integer
+
+--- 12. 循环语句 ---
+sum 1..5: 15
+5! = 120
+doCount: 3
+
+--- 13. try/catch/finally ---
+result: try+catch(test error)+finally
+
+--- 14. 集合字面量 ---
+constList: [1, 2, 3]
+constMap: {}
+constSet: {10, 20, 30}
+
+=== 所有测试通过 ✅ ===

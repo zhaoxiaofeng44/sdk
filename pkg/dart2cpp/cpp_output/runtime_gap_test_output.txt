@@ -1,0 +1,82 @@
+=== 1. Spread ===
+[1, 2, 3, 4, 5, 6]
+{a: 1, b: 2}
+
+=== 2. Collection If/For ===
+[1, 2, 3, 4, 5]
+
+=== 3. Cascade ===
+Hello, Alice
+Alice
+
+=== 4. Null-aware ===
+default
+0
+assigned
+
+=== 5. Late ===
+initialized
+
+=== 6. Async ===
+42
+hello
+done
+
+=== 7. Generators ===
+[1, 2, 3]
+[1, 2, 3]
+
+=== 8. Enum ===
+red
+1
+
+=== 9. Extension ===
+Hello
+
+=== 10. Records ===
+hello, 42
+Alice, 30
+
+=== 11. Pattern Matching ===
+matched
+1, 2
+
+=== 12. Sealed Classes ===
+78.5
+16
+
+=== 13. Operators ===
+(4.0, 6.0)
+(2.0, 4.0)
+
+=== 14. Static ===
+2
+
+=== 15. Abstract ===
+Woof!
+
+=== 16. Mixin ===
+Flying!
+Swimming!
+Quack!
+
+=== 17. Generic Bounds ===
+5
+banana
+
+=== 18. Typedef ===
+true
+
+=== 19. Assert ===
+assert passed
+
+=== 20. Labels ===
+0, 0
+0, 1
+0, 2
+1, 0
+2, 0
+2, 1
+2, 2
+
+=== All tests completed ===

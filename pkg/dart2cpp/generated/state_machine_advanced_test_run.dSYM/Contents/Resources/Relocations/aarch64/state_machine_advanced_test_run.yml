@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     'generated/state_machine_advanced_test_run'
+relocations:     []
+...

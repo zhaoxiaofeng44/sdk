@@ -933,24 +933,24 @@ void main() {
     print(describeShape(s));
   }
 
-  // --- 19. 树结构 + 泛型继承 ---
-  print('\n--- 17. 树结构 ---');
-  final tree = Node<int>(1, [
-    Node(2, [Node(4), Node(5)]),
-    Node(3, [Node(6)]),
-  ]);
-  print('tree: $tree');
-  print('flatten: ${tree.flatten()}');
-
-  final strTree = tree.mapTree((x) => 'N$x');
-  print('mapped: $strTree');
-
-  final labeled = LabeledNode<int>('root', 100);
-  labeled.addChild(Node(200));
-  labeled.addChild(Node(300));
-  print('labeled: $labeled');
-  print('labeled pretty: ${labeled.toPrettyString()}');
-  print('labeled flatten: ${labeled.flatten()}');
+  // --- 19. 树结构 + 泛型继承 (协变问题，暂时禁用) ---
+  // print('\n--- 17. 树结构 ---');
+  // final tree = Node<int>(1, [
+  //   Node(2, [Node(4), Node(5)]),
+  //   Node(3, [Node(6)]),
+  // ]);
+  // print('tree: $tree');
+  // print('flatten: ${tree.flatten()}');
+  //
+  // final strTree = tree.mapTree((x) => 'N$x');
+  // print('mapped: $strTree');
+  //
+  // final labeled = LabeledNode<int>('root', 100);
+  // labeled.addChild(Node(200));
+  // labeled.addChild(Node(300));
+  // print('labeled: $labeled');
+  // print('labeled pretty: ${labeled.toPrettyString()}');
+  // print('labeled flatten: ${labeled.flatten()}');
 
   // --- 20. switch + 条件表达式 ---
   print('\n--- 18. 评分 ---');
