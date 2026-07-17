@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     'cpp_output/restorer_advanced_test_restored_asan'
-relocations:     []
-...

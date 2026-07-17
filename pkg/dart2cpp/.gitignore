@@ -38,6 +38,17 @@ test_output/
 a.out
 *.exe
 
+# Generated code (from convert tools)
+generated/
+cpp_output/
+sample/output/
+
+# Debug symbols and test binaries
+*.dSYM/
+*_asan
+*_debug
+*_run
+
 # Temporary tools
 tool/*_temp.dart
 tool/test_*.dart
