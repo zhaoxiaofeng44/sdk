@@ -1,6 +1,6 @@
 /// Dart2Cpp restorer 运行时基础类定义
 ///
-/// 包含 VPtr 虚函数表基类、TypeFunction 函数值基类族、Box 类型（闭包引用语义）。
+/// 包含 AnyGC 基类（GC 管理 + 虚函数表桥接）、TypeFunction 函数值基类族、Box 类型（闭包引用语义）。
 /// 由 dart_restorer 生成的还原代码通过 import 引入本文件。
 ///
 /// 注意：本文件完全不依赖 dart:collection，所有集合类自行实现。
@@ -23,7 +23,6 @@
 
 abstract class TypeFunction extends AnyGC {
   TypeFunction();
-  late dynamic closureCall;
 }
 
 abstract class TypeFunction0<R> extends TypeFunction {
@@ -126,7 +125,7 @@ abstract class TypeFunction16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T
 }
 
 // ============================================================================
-// AnyGC 基类 — 所有需要 GC 管理的类型（VPtr / Box）的公共基类
+// AnyGC 基类 — 所有需要 GC 管理的类型（Value 类 / Box）的公共基类
 // ----------------------------------------------------------------------------
 // 提供 _gcFlag 标记位和 gcMark 方法，供标记-清除 GC 使用。
 // 子类应覆写 gcMark，在其中递归标记自身持有的 AnyGC 子对象。
@@ -138,9 +137,9 @@ abstract class AnyGC {
   /// 使用公开字段以便跨 library 的 restored 代码子类可以访问。
   int gcFlag = 0;
 
-  /// 闭包调用入口。TypeFunction 子类会将其覆写为实际的静态调用函数。
+  /// 函数指针入口。TypeFunction 子类会将其覆写为实际的静态调用函数。
   /// 对于非闭包类型，访问此字段会返回 null，调用时抛出 NoSuchMethodError。
-  dynamic closureCall;
+  dynamic fnPtr;
 
   /// 标记当前对象为存活。子类覆写时应先调用 super，再递归标记子对象。
   /// [flag] 是本轮 GC 的标记值，避免每轮都要重置所有对象的 flag。
@@ -149,9 +148,41 @@ abstract class AnyGC {
     gcFlag = flag;
   }
 
-  /// vptr 调度表。默认返回空 Map，子类（如 VPtr）应覆写以提供实际的调度表。
+  /// 结构化虚表。Value 子类覆写此 getter，返回 per-type 共享的静态 ClassInfo
+  ///（通过静态 `_classInfo` 字段惰性初始化，所有实例共享同一份虚函数表）。
+  /// Box / TypeFunction 等非 Value 类型没有虚表，默认返回 null。
+  ClassInfo? get classInfo => null;
+
+  /// map 形式的兜底调度表。默认返回空 Map，子类可覆写以提供实际的调度表。
   /// 这使得 AnyGC 类型的变量可以参与 vptr 调度，类似于 dynamic 的行为。
   Map<String, dynamic> get vptr => <String, dynamic>{};
+
+  @override
+  String toString() {
+    final fn = classInfo?.toString_;
+    if (fn != null) return fn(this);
+    final mapFn = vptr['toString'];
+    if (mapFn != null) return (mapFn as Function)(this) as String;
+    return super.toString();
+  }
+
+  @override
+  bool operator ==(Object other) {
+    final fn = classInfo?.operatorEq;
+    if (fn != null) return fn(this, other);
+    final mapFn = vptr['operatorEq'];
+    if (mapFn != null) return (mapFn as Function)(this, other) as bool;
+    return identical(this, other);
+  }
+
+  @override
+  int get hashCode {
+    final fn = classInfo?.get_hashCode;
+    if (fn != null) return fn(this);
+    final mapFn = vptr['get_hashCode'];
+    if (mapFn != null) return (mapFn as Function)(this) as int;
+    return super.hashCode;
+  }
 
   /// 动态方法/属性访问的兜底处理。当 AnyGC 子类没有定义某个方法或属性时，
   /// 通过 noSuchMethod 转发到 vptr 调度表，实现类似 dynamic 的行为。
@@ -263,41 +294,14 @@ class GC {
   }
 }
 
-/// VPtr 基类 - 所有无基类（或继承自 Object）的 Value 类都继承自它。
-/// 提供 vptr 抽象 getter 和 toString/operator==/hashCode 的桥接覆写。
-///
-/// 每个具体 Value 类通过静态 `_vptr` 字段实现 per-type 共享的 vptr，
-/// 惰性初始化，所有实例共享同一份虚函数表。
-///
-/// 注：vptr 槽里存的函数现在统一是 TypeFunctionN 子类实例（由还原器生成的
-/// 各种 _Closure_ / _TearOff_ 类）。这里用对应 arity 的 TypeFunctionN 做
-/// cast，避免出现 `Function` 字面量。
-abstract class VPtr extends AnyGC {
-  /// 子类必须实现此 getter，返回 per-type 共享的静态 vptr。
-  Map<String, dynamic> get vptr;
-
-  VPtr();
-
-  @override
-  String toString() {
-    final fn = vptr['toString'];
-    if (fn != null) return (fn as Function)(this) as String;
-    return super.toString();
-  }
-  @override
-  bool operator ==(Object other) {
-    final fn = vptr['operatorEq'];
-    if (fn != null) {
-      return (fn as Function)(this, other) as bool;
-    }
-    return identical(this, other);
-  }
-  @override
-  int get hashCode {
-    final fn = vptr['get_hashCode'];
-    if (fn != null) return (fn as Function)(this) as int;
-    return super.hashCode;
-  }
+/// ClassInfo 基类 — 结构化虚表（替代 Map-based vptr）
+/// 每个属性都是真实函数类型，调用时无需 as 转换。
+class ClassInfo {
+  String Function(AnyGC)? toString_;
+  bool Function(AnyGC, Object)? operatorEq;
+  int Function(AnyGC)? get_hashCode;
+  void Function(AnyGC, int)? gcMark;
+  String Function(AnyGC)? get_runtimeType;
 }
 
 /// Box 类型定义（闭包引用语义）

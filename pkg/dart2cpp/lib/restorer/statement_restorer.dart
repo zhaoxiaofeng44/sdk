@@ -446,10 +446,10 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
       ..writeln('class $envClassName extends TypeFunction$arity<$typeArgsListStr> {')
       ..writeln('  $envClassName();')
       ..writeln('  @override')
-      ..writeln('  $returnType call($callSig) => closureCall(${paramNames.isEmpty ? 'this' : 'this, ${paramNames.join(', ')}'});')
+      ..writeln('  $returnType call($callSig) => fnPtr(${paramNames.isEmpty ? 'this' : 'this, ${paramNames.join(', ')}'});')
       ..writeln('}')
       ..writeln('$envClassName $newFuncName($envClassName env_) {')
-      ..writeln('  env_.closureCall = $staticCallName;')
+      ..writeln('  env_.fnPtr = $staticCallName;')
       ..writeln('  return env_;')
       ..writeln('}');
 

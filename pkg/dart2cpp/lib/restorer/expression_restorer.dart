@@ -216,10 +216,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   }
 
   /// `obj.method`（不带括号）实例方法 tear-off。
-  /// OOP lowering 后用户方法都是按 vptr 分发的静态函数，tear-off 必须捕获
+  /// OOP lowering 后用户方法都是按 ClassInfo 分发的静态函数，tear-off 必须捕获
   /// receiver 并保留虚分发语义。这里合成一个 `ClosureEnv_*` 子类（继承
   /// `TypeFunctionN<R, T...>`），把 receiver 存为字段，`call(...)` 体内
-  /// 走 `(_r.vptr['name'] as R Function(dynamic, T...))(...)`。
+  /// 走 `((_r.classInfo as XxxClassInfo).name as R Function(dynamic, T...))(...)`。
   String _restoreInstanceTearOff(InstanceTearOff expr) {
     final target = expr.interfaceTarget;
     final func = target.function;
@@ -261,7 +261,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       ..writeln('  late dynamic _r;')
       ..writeln('  $envClassName();')
       ..writeln('  @override')
-      ..writeln('  $returnType call($callSig) => closureCall($tearOffCallArgs);')
+      ..writeln('  $returnType call($callSig) => fnPtr($tearOffCallArgs);')
       ..writeln('  @override')
       ..writeln('  void gcMark(int flag) {')
       ..writeln('    if (gcFlag == flag) return;')
@@ -270,17 +270,18 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       ..writeln('  }')
       ..writeln('}')
       ..writeln('$envClassName $newFuncName($envClassName env_, dynamic _r) {')
-      ..writeln('  env_.closureCall = $staticCallName;')
+      ..writeln('  env_.fnPtr = $staticCallName;')
       ..writeln('  env_._r = _r;')
       ..writeln('  return env_;')
       ..writeln('}');
     // _call 静态函数：第一个参数为 dynamic，内部 cast
     if (isVptrTarget) {
+      // mixin 没有独立的 ClassInfo 类（方法合并进具体用户类），回退到 dynamic 派发
+      final classInfoName = _isUserClass(receiverClassName) ? '${receiverClassName}ClassInfo' : 'dynamic';
       decl.writeln('$returnType $staticCallName(AnyGC env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
       decl.writeln('  final _r = (env__ as $envClassName)._r;');
-      final vptrSigParams = [_thisParamType, ...paramTypes].join(', ');
       final invokeArgs = ['_r', ...paramNames].join(', ');
-      decl.writeln("  return (_r.vptr['$methodName'] as $returnType Function($vptrSigParams))($invokeArgs);");
+      decl.writeln("  return (_r.classInfo as $classInfoName).$methodName!($invokeArgs);");
       decl.writeln('}');
     } else {
       decl.writeln('$returnType $staticCallName(AnyGC env__${paramNames.isEmpty ? '' : ', ${callSig}'}) {');
@@ -426,23 +427,70 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return false;
   }
 
-  /// 生成 vptr 方法调用，处理复杂接收者避免重复求值
-  /// 如果接收者是简单的：直接生成 (recv.vptr['method'] as sig)(recv, args)
-  /// 如果接收者是复杂的：使用 IIFE 包装避免重复求值
-  String _emitVptrMethodCall(String recv, Expression recvExpr, String vtableField, String sig, String args) {
-    if (_isSimpleExpression(recvExpr)) {
-      // 简单接收者，可以直接重复使用
-      if (args.isEmpty) {
-        return "($recv.vptr['$vtableField'] as $sig)($recv)";
-      }
-      return "($recv.vptr['$vtableField'] as $sig)($recv, $args)";
+  /// 生成 ClassInfo 方法调用，处理复杂接收者避免重复求值
+  /// 字段已有真实函数类型，无需 as 转换，只需 ! 非空断言
+  String _emitVptrMethodCall(String recv, Expression recvExpr, String vtableField, String sig, String args, {String? classInfoName}) {
+    var ciName = classInfoName ?? _classInfoNameForReceiver(recvExpr);
+    // 回退到基类 ClassInfo 时，非基类固定字段（如 mixin 引入的 get_xxx）
+    // 只存在于具体子类上，改用 dynamic 派发在运行期解析
+    const baseClassInfoFields = {
+      'toString_', 'operatorEq', 'get_hashCode', 'get_runtimeType', 'gcMark',
+    };
+    if (ciName == 'ClassInfo' && !baseClassInfoFields.contains(vtableField)) {
+      ciName = 'dynamic';
     }
-    // 复杂接收者，使用 IIFE 避免重复求值
+    if (_isSimpleExpression(recvExpr)) {
+      if (args.isEmpty) {
+        return "($recv.classInfo as $ciName).$vtableField!($recv)";
+      }
+      return "($recv.classInfo as $ciName).$vtableField!($recv, $args)";
+    }
     final tmpVar = '_r${_varCounter++}';
     if (args.isEmpty) {
-      return "(() { final $tmpVar = $recv; return ($tmpVar.vptr['$vtableField'] as $sig)($tmpVar); })()";
+      return "(() { final $tmpVar = $recv; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar); })()";
     }
-    return "(() { final $tmpVar = $recv; return ($tmpVar.vptr['$vtableField'] as $sig)($tmpVar, $args); })()";
+    return "(() { final $tmpVar = $recv; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar, $args); })()";
+  }
+
+  /// 根据接收者表达式的静态类型推断具体的 ClassInfo 类名。
+  /// vtable 字段声明在具体的 XxxClassInfo 子类上，基类 ClassInfo 只有固定字段，
+  /// 因此派发时必须 cast 到具体子类；无法确定时回退到基类 ClassInfo。
+  String _classInfoNameForReceiver(Expression recvExpr) {
+    final className = _getReceiverClassNameFromReceiver(recvExpr, null) ??
+        _classNameFromExprType(recvExpr);
+    if (className != null && _isUserClass(className)) {
+      return '${className}ClassInfo';
+    }
+    return 'ClassInfo';
+  }
+
+  /// 从表达式的静态类型提取用户类名（处理 InstanceGet / InstanceInvocation 等
+  /// _getReceiverClassNameFromReceiver 未覆盖的表达式形态）
+  String? _classNameFromExprType(Expression expr) {
+    if (expr is NullCheck) {
+      return _classNameFromExprType(expr.operand);
+    }
+    DartType? type;
+    if (expr is InstanceGet) {
+      type = expr.resultType;
+    } else if (expr is InstanceInvocation) {
+      final target = expr.interfaceTarget;
+      if (target is Procedure) {
+        type = target.function.returnType;
+      }
+    } else if (expr is InstanceTearOff) {
+      type = expr.resultType;
+    }
+    if (type is InterfaceType) {
+      final rawName = type.classNode.name;
+      if (rawName.endsWith('Value')) {
+        final className = rawName.substring(0, rawName.length - 5);
+        if (_isUserClass(className)) return className;
+      }
+      final className = _getActualClassName(rawName);
+      if (_isUserClass(className)) return className;
+    }
+    return null;
   }
 
   String _restoreInstanceInvocation(InstanceInvocation expr) {
@@ -540,7 +588,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // Lowered ABI：positional 缺省值 + named 都按声明顺序铺平为 positional，
     // 调用方补默认值。
     final fullArgs = _restoreFlattenedArgs(targetFunc, expr.arguments);
-    return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, fullArgs);
+    // mixin 没有独立的 ClassInfo 类（方法合并进具体用户类），回退到 dynamic 派发
+    final ciName = _isUserClass(receiverClassName) ? '${receiverClassName}ClassInfo' : null;
+    return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, fullArgs, classInfoName: ciName);
   }
 
   /// 还原私有方法调用
@@ -942,12 +992,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String _restoreFunctionInvocation(FunctionInvocation expr) {
     final recv = _restoreExpr(expr.receiver);
     final args = _restoreArgs(expr.arguments);
-    // 闭包调用：通过 closureCall 间接调用
-    // recv.closureCall(recv, args)
+    // 闭包调用：通过 call() 间接调用
+    // recv.call(args) — emitter converts to dynCall()
     if (args.isEmpty) {
-      return '$recv.closureCall($recv)';
+      return '$recv.call()';
     }
-    return '$recv.closureCall($recv, $args)';
+    return '$recv.call($args)';
   }
 
   String _restoreDynamicInvocation(DynamicInvocation expr) {
@@ -1905,7 +1955,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // call 方法
     final callArgs = callArgStr.isEmpty ? 'this' : 'this, $callArgStr';
     if (callIsOverride) declBuf.write('  @override\n');
-    declBuf.write('  $returnType call($callParamStr) => closureCall($callArgs);\n');
+    declBuf.write('  $returnType call($callParamStr) => fnPtr($callArgs);\n');
 
     // gcMark 覆写
     if (capturedFields.isNotEmpty) {
@@ -1932,7 +1982,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       newParams.add('${field.typeStr} ${field.name}');
     }
     declBuf.write('$envClassWithTypeParams $newFuncName$typeParamDeclStr(${newParams.join(', ')}) {\n');
-    declBuf.write('  env_.closureCall = ${envClassName}_call$typeParamStr;\n');
+    declBuf.write('  env_.fnPtr = ${envClassName}_call$typeParamStr;\n');
     for (final field in capturedFields) {
       declBuf.write('  env_.${field.name} = ${field.name};\n');
     }

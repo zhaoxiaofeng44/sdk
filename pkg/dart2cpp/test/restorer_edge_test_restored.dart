@@ -1,17 +1,18 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
-class LazyConfigValue extends VPtr {
+class LazyConfigClassInfo extends ClassInfo {
+}
+
+class LazyConfigValue extends AnyGC {
   late String computed = LazyConfig__expensiveInit(this);
   late int counter = LazyConfig__nextId();
   late String name;
-  static Map<String, dynamic>? vptrMap;
+  static LazyConfigClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static LazyConfigClassInfo _initClassInfo() {
+    final ci = LazyConfigClassInfo();
+    return ci;
   }
 }
 
@@ -32,19 +33,21 @@ String LazyConfig__expensiveInit(AnyGC this__) {
 }
 
 
-class LateWithDependencyValue extends VPtr {
+class LateWithDependencyClassInfo extends ClassInfo {
+  Function? describe;
+}
+
+class LateWithDependencyValue extends AnyGC {
   late int base = 10;
   late int doubled = (this.base * 2);
   late String label = 'val=${this.doubled}';
-  static Map<String, dynamic>? vptrMap;
+  static LateWithDependencyClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['describe'] = LateWithDependency_describe;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static LateWithDependencyClassInfo _initClassInfo() {
+    final ci = LateWithDependencyClassInfo();
+    ci.describe = LateWithDependency_describe;
+    return ci;
   }
 }
 
@@ -69,7 +72,7 @@ Promise<void> Logger_logAsync(AnyGC this__, String msg) {
 
 void Logger_logSync(AnyGC this__, String msg) {
   final dynamic this_ = this__;
-  (this_.vptr['get_messages'] as StaticList<String> Function(AnyGC))(this_).add('[sync] ${msg}');
+  (this_.classInfo as dynamic).get_messages!(this_).add('[sync] ${msg}');
 }
 
 
@@ -82,22 +85,24 @@ Promise<bool> Validator_validateAsync<T>(AnyGC this__, T value) {
 }
 
 
+class ServiceClassInfo extends Service_Object_Logger_ValidatorClassInfo {
+  Function? process;
+}
+
 class ServiceValue extends Service_Object_Logger_ValidatorValue {
   late StaticList<String> messages = StaticList<String>();
-  static Map<String, dynamic>? vptrMap;
+  static ServiceClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(Service_Object_Logger_ValidatorValue.getVptrMap());
-      vptrMap!['get_messages'] = Service_get_messages;
-      vptrMap!['logAsync'] = Service_logAsync;
-      vptrMap!['logSync'] = Service_logSync;
-      vptrMap!['validate'] = Service_validate;
-      vptrMap!['validateAsync'] = Service_validateAsync;
-      vptrMap!['process'] = Service_process;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ServiceClassInfo _initClassInfo() {
+    final ci = ServiceClassInfo();
+    ci.get_messages = Service_get_messages;
+    ci.logAsync = Service_logAsync;
+    ci.logSync = Service_logSync;
+    ci.validate = Service_validate;
+    ci.validateAsync = Service_validateAsync;
+    ci.process = Service_process;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -145,24 +150,29 @@ Promise<bool> Service_validateAsync(AnyGC this__, String value) {
 }
 
 
-class Vector2DValue extends VPtr {
+class Vector2DClassInfo extends ClassInfo {
+  Function? operatorPlus;
+  Function? operatorMinus;
+  Function? operatorStar;
+  Function? magnitude;
+}
+
+class Vector2DValue extends AnyGC {
   late double x;
   late double y;
-  static Map<String, dynamic>? vptrMap;
+  static Vector2DClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['operatorPlus'] = Vector2D_operatorPlus;
-      vptrMap!['operatorMinus'] = Vector2D_operatorMinus;
-      vptrMap!['operatorStar'] = Vector2D_operatorStar;
-      vptrMap!['operatorEq'] = Vector2D_operatorEq;
-      vptrMap!['get_hashCode'] = Vector2D_get_hashCode;
-      vptrMap!['magnitude'] = Vector2D_magnitude;
-      vptrMap!['toString'] = Vector2D_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Vector2DClassInfo _initClassInfo() {
+    final ci = Vector2DClassInfo();
+    ci.operatorPlus = Vector2D_operatorPlus;
+    ci.operatorMinus = Vector2D_operatorMinus;
+    ci.operatorStar = Vector2D_operatorStar;
+    ci.operatorEq = Vector2D_operatorEq;
+    ci.get_hashCode = Vector2D_get_hashCode;
+    ci.magnitude = Vector2D_magnitude;
+    ci.toString_ = Vector2D_toString;
+    return ci;
   }
 }
 
@@ -209,9 +219,15 @@ String Vector2D_toString(AnyGC this__) {
 }
 
 
-class RepositoryValue<T> extends VPtr {
+class RepositoryClassInfo<T> extends ClassInfo {
+  Function? findById;
+  Function? findAll;
+  Function? save;
+}
+
+class RepositoryValue<T> extends AnyGC {
   @override
-  Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+  ClassInfo get classInfo => RepositoryClassInfo<T>();
 }
 
 RepositoryValue<T> Repository_new<T>(AnyGC this__) {
@@ -232,17 +248,20 @@ Promise<void> Repository_save<T>(dynamic this_, String id, T item) {
 }
 
 
-class CacheableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class CacheableClassInfo extends ClassInfo {
+  Function? isCached;
+  Function? invalidate;
+}
+
+class CacheableValue extends AnyGC {
+  static CacheableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['isCached'] = Cacheable_isCached;
-      vptrMap!['invalidate'] = Cacheable_invalidate;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static CacheableClassInfo _initClassInfo() {
+    final ci = CacheableClassInfo();
+    ci.isCached = Cacheable_isCached;
+    ci.invalidate = Cacheable_invalidate;
+    return ci;
   }
 }
 
@@ -279,31 +298,23 @@ Promise<T?> InMemoryCache_cachedFindById<T>(AnyGC this__, String id) {
 }
 
 
+class ItemRepoClassInfo extends ItemRepo_Repository_InMemoryCacheClassInfo {
+}
+
 class ItemRepoValue extends ItemRepo_Repository_InMemoryCacheValue {
   late StaticMap<String, String> _store = StaticMap<String, String>.of({});
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static ItemRepoClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ItemRepoValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['findById'] = ItemRepo_findById;
-    target['findAll'] = ItemRepo_findAll;
-    target['save'] = ItemRepo_save;
-    target['isCached'] = ItemRepo_isCached;
-    target['invalidate'] = ItemRepo_invalidate;
-    target['cachedFindById'] = ItemRepo_cachedFindById;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ItemRepoClassInfo _initClassInfo() {
+    final ci = ItemRepoClassInfo();
+    ci.findById = ItemRepo_findById;
+    ci.findAll = ItemRepo_findAll;
+    ci.save = ItemRepo_save;
+    ci.isCached = ItemRepo_isCached;
+    ci.invalidate = ItemRepo_invalidate;
+    ci.cachedFindById = ItemRepo_cachedFindById;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -356,19 +367,20 @@ Promise<String?> ItemRepo_cachedFindById(AnyGC this__, String id) {
 }
 
 
-class ConfigValue extends VPtr {
+class ConfigClassInfo extends ClassInfo {
+}
+
+class ConfigValue extends AnyGC {
   late String env;
   late int port;
   late bool debug;
-  static Map<String, dynamic>? vptrMap;
+  static ConfigClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['toString'] = Config_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ConfigClassInfo _initClassInfo() {
+    final ci = ConfigClassInfo();
+    ci.toString_ = Config_toString;
+    return ci;
   }
 }
 
@@ -398,28 +410,35 @@ String Config_toString(AnyGC this__) {
 }
 
 
-class Service_Object_LoggerValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class Service_Object_LoggerClassInfo extends ClassInfo {
+  Function? get_messages;
+  Function? logAsync;
+  Function? logSync;
+}
+
+class Service_Object_LoggerValue extends AnyGC {
+  static Service_Object_LoggerClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Service_Object_LoggerClassInfo _initClassInfo() {
+    final ci = Service_Object_LoggerClassInfo();
+    return ci;
   }
 }
 
 
+class Service_Object_Logger_ValidatorClassInfo extends Service_Object_LoggerClassInfo {
+  Function? validate;
+  Function? validateAsync;
+}
+
 class Service_Object_Logger_ValidatorValue extends Service_Object_LoggerValue {
-  static Map<String, dynamic>? vptrMap;
+  static Service_Object_Logger_ValidatorClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(Service_Object_LoggerValue.getVptrMap());
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Service_Object_Logger_ValidatorClassInfo _initClassInfo() {
+    final ci = Service_Object_Logger_ValidatorClassInfo();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -429,25 +448,20 @@ class Service_Object_Logger_ValidatorValue extends Service_Object_LoggerValue {
 }
 
 
+class ItemRepo_Repository_InMemoryCacheClassInfo extends RepositoryClassInfo<String> {
+  Function? isCached;
+  Function? invalidate;
+  Function? cachedFindById;
+}
+
 class ItemRepo_Repository_InMemoryCacheValue extends RepositoryValue<String> {
   late StaticMap<String, String> _cache = StaticMap<String, String>.of({});
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static ItemRepo_Repository_InMemoryCacheClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ItemRepo_Repository_InMemoryCacheValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ItemRepo_Repository_InMemoryCacheClassInfo _initClassInfo() {
+    final ci = ItemRepo_Repository_InMemoryCacheClassInfo();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -724,7 +738,7 @@ void main() {
   staticPrint('  computed: ${cfg.computed}');
   staticPrint('  counter: ${cfg.counter}');
   final LateWithDependencyValue dep = LateWithDependency_new(GC.allocateLocal(LateWithDependencyValue()));
-  staticPrint('  describe: ${(dep.vptr['describe'] as String Function(AnyGC))(dep)}');
+  staticPrint('  describe: ${(dep.classInfo as LateWithDependencyClassInfo).describe!(dep)}');
   staticPrint('\n--- 4. await non-Future ---');
   staticPrint('  awaitNonFuture: ${smAwait(awaitNonFuture())}');
   staticPrint('  awaitMixed: ${smAwait(awaitMixed())}');
@@ -737,17 +751,17 @@ void main() {
   staticPrint('  nestedClosureAsync: ${smAwait(nestedClosureAsync())}');
   staticPrint('\n--- 7. mixin + async ---');
   final ServiceValue svc = Service_new(GC.allocateLocal(ServiceValue()));
-  final String r = smAwait((svc.vptr['process'] as Promise<String> Function(AnyGC, String))(svc, 'hello'));
+  final String r = smAwait((svc.classInfo as ServiceClassInfo).process!(svc, 'hello'));
   staticPrint('  process result: ${r}');
   staticPrint('  messages: ${svc.messages}');
-  final String invalidResult = smAwait((svc.vptr['process'] as Promise<String> Function(AnyGC, String))(svc, ''));
+  final String invalidResult = smAwait((svc.classInfo as ServiceClassInfo).process!(svc, ''));
   staticPrint('  invalid result: ${invalidResult}');
   staticPrint('\n--- 8. operators ---');
   final Vector2DValue v1 = Vector2D_new(GC.allocateLocal(Vector2DValue()), 1.0, 2.0);
   final Vector2DValue v2 = Vector2D_new(GC.allocateLocal(Vector2DValue()), 3.0, 4.0);
-  staticPrint('  v1 + v2 = ${(v1.vptr['operatorPlus'] as Vector2DValue Function(AnyGC, Vector2DValue))(v1, v2)}');
-  staticPrint('  v1 - v2 = ${(v1.vptr['operatorMinus'] as Vector2DValue Function(AnyGC, Vector2DValue))(v1, v2)}');
-  staticPrint('  v1 * 3 = ${(v1.vptr['operatorStar'] as Vector2DValue Function(AnyGC, double))(v1, 3.0)}');
+  staticPrint('  v1 + v2 = ${(v1.classInfo as Vector2DClassInfo).operatorPlus!(v1, v2)}');
+  staticPrint('  v1 - v2 = ${(v1.classInfo as Vector2DClassInfo).operatorMinus!(v1, v2)}');
+  staticPrint('  v1 * 3 = ${(v1.classInfo as Vector2DClassInfo).operatorStar!(v1, 3.0)}');
   staticPrint('  v1 == Vector2D(1,2): ${(v1 == Vector2D_new(GC.allocateLocal(Vector2DValue()), 1.0, 2.0))}');
   final Vector2DValue sum = sumVectors(StaticList<Vector2DValue>.of([v1, v2, Vector2D_new(GC.allocateLocal(Vector2DValue()), 5.0, 6.0)]));
   staticPrint('  sumVectors: ${sum}');
@@ -762,17 +776,17 @@ void main() {
   staticPrint('  topN(2): ${topN(data, 2)}');
   staticPrint('\n--- 10. Repository ---');
   final ItemRepoValue repo = ItemRepo_new(GC.allocateLocal(ItemRepoValue()));
-  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '1', 'item-A'));
-  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '2', 'item-B'));
-  smAwait((repo.vptr['save'] as Promise<void> Function(AnyGC, String, String))(repo, '3', 'item-C'));
-  staticPrint('  findById(1): ${smAwait((repo.vptr['findById'] as Promise<String?> Function(AnyGC, String))(repo, '1'))}');
-  staticPrint('  findAll: ${smAwait((repo.vptr['findAll'] as Promise<StaticList<String>> Function(AnyGC))(repo))}');
-  staticPrint('  isCached(1): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '1')}');
-  final String? cached = smAwait((repo.vptr['cachedFindById'] as Promise<String?> Function(AnyGC, String))(repo, '2'));
+  smAwait((repo.classInfo as ItemRepoClassInfo).save!(repo, '1', 'item-A'));
+  smAwait((repo.classInfo as ItemRepoClassInfo).save!(repo, '2', 'item-B'));
+  smAwait((repo.classInfo as ItemRepoClassInfo).save!(repo, '3', 'item-C'));
+  staticPrint('  findById(1): ${smAwait((repo.classInfo as ItemRepoClassInfo).findById!(repo, '1'))}');
+  staticPrint('  findAll: ${smAwait((repo.classInfo as ItemRepoClassInfo).findAll!(repo))}');
+  staticPrint('  isCached(1): ${(repo.classInfo as ItemRepoClassInfo).isCached!(repo, '1')}');
+  final String? cached = smAwait((repo.classInfo as ItemRepoClassInfo).cachedFindById!(repo, '2'));
   staticPrint('  cachedFindById(2): ${cached}');
-  staticPrint('  isCached(2): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '2')}');
-  (repo.vptr['invalidate'] as void Function(AnyGC, String))(repo, '2');
-  staticPrint('  after invalidate(2), isCached(2): ${(repo.vptr['isCached'] as bool Function(AnyGC, String))(repo, '2')}');
+  staticPrint('  isCached(2): ${(repo.classInfo as ItemRepoClassInfo).isCached!(repo, '2')}');
+  (repo.classInfo as ItemRepoClassInfo).invalidate!(repo, '2');
+  staticPrint('  after invalidate(2), isCached(2): ${(repo.classInfo as ItemRepoClassInfo).isCached!(repo, '2')}');
   staticPrint('\n--- 11. Factory constructors ---');
   staticPrint('  dev: ${Config_new_development()}');
   staticPrint('  prod: ${Config_new_production()}');
@@ -801,7 +815,7 @@ class ClosureEnv_Logger_logAsync_0 {
 }
 void ClosureEnv_Logger_logAsync_0_call(ClosureEnv_Logger_logAsync_0 env) {
   smAwait(Promise.value<int>(0));
-  (env.this_.vptr['get_messages'] as StaticList<String> Function(AnyGC))(env.this_).add('[async] ${env.msg.value}');
+  (env.this_.classInfo as dynamic).get_messages!(env.this_).add('[async] ${env.msg.value}');
   env._promise.complete(0);
   return;
 }
@@ -815,7 +829,7 @@ class ClosureEnv_Validator_validateAsync_1<T> {
 void ClosureEnv_Validator_validateAsync_1_call<T>(ClosureEnv_Validator_validateAsync_1<T> env) {
   smAwait(Promise.value<int>(0));
 {
-    env._promise.complete((env.this_.vptr['validate'] as bool Function(AnyGC, T))(env.this_, env.value.value));
+    env._promise.complete((env.this_.classInfo as dynamic).validate!(env.this_, env.value.value));
     return;
   }
   env._promise.complete(false);
@@ -829,14 +843,14 @@ class ClosureEnv_Service_process_2 {
   void call() => ClosureEnv_Service_process_2_call(this);
 }
 void ClosureEnv_Service_process_2_call(ClosureEnv_Service_process_2 env) {
-  (env.this_.vptr['logSync'] as void Function(AnyGC, String))(env.this_, 'processing: ${env.input.value}');
-  smAwait((env.this_.vptr['logAsync'] as Promise<void> Function(AnyGC, String))(env.this_, 'validating: ${env.input.value}'));
-  final bool valid = smAwait((env.this_.vptr['validateAsync'] as Promise<bool> Function(AnyGC, String))(env.this_, env.input.value));
+  (env.this_.classInfo as ServiceClassInfo).logSync!(env.this_, 'processing: ${env.input.value}');
+  smAwait((env.this_.classInfo as ServiceClassInfo).logAsync!(env.this_, 'validating: ${env.input.value}'));
+  final bool valid = smAwait((env.this_.classInfo as ServiceClassInfo).validateAsync!(env.this_, env.input.value));
   if (!(valid)) {
     env._promise.complete('invalid');
     return;
   }
-  (env.this_.vptr['logSync'] as void Function(AnyGC, String))(env.this_, 'done');
+  (env.this_.classInfo as ServiceClassInfo).logSync!(env.this_, 'done');
 {
     env._promise.complete('ok: ${env.input.value}');
     return;
@@ -852,11 +866,11 @@ class ClosureEnv_InMemoryCache_cachedFindById_3<T> {
   void call() => ClosureEnv_InMemoryCache_cachedFindById_3_call<T>(this);
 }
 void ClosureEnv_InMemoryCache_cachedFindById_3_call<T>(ClosureEnv_InMemoryCache_cachedFindById_3<T> env) {
-  if ((env.this_.vptr['isCached'] as bool Function(AnyGC, String))(env.this_, env.id.value)) {
+  if ((env.this_.classInfo as dynamic).isCached!(env.this_, env.id.value)) {
     env._promise.complete(env.this_._cache[env.id.value]);
     return;
   }
-  final T? item = smAwait((env.this_.vptr['findById'] as Promise<T?> Function(AnyGC, String))(env.this_, env.id.value));
+  final T? item = smAwait((env.this_.classInfo as dynamic).findById!(env.this_, env.id.value));
   if (!((item == null)))   env.this_._cache[env.id.value] = item;
 {
     env._promise.complete(item);
@@ -1118,23 +1132,23 @@ void ClosureEnv_nestedClosureAsync_17_call(ClosureEnv_nestedClosureAsync_17 env)
 class ClosureEnv_sumVectors_18 extends TypeFunction2<Vector2DValue, Vector2DValue, Vector2DValue> {
   ClosureEnv_sumVectors_18();
   @override
-  Vector2DValue call(Vector2DValue a, Vector2DValue b) => closureCall(this, a, b);
+  Vector2DValue call(Vector2DValue a, Vector2DValue b) => fnPtr(this, a, b);
 }
 ClosureEnv_sumVectors_18 ClosureEnv_sumVectors_18_new(ClosureEnv_sumVectors_18 env_) {
-  env_.closureCall = ClosureEnv_sumVectors_18_call;
+  env_.fnPtr = ClosureEnv_sumVectors_18_call;
   return env_;
 }
 Vector2DValue ClosureEnv_sumVectors_18_call(AnyGC env__, Vector2DValue a, Vector2DValue b) {
   final env = env__ as ClosureEnv_sumVectors_18;
 
-  return (a.vptr['operatorPlus'] as Vector2DValue Function(AnyGC, Vector2DValue))(a, b);
+  return (a.classInfo as Vector2DClassInfo).operatorPlus!(a, b);
 }
 
 class ClosureEnv_scaleAll_19 extends TypeFunction1<Vector2DValue, Vector2DValue> {
   late DoubleBox factor;
   ClosureEnv_scaleAll_19();
   @override
-  Vector2DValue call(Vector2DValue v) => closureCall(this, v);
+  Vector2DValue call(Vector2DValue v) => fnPtr(this, v);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1143,23 +1157,23 @@ class ClosureEnv_scaleAll_19 extends TypeFunction1<Vector2DValue, Vector2DValue>
   }
 }
 ClosureEnv_scaleAll_19 ClosureEnv_scaleAll_19_new(ClosureEnv_scaleAll_19 env_, DoubleBox factor) {
-  env_.closureCall = ClosureEnv_scaleAll_19_call;
+  env_.fnPtr = ClosureEnv_scaleAll_19_call;
   env_.factor = factor;
   return env_;
 }
 Vector2DValue ClosureEnv_scaleAll_19_call(AnyGC env__, Vector2DValue v) {
   final env = env__ as ClosureEnv_scaleAll_19;
 
-  return (v.vptr['operatorStar'] as Vector2DValue Function(AnyGC, double))(v, env.factor.value);
+  return (v.classInfo as Vector2DClassInfo).operatorStar!(v, env.factor.value);
 }
 
 class ClosureEnv_topN_20 extends TypeFunction2<int, (String, int), (String, int)> {
   ClosureEnv_topN_20();
   @override
-  int call((String, int) a, (String, int) b) => closureCall(this, a, b);
+  int call((String, int) a, (String, int) b) => fnPtr(this, a, b);
 }
 ClosureEnv_topN_20 ClosureEnv_topN_20_new(ClosureEnv_topN_20 env_) {
-  env_.closureCall = ClosureEnv_topN_20_call;
+  env_.fnPtr = ClosureEnv_topN_20_call;
   return env_;
 }
 int ClosureEnv_topN_20_call(AnyGC env__, (String, int) a, (String, int) b) {

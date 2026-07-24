@@ -1,31 +1,24 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
+class FibStateMachineClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class FibStateMachineValue extends AsyncStateMachine<int> {
   late int n;
   late int _a = 0;
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as FibStateMachineClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static FibStateMachineClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = FibStateMachineValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = FibStateMachine_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static FibStateMachineClassInfo _initClassInfo() {
+    final ci = FibStateMachineClassInfo();
+    ci.step = FibStateMachine_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -78,29 +71,22 @@ bool FibStateMachine_step(AnyGC this__) {
 }
 
 
+class Level3SMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class Level3SMValue extends AsyncStateMachine<int> {
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as Level3SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static Level3SMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = Level3SMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = Level3SM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Level3SMClassInfo _initClassInfo() {
+    final ci = Level3SMClassInfo();
+    ci.step = Level3SM_step;
+    return ci;
   }
 }
 
@@ -116,30 +102,23 @@ bool Level3SM_step(AnyGC this__) {
 }
 
 
+class Level2SMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class Level2SMValue extends AsyncStateMachine<int> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as Level2SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static Level2SMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = Level2SMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = Level2SM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Level2SMClassInfo _initClassInfo() {
+    final ci = Level2SMClassInfo();
+    ci.step = Level2SM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -183,30 +162,23 @@ bool Level2SM_step(AnyGC this__) {
 }
 
 
+class Level1SMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class Level1SMValue extends AsyncStateMachine<String> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as Level1SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static Level1SMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = Level1SMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = Level1SM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Level1SMClassInfo _initClassInfo() {
+    final ci = Level1SMClassInfo();
+    ci.step = Level1SM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -250,31 +222,24 @@ bool Level1SM_step(AnyGC this__) {
 }
 
 
+class ConditionalAwaitSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   late bool flag;
   late Promise<String>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as ConditionalAwaitSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static ConditionalAwaitSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ConditionalAwaitSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = ConditionalAwaitSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ConditionalAwaitSMClassInfo _initClassInfo() {
+    final ci = ConditionalAwaitSMClassInfo();
+    ci.step = ConditionalAwaitSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -327,32 +292,25 @@ bool ConditionalAwaitSM_step(AnyGC this__) {
 }
 
 
+class FindFirstSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class FindFirstSMValue extends AsyncStateMachine<int> {
   late StaticList<int> items;
   late int _index = 0;
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as FindFirstSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static FindFirstSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = FindFirstSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = FindFirstSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static FindFirstSMClassInfo _initClassInfo() {
+    final ci = FindFirstSMClassInfo();
+    ci.step = FindFirstSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -404,31 +362,24 @@ bool FindFirstSM_step(AnyGC this__) {
 }
 
 
+class TryCatchSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class TryCatchSMValue extends AsyncStateMachine<String> {
   late String _log = '';
   late Promise<dynamic>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as TryCatchSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static TryCatchSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = TryCatchSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = TryCatchSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static TryCatchSMClassInfo _initClassInfo() {
+    final ci = TryCatchSMClassInfo();
+    ci.step = TryCatchSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -482,30 +433,23 @@ bool TryCatchSM_step(AnyGC this__) {
 }
 
 
+class FutureAnySMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class FutureAnySMValue extends AsyncStateMachine<String> {
   late StaticList<Promise<String>> _futures;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as FutureAnySMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static FutureAnySMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = FutureAnySMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = FutureAnySM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static FutureAnySMClassInfo _initClassInfo() {
+    final ci = FutureAnySMClassInfo();
+    ci.step = FutureAnySM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -555,6 +499,10 @@ bool FutureAnySM_step(AnyGC this__) {
 }
 
 
+class TimeoutSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class TimeoutSMValue extends AsyncStateMachine<String> {
   late int taskDelay;
   late int timeoutDelay;
@@ -562,26 +510,15 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   late Promise<String> _timeoutFuture;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as TimeoutSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static TimeoutSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = TimeoutSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = TimeoutSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static TimeoutSMClassInfo _initClassInfo() {
+    final ci = TimeoutSMClassInfo();
+    ci.step = TimeoutSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -631,6 +568,10 @@ bool TimeoutSM_step(AnyGC this__) {
 }
 
 
+class AsyncMapSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late StaticList<int> items;
   late StaticList<String> _results = StaticList<String>();
@@ -638,26 +579,15 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   late Promise<String>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as AsyncMapSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static AsyncMapSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = AsyncMapSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = AsyncMapSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static AsyncMapSMClassInfo _initClassInfo() {
+    final ci = AsyncMapSMClassInfo();
+    ci.step = AsyncMapSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -707,6 +637,10 @@ bool AsyncMapSM_step(AnyGC this__) {
 }
 
 
+class AsyncReduceSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late Promise<StaticList<String>> _mapFuture;
   late Promise<String>? _reducePending = null;
@@ -715,26 +649,15 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   late String _acc = '';
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as AsyncReduceSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static AsyncReduceSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = AsyncReduceSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = AsyncReduceSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static AsyncReduceSMClassInfo _initClassInfo() {
+    final ci = AsyncReduceSMClassInfo();
+    ci.step = AsyncReduceSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -795,17 +718,19 @@ bool AsyncReduceSM_step(AnyGC this__) {
 }
 
 
-class ClosureEnv_process_0Value extends VPtr {
+class ClosureEnv_process_0ClassInfo extends ClassInfo {
+  Function? call;
+}
+
+class ClosureEnv_process_0Value extends AnyGC {
   late int factor;
-  static Map<String, dynamic>? vptrMap;
+  static ClosureEnv_process_0ClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['call'] = ClosureEnv_process_0_call;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ClosureEnv_process_0ClassInfo _initClassInfo() {
+    final ci = ClosureEnv_process_0ClassInfo();
+    ci.call = ClosureEnv_process_0_call;
+    return ci;
   }
 }
 
@@ -821,6 +746,10 @@ int ClosureEnv_process_0_call(AnyGC this__, int x) {
 }
 
 
+class ProcessWithClosureSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late ClosureEnv_process_0Value _env;
   late StaticList<int> items;
@@ -829,26 +758,15 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as ProcessWithClosureSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static ProcessWithClosureSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ProcessWithClosureSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = ProcessWithClosureSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ProcessWithClosureSMClassInfo _initClassInfo() {
+    final ci = ProcessWithClosureSMClassInfo();
+    ci.step = ProcessWithClosureSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -899,7 +817,7 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
       case 3:
 {
           this_._env.factor = 5;
-          this_._results.add((this_._env.vptr['call'] as int Function(AnyGC, int))(this_._env, 100));
+          this_._results.add((this_._env.classInfo as ClosureEnv_process_0ClassInfo).call!(this_._env, 100));
           this_.completeWith(this_._results);
           return true;
         }
@@ -912,6 +830,10 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
 }
 
 
+class AsyncGeneratorSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late int max;
   late int _i = 0;
@@ -919,26 +841,15 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   late Promise<int>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as AsyncGeneratorSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static AsyncGeneratorSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = AsyncGeneratorSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = AsyncGeneratorSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static AsyncGeneratorSMClassInfo _initClassInfo() {
+    final ci = AsyncGeneratorSMClassInfo();
+    ci.step = AsyncGeneratorSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -986,31 +897,24 @@ bool AsyncGeneratorSM_step(AnyGC this__) {
 }
 
 
+class ComplexBusinessSMClassInfo extends ClassInfo {
+  Function? step;
+}
+
 class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic>> {
   late int depth;
   late Promise<StaticMap<String, dynamic>>? _pending = null;
   @override
   bool step() {
-    return (vptr['step'] as bool Function(AnyGC))(this);
+    return ((classInfo as ComplexBusinessSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static ComplexBusinessSMClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ComplexBusinessSMValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['step'] = ComplexBusinessSM_step;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ComplexBusinessSMClassInfo _initClassInfo() {
+    final ci = ComplexBusinessSMClassInfo();
+    ci.step = ComplexBusinessSM_step;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1188,10 +1092,10 @@ void main() {
 class ClosureEnv_anon_0 extends TypeFunction0<String> {
   ClosureEnv_anon_0();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
-  env_.closureCall = ClosureEnv_anon_0_call;
+  env_.fnPtr = ClosureEnv_anon_0_call;
   return env_;
 }
 String ClosureEnv_anon_0_call(AnyGC env__) {
@@ -1203,10 +1107,10 @@ String ClosureEnv_anon_0_call(AnyGC env__) {
 class ClosureEnv_anon_1 extends TypeFunction0<String> {
   ClosureEnv_anon_1();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
-  env_.closureCall = ClosureEnv_anon_1_call;
+  env_.fnPtr = ClosureEnv_anon_1_call;
   return env_;
 }
 String ClosureEnv_anon_1_call(AnyGC env__) {
@@ -1219,7 +1123,7 @@ class ClosureEnv_anon_2 extends TypeFunction0<int> {
   late FindFirstSMValue this_;
   ClosureEnv_anon_2();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1228,7 +1132,7 @@ class ClosureEnv_anon_2 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_, FindFirstSMValue this_) {
-  env_.closureCall = ClosureEnv_anon_2_call;
+  env_.fnPtr = ClosureEnv_anon_2_call;
   env_.this_ = this_;
   return env_;
 }
@@ -1241,10 +1145,10 @@ int ClosureEnv_anon_2_call(AnyGC env__) {
 class ClosureEnv_anon_3 extends TypeFunction0<Never> {
   ClosureEnv_anon_3();
   @override
-  Never call() => closureCall(this);
+  Never call() => fnPtr(this);
 }
 ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_) {
-  env_.closureCall = ClosureEnv_anon_3_call;
+  env_.fnPtr = ClosureEnv_anon_3_call;
   return env_;
 }
 Never ClosureEnv_anon_3_call(AnyGC env__) {
@@ -1256,10 +1160,10 @@ Never ClosureEnv_anon_3_call(AnyGC env__) {
 class ClosureEnv_anon_4 extends TypeFunction0<String> {
   ClosureEnv_anon_4();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_) {
-  env_.closureCall = ClosureEnv_anon_4_call;
+  env_.fnPtr = ClosureEnv_anon_4_call;
   return env_;
 }
 String ClosureEnv_anon_4_call(AnyGC env__) {
@@ -1271,10 +1175,10 @@ String ClosureEnv_anon_4_call(AnyGC env__) {
 class ClosureEnv_anon_5 extends TypeFunction0<String> {
   ClosureEnv_anon_5();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_) {
-  env_.closureCall = ClosureEnv_anon_5_call;
+  env_.fnPtr = ClosureEnv_anon_5_call;
   return env_;
 }
 String ClosureEnv_anon_5_call(AnyGC env__) {
@@ -1286,10 +1190,10 @@ String ClosureEnv_anon_5_call(AnyGC env__) {
 class ClosureEnv_anon_6 extends TypeFunction0<String> {
   ClosureEnv_anon_6();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_) {
-  env_.closureCall = ClosureEnv_anon_6_call;
+  env_.fnPtr = ClosureEnv_anon_6_call;
   return env_;
 }
 String ClosureEnv_anon_6_call(AnyGC env__) {
@@ -1301,10 +1205,10 @@ String ClosureEnv_anon_6_call(AnyGC env__) {
 class ClosureEnv_anon_7 extends TypeFunction0<String> {
   ClosureEnv_anon_7();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_7 ClosureEnv_anon_7_new(ClosureEnv_anon_7 env_) {
-  env_.closureCall = ClosureEnv_anon_7_call;
+  env_.fnPtr = ClosureEnv_anon_7_call;
   return env_;
 }
 String ClosureEnv_anon_7_call(AnyGC env__) {
@@ -1316,10 +1220,10 @@ String ClosureEnv_anon_7_call(AnyGC env__) {
 class ClosureEnv_anon_8 extends TypeFunction0<String> {
   ClosureEnv_anon_8();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_8 ClosureEnv_anon_8_new(ClosureEnv_anon_8 env_) {
-  env_.closureCall = ClosureEnv_anon_8_call;
+  env_.fnPtr = ClosureEnv_anon_8_call;
   return env_;
 }
 String ClosureEnv_anon_8_call(AnyGC env__) {
@@ -1331,10 +1235,10 @@ String ClosureEnv_anon_8_call(AnyGC env__) {
 class ClosureEnv_anon_9 extends TypeFunction0<String> {
   ClosureEnv_anon_9();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_9 ClosureEnv_anon_9_new(ClosureEnv_anon_9 env_) {
-  env_.closureCall = ClosureEnv_anon_9_call;
+  env_.fnPtr = ClosureEnv_anon_9_call;
   return env_;
 }
 String ClosureEnv_anon_9_call(AnyGC env__) {
@@ -1346,10 +1250,10 @@ String ClosureEnv_anon_9_call(AnyGC env__) {
 class ClosureEnv_anon_10 extends TypeFunction0<String> {
   ClosureEnv_anon_10();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_10 ClosureEnv_anon_10_new(ClosureEnv_anon_10 env_) {
-  env_.closureCall = ClosureEnv_anon_10_call;
+  env_.fnPtr = ClosureEnv_anon_10_call;
   return env_;
 }
 String ClosureEnv_anon_10_call(AnyGC env__) {
@@ -1361,10 +1265,10 @@ String ClosureEnv_anon_10_call(AnyGC env__) {
 class ClosureEnv_anon_11 extends TypeFunction0<String> {
   ClosureEnv_anon_11();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_11 ClosureEnv_anon_11_new(ClosureEnv_anon_11 env_) {
-  env_.closureCall = ClosureEnv_anon_11_call;
+  env_.fnPtr = ClosureEnv_anon_11_call;
   return env_;
 }
 String ClosureEnv_anon_11_call(AnyGC env__) {
@@ -1376,10 +1280,10 @@ String ClosureEnv_anon_11_call(AnyGC env__) {
 class ClosureEnv_anon_12 extends TypeFunction0<String> {
   ClosureEnv_anon_12();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
 }
 ClosureEnv_anon_12 ClosureEnv_anon_12_new(ClosureEnv_anon_12 env_) {
-  env_.closureCall = ClosureEnv_anon_12_call;
+  env_.fnPtr = ClosureEnv_anon_12_call;
   return env_;
 }
 String ClosureEnv_anon_12_call(AnyGC env__) {
@@ -1392,7 +1296,7 @@ class ClosureEnv_anon_13 extends TypeFunction0<String> {
   late IntBox item;
   ClosureEnv_anon_13();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1401,7 +1305,7 @@ class ClosureEnv_anon_13 extends TypeFunction0<String> {
   }
 }
 ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_, IntBox item) {
-  env_.closureCall = ClosureEnv_anon_13_call;
+  env_.fnPtr = ClosureEnv_anon_13_call;
   env_.item = item;
   return env_;
 }
@@ -1415,7 +1319,7 @@ class ClosureEnv_anon_14 extends TypeFunction0<String> {
   late AsyncReduceSMValue this_;
   ClosureEnv_anon_14();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1424,7 +1328,7 @@ class ClosureEnv_anon_14 extends TypeFunction0<String> {
   }
 }
 ClosureEnv_anon_14 ClosureEnv_anon_14_new(ClosureEnv_anon_14 env_, AsyncReduceSMValue this_) {
-  env_.closureCall = ClosureEnv_anon_14_call;
+  env_.fnPtr = ClosureEnv_anon_14_call;
   env_.this_ = this_;
   return env_;
 }
@@ -1440,7 +1344,7 @@ class ClosureEnv_anon_15 extends TypeFunction0<int> {
   late IntBox item;
   ClosureEnv_anon_15();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1450,7 +1354,7 @@ class ClosureEnv_anon_15 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_, ProcessWithClosureSMValue this_, IntBox item) {
-  env_.closureCall = ClosureEnv_anon_15_call;
+  env_.fnPtr = ClosureEnv_anon_15_call;
   env_.this_ = this_;
   env_.item = item;
   return env_;
@@ -1458,14 +1362,14 @@ ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_, ProcessWithCl
 int ClosureEnv_anon_15_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_15;
 
-  return (env.this_._env.vptr['call'] as int Function(AnyGC, int))(env.this_._env, env.item.value);
+  return (env.this_._env.classInfo as ClosureEnv_process_0ClassInfo).call!(env.this_._env, env.item.value);
 }
 
 class ClosureEnv_anon_16 extends TypeFunction0<int> {
   late AsyncGeneratorSMValue this_;
   ClosureEnv_anon_16();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1474,7 +1378,7 @@ class ClosureEnv_anon_16 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_anon_16 ClosureEnv_anon_16_new(ClosureEnv_anon_16 env_, AsyncGeneratorSMValue this_) {
-  env_.closureCall = ClosureEnv_anon_16_call;
+  env_.fnPtr = ClosureEnv_anon_16_call;
   env_.this_ = this_;
   return env_;
 }

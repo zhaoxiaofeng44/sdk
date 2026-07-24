@@ -1,18 +1,22 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
-class ShapeValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class ShapeClassInfo extends ClassInfo {
+  Function? get_name;
+  Function? area;
+  Function? perimeter;
+}
+
+class ShapeValue extends AnyGC {
+  static ShapeClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_name'] = Shape_get_name;
-      vptrMap!['area'] = Shape_area;
-      vptrMap!['perimeter'] = Shape_perimeter;
-      vptrMap!['toString'] = Shape_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ShapeClassInfo _initClassInfo() {
+    final ci = ShapeClassInfo();
+    ci.get_name = Shape_get_name;
+    ci.area = Shape_area;
+    ci.perimeter = Shape_perimeter;
+    ci.toString_ = Shape_toString;
+    return ci;
   }
 }
 
@@ -35,31 +39,23 @@ double Shape_perimeter(dynamic this_) {
 
 String Shape_toString(AnyGC this__) {
   final this_ = this__ as ShapeValue;
-  return '${(this_.vptr['get_name'] as String Function(AnyGC))(this_)}(area=${(this_.vptr['area'] as double Function(AnyGC))(this_).toStringAsFixed(2)})';
+  return '${(this_.classInfo as ShapeClassInfo).get_name!(this_)}(area=${(this_.classInfo as ShapeClassInfo).area!(this_).toStringAsFixed(2)})';
 }
 
 
-class PairValue<A, B> extends VPtr {
+class PairClassInfo<A, B> extends ClassInfo {
+  Function? swap;
+}
+
+class PairValue<A, B> extends AnyGC {
   late A first;
   late B second;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = PairValue<A, B>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
-    target['swap'] = Pair_swap<A, B>;
-    target['toString'] = Pair_toString<A, B>;
+  ClassInfo get classInfo {
+    final ci = PairClassInfo<A, B>();
+    ci.swap = Pair_swap<A, B>;
+    ci.toString_ = Pair_toString<A, B>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -88,22 +84,25 @@ String Pair_toString<A, B>(AnyGC this__) {
 }
 
 
+class CircleClassInfo extends ShapeClassInfo {
+  Function? get_radius;
+  Function? set_radius;
+}
+
 class CircleValue extends ShapeValue {
   late double _radius;
-  static Map<String, dynamic>? vptrMap;
+  static CircleClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
-      vptrMap!['get_name'] = Circle_get_name;
-      vptrMap!['area'] = Circle_area;
-      vptrMap!['perimeter'] = Circle_perimeter;
-      vptrMap!['toString'] = Circle_toString;
-      vptrMap!['get_radius'] = Circle_get_radius;
-      vptrMap!['set_radius'] = Circle_set_radius;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static CircleClassInfo _initClassInfo() {
+    final ci = CircleClassInfo();
+    ci.get_name = Circle_get_name;
+    ci.area = Circle_area;
+    ci.perimeter = Circle_perimeter;
+    ci.toString_ = Circle_toString;
+    ci.get_radius = Circle_get_radius;
+    ci.set_radius = Circle_set_radius;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -158,21 +157,22 @@ String Circle_toString(AnyGC this__) {
 }
 
 
+class RectangleClassInfo extends ShapeClassInfo {
+}
+
 class RectangleValue extends ShapeValue {
   late double width;
   late double height;
-  static Map<String, dynamic>? vptrMap;
+  static RectangleClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
-      vptrMap!['get_name'] = Rectangle_get_name;
-      vptrMap!['area'] = Rectangle_area;
-      vptrMap!['perimeter'] = Rectangle_perimeter;
-      vptrMap!['toString'] = Rectangle_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static RectangleClassInfo _initClassInfo() {
+    final ci = RectangleClassInfo();
+    ci.get_name = Rectangle_get_name;
+    ci.area = Rectangle_area;
+    ci.perimeter = Rectangle_perimeter;
+    ci.toString_ = Rectangle_toString;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -275,7 +275,7 @@ String? findFirst(StaticList<String> items, TypeFunction1<bool, String> predicat
     for (; sync_for_iterator.moveNext(); ) {
       final String item = sync_for_iterator.current;
 {
-        if (predicate.closureCall(predicate, item))         return item;
+        if (predicate.call(item))         return item;
       }
     }
   }
@@ -290,7 +290,7 @@ void main() {
   staticPrint('=== 复杂语法节点还原测试 ===\n');
   staticPrint('--- 1. 泛型类 Pair ---');
   final PairValue<String, int> pair = Pair_new<String, int>(GC.allocateLocal(PairValue<String, int>()), 'hello', 42);
-  final PairValue<int, String> swapped = (pair.vptr['swap'] as PairValue<int, String> Function(AnyGC))(pair);
+  final PairValue<int, String> swapped = (pair.classInfo as PairClassInfo).swap!(pair);
   staticPrint('pair: ${pair}');
   staticPrint('swapped: ${swapped}');
   assert((pair.first == 'hello'));
@@ -302,16 +302,16 @@ void main() {
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue shape = sync_for_iterator.current;
 {
-        staticPrint('  ${shape}, perimeter=${(shape.vptr['perimeter'] as double Function(AnyGC))(shape).toStringAsFixed(2)}');
+        staticPrint('  ${shape}, perimeter=${(shape.classInfo as ShapeClassInfo).perimeter!(shape).toStringAsFixed(2)}');
       }
     }
   }
   staticPrint('\n--- 3. getter/setter + 异常 ---');
   final CircleValue circle = Circle_new(GC.allocateLocal(CircleValue()), 3.0);
-  (circle.vptr['set_radius'] as void Function(AnyGC, double))(circle, 5.0);
-  staticPrint('radius after set: ${(circle.vptr['get_radius'] as double Function(AnyGC))(circle)}');
+  (circle.classInfo as CircleClassInfo).set_radius!(circle, 5.0);
+  staticPrint('radius after set: ${(circle.classInfo as CircleClassInfo).get_radius!(circle)}');
   try {
-    (circle.vptr['set_radius'] as void Function(AnyGC, double))(circle, (-1.0));
+    (circle.classInfo as CircleClassInfo).set_radius!(circle, (-1.0));
     staticPrint('ERROR: should have thrown');
   }
  on ArgumentError catch (e) {
@@ -367,12 +367,12 @@ void main() {
   staticPrint('repeat("x", 3): ${repeat<String>('x', 3)}');
   staticPrint('\n--- 7. 高阶函数 + 闭包 ---');
   final dynamic add10 = makeAdder(10);
-  staticPrint('add10(5): ${add10.closureCall(add10, 5)}');
+  staticPrint('add10(5): ${add10.call(5)}');
   final StaticList<int> doubled = StaticList<int>.of(mapList(StaticList<int>.of([1, 2, 3, 4]), ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7()))));
   staticPrint('doubled: ${doubled}');
   IntBox counter = IntBox(0);
   final TypeFunction0<int> increment = ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()), counter);
-  staticPrint('counter: ${increment.closureCall(increment)}, ${increment.closureCall(increment)}, ${increment.closureCall(increment)}');
+  staticPrint('counter: ${increment.call()}, ${increment.call()}, ${increment.call()}');
   staticPrint('\n--- 8. 可空类型 ---');
   final StaticList<String> items = StaticList<String>.of(['apple', 'banana', 'cherry']);
   final String? found = findFirst(items, ClosureEnv_main_9_new(GC.allocateLocal(ClosureEnv_main_9())));
@@ -457,7 +457,7 @@ class ClosureEnv_StringExtensions_get_capitalize_0 extends TypeFunction0<String>
   late String this_;
   ClosureEnv_StringExtensions_get_capitalize_0();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -466,7 +466,7 @@ class ClosureEnv_StringExtensions_get_capitalize_0 extends TypeFunction0<String>
   }
 }
 ClosureEnv_StringExtensions_get_capitalize_0 ClosureEnv_StringExtensions_get_capitalize_0_new(ClosureEnv_StringExtensions_get_capitalize_0 env_, String this_) {
-  env_.closureCall = ClosureEnv_StringExtensions_get_capitalize_0_call;
+  env_.fnPtr = ClosureEnv_StringExtensions_get_capitalize_0_call;
   env_.this_ = this_;
   return env_;
 }
@@ -480,7 +480,7 @@ class ClosureEnv_ListExtensions_get_filterWhere_1<T> extends TypeFunction1<Stati
   late StaticList<T> this_;
   ClosureEnv_ListExtensions_get_filterWhere_1();
   @override
-  StaticList<T> call(TypeFunction1<bool, T> predicate) => closureCall(this, predicate);
+  StaticList<T> call(TypeFunction1<bool, T> predicate) => fnPtr(this, predicate);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -489,7 +489,7 @@ class ClosureEnv_ListExtensions_get_filterWhere_1<T> extends TypeFunction1<Stati
   }
 }
 ClosureEnv_ListExtensions_get_filterWhere_1<T> ClosureEnv_ListExtensions_get_filterWhere_1_new<T>(ClosureEnv_ListExtensions_get_filterWhere_1<T> env_, StaticList<T> this_) {
-  env_.closureCall = ClosureEnv_ListExtensions_get_filterWhere_1_call<T>;
+  env_.fnPtr = ClosureEnv_ListExtensions_get_filterWhere_1_call<T>;
   env_.this_ = this_;
   return env_;
 }
@@ -503,7 +503,7 @@ class ClosureEnv_repeat_2<T> extends TypeFunction1<T, int> {
   late ObjectBox<T> item;
   ClosureEnv_repeat_2();
   @override
-  T call(int _) => closureCall(this, _);
+  T call(int _) => fnPtr(this, _);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -512,7 +512,7 @@ class ClosureEnv_repeat_2<T> extends TypeFunction1<T, int> {
   }
 }
 ClosureEnv_repeat_2<T> ClosureEnv_repeat_2_new<T>(ClosureEnv_repeat_2<T> env_, ObjectBox<T> item) {
-  env_.closureCall = ClosureEnv_repeat_2_call<T>;
+  env_.fnPtr = ClosureEnv_repeat_2_call<T>;
   env_.item = item;
   return env_;
 }
@@ -526,7 +526,7 @@ class ClosureEnv_makeAdder_3 extends TypeFunction1<int, int> {
   late IntBox base;
   ClosureEnv_makeAdder_3();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -535,7 +535,7 @@ class ClosureEnv_makeAdder_3 extends TypeFunction1<int, int> {
   }
 }
 ClosureEnv_makeAdder_3 ClosureEnv_makeAdder_3_new(ClosureEnv_makeAdder_3 env_, IntBox base) {
-  env_.closureCall = ClosureEnv_makeAdder_3_call;
+  env_.fnPtr = ClosureEnv_makeAdder_3_call;
   env_.base = base;
   return env_;
 }
@@ -588,10 +588,10 @@ void ClosureEnv_fetchAll_5_call(ClosureEnv_fetchAll_5 env) {
 class ClosureEnv_main_6 extends TypeFunction1<bool, int> {
   ClosureEnv_main_6();
   @override
-  bool call(int n) => closureCall(this, n);
+  bool call(int n) => fnPtr(this, n);
 }
 ClosureEnv_main_6 ClosureEnv_main_6_new(ClosureEnv_main_6 env_) {
-  env_.closureCall = ClosureEnv_main_6_call;
+  env_.fnPtr = ClosureEnv_main_6_call;
   return env_;
 }
 bool ClosureEnv_main_6_call(AnyGC env__, int n) {
@@ -603,10 +603,10 @@ bool ClosureEnv_main_6_call(AnyGC env__, int n) {
 class ClosureEnv_main_7 extends TypeFunction1<int, int> {
   ClosureEnv_main_7();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_7 ClosureEnv_main_7_new(ClosureEnv_main_7 env_) {
-  env_.closureCall = ClosureEnv_main_7_call;
+  env_.fnPtr = ClosureEnv_main_7_call;
   return env_;
 }
 int ClosureEnv_main_7_call(AnyGC env__, int x) {
@@ -619,7 +619,7 @@ class ClosureEnv_main_8 extends TypeFunction0<int> {
   late IntBox counter;
   ClosureEnv_main_8();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -628,7 +628,7 @@ class ClosureEnv_main_8 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_main_8 ClosureEnv_main_8_new(ClosureEnv_main_8 env_, IntBox counter) {
-  env_.closureCall = ClosureEnv_main_8_call;
+  env_.fnPtr = ClosureEnv_main_8_call;
   env_.counter = counter;
   return env_;
 }
@@ -642,10 +642,10 @@ int ClosureEnv_main_8_call(AnyGC env__) {
 class ClosureEnv_main_9 extends TypeFunction1<bool, String> {
   ClosureEnv_main_9();
   @override
-  bool call(String s) => closureCall(this, s);
+  bool call(String s) => fnPtr(this, s);
 }
 ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
-  env_.closureCall = ClosureEnv_main_9_call;
+  env_.fnPtr = ClosureEnv_main_9_call;
   return env_;
 }
 bool ClosureEnv_main_9_call(AnyGC env__, String s) {
@@ -657,10 +657,10 @@ bool ClosureEnv_main_9_call(AnyGC env__, String s) {
 class ClosureEnv_main_10 extends TypeFunction1<bool, String> {
   ClosureEnv_main_10();
   @override
-  bool call(String s) => closureCall(this, s);
+  bool call(String s) => fnPtr(this, s);
 }
 ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
-  env_.closureCall = ClosureEnv_main_10_call;
+  env_.fnPtr = ClosureEnv_main_10_call;
   return env_;
 }
 bool ClosureEnv_main_10_call(AnyGC env__, String s) {
@@ -672,10 +672,10 @@ bool ClosureEnv_main_10_call(AnyGC env__, String s) {
 class ClosureEnv_main_11 extends TypeFunction1<bool, StaticMapEntry<String, int>> {
   ClosureEnv_main_11();
   @override
-  bool call(StaticMapEntry<String, int> e) => closureCall(this, e);
+  bool call(StaticMapEntry<String, int> e) => fnPtr(this, e);
 }
 ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
-  env_.closureCall = ClosureEnv_main_11_call;
+  env_.fnPtr = ClosureEnv_main_11_call;
   return env_;
 }
 bool ClosureEnv_main_11_call(AnyGC env__, StaticMapEntry<String, int> e) {

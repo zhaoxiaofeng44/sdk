@@ -1,7 +1,7 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 
-class AnimalValue extends VPtr {
+class AnimalValue extends AnyGC {
   late String species;
   static Map<String, dynamic>? vptrMap;
   @override

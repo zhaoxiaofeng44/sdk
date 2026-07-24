@@ -42,9 +42,17 @@ bool Color_get_isWarm(Color this_) {
   return (this_ == Color.red);
 }
 
-class Comparable2Value<T> extends VPtr {
+class Comparable2ClassInfo<T> extends ClassInfo {
+  Function? compareTo;
+  Function? operatorLt;
+  Function? operatorGt;
+  Function? operatorLte;
+  Function? operatorGte;
+}
+
+class Comparable2Value<T> extends AnyGC {
   @override
-  Map<String, dynamic> get vptr => <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+  ClassInfo get classInfo => Comparable2ClassInfo<T>();
 }
 
 Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
@@ -58,36 +66,36 @@ int Comparable2_compareTo<T>(dynamic this_, T other) {
 
 bool Comparable2_operatorLt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) < 0);
+  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) < 0);
 }
 
 bool Comparable2_operatorGt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) > 0);
+  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) > 0);
 }
 
 bool Comparable2_operatorLte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) <= 0);
+  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) <= 0);
 }
 
 bool Comparable2_operatorGte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.vptr['compareTo'] as int Function(AnyGC, T))(this_, other) >= 0);
+  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) >= 0);
 }
 
 
 // mixin Printable → static functions for delegation
 String Printable_toPrettyString(AnyGC this__) {
   final dynamic this_ = this__;
-  return '[${(this_.vptr['get_label'] as String Function(AnyGC))(this_)}]';
+  return '[${(this_.classInfo as dynamic).get_label!(this_)}]';
 }
 
 
 // mixin Serializable → static functions for delegation
 String Serializable_toJson<T>(AnyGC this__) {
   final dynamic this_ = this__;
-  return '{"data": "${(this_.vptr['serialize'] as T Function(AnyGC))(this_)}"}';
+  return '{"data": "${(this_.classInfo as dynamic).serialize!(this_)}"}';
 }
 
 
@@ -95,48 +103,38 @@ String Serializable_toJson<T>(AnyGC this__) {
 final StaticMap<String, dynamic> Cacheable__cache = StaticMap<String, dynamic>.of({});
 void Cacheable_cacheValue<K>(AnyGC this__, dynamic value) {
   final dynamic this_ = this__;
-  Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(AnyGC))(this_)}'] = value;
+  Cacheable__cache['${(this_.classInfo as dynamic).get_cacheKey!(this_)}'] = value;
 }
 
 dynamic Cacheable_getCachedValue<K>(AnyGC this__) {
   final dynamic this_ = this__;
-  return Cacheable__cache['${(this_.vptr['get_cacheKey'] as K Function(AnyGC))(this_)}'];
+  return Cacheable__cache['${(this_.classInfo as dynamic).get_cacheKey!(this_)}'];
 }
 
 
 // mixin Validatable → static functions for delegation
 bool Validatable_get_isValid(AnyGC this__) {
   final dynamic this_ = this__;
-  return (this_.vptr['validate'] as StaticList<String> Function(AnyGC))(this_).isEmpty;
+  return (this_.classInfo as dynamic).validate!(this_).isEmpty;
 }
 
+
+class EntityClassInfo<ID> extends Entity_Object_Printable_CacheableClassInfo<ID> {
+}
 
 class EntityValue<ID> extends Entity_Object_Printable_CacheableValue<ID> {
   late ID id;
   late String name;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = EntityValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['get_label'] = Entity_get_label<ID>;
-    target['toPrettyString'] = Entity_toPrettyString<ID>;
-    target['get_cacheKey'] = Entity_get_cacheKey<ID>;
-    target['cacheValue'] = Entity_cacheValue<ID>;
-    target['getCachedValue'] = Entity_getCachedValue<ID>;
-    target['toString'] = Entity_toString<ID>;
+  ClassInfo get classInfo {
+    final ci = EntityClassInfo<ID>();
+    ci.get_label = Entity_get_label<ID>;
+    ci.toPrettyString = Entity_toPrettyString<ID>;
+    ci.get_cacheKey = Entity_get_cacheKey<ID>;
+    ci.cacheValue = Entity_cacheValue<ID>;
+    ci.getCachedValue = Entity_getCachedValue<ID>;
+    ci.toString_ = Entity_toString<ID>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -184,33 +182,24 @@ dynamic Entity_getCachedValue<ID>(AnyGC this__) {
 }
 
 
+class TimestampedEntityClassInfo<ID> extends EntityClassInfo<ID> {
+  Function? get_age;
+}
+
 class TimestampedEntityValue<ID> extends EntityValue<ID> {
   late int createdAt;
   late int updatedAt;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = TimestampedEntityValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['get_label'] = TimestampedEntity_get_label<ID>;
-    target['toPrettyString'] = TimestampedEntity_toPrettyString<ID>;
-    target['get_cacheKey'] = TimestampedEntity_get_cacheKey<ID>;
-    target['cacheValue'] = TimestampedEntity_cacheValue<ID>;
-    target['getCachedValue'] = TimestampedEntity_getCachedValue<ID>;
-    target['toString'] = TimestampedEntity_toString<ID>;
-    target['get_age'] = TimestampedEntity_get_age<ID>;
+  ClassInfo get classInfo {
+    final ci = TimestampedEntityClassInfo<ID>();
+    ci.get_label = TimestampedEntity_get_label<ID>;
+    ci.toPrettyString = TimestampedEntity_toPrettyString<ID>;
+    ci.get_cacheKey = TimestampedEntity_get_cacheKey<ID>;
+    ci.cacheValue = TimestampedEntity_cacheValue<ID>;
+    ci.getCachedValue = TimestampedEntity_getCachedValue<ID>;
+    ci.toString_ = TimestampedEntity_toString<ID>;
+    ci.get_age = TimestampedEntity_get_age<ID>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -234,7 +223,7 @@ StaticDuration TimestampedEntity_get_age<ID>(AnyGC this__) {
 
 String TimestampedEntity_get_label<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  return '${this_.name}(${this_.id}, age=${(this_.vptr['get_age'] as StaticDuration Function(AnyGC))(this_).inMilliseconds}ms)';
+  return '${this_.name}(${this_.id}, age=${(this_.classInfo as TimestampedEntityClassInfo).get_age!(this_).inMilliseconds}ms)';
 }
 
 String TimestampedEntity_toPrettyString<ID>(AnyGC this__) {
@@ -263,40 +252,33 @@ String TimestampedEntity_toString<ID>(AnyGC this__) {
 }
 
 
+class VersionedEntityClassInfo<ID> extends VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID> {
+  Function? get_version;
+  Function? bump;
+  Function? get_changelog;
+}
+
 class VersionedEntityValue<ID> extends VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> {
   late int _version;
   late StaticList<String> _changelog;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = VersionedEntityValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['get_label'] = VersionedEntity_get_label<ID>;
-    target['toPrettyString'] = VersionedEntity_toPrettyString<ID>;
-    target['get_cacheKey'] = VersionedEntity_get_cacheKey<ID>;
-    target['cacheValue'] = VersionedEntity_cacheValue<ID>;
-    target['getCachedValue'] = VersionedEntity_getCachedValue<ID>;
-    target['toString'] = VersionedEntity_toString<ID>;
-    target['get_age'] = VersionedEntity_get_age<ID>;
-    target['serialize'] = VersionedEntity_serialize<ID>;
-    target['toJson'] = VersionedEntity_toJson<ID>;
-    target['validate'] = VersionedEntity_validate<ID>;
-    target['get_isValid'] = VersionedEntity_get_isValid<ID>;
-    target['get_version'] = VersionedEntity_get_version<ID>;
-    target['bump'] = VersionedEntity_bump<ID>;
-    target['get_changelog'] = VersionedEntity_get_changelog<ID>;
+  ClassInfo get classInfo {
+    final ci = VersionedEntityClassInfo<ID>();
+    ci.get_label = VersionedEntity_get_label<ID>;
+    ci.toPrettyString = VersionedEntity_toPrettyString<ID>;
+    ci.get_cacheKey = VersionedEntity_get_cacheKey<ID>;
+    ci.cacheValue = VersionedEntity_cacheValue<ID>;
+    ci.getCachedValue = VersionedEntity_getCachedValue<ID>;
+    ci.toString_ = VersionedEntity_toString<ID>;
+    ci.get_age = VersionedEntity_get_age<ID>;
+    ci.serialize = VersionedEntity_serialize<ID>;
+    ci.toJson = VersionedEntity_toJson<ID>;
+    ci.validate = VersionedEntity_validate<ID>;
+    ci.get_isValid = VersionedEntity_get_isValid<ID>;
+    ci.get_version = VersionedEntity_get_version<ID>;
+    ci.bump = VersionedEntity_bump<ID>;
+    ci.get_changelog = VersionedEntity_get_changelog<ID>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -389,38 +371,34 @@ bool VersionedEntity_get_isValid<ID>(AnyGC this__) {
 }
 
 
+class MoneyClassInfo extends Money_Comparable2_PrintableClassInfo {
+  Function? operatorPlus;
+  Function? operatorMinus;
+  Function? operatorStar;
+  Function? operatorNeg;
+}
+
 class MoneyValue extends Money_Comparable2_PrintableValue {
   late int cents;
   late String currency;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static MoneyClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = MoneyValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['compareTo'] = Money_compareTo;
-    target['operatorLt'] = Money_operatorLt;
-    target['operatorGt'] = Money_operatorGt;
-    target['operatorLte'] = Money_operatorLte;
-    target['operatorGte'] = Money_operatorGte;
-    target['get_label'] = Money_get_label;
-    target['toPrettyString'] = Money_toPrettyString;
-    target['operatorPlus'] = Money_operatorPlus;
-    target['operatorMinus'] = Money_operatorMinus;
-    target['operatorStar'] = Money_operatorStar;
-    target['operatorNeg'] = Money_operatorNeg;
-    target['toString'] = Money_toString;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static MoneyClassInfo _initClassInfo() {
+    final ci = MoneyClassInfo();
+    ci.compareTo = Money_compareTo;
+    ci.operatorLt = Money_operatorLt;
+    ci.operatorGt = Money_operatorGt;
+    ci.operatorLte = Money_operatorLte;
+    ci.operatorGte = Money_operatorGte;
+    ci.get_label = Money_get_label;
+    ci.toPrettyString = Money_toPrettyString;
+    ci.operatorPlus = Money_operatorPlus;
+    ci.operatorMinus = Money_operatorMinus;
+    ci.operatorStar = Money_operatorStar;
+    ci.operatorNeg = Money_operatorNeg;
+    ci.toString_ = Money_toString;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -479,7 +457,7 @@ String Money_get_label(AnyGC this__) {
 
 String Money_toString(AnyGC this__) {
   final this_ = this__ as MoneyValue;
-  return (this_.vptr['get_label'] as String Function(AnyGC))(this_);
+  return (this_.classInfo as MoneyClassInfo).get_label!(this_);
 }
 
 bool Money_operatorLt(AnyGC this__, MoneyValue other) {
@@ -508,21 +486,26 @@ String Money_toPrettyString(AnyGC this__) {
 }
 
 
-class ConfigValue extends VPtr {
+class ConfigClassInfo extends ClassInfo {
+  Function? operatorIndex;
+  Function? operatorIndexSet;
+  Function? containsKey;
+  Function? get_length;
+}
+
+class ConfigValue extends AnyGC {
   late StaticMap<String, dynamic> _data;
-  static Map<String, dynamic>? vptrMap;
+  static ConfigClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['operatorIndex'] = Config_operatorIndex;
-      vptrMap!['operatorIndexSet'] = Config_operatorIndexSet;
-      vptrMap!['containsKey'] = Config_containsKey;
-      vptrMap!['get_length'] = Config_get_length;
-      vptrMap!['toString'] = Config_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ConfigClassInfo _initClassInfo() {
+    final ci = ConfigClassInfo();
+    ci.operatorIndex = Config_operatorIndex;
+    ci.operatorIndexSet = Config_operatorIndexSet;
+    ci.containsKey = Config_containsKey;
+    ci.get_length = Config_get_length;
+    ci.toString_ = Config_toString;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -592,18 +575,21 @@ String Config_toString(AnyGC this__) {
 }
 
 
-class EventBusValue extends VPtr {
+class EventBusClassInfo extends ClassInfo {
+  Function? on;
+  Function? emit;
+}
+
+class EventBusValue extends AnyGC {
   late StaticList<TypeFunction1<void, String>> _listeners = StaticList<TypeFunction1<void, String>>();
-  static Map<String, dynamic>? vptrMap;
+  static EventBusClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['on'] = EventBus_on;
-      vptrMap!['emit'] = EventBus_emit;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static EventBusClassInfo _initClassInfo() {
+    final ci = EventBusClassInfo();
+    ci.on = EventBus_on;
+    ci.emit = EventBus_emit;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -630,23 +616,25 @@ void EventBus_emit(AnyGC this__, String event) {
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<void, String> listener = sync_for_iterator.current;
 {
-        listener.closureCall(listener, event);
+        listener.call(event);
       }
     }
   }
 }
 
 
-class DrawableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class DrawableClassInfo extends ClassInfo {
+  Function? draw;
+}
+
+class DrawableValue extends AnyGC {
+  static DrawableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['draw'] = Drawable_draw;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static DrawableClassInfo _initClassInfo() {
+    final ci = DrawableClassInfo();
+    ci.draw = Drawable_draw;
+    return ci;
   }
 }
 
@@ -660,16 +648,18 @@ void Drawable_draw(dynamic this_) {
 }
 
 
-class ResizableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class ResizableClassInfo extends ClassInfo {
+  Function? resize;
+}
+
+class ResizableValue extends AnyGC {
+  static ResizableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['resize'] = Resizable_resize;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ResizableClassInfo _initClassInfo() {
+    final ci = ResizableClassInfo();
+    ci.resize = Resizable_resize;
+    return ci;
   }
 }
 
@@ -683,16 +673,18 @@ void Resizable_resize(dynamic this_, double factor) {
 }
 
 
-class ClickableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class ClickableClassInfo extends ClassInfo {
+  Function? onClick;
+}
+
+class ClickableValue extends AnyGC {
+  static ClickableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['onClick'] = Clickable_onClick;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ClickableClassInfo _initClassInfo() {
+    final ci = ClickableClassInfo();
+    ci.onClick = Clickable_onClick;
+    return ci;
   }
 }
 
@@ -706,22 +698,26 @@ void Clickable_onClick(dynamic this_) {
 }
 
 
-class WidgetValue extends VPtr implements DrawableValue, ResizableValue, ClickableValue {
+class WidgetClassInfo extends DrawableClassInfo {
+  Function? resize;
+  Function? onClick;
+  Function? get_info;
+}
+
+class WidgetValue extends AnyGC implements DrawableValue, ResizableValue, ClickableValue {
   late String _state = 'idle';
   late double _scale = 1.0;
   late int _clickCount = 0;
-  static Map<String, dynamic>? vptrMap;
+  static WidgetClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['draw'] = Widget_draw;
-      vptrMap!['resize'] = Widget_resize;
-      vptrMap!['onClick'] = Widget_onClick;
-      vptrMap!['get_info'] = Widget_get_info;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static WidgetClassInfo _initClassInfo() {
+    final ci = WidgetClassInfo();
+    ci.draw = Widget_draw;
+    ci.resize = Widget_resize;
+    ci.onClick = Widget_onClick;
+    ci.get_info = Widget_get_info;
+    return ci;
   }
 }
 
@@ -752,30 +748,28 @@ String Widget_get_info(AnyGC this__) {
 }
 
 
-class PairValue<A, B> extends VPtr {
+class PairClassInfo<A, B> extends ClassInfo {
+  Function? swap;
+  Function? mapFirst;
+  dynamic mapFirst_int;
+  Function? mapSecond;
+  dynamic mapSecond_String;
+  Function? fold;
+  dynamic fold_String;
+}
+
+class PairValue<A, B> extends AnyGC {
   late A first;
   late B second;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = PairValue<A, B>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
-    target['swap'] = Pair_swap<A, B>;
-    target['toString'] = Pair_toString<A, B>;
-    target['mapFirst_int'] = Pair_mapFirst<A, B, int>;
-    target['mapSecond_String'] = Pair_mapSecond<A, B, String>;
-    target['fold_String'] = Pair_fold<A, B, String>;
+  ClassInfo get classInfo {
+    final ci = PairClassInfo<A, B>();
+    ci.swap = Pair_swap<A, B>;
+    ci.toString_ = Pair_toString<A, B>;
+    ci.mapFirst_int = Pair_mapFirst<A, B, int>;
+    ci.mapSecond_String = Pair_mapSecond<A, B, String>;
+    ci.fold_String = Pair_fold<A, B, String>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -800,17 +794,17 @@ PairValue<B, A> Pair_swap<A, B>(AnyGC this__) {
 
 PairValue<C, B> Pair_mapFirst<A, B, C>(AnyGC this__, TypeFunction1<C, A> transform) {
   final this_ = this__ as PairValue<A, B>;
-  return Pair_new<C, B>(GC.allocateLocal(PairValue<C, B>()), transform.closureCall(transform, this_.first), this_.second);
+  return Pair_new<C, B>(GC.allocateLocal(PairValue<C, B>()), transform.call(this_.first), this_.second);
 }
 
 PairValue<A, C> Pair_mapSecond<A, B, C>(AnyGC this__, TypeFunction1<C, B> transform) {
   final this_ = this__ as PairValue<A, B>;
-  return Pair_new<A, C>(GC.allocateLocal(PairValue<A, C>()), this_.first, transform.closureCall(transform, this_.second));
+  return Pair_new<A, C>(GC.allocateLocal(PairValue<A, C>()), this_.first, transform.call(this_.second));
 }
 
 R Pair_fold<A, B, R>(AnyGC this__, TypeFunction2<R, A, B> combine) {
   final this_ = this__ as PairValue<A, B>;
-  return combine.closureCall(combine, this_.first, this_.second);
+  return combine.call(this_.first, this_.second);
 }
 
 String Pair_toString<A, B>(AnyGC this__) {
@@ -819,30 +813,23 @@ String Pair_toString<A, B>(AnyGC this__) {
 }
 
 
+class TripleClassInfo<A, B, C> extends PairClassInfo<A, B> {
+  dynamic mapFirst_int;
+  dynamic mapSecond_String;
+  dynamic fold_String;
+}
+
 class TripleValue<A, B, C> extends PairValue<A, B> {
   late C third;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = TripleValue<A, B, C>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['swap'] = Triple_swap<A, B, C>;
-    target['mapFirst'] = Triple_mapFirst<A, B, C>;
-    target['mapSecond'] = Triple_mapSecond<A, B, C>;
-    target['toString'] = Triple_toString<A, B, C>;
-    target['fold_String'] = Triple_fold<A, B, C, String>;
+  ClassInfo get classInfo {
+    final ci = TripleClassInfo<A, B, C>();
+    ci.swap = Triple_swap<A, B, C>;
+    ci.mapFirst = Triple_mapFirst<A, B, C>;
+    ci.mapSecond = Triple_mapSecond<A, B, C>;
+    ci.toString_ = Triple_toString<A, B, C>;
+    ci.fold_String = Triple_fold<A, B, C, String>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -885,22 +872,27 @@ R Triple_fold<A, B, C, R>(AnyGC this__, TypeFunction2<R, A, B> combine) {
 }
 
 
-class StringBuilderValue extends VPtr {
+class StringBuilderClassInfo extends ClassInfo {
+  Function? withSeparator;
+  Function? add;
+  Function? addAll;
+  Function? get_length;
+}
+
+class StringBuilderValue extends AnyGC {
   late StaticStringBuffer _buf = StaticStringBuffer();
   late String _separator = '';
-  static Map<String, dynamic>? vptrMap;
+  static StringBuilderClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['withSeparator'] = StringBuilder_withSeparator;
-      vptrMap!['add'] = StringBuilder_add;
-      vptrMap!['addAll'] = StringBuilder_addAll;
-      vptrMap!['get_length'] = StringBuilder_get_length;
-      vptrMap!['toString'] = StringBuilder_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static StringBuilderClassInfo _initClassInfo() {
+    final ci = StringBuilderClassInfo();
+    ci.withSeparator = StringBuilder_withSeparator;
+    ci.add = StringBuilder_add;
+    ci.addAll = StringBuilder_addAll;
+    ci.get_length = StringBuilder_get_length;
+    ci.toString_ = StringBuilder_toString;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -937,7 +929,7 @@ StringBuilderValue StringBuilder_addAll(AnyGC this__, StaticList<String> texts) 
     for (; sync_for_iterator.moveNext(); ) {
       final String t = sync_for_iterator.current;
 {
-        (this_.vptr['add'] as StringBuilderValue Function(AnyGC, String))(this_, t);
+        (this_.classInfo as StringBuilderClassInfo).add!(this_, t);
       }
     }
   }
@@ -955,19 +947,20 @@ String StringBuilder_toString(AnyGC this__) {
 }
 
 
-class AppErrorValue extends VPtr {
+class AppErrorClassInfo extends ClassInfo {
+}
+
+class AppErrorValue extends AnyGC {
   late String message;
   late String code;
   late AppErrorValue? cause;
-  static Map<String, dynamic>? vptrMap;
+  static AppErrorClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['toString'] = AppError_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static AppErrorClassInfo _initClassInfo() {
+    final ci = AppErrorClassInfo();
+    ci.toString_ = AppError_toString;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -997,31 +990,30 @@ String AppError_toString(AnyGC this__) {
 }
 
 
-class DataPipelineValue<T> extends VPtr {
+class DataPipelineClassInfo<T> extends ClassInfo {
+  Function? where;
+  Function? map;
+  dynamic map_int;
+  Function? sorted;
+  Function? take;
+  Function? fold;
+  dynamic fold_int;
+  Function? toList;
+}
+
+class DataPipelineValue<T> extends AnyGC {
   late StaticList<T> _data;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = DataPipelineValue<T>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
-    target['where'] = DataPipeline_where<T>;
-    target['sorted'] = DataPipeline_sorted<T>;
-    target['take'] = DataPipeline_take<T>;
-    target['toList'] = DataPipeline_toList<T>;
-    target['toString'] = DataPipeline_toString<T>;
-    target['map_int'] = DataPipeline_map<T, int>;
-    target['fold_int'] = DataPipeline_fold<T, int>;
+  ClassInfo get classInfo {
+    final ci = DataPipelineClassInfo<T>();
+    ci.where = DataPipeline_where<T>;
+    ci.sorted = DataPipeline_sorted<T>;
+    ci.take = DataPipeline_take<T>;
+    ci.toList = DataPipeline_toList<T>;
+    ci.toString_ = DataPipeline_toString<T>;
+    ci.map_int = DataPipeline_map<T, int>;
+    ci.fold_int = DataPipeline_fold<T, int>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1075,22 +1067,26 @@ String DataPipeline_toString<T>(AnyGC this__) {
 }
 
 
-class BoundedValueValue extends VPtr {
+class BoundedValueClassInfo extends ClassInfo {
+  Function? get_value;
+  Function? set_value;
+  Function? operatorPlus;
+}
+
+class BoundedValueValue extends AnyGC {
   late double _value;
   late double _min;
   late double _max;
-  static Map<String, dynamic>? vptrMap;
+  static BoundedValueClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['get_value'] = BoundedValue_get_value;
-      vptrMap!['set_value'] = BoundedValue_set_value;
-      vptrMap!['operatorPlus'] = BoundedValue_operatorPlus;
-      vptrMap!['toString'] = BoundedValue_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static BoundedValueClassInfo _initClassInfo() {
+    final ci = BoundedValueClassInfo();
+    ci.get_value = BoundedValue_get_value;
+    ci.set_value = BoundedValue_set_value;
+    ci.operatorPlus = BoundedValue_operatorPlus;
+    ci.toString_ = BoundedValue_toString;
+    return ci;
   }
 }
 
@@ -1131,15 +1127,16 @@ String BoundedValue_toString(AnyGC this__) {
 }
 
 
-class MathUtilsValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class MathUtilsClassInfo extends ClassInfo {
+}
+
+class MathUtilsValue extends AnyGC {
+  static MathUtilsClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static MathUtilsClassInfo _initClassInfo() {
+    final ci = MathUtilsClassInfo();
+    return ci;
   }
 }
 
@@ -1202,40 +1199,33 @@ void Observable_notify<T>(AnyGC this__, T value) {
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<void, T> cb = sync_for_iterator.current;
 {
-        cb.closureCall(cb, value);
+        cb.call(value);
       }
     }
   }
 }
 
 
+class ReactiveStoreClassInfo<V> extends ReactiveStore_Object_Loggable_ObservableClassInfo<V> {
+  Function? get;
+  Function? set;
+  Function? get_size;
+}
+
 class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValue<V> {
   late StaticMap<String, V> _store = StaticMap<String, V>.of({});
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ReactiveStoreValue<V>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['log'] = ReactiveStore_log<V>;
-    target['get_logs'] = ReactiveStore_get_logs<V>;
-    target['observe'] = ReactiveStore_observe<V>;
-    target['notify'] = ReactiveStore_notify<V>;
-    target['get'] = ReactiveStore_get<V>;
-    target['set'] = ReactiveStore_set<V>;
-    target['get_size'] = ReactiveStore_get_size<V>;
-    target['toString'] = ReactiveStore_toString<V>;
+  ClassInfo get classInfo {
+    final ci = ReactiveStoreClassInfo<V>();
+    ci.log = ReactiveStore_log<V>;
+    ci.get_logs = ReactiveStore_get_logs<V>;
+    ci.observe = ReactiveStore_observe<V>;
+    ci.notify = ReactiveStore_notify<V>;
+    ci.get = ReactiveStore_get<V>;
+    ci.set = ReactiveStore_set<V>;
+    ci.get_size = ReactiveStore_get_size<V>;
+    ci.toString_ = ReactiveStore_toString<V>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1252,15 +1242,15 @@ ReactiveStoreValue<V> ReactiveStore_new<V>(AnyGC this__) {
 
 V? ReactiveStore_get<V>(AnyGC this__, String key) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.vptr['log'] as void Function(AnyGC, String))(this_, 'get: ${key}');
+  (this_.classInfo as ReactiveStoreClassInfo).log!(this_, 'get: ${key}');
   return this_._store[key];
 }
 
 void ReactiveStore_set<V>(AnyGC this__, String key, V value) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.vptr['log'] as void Function(AnyGC, String))(this_, 'set: ${key}=${value}');
+  (this_.classInfo as ReactiveStoreClassInfo).log!(this_, 'set: ${key}=${value}');
   this_._store[key] = value;
-  (this_.vptr['notify'] as void Function(AnyGC, V))(this_, value);
+  (this_.classInfo as ReactiveStoreClassInfo).notify!(this_, value);
 }
 
 int ReactiveStore_get_size<V>(AnyGC this__) {
@@ -1294,17 +1284,20 @@ void ReactiveStore_notify<V>(AnyGC this__, V value) {
 }
 
 
-class ShapeValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class ShapeClassInfo extends ClassInfo {
+  Function? area;
+  Function? get_shapeName;
+}
+
+class ShapeValue extends AnyGC {
+  static ShapeClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['area'] = Shape_area;
-      vptrMap!['get_shapeName'] = Shape_get_shapeName;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ShapeClassInfo _initClassInfo() {
+    final ci = ShapeClassInfo();
+    ci.area = Shape_area;
+    ci.get_shapeName = Shape_get_shapeName;
+    return ci;
   }
 }
 
@@ -1322,19 +1315,20 @@ String Shape_get_shapeName(dynamic this_) {
 }
 
 
-class CircleValue extends VPtr implements ShapeValue {
+class CircleClassInfo extends ShapeClassInfo {
+}
+
+class CircleValue extends AnyGC implements ShapeValue {
   late double radius;
-  static Map<String, dynamic>? vptrMap;
+  static CircleClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['area'] = Circle_area;
-      vptrMap!['get_shapeName'] = Circle_get_shapeName;
-      vptrMap!['toString'] = Circle_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static CircleClassInfo _initClassInfo() {
+    final ci = CircleClassInfo();
+    ci.area = Circle_area;
+    ci.get_shapeName = Circle_get_shapeName;
+    ci.toString_ = Circle_toString;
+    return ci;
   }
 }
 
@@ -1360,20 +1354,21 @@ String Circle_toString(AnyGC this__) {
 }
 
 
-class RectangleValue extends VPtr implements ShapeValue {
+class RectangleClassInfo extends ShapeClassInfo {
+}
+
+class RectangleValue extends AnyGC implements ShapeValue {
   late double width;
   late double height;
-  static Map<String, dynamic>? vptrMap;
+  static RectangleClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['area'] = Rectangle_area;
-      vptrMap!['get_shapeName'] = Rectangle_get_shapeName;
-      vptrMap!['toString'] = Rectangle_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static RectangleClassInfo _initClassInfo() {
+    final ci = RectangleClassInfo();
+    ci.area = Rectangle_area;
+    ci.get_shapeName = Rectangle_get_shapeName;
+    ci.toString_ = Rectangle_toString;
+    return ci;
   }
 }
 
@@ -1400,28 +1395,22 @@ String Rectangle_toString(AnyGC this__) {
 }
 
 
-class NodeValue<T> extends VPtr {
+class NodeClassInfo<T> extends ClassInfo {
+  Function? addChild;
+  Function? flatten;
+  Function? mapTree;
+}
+
+class NodeValue<T> extends AnyGC {
   late T value;
   late StaticList<NodeValue<T>> children;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = NodeValue<T>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
-    target['addChild'] = Node_addChild<T>;
-    target['flatten'] = Node_flatten<T>;
-    target['toString'] = Node_toString<T>;
+  ClassInfo get classInfo {
+    final ci = NodeClassInfo<T>();
+    ci.addChild = Node_addChild<T>;
+    ci.flatten = Node_flatten<T>;
+    ci.toString_ = Node_toString<T>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1452,7 +1441,7 @@ StaticList<T> Node_flatten<T>(AnyGC this__) {
     for (; sync_for_iterator.moveNext(); ) {
       final NodeValue<T> child = sync_for_iterator.current;
 {
-        result.addAll((child.vptr['flatten'] as StaticList<T> Function(AnyGC))(child));
+        result.addAll((child.classInfo as NodeClassInfo).flatten!(child));
       }
     }
   }
@@ -1461,7 +1450,7 @@ StaticList<T> Node_flatten<T>(AnyGC this__) {
 
 NodeValue<R> Node_mapTree<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as NodeValue<T>;
-  return Node_new<R>(GC.allocateLocal(NodeValue<R>()), transform.closureCall(transform, this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1_new<R, T>(GC.allocateLocal(ClosureEnv_anon_1<R, T>()), transform)).toList()));
+  return Node_new<R>(GC.allocateLocal(NodeValue<R>()), transform.call(this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1_new<R, T>(GC.allocateLocal(ClosureEnv_anon_1<R, T>()), transform)).toList()));
 }
 
 String Node_toString<T>(AnyGC this__) {
@@ -1471,30 +1460,20 @@ String Node_toString<T>(AnyGC this__) {
 }
 
 
+class LabeledNodeClassInfo<T> extends LabeledNode_Node_PrintableClassInfo<T> {
+}
+
 class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   late String nodeLabel;
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = LabeledNodeValue<T>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
-    target['addChild'] = LabeledNode_addChild<T>;
-    target['flatten'] = LabeledNode_flatten<T>;
-    target['toString'] = LabeledNode_toString<T>;
-    target['get_label'] = LabeledNode_get_label<T>;
-    target['toPrettyString'] = LabeledNode_toPrettyString<T>;
+  ClassInfo get classInfo {
+    final ci = LabeledNodeClassInfo<T>();
+    ci.addChild = LabeledNode_addChild<T>;
+    ci.flatten = LabeledNode_flatten<T>;
+    ci.toString_ = LabeledNode_toString<T>;
+    ci.get_label = LabeledNode_get_label<T>;
+    ci.toPrettyString = LabeledNode_toPrettyString<T>;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1541,36 +1520,33 @@ String LabeledNode_toPrettyString<T>(AnyGC this__) {
 }
 
 
-class Entity_Object_PrintableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class Entity_Object_PrintableClassInfo extends ClassInfo {
+  Function? get_label;
+  Function? toPrettyString;
+}
+
+class Entity_Object_PrintableValue extends AnyGC {
+  static Entity_Object_PrintableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Entity_Object_PrintableClassInfo _initClassInfo() {
+    final ci = Entity_Object_PrintableClassInfo();
+    return ci;
   }
 }
 
+
+class Entity_Object_Printable_CacheableClassInfo<ID> extends Entity_Object_PrintableClassInfo {
+  Function? get_cacheKey;
+  Function? cacheValue;
+  Function? getCachedValue;
+}
 
 class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_PrintableValue {
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = Entity_Object_Printable_CacheableValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo {
+    final ci = Entity_Object_Printable_CacheableClassInfo<ID>();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1579,25 +1555,17 @@ class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_Printable
   }
 }
 
+
+class VersionedEntity_TimestampedEntity_SerializableClassInfo<ID> extends TimestampedEntityClassInfo<ID> {
+  Function? serialize;
+  Function? toJson;
+}
 
 class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends TimestampedEntityValue<ID> {
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = VersionedEntity_TimestampedEntity_SerializableValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo {
+    final ci = VersionedEntity_TimestampedEntity_SerializableClassInfo<ID>();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1606,25 +1574,17 @@ class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends Timestampe
   }
 }
 
+
+class VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID> extends VersionedEntity_TimestampedEntity_SerializableClassInfo<ID> {
+  Function? validate;
+  Function? get_isValid;
+}
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extends VersionedEntity_TimestampedEntity_SerializableValue<ID> {
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo {
+    final ci = VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID>();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1633,25 +1593,19 @@ class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extend
   }
 }
 
+
+class Money_Comparable2_PrintableClassInfo extends Comparable2ClassInfo<MoneyValue> {
+  Function? get_label;
+  Function? toPrettyString;
+}
 
 class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
+  static Money_Comparable2_PrintableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = Money_Comparable2_PrintableValue;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Money_Comparable2_PrintableClassInfo _initClassInfo() {
+    final ci = Money_Comparable2_PrintableClassInfo();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1661,16 +1615,19 @@ class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
 }
 
 
-class ReactiveStore_Object_LoggableValue extends VPtr {
+class ReactiveStore_Object_LoggableClassInfo extends ClassInfo {
+  Function? log;
+  Function? get_logs;
+}
+
+class ReactiveStore_Object_LoggableValue extends AnyGC {
   late StaticList<String> _logs = StaticList<String>();
-  static Map<String, dynamic>? vptrMap;
+  static ReactiveStore_Object_LoggableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ReactiveStore_Object_LoggableClassInfo _initClassInfo() {
+    final ci = ReactiveStore_Object_LoggableClassInfo();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1681,24 +1638,17 @@ class ReactiveStore_Object_LoggableValue extends VPtr {
 }
 
 
+class ReactiveStore_Object_Loggable_ObservableClassInfo<V> extends ReactiveStore_Object_LoggableClassInfo {
+  Function? observe;
+  Function? notify;
+}
+
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
   late StaticList<TypeFunction1<void, V>> _observers = StaticList<TypeFunction1<void, V>>();
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = ReactiveStore_Object_Loggable_ObservableValue<V>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo {
+    final ci = ReactiveStore_Object_Loggable_ObservableClassInfo<V>();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1709,24 +1659,16 @@ class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Obj
 }
 
 
+class LabeledNode_Node_PrintableClassInfo<T> extends NodeClassInfo<T> {
+  Function? get_label;
+  Function? toPrettyString;
+}
+
 class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
-  static final Map<Type, Map<String, dynamic>> vptrCache = {};
-  Map<String, dynamic>? instanceVptr;
   @override
-  Map<String, dynamic> get vptr {
-    if (instanceVptr == null) {
-      final _typeKey = LabeledNode_Node_PrintableValue<T>;
-      instanceVptr = vptrCache[_typeKey];
-      if (instanceVptr == null) {
-        instanceVptr = Map<String, dynamic>.from((super.vptr));
-        initVptr(instanceVptr!);
-        vptrCache[_typeKey] = instanceVptr!;
-      }
-    }
-    return instanceVptr!;
-  }
-  @override
-  void initVptr(Map<String, dynamic> target) {
+  ClassInfo get classInfo {
+    final ci = LabeledNode_Node_PrintableClassInfo<T>();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -1737,7 +1679,7 @@ class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
 
 
 T applyTransform<T>(T value, TypeFunction1<T, T> transform) {
-  return transform.closureCall(transform, value);
+  return transform.call(value);
 }
 
 StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicate) {
@@ -1747,7 +1689,7 @@ StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicat
     for (; sync_for_iterator.moveNext(); ) {
       final T item = sync_for_iterator.current;
 {
-        if (predicate.closureCall(predicate, item))         result.add(item);
+        if (predicate.call(item))         result.add(item);
       }
     }
   }
@@ -1757,7 +1699,7 @@ StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicat
 T reduceList<T>(StaticList<T> items, TypeFunction2<T, T, T> reducer) {
   T acc = items.first;
   for (var i = 1; (i < items.length); i = (i + 1)) {
-    acc = reducer.closureCall(reducer, acc, items[i]);
+    acc = reducer.call(acc, items[i]);
   }
   return acc;
 }
@@ -1766,8 +1708,8 @@ StaticList<String> testClosureBoxing() {
   final StaticList<String> log = StaticList<String>();
   IntBox counter = IntBox(0);
   final TypeFunction0<int> increment = ClosureEnv_testClosureBoxing_2_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_2()), counter);
-  increment.closureCall(increment);
-  increment.closureCall(increment);
+  increment.call();
+  increment.call();
   log.add('counter=${counter.value}');
   final StaticList<TypeFunction0<int>> fns = StaticList<TypeFunction0<int>>();
   for (var i = 0; (i < 3); i = (i + 1)) {
@@ -1776,24 +1718,24 @@ StaticList<String> testClosureBoxing() {
   log.add('fns=${StaticList.of(fns.map(ClosureEnv_testClosureBoxing_4_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_4()))).toList())}');
   IntBox outer = IntBox(0);
   final TypeFunction1<TypeFunction1<int, int>, int> makeAdder = ClosureEnv_testClosureBoxing_5_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_5()), outer);
-  final TypeFunction1<int, int> adder = makeAdder.closureCall(makeAdder, 100);
-  adder.closureCall(adder, 5);
-  adder.closureCall(adder, 10);
-  log.add('outer=${outer.value}, adder(0)=${adder.closureCall(adder, 0)}');
+  final TypeFunction1<int, int> adder = makeAdder.call(100);
+  adder.call(5);
+  adder.call(10);
+  log.add('outer=${outer.value}, adder(0)=${adder.call(0)}');
   String captureParam(String prefix) {
     int count = 0;
     final TypeFunction0<String> fn = ClosureEnv_testClosureBoxing_7_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_7()), count, prefix);
-    fn.closureCall(fn);
-    fn.closureCall(fn);
-    return fn.closureCall(fn);
+    fn.call();
+    fn.call();
+    return fn.call();
   }
 
   log.add('captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(GC.allocateLocal(EventBusValue()));
   StaticList<String> received = StaticList<String>();
-  (bus.vptr['on'] as void Function(AnyGC, TypeFunction1<void, String>))(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
-  (bus.vptr['emit'] as void Function(AnyGC, String))(bus, 'hello');
-  (bus.vptr['emit'] as void Function(AnyGC, String))(bus, 'world');
+  (bus.classInfo as EventBusClassInfo).on!(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
+  (bus.classInfo as EventBusClassInfo).emit!(bus, 'hello');
+  (bus.classInfo as EventBusClassInfo).emit!(bus, 'world');
   log.add('received=${received}');
   return log;
 }
@@ -1832,12 +1774,12 @@ String greetAll(String greeting, [String name = 'World', String suffix = '!']) {
 
 String describeShape(ShapeValue shape) {
   if ((shape is CircleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(AnyGC))(shape)}: r=${shape.radius}, area=${(shape.vptr['area'] as double Function(AnyGC))(shape).toStringAsFixed(2)}';
+    return '${(shape.classInfo as CircleClassInfo).get_shapeName!(shape)}: r=${shape.radius}, area=${(shape.classInfo as CircleClassInfo).area!(shape).toStringAsFixed(2)}';
   }
  else   if ((shape is RectangleValue)) {
-    return '${(shape.vptr['get_shapeName'] as String Function(AnyGC))(shape)}: ${shape.width}x${shape.height}, area=${(shape.vptr['area'] as double Function(AnyGC))(shape).toStringAsFixed(2)}';
+    return '${(shape.classInfo as RectangleClassInfo).get_shapeName!(shape)}: ${shape.width}x${shape.height}, area=${(shape.classInfo as RectangleClassInfo).area!(shape).toStringAsFixed(2)}';
   }
-  return 'Unknown shape: area=${(shape.vptr['area'] as double Function(AnyGC))(shape)}';
+  return 'Unknown shape: area=${(shape.classInfo as ShapeClassInfo).area!(shape)}';
 }
 
 String evaluateGrade(int score) {
@@ -1889,42 +1831,42 @@ void main() {
   staticPrint('\n--- 3. 运算符重载 ---');
   final MoneyValue price1 = Money_new(GC.allocateLocal(MoneyValue()), 1099, 'USD');
   final MoneyValue price2 = Money_new_fromDollars(GC.allocateLocal(MoneyValue()), 5.5);
-  final MoneyValue total = (price1.vptr['operatorPlus'] as MoneyValue Function(AnyGC, MoneyValue))(price1, price2);
-  final MoneyValue negated = (price2.vptr['operatorNeg'] as MoneyValue Function(AnyGC))(price2);
-  staticPrint('price1: ${(price1.vptr['toPrettyString'] as String Function(AnyGC))(price1)}');
+  final MoneyValue total = (price1.classInfo as MoneyClassInfo).operatorPlus!(price1, price2);
+  final MoneyValue negated = (price2.classInfo as MoneyClassInfo).operatorNeg!(price2);
+  staticPrint('price1: ${(price1.classInfo as MoneyClassInfo).toPrettyString!(price1)}');
   staticPrint('price2: ${price2}');
   staticPrint('total: ${total}');
   staticPrint('negated: ${negated}');
-  staticPrint('price1 > price2: ${(price1.vptr['operatorGt'] as bool Function(AnyGC, MoneyValue))(price1, price2)}');
-  staticPrint('price1 < price2: ${(price1.vptr['operatorLt'] as bool Function(AnyGC, MoneyValue))(price1, price2)}');
-  staticPrint('price1 * 3: ${(price1.vptr['operatorStar'] as MoneyValue Function(AnyGC, int))(price1, 3)}');
+  staticPrint('price1 > price2: ${(price1.classInfo as MoneyClassInfo).operatorGt!(price1, price2)}');
+  staticPrint('price1 < price2: ${(price1.classInfo as MoneyClassInfo).operatorLt!(price1, price2)}');
+  staticPrint('price1 * 3: ${(price1.classInfo as MoneyClassInfo).operatorStar!(price1, 3)}');
   staticPrint('\n--- 4. 多层泛型继承 ---');
   final EntityValue<int> entity = Entity_new<int>(GC.allocateLocal(EntityValue<int>()), 1, 'alice');
   staticPrint('entity: ${entity}');
-  staticPrint('entity label: ${(entity.vptr['toPrettyString'] as String Function(AnyGC))(entity)}');
-  (entity.vptr['cacheValue'] as void Function(AnyGC, AnyGC))(entity, StringBox('cached_data'));
-  staticPrint('cached: ${(entity.vptr['getCachedValue'] as dynamic Function(AnyGC))(entity)}');
+  staticPrint('entity label: ${(entity.classInfo as EntityClassInfo).toPrettyString!(entity)}');
+  (entity.classInfo as EntityClassInfo).cacheValue!(entity, StringBox('cached_data'));
+  staticPrint('cached: ${(entity.classInfo as EntityClassInfo).getCachedValue!(entity)}');
   final TimestampedEntityValue<String> tsEntity = TimestampedEntity_new<String>(GC.allocateLocal(TimestampedEntityValue<String>()), 'u1', 'bob', 1000, 2000);
-  staticPrint('tsEntity label: ${(tsEntity.vptr['toPrettyString'] as String Function(AnyGC))(tsEntity)}');
+  staticPrint('tsEntity label: ${(tsEntity.classInfo as TimestampedEntityClassInfo).toPrettyString!(tsEntity)}');
   final VersionedEntityValue<int> vEntity = VersionedEntity_new<int>(GC.allocateLocal(VersionedEntityValue<int>()), 42, 'project', 1000, 5000);
-  (vEntity.vptr['bump'] as void Function(AnyGC, String))(vEntity, 'initial release');
-  (vEntity.vptr['bump'] as void Function(AnyGC, String))(vEntity, 'bug fix');
-  staticPrint('vEntity label: ${(vEntity.vptr['toPrettyString'] as String Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity version: ${(vEntity.vptr['get_version'] as int Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity changelog: ${(vEntity.vptr['get_changelog'] as StaticList<String> Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity serialize: ${(vEntity.vptr['serialize'] as String Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity toJson: ${(vEntity.vptr['toJson'] as String Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity isValid: ${(vEntity.vptr['get_isValid'] as bool Function(AnyGC))(vEntity)}');
-  staticPrint('vEntity validate: ${(vEntity.vptr['validate'] as StaticList<String> Function(AnyGC))(vEntity)}');
+  (vEntity.classInfo as VersionedEntityClassInfo).bump!(vEntity, 'initial release');
+  (vEntity.classInfo as VersionedEntityClassInfo).bump!(vEntity, 'bug fix');
+  staticPrint('vEntity label: ${(vEntity.classInfo as VersionedEntityClassInfo).toPrettyString!(vEntity)}');
+  staticPrint('vEntity version: ${(vEntity.classInfo as VersionedEntityClassInfo).get_version!(vEntity)}');
+  staticPrint('vEntity changelog: ${(vEntity.classInfo as VersionedEntityClassInfo).get_changelog!(vEntity)}');
+  staticPrint('vEntity serialize: ${(vEntity.classInfo as VersionedEntityClassInfo).serialize!(vEntity)}');
+  staticPrint('vEntity toJson: ${(vEntity.classInfo as VersionedEntityClassInfo).toJson!(vEntity)}');
+  staticPrint('vEntity isValid: ${(vEntity.classInfo as VersionedEntityClassInfo).get_isValid!(vEntity)}');
+  staticPrint('vEntity validate: ${(vEntity.classInfo as VersionedEntityClassInfo).validate!(vEntity)}');
   staticPrint('\n--- 5. 工厂构造 ---');
   final ConfigValue cfg1 = Config_new_empty(GC.allocateLocal(ConfigValue()));
-  (cfg1.vptr['operatorIndexSet'] as void Function(AnyGC, String, AnyGC))(cfg1, 'host', StringBox('localhost'));
+  (cfg1.classInfo as ConfigClassInfo).operatorIndexSet!(cfg1, 'host', StringBox('localhost'));
   staticPrint('cfg1: ${cfg1}');
   final ConfigValue cfg2 = Config_new_fromPairs(GC.allocateLocal(ConfigValue()), StaticList<StaticList<dynamic>>.of([StaticList<dynamic>.of(['a', 1]), StaticList<dynamic>.of(['b', 2])]));
   staticPrint('cfg2: ${cfg2}');
   final ConfigValue cfg3 = Config_new_withDefaults(StaticMap<String, dynamic>.of({'debug': true, 'name': 'prod'}));
   staticPrint('cfg3: ${cfg3}');
-  staticPrint('cfg3[maxRetries]: ${(cfg3.vptr['operatorIndex'] as dynamic Function(AnyGC, String))(cfg3, 'maxRetries')}');
+  staticPrint('cfg3[maxRetries]: ${(cfg3.classInfo as ConfigClassInfo).operatorIndex!(cfg3, 'maxRetries')}');
   staticPrint('\n--- 6. 闭包 Box 化 ---');
   final StaticList<String> closureLog = StaticList<String>.of(testClosureBoxing());
 {
@@ -1938,30 +1880,30 @@ void main() {
   }
   staticPrint('\n--- 7. 多重 implements ---');
   final WidgetValue widget = Widget_new(GC.allocateLocal(WidgetValue()));
-  (widget.vptr['draw'] as void Function(AnyGC))(widget);
-  (widget.vptr['resize'] as void Function(AnyGC, double))(widget, 1.5);
-  (widget.vptr['onClick'] as void Function(AnyGC))(widget);
-  (widget.vptr['onClick'] as void Function(AnyGC))(widget);
-  staticPrint('widget: ${(widget.vptr['get_info'] as String Function(AnyGC))(widget)}');
+  (widget.classInfo as WidgetClassInfo).draw!(widget);
+  (widget.classInfo as WidgetClassInfo).resize!(widget, 1.5);
+  (widget.classInfo as WidgetClassInfo).onClick!(widget);
+  (widget.classInfo as WidgetClassInfo).onClick!(widget);
+  staticPrint('widget: ${(widget.classInfo as WidgetClassInfo).get_info!(widget)}');
   staticPrint('\n--- 8. 泛型 Pair ---');
   final PairValue<int, String> pair = Pair_new<int, String>(GC.allocateLocal(PairValue<int, String>()), 42, 'hello');
   staticPrint('pair: ${pair}');
-  staticPrint('swap: ${(pair.vptr['swap'] as PairValue<String, int> Function(AnyGC))(pair)}');
-  staticPrint('mapFirst: ${(pair.vptr['mapFirst_int'] as PairValue<int, String> Function(AnyGC, TypeFunction1<int, int>))(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
-  staticPrint('mapSecond: ${(pair.vptr['mapSecond_String'] as PairValue<int, String> Function(AnyGC, TypeFunction1<String, String>))(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
-  staticPrint('fold: ${(pair.vptr['fold_String'] as String Function(AnyGC, TypeFunction2<String, int, String>))(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
+  staticPrint('swap: ${(pair.classInfo as PairClassInfo).swap!(pair)}');
+  staticPrint('mapFirst: ${(pair.classInfo as PairClassInfo).mapFirst_int!(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
+  staticPrint('mapSecond: ${(pair.classInfo as PairClassInfo).mapSecond_String!(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
+  staticPrint('fold: ${(pair.classInfo as PairClassInfo).fold_String!(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
   final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(GC.allocateLocal(TripleValue<int, String, bool>()), 1, 'yes', true);
   staticPrint('triple: ${triple}');
   staticPrint('\n--- 9. 级联操作 ---');
-  final StringBuilderValue sb = (() { final _let9 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let9.vptr['withSeparator'] as StringBuilderValue Function(AnyGC, String))(_let9, ', '); (_let9.vptr['add'] as StringBuilderValue Function(AnyGC, String))(_let9, 'alpha'); (_let9.vptr['add'] as StringBuilderValue Function(AnyGC, String))(_let9, 'beta'); (_let9.vptr['addAll'] as StringBuilderValue Function(AnyGC, StaticList<String>))(_let9, StaticList<String>.of(['gamma', 'delta'])); return _let9; })();
+  final StringBuilderValue sb = (() { final _let9 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let9.classInfo as StringBuilderClassInfo).withSeparator!(_let9, ', '); (_let9.classInfo as StringBuilderClassInfo).add!(_let9, 'alpha'); (_let9.classInfo as StringBuilderClassInfo).add!(_let9, 'beta'); (_let9.classInfo as StringBuilderClassInfo).addAll!(_let9, StaticList<String>.of(['gamma', 'delta'])); return _let9; })();
   staticPrint('builder: ${sb}');
-  staticPrint('length: ${(sb.vptr['get_length'] as int Function(AnyGC))(sb)}');
+  staticPrint('length: ${(sb.classInfo as StringBuilderClassInfo).get_length!(sb)}');
   staticPrint('\n--- 10. 异常处理链 ---');
   staticPrint('chain: ${testExceptionChain()}');
   staticPrint('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = (() { final _r13 = (() { final _r12 = (() { final _r11 = (() { final _r10 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r10.vptr['where'] as DataPipelineValue<int> Function(AnyGC, TypeFunction1<bool, int>))(_r10, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r11.vptr['sorted'] as DataPipelineValue<int> Function(AnyGC, TypeFunction2<int, int, int>))(_r11, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r12.vptr['take'] as DataPipelineValue<int> Function(AnyGC, int))(_r12, 5); })(); return (_r13.vptr['map_int'] as DataPipelineValue<int> Function(AnyGC, TypeFunction1<int, int>))(_r13, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
-  staticPrint('pipeline: ${(pipeline.vptr['toList'] as StaticList<int> Function(AnyGC))(pipeline)}');
-  final int pipeSum = (() { final _r14 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r14.vptr['fold_int'] as int Function(AnyGC, int, TypeFunction2<int, int, int>))(_r14, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
+  final DataPipelineValue<int> pipeline = (() { final _r13 = (() { final _r12 = (() { final _r11 = (() { final _r10 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r10.classInfo as DataPipelineClassInfo).where!(_r10, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r11.classInfo as DataPipelineClassInfo).sorted!(_r11, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r12.classInfo as DataPipelineClassInfo).take!(_r12, 5); })(); return (_r13.classInfo as DataPipelineClassInfo).map_int!(_r13, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
+  staticPrint('pipeline: ${(pipeline.classInfo as DataPipelineClassInfo).toList!(pipeline)}');
+  final int pipeSum = (() { final _r14 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r14.classInfo as dynamic).fold_int!(_r14, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
   staticPrint('pipeSum: ${pipeSum}');
   staticPrint('\n--- 12. 可选参数 ---');
   staticPrint(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
@@ -1971,11 +1913,11 @@ void main() {
   staticPrint('\n--- 13. BoundedValue ---');
   final BoundedValueValue bv = BoundedValue_new(GC.allocateLocal(BoundedValueValue()), 5.0, 0.0, 10.0);
   staticPrint('bv: ${bv}');
-  (bv.vptr['set_value'] as void Function(AnyGC, double))(bv, 15.0);
+  (bv.classInfo as BoundedValueClassInfo).set_value!(bv, 15.0);
   staticPrint('after set 15: ${bv}');
-  (bv.vptr['set_value'] as void Function(AnyGC, double))(bv, (-5.0));
+  (bv.classInfo as BoundedValueClassInfo).set_value!(bv, (-5.0));
   staticPrint('after set -5: ${bv}');
-  final BoundedValueValue bv2 = (bv.vptr['operatorPlus'] as BoundedValueValue Function(AnyGC, double))(bv, 7.0);
+  final BoundedValueValue bv2 = (bv.classInfo as BoundedValueClassInfo).operatorPlus!(bv, 7.0);
   staticPrint('bv + 7: ${bv2}');
   staticPrint('\n--- 14. 静态方法 ---');
   staticPrint('5! = ${MathUtils_factorial(5)}');
@@ -1985,14 +1927,14 @@ void main() {
   staticPrint('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(GC.allocateLocal(ReactiveStoreValue<int>()));
   final StaticList<int> observed = StaticList<int>();
-  (store.vptr['observe'] as void Function(AnyGC, TypeFunction1<void, int>))(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
-  (store.vptr['set'] as void Function(AnyGC, String, int))(store, 'x', 10);
-  (store.vptr['set'] as void Function(AnyGC, String, int))(store, 'y', 20);
+  (store.classInfo as ReactiveStoreClassInfo).observe!(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
+  (store.classInfo as ReactiveStoreClassInfo).set!(store, 'x', 10);
+  (store.classInfo as ReactiveStoreClassInfo).set!(store, 'y', 20);
   staticPrint('store: ${store}');
-  staticPrint('store.get(x): ${(store.vptr['get'] as int? Function(AnyGC, String))(store, 'x')}');
-  staticPrint('store.size: ${(store.vptr['get_size'] as int Function(AnyGC))(store)}');
+  staticPrint('store.get(x): ${(store.classInfo as ReactiveStoreClassInfo).get!(store, 'x')}');
+  staticPrint('store.size: ${(store.classInfo as ReactiveStoreClassInfo).get_size!(store)}');
   staticPrint('observed: ${observed}');
-  staticPrint('logs: ${(store.vptr['get_logs'] as StaticList<String> Function(AnyGC))(store)}');
+  staticPrint('logs: ${(store.classInfo as ReactiveStoreClassInfo).get_logs!(store)}');
   staticPrint('\n--- 16. 类型转换 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new(GC.allocateLocal(CircleValue()), 1.0)]);
 {
@@ -2017,7 +1959,7 @@ class ClosureEnv_anon_0 extends TypeFunction1<String, String> {
   late ConfigValue this_;
   ClosureEnv_anon_0();
   @override
-  String call(String k) => closureCall(this, k);
+  String call(String k) => fnPtr(this, k);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2026,7 +1968,7 @@ class ClosureEnv_anon_0 extends TypeFunction1<String, String> {
   }
 }
 ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_, ConfigValue this_) {
-  env_.closureCall = ClosureEnv_anon_0_call;
+  env_.fnPtr = ClosureEnv_anon_0_call;
   env_.this_ = this_;
   return env_;
 }
@@ -2040,7 +1982,7 @@ class ClosureEnv_anon_1<R, T> extends TypeFunction1<NodeValue<R>, NodeValue<T>> 
   late TypeFunction1<R, T> transform;
   ClosureEnv_anon_1();
   @override
-  NodeValue<R> call(NodeValue<T> c) => closureCall(this, c);
+  NodeValue<R> call(NodeValue<T> c) => fnPtr(this, c);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2049,7 +1991,7 @@ class ClosureEnv_anon_1<R, T> extends TypeFunction1<NodeValue<R>, NodeValue<T>> 
   }
 }
 ClosureEnv_anon_1<R, T> ClosureEnv_anon_1_new<R, T>(ClosureEnv_anon_1<R, T> env_, TypeFunction1<R, T> transform) {
-  env_.closureCall = ClosureEnv_anon_1_call<R, T>;
+  env_.fnPtr = ClosureEnv_anon_1_call<R, T>;
   env_.transform = transform;
   return env_;
 }
@@ -2063,7 +2005,7 @@ class ClosureEnv_testClosureBoxing_2 extends TypeFunction0<int> {
   late IntBox counter;
   ClosureEnv_testClosureBoxing_2();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2072,7 +2014,7 @@ class ClosureEnv_testClosureBoxing_2 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_testClosureBoxing_2 ClosureEnv_testClosureBoxing_2_new(ClosureEnv_testClosureBoxing_2 env_, IntBox counter) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_2_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_2_call;
   env_.counter = counter;
   return env_;
 }
@@ -2087,7 +2029,7 @@ class ClosureEnv_testClosureBoxing_3 extends TypeFunction0<int> {
   late int i;
   ClosureEnv_testClosureBoxing_3();
   @override
-  int call() => closureCall(this);
+  int call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2096,7 +2038,7 @@ class ClosureEnv_testClosureBoxing_3 extends TypeFunction0<int> {
   }
 }
 ClosureEnv_testClosureBoxing_3 ClosureEnv_testClosureBoxing_3_new(ClosureEnv_testClosureBoxing_3 env_, int i) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_3_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_3_call;
   env_.i = i;
   return env_;
 }
@@ -2109,16 +2051,16 @@ int ClosureEnv_testClosureBoxing_3_call(AnyGC env__) {
 class ClosureEnv_testClosureBoxing_4 extends TypeFunction1<int, TypeFunction0<int>> {
   ClosureEnv_testClosureBoxing_4();
   @override
-  int call(TypeFunction0<int> f) => closureCall(this, f);
+  int call(TypeFunction0<int> f) => fnPtr(this, f);
 }
 ClosureEnv_testClosureBoxing_4 ClosureEnv_testClosureBoxing_4_new(ClosureEnv_testClosureBoxing_4 env_) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_4_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_4_call;
   return env_;
 }
 int ClosureEnv_testClosureBoxing_4_call(AnyGC env__, TypeFunction0<int> f) {
   final env = env__ as ClosureEnv_testClosureBoxing_4;
 
-  return f.closureCall(f);
+  return f.call();
 }
 
 class ClosureEnv_ClosureEnv_testClosureBoxing_5_6 extends TypeFunction1<int, int> {
@@ -2126,7 +2068,7 @@ class ClosureEnv_ClosureEnv_testClosureBoxing_5_6 extends TypeFunction1<int, int
   late IntBox outer;
   ClosureEnv_ClosureEnv_testClosureBoxing_5_6();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2136,7 +2078,7 @@ class ClosureEnv_ClosureEnv_testClosureBoxing_5_6 extends TypeFunction1<int, int
   }
 }
 ClosureEnv_ClosureEnv_testClosureBoxing_5_6 ClosureEnv_ClosureEnv_testClosureBoxing_5_6_new(ClosureEnv_ClosureEnv_testClosureBoxing_5_6 env_, IntBox inner, IntBox outer) {
-  env_.closureCall = ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call;
+  env_.fnPtr = ClosureEnv_ClosureEnv_testClosureBoxing_5_6_call;
   env_.inner = inner;
   env_.outer = outer;
   return env_;
@@ -2153,7 +2095,7 @@ class ClosureEnv_testClosureBoxing_5 extends TypeFunction1<TypeFunction1<int, in
   late IntBox outer;
   ClosureEnv_testClosureBoxing_5();
   @override
-  TypeFunction1<int, int> call(int base) => closureCall(this, base);
+  TypeFunction1<int, int> call(int base) => fnPtr(this, base);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2162,7 +2104,7 @@ class ClosureEnv_testClosureBoxing_5 extends TypeFunction1<TypeFunction1<int, in
   }
 }
 ClosureEnv_testClosureBoxing_5 ClosureEnv_testClosureBoxing_5_new(ClosureEnv_testClosureBoxing_5 env_, IntBox outer) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_5_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_5_call;
   env_.outer = outer;
   return env_;
 }
@@ -2178,7 +2120,7 @@ class ClosureEnv_testClosureBoxing_7 extends TypeFunction0<String> {
   late String prefix;
   ClosureEnv_testClosureBoxing_7();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2188,7 +2130,7 @@ class ClosureEnv_testClosureBoxing_7 extends TypeFunction0<String> {
   }
 }
 ClosureEnv_testClosureBoxing_7 ClosureEnv_testClosureBoxing_7_new(ClosureEnv_testClosureBoxing_7 env_, int count, String prefix) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_7_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_7_call;
   env_.count = count;
   env_.prefix = prefix;
   return env_;
@@ -2204,7 +2146,7 @@ class ClosureEnv_testClosureBoxing_8 extends TypeFunction1<void, String> {
   late StaticList<String> received;
   ClosureEnv_testClosureBoxing_8();
   @override
-  void call(String event) => closureCall(this, event);
+  void call(String event) => fnPtr(this, event);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2213,7 +2155,7 @@ class ClosureEnv_testClosureBoxing_8 extends TypeFunction1<void, String> {
   }
 }
 ClosureEnv_testClosureBoxing_8 ClosureEnv_testClosureBoxing_8_new(ClosureEnv_testClosureBoxing_8 env_, StaticList<String> received) {
-  env_.closureCall = ClosureEnv_testClosureBoxing_8_call;
+  env_.fnPtr = ClosureEnv_testClosureBoxing_8_call;
   env_.received = received;
   return env_;
 }
@@ -2226,10 +2168,10 @@ void ClosureEnv_testClosureBoxing_8_call(AnyGC env__, String event) {
 class ClosureEnv_main_9 extends TypeFunction1<int, int> {
   ClosureEnv_main_9();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_9 ClosureEnv_main_9_new(ClosureEnv_main_9 env_) {
-  env_.closureCall = ClosureEnv_main_9_call;
+  env_.fnPtr = ClosureEnv_main_9_call;
   return env_;
 }
 int ClosureEnv_main_9_call(AnyGC env__, int x) {
@@ -2241,10 +2183,10 @@ int ClosureEnv_main_9_call(AnyGC env__, int x) {
 class ClosureEnv_main_10 extends TypeFunction1<bool, int> {
   ClosureEnv_main_10();
   @override
-  bool call(int x) => closureCall(this, x);
+  bool call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_10 ClosureEnv_main_10_new(ClosureEnv_main_10 env_) {
-  env_.closureCall = ClosureEnv_main_10_call;
+  env_.fnPtr = ClosureEnv_main_10_call;
   return env_;
 }
 bool ClosureEnv_main_10_call(AnyGC env__, int x) {
@@ -2256,10 +2198,10 @@ bool ClosureEnv_main_10_call(AnyGC env__, int x) {
 class ClosureEnv_main_11 extends TypeFunction2<int, int, int> {
   ClosureEnv_main_11();
   @override
-  int call(int a, int b) => closureCall(this, a, b);
+  int call(int a, int b) => fnPtr(this, a, b);
 }
 ClosureEnv_main_11 ClosureEnv_main_11_new(ClosureEnv_main_11 env_) {
-  env_.closureCall = ClosureEnv_main_11_call;
+  env_.fnPtr = ClosureEnv_main_11_call;
   return env_;
 }
 int ClosureEnv_main_11_call(AnyGC env__, int a, int b) {
@@ -2271,10 +2213,10 @@ int ClosureEnv_main_11_call(AnyGC env__, int a, int b) {
 class ClosureEnv_main_12 extends TypeFunction1<String, Priority> {
   ClosureEnv_main_12();
   @override
-  String call(Priority p) => closureCall(this, p);
+  String call(Priority p) => fnPtr(this, p);
 }
 ClosureEnv_main_12 ClosureEnv_main_12_new(ClosureEnv_main_12 env_) {
-  env_.closureCall = ClosureEnv_main_12_call;
+  env_.fnPtr = ClosureEnv_main_12_call;
   return env_;
 }
 String ClosureEnv_main_12_call(AnyGC env__, Priority p) {
@@ -2286,10 +2228,10 @@ String ClosureEnv_main_12_call(AnyGC env__, Priority p) {
 class ClosureEnv_main_13 extends TypeFunction1<int, int> {
   ClosureEnv_main_13();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_13 ClosureEnv_main_13_new(ClosureEnv_main_13 env_) {
-  env_.closureCall = ClosureEnv_main_13_call;
+  env_.fnPtr = ClosureEnv_main_13_call;
   return env_;
 }
 int ClosureEnv_main_13_call(AnyGC env__, int x) {
@@ -2301,10 +2243,10 @@ int ClosureEnv_main_13_call(AnyGC env__, int x) {
 class ClosureEnv_main_14 extends TypeFunction1<String, String> {
   ClosureEnv_main_14();
   @override
-  String call(String s) => closureCall(this, s);
+  String call(String s) => fnPtr(this, s);
 }
 ClosureEnv_main_14 ClosureEnv_main_14_new(ClosureEnv_main_14 env_) {
-  env_.closureCall = ClosureEnv_main_14_call;
+  env_.fnPtr = ClosureEnv_main_14_call;
   return env_;
 }
 String ClosureEnv_main_14_call(AnyGC env__, String s) {
@@ -2316,10 +2258,10 @@ String ClosureEnv_main_14_call(AnyGC env__, String s) {
 class ClosureEnv_main_15 extends TypeFunction2<String, int, String> {
   ClosureEnv_main_15();
   @override
-  String call(int a, String b) => closureCall(this, a, b);
+  String call(int a, String b) => fnPtr(this, a, b);
 }
 ClosureEnv_main_15 ClosureEnv_main_15_new(ClosureEnv_main_15 env_) {
-  env_.closureCall = ClosureEnv_main_15_call;
+  env_.fnPtr = ClosureEnv_main_15_call;
   return env_;
 }
 String ClosureEnv_main_15_call(AnyGC env__, int a, String b) {
@@ -2331,10 +2273,10 @@ String ClosureEnv_main_15_call(AnyGC env__, int a, String b) {
 class ClosureEnv_main_16 extends TypeFunction1<bool, int> {
   ClosureEnv_main_16();
   @override
-  bool call(int x) => closureCall(this, x);
+  bool call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_16 ClosureEnv_main_16_new(ClosureEnv_main_16 env_) {
-  env_.closureCall = ClosureEnv_main_16_call;
+  env_.fnPtr = ClosureEnv_main_16_call;
   return env_;
 }
 bool ClosureEnv_main_16_call(AnyGC env__, int x) {
@@ -2346,10 +2288,10 @@ bool ClosureEnv_main_16_call(AnyGC env__, int x) {
 class ClosureEnv_main_17 extends TypeFunction2<int, int, int> {
   ClosureEnv_main_17();
   @override
-  int call(int a, int b) => closureCall(this, a, b);
+  int call(int a, int b) => fnPtr(this, a, b);
 }
 ClosureEnv_main_17 ClosureEnv_main_17_new(ClosureEnv_main_17 env_) {
-  env_.closureCall = ClosureEnv_main_17_call;
+  env_.fnPtr = ClosureEnv_main_17_call;
   return env_;
 }
 int ClosureEnv_main_17_call(AnyGC env__, int a, int b) {
@@ -2361,10 +2303,10 @@ int ClosureEnv_main_17_call(AnyGC env__, int a, int b) {
 class ClosureEnv_main_18 extends TypeFunction1<int, int> {
   ClosureEnv_main_18();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
 }
 ClosureEnv_main_18 ClosureEnv_main_18_new(ClosureEnv_main_18 env_) {
-  env_.closureCall = ClosureEnv_main_18_call;
+  env_.fnPtr = ClosureEnv_main_18_call;
   return env_;
 }
 int ClosureEnv_main_18_call(AnyGC env__, int x) {
@@ -2376,10 +2318,10 @@ int ClosureEnv_main_18_call(AnyGC env__, int x) {
 class ClosureEnv_main_19 extends TypeFunction2<int, int, int> {
   ClosureEnv_main_19();
   @override
-  int call(int acc, int x) => closureCall(this, acc, x);
+  int call(int acc, int x) => fnPtr(this, acc, x);
 }
 ClosureEnv_main_19 ClosureEnv_main_19_new(ClosureEnv_main_19 env_) {
-  env_.closureCall = ClosureEnv_main_19_call;
+  env_.fnPtr = ClosureEnv_main_19_call;
   return env_;
 }
 int ClosureEnv_main_19_call(AnyGC env__, int acc, int x) {
@@ -2392,7 +2334,7 @@ class ClosureEnv_main_20 extends TypeFunction1<void, int> {
   late StaticList<int> observed;
   ClosureEnv_main_20();
   @override
-  void call(int v) => closureCall(this, v);
+  void call(int v) => fnPtr(this, v);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2401,7 +2343,7 @@ class ClosureEnv_main_20 extends TypeFunction1<void, int> {
   }
 }
 ClosureEnv_main_20 ClosureEnv_main_20_new(ClosureEnv_main_20 env_, StaticList<int> observed) {
-  env_.closureCall = ClosureEnv_main_20_call;
+  env_.fnPtr = ClosureEnv_main_20_call;
   env_.observed = observed;
   return env_;
 }

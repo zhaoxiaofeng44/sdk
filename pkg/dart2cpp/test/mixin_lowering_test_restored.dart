@@ -49,7 +49,7 @@ void ClosureEnv_main_0_call(ClosureEnv_main_0 env) {
   }
   smAwait(tempFile.delete());
 }
-class MethodSpecEntryValue extends VPtr {
+class MethodSpecEntryValue extends AnyGC {
   late String vptrSuffix;
   late StaticList<String> typeArgStrs;
   MethodSpecEntryValue() {
@@ -82,7 +82,7 @@ int MethodSpecEntry_get_hashCode(dynamic this__) {
 }
 
 
-class _DartRestorerBaseValue extends VPtr {
+class _DartRestorerBaseValue extends AnyGC {
   late StaticStringBuffer _buf;
   late int _indent;
   late int _varCounter;
@@ -727,7 +727,7 @@ void _DartRestorerBase__writeParams(dynamic this_, FunctionNode func, {Procedure
 }
 
 
-class _CaptureAnalysisResultValue extends VPtr {
+class _CaptureAnalysisResultValue extends AnyGC {
   late StaticList<VariableDeclaration> capturedDecls;
   late bool capturesThis;
   @override
@@ -746,7 +746,7 @@ _CaptureAnalysisResultValue _CaptureAnalysisResult_new(dynamic this__, {required
 }
 
 
-class _CapturedVarValue extends VPtr {
+class _CapturedVarValue extends AnyGC {
   late String name;
   late String typeStr;
   late bool isThis;
@@ -777,7 +777,7 @@ int _CapturedVar_get_hashCode(dynamic this__) {
 }
 
 
-class _VTableEntryValue extends VPtr {
+class _VTableEntryValue extends AnyGC {
   late String name;
   late String kind;
   late String staticFuncName;
@@ -4341,7 +4341,7 @@ void _DeclarationRestorer__emitValueClass(dynamic this__, Class cls, String clas
     this_._buf.write(' extends ${parentName}${parentTypeArgs}');
   }
  else {
-    this_._buf.write(' extends VPtr');
+    this_._buf.write(' extends AnyGC');
   }
   final StaticList<String> implementedInterfaces = StaticList<String>.of(_DeclarationRestorer__collectUserImplementedInterfaces(this_, cls, className));
   if (implementedInterfaces.isNotEmpty) {
@@ -6301,7 +6301,7 @@ void _DeclarationRestorer__emitAsyncClosureEnvForMethod(dynamic this__, {require
 }
 
 
-class _AsyncEnvFieldValue extends VPtr {
+class _AsyncEnvFieldValue extends AnyGC {
   late String name;
   late String typeStr;
   late bool isBoxed;
@@ -6365,35 +6365,35 @@ class DartRestorer__DartRestorerBase__TypeUtils__ConstantRestorer__ExpressionRes
 }
 
 
-class _ConstantRestorer__DartRestorerBase__TypeUtilsValue extends VPtr implements _DartRestorerBaseValue {
+class _ConstantRestorer__DartRestorerBase__TypeUtilsValue extends AnyGC implements _DartRestorerBaseValue {
 }
 
 
-class _ExpressionRestorer__DartRestorerBase__TypeUtilsValue extends VPtr implements _DartRestorerBaseValue {
+class _ExpressionRestorer__DartRestorerBase__TypeUtilsValue extends AnyGC implements _DartRestorerBaseValue {
 }
 
 
-class _ExpressionRestorer__DartRestorerBase__TypeUtils__ConstantRestorerValue extends VPtr {
+class _ExpressionRestorer__DartRestorerBase__TypeUtils__ConstantRestorerValue extends AnyGC {
 }
 
 
-class _StatementRestorer__DartRestorerBase__TypeUtilsValue extends VPtr implements _DartRestorerBaseValue {
+class _StatementRestorer__DartRestorerBase__TypeUtilsValue extends AnyGC implements _DartRestorerBaseValue {
 }
 
 
-class _StatementRestorer__DartRestorerBase__TypeUtils__ExpressionRestorerValue extends VPtr {
+class _StatementRestorer__DartRestorerBase__TypeUtils__ExpressionRestorerValue extends AnyGC {
 }
 
 
-class _DeclarationRestorer__DartRestorerBase__TypeUtilsValue extends VPtr implements _DartRestorerBaseValue {
+class _DeclarationRestorer__DartRestorerBase__TypeUtilsValue extends AnyGC implements _DartRestorerBaseValue {
 }
 
 
-class _DeclarationRestorer__DartRestorerBase__TypeUtils__ExpressionRestorerValue extends VPtr {
+class _DeclarationRestorer__DartRestorerBase__TypeUtils__ExpressionRestorerValue extends AnyGC {
 }
 
 
-class _DeclarationRestorer__DartRestorerBase__TypeUtils__ExpressionRestorer__StatementRestorerValue extends VPtr {
+class _DeclarationRestorer__DartRestorerBase__TypeUtils__ExpressionRestorer__StatementRestorerValue extends AnyGC {
 }
 
 

@@ -641,7 +641,9 @@ abstract class _DartRestorerBase {
 
   /// 将方法名转换为 VTable 字段名
   /// 特殊处理：避免与 Object 内置方法冲突（如 toString、hashCode、noSuchMethod）
+  /// toString → toString_，与基类 ClassInfo.toString_ 字段及运行时桥接保持一致
   String _vtableFieldName(String methodName) {
+    if (methodName == 'toString') return 'toString_';
     return methodName;
   }
 
@@ -1348,7 +1350,7 @@ class DartRestorer extends _DartRestorerBase
       _collectMethodTypeSpecializations(lib);
     }
 
-    // 引入运行时基础类（VPtr、Box 类型）
+    // 引入运行时基础类（AnyGC、Box 类型）
     _emitRuntimeImport();
 
     for (final lib in component.libraries) {
@@ -1887,7 +1889,7 @@ class DartRestorer extends _DartRestorerBase
   }
 
   /// 输出运行时基础类的 import 语句
-  /// VPtr 基类和 Box 类型已抽取到 runtime_classes.dart
+  /// AnyGC 基类和 Box 类型已抽取到 runtime_classes.dart
   void _emitRuntimeImport() {
     _buf.write("import 'package:dart2cpp/platform/dart/runtime_classes.dart';\n\n");
   }

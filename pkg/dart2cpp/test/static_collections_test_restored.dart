@@ -162,10 +162,10 @@ void testStaticSet() {
 class ClosureEnv_testStaticList_0 extends TypeFunction1<int, int> {
   ClosureEnv_testStaticList_0();
   @override
-  int call(int x) => closureCall(this, x);
+  int call(int x) => fnPtr(this, x);
 }
 ClosureEnv_testStaticList_0 ClosureEnv_testStaticList_0_new(ClosureEnv_testStaticList_0 env_) {
-  env_.closureCall = ClosureEnv_testStaticList_0_call;
+  env_.fnPtr = ClosureEnv_testStaticList_0_call;
   return env_;
 }
 int ClosureEnv_testStaticList_0_call(AnyGC env__, int x) {
@@ -177,10 +177,10 @@ int ClosureEnv_testStaticList_0_call(AnyGC env__, int x) {
 class ClosureEnv_testStaticList_1 extends TypeFunction1<bool, int> {
   ClosureEnv_testStaticList_1();
   @override
-  bool call(int x) => closureCall(this, x);
+  bool call(int x) => fnPtr(this, x);
 }
 ClosureEnv_testStaticList_1 ClosureEnv_testStaticList_1_new(ClosureEnv_testStaticList_1 env_) {
-  env_.closureCall = ClosureEnv_testStaticList_1_call;
+  env_.fnPtr = ClosureEnv_testStaticList_1_call;
   return env_;
 }
 bool ClosureEnv_testStaticList_1_call(AnyGC env__, int x) {
@@ -192,10 +192,10 @@ bool ClosureEnv_testStaticList_1_call(AnyGC env__, int x) {
 class ClosureEnv_testStaticList_2 extends TypeFunction2<int, int, int> {
   ClosureEnv_testStaticList_2();
   @override
-  int call(int a, int b) => closureCall(this, a, b);
+  int call(int a, int b) => fnPtr(this, a, b);
 }
 ClosureEnv_testStaticList_2 ClosureEnv_testStaticList_2_new(ClosureEnv_testStaticList_2 env_) {
-  env_.closureCall = ClosureEnv_testStaticList_2_call;
+  env_.fnPtr = ClosureEnv_testStaticList_2_call;
   return env_;
 }
 int ClosureEnv_testStaticList_2_call(AnyGC env__, int a, int b) {

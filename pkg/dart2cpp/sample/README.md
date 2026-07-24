@@ -68,8 +68,14 @@ class Dog {
 }
 
 // Lowered
-class DogValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class DogClassInfo extends ClassInfo {
+  void Function(DogValue this_)? speak;
+}
+
+class DogValue extends AnyGC {
+  static DogClassInfo? _classInfo;
+  @override
+  DogClassInfo get classInfo => _classInfo ??= _initClassInfo();
   // ...
 }
 
@@ -87,7 +93,7 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 ```
 
 This provides:
-- `VPtr` - Base class with virtual method table
+- `AnyGC` - Base class with GC management and virtual method table
 - `TypeFunction` - Callable closure base classes
 - Box types - For closure capture semantics
 - Static collections - `StaticList`, `StaticMap`, `StaticSet`

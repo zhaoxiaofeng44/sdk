@@ -22,7 +22,7 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 // ============================================================================
 
 /// 模拟用户类 — 带字段引用链
-class AnimalValue extends VPtr {
+class AnimalValue extends AnyGC {
   late String name;
   late int age;
   late AnimalValue? friend; // 可空引用，用于构造引用链
@@ -62,7 +62,7 @@ String Animal_toString(dynamic this__) {
 }
 
 /// 模拟用户类 — 持有 Promise 结果的容器
-class ResultHolderValue extends VPtr {
+class ResultHolderValue extends AnyGC {
   late dynamic data;
   late String label;
 

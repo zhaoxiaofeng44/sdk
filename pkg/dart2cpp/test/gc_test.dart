@@ -7,7 +7,7 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 // ============================================================================
 // 模拟 restored 代码：Node 类（树结构，验证递归标记）
 // ============================================================================
-class NodeValue extends VPtr {
+class NodeValue extends AnyGC {
   late String name;
   late NodeValue? left;
   late NodeValue? right;
@@ -50,7 +50,7 @@ String Node_toString(dynamic this__) {
 // ============================================================================
 // 模拟 restored 代码：Container 泛型类
 // ============================================================================
-class ContainerValue<T> extends VPtr {
+class ContainerValue<T> extends AnyGC {
   late T value;
 
   static Map<String, dynamic>? vptrMap;
@@ -80,7 +80,7 @@ ContainerValue<T> Container_new<T>(dynamic this__, T value) {
 // ============================================================================
 // 模拟 restored 代码：Registry 类（含静态字段 → allocateGlobal）
 // ============================================================================
-class RegistryValue extends VPtr {
+class RegistryValue extends AnyGC {
   static Map<String, dynamic>? vptrMap;
   @override
   Map<String, dynamic> get vptr => getVptrMap();

@@ -2,18 +2,20 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 typedef IntPredicate = TypeFunction1<bool, int>;
 
-class PersonValue extends VPtr {
+class PersonClassInfo extends ClassInfo {
+  Function? greet;
+}
+
+class PersonValue extends AnyGC {
   late String name = '';
   late int age = 0;
-  static Map<String, dynamic>? vptrMap;
+  static PersonClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['greet'] = Person_greet;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static PersonClassInfo _initClassInfo() {
+    final ci = PersonClassInfo();
+    ci.greet = Person_greet;
+    return ci;
   }
 }
 
@@ -28,18 +30,21 @@ void Person_greet(AnyGC this__) {
 }
 
 
-class LateTestValue extends VPtr {
+class LateTestClassInfo extends ClassInfo {
+  Function? init;
+  Function? get;
+}
+
+class LateTestValue extends AnyGC {
   late String value;
-  static Map<String, dynamic>? vptrMap;
+  static LateTestClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['init'] = LateTest_init;
-      vptrMap!['get'] = LateTest_get;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static LateTestClassInfo _initClassInfo() {
+    final ci = LateTestClassInfo();
+    ci.init = LateTest_init;
+    ci.get = LateTest_get;
+    return ci;
   }
 }
 
@@ -73,16 +78,18 @@ int Color_get_value(Color this_) {
   return this_.index;
 }
 
-class ShapeValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class ShapeClassInfo extends ClassInfo {
+  Function? area;
+}
+
+class ShapeValue extends AnyGC {
+  static ShapeClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['area'] = Shape_area;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static ShapeClassInfo _initClassInfo() {
+    final ci = ShapeClassInfo();
+    ci.area = Shape_area;
+    return ci;
   }
 }
 
@@ -96,17 +103,18 @@ double Shape_area(dynamic this_) {
 }
 
 
+class CircleClassInfo extends ShapeClassInfo {
+}
+
 class CircleValue extends ShapeValue {
   late double radius;
-  static Map<String, dynamic>? vptrMap;
+  static CircleClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
-      vptrMap!['area'] = Circle_area;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static CircleClassInfo _initClassInfo() {
+    final ci = CircleClassInfo();
+    ci.area = Circle_area;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -128,17 +136,18 @@ double Circle_area(AnyGC this__) {
 }
 
 
+class SquareClassInfo extends ShapeClassInfo {
+}
+
 class SquareValue extends ShapeValue {
   late double side;
-  static Map<String, dynamic>? vptrMap;
+  static SquareClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(ShapeValue.getVptrMap());
-      vptrMap!['area'] = Square_area;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static SquareClassInfo _initClassInfo() {
+    final ci = SquareClassInfo();
+    ci.area = Square_area;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -160,20 +169,23 @@ double Square_area(AnyGC this__) {
 }
 
 
-class VectorValue extends VPtr {
+class VectorClassInfo extends ClassInfo {
+  Function? operatorPlus;
+  Function? operatorStar;
+}
+
+class VectorValue extends AnyGC {
   late double x;
   late double y;
-  static Map<String, dynamic>? vptrMap;
+  static VectorClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['operatorPlus'] = Vector_operatorPlus;
-      vptrMap!['operatorStar'] = Vector_operatorStar;
-      vptrMap!['toString'] = Vector_toString;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static VectorClassInfo _initClassInfo() {
+    final ci = VectorClassInfo();
+    ci.operatorPlus = Vector_operatorPlus;
+    ci.operatorStar = Vector_operatorStar;
+    ci.toString_ = Vector_toString;
+    return ci;
   }
 }
 
@@ -200,15 +212,16 @@ String Vector_toString(AnyGC this__) {
 }
 
 
-class CounterValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class CounterClassInfo extends ClassInfo {
+}
+
+class CounterValue extends AnyGC {
+  static CounterClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static CounterClassInfo _initClassInfo() {
+    final ci = CounterClassInfo();
+    return ci;
   }
 }
 
@@ -227,16 +240,18 @@ int Counter_value() {
 }
 
 
-class AnimalValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class AnimalClassInfo extends ClassInfo {
+  Function? speak;
+}
+
+class AnimalValue extends AnyGC {
+  static AnimalClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['speak'] = Animal_speak;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static AnimalClassInfo _initClassInfo() {
+    final ci = AnimalClassInfo();
+    ci.speak = Animal_speak;
+    return ci;
   }
 }
 
@@ -250,16 +265,17 @@ void Animal_speak(dynamic this_) {
 }
 
 
-class DogValue extends VPtr implements AnimalValue {
-  static Map<String, dynamic>? vptrMap;
+class DogClassInfo extends AnimalClassInfo {
+}
+
+class DogValue extends AnyGC implements AnimalValue {
+  static DogClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['speak'] = Dog_speak;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static DogClassInfo _initClassInfo() {
+    final ci = DogClassInfo();
+    ci.speak = Dog_speak;
+    return ci;
   }
 }
 
@@ -288,18 +304,20 @@ void Swimmable_swim(AnyGC this__) {
 }
 
 
+class DuckClassInfo extends Duck_Object_Flyable_SwimmableClassInfo {
+  Function? quack;
+}
+
 class DuckValue extends Duck_Object_Flyable_SwimmableValue {
-  static Map<String, dynamic>? vptrMap;
+  static DuckClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(Duck_Object_Flyable_SwimmableValue.getVptrMap());
-      vptrMap!['fly'] = Duck_fly;
-      vptrMap!['swim'] = Duck_swim;
-      vptrMap!['quack'] = Duck_quack;
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static DuckClassInfo _initClassInfo() {
+    final ci = DuckClassInfo();
+    ci.fly = Duck_fly;
+    ci.swim = Duck_swim;
+    ci.quack = Duck_quack;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -329,28 +347,32 @@ void Duck_swim(AnyGC this__) {
 }
 
 
-class Duck_Object_FlyableValue extends VPtr {
-  static Map<String, dynamic>? vptrMap;
+class Duck_Object_FlyableClassInfo extends ClassInfo {
+  Function? fly;
+}
+
+class Duck_Object_FlyableValue extends AnyGC {
+  static Duck_Object_FlyableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Duck_Object_FlyableClassInfo _initClassInfo() {
+    final ci = Duck_Object_FlyableClassInfo();
+    return ci;
   }
 }
 
 
+class Duck_Object_Flyable_SwimmableClassInfo extends Duck_Object_FlyableClassInfo {
+  Function? swim;
+}
+
 class Duck_Object_Flyable_SwimmableValue extends Duck_Object_FlyableValue {
-  static Map<String, dynamic>? vptrMap;
+  static Duck_Object_Flyable_SwimmableClassInfo? _classInfo;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = Map<String, dynamic>.from(Duck_Object_FlyableValue.getVptrMap());
-    }
-    return vptrMap!;
+  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  static Duck_Object_Flyable_SwimmableClassInfo _initClassInfo() {
+    final ci = Duck_Object_Flyable_SwimmableClassInfo();
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -385,7 +407,7 @@ void testCollectionIfFor() {
 }
 
 void testCascade() {
-  final PersonValue p = (() { final _let3 = Person_new(GC.allocateLocal(PersonValue())); _let3.name = 'Alice'; _let3.age = 30; (_let3.vptr['greet'] as void Function(AnyGC))(_let3); return _let3; })();
+  final PersonValue p = (() { final _let3 = Person_new(GC.allocateLocal(PersonValue())); _let3.name = 'Alice'; _let3.age = 30; (_let3.classInfo as PersonClassInfo).greet!(_let3); return _let3; })();
   staticPrint(p.name);
 }
 
@@ -401,8 +423,8 @@ void testNullAware() {
 
 void testLate() {
   final LateTestValue t = LateTest_new(GC.allocateLocal(LateTestValue()));
-  (t.vptr['init'] as void Function(AnyGC))(t);
-  staticPrint((t.vptr['get'] as String Function(AnyGC))(t));
+  (t.classInfo as LateTestClassInfo).init!(t);
+  staticPrint((t.classInfo as LateTestClassInfo).get!(t));
 }
 
 Promise<int> asyncInt() {
@@ -521,7 +543,7 @@ void testSealed() {
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue shape = sync_for_iterator.current;
 {
-        staticPrint((shape.vptr['area'] as double Function(AnyGC))(shape));
+        staticPrint((shape.classInfo as ShapeClassInfo).area!(shape));
       }
     }
   }
@@ -530,8 +552,8 @@ void testSealed() {
 void testOperators() {
   final VectorValue v1 = Vector_new(GC.allocateLocal(VectorValue()), 1.0, 2.0);
   final VectorValue v2 = Vector_new(GC.allocateLocal(VectorValue()), 3.0, 4.0);
-  staticPrint((v1.vptr['operatorPlus'] as VectorValue Function(AnyGC, VectorValue))(v1, v2));
-  staticPrint((v1.vptr['operatorStar'] as VectorValue Function(AnyGC, double))(v1, 2.0));
+  staticPrint((v1.classInfo as VectorClassInfo).operatorPlus!(v1, v2));
+  staticPrint((v1.classInfo as VectorClassInfo).operatorStar!(v1, 2.0));
 }
 
 void testStatic() {
@@ -542,14 +564,14 @@ void testStatic() {
 
 void testAbstract() {
   final AnimalValue a = Dog_new(GC.allocateLocal(DogValue()));
-  (a.vptr['speak'] as void Function(AnyGC))(a);
+  (a.classInfo as AnimalClassInfo).speak!(a);
 }
 
 void testMixin() {
   final DuckValue d = Duck_new(GC.allocateLocal(DuckValue()));
-  (d.vptr['fly'] as void Function(AnyGC))(d);
-  (d.vptr['swim'] as void Function(AnyGC))(d);
-  (d.vptr['quack'] as void Function(AnyGC))(d);
+  (d.classInfo as DuckClassInfo).fly!(d);
+  (d.classInfo as DuckClassInfo).swim!(d);
+  (d.classInfo as DuckClassInfo).quack!(d);
 }
 
 T max<T extends Comparable<dynamic>>(T a, T b) {
@@ -567,7 +589,7 @@ bool isEven(int n) {
 
 void testTypedef() {
   TypeFunction1<bool, int> pred = ClosureEnv_testTypedef_4_new(GC.allocateLocal(ClosureEnv_testTypedef_4()));
-  staticPrint(pred.closureCall(pred, 4));
+  staticPrint(pred.call(4));
 }
 
 void testAssert() {
@@ -674,7 +696,7 @@ class ClosureEnv_StringExtension_get_capitalize_3 extends TypeFunction0<String> 
   late String this_;
   ClosureEnv_StringExtension_get_capitalize_3();
   @override
-  String call() => closureCall(this);
+  String call() => fnPtr(this);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -683,7 +705,7 @@ class ClosureEnv_StringExtension_get_capitalize_3 extends TypeFunction0<String> 
   }
 }
 ClosureEnv_StringExtension_get_capitalize_3 ClosureEnv_StringExtension_get_capitalize_3_new(ClosureEnv_StringExtension_get_capitalize_3 env_, String this_) {
-  env_.closureCall = ClosureEnv_StringExtension_get_capitalize_3_call;
+  env_.fnPtr = ClosureEnv_StringExtension_get_capitalize_3_call;
   env_.this_ = this_;
   return env_;
 }
@@ -696,10 +718,10 @@ String ClosureEnv_StringExtension_get_capitalize_3_call(AnyGC env__) {
 class ClosureEnv_testTypedef_4 extends TypeFunction1<bool, int> {
   ClosureEnv_testTypedef_4();
   @override
-  bool call(int a1) => closureCall(this, a1);
+  bool call(int a1) => fnPtr(this, a1);
 }
 ClosureEnv_testTypedef_4 ClosureEnv_testTypedef_4_new(ClosureEnv_testTypedef_4 env_) {
-  env_.closureCall = ClosureEnv_testTypedef_4_call;
+  env_.fnPtr = ClosureEnv_testTypedef_4_call;
   return env_;
 }
 bool ClosureEnv_testTypedef_4_call(dynamic env__, int a1) {

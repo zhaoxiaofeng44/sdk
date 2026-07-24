@@ -10,16 +10,15 @@
 //   3. DartString — 带引用计数的字符串池
 //   4. AnyGC — 通用 GC 对象基类（替代 Dart 的 dynamic，基本类型通过 _box 装箱）
 //   5. 异常层级 — DartException / DartStateError / ...
-//   6. VPtr — 虚表基类
-//   7. Box 类型 — 闭包捕获引用语义
-//   8. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
-//   9. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
-//  10. Promise / GlobalScheduler / smAwait — 协作式异步
-//  11. 语义包装 — staticPrint / StaticStringBuffer
-//  12. 辅助函数 — dart_cast / dart_is / dart_str
-//  13. String 方法辅助
-//  14. Math 辅助
-//  15. Duration / DateTime / RegExp 包装
+//   6. Box 类型 — 闭包捕获引用语义
+//   7. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
+//   8. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
+//   9. Promise / GlobalScheduler / smAwait — 协作式异步
+//  10. 语义包装 — staticPrint / StaticStringBuffer
+//  11. 辅助函数 — dart_cast / dart_is / dart_str
+//  12. String 方法辅助
+//  13. Math 辅助
+//  14. Duration / DateTime / RegExp 包装
 // ============================================================================
 
 #ifndef DART2CPP_LOWERED_H
@@ -48,6 +47,11 @@
 template<typename... Args>
 std::string dart_str(Args&&... args);
 
+// Forward declarations needed by AnyGC (defined later)
+struct AnyGC;
+struct ClassInfo;
+template<typename T> T dynAs(AnyGC* obj);
+
 // ============================================================================
 // 1. AnyGC — GC 管理基类
 // ============================================================================
@@ -55,13 +59,24 @@ std::string dart_str(Args&&... args);
 struct AnyGC {
     int gcFlag = 0;
     bool _gcStatic = false;  // true = 非堆分配（如 singleton），GC 不 delete
+    void(*gcMarkFn)(AnyGC*, int) = nullptr;
+    std::string _typeName;
+    ClassInfo* _classInfo = nullptr;
 
-    virtual void gcMark(int flag) {
+    void gcMark(int flag) {
         if (gcFlag == flag) return;  // 循环保护
         gcFlag = flag;
+        if (gcMarkFn) gcMarkFn(this, flag);
     }
 
-    virtual std::string toString() const { return "Instance"; }
+    virtual std::string toString() const;
+    bool equals(const AnyGC& other) const;
+    int64_t getHashCode() const;
+
+    template<typename T>
+    T* castTo() {
+        return static_cast<T*>(this);
+    }
 
     virtual ~AnyGC() = default;
 };
@@ -396,7 +411,6 @@ namespace std {
 // 前向声明
 // ============================================================================
 
-struct VPtr;
 struct TypeFunction;
 
 // Forward declaration for DartException (defined later)
@@ -471,72 +485,53 @@ inline ReachabilityError ReachabilityError_new(ReachabilityErrorValue* /*this_*/
     return ReachabilityError{msg};
 }
 
-// Forward declaration of dynAs (used by VPtr methods below)
-template<typename T> T dynAs(AnyGC* obj);
-
 // ============================================================================
-// 5. VPtr — 虚表基类
+// 5. ClassInfo — 结构化虚表（替代 map-based vptr）
 // ============================================================================
 
-struct VPtr : AnyGC {
-    std::string _typeName;
-
-    VPtr() : _typeName("VPtr") {}
-
-    virtual std::unordered_map<std::string, void*>& getVptrMap() {
-        static std::unordered_map<std::string, void*> baseMap;
-        return baseMap;
-    }
-
-    virtual std::string toString() const {
-        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
-        auto it = vmap.find("toString");
-        if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyGC*(*)(AnyGC*);
-            auto fn = reinterpret_cast<Fn>(it->second);
-            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
-            return result ? result->toString() : "null";
-        }
-        return _typeName;
-    }
-
-    bool equals(const VPtr& other) const {
-        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
-        auto it = vmap.find("operatorEq");
-        if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyGC*(*)(AnyGC*, AnyGC*);
-            auto fn = reinterpret_cast<Fn>(it->second);
-            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)),
-                               static_cast<AnyGC*>(const_cast<VPtr*>(&other)));
-            return dynAs<bool>(result);
-        }
-        return this == &other;
-    }
-
-    int64_t getHashCode() const {
-        auto& vmap = const_cast<VPtr*>(this)->getVptrMap();
-        auto it = vmap.find("get_hashCode");
-        if (it != vmap.end() && it->second != nullptr) {
-            using Fn = AnyGC*(*)(AnyGC*);
-            auto fn = reinterpret_cast<Fn>(it->second);
-            AnyGC* result = fn(static_cast<AnyGC*>(const_cast<VPtr*>(this)));
-            return dynAs<int64_t>(result);
-        }
-        return reinterpret_cast<int64_t>(this);
-    }
-
-    /// 类型安全的向下转型
-    template<typename T>
-    T* castTo() {
-        return static_cast<T*>(this);
-    }
-
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        // 子类应覆写 gcMark 来标记自身字段
-    }
+struct ClassInfo {
+    AnyGC*(*toString)(AnyGC*) = nullptr;
+    AnyGC*(*operatorEq)(AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*get_hashCode)(AnyGC*) = nullptr;
+    AnyGC*(*get_runtimeType)(AnyGC*) = nullptr;
+    // 常用动态派发槽位（Box/集合类型共享）
+    AnyGC*(*compareTo)(AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*get_length)(AnyGC*) = nullptr;
+    AnyGC*(*toUpperCase)(AnyGC*) = nullptr;
+    AnyGC*(*toLowerCase)(AnyGC*) = nullptr;
+    AnyGC*(*contains)(AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*trim)(AnyGC*) = nullptr;
+    AnyGC*(*index)(AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*setIndex)(AnyGC*, AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*containsKey)(AnyGC*, AnyGC*) = nullptr;
 };
+
+// AnyGC method definitions (require ClassInfo to be complete)
+inline std::string AnyGC::toString() const {
+    if (_classInfo && _classInfo->toString) {
+        AnyGC* result = _classInfo->toString(const_cast<AnyGC*>(this));
+        return result ? result->toString() : "null";
+    }
+    return _typeName.empty() ? "Instance" : _typeName;
+}
+
+inline bool AnyGC::equals(const AnyGC& other) const {
+    if (_classInfo && _classInfo->operatorEq) {
+        AnyGC* result = _classInfo->operatorEq(
+            const_cast<AnyGC*>(this),
+            const_cast<AnyGC*>(&other));
+        return dynAs<bool>(result);
+    }
+    return this == &other;
+}
+
+inline int64_t AnyGC::getHashCode() const {
+    if (_classInfo && _classInfo->get_hashCode) {
+        AnyGC* result = _classInfo->get_hashCode(const_cast<AnyGC*>(this));
+        return dynAs<int64_t>(result);
+    }
+    return reinterpret_cast<int64_t>(this);
+}
 
 // ============================================================================
 // 6. Box 类型 — 闭包捕获引用语义
@@ -547,28 +542,27 @@ inline std::string dart_str_toUpper(const std::string& s);
 inline std::string dart_str_toLower(const std::string& s);
 inline std::string dart_str_trim(const std::string& s);
 
-struct IntBox : VPtr {
+struct IntBoxClassInfo : ClassInfo {
+};
+
+struct IntBox : AnyGC {
     int64_t value;
-    IntBox(int64_t v) : VPtr(), value(v) { _typeName = "int"; GC::allocateLocal(this); }
+    static IntBoxClassInfo _classInfo;
+    IntBox(int64_t v) : value(v) { _typeName = "int"; AnyGC::_classInfo = &IntBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return std::to_string(value); }
 
     static AnyGC* _vptr_toString(AnyGC* self);
     static AnyGC* _vptr_runtimeType(AnyGC*);
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
-        }
-        return map;
-    }
 };
 
-struct DoubleBox : VPtr {
+struct DoubleBoxClassInfo : ClassInfo {
+};
+
+struct DoubleBox : AnyGC {
     double value;
-    DoubleBox(double v) : VPtr(), value(v) { _typeName = "double"; GC::allocateLocal(this); }
+    static DoubleBoxClassInfo _classInfo;
+    DoubleBox(double v) : value(v) { _typeName = "double"; AnyGC::_classInfo = &DoubleBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override {
         std::ostringstream oss;
         oss << value;
@@ -578,39 +572,29 @@ struct DoubleBox : VPtr {
     static AnyGC* _vptr_toString(AnyGC* self);
     static AnyGC* _vptr_runtimeType(AnyGC*);
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
-        }
-        return map;
-    }
 };
 
-struct BoolBox : VPtr {
+struct BoolBoxClassInfo : ClassInfo {
+};
+
+struct BoolBox : AnyGC {
     bool value;
-    BoolBox(bool v) : VPtr(), value(v) { _typeName = "bool"; GC::allocateLocal(this); }
+    static BoolBoxClassInfo _classInfo;
+    BoolBox(bool v) : value(v) { _typeName = "bool"; AnyGC::_classInfo = &BoolBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return value ? "true" : "false"; }
 
     static AnyGC* _vptr_toString(AnyGC* self);
     static AnyGC* _vptr_runtimeType(AnyGC*);
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
-        }
-        return map;
-    }
 };
 
-struct StringBox : VPtr {
+struct StringBoxClassInfo : ClassInfo {
+};
+
+struct StringBox : AnyGC {
     std::string value;
-    StringBox(const std::string& v) : VPtr(), value(v) { _typeName = "String"; GC::allocateLocal(this); }
+    static StringBoxClassInfo _classInfo;
+    StringBox(const std::string& v) : value(v) { _typeName = "String"; AnyGC::_classInfo = &StringBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return value; }
 
     static AnyGC* _vptr_toString(AnyGC* self);
@@ -621,47 +605,25 @@ struct StringBox : VPtr {
     static AnyGC* _vptr_length(AnyGC* self);
     static AnyGC* _vptr_trim(AnyGC* self);
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["toUpperCase"] = reinterpret_cast<void*>(&_vptr_toUpperCase);
-            map["toLowerCase"] = reinterpret_cast<void*>(&_vptr_toLowerCase);
-            map["contains"] = reinterpret_cast<void*>(&_vptr_contains);
-            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
-            map["trim"] = reinterpret_cast<void*>(&_vptr_trim);
-            map["compareTo"] = reinterpret_cast<void*>(&_vptr_compareTo);
-        }
-        return map;
-    }
 };
 
-// TupleBox — wraps std::tuple* as a VPtr for record types (Dart records)
-struct TupleBox : VPtr {
+// TupleBox — wraps std::tuple* as an AnyGC for record types (Dart records)
+struct TupleBox : AnyGC {
     void* data;
     std::string str;
-    TupleBox(void* d, std::string s) : VPtr(), data(d), str(std::move(s)) {
+    TupleBox(void* d, std::string s) : data(d), str(std::move(s)) {
         _typeName = "Record";
         GC::allocateLocal(this);
     }
     std::string toString() const override { return str; }
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        VPtr::gcMark(flag);
-    }
 };
 
-// ValueBox<T> — wraps any value type as a VPtr for dynamic dispatch
+// ValueBox<T> — wraps any value type as an AnyGC for dynamic dispatch
 template<typename T>
-struct ValueBox : VPtr {
+struct ValueBox : AnyGC {
     T value;
-    ValueBox(const T& v) : VPtr(), value(v) { _typeName = "ValueBox"; }
-    ValueBox(T&& v) : VPtr(), value(std::move(v)) { _typeName = "ValueBox"; }
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        VPtr::gcMark(flag);
-    }
+    ValueBox(const T& v) : value(v) { _typeName = "ValueBox"; GC::allocateLocal(this); }
+    ValueBox(T&& v) : value(std::move(v)) { _typeName = "ValueBox"; GC::allocateLocal(this); }
 };
 
 // ============================================================================
@@ -669,7 +631,6 @@ struct ValueBox : VPtr {
 // ============================================================================
 
 inline AnyGC* _box(AnyGC* v) { return v; }
-inline AnyGC* _box(VPtr* v) { return static_cast<AnyGC*>(v); }
 inline AnyGC* _box(TypeFunction* v) { return reinterpret_cast<AnyGC*>(v); }
 inline AnyGC* _box(std::nullptr_t) { return nullptr; }
 inline AnyGC* _box(int64_t v) { return GC::allocateLocal(new IntBox(v)); }
@@ -768,6 +729,44 @@ inline AnyGC* StringBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
     return _box(static_cast<int64_t>(a.compare(b)));
 }
 
+// Box ClassInfo static instances and initialization
+inline IntBoxClassInfo IntBox::_classInfo = []{
+    IntBoxClassInfo ci;
+    ci.toString = &IntBox::_vptr_toString;
+    ci.get_runtimeType = &IntBox::_vptr_runtimeType;
+    ci.compareTo = &IntBox::_vptr_compareTo;
+    return ci;
+}();
+
+inline DoubleBoxClassInfo DoubleBox::_classInfo = []{
+    DoubleBoxClassInfo ci;
+    ci.toString = &DoubleBox::_vptr_toString;
+    ci.get_runtimeType = &DoubleBox::_vptr_runtimeType;
+    ci.compareTo = &DoubleBox::_vptr_compareTo;
+    return ci;
+}();
+
+inline BoolBoxClassInfo BoolBox::_classInfo = []{
+    BoolBoxClassInfo ci;
+    ci.toString = &BoolBox::_vptr_toString;
+    ci.get_runtimeType = &BoolBox::_vptr_runtimeType;
+    ci.compareTo = &BoolBox::_vptr_compareTo;
+    return ci;
+}();
+
+inline StringBoxClassInfo StringBox::_classInfo = []{
+    StringBoxClassInfo ci;
+    ci.toString = &StringBox::_vptr_toString;
+    ci.get_runtimeType = &StringBox::_vptr_runtimeType;
+    ci.toUpperCase = &StringBox::_vptr_toUpperCase;
+    ci.toLowerCase = &StringBox::_vptr_toLowerCase;
+    ci.contains = &StringBox::_vptr_contains;
+    ci.get_length = &StringBox::_vptr_length;
+    ci.trim = &StringBox::_vptr_trim;
+    ci.compareTo = &StringBox::_vptr_compareTo;
+    return ci;
+}();
+
 // ============================================================================
 // dynAs<T> — 类型安全转换：拆箱 + 向下转型
 // ============================================================================
@@ -815,76 +814,105 @@ T dynAs(AnyGC* obj) {
 // ============================================================================
 
 struct TypeFunction : AnyGC {
-    void* closureCall = nullptr;
+    virtual void* getFnPtr() const { return nullptr; }
+    virtual AnyGC* dynCall() { return nullptr; }
+    virtual AnyGC* dynCall(AnyGC* a1) { return nullptr; }
+    virtual AnyGC* dynCall(AnyGC* a1, AnyGC* a2) { return nullptr; }
+};
 
-    AnyGC* dynCall() {
-        using Fn = AnyGC*(*)(AnyGC*);
-        auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(this);
-    }
+// TypeFunctionN<R, Args...> — one typed function pointer per arity
+// call() uses fnPtr directly with concrete types (no boxing)
+// dynCall() unboxes AnyGC* args then calls fnPtr (type-erased dispatch)
+// getFnPtr() returns raw pointer for adapter access
 
-    AnyGC* dynCall(AnyGC* arg1) {
-        using Fn = AnyGC*(*)(AnyGC*, AnyGC*);
-        auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(this, arg1);
-    }
+// General template (3+ args)
+template<typename R, typename... Args>
+struct TypeFunctionN : TypeFunction {
+    using Fn = AnyGC*(*)(AnyGC*, Args...);
+    Fn fnPtr = nullptr;
 
-    AnyGC* dynCall(AnyGC* arg1, AnyGC* arg2) {
-        using Fn = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*);
-        auto fn = reinterpret_cast<Fn>(closureCall);
-        return fn(this, arg1, arg2);
-    }
+    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
+    R call(Args... args) {
+        AnyGC* result = fnPtr(this, args...);
+        if constexpr (std::is_same_v<R, void>) return;
+        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
+        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
+        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
+        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
+        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
+        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
+        else return R{};
     }
 };
 
-// Helper to generate function pointer type with N AnyGC* parameters
-template<size_t N>
-struct AnyGCFnType;
+// 0-arg specialization
+template<typename R>
+struct TypeFunctionN<R> : TypeFunction {
+    using Fn = AnyGC*(*)(AnyGC*);
+    Fn fnPtr = nullptr;
 
-template<>
-struct AnyGCFnType<0> { using type = AnyGC*(*)(AnyGC*); };
+    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
 
-template<>
-struct AnyGCFnType<1> { using type = AnyGC*(*)(AnyGC*, AnyGC*); };
-
-template<>
-struct AnyGCFnType<2> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*); };
-
-template<>
-struct AnyGCFnType<3> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*, AnyGC*); };
-
-template<>
-struct AnyGCFnType<4> { using type = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*, AnyGC*, AnyGC*); };
-
-// TypeFunctionN<R, Args...> — 可变参数模板版本
-template<typename R, typename... Args>
-struct TypeFunctionN : TypeFunction {
-    virtual R call(Args... args) {
-        using Fn = typename AnyGCFnType<sizeof...(Args)>::type;
-        auto fn = reinterpret_cast<Fn>(closureCall);
-        AnyGC* result = fn(this, _box(args)...);
-        if constexpr (std::is_same_v<R, AnyGC*>) {
-            return result;
-        } else if constexpr (std::is_same_v<R, int64_t>) {
-            return dynAs<int64_t>(result);
-        } else if constexpr (std::is_same_v<R, double>) {
-            return dynAs<double>(result);
-        } else if constexpr (std::is_same_v<R, bool>) {
-            return dynAs<bool>(result);
-        } else if constexpr (std::is_same_v<R, std::string>) {
-            return dynAs<std::string>(result);
-        } else if constexpr (std::is_same_v<R, void>) {
-            return;
-        } else if constexpr (std::is_pointer_v<R>) {
-            return static_cast<R>(result);
-        } else {
-            return R{};
-        }
+    R call() {
+        AnyGC* result = fnPtr(this);
+        if constexpr (std::is_same_v<R, void>) return;
+        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
+        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
+        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
+        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
+        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
+        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
+        else return R{};
     }
+
+    AnyGC* dynCall() override { return fnPtr(this); }
+};
+
+// 1-arg specialization
+template<typename R, typename A>
+struct TypeFunctionN<R, A> : TypeFunction {
+    using Fn = AnyGC*(*)(AnyGC*, A);
+    Fn fnPtr = nullptr;
+
+    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
+
+    R call(A a) {
+        AnyGC* result = fnPtr(this, a);
+        if constexpr (std::is_same_v<R, void>) return;
+        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
+        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
+        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
+        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
+        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
+        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
+        else return R{};
+    }
+
+    AnyGC* dynCall(AnyGC* a1) override { return fnPtr(this, _unboxArg<A>(a1)); }
+};
+
+// 2-arg specialization
+template<typename R, typename A1, typename A2>
+struct TypeFunctionN<R, A1, A2> : TypeFunction {
+    using Fn = AnyGC*(*)(AnyGC*, A1, A2);
+    Fn fnPtr = nullptr;
+
+    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
+
+    R call(A1 a1, A2 a2) {
+        AnyGC* result = fnPtr(this, a1, a2);
+        if constexpr (std::is_same_v<R, void>) return;
+        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
+        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
+        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
+        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
+        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
+        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
+        else return R{};
+    }
+
+    AnyGC* dynCall(AnyGC* a1, AnyGC* a2) override { return fnPtr(this, _unboxArg<A1>(a1), _unboxArg<A2>(a2)); }
 };
 
 // 向后兼容的类型别名（保持 TypeFunction0-16 的命名）
@@ -897,43 +925,82 @@ using TypeFunction1 = TypeFunctionN<R, T1>;
 template<typename R, typename T1, typename T2>
 using TypeFunction2 = TypeFunctionN<R, T1, T2>;
 
+// Generic unboxing helper for adapter erased trampolines
+template<typename T>
+T _unboxArg(AnyGC* p) {
+    if constexpr (std::is_same_v<T, AnyGC*>) {
+        return p;
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+        return dynAs<int64_t>(p);
+    } else if constexpr (std::is_same_v<T, double>) {
+        return dynAs<double>(p);
+    } else if constexpr (std::is_same_v<T, bool>) {
+        return dynAs<bool>(p);
+    } else if constexpr (std::is_same_v<T, std::string>) {
+        return dynAs<std::string>(p);
+    } else if constexpr (std::is_pointer_v<T>) {
+        return static_cast<T>(p);
+    } else {
+        return dynAs<T>(p);
+    }
+}
+
 // Adapters for vptr dispatch: wrap type-erased TypeFunction* as typed TypeFunctionN<AnyGC*, ...>
+// Use inner->getFnPtr() to access the inner's typed function pointer directly — no boxing
 struct _TypeFnAdapter0 : TypeFunction0<AnyGC*> {
     TypeFunction* inner;
     _TypeFnAdapter0(TypeFunction* fn) : inner(fn) {
-        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+        this->fnPtr = &_trampoline;
+        gcMarkFn = &_gcMark_impl;
+    }
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* a = static_cast<_TypeFnAdapter0*>(self);
+        if (a->inner) a->inner->gcMark(flag);
     }
     static AnyGC* _trampoline(AnyGC* _env) {
         auto* self = static_cast<_TypeFnAdapter0*>(_env);
-        return self->inner->dynCall();
+        using Fn = AnyGC*(*)(AnyGC*);
+        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
+        return fn(self->inner);
     }
-    AnyGC* call() override { return inner->dynCall(); }
 };
 
 template<typename T>
 struct _TypeFnAdapter1 : TypeFunction1<AnyGC*, T> {
     TypeFunction* inner;
     _TypeFnAdapter1(TypeFunction* fn) : inner(fn) {
-        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+        this->fnPtr = &_trampoline;
+        this->gcMarkFn = &_gcMark_impl;
     }
-    static AnyGC* _trampoline(AnyGC* _env, AnyGC* _p0) {
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* a = static_cast<_TypeFnAdapter1*>(self);
+        if (a->inner) a->inner->gcMark(flag);
+    }
+    static AnyGC* _trampoline(AnyGC* _env, T _p0) {
         auto* self = static_cast<_TypeFnAdapter1*>(_env);
-        return self->inner->dynCall(_p0);
+        using Fn = AnyGC*(*)(AnyGC*, T);
+        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
+        return fn(self->inner, _p0);
     }
-    AnyGC* call(T arg) override { return inner->dynCall(_box(arg)); }
 };
 
 template<typename T1, typename T2>
 struct _TypeFnAdapter2 : TypeFunction2<AnyGC*, T1, T2> {
     TypeFunction* inner;
     _TypeFnAdapter2(TypeFunction* fn) : inner(fn) {
-        this->closureCall = reinterpret_cast<void*>(&_trampoline);
+        this->fnPtr = &_trampoline;
+        this->gcMarkFn = &_gcMark_impl;
     }
-    static AnyGC* _trampoline(AnyGC* _env, AnyGC* _p0, AnyGC* _p1) {
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* a = static_cast<_TypeFnAdapter2*>(self);
+        if (a->inner) a->inner->gcMark(flag);
+    }
+    static AnyGC* _trampoline(AnyGC* _env, T1 _p0, T2 _p1) {
         auto* self = static_cast<_TypeFnAdapter2*>(_env);
-        return self->inner->dynCall(_p0, _p1);
+        using Fn = AnyGC*(*)(AnyGC*, T1, T2);
+        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
+        return fn(self->inner, _p0, _p1);
     }
-    AnyGC* call(T1 arg1, T2 arg2) override { return inner->dynCall(_box(arg1), _box(arg2)); }
 };
 
 template<typename R, typename T1, typename T2, typename T3>
@@ -1016,12 +1083,12 @@ template<typename T>
 struct Array : AnyGC {
     std::vector<T> _storage;
 
-    Array() = default;
-    Array(int size, T fill = T()) : _storage(size, fill) {}
-    Array(std::initializer_list<T> init) : _storage(init) {}
+    Array() { gcMarkFn = &_gcMark_impl; }
+    Array(int size, T fill = T()) : _storage(size, fill) { gcMarkFn = &_gcMark_impl; }
+    Array(std::initializer_list<T> init) : _storage(init) { gcMarkFn = &_gcMark_impl; }
 
     template<typename Iter>
-    Array(Iter begin, Iter end) : _storage(begin, end) {}
+    Array(Iter begin, Iter end) : _storage(begin, end) { gcMarkFn = &_gcMark_impl; }
 
     // 从 StaticList 构造（前向声明，实现在 StaticList 定义之后）
     Array(StaticList<T>* list);
@@ -1081,14 +1148,12 @@ struct Array : AnyGC {
 
     void clear() { _storage.clear(); }
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        // 递归标记元素（如果 T 是指针类型）
+    static void _gcMark_impl(AnyGC* self, int flag) {
         if constexpr (std::is_pointer_v<T>) {
             using Pointee = std::remove_pointer_t<T>;
             if constexpr (std::is_base_of_v<AnyGC, Pointee>) {
-                for (auto& elem : _storage) {
+                auto* arr = static_cast<Array*>(self);
+                for (auto& elem : arr->_storage) {
                     if (elem) elem->gcMark(flag);
                 }
             }
@@ -1110,7 +1175,12 @@ struct StaticIterator : AnyGC {
     Array<T>* _data;
     int _index;
 
-    StaticIterator(Array<T>* data) : _data(data), _index(0) {}
+    StaticIterator(Array<T>* data) : _data(data), _index(0) { gcMarkFn = &_gcMark_impl; }
+
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* it = static_cast<StaticIterator*>(self);
+        if (it->_data) it->_data->gcMark(flag);
+    }
 
     bool moveNext() {
         _index++;
@@ -1124,6 +1194,15 @@ struct StaticIterator : AnyGC {
     void reset() { _index = 0; }
 };
 
+// ClassInfo for collection types
+template<typename T>
+struct StaticListClassInfo : ClassInfo {
+};
+
+template<typename K, typename V>
+struct StaticMapClassInfo : ClassInfo {
+};
+
 // ── StaticList<T> ──
 // 对齐 Dart _collections.dart StaticList<T>
 
@@ -1132,13 +1211,14 @@ template<typename K, typename V> struct StaticMap;
 template<typename T> struct StaticSet;
 
 template<typename T>
-struct StaticList : VPtr {
+struct StaticList : AnyGC {
     Array<T>* _data;
+    static StaticListClassInfo<T> _classInfo;
 
-    StaticList() : VPtr(), _data(GC::allocateLocal(new Array<T>())) { _typeName = "List"; }
+    StaticList() : _data(GC::allocateLocal(new Array<T>())) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; gcMarkFn = &_gcMark_impl; }
 
     StaticList(std::initializer_list<T> init)
-        : VPtr(), _data(GC::allocateLocal(new Array<T>(init))) { _typeName = "List"; }
+        : _data(GC::allocateLocal(new Array<T>(init))) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; gcMarkFn = &_gcMark_impl; }
 
     static StaticList* of(std::initializer_list<T> elements) {
         return GC::allocateLocal(new StaticList(elements));
@@ -1667,35 +1747,35 @@ struct StaticList : VPtr {
         } else if constexpr (std::is_pointer_v<T>) {
             (*list)[static_cast<int>(i)] = static_cast<T>(val);
         } else {
-            (*list)[static_cast<int>(i)] = *reinterpret_cast<T*>(dynamic_cast<VPtr*>(val));
+            (*list)[static_cast<int>(i)] = *reinterpret_cast<T*>(val);
         }
         return nullptr;
-    }
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["[]"] = reinterpret_cast<void*>(&_vptr_index);
-            map["[]="] = reinterpret_cast<void*>(&_vptr_setIndex);
-        }
-        return map;
     }
 
     // ── GC ──
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        if (_data) _data->gcMark(flag);
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* list = static_cast<StaticList*>(self);
+        if (list->_data) list->_data->gcMark(flag);
     }
 };
+
+template<typename T>
+StaticListClassInfo<T> StaticList<T>::_classInfo = []{
+    StaticListClassInfo<T> ci;
+    ci.toString = &StaticList<T>::_vptr_toString;
+    ci.get_runtimeType = &StaticList<T>::_vptr_runtimeType;
+    ci.get_length = &StaticList<T>::_vptr_length;
+    ci.index = &StaticList<T>::_vptr_index;
+    ci.setIndex = &StaticList<T>::_vptr_setIndex;
+    return ci;
+}();
 
 // ── Array<T>::Array(StaticList<T>*) 实现（需要 StaticList 完整定义） ──
 
 template<typename T>
 Array<T>::Array(StaticList<T>* list) {
+    gcMarkFn = &_gcMark_impl;
     if (list) {
         _storage.reserve(list->length());
         for (int i = 0; i < list->length(); i++) {
@@ -1722,22 +1802,32 @@ template<typename K, typename V>
 struct MapEntryValue : AnyGC {
     K key;
     V value;
-    MapEntryValue() : key(), value() {}
-    MapEntryValue(K k, V v) : key(std::move(k)), value(std::move(v)) {}
+    MapEntryValue() : key(), value() { gcMarkFn = &_gcMark_impl; }
+    MapEntryValue(K k, V v) : key(std::move(k)), value(std::move(v)) { gcMarkFn = &_gcMark_impl; }
+
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* e = static_cast<MapEntryValue*>(self);
+        if constexpr (std::is_pointer_v<K> && std::is_base_of_v<AnyGC, std::remove_pointer_t<K>>) {
+            if (e->key) e->key->gcMark(flag);
+        }
+        if constexpr (std::is_pointer_v<V> && std::is_base_of_v<AnyGC, std::remove_pointer_t<V>>) {
+            if (e->value) e->value->gcMark(flag);
+        }
+    }
 };
 
 // ── StaticMap<K,V> ──
 // 对齐 Dart _collections.dart StaticMap<K,V>
 
 template<typename K, typename V>
-struct StaticMap : VPtr {
+struct StaticMap : AnyGC {
     Array<K>* _keys;
     Array<V>* _values;
+    static StaticMapClassInfo<K, V> _classInfo;
 
     StaticMap()
-        : VPtr(),
-          _keys(GC::allocateLocal(new Array<K>())),
-          _values(GC::allocateLocal(new Array<V>())) { _typeName = "Map"; }
+        : _keys(GC::allocateLocal(new Array<K>())),
+          _values(GC::allocateLocal(new Array<V>())) { _typeName = "Map"; AnyGC::_classInfo = &StaticMap::_classInfo; gcMarkFn = &_gcMark_impl; }
 
     static StaticMap* empty() {
         return GC::allocateLocal(new StaticMap());
@@ -2046,7 +2136,7 @@ struct StaticMap : VPtr {
         else if constexpr (std::is_same_v<K, double>) k = dynAs<double>(key);
         else if constexpr (std::is_same_v<K, bool>) k = dynAs<bool>(key);
         else if constexpr (std::is_pointer_v<K>) k = static_cast<K>(key);
-        else k = *reinterpret_cast<K*>(dynamic_cast<VPtr*>(key));
+        else k = *reinterpret_cast<K*>(key);
         V* val = (*map)[k];
         if (!val) return nullptr;
         return _box(*val);
@@ -2059,30 +2149,29 @@ struct StaticMap : VPtr {
         else if constexpr (std::is_same_v<K, double>) k = dynAs<double>(key);
         else if constexpr (std::is_same_v<K, bool>) k = dynAs<bool>(key);
         else if constexpr (std::is_pointer_v<K>) k = static_cast<K>(key);
-        else k = *reinterpret_cast<K*>(dynamic_cast<VPtr*>(key));
+        else k = *reinterpret_cast<K*>(key);
         return _box(map->containsKey(k));
-    }
-    std::unordered_map<std::string, void*>& getVptrMap() override {
-        static std::unordered_map<std::string, void*> map;
-        if (map.empty()) {
-            map["get_runtimeType"] = reinterpret_cast<void*>(&_vptr_runtimeType);
-            map["get_length"] = reinterpret_cast<void*>(&_vptr_length);
-            map["toString"] = reinterpret_cast<void*>(&_vptr_toString);
-            map["[]"] = reinterpret_cast<void*>(&_vptr_index);
-            map["containsKey"] = reinterpret_cast<void*>(&_vptr_containsKey);
-        }
-        return map;
     }
 
     // ── GC ──
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        VPtr::gcMark(flag);
-        if (_keys) _keys->gcMark(flag);
-        if (_values) _values->gcMark(flag);
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* map = static_cast<StaticMap*>(self);
+        if (map->_keys) map->_keys->gcMark(flag);
+        if (map->_values) map->_values->gcMark(flag);
     }
 };
+
+template<typename K, typename V>
+StaticMapClassInfo<K, V> StaticMap<K, V>::_classInfo = []{
+    StaticMapClassInfo<K, V> ci;
+    ci.toString = &StaticMap<K, V>::_vptr_toString;
+    ci.get_runtimeType = &StaticMap<K, V>::_vptr_runtimeType;
+    ci.get_length = &StaticMap<K, V>::_vptr_length;
+    ci.index = &StaticMap<K, V>::_vptr_index;
+    ci.containsKey = &StaticMap<K, V>::_vptr_containsKey;
+    return ci;
+}();
 
 // ── StaticSet<T> ──
 // 对齐 Dart _collections.dart StaticSet<T>
@@ -2091,10 +2180,11 @@ template<typename T>
 struct StaticSet : AnyGC {
     Array<T>* _data;
 
-    StaticSet() : _data(GC::allocateLocal(new Array<T>())) {}
+    StaticSet() : _data(GC::allocateLocal(new Array<T>())) { gcMarkFn = &_gcMark_impl; }
 
     StaticSet(std::initializer_list<T> init)
         : _data(GC::allocateLocal(new Array<T>())) {
+        gcMarkFn = &_gcMark_impl;
         for (const auto& e : init) add(e);
     }
 
@@ -2497,10 +2587,9 @@ struct StaticSet : AnyGC {
 
     // ── GC ──
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        if (_data) _data->gcMark(flag);
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* set = static_cast<StaticSet*>(self);
+        if (set->_data) set->_data->gcMark(flag);
     }
 };
 
@@ -2550,6 +2639,14 @@ struct PromiseBase : AnyGC {
     std::function<void()> startCallback;
     std::function<bool()> onTick;
 
+    PromiseBase() { gcMarkFn = &_gcMark_impl; }
+
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* p = static_cast<PromiseBase*>(self);
+        if (p->result) p->result->gcMark(flag);
+        if (p->error) p->error->gcMark(flag);
+    }
+
     // setStartCallback / setTickCallback 延迟实现（在 GlobalScheduler 之后）
     void setStartCallback(std::function<void()> cb);
     void setTickCallback(std::function<bool()> cb);
@@ -2574,13 +2671,6 @@ struct PromiseBase : AnyGC {
     bool isError() const { return state == ERROR; }
     bool isReady() const { return state == READY; }
     bool isPending() const { return state == PENDING; }
-
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        if (result) result->gcMark(flag);
-        if (error) error->gcMark(flag);
-    }
 };
 
 // ── Promise<T> ──
@@ -2677,6 +2767,7 @@ class GlobalScheduler : public AnyGC {
     GlobalScheduler() {
         _gcStatic = true;  // 静态 singleton，GC 不管理其生命周期
         GC::allocateGlobal(this);
+        gcMarkFn = &_gcMark_impl;
     }
 
 public:
@@ -2687,17 +2778,15 @@ public:
         return inst;
     }
 
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        for (auto* p : _activePromises) {
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* sched = static_cast<GlobalScheduler*>(self);
+        for (auto* p : sched->_activePromises) {
             if (p) p->gcMark(flag);
         }
-        for (auto* p : _readyPromises) {
+        for (auto* p : sched->_readyPromises) {
             if (p) p->gcMark(flag);
         }
-        // 标记延迟任务关联的 Promise
-        for (auto& task : _delayedTasks) {
+        for (auto& task : sched->_delayedTasks) {
             if (task.targetPromise) task.targetPromise->gcMark(flag);
         }
     }
@@ -3257,15 +3346,36 @@ inline PromiseBase* promiseDelayed(int ticks, std::function<AnyGC*()> computatio
 // ── AsyncStateMachine<T> ──
 
 template<typename T>
+struct AsyncStateMachineClassInfo : ClassInfo {
+    AnyGC*(*step)(AnyGC*) = nullptr;
+    AnyGC*(*start)(AnyGC*) = nullptr;
+    AnyGC*(*completeWith)(AnyGC*, AnyGC*) = nullptr;
+    AnyGC*(*completeWithError)(AnyGC*, AnyGC*) = nullptr;
+};
+
+template<typename T>
 struct AsyncStateMachine : AnyGC {
     int smState = 0;
     Promise<T>* promise;
+    AsyncStateMachineClassInfo<T>* _classInfo = nullptr;
 
     AsyncStateMachine() {
         promise = GC::allocateLocal(new Promise<T>());
+        gcMarkFn = &_gcMark_impl;
     }
 
-    virtual bool step() = 0;
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* sm = static_cast<AsyncStateMachine<T>*>(self);
+        if (sm->promise) sm->promise->gcMark(flag);
+    }
+
+    bool step() {
+        if (_classInfo && _classInfo->step) {
+            AnyGC* result = _classInfo->step(this);
+            return dynAs<bool>(result);
+        }
+        return true;
+    }
 
     void completeWith(T value) { promise->completeTyped(std::move(value)); }
     void completeWithError(AnyGC* error) { promise->completeError(error); }
@@ -3277,12 +3387,6 @@ struct AsyncStateMachine : AnyGC {
         };
         GlobalScheduler::instance().registerActivePromise(promise);
         return promise;
-    }
-
-    void gcMark(int flag) override {
-        if (gcFlag == flag) return;
-        AnyGC::gcMark(flag);
-        if (promise) promise->gcMark(flag);
     }
 };
 
@@ -3315,7 +3419,14 @@ inline void staticPrint(int64_t value) {
 }
 
 inline void staticPrint(double value) {
-    std::cout << value << std::endl;
+    std::ostringstream oss;
+    oss << value;
+    std::string s = oss.str();
+    if (s.find('.') == std::string::npos && s.find('e') == std::string::npos &&
+        s.find('i') == std::string::npos && s.find('n') == std::string::npos) {
+        s += ".0";
+    }
+    std::cout << s << std::endl;
 }
 
 inline void staticPrint(bool value) {
@@ -3330,15 +3441,9 @@ inline void staticPrint(const char* value) {
     std::cout << value << std::endl;
 }
 
-/// staticPrint 重载 — VPtr* 类型（通过 toString 派发）
-inline void staticPrint(VPtr* value) {
-    std::cout << (value ? value->toString() : "null") << std::endl;
-}
-
 /// staticPrint 重载 — 任意 GC 管理的对象指针（StaticList*, StaticMap* 等）
 template<typename T>
 inline typename std::enable_if<std::is_base_of<AnyGC, T>::value &&
-    !std::is_same<T, VPtr>::value &&
     !std::is_same<T, AnyGC>::value && !std::is_same<T, std::string>::value, void>::type
 staticPrint(T* value) {
     if (!value) {
@@ -3353,13 +3458,7 @@ inline void staticPrint(AnyGC* value) {
     if (!value) {
         std::cout << "null" << std::endl;
     } else {
-        // 尝试通过 VPtr 派发 toString，否则打印地址
-        auto* vp = dynamic_cast<VPtr*>(value);
-        if (vp) {
-            std::cout << vp->toString() << std::endl;
-        } else {
-            std::cout << "Instance@" << reinterpret_cast<uintptr_t>(value) << std::endl;
-        }
+        std::cout << value->toString() << std::endl;
     }
 }
 
@@ -3435,42 +3534,24 @@ struct StaticStringBuffer : AnyGC {
 // 11. 辅助函数
 // ============================================================================
 
-/// dart_is<T> — 运行时类型检查（基于 VPtr 的 _typeName）
+/// dart_is<T> — 运行时类型检查
 template<typename T>
-bool dart_is(VPtr* obj) {
+bool dart_is(AnyGC* obj) {
     if (!obj) return false;
     return dynamic_cast<T*>(obj) != nullptr;
 }
 
-/// dart_is<T> — AnyGC* 版本
-template<typename T>
-bool dart_is(AnyGC* obj) {
-    if (!obj) return false;
-    auto* vp = dynamic_cast<VPtr*>(obj);
-    if (!vp) return false;
-    return dynamic_cast<T*>(vp) != nullptr;
-}
-
 /// dart_cast<T> — 运行时类型转换
 template<typename T>
-T* dart_cast(VPtr* obj) {
-    if (!obj) return nullptr;
+T* dart_cast(AnyGC* obj) {
+    if (!obj) {
+        throw DartException("Type cast failed: null");
+    }
     T* result = dynamic_cast<T*>(obj);
     if (!result) {
-        throw DartException("Type cast failed: " + obj->_typeName +
-            " is not " + std::string(T::staticTypeName()));
+        throw DartException("Type cast failed: " + obj->_typeName);
     }
     return result;
-}
-
-/// dart_cast<T> — AnyGC* 版本
-template<typename T>
-T* dart_cast(AnyGC* obj) {
-    auto* vp = dynamic_cast<VPtr*>(obj);
-    if (!vp) {
-        throw DartException("Type cast failed: null or non-VPtr");
-    }
-    return dart_cast<T>(vp);
 }
 
 // dart_isNull — 类型安全的 null 检查（适用于指针和值类型）
@@ -3499,8 +3580,6 @@ inline std::string _toStr(double v) {
 inline std::string _toStr(bool v) { return v ? "true" : "false"; }
 inline std::string _toStr(const std::string& v) { return v; }
 inline std::string _toStr(const char* v) { return v ? v : "null"; }
-inline std::string _toStr(VPtr* v) { return v ? v->toString() : "null"; }
-inline std::string _toStr(const VPtr* v) { return v ? const_cast<VPtr*>(v)->toString() : "null"; }
 inline std::string _toStr(AnyGC* v) { return v ? v->toString() : "null"; }
 inline std::string _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
 inline std::string _toStr(const std::exception& e) { return e.what(); }
@@ -3511,14 +3590,7 @@ inline std::string _toStr(const ReachabilityError& v) { return v.toStringValue()
 template<typename T>
 inline typename std::enable_if<std::is_base_of<AnyGC, T>::value, std::string>::type
 _toStr(T* v) {
-    if (!v) return "null";
-    // 如果 T 继承 VPtr，调用 toString()
-    if constexpr (std::is_base_of<VPtr, T>::value) {
-        return v->toString();
-    } else {
-        // StaticList, StaticMap, StaticSet 等 AnyGC 子类也有 toString()
-        return v->toString();
-    }
+    return v ? v->toString() : "null";
 }
 
 // _toStr for StaticMapEntry (value type, not pointer)
@@ -3802,23 +3874,24 @@ StaticList<T>* generate(int count, std::function<T(int)> generator) {
 
 // StreamValue - wrapper struct for Stream (simplified as StaticList)
 template<typename T>
+struct StreamValueClassInfo : ClassInfo {
+    AnyGC*(*toList)(AnyGC*) = nullptr;
+};
+
+template<typename T>
 struct StreamValue : AnyGC {
     StaticList<T>* data;
-    static std::unordered_map<std::string, void*> _vptrMap;
+    static StreamValueClassInfo<T> _classInfo;
 
-    StreamValue() : data(GC::allocateLocal(new StaticList<T>())) {}
-    StreamValue(StaticList<T>* d) : data(d) {}
+    StreamValue() : data(GC::allocateLocal(new StaticList<T>())) { gcMarkFn = &_gcMark_impl; }
+    StreamValue(StaticList<T>* d) : data(d) { gcMarkFn = &_gcMark_impl; }
+
+    static void _gcMark_impl(AnyGC* self, int flag) {
+        auto* s = static_cast<StreamValue*>(self);
+        if (s->data) s->data->gcMark(flag);
+    }
 
     StaticList<T>* toList() const { return data; }
-
-    static std::unordered_map<std::string, void*>& getVptrMap() {
-        if (_vptrMap.empty()) {
-            // toList returns Promise<StaticList<T>*>* which is a Promise
-            // We'll handle this specially in the emitter
-            _vptrMap["toList"] = nullptr; // Placeholder, actual call handled by emitter
-        }
-        return _vptrMap;
-    }
 
     template<typename R>
     StreamValue<R>* map(std::function<R(T)> convert) {
@@ -3839,7 +3912,7 @@ struct StreamValue : AnyGC {
 
 // Static member definition
 template<typename T>
-std::unordered_map<std::string, void*> StreamValue<T>::_vptrMap;
+StreamValueClassInfo<T> StreamValue<T>::_classInfo;
 
 // Stream_new - factory function for StreamValue
 template<typename T>
