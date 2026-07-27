@@ -993,7 +993,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final recv = _restoreExpr(expr.receiver);
     final args = _restoreArgs(expr.arguments);
     // 闭包调用：通过 call() 间接调用
-    // recv.call(args) — emitter converts to dynCall()
+    // recv.call(args) — emitter converts to fnPtr()
     if (args.isEmpty) {
       return '$recv.call()';
     }

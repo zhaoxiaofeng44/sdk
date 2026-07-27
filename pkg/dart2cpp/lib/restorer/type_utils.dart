@@ -261,13 +261,6 @@ mixin _TypeUtils on _DartRestorerBase {
     return 'dynamic';
   }
 
-  /// 变量声明类型还原：将 DynamicType 映射为 AnyGC（仅在变量声明位置使用）
-  /// 这确保变量使用 AnyGC 类型而非 dynamic，同时保留装箱/拆箱逻辑
-  String _restoreVarDeclType(DartType type) {
-    if (type is DynamicType) return 'AnyGC';
-    return _restoreType(type);
-  }
-
   /// 仅在函数参数位置使用：将 DynamicType 映射为 AnyGC（而非 dynamic）
   /// 其他类型保持与 _restoreType 相同的行为
   String _restoreParamType(DartType type) {
@@ -384,7 +377,7 @@ mixin _TypeUtils on _DartRestorerBase {
 
 
   /// 判断参数是否需要 covariant 关键字
-  bool _needsCovariant(VariableDeclaration param, FunctionNode func, Procedure? proc) {
+  bool _needsCovariant(VariableDeclaration param) {
     return param.isCovariantByDeclaration;
   }
 

@@ -250,11 +250,6 @@ class GC {
     return object;
   }
 
-  /// 从 root 集合中移除
-  static void removeRoot(AnyGC object) {
-    _roots.remove(object);
-  }
-
   /// 执行一轮标记-清除 GC，返回被回收的对象数量
   static int collect() {
     _currentFlag++;
@@ -1486,12 +1481,6 @@ class Promise<T> extends AnyGC {
     return promise;
   }
 
-  static Promise<T> rejected<T>(Object err) {
-    final promise = Promise<T>();
-    promise.completeError(err);
-    return promise;
-  }
-
   static Promise<T> delayed<T>(int delayTicks, T Function() computation) {
     final promise = GC.allocateLocal(Promise<T>());
     GlobalScheduler.instance.registerDelayedTask(delayTicks, () {
@@ -1625,69 +1614,6 @@ class Promise<T> extends AnyGC {
       if (completedCount == promises.length) {
         resultPromise.complete(StaticList<T>.of(results.cast<T>()));
         return true;
-      }
-      return false;
-    };
-    GlobalScheduler.instance.registerActivePromise(resultPromise);
-    return resultPromise;
-  }
-
-  /// Promise.any — 返回第一个完成的 Promise 的结果（竞赛语义）。
-  /// 等价于 Future.any(List<Future<T>>)。
-  static Promise<T> any<T>(List<Promise<T>> promises) {
-    final resultPromise = GC.allocateLocal(Promise<T>());
-
-    if (promises.isEmpty) {
-      return resultPromise;
-    }
-
-    resultPromise._onTick = () {
-      for (final p in promises) {
-        if (p.isCompleted) {
-          resultPromise.complete(p.result);
-          return true;
-        }
-        if (p.isError) {
-          resultPromise.completeError(p.error!);
-          return true;
-        }
-      }
-      return false;
-    };
-    GlobalScheduler.instance.registerActivePromise(resultPromise);
-    return resultPromise;
-  }
-
-  /// Promise.forEach — 对迭代器中的每个元素依次执行异步操作。
-  /// 等价于 Future.forEach(Iterable<T>, FutureOr<R> Function(T) action)。
-  static Promise<void> forEach<T>(Iterable<T> elements, Promise Function(T) action) {
-    final resultPromise = GC.allocateLocal(Promise<void>());
-    final iterator = elements.iterator;
-    Promise? currentPromise;
-    var started = false;
-
-    resultPromise._onTick = () {
-      if (!started) {
-        started = true;
-        if (!iterator.moveNext()) {
-          resultPromise.complete(null);
-          return true;
-        }
-        currentPromise = action(iterator.current);
-      }
-
-      if (currentPromise != null) {
-        if (currentPromise!.isError) {
-          resultPromise.completeError(currentPromise!.error!);
-          return true;
-        }
-        if (currentPromise!.isCompleted) {
-          if (!iterator.moveNext()) {
-            resultPromise.complete(null);
-            return true;
-          }
-          currentPromise = action(iterator.current);
-        }
       }
       return false;
     };
@@ -1998,15 +1924,6 @@ abstract class AsyncStateMachine<T> extends AnyGC {
 /// staticPrint — 替代裸 print，便于 C++ 落地时统一替换
 void staticPrint(Object? object) => print(object);
 
-/// dart_str_toStringAsFixed — 将 double.toStringAsFixed 静态化
-///
-/// 用法: `dart_str_toStringAsFixed(value, digits)`
-/// 等价于: `value.toStringAsFixed(digits)`
-String dart_str_toStringAsFixed(dynamic value, int digits) {
-  if (value is double) return value.toStringAsFixed(digits);
-  return value.toString();
-}
-
 // ---- StringBuffer ----
 
 /// StaticStringBuffer — 委托 StringBuffer
@@ -2037,9 +1954,6 @@ class StaticMapEntry<K, V> {
   final K key;
   final V value;
   const StaticMapEntry(this.key, this.value);
-
-  /// 转换为原生 MapEntry（供需要 MapEntry 的 API 使用）
-  MapEntry<K, V> toMapEntry() => MapEntry<K, V>(key, value);
 
   @override
   String toString() => 'StaticMapEntry($key: $value)';
@@ -2108,27 +2022,6 @@ class DartArgumentError extends ArgumentError {
 /// DartRangeError — 替代裸 RangeError
 class DartRangeError extends RangeError {
   DartRangeError([dynamic message]) : super(message);
-
-  /// 替代 RangeError.range
-  DartRangeError.range(int invalidValue, int minValue, int maxValue,
-      [String? name, String? message])
-      : super.range(invalidValue, minValue, maxValue, name, message);
-
-  /// 替代 RangeError.value
-  DartRangeError.value(num value, [String? name, String? message])
-      : super.value(value, name, message);
-}
-
-/// 替代 RangeError.index（工厂构造函数，不能用 super.index）
-DartRangeError dartRangeErrorIndex(int index, dynamic indexable,
-    [String? name, String? message, int? length]) {
-  // 触发原生检查逻辑后包装
-  try {
-    throw RangeError.index(index, indexable, name, message, length);
-  } on RangeError catch (e) {
-    final wrapped = DartRangeError(e.message);
-    return wrapped;
-  }
 }
 
 /// DartFormatException — 替代裸 FormatException
@@ -2304,8 +2197,6 @@ class StaticDateTime {
   StaticDateTime toUtc() => StaticDateTime._(_delegate.toUtc());
   StaticDateTime toLocal() => StaticDateTime._(_delegate.toLocal());
 
-  DateTime toDateTime() => _delegate;
-
   @override
   String toString() => _delegate.toString();
 
@@ -2315,13 +2206,6 @@ class StaticDateTime {
 
   @override
   int get hashCode => _delegate.hashCode;
-}
-
-// ---- Comparable ----
-
-/// StaticComparable<T> — 替代裸 Comparable<T>
-abstract class StaticComparable<T> {
-  int compareTo(T other);
 }
 
 /// ReachabilityError — 用于 switch 表达式穷尽性检查的运行时错误

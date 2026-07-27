@@ -2431,7 +2431,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     for (var i = 0; i < pos.length; i++) {
       final p = pos[i];
       final sb = StringBuffer();
-      if (_needsCovariant(p, func, proc)) sb.write('covariant ');
+      if (_needsCovariant(p)) sb.write('covariant ');
       if (p.isFinal) sb.write('final ');
       sb.write(_restoreType(p.type));
       sb.write(' ');
@@ -2633,7 +2633,7 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
       }
       final sb = StringBuffer();
       // covariant 必须在 final 前面（顶层静态函数中不允许 covariant）
-      if (!suppressCovariant && _needsCovariant(p, func, proc)) sb.write('covariant ');
+      if (!suppressCovariant && _needsCovariant(p)) sb.write('covariant ');
       if (p.isFinal) sb.write('final ');
       final defaultExpr =
           (!flattenOptional && i >= reqCount && p.initializer != null)

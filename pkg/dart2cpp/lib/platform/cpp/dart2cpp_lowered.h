@@ -7,18 +7,15 @@
 // 组件清单：
 //   1. AnyGC — GC 管理基类
 //   2. GC — 标记-清除垃圾回收器
-//   3. DartString — 带引用计数的字符串池
-//   4. AnyGC — 通用 GC 对象基类（替代 Dart 的 dynamic，基本类型通过 _box 装箱）
-//   5. 异常层级 — DartException / DartStateError / ...
-//   6. Box 类型 — 闭包捕获引用语义
-//   7. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
-//   8. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
-//   9. Promise / GlobalScheduler / smAwait — 协作式异步
-//  10. 语义包装 — staticPrint / StaticStringBuffer
-//  11. 辅助函数 — dart_cast / dart_is / dart_str
-//  12. String 方法辅助
-//  13. Math 辅助
-//  14. Duration / DateTime / RegExp 包装
+//   3. 异常层级 — DartException / DartStateError / ...
+//   4. Box 类型 — 闭包捕获引用语义
+//   5. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
+//   6. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
+//   7. Promise / GlobalScheduler / smAwait — 协作式异步
+//   8. 语义包装 — staticPrint / StaticStringBuffer
+//   9. 辅助函数 — dart_is / dart_str
+//  10. String 方法辅助
+//  11. Duration / DateTime / RegExp 包装
 // ============================================================================
 
 #ifndef DART2CPP_LOWERED_H
@@ -26,15 +23,17 @@
 
 #include <algorithm>
 #include <any>
-#include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <ctime>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <memory>
-#include <mutex>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -58,25 +57,13 @@ template<typename T> T dynAs(AnyGC* obj);
 
 struct AnyGC {
     int gcFlag = 0;
-    bool _gcStatic = false;  // true = 非堆分配（如 singleton），GC 不 delete
-    void(*gcMarkFn)(AnyGC*, int) = nullptr;
+    bool _gcStatic = false;
     std::string _typeName;
     ClassInfo* _classInfo = nullptr;
 
-    void gcMark(int flag) {
-        if (gcFlag == flag) return;  // 循环保护
-        gcFlag = flag;
-        if (gcMarkFn) gcMarkFn(this, flag);
-    }
+    void gcMark(int flag);
 
     virtual std::string toString() const;
-    bool equals(const AnyGC& other) const;
-    int64_t getHashCode() const;
-
-    template<typename T>
-    T* castTo() {
-        return static_cast<T*>(this);
-    }
 
     virtual ~AnyGC() = default;
 };
@@ -93,7 +80,6 @@ class GC {
 
 public:
     /// 分配局部对象（非 root），注册到 GC 并返回
-    /// 版本1: 接受已创建的对象指针（向后兼容）
     template<typename T>
     static T* allocateLocal(T* obj) {
         if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
@@ -102,36 +88,13 @@ public:
         return obj;
     }
 
-    /// 版本2: 接受类型和构造参数，内部创建对象（新 API）
-    /// 用法: GC::allocateLocal<StaticList<int>>({1, 2, 3})
-    template<typename T, typename... Args>
-    static T* createLocal(Args&&... args) {
-        T* obj = new T(std::forward<Args>(args)...);
-        if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
-            _objects.push_back(static_cast<AnyGC*>(obj));
-        }
-        return obj;
-    }
-
-    /// 版本3: 专门处理 initializer_list
-    template<typename T, typename U>
-    static T* createLocal(std::initializer_list<U> init) {
-        T* obj = new T(init);
-        if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
-            _objects.push_back(static_cast<AnyGC*>(obj));
-        }
-        return obj;
-    }
-
     /// 分配全局对象（root），注册到 GC 并标记为 root
-    /// 版本1: 接受已创建的对象指针（向后兼容）
     template<typename T>
     static T* allocateGlobal(T* obj) {
         auto* base = static_cast<AnyGC*>(obj);
         if (_registered.insert(base).second) {
             _objects.push_back(base);
         }
-        // 添加到 roots（避免重复）
         bool found = false;
         for (auto* r : _roots) {
             if (r == base) { found = true; break; }
@@ -142,87 +105,48 @@ public:
         return obj;
     }
 
-    /// 版本2: 接受类型和构造参数，内部创建对象（新 API）
-    template<typename T, typename... Args>
-    static T* createGlobal(Args&&... args) {
-        T* obj = new T(std::forward<Args>(args)...);
-        auto* base = static_cast<AnyGC*>(obj);
-        if (_registered.insert(base).second) {
-            _objects.push_back(base);
-        }
-        bool found = false;
-        for (auto* r : _roots) {
-            if (r == base) { found = true; break; }
-        }
-        if (!found) {
-            _roots.push_back(base);
-        }
-        return obj;
-    }
-
-    /// 版本3: 专门处理 initializer_list
-    template<typename T, typename U>
-    static T* createGlobal(std::initializer_list<U> init) {
-        T* obj = new T(init);
-        auto* base = static_cast<AnyGC*>(obj);
-        if (_registered.insert(base).second) {
-            _objects.push_back(base);
-        }
-        bool found = false;
-        for (auto* r : _roots) {
-            if (r == base) { found = true; break; }
-        }
-        if (!found) {
-            _roots.push_back(base);
-        }
-        return obj;
-    }
-
-    /// 从 root 集合移除
-    static void removeRoot(AnyGC* obj) {
-        _roots.erase(
-            std::remove(_roots.begin(), _roots.end(), obj),
-            _roots.end());
-    }
-
-    /// 执行一轮标记-清除，返回回收数量
+    /// 执行一轮标记-清除 GC，返回被回收的对象数量
     static int collect() {
         _currentFlag++;
         int flag = _currentFlag;
 
-        // 标记阶段
+        // 标记阶段：从每个 root 出发递归标记
         for (auto* root : _roots) {
             root->gcMark(flag);
         }
 
-        // 清除阶段
-        int before = static_cast<int>(_objects.size());
-        auto newEnd = std::remove_if(_objects.begin(), _objects.end(),
-            [flag](AnyGC* obj) { return obj->gcFlag != flag; });
-        // 删除未被标记的对象（跳过 _gcStatic 对象）
-        for (auto it = newEnd; it != _objects.end(); ++it) {
-            _registered.erase(*it);
-            if (!(*it)->_gcStatic) delete *it;
-        }
-        _objects.erase(newEnd, _objects.end());
+        // 清除阶段：移除未被标记的非静态对象
+        int beforeCount = static_cast<int>(_objects.size());
+        _objects.erase(
+            std::remove_if(_objects.begin(), _objects.end(),
+                [flag](AnyGC* obj) { return obj->gcFlag != flag && !obj->_gcStatic; }),
+            _objects.end()
+        );
 
-        // 同步清理 roots
+        // 重建 _registered
+        _registered.clear();
+        for (auto* obj : _objects) {
+            _registered.insert(obj);
+        }
+
+        // 防御性清理 roots（理论上 root 总是被标记的）
         _roots.erase(
             std::remove_if(_roots.begin(), _roots.end(),
-                [flag](AnyGC* obj) { return obj->gcFlag != flag; }),
-            _roots.end());
+                [flag](AnyGC* obj) { return obj->gcFlag != flag && !obj->_gcStatic; }),
+            _roots.end()
+        );
 
-        return before - static_cast<int>(_objects.size());
+        return beforeCount - static_cast<int>(_objects.size());
     }
 
+    /// 获取当前管理的对象总数
     static int objectCount() { return static_cast<int>(_objects.size()); }
+
+    /// 获取当前 root 数量
     static int rootCount() { return static_cast<int>(_roots.size()); }
 
-    /// 重置 GC 状态（测试用，会泄漏未删除对象）
+    /// 重置 GC 状态（测试用）
     static void reset() {
-        for (auto* obj : _objects) {
-            if (!obj->_gcStatic) delete obj;
-        }
         _objects.clear();
         _roots.clear();
         _registered.clear();
@@ -237,177 +161,6 @@ inline std::vector<AnyGC*> GC::_roots;
 inline std::unordered_set<AnyGC*> GC::_registered;
 
 // ============================================================================
-// 3. DartString — 带引用计数的字符串池
-// ============================================================================
-// 优化：避免频繁分配 std::string
-// 使用全局字符串池 + 引用计数，相同字符串共享同一份数据
-
-class StringPool {
-public:
-    struct Entry {
-        std::string data;
-        std::atomic<int> refCount;
-        Entry(const std::string& s) : data(s), refCount(1) {}
-    };
-
-private:
-    std::unordered_map<std::string, Entry*> _pool;
-    mutable std::mutex _mutex;
-
-    StringPool() = default;
-    ~StringPool() {
-        for (auto& pair : _pool) {
-            delete pair.second;
-        }
-    }
-
-public:
-    static StringPool& instance() {
-        static StringPool pool;
-        return pool;
-    }
-
-    // 禁用拷贝
-    StringPool(const StringPool&) = delete;
-    StringPool& operator=(const StringPool&) = delete;
-
-    Entry* intern(const std::string& str) {
-        std::lock_guard<std::mutex> lock(_mutex);
-        auto it = _pool.find(str);
-        if (it != _pool.end()) {
-            ++it->second->refCount;
-            return it->second;
-        }
-        auto* entry = new Entry(str);
-        _pool[str] = entry;
-        return entry;
-    }
-
-    void release(Entry* entry) {
-        if (!entry) return;
-        std::lock_guard<std::mutex> lock(_mutex);
-        if (--entry->refCount == 0) {
-            _pool.erase(entry->data);
-            delete entry;
-        }
-    }
-
-    size_t size() const {
-        std::lock_guard<std::mutex> lock(_mutex);
-        return _pool.size();
-    }
-};
-
-// DartString — 轻量级字符串包装，支持高效的拷贝和移动
-class DartString {
-private:
-    StringPool::Entry* _entry;
-
-public:
-    DartString() : _entry(nullptr) {}
-
-    DartString(const std::string& str) : _entry(StringPool::instance().intern(str)) {}
-
-    DartString(const char* str) : _entry(StringPool::instance().intern(str ? str : "")) {}
-
-    DartString(const DartString& other) : _entry(other._entry) {
-        if (_entry) {
-            ++_entry->refCount;
-        }
-    }
-
-    DartString(DartString&& other) noexcept : _entry(other._entry) {
-        other._entry = nullptr;
-    }
-
-    ~DartString() {
-        if (_entry) {
-            StringPool::instance().release(_entry);
-        }
-    }
-
-    DartString& operator=(const DartString& other) {
-        if (this != &other) {
-            if (_entry) {
-                StringPool::instance().release(_entry);
-            }
-            _entry = other._entry;
-            if (_entry) {
-                ++_entry->refCount;
-            }
-        }
-        return *this;
-    }
-
-    DartString& operator=(DartString&& other) noexcept {
-        if (this != &other) {
-            if (_entry) {
-                StringPool::instance().release(_entry);
-            }
-            _entry = other._entry;
-            other._entry = nullptr;
-        }
-        return *this;
-    }
-
-    const std::string& str() const {
-        static const std::string empty;
-        return _entry ? _entry->data : empty;
-    }
-
-    const char* c_str() const {
-        return _entry ? _entry->data.c_str() : "";
-    }
-
-    bool empty() const {
-        return !_entry || _entry->data.empty();
-    }
-
-    size_t size() const {
-        return _entry ? _entry->data.size() : 0;
-    }
-
-    bool operator==(const DartString& other) const {
-        if (_entry == other._entry) return true;
-        if (!_entry || !other._entry) return false;
-        return _entry->data == other._entry->data;
-    }
-
-    bool operator!=(const DartString& other) const {
-        return !(*this == other);
-    }
-
-    bool operator<(const DartString& other) const {
-        if (!_entry && !other._entry) return false;
-        if (!_entry) return true;
-        if (!other._entry) return false;
-        return _entry->data < other._entry->data;
-    }
-
-    DartString operator+(const DartString& other) const {
-        return DartString(str() + other.str());
-    }
-
-    DartString operator+(const std::string& other) const {
-        return DartString(str() + other);
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const DartString& s) {
-        return os << s.str();
-    }
-};
-
-// std::hash 特化，支持 DartString 用于 unordered 容器
-namespace std {
-    template<>
-    struct hash<DartString> {
-        size_t operator()(const DartString& s) const {
-            return hash<string>()(s.str());
-        }
-    };
-}
-
-// ============================================================================
 // 前向声明
 // ============================================================================
 
@@ -417,7 +170,7 @@ struct TypeFunction;
 struct DartException;
 
 // ============================================================================
-// 4. 异常层级 — DartException / DartStateError / ...
+// 3. 异常层级 — DartException / DartStateError / ...
 // ============================================================================
 
 struct DartException : std::exception {
@@ -486,7 +239,7 @@ inline ReachabilityError ReachabilityError_new(ReachabilityErrorValue* /*this_*/
 }
 
 // ============================================================================
-// 5. ClassInfo — 结构化虚表（替代 map-based vptr）
+// 4. ClassInfo — 结构化虚表（替代 map-based vptr）
 // ============================================================================
 
 struct ClassInfo {
@@ -504,9 +257,26 @@ struct ClassInfo {
     AnyGC*(*index)(AnyGC*, AnyGC*) = nullptr;
     AnyGC*(*setIndex)(AnyGC*, AnyGC*, AnyGC*) = nullptr;
     AnyGC*(*containsKey)(AnyGC*, AnyGC*) = nullptr;
+    void(*gcMark)(AnyGC*, int) = nullptr;
+    const ClassInfo* _parent = nullptr;
 };
 
+// _isInstanceOf — check if obj is an instance of target ClassInfo (walks _parent chain)
+inline bool _isInstanceOf(AnyGC* obj, const ClassInfo* target) {
+    if (!obj || !obj->_classInfo) return false;
+    for (const ClassInfo* ci = obj->_classInfo; ci; ci = ci->_parent) {
+        if (ci == target) return true;
+    }
+    return false;
+}
+
 // AnyGC method definitions (require ClassInfo to be complete)
+inline void AnyGC::gcMark(int flag) {
+    if (gcFlag == flag) return;  // 循环保护
+    gcFlag = flag;
+    if (_classInfo && _classInfo->gcMark) _classInfo->gcMark(this, flag);
+}
+
 inline std::string AnyGC::toString() const {
     if (_classInfo && _classInfo->toString) {
         AnyGC* result = _classInfo->toString(const_cast<AnyGC*>(this));
@@ -515,26 +285,8 @@ inline std::string AnyGC::toString() const {
     return _typeName.empty() ? "Instance" : _typeName;
 }
 
-inline bool AnyGC::equals(const AnyGC& other) const {
-    if (_classInfo && _classInfo->operatorEq) {
-        AnyGC* result = _classInfo->operatorEq(
-            const_cast<AnyGC*>(this),
-            const_cast<AnyGC*>(&other));
-        return dynAs<bool>(result);
-    }
-    return this == &other;
-}
-
-inline int64_t AnyGC::getHashCode() const {
-    if (_classInfo && _classInfo->get_hashCode) {
-        AnyGC* result = _classInfo->get_hashCode(const_cast<AnyGC*>(this));
-        return dynAs<int64_t>(result);
-    }
-    return reinterpret_cast<int64_t>(this);
-}
-
 // ============================================================================
-// 6. Box 类型 — 闭包捕获引用语义
+// 5. Box 类型 — 闭包捕获引用语义
 // ============================================================================
 
 // Forward declarations for string helpers used in StringBox vptrMap
@@ -542,12 +294,9 @@ inline std::string dart_str_toUpper(const std::string& s);
 inline std::string dart_str_toLower(const std::string& s);
 inline std::string dart_str_trim(const std::string& s);
 
-struct IntBoxClassInfo : ClassInfo {
-};
-
 struct IntBox : AnyGC {
     int64_t value;
-    static IntBoxClassInfo _classInfo;
+    static ClassInfo _classInfo;
     IntBox(int64_t v) : value(v) { _typeName = "int"; AnyGC::_classInfo = &IntBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return std::to_string(value); }
 
@@ -556,12 +305,9 @@ struct IntBox : AnyGC {
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
 };
 
-struct DoubleBoxClassInfo : ClassInfo {
-};
-
 struct DoubleBox : AnyGC {
     double value;
-    static DoubleBoxClassInfo _classInfo;
+    static ClassInfo _classInfo;
     DoubleBox(double v) : value(v) { _typeName = "double"; AnyGC::_classInfo = &DoubleBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override {
         std::ostringstream oss;
@@ -574,12 +320,9 @@ struct DoubleBox : AnyGC {
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
 };
 
-struct BoolBoxClassInfo : ClassInfo {
-};
-
 struct BoolBox : AnyGC {
     bool value;
-    static BoolBoxClassInfo _classInfo;
+    static ClassInfo _classInfo;
     BoolBox(bool v) : value(v) { _typeName = "bool"; AnyGC::_classInfo = &BoolBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return value ? "true" : "false"; }
 
@@ -588,12 +331,9 @@ struct BoolBox : AnyGC {
     static AnyGC* _vptr_compareTo(AnyGC* self, AnyGC* other);
 };
 
-struct StringBoxClassInfo : ClassInfo {
-};
-
 struct StringBox : AnyGC {
     std::string value;
-    static StringBoxClassInfo _classInfo;
+    static ClassInfo _classInfo;
     StringBox(const std::string& v) : value(v) { _typeName = "String"; AnyGC::_classInfo = &StringBox::_classInfo; GC::allocateLocal(this); }
     std::string toString() const override { return value; }
 
@@ -622,9 +362,13 @@ struct TupleBox : AnyGC {
 template<typename T>
 struct ValueBox : AnyGC {
     T value;
-    ValueBox(const T& v) : value(v) { _typeName = "ValueBox"; GC::allocateLocal(this); }
-    ValueBox(T&& v) : value(std::move(v)) { _typeName = "ValueBox"; GC::allocateLocal(this); }
+    static ClassInfo _classInfo;
+    ValueBox(const T& v) : value(v) { _typeName = "ValueBox"; AnyGC::_classInfo = &_classInfo; GC::allocateLocal(this); }
+    ValueBox(T&& v) : value(std::move(v)) { _typeName = "ValueBox"; AnyGC::_classInfo = &_classInfo; GC::allocateLocal(this); }
 };
+
+template<typename T>
+ClassInfo ValueBox<T>::_classInfo;
 
 // ============================================================================
 // _box — universal boxing helper (replaces AnyPtr::fromAuto)
@@ -730,32 +474,32 @@ inline AnyGC* StringBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
 }
 
 // Box ClassInfo static instances and initialization
-inline IntBoxClassInfo IntBox::_classInfo = []{
-    IntBoxClassInfo ci;
+inline ClassInfo IntBox::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &IntBox::_vptr_toString;
     ci.get_runtimeType = &IntBox::_vptr_runtimeType;
     ci.compareTo = &IntBox::_vptr_compareTo;
     return ci;
 }();
 
-inline DoubleBoxClassInfo DoubleBox::_classInfo = []{
-    DoubleBoxClassInfo ci;
+inline ClassInfo DoubleBox::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &DoubleBox::_vptr_toString;
     ci.get_runtimeType = &DoubleBox::_vptr_runtimeType;
     ci.compareTo = &DoubleBox::_vptr_compareTo;
     return ci;
 }();
 
-inline BoolBoxClassInfo BoolBox::_classInfo = []{
-    BoolBoxClassInfo ci;
+inline ClassInfo BoolBox::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &BoolBox::_vptr_toString;
     ci.get_runtimeType = &BoolBox::_vptr_runtimeType;
     ci.compareTo = &BoolBox::_vptr_compareTo;
     return ci;
 }();
 
-inline StringBoxClassInfo StringBox::_classInfo = []{
-    StringBoxClassInfo ci;
+inline ClassInfo StringBox::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &StringBox::_vptr_toString;
     ci.get_runtimeType = &StringBox::_vptr_runtimeType;
     ci.toUpperCase = &StringBox::_vptr_toUpperCase;
@@ -780,139 +524,78 @@ T dynAs(AnyGC* obj) {
         else return T{};
     }
     if constexpr (std::is_same_v<T, int64_t>) {
-        if (auto* box = dynamic_cast<IntBox*>(obj)) return box->value;
-        if (auto* box = dynamic_cast<DoubleBox*>(obj)) return static_cast<int64_t>(box->value);
-        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value ? 1 : 0;
+        ClassInfo* ci = obj->_classInfo;
+        if (ci == &IntBox::_classInfo) return static_cast<IntBox*>(obj)->value;
+        if (ci == &DoubleBox::_classInfo) return static_cast<int64_t>(static_cast<DoubleBox*>(obj)->value);
+        if (ci == &BoolBox::_classInfo) return static_cast<BoolBox*>(obj)->value ? 1 : 0;
         return 0;
     }
     else if constexpr (std::is_same_v<T, double>) {
-        if (auto* box = dynamic_cast<DoubleBox*>(obj)) return box->value;
-        if (auto* box = dynamic_cast<IntBox*>(obj)) return static_cast<double>(box->value);
-        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value ? 1.0 : 0.0;
+        ClassInfo* ci = obj->_classInfo;
+        if (ci == &DoubleBox::_classInfo) return static_cast<DoubleBox*>(obj)->value;
+        if (ci == &IntBox::_classInfo) return static_cast<double>(static_cast<IntBox*>(obj)->value);
+        if (ci == &BoolBox::_classInfo) return static_cast<BoolBox*>(obj)->value ? 1.0 : 0.0;
         return 0.0;
     }
     else if constexpr (std::is_same_v<T, bool>) {
-        if (auto* box = dynamic_cast<BoolBox*>(obj)) return box->value;
-        if (auto* box = dynamic_cast<IntBox*>(obj)) return box->value != 0;
+        ClassInfo* ci = obj->_classInfo;
+        if (ci == &BoolBox::_classInfo) return static_cast<BoolBox*>(obj)->value;
+        if (ci == &IntBox::_classInfo) return static_cast<IntBox*>(obj)->value != 0;
         return false;
     }
     else if constexpr (std::is_same_v<T, std::string>) {
-        if (auto* box = dynamic_cast<StringBox*>(obj)) return box->value;
+        if (obj->_classInfo == &StringBox::_classInfo) return static_cast<StringBox*>(obj)->value;
         return obj->toString();
     }
     else if constexpr (std::is_pointer_v<T>) {
         return static_cast<T>(obj);
     }
     else {
-        if (auto* vbox = dynamic_cast<ValueBox<T>*>(obj)) return vbox->value;
+        if (obj->_classInfo == &ValueBox<T>::_classInfo) return static_cast<ValueBox<T>*>(obj)->value;
         return T{};
     }
 }
 
 // ============================================================================
-// 8. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
+// 6. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
 // ============================================================================
 
-struct TypeFunction : AnyGC {
-    virtual void* getFnPtr() const { return nullptr; }
-    virtual AnyGC* dynCall() { return nullptr; }
-    virtual AnyGC* dynCall(AnyGC* a1) { return nullptr; }
-    virtual AnyGC* dynCall(AnyGC* a1, AnyGC* a2) { return nullptr; }
-};
+// TypeFunction — 可调用闭包基类。
+// 子类 TypeFunctionN 持有 typed fnPtr，调用方直接通过 fnPtr(inst, args...) 调用。
+// fnPtr 签名为 AnyGC*(*)(AnyGC*, Args...)，返回 AnyGC*（trampoline 内部已 box）。
+// 调用方按需通过 dynAs<R>(...) 拆箱；若直接需要 AnyGC* 则无需拆箱。
+struct TypeFunction : AnyGC {};
 
-// TypeFunctionN<R, Args...> — one typed function pointer per arity
-// call() uses fnPtr directly with concrete types (no boxing)
-// dynCall() unboxes AnyGC* args then calls fnPtr (type-erased dispatch)
-// getFnPtr() returns raw pointer for adapter access
+// TypeFunctionN<R, Args...> — typed function wrapper.
+// 持有 typed fnPtr: AnyGC*(*)(AnyGC*, Args...)，trampoline 内部已 box 返回值。
+// 调用方通过 fnPtr(self, args...) 获取 AnyGC*，按需通过 dynAs<R>(...) 拆箱。
 
 // General template (3+ args)
 template<typename R, typename... Args>
 struct TypeFunctionN : TypeFunction {
-    using Fn = AnyGC*(*)(AnyGC*, Args...);
-    Fn fnPtr = nullptr;
-
-    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
-
-    R call(Args... args) {
-        AnyGC* result = fnPtr(this, args...);
-        if constexpr (std::is_same_v<R, void>) return;
-        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
-        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
-        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
-        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
-        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
-        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
-        else return R{};
-    }
+    using FnPtr = R(*)(AnyGC*, Args...);
+    FnPtr fnPtr = nullptr;
 };
 
 // 0-arg specialization
 template<typename R>
 struct TypeFunctionN<R> : TypeFunction {
-    using Fn = AnyGC*(*)(AnyGC*);
-    Fn fnPtr = nullptr;
-
-    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
-
-    R call() {
-        AnyGC* result = fnPtr(this);
-        if constexpr (std::is_same_v<R, void>) return;
-        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
-        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
-        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
-        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
-        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
-        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
-        else return R{};
-    }
-
-    AnyGC* dynCall() override { return fnPtr(this); }
+    using FnPtr = R(*)(AnyGC*);
+    FnPtr fnPtr = nullptr;
 };
 
 // 1-arg specialization
 template<typename R, typename A>
 struct TypeFunctionN<R, A> : TypeFunction {
-    using Fn = AnyGC*(*)(AnyGC*, A);
-    Fn fnPtr = nullptr;
-
-    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
-
-    R call(A a) {
-        AnyGC* result = fnPtr(this, a);
-        if constexpr (std::is_same_v<R, void>) return;
-        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
-        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
-        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
-        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
-        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
-        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
-        else return R{};
-    }
-
-    AnyGC* dynCall(AnyGC* a1) override { return fnPtr(this, _unboxArg<A>(a1)); }
+    using FnPtr = R(*)(AnyGC*, A);
+    FnPtr fnPtr = nullptr;
 };
 
 // 2-arg specialization
 template<typename R, typename A1, typename A2>
 struct TypeFunctionN<R, A1, A2> : TypeFunction {
-    using Fn = AnyGC*(*)(AnyGC*, A1, A2);
-    Fn fnPtr = nullptr;
-
-    void* getFnPtr() const override { return reinterpret_cast<void*>(fnPtr); }
-
-    R call(A1 a1, A2 a2) {
-        AnyGC* result = fnPtr(this, a1, a2);
-        if constexpr (std::is_same_v<R, void>) return;
-        else if constexpr (std::is_same_v<R, AnyGC*>) return result;
-        else if constexpr (std::is_same_v<R, int64_t>) return dynAs<int64_t>(result);
-        else if constexpr (std::is_same_v<R, double>) return dynAs<double>(result);
-        else if constexpr (std::is_same_v<R, bool>) return dynAs<bool>(result);
-        else if constexpr (std::is_same_v<R, std::string>) return dynAs<std::string>(result);
-        else if constexpr (std::is_pointer_v<R>) return static_cast<R>(result);
-        else return R{};
-    }
-
-    AnyGC* dynCall(AnyGC* a1, AnyGC* a2) override { return fnPtr(this, _unboxArg<A1>(a1), _unboxArg<A2>(a2)); }
+    using FnPtr = R(*)(AnyGC*, A1, A2);
+    FnPtr fnPtr = nullptr;
 };
 
 // 向后兼容的类型别名（保持 TypeFunction0-16 的命名）
@@ -925,149 +608,8 @@ using TypeFunction1 = TypeFunctionN<R, T1>;
 template<typename R, typename T1, typename T2>
 using TypeFunction2 = TypeFunctionN<R, T1, T2>;
 
-// Generic unboxing helper for adapter erased trampolines
-template<typename T>
-T _unboxArg(AnyGC* p) {
-    if constexpr (std::is_same_v<T, AnyGC*>) {
-        return p;
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-        return dynAs<int64_t>(p);
-    } else if constexpr (std::is_same_v<T, double>) {
-        return dynAs<double>(p);
-    } else if constexpr (std::is_same_v<T, bool>) {
-        return dynAs<bool>(p);
-    } else if constexpr (std::is_same_v<T, std::string>) {
-        return dynAs<std::string>(p);
-    } else if constexpr (std::is_pointer_v<T>) {
-        return static_cast<T>(p);
-    } else {
-        return dynAs<T>(p);
-    }
-}
-
-// Adapters for vptr dispatch: wrap type-erased TypeFunction* as typed TypeFunctionN<AnyGC*, ...>
-// Use inner->getFnPtr() to access the inner's typed function pointer directly — no boxing
-struct _TypeFnAdapter0 : TypeFunction0<AnyGC*> {
-    TypeFunction* inner;
-    _TypeFnAdapter0(TypeFunction* fn) : inner(fn) {
-        this->fnPtr = &_trampoline;
-        gcMarkFn = &_gcMark_impl;
-    }
-    static void _gcMark_impl(AnyGC* self, int flag) {
-        auto* a = static_cast<_TypeFnAdapter0*>(self);
-        if (a->inner) a->inner->gcMark(flag);
-    }
-    static AnyGC* _trampoline(AnyGC* _env) {
-        auto* self = static_cast<_TypeFnAdapter0*>(_env);
-        using Fn = AnyGC*(*)(AnyGC*);
-        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
-        return fn(self->inner);
-    }
-};
-
-template<typename T>
-struct _TypeFnAdapter1 : TypeFunction1<AnyGC*, T> {
-    TypeFunction* inner;
-    _TypeFnAdapter1(TypeFunction* fn) : inner(fn) {
-        this->fnPtr = &_trampoline;
-        this->gcMarkFn = &_gcMark_impl;
-    }
-    static void _gcMark_impl(AnyGC* self, int flag) {
-        auto* a = static_cast<_TypeFnAdapter1*>(self);
-        if (a->inner) a->inner->gcMark(flag);
-    }
-    static AnyGC* _trampoline(AnyGC* _env, T _p0) {
-        auto* self = static_cast<_TypeFnAdapter1*>(_env);
-        using Fn = AnyGC*(*)(AnyGC*, T);
-        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
-        return fn(self->inner, _p0);
-    }
-};
-
-template<typename T1, typename T2>
-struct _TypeFnAdapter2 : TypeFunction2<AnyGC*, T1, T2> {
-    TypeFunction* inner;
-    _TypeFnAdapter2(TypeFunction* fn) : inner(fn) {
-        this->fnPtr = &_trampoline;
-        this->gcMarkFn = &_gcMark_impl;
-    }
-    static void _gcMark_impl(AnyGC* self, int flag) {
-        auto* a = static_cast<_TypeFnAdapter2*>(self);
-        if (a->inner) a->inner->gcMark(flag);
-    }
-    static AnyGC* _trampoline(AnyGC* _env, T1 _p0, T2 _p1) {
-        auto* self = static_cast<_TypeFnAdapter2*>(_env);
-        using Fn = AnyGC*(*)(AnyGC*, T1, T2);
-        auto fn = reinterpret_cast<Fn>(self->inner->getFnPtr());
-        return fn(self->inner, _p0, _p1);
-    }
-};
-
-template<typename R, typename T1, typename T2, typename T3>
-using TypeFunction3 = TypeFunctionN<R, T1, T2, T3>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4>
-using TypeFunction4 = TypeFunctionN<R, T1, T2, T3, T4>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4, typename T5>
-using TypeFunction5 = TypeFunctionN<R, T1, T2, T3, T4, T5>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6>
-using TypeFunction6 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7>
-using TypeFunction7 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8>
-using TypeFunction8 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9>
-using TypeFunction9 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10>
-using TypeFunction10 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11>
-using TypeFunction11 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11, typename T12>
-using TypeFunction12 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11, typename T12, typename T13>
-using TypeFunction13 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11, typename T12, typename T13, typename T14>
-using TypeFunction14 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11, typename T12, typename T13, typename T14,
-         typename T15>
-using TypeFunction15 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>;
-
-template<typename R, typename T1, typename T2, typename T3, typename T4,
-         typename T5, typename T6, typename T7, typename T8, typename T9,
-         typename T10, typename T11, typename T12, typename T13, typename T14,
-         typename T15, typename T16>
-using TypeFunction16 = TypeFunctionN<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>;
-
 // ============================================================================
-// ============================================================================
-// 8. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
+// 7. 静态集合 — StaticMapEntry / Array / StaticList / StaticMap / StaticSet
 // ============================================================================
 
 // ── StaticMapEntry<K,V> ──
@@ -1081,14 +623,15 @@ template<typename K, typename V> struct StaticMap;
 
 template<typename T>
 struct Array : AnyGC {
+    static ClassInfo _classInfo;
     std::vector<T> _storage;
 
-    Array() { gcMarkFn = &_gcMark_impl; }
-    Array(int size, T fill = T()) : _storage(size, fill) { gcMarkFn = &_gcMark_impl; }
-    Array(std::initializer_list<T> init) : _storage(init) { gcMarkFn = &_gcMark_impl; }
+    Array() { AnyGC::_classInfo = &_classInfo; }
+    Array(int size, T fill = T()) : _storage(size, fill) { AnyGC::_classInfo = &_classInfo; }
+    Array(std::initializer_list<T> init) : _storage(init) { AnyGC::_classInfo = &_classInfo; }
 
     template<typename Iter>
-    Array(Iter begin, Iter end) : _storage(begin, end) { gcMarkFn = &_gcMark_impl; }
+    Array(Iter begin, Iter end) : _storage(begin, end) { AnyGC::_classInfo = &_classInfo; }
 
     // 从 StaticList 构造（前向声明，实现在 StaticList 定义之后）
     Array(StaticList<T>* list);
@@ -1168,14 +711,18 @@ struct Array : AnyGC {
     typename std::vector<T>::const_iterator end() const { return _storage.end(); }
 };
 
+template<typename T>
+ClassInfo Array<T>::_classInfo = []{ ClassInfo ci; ci.gcMark = &Array<T>::_gcMark_impl; return ci; }();
+
 // ── StaticIterator<T> ──
 
 template<typename T>
 struct StaticIterator : AnyGC {
+    static ClassInfo _classInfo;
     Array<T>* _data;
     int _index;
 
-    StaticIterator(Array<T>* data) : _data(data), _index(0) { gcMarkFn = &_gcMark_impl; }
+    StaticIterator(Array<T>* data) : _data(data), _index(0) { AnyGC::_classInfo = &_classInfo; }
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* it = static_cast<StaticIterator*>(self);
@@ -1194,31 +741,21 @@ struct StaticIterator : AnyGC {
     void reset() { _index = 0; }
 };
 
-// ClassInfo for collection types
 template<typename T>
-struct StaticListClassInfo : ClassInfo {
-};
-
-template<typename K, typename V>
-struct StaticMapClassInfo : ClassInfo {
-};
+ClassInfo StaticIterator<T>::_classInfo = []{ ClassInfo ci; ci.gcMark = &StaticIterator<T>::_gcMark_impl; return ci; }();
 
 // ── StaticList<T> ──
 // 对齐 Dart _collections.dart StaticList<T>
 
-// 前向声明（用于 asMap / toStaticSet）
-template<typename K, typename V> struct StaticMap;
-template<typename T> struct StaticSet;
-
 template<typename T>
 struct StaticList : AnyGC {
     Array<T>* _data;
-    static StaticListClassInfo<T> _classInfo;
+    static ClassInfo _classInfo;
 
-    StaticList() : _data(GC::allocateLocal(new Array<T>())) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; gcMarkFn = &_gcMark_impl; }
+    StaticList() : _data(GC::allocateLocal(new Array<T>())) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; }
 
     StaticList(std::initializer_list<T> init)
-        : _data(GC::allocateLocal(new Array<T>(init))) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; gcMarkFn = &_gcMark_impl; }
+        : _data(GC::allocateLocal(new Array<T>(init))) { _typeName = "List"; AnyGC::_classInfo = &StaticList::_classInfo; }
 
     static StaticList* of(std::initializer_list<T> elements) {
         return GC::allocateLocal(new StaticList(elements));
@@ -1243,10 +780,10 @@ struct StaticList : AnyGC {
     }
 
     /// 对齐 Dart: StaticList.generate(length, generator) — TypeFunction 版本
-    static StaticList* generate(int length, TypeFunction1<T, int64_t>* generator) {
+    static StaticList* generate(int length, TypeFunction1<AnyGC*, int64_t>* generator) {
         auto* result = GC::allocateLocal(new StaticList());
         if (generator) {
-            for (int i = 0; i < length; i++) result->add(generator->call(static_cast<int64_t>(i)));
+            for (int i = 0; i < length; i++) result->add(dynAs<T>(generator->fnPtr(generator, static_cast<int64_t>(i))));
         }
         return result;
     }
@@ -1334,9 +871,9 @@ struct StaticList : AnyGC {
             if (test((*_data)[i])) _data->removeAt(i);
         }
     }
-    void removeWhere(TypeFunction1<bool, T>* test) {
+    void removeWhere(TypeFunction1<AnyGC*, T>* test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (test->call((*_data)[i])) _data->removeAt(i);
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) _data->removeAt(i);
         }
     }
 
@@ -1345,20 +882,20 @@ struct StaticList : AnyGC {
             if (!test((*_data)[i])) _data->removeAt(i);
         }
     }
-    void retainWhere(TypeFunction1<bool, T>* test) {
+    void retainWhere(TypeFunction1<AnyGC*, T>* test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (!test->call((*_data)[i])) _data->removeAt(i);
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) _data->removeAt(i);
         }
     }
 
     void clear() { _data->clear(); }
 
     /// 对齐 Dart: list.sort([compare]) — 使用 TypeFunction2 比较器
-    void sort(TypeFunction2<int64_t, T, T>* compare) {
+    void sort(TypeFunction2<AnyGC*, T, T>* compare) {
         if (!compare || _data->length() <= 1) return;
         std::sort(_data->_storage.begin(), _data->_storage.end(),
             [compare](const T& a, const T& b) {
-                return compare->call(a, b) < 0;
+                return dynAs<int64_t>(compare->fnPtr(compare, a, b)) < 0;
             });
     }
 
@@ -1391,9 +928,9 @@ struct StaticList : AnyGC {
         }
         return -1;
     }
-    int indexWhere(TypeFunction1<bool, T>* test, int start = 0) const {
+    int indexWhere(TypeFunction1<AnyGC*, T>* test, int start = 0) const {
         for (int i = start; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) return i;
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return i;
         }
         return -1;
     }
@@ -1420,8 +957,8 @@ struct StaticList : AnyGC {
     void forEach(void (*func)(T)) const {
         for (int i = 0; i < _data->length(); i++) func((*_data)[i]);
     }
-    void forEach(TypeFunction1<void, T>* func) const {
-        for (int i = 0; i < _data->length(); i++) func->call((*_data)[i]);
+    void forEach(TypeFunction1<AnyGC*, T>* func) const {
+        for (int i = 0; i < _data->length(); i++) func->fnPtr(func, (*_data)[i]);
     }
 
     template<typename R>
@@ -1437,17 +974,17 @@ struct StaticList : AnyGC {
         return GC::allocateLocal(result);
     }
     template<typename R>
-    StaticList<R>* map(TypeFunction1<R, T>* func) const {
+    StaticList<R>* map(TypeFunction1<AnyGC*, T>* func) const {
         auto* result = new StaticList<R>();
-        for (int i = 0; i < _data->length(); i++) result->add(func->call((*_data)[i]));
+        for (int i = 0; i < _data->length(); i++) result->add(dynAs<R>(func->fnPtr(func, (*_data)[i])));
         return GC::allocateLocal(result);
     }
 
     template<typename R>
-    StaticList<R>* expand(TypeFunction1<StaticList<R>*, T>* func) const {
+    StaticList<R>* expand(TypeFunction1<AnyGC*, T>* func) const {
         auto* result = new StaticList<R>();
         for (int i = 0; i < _data->length(); i++) {
-            auto* inner = func->call((*_data)[i]);
+            auto* inner = dynAs<StaticList<R>*>(func->fnPtr(func, (*_data)[i]));
             if (inner) {
                 for (int j = 0; j < inner->length(); j++) result->add((*inner)[j]);
             }
@@ -1469,10 +1006,10 @@ struct StaticList : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticList<T>* where(TypeFunction1<bool, T>* func) const {
+    StaticList<T>* where(TypeFunction1<AnyGC*, T>* func) const {
         auto* result = new StaticList<T>();
         for (int i = 0; i < _data->length(); i++) {
-            if (func->call((*_data)[i])) result->add((*_data)[i]);
+            if (dynAs<bool>(func->fnPtr(func, (*_data)[i]))) result->add((*_data)[i]);
         }
         return GC::allocateLocal(result);
     }
@@ -1483,9 +1020,9 @@ struct StaticList : AnyGC {
         }
         return false;
     }
-    bool any(TypeFunction1<bool, T>* test) const {
+    bool any(TypeFunction1<AnyGC*, T>* test) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) return true;
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return true;
         }
         return false;
     }
@@ -1496,9 +1033,9 @@ struct StaticList : AnyGC {
         }
         return true;
     }
-    bool every(TypeFunction1<bool, T>* test) const {
+    bool every(TypeFunction1<AnyGC*, T>* test) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (!test->call((*_data)[i])) return false;
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return false;
         }
         return true;
     }
@@ -1510,11 +1047,11 @@ struct StaticList : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T firstWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T firstWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) return (*_data)[i];
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return (*_data)[i];
         }
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -1525,11 +1062,11 @@ struct StaticList : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T lastWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T lastWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (test->call((*_data)[i])) return (*_data)[i];
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return (*_data)[i];
         }
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -1549,12 +1086,12 @@ struct StaticList : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T singleWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T singleWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         bool foundMultiple = false;
         T found{};
         bool hasFound = false;
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) {
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) {
                 if (hasFound) { foundMultiple = true; break; }
                 found = (*_data)[i];
                 hasFound = true;
@@ -1562,7 +1099,7 @@ struct StaticList : AnyGC {
         }
         if (foundMultiple) throw DartStateError("Too many elements");
         if (hasFound) return found;
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -1574,9 +1111,9 @@ struct StaticList : AnyGC {
     }
 
     template<typename R>
-    R fold(R initialValue, TypeFunction2<R, R, T>* combine) const {
+    R fold(R initialValue, TypeFunction2<AnyGC*, R, T>* combine) const {
         R value = initialValue;
-        for (int i = 0; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
+        for (int i = 0; i < _data->length(); i++) value = dynAs<R>(combine->fnPtr(combine, value, (*_data)[i]));
         return value;
     }
 
@@ -1586,10 +1123,10 @@ struct StaticList : AnyGC {
         for (int i = 1; i < _data->length(); i++) value = combine(value, (*_data)[i]);
         return value;
     }
-    T reduce(TypeFunction2<T, T, T>* combine) const {
+    T reduce(TypeFunction2<AnyGC*, T, T>* combine) const {
         if (isEmpty()) throw DartStateError("No element");
         T value = (*_data)[0];
-        for (int i = 1; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
+        for (int i = 1; i < _data->length(); i++) value = dynAs<T>(combine->fnPtr(combine, value, (*_data)[i]));
         return value;
     }
 
@@ -1616,10 +1153,10 @@ struct StaticList : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticList<T>* takeWhile(TypeFunction1<bool, T>* test) const {
+    StaticList<T>* takeWhile(TypeFunction1<AnyGC*, T>* test) const {
         auto* result = new StaticList<T>();
         for (int i = 0; i < _data->length(); i++) {
-            if (!test->call((*_data)[i])) break;
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) break;
             result->add((*_data)[i]);
         }
         return GC::allocateLocal(result);
@@ -1635,11 +1172,11 @@ struct StaticList : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticList<T>* skipWhile(TypeFunction1<bool, T>* test) const {
+    StaticList<T>* skipWhile(TypeFunction1<AnyGC*, T>* test) const {
         auto* result = new StaticList<T>();
         bool skipping = true;
         for (int i = 0; i < _data->length(); i++) {
-            if (skipping && test->call((*_data)[i])) continue;
+            if (skipping && dynAs<bool>(test->fnPtr(test, (*_data)[i]))) continue;
             skipping = false;
             result->add((*_data)[i]);
         }
@@ -1703,6 +1240,22 @@ struct StaticList : AnyGC {
         return GC::allocateLocal(result);
     }
 
+    template<typename R>
+    StaticList<R>* whereType() const {
+        auto* result = new StaticList<R>();
+        for (int i = 0; i < _data->length(); i++) {
+            if constexpr (std::is_pointer_v<R> && std::is_pointer_v<T>) {
+                if (dart_is<std::remove_pointer_t<R>>((*_data)[i]))
+                    result->add(static_cast<R>((*_data)[i]));
+            } else if constexpr (std::is_same_v<R, T>) {
+                result->add((*_data)[i]);
+            }
+        }
+        return GC::allocateLocal(result);
+    }
+
+    StaticSet<T>* toSet() const { return toStaticSet(); }
+
     // ── 字符串 ──
 
     std::string join(const std::string& separator = "") const {
@@ -1761,13 +1314,14 @@ struct StaticList : AnyGC {
 };
 
 template<typename T>
-StaticListClassInfo<T> StaticList<T>::_classInfo = []{
-    StaticListClassInfo<T> ci;
+ClassInfo StaticList<T>::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &StaticList<T>::_vptr_toString;
     ci.get_runtimeType = &StaticList<T>::_vptr_runtimeType;
     ci.get_length = &StaticList<T>::_vptr_length;
     ci.index = &StaticList<T>::_vptr_index;
     ci.setIndex = &StaticList<T>::_vptr_setIndex;
+    ci.gcMark = &StaticList<T>::_gcMark_impl;
     return ci;
 }();
 
@@ -1775,7 +1329,7 @@ StaticListClassInfo<T> StaticList<T>::_classInfo = []{
 
 template<typename T>
 Array<T>::Array(StaticList<T>* list) {
-    gcMarkFn = &_gcMark_impl;
+    AnyGC::_classInfo = &_classInfo;
     if (list) {
         _storage.reserve(list->length());
         for (int i = 0; i < list->length(); i++) {
@@ -1795,27 +1349,6 @@ struct StaticMapEntry {
     StaticMapEntry(K k, V v) : key(std::move(k)), value(std::move(v)) {}
 };
 
-// ── MapEntryValue<K,V> ──
-// Dart's MapEntry<K, V> class lowered to C++
-
-template<typename K, typename V>
-struct MapEntryValue : AnyGC {
-    K key;
-    V value;
-    MapEntryValue() : key(), value() { gcMarkFn = &_gcMark_impl; }
-    MapEntryValue(K k, V v) : key(std::move(k)), value(std::move(v)) { gcMarkFn = &_gcMark_impl; }
-
-    static void _gcMark_impl(AnyGC* self, int flag) {
-        auto* e = static_cast<MapEntryValue*>(self);
-        if constexpr (std::is_pointer_v<K> && std::is_base_of_v<AnyGC, std::remove_pointer_t<K>>) {
-            if (e->key) e->key->gcMark(flag);
-        }
-        if constexpr (std::is_pointer_v<V> && std::is_base_of_v<AnyGC, std::remove_pointer_t<V>>) {
-            if (e->value) e->value->gcMark(flag);
-        }
-    }
-};
-
 // ── StaticMap<K,V> ──
 // 对齐 Dart _collections.dart StaticMap<K,V>
 
@@ -1823,11 +1356,11 @@ template<typename K, typename V>
 struct StaticMap : AnyGC {
     Array<K>* _keys;
     Array<V>* _values;
-    static StaticMapClassInfo<K, V> _classInfo;
+    static ClassInfo _classInfo;
 
     StaticMap()
         : _keys(GC::allocateLocal(new Array<K>())),
-          _values(GC::allocateLocal(new Array<V>())) { _typeName = "Map"; AnyGC::_classInfo = &StaticMap::_classInfo; gcMarkFn = &_gcMark_impl; }
+          _values(GC::allocateLocal(new Array<V>())) { _typeName = "Map"; AnyGC::_classInfo = &StaticMap::_classInfo; }
 
     static StaticMap* empty() {
         return GC::allocateLocal(new StaticMap());
@@ -1977,9 +1510,9 @@ struct StaticMap : AnyGC {
             }
         }
     }
-    void removeWhere(TypeFunction2<bool, K, V>* test) {
+    void removeWhere(TypeFunction2<AnyGC*, K, V>* test) {
         for (int i = _keys->length() - 1; i >= 0; i--) {
-            if (test->call((*_keys)[i], (*_values)[i])) {
+            if (dynAs<bool>(test->fnPtr(test, (*_keys)[i], (*_values)[i]))) {
                 _keys->removeAt(i);
                 _values->removeAt(i);
             }
@@ -1999,10 +1532,10 @@ struct StaticMap : AnyGC {
         _values->add(value);
         return value;
     }
-    V putIfAbsent(const K& key, TypeFunction0<V>* ifAbsent) {
+    V putIfAbsent(const K& key, TypeFunction0<AnyGC*>* ifAbsent) {
         int idx = _keys->indexOf(key);
         if (idx != -1) return (*_values)[idx];
-        V value = ifAbsent->call();
+        V value = dynAs<V>(ifAbsent->fnPtr(ifAbsent));
         _keys->add(key);
         _values->add(value);
         return value;
@@ -2023,15 +1556,15 @@ struct StaticMap : AnyGC {
         }
         throw DartArgumentError("Key not found");
     }
-    V update(const K& key, TypeFunction1<V, V>* updateFn, TypeFunction0<V>* ifAbsent = nullptr) {
+    V update(const K& key, TypeFunction1<AnyGC*, V>* updateFn, TypeFunction0<AnyGC*>* ifAbsent = nullptr) {
         int idx = _keys->indexOf(key);
         if (idx != -1) {
-            V newVal = updateFn->call((*_values)[idx]);
+            V newVal = dynAs<V>(updateFn->fnPtr(updateFn, (*_values)[idx]));
             (*_values)[idx] = newVal;
             return newVal;
         }
         if (ifAbsent) {
-            V newVal = ifAbsent->call();
+            V newVal = dynAs<V>(ifAbsent->fnPtr(ifAbsent));
             _keys->add(key);
             _values->add(newVal);
             return newVal;
@@ -2044,9 +1577,9 @@ struct StaticMap : AnyGC {
             (*_values)[i] = updateFn((*_keys)[i], (*_values)[i]);
         }
     }
-    void updateAll(TypeFunction2<V, K, V>* updateFn) {
+    void updateAll(TypeFunction2<AnyGC*, K, V>* updateFn) {
         for (int i = 0; i < _keys->length(); i++) {
-            (*_values)[i] = updateFn->call((*_keys)[i], (*_values)[i]);
+            (*_values)[i] = dynAs<V>(updateFn->fnPtr(updateFn, (*_keys)[i], (*_values)[i]));
         }
     }
 
@@ -2071,9 +1604,9 @@ struct StaticMap : AnyGC {
             action((*_keys)[i], (*_values)[i]);
         }
     }
-    void forEach(TypeFunction2<void, K, V>* action) const {
+    void forEach(TypeFunction2<AnyGC*, K, V>* action) const {
         for (int i = 0; i < _keys->length(); i++) {
-            action->call((*_keys)[i], (*_values)[i]);
+            action->fnPtr(action, (*_keys)[i], (*_values)[i]);
         }
     }
 
@@ -2087,10 +1620,10 @@ struct StaticMap : AnyGC {
         return GC::allocateLocal(result);
     }
     template<typename K2, typename V2>
-    StaticMap<K2, V2>* map(TypeFunction2<StaticMapEntry<K2, V2>, K, V>* convert) const {
+    StaticMap<K2, V2>* map(TypeFunction2<AnyGC*, K, V>* convert) const {
         auto* result = new StaticMap<K2, V2>();
         for (int i = 0; i < _keys->length(); i++) {
-            auto entry = convert->call((*_keys)[i], (*_values)[i]);
+            auto entry = dynAs<StaticMapEntry<K2, V2>>(convert->fnPtr(convert, (*_keys)[i], (*_values)[i]));
             result->set(entry.key, entry.value);
         }
         return GC::allocateLocal(result);
@@ -2163,13 +1696,14 @@ struct StaticMap : AnyGC {
 };
 
 template<typename K, typename V>
-StaticMapClassInfo<K, V> StaticMap<K, V>::_classInfo = []{
-    StaticMapClassInfo<K, V> ci;
+ClassInfo StaticMap<K, V>::_classInfo = []{
+    ClassInfo ci;
     ci.toString = &StaticMap<K, V>::_vptr_toString;
     ci.get_runtimeType = &StaticMap<K, V>::_vptr_runtimeType;
     ci.get_length = &StaticMap<K, V>::_vptr_length;
     ci.index = &StaticMap<K, V>::_vptr_index;
     ci.containsKey = &StaticMap<K, V>::_vptr_containsKey;
+    ci.gcMark = &StaticMap<K, V>::_gcMark_impl;
     return ci;
 }();
 
@@ -2178,13 +1712,14 @@ StaticMapClassInfo<K, V> StaticMap<K, V>::_classInfo = []{
 
 template<typename T>
 struct StaticSet : AnyGC {
+    static ClassInfo _classInfo;
     Array<T>* _data;
 
-    StaticSet() : _data(GC::allocateLocal(new Array<T>())) { gcMarkFn = &_gcMark_impl; }
+    StaticSet() : _data(GC::allocateLocal(new Array<T>())) { AnyGC::_classInfo = &_classInfo; }
 
     StaticSet(std::initializer_list<T> init)
         : _data(GC::allocateLocal(new Array<T>())) {
-        gcMarkFn = &_gcMark_impl;
+        AnyGC::_classInfo = &_classInfo;
         for (const auto& e : init) add(e);
     }
 
@@ -2257,9 +1792,9 @@ struct StaticSet : AnyGC {
             if (test((*_data)[i])) _data->removeAt(i);
         }
     }
-    void removeWhere(TypeFunction1<bool, T>* test) {
+    void removeWhere(TypeFunction1<AnyGC*, T>* test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (test->call((*_data)[i])) _data->removeAt(i);
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) _data->removeAt(i);
         }
     }
 
@@ -2268,9 +1803,9 @@ struct StaticSet : AnyGC {
             if (!test((*_data)[i])) _data->removeAt(i);
         }
     }
-    void retainWhere(TypeFunction1<bool, T>* test) {
+    void retainWhere(TypeFunction1<AnyGC*, T>* test) {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (!test->call((*_data)[i])) _data->removeAt(i);
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) _data->removeAt(i);
         }
     }
 
@@ -2306,8 +1841,8 @@ struct StaticSet : AnyGC {
     void forEach(std::function<void(T)> action) const {
         for (int i = 0; i < _data->length(); i++) action((*_data)[i]);
     }
-    void forEach(TypeFunction1<void, T>* action) const {
-        for (int i = 0; i < _data->length(); i++) action->call((*_data)[i]);
+    void forEach(TypeFunction1<AnyGC*, T>* action) const {
+        for (int i = 0; i < _data->length(); i++) action->fnPtr(action, (*_data)[i]);
     }
 
     template<typename R>
@@ -2317,9 +1852,9 @@ struct StaticSet : AnyGC {
         return GC::allocateLocal(result);
     }
     template<typename R>
-    StaticList<R>* map(TypeFunction1<R, T>* convert) const {
+    StaticList<R>* map(TypeFunction1<AnyGC*, T>* convert) const {
         auto* result = new StaticList<R>();
-        for (int i = 0; i < _data->length(); i++) result->add(convert->call((*_data)[i]));
+        for (int i = 0; i < _data->length(); i++) result->add(dynAs<R>(convert->fnPtr(convert, (*_data)[i])));
         return GC::allocateLocal(result);
     }
 
@@ -2330,10 +1865,10 @@ struct StaticSet : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticSet<T>* where(TypeFunction1<bool, T>* test) const {
+    StaticSet<T>* where(TypeFunction1<AnyGC*, T>* test) const {
         auto* result = new StaticSet<T>();
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) result->add((*_data)[i]);
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) result->add((*_data)[i]);
         }
         return GC::allocateLocal(result);
     }
@@ -2344,9 +1879,9 @@ struct StaticSet : AnyGC {
         }
         return false;
     }
-    bool any(TypeFunction1<bool, T>* test) const {
+    bool any(TypeFunction1<AnyGC*, T>* test) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) return true;
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return true;
         }
         return false;
     }
@@ -2358,9 +1893,9 @@ struct StaticSet : AnyGC {
         return true;
     }
 
-    bool every(TypeFunction1<bool, T>* test) const {
+    bool every(TypeFunction1<AnyGC*, T>* test) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (!test->call((*_data)[i])) return false;
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return false;
         }
         return true;
     }
@@ -2371,10 +1906,10 @@ struct StaticSet : AnyGC {
         for (int i = 1; i < _data->length(); i++) value = combine(value, (*_data)[i]);
         return value;
     }
-    T reduce(TypeFunction2<T, T, T>* combine) const {
+    T reduce(TypeFunction2<AnyGC*, T, T>* combine) const {
         if (isEmpty()) throw DartStateError("No element");
         T value = (*_data)[0];
-        for (int i = 1; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
+        for (int i = 1; i < _data->length(); i++) value = dynAs<T>(combine->fnPtr(combine, value, (*_data)[i]));
         return value;
     }
 
@@ -2385,9 +1920,9 @@ struct StaticSet : AnyGC {
         return value;
     }
     template<typename R>
-    R fold(R initialValue, TypeFunction2<R, R, T>* combine) const {
+    R fold(R initialValue, TypeFunction2<AnyGC*, R, T>* combine) const {
         R value = initialValue;
-        for (int i = 0; i < _data->length(); i++) value = combine->call(value, (*_data)[i]);
+        for (int i = 0; i < _data->length(); i++) value = dynAs<R>(combine->fnPtr(combine, value, (*_data)[i]));
         return value;
     }
 
@@ -2398,11 +1933,11 @@ struct StaticSet : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T firstWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T firstWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) return (*_data)[i];
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return (*_data)[i];
         }
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -2413,11 +1948,11 @@ struct StaticSet : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T lastWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T lastWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         for (int i = _data->length() - 1; i >= 0; i--) {
-            if (test->call((*_data)[i])) return (*_data)[i];
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) return (*_data)[i];
         }
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -2437,12 +1972,12 @@ struct StaticSet : AnyGC {
         if (orElse) return orElse();
         throw DartStateError("No element");
     }
-    T singleWhere(TypeFunction1<bool, T>* test, TypeFunction0<T>* orElse = nullptr) const {
+    T singleWhere(TypeFunction1<AnyGC*, T>* test, TypeFunction0<AnyGC*>* orElse = nullptr) const {
         bool foundMultiple = false;
         T found{};
         bool hasFound = false;
         for (int i = 0; i < _data->length(); i++) {
-            if (test->call((*_data)[i])) {
+            if (dynAs<bool>(test->fnPtr(test, (*_data)[i]))) {
                 if (hasFound) { foundMultiple = true; break; }
                 found = (*_data)[i];
                 hasFound = true;
@@ -2450,7 +1985,7 @@ struct StaticSet : AnyGC {
         }
         if (foundMultiple) throw DartStateError("Too many elements");
         if (hasFound) return found;
-        if (orElse) return orElse->call();
+        if (orElse) return dynAs<T>(orElse->fnPtr(orElse));
         throw DartStateError("No element");
     }
 
@@ -2515,6 +2050,22 @@ struct StaticSet : AnyGC {
         return GC::allocateLocal(result);
     }
 
+    template<typename R>
+    StaticSet<R>* whereType() const {
+        auto* result = new StaticSet<R>();
+        for (int i = 0; i < _data->length(); i++) {
+            if constexpr (std::is_pointer_v<R> && std::is_pointer_v<T>) {
+                if (dart_is<std::remove_pointer_t<R>>((*_data)[i]))
+                    result->add(static_cast<R>((*_data)[i]));
+            } else if constexpr (std::is_same_v<R, T>) {
+                result->add((*_data)[i]);
+            }
+        }
+        return GC::allocateLocal(result);
+    }
+
+    StaticSet<T>* toSet() const { return toStaticSet(); }
+
     StaticSet<T>* followedBy(StaticSet<T>* other) const {
         return unionSet(other);
     }
@@ -2540,10 +2091,10 @@ struct StaticSet : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticSet<T>* takeWhile(TypeFunction1<bool, T>* test) const {
+    StaticSet<T>* takeWhile(TypeFunction1<AnyGC*, T>* test) const {
         auto* result = new StaticSet<T>();
         for (int i = 0; i < _data->length(); i++) {
-            if (!test->call((*_data)[i])) break;
+            if (!dynAs<bool>(test->fnPtr(test, (*_data)[i]))) break;
             result->add((*_data)[i]);
         }
         return GC::allocateLocal(result);
@@ -2559,11 +2110,11 @@ struct StaticSet : AnyGC {
         }
         return GC::allocateLocal(result);
     }
-    StaticSet<T>* skipWhile(TypeFunction1<bool, T>* test) const {
+    StaticSet<T>* skipWhile(TypeFunction1<AnyGC*, T>* test) const {
         auto* result = new StaticSet<T>();
         bool skipping = true;
         for (int i = 0; i < _data->length(); i++) {
-            if (skipping && test->call((*_data)[i])) continue;
+            if (skipping && dynAs<bool>(test->fnPtr(test, (*_data)[i]))) continue;
             skipping = false;
             result->add((*_data)[i]);
         }
@@ -2593,6 +2144,9 @@ struct StaticSet : AnyGC {
     }
 };
 
+template<typename T>
+ClassInfo StaticSet<T>::_classInfo = []{ ClassInfo ci; ci.gcMark = &StaticSet<T>::_gcMark_impl; return ci; }();
+
 // ── StaticList 延迟实现（依赖 StaticMap / StaticSet 完整类型） ──
 
 template<typename T>
@@ -2621,7 +2175,7 @@ StaticList<StaticMapEntry<K, V>>* StaticMap<K, V>::entries() const {
 }
 
 // ============================================================================
-// 9. Promise / GlobalScheduler / smAwait — 协作式异步
+// 8. Promise / GlobalScheduler / smAwait — 协作式异步
 // ============================================================================
 
 // ── PromiseBase ──
@@ -2631,6 +2185,7 @@ StaticList<StaticMapEntry<K, V>>* StaticMap<K, V>::entries() const {
 class GlobalScheduler;
 
 struct PromiseBase : AnyGC {
+    static ClassInfo _classInfo;
     enum State { READY, PENDING, COMPLETED, ERROR };
 
     State state = PENDING;
@@ -2639,7 +2194,7 @@ struct PromiseBase : AnyGC {
     std::function<void()> startCallback;
     std::function<bool()> onTick;
 
-    PromiseBase() { gcMarkFn = &_gcMark_impl; }
+    PromiseBase() { AnyGC::_classInfo = &_classInfo; }
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* p = static_cast<PromiseBase*>(self);
@@ -2672,6 +2227,8 @@ struct PromiseBase : AnyGC {
     bool isReady() const { return state == READY; }
     bool isPending() const { return state == PENDING; }
 };
+
+inline ClassInfo PromiseBase::_classInfo = []{ ClassInfo ci; ci.gcMark = &PromiseBase::_gcMark_impl; return ci; }();
 
 // ── Promise<T> ──
 
@@ -2760,6 +2317,7 @@ struct _DelayedTask {
 };
 
 class GlobalScheduler : public AnyGC {
+    static ClassInfo _classInfo;
     std::vector<PromiseBase*> _activePromises;
     std::vector<_DelayedTask> _delayedTasks;
     std::vector<PromiseBase*> _readyPromises;
@@ -2767,7 +2325,7 @@ class GlobalScheduler : public AnyGC {
     GlobalScheduler() {
         _gcStatic = true;  // 静态 singleton，GC 不管理其生命周期
         GC::allocateGlobal(this);
-        gcMarkFn = &_gcMark_impl;
+        AnyGC::_classInfo = &_classInfo;
     }
 
 public:
@@ -2843,6 +2401,14 @@ public:
     }
 
     int tickCount() const { return static_cast<int>(_currentTick); }
+    int64_t currentTick() const { return _currentTick; }
+
+    /// 检查是否有活跃的异步工作（Promise、延迟任务等）
+    bool hasActiveWork() {
+        return !_activePromises.empty() ||
+            !_delayedTasks.empty() ||
+            !_readyPromises.empty();
+    }
 
     void reset() {
         _activePromises.clear();
@@ -2853,6 +2419,8 @@ public:
         GC::allocateGlobal(this);
     }
 };
+
+inline ClassInfo GlobalScheduler::_classInfo = []{ ClassInfo ci; ci.gcMark = &GlobalScheduler::_gcMark_impl; return ci; }();
 
 // ── PromiseBase 延迟实现（依赖 GlobalScheduler 完整类型） ──
 
@@ -2894,7 +2462,7 @@ Promise<R>* Promise<T>::then(std::function<AnyGC*(T)> onValue) {
         try {
             AnyGC* callbackResult = onValue(dynAs<T>(result));
             AnyGC* gcResult = callbackResult;
-            PromiseBase* innerPromise = gcResult ? dynamic_cast<PromiseBase*>(gcResult) : nullptr;
+            PromiseBase* innerPromise = gcResult ? (_isInstanceOf(gcResult, &PromiseBase::_classInfo) ? static_cast<PromiseBase*>(gcResult) : nullptr) : nullptr;
             if (innerPromise) {
                 // flatMap 场景：返回内部 Promise
                 auto* nextPromise = GC::allocateLocal(new Promise<R>());
@@ -2939,7 +2507,7 @@ Promise<R>* Promise<T>::then(std::function<AnyGC*(T)> onValue) {
             try {
                 AnyGC* callbackResult = onValue(dynAs<T>(self->result));
                 AnyGC* gcResult = callbackResult;
-                PromiseBase* innerPromise = gcResult ? dynamic_cast<PromiseBase*>(gcResult) : nullptr;
+                PromiseBase* innerPromise = gcResult ? (_isInstanceOf(gcResult, &PromiseBase::_classInfo) ? static_cast<PromiseBase*>(gcResult) : nullptr) : nullptr;
                 if (innerPromise) {
                     nextPromise->onTick = [innerPromise, nextPromise]() -> bool {
                         if (innerPromise->isCompleted()) {
@@ -3129,9 +2697,9 @@ Promise<T>* Promise<T>::any(std::vector<Promise<T>*> promises) {
 
 // ── delayed() free function — mirrors Promise.delayed in Dart ──
 template<typename T>
-Promise<T>* delayed(int ticks, TypeFunction0<T>* computation) {
+Promise<T>* delayed(int ticks, TypeFunction0<AnyGC*>* computation) {
     return Promise<T>::delayed(ticks, [computation]() -> T {
-        return computation->call();
+        return dynAs<T>(computation->fnPtr(computation));
     });
 }
 
@@ -3144,44 +2712,44 @@ Promise<T>* Promise_value(T val) {
 }
 
 template<typename T>
-Promise<T>* Promise_delayed(int64_t delayTicks, TypeFunction0<T>* computation) {
+Promise<T>* Promise_delayed(int64_t delayTicks, TypeFunction0<AnyGC*>* computation) {
     return Promise<T>::delayed(static_cast<int>(delayTicks), [computation]() -> T {
-        return computation->call();
+        if (!computation) return T{};
+        return dynAs<T>(computation->fnPtr(computation));
     });
 }
 
-template<typename T, typename R>
-Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, T>* onValue) {
-    auto* resultPromise = GC::allocateLocal(new Promise<R>());
-    this__->then([onValue, resultPromise](T val) -> AnyGC* {
-        if constexpr (std::is_void_v<R>) {
-            onValue->call(val);
-        } else {
-            R result = onValue->call(val);
-            resultPromise->completeTyped(std::move(result));
-        }
-        return nullptr;
-    });
-    return resultPromise;
-}
+// _PromiseThen<R>::call(receiver, onValue) — only R is explicit, T is deduced
+template<typename R>
+struct _PromiseThen {
+    template<typename T>
+    static Promise<R>* call(Promise<T>* this__, TypeFunction1<AnyGC*, T>* onValue) {
+        auto* resultPromise = GC::allocateLocal(new Promise<R>());
+        this__->then([onValue, resultPromise](T val) -> AnyGC* {
+            AnyGC* result = onValue->fnPtr(onValue, val);
+            if constexpr (!std::is_void_v<R>) {
+                resultPromise->completeTyped(dynAs<R>(result));
+            }
+            return nullptr;
+        });
+        return resultPromise;
+    }
 
-// Overload: callback uses AnyGC* parameter (common for tear-offs)
-// while Promise value type is a primitive (int64_t, double, bool, std::string)
-template<typename T, typename R>
-Promise<R>* Promise_then(Promise<T>* this__, TypeFunction1<R, AnyGC*>* onValue) {
-    auto* resultPromise = GC::allocateLocal(new Promise<R>());
-    this__->then([onValue, resultPromise](T val) -> AnyGC* {
-        AnyGC* boxed = _box(val);
-        if constexpr (std::is_void_v<R>) {
-            onValue->call(boxed);
-        } else {
-            R result = onValue->call(boxed);
-            resultPromise->completeTyped(std::move(result));
-        }
-        return nullptr;
-    });
-    return resultPromise;
-}
+    // Overload: callback uses AnyGC* parameter (common for tear-offs)
+    template<typename T>
+    static Promise<R>* call(Promise<T>* this__, TypeFunction1<AnyGC*, AnyGC*>* onValue) {
+        auto* resultPromise = GC::allocateLocal(new Promise<R>());
+        this__->then([onValue, resultPromise](T val) -> AnyGC* {
+            AnyGC* boxed = _box(val);
+            AnyGC* result = onValue->fnPtr(onValue, boxed);
+            if constexpr (!std::is_void_v<R>) {
+                resultPromise->completeTyped(dynAs<R>(result));
+            }
+            return nullptr;
+        });
+        return resultPromise;
+    }
+};
 
 // ── smAwait<T> — 阻塞式 await（对齐 Dart smAwait，含递归深度计数） ──
 
@@ -3303,10 +2871,8 @@ inline T smAwait(T value) {
 // ── smAwait(AnyGC*) overloads — 从 AnyGC* 中提取 PromiseBase* ──
 template<typename T>
 inline T smAwait(AnyGC* promiseValue) {
-    // 检查是否真的是 Promise
-    PromiseBase* promise = promiseValue ? dynamic_cast<PromiseBase*>(promiseValue) : nullptr;
+    PromiseBase* promise = promiseValue ? (_isInstanceOf(promiseValue, &PromiseBase::_classInfo) ? static_cast<PromiseBase*>(promiseValue) : nullptr) : nullptr;
     if (!promise) {
-        // 不是 Promise，直接透传（await non-Future）
         if constexpr (std::is_same_v<T, AnyGC*>) {
             return promiseValue;
         } else {
@@ -3318,7 +2884,7 @@ inline T smAwait(AnyGC* promiseValue) {
 
 template<>
 inline void smAwait<void>(AnyGC* promiseValue) {
-    PromiseBase* promise = promiseValue ? dynamic_cast<PromiseBase*>(promiseValue) : nullptr;
+    PromiseBase* promise = promiseValue ? (_isInstanceOf(promiseValue, &PromiseBase::_classInfo) ? static_cast<PromiseBase*>(promiseValue) : nullptr) : nullptr;
     if (!promise) return;
     smAwait<void>(promise);
 }
@@ -3343,6 +2909,19 @@ inline PromiseBase* promiseDelayed(int ticks, std::function<AnyGC*()> computatio
     return promise;
 }
 
+/// drainScheduler — 运行调度器直到所有 Promise 完成
+/// 对齐 Dart drainScheduler()，C++ 无原生 Future，直接 tick 直到无活跃工作
+inline void drainScheduler() {
+    int roundCount = 0;
+    while (GlobalScheduler::instance().hasActiveWork()) {
+        GlobalScheduler::instance().tick();
+        roundCount++;
+        if (roundCount > 1000000) {
+            throw DartStateError("drainScheduler exceeded max rounds — possible deadlock");
+        }
+    }
+}
+
 // ── AsyncStateMachine<T> ──
 
 template<typename T>
@@ -3355,13 +2934,14 @@ struct AsyncStateMachineClassInfo : ClassInfo {
 
 template<typename T>
 struct AsyncStateMachine : AnyGC {
+    static AsyncStateMachineClassInfo<T> _baseClassInfo;
     int smState = 0;
     Promise<T>* promise;
     AsyncStateMachineClassInfo<T>* _classInfo = nullptr;
 
     AsyncStateMachine() {
         promise = GC::allocateLocal(new Promise<T>());
-        gcMarkFn = &_gcMark_impl;
+        AnyGC::_classInfo = &_baseClassInfo;
     }
 
     static void _gcMark_impl(AnyGC* self, int flag) {
@@ -3390,6 +2970,13 @@ struct AsyncStateMachine : AnyGC {
     }
 };
 
+template<typename T>
+AsyncStateMachineClassInfo<T> AsyncStateMachine<T>::_baseClassInfo = []{
+    AsyncStateMachineClassInfo<T> ci;
+    ci.gcMark = &AsyncStateMachine<T>::_gcMark_impl;
+    return ci;
+}();
+
 // ── AsyncStateMachine lowered 函数包装器 ──
 template<typename T> void AsyncStateMachine_completeWith(AsyncStateMachine<T>* this__, T value) {
     this__->completeWith(std::move(value));
@@ -3410,7 +2997,7 @@ template<typename T> AsyncStateMachine<T>* AsyncStateMachine_new(AsyncStateMachi
 }
 
 // ============================================================================
-// 10. 语义包装 — staticPrint / StaticStringBuffer
+// 9. 语义包装 — staticPrint / StaticStringBuffer
 // ============================================================================
 
 /// 替代 Dart 的 print()，支持各种类型
@@ -3508,6 +3095,26 @@ struct StaticStringBuffer : AnyGC {
         _buf << _anyToString(value) << "\n";
     }
 
+    void writeAll(StaticList<AnyGC*>* objects, const std::string& separator = "") {
+        if (!objects) return;
+        for (int i = 0; i < objects->length(); i++) {
+            if (i > 0) _buf << separator;
+            _buf << _anyToString((*objects)[i]);
+        }
+    }
+
+    void writeAll(StaticList<std::string>* objects, const std::string& separator = "") {
+        if (!objects) return;
+        for (int i = 0; i < objects->length(); i++) {
+            if (i > 0) _buf << separator;
+            _buf << (*objects)[i];
+        }
+    }
+
+    void writeCharCode(int64_t charCode) {
+        _buf << static_cast<char>(charCode);
+    }
+
     std::string toString() const {
         return _buf.str();
     }
@@ -3531,27 +3138,13 @@ struct StaticStringBuffer : AnyGC {
 };
 
 // ============================================================================
-// 11. 辅助函数
+// 10. 辅助函数
 // ============================================================================
 
-/// dart_is<T> — 运行时类型检查
+/// dart_is<T> — 运行时类型检查（通过 _classInfo 父链遍历）
 template<typename T>
 bool dart_is(AnyGC* obj) {
-    if (!obj) return false;
-    return dynamic_cast<T*>(obj) != nullptr;
-}
-
-/// dart_cast<T> — 运行时类型转换
-template<typename T>
-T* dart_cast(AnyGC* obj) {
-    if (!obj) {
-        throw DartException("Type cast failed: null");
-    }
-    T* result = dynamic_cast<T*>(obj);
-    if (!result) {
-        throw DartException("Type cast failed: " + obj->_typeName);
-    }
-    return result;
+    return _isInstanceOf(obj, &T::_classInfo);
 }
 
 // dart_isNull — 类型安全的 null 检查（适用于指针和值类型）
@@ -3582,7 +3175,6 @@ inline std::string _toStr(const std::string& v) { return v; }
 inline std::string _toStr(const char* v) { return v ? v : "null"; }
 inline std::string _toStr(AnyGC* v) { return v ? v->toString() : "null"; }
 inline std::string _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
-inline std::string _toStr(const std::exception& e) { return e.what(); }
 inline std::string _toStr(const DartException& e) { return e.toString(); }
 inline std::string _toStr(std::nullptr_t) { return "null"; }
 inline std::string _toStr(const ReachabilityError& v) { return v.toStringValue(); }
@@ -3608,7 +3200,7 @@ std::string dart_str(Args&&... args) {
 }
 
 // ============================================================================
-// 12. String 方法辅助
+// 11. String 方法辅助
 // ============================================================================
 
 /// dart_str_toUpper — 转换为大写
@@ -3631,20 +3223,6 @@ inline std::string dart_str_trim(const std::string& s) {
     if (start == std::string::npos) return "";
     size_t end = s.find_last_not_of(" \t\n\r\f\v");
     return s.substr(start, end - start + 1);
-}
-
-/// dart_str_trimLeft — 去除左侧空白
-inline std::string dart_str_trimLeft(const std::string& s) {
-    size_t start = s.find_first_not_of(" \t\n\r\f\v");
-    if (start == std::string::npos) return "";
-    return s.substr(start);
-}
-
-/// dart_str_trimRight — 去除右侧空白
-inline std::string dart_str_trimRight(const std::string& s) {
-    size_t end = s.find_last_not_of(" \t\n\r\f\v");
-    if (end == std::string::npos) return "";
-    return s.substr(0, end + 1);
 }
 
 /// dart_str_split — 分割字符串
@@ -3680,60 +3258,8 @@ inline std::string dart_str_replaceAll(const std::string& s, const std::string& 
     return result;
 }
 
-/// dart_str_padLeft — 左填充
-inline std::string dart_str_padLeft(const std::string& s, int width, const std::string& padding) {
-    if (s.length() >= width || padding.empty()) return s;
-    int padCount = width - s.length();
-    std::string result = "";
-    while (result.length() < padCount) {
-        result += padding;
-    }
-    return result.substr(0, padCount) + s;
-}
-
-/// dart_str_padRight — 右填充
-inline std::string dart_str_padRight(const std::string& s, int width, const std::string& padding) {
-    if (s.length() >= width || padding.empty()) return s;
-    int padCount = width - s.length();
-    std::string result = s;
-    while (result.length() < width) {
-        result += padding;
-    }
-    return result.substr(0, width);
-}
-
-/// dart_str_toStringAsFixed — 格式化浮点数为固定小数位
-inline std::string dart_str_toStringAsFixed(double value, int fractionDigits) {
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(fractionDigits) << value;
-    return oss.str();
-}
-
 // ============================================================================
-// 13. Math 辅助
-// ============================================================================
-
-namespace DartMath {
-    constexpr double PI = 3.14159265358979323846;
-    constexpr double E = 2.71828182845904523536;
-
-    inline double sqrt(double x) { return std::sqrt(x); }
-    inline double pow(double base, double exp) { return std::pow(base, exp); }
-    inline int64_t pow_int(int64_t base, int64_t exp) {
-        int64_t result = 1;
-        for (int64_t i = 0; i < exp; i++) result *= base;
-        return result;
-    }
-    inline double sin(double x) { return std::sin(x); }
-    inline double cos(double x) { return std::cos(x); }
-    inline double abs(double x) { return std::abs(x); }
-    inline int64_t abs_int(int64_t x) { return x < 0 ? -x : x; }
-    inline double min(double a, double b) { return std::min(a, b); }
-    inline double max(double a, double b) { return std::max(a, b); }
-}
-
-// ============================================================================
-// 14. Duration / DateTime / RegExp 包装
+// 12. Duration / DateTime / RegExp 包装
 // ============================================================================
 
 struct StaticDuration : AnyGC {
@@ -3741,45 +3267,354 @@ struct StaticDuration : AnyGC {
 
     StaticDuration(int64_t us = 0) : inMicroseconds(us) {}
 
-    static StaticDuration milliseconds(int64_t ms) {
-        return StaticDuration(ms * 1000);
-    }
-    static StaticDuration seconds(int64_t s) {
-        return StaticDuration(s * 1000000);
-    }
-    static StaticDuration minutes(int64_t m) {
-        return StaticDuration(m * 60000000LL);
+    StaticDuration(int64_t days, int64_t hours, int64_t minutes, int64_t seconds,
+                   int64_t milliseconds = 0, int64_t microseconds = 0)
+        : inMicroseconds(
+              days * 86400000000LL +
+              hours * 3600000000LL +
+              minutes * 60000000LL +
+              seconds * 1000000LL +
+              milliseconds * 1000LL +
+              microseconds) {}
+
+    static StaticDuration milliseconds(int64_t ms) { return StaticDuration(ms * 1000); }
+    static StaticDuration seconds(int64_t s) { return StaticDuration(s * 1000000); }
+    static StaticDuration minutes(int64_t m) { return StaticDuration(m * 60000000LL); }
+    static StaticDuration hours(int64_t h) { return StaticDuration(h * 3600000000LL); }
+    static StaticDuration days(int64_t d) { return StaticDuration(d * 86400000000LL); }
+
+    int64_t inDays() const { return inMicroseconds / 86400000000LL; }
+    int64_t inHours() const { return inMicroseconds / 3600000000LL; }
+    int64_t inMinutes() const { return inMicroseconds / 60000000LL; }
+    int64_t inSeconds() const { return inMicroseconds / 1000000; }
+    int64_t inMilliseconds() const { return inMicroseconds / 1000; }
+
+    bool operator==(const StaticDuration& other) const {
+        return inMicroseconds == other.inMicroseconds;
     }
 
-    int64_t inMilliseconds() const { return inMicroseconds / 1000; }
-    int64_t inSeconds() const { return inMicroseconds / 1000000; }
+    int64_t hashCode() const { return inMicroseconds; }
+
+    std::string toString() const {
+        int64_t totalUs = inMicroseconds;
+        bool negative = totalUs < 0;
+        if (negative) totalUs = -totalUs;
+        int64_t h = totalUs / 3600000000LL;
+        int64_t rem = totalUs % 3600000000LL;
+        int64_t m = rem / 60000000LL;
+        rem %= 60000000LL;
+        int64_t s = rem / 1000000LL;
+        int64_t us = rem % 1000000LL;
+        std::ostringstream oss;
+        if (negative) oss << "-";
+        oss << h << ":"
+            << std::setfill('0') << std::setw(2) << m << ":"
+            << std::setfill('0') << std::setw(2) << s << "."
+            << std::setfill('0') << std::setw(6) << us;
+        return oss.str();
+    }
 };
 
 struct StaticDateTime : AnyGC {
-    int64_t _epochMs;  // 毫秒 since epoch
+    int64_t _epochMs;
+    bool _isUtc = false;
 
-    StaticDateTime() : _epochMs(0) {}
-    StaticDateTime(int64_t epochMs) : _epochMs(epochMs) {}
-    StaticDateTime& operator=(AnyGC* v) { _epochMs = v ? dynAs<int64_t>(v) : 0; return *this; }
+    StaticDateTime() : _epochMs(0), _isUtc(false) {}
+    StaticDateTime(int64_t epochMs, bool utc = false) : _epochMs(epochMs), _isUtc(utc) {}
+
+    StaticDateTime(int64_t year, int64_t month, int64_t day,
+                   int64_t hour = 0, int64_t minute = 0, int64_t second = 0,
+                   int64_t millisecond = 0, int64_t /*microsecond*/ = 0, bool utc = false)
+        : _isUtc(utc) {
+        struct tm t = {};
+        t.tm_year = static_cast<int>(year - 1900);
+        t.tm_mon = static_cast<int>(month - 1);
+        t.tm_mday = static_cast<int>(day);
+        t.tm_hour = static_cast<int>(hour);
+        t.tm_min = static_cast<int>(minute);
+        t.tm_sec = static_cast<int>(second);
+        time_t time;
+        if (utc) {
+            time = timegm(&t);
+        } else {
+            time = mktime(&t);
+        }
+        _epochMs = static_cast<int64_t>(time) * 1000 + millisecond;
+    }
+
+    StaticDateTime& operator=(AnyGC* v) {
+        _epochMs = v ? dynAs<int64_t>(v) : 0;
+        return *this;
+    }
+
+    // ── 静态工厂 ──
 
     static StaticDateTime now() {
         auto now = std::chrono::system_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
-        return StaticDateTime(static_cast<int64_t>(ms));
+        return StaticDateTime(static_cast<int64_t>(ms), false);
     }
 
+    static StaticDateTime utc(int64_t year, int64_t month = 1, int64_t day = 1,
+                              int64_t hour = 0, int64_t minute = 0, int64_t second = 0,
+                              int64_t millisecond = 0, int64_t microsecond = 0) {
+        return StaticDateTime(year, month, day, hour, minute, second, millisecond, microsecond, true);
+    }
+
+    static StaticDateTime parse(const std::string& formattedString) {
+        struct tm t = {};
+        int ms = 0;
+        if (sscanf(formattedString.c_str(), "%d-%d-%dT%d:%d:%d.%d",
+                   &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec, &ms) >= 3) {
+            t.tm_year -= 1900; t.tm_mon -= 1;
+            return StaticDateTime(static_cast<int64_t>(timegm(&t)) * 1000 + ms, true);
+        }
+        if (sscanf(formattedString.c_str(), "%d-%d-%d %d:%d:%d.%d",
+                   &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec, &ms) >= 3) {
+            t.tm_year -= 1900; t.tm_mon -= 1;
+            return StaticDateTime(static_cast<int64_t>(mktime(&t)) * 1000 + ms, false);
+        }
+        if (sscanf(formattedString.c_str(), "%d-%d-%d",
+                   &t.tm_year, &t.tm_mon, &t.tm_mday) >= 3) {
+            t.tm_year -= 1900; t.tm_mon -= 1;
+            return StaticDateTime(static_cast<int64_t>(mktime(&t)) * 1000, false);
+        }
+        throw DartFormatException("Invalid date format: " + formattedString);
+    }
+
+    static StaticDateTime tryParse(const std::string& formattedString) {
+        try { return parse(formattedString); }
+        catch (...) { throw DartFormatException("Invalid date format: " + formattedString); }
+    }
+
+    static StaticDateTime fromMillisecondsSinceEpoch(int64_t milliseconds, bool isUtc = false) {
+        return StaticDateTime(milliseconds, isUtc);
+    }
+
+    static StaticDateTime fromMicrosecondsSinceEpoch(int64_t microseconds, bool isUtc = false) {
+        return StaticDateTime(microseconds / 1000, isUtc);
+    }
+
+    // ── 属性 ──
+
     int64_t millisecondsSinceEpoch() const { return _epochMs; }
+    int64_t microsecondsSinceEpoch() const { return _epochMs * 1000; }
+    bool getIsUtc() const { return _isUtc; }
+
+    int64_t year() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_year + 1900 : 0;
+    }
+    int64_t month() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_mon + 1 : 0;
+    }
+    int64_t day() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_mday : 0;
+    }
+    int64_t hour() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_hour : 0;
+    }
+    int64_t minute() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_min : 0;
+    }
+    int64_t second() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        return t ? t->tm_sec : 0;
+    }
+    int64_t millisecond() const { return _epochMs % 1000; }
+    int64_t microsecond() const { return (_epochMs % 1000) * 1000; }
+    int64_t weekday() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        if (!t) return 0;
+        return t->tm_wday == 0 ? 7 : t->tm_wday;
+    }
+
+    // ── 运算 ──
+
+    StaticDateTime add(const StaticDuration& duration) const {
+        return StaticDateTime(_epochMs + duration.inMicroseconds / 1000, _isUtc);
+    }
+    StaticDateTime subtract(const StaticDuration& duration) const {
+        return StaticDateTime(_epochMs - duration.inMicroseconds / 1000, _isUtc);
+    }
+    StaticDuration difference(const StaticDateTime& other) const {
+        return StaticDuration((_epochMs - other._epochMs) * 1000);
+    }
+
+    bool isBefore(const StaticDateTime& other) const { return _epochMs < other._epochMs; }
+    bool isAfter(const StaticDateTime& other) const { return _epochMs > other._epochMs; }
+    bool isAtSameMomentAs(const StaticDateTime& other) const { return _epochMs == other._epochMs; }
+
+    StaticDateTime toUtc() const { return StaticDateTime(_epochMs, true); }
+    StaticDateTime toLocal() const { return StaticDateTime(_epochMs, false); }
+
+    // ── 字符串 ──
+
+    std::string toIso8601String() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        if (!t) return "Invalid Date";
+        char buf[40];
+        snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d.%03lld%s",
+                 t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                 t->tm_hour, t->tm_min, t->tm_sec,
+                 static_cast<long long>(_epochMs % 1000),
+                 _isUtc ? "Z" : "");
+        return std::string(buf);
+    }
+
+    std::string toString() const {
+        time_t time = static_cast<time_t>(_epochMs / 1000);
+        struct tm* t = _isUtc ? std::gmtime(&time) : std::localtime(&time);
+        if (!t) return "Invalid Date";
+        char buf[40];
+        snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%03lld",
+                 t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                 t->tm_hour, t->tm_min, t->tm_sec,
+                 static_cast<long long>(_epochMs % 1000));
+        return std::string(buf);
+    }
+
+    bool operator==(const StaticDateTime& other) const {
+        return _epochMs == other._epochMs && _isUtc == other._isUtc;
+    }
+
+    int64_t hashCode() const { return _epochMs; }
 };
+
+struct StaticRegExpMatch {
+    std::string fullMatch;
+    std::vector<std::string> groups;
+    int startPos = 0;
+    int endPos = 0;
+
+    std::string group(int index) const {
+        if (index == 0) return fullMatch;
+        if (index > 0 && index <= static_cast<int>(groups.size())) return groups[index - 1];
+        return "";
+    }
+    int groupCount() const { return static_cast<int>(groups.size()); }
+    int start() const { return startPos; }
+    int end() const { return endPos; }
+    std::string toString() const { return fullMatch; }
+};
+
+inline std::string _toStr(const StaticRegExpMatch& v) {
+    return v.toString();
+}
 
 struct StaticRegExp {
     std::string pattern;
+    std::regex _regex;
+    bool _isMultiLine = false;
+    bool _isCaseSensitive = true;
+    bool _isUnicode = false;
+    bool _isDotAll = false;
 
-    StaticRegExp(const std::string& pat) : pattern(pat) {}
+    StaticRegExp(const std::string& source,
+                 bool multiLine = false, bool caseSensitive = true,
+                 bool /*unicode*/ = false, bool dotAll = false)
+        : pattern(source), _isMultiLine(multiLine),
+          _isCaseSensitive(caseSensitive), _isDotAll(dotAll) {
+        auto flags = std::regex::ECMAScript;
+        if (multiLine) flags |= std::regex::multiline;
+        if (!caseSensitive) flags |= std::regex::icase;
+        _regex = std::regex(source, flags);
+    }
 
     bool hasMatch(const std::string& input) const {
-        // 简化实现：使用 std::string::find
-        return input.find(pattern) != std::string::npos;
+        try { return std::regex_search(input, _regex); }
+        catch (...) { return false; }
+    }
+
+    StaticRegExpMatch* firstMatch(const std::string& input) const {
+        std::smatch m;
+        if (std::regex_search(input, m, _regex)) {
+            auto* result = new StaticRegExpMatch();
+            result->fullMatch = m[0].str();
+            result->startPos = static_cast<int>(m.position(0));
+            result->endPos = result->startPos + static_cast<int>(m.length(0));
+            for (size_t i = 1; i < m.size(); i++) {
+                result->groups.push_back(m[i].matched ? m[i].str() : "");
+            }
+            return result;
+        }
+        return nullptr;
+    }
+
+    StaticList<StaticRegExpMatch>* allMatches(const std::string& str, int start = 0) const {
+        auto* result = new StaticList<StaticRegExpMatch>();
+        if (start < 0) start = 0;
+        if (start >= static_cast<int>(str.length())) return GC::allocateLocal(result);
+        std::string s = str.substr(start);
+        std::smatch m;
+        std::string::const_iterator searchStart = s.cbegin();
+        int offset = start;
+        while (searchStart != s.cend() && std::regex_search(searchStart, s.cend(), m, _regex)) {
+            StaticRegExpMatch match;
+            match.fullMatch = m[0].str();
+            match.startPos = static_cast<int>(m[0].first - s.cbegin()) + offset;
+            match.endPos = match.startPos + static_cast<int>(m.length(0));
+            for (size_t i = 1; i < m.size(); i++) {
+                match.groups.push_back(m[i].matched ? m[i].str() : "");
+            }
+            result->add(match);
+            if (m[0].second == searchStart) {
+                ++searchStart;
+                offset++;
+            } else {
+                searchStart = m[0].second;
+                offset = start + static_cast<int>(searchStart - s.cbegin());
+            }
+        }
+        return GC::allocateLocal(result);
+    }
+
+    StaticRegExpMatch* matchAsPrefix(const std::string& str, int startPos = 0) const {
+        if (startPos < 0 || startPos >= static_cast<int>(str.length())) return nullptr;
+        std::smatch m;
+        auto begin = str.cbegin() + startPos;
+        auto end = str.cend();
+        if (std::regex_search(begin, end, m, _regex, std::regex_constants::match_continuous)) {
+            auto* result = new StaticRegExpMatch();
+            result->fullMatch = m[0].str();
+            result->startPos = startPos;
+            result->endPos = startPos + static_cast<int>(m.length(0));
+            for (size_t i = 1; i < m.size(); i++) {
+                result->groups.push_back(m[i].matched ? m[i].str() : "");
+            }
+            return result;
+        }
+        return nullptr;
+    }
+
+    std::string getPattern() const { return pattern; }
+    bool getIsMultiLine() const { return _isMultiLine; }
+    bool getIsCaseSensitive() const { return _isCaseSensitive; }
+    bool getIsUnicode() const { return _isUnicode; }
+    bool getIsDotAll() const { return _isDotAll; }
+
+    static std::string escape(const std::string& text) {
+        std::string result;
+        for (char c : text) {
+            if (std::string("\\.^$|?*+()[]{}").find(c) != std::string::npos) {
+                result += '\\';
+            }
+            result += c;
+        }
+        return result;
     }
 
     std::string toString() const { return "RegExp(" + pattern + ")"; }
@@ -3789,22 +3624,12 @@ struct StaticRegExp {
 // Utility functions for collection operations
 // ============================================================================
 
-// List.unmodifiable - creates an unmodifiable copy of a list
 template<typename T>
 StaticList<T>* unmodifiable(StaticList<T>* source) {
     if (!source) return GC::allocateLocal(new StaticList<T>());
     return StaticList<T>::from(source);
 }
 
-// safeLength - safely get length of potentially null string
-inline int64_t safeLength(AnyGC* str) {
-    if (!str) return 0;
-    auto* strBox = dynamic_cast<StringBox*>(str);
-    if (strBox) return static_cast<int64_t>(strBox->value.length());
-    return 0;
-}
-
-// of - factory function for collections (used in some contexts)
 template<typename T>
 StaticList<T>* of(StaticList<T>* source) {
     if (!source) return GC::allocateLocal(new StaticList<T>());
@@ -3829,47 +3654,18 @@ StaticSet<T>* of(StaticSet<T>* source) {
     return StaticSet<T>::from(source->toStaticList());
 }
 
-// get - safe map get with default value
-template<typename K, typename V>
-V get(StaticMap<K, V>* map, const K& key, V defaultValue = V{}) {
-    if (!map) return defaultValue;
-    return map->getOrDefault(key, defaultValue);
-}
-
-// fromEntries - create a StaticMap from a list of entries
 template<typename K, typename V>
 StaticMap<K, V>* fromEntries(StaticList<StaticMapEntry<K, V>>* entries) {
     if (!entries) return StaticMap<K, V>::empty();
     return StaticMap<K, V>::fromEntries(entries);
 }
 
-// _SetValue - wrapper struct for Set constructor
 template<typename T>
 struct _SetValue : AnyGC {};
 
-// _Set_new - factory function for StaticSet
 template<typename T>
 StaticSet<T>* _Set_new(_SetValue<T>* /*unused*/) {
     return StaticSet<T>::empty();
-}
-
-// generate - create a list by calling a generator function
-template<typename T>
-StaticList<T>* generate(int count, TypeFunction1<T, int64_t>* generator) {
-    auto* result = GC::allocateLocal(new StaticList<T>());
-    for (int i = 0; i < count; i++) {
-        result->add(generator->call(i));
-    }
-    return result;
-}
-
-template<typename T>
-StaticList<T>* generate(int count, std::function<T(int)> generator) {
-    auto* result = GC::allocateLocal(new StaticList<T>());
-    for (int i = 0; i < count; i++) {
-        result->add(generator(i));
-    }
-    return result;
 }
 
 // StreamValue - wrapper struct for Stream (simplified as StaticList)
@@ -3883,8 +3679,8 @@ struct StreamValue : AnyGC {
     StaticList<T>* data;
     static StreamValueClassInfo<T> _classInfo;
 
-    StreamValue() : data(GC::allocateLocal(new StaticList<T>())) { gcMarkFn = &_gcMark_impl; }
-    StreamValue(StaticList<T>* d) : data(d) { gcMarkFn = &_gcMark_impl; }
+    StreamValue() : data(GC::allocateLocal(new StaticList<T>())) { AnyGC::_classInfo = &StreamValue::_classInfo; }
+    StreamValue(StaticList<T>* d) : data(d) { AnyGC::_classInfo = &StreamValue::_classInfo; }
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* s = static_cast<StreamValue*>(self);
@@ -3912,17 +3708,10 @@ struct StreamValue : AnyGC {
 
 // Static member definition
 template<typename T>
-StreamValueClassInfo<T> StreamValue<T>::_classInfo;
-
-// Stream_new - factory function for StreamValue
-template<typename T>
-StreamValue<T>* Stream_new() {
-    return GC::allocateLocal(new StreamValue<T>());
-}
-
-template<typename T>
-StreamValue<T>* Stream_fromIterable(StaticList<T>* source) {
-    return GC::allocateLocal(new StreamValue<T>(source));
-}
+StreamValueClassInfo<T> StreamValue<T>::_classInfo = []{
+    StreamValueClassInfo<T> ci;
+    ci.gcMark = &StreamValue<T>::_gcMark_impl;
+    return ci;
+}();
 
 #endif // DART2CPP_LOWERED_H
