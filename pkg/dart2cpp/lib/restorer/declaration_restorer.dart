@@ -745,6 +745,8 @@ mixin _DeclarationRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer
     // 子类重声明会因接收者类型变窄导致 override 返回类型冲突
     const baseClassInfoFields = {
       'toString_', 'operatorEq', 'get_hashCode', 'get_runtimeType', 'gcMark',
+      'get_length', 'get_isEmpty', 'get_isNotEmpty', 'get_iterator',
+      'contains', 'compareTo', 'operatorIndex', 'operatorIndexSet',
     };
 
     _buf.write('class $classInfoName$classInfoTypeParams extends $parentClassInfoExpr {\n');

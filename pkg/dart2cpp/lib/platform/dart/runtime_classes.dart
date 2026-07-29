@@ -185,10 +185,26 @@ abstract class AnyGC {
   }
 
   /// 动态方法/属性访问的兜底处理。当 AnyGC 子类没有定义某个方法或属性时，
-  /// 通过 noSuchMethod 转发到 vptr 调度表，实现类似 dynamic 的行为。
+  /// 通过 ClassInfo 虚表或 vptr 调度表分发，实现类似 dynamic 的行为。
   @override
   dynamic noSuchMethod(Invocation invocation) {
-    // 尝试从 vptr 调度表中查找方法
+    final ci = classInfo;
+    if (ci != null) {
+      final memberName = invocation.memberName.toString().split('"')[1];
+      final args = invocation.positionalArguments;
+      // Getter dispatch
+      if (invocation.isGetter) {
+        final fn = ci.dispatch['get_$memberName'];
+        if (fn != null) return Function.apply(fn, [this]);
+      } else {
+        // Method dispatch
+        final fn = ci.dispatch[memberName];
+        if (fn != null) {
+          return Function.apply(fn, [this, ...args]);
+        }
+      }
+    }
+    // Fallback: vptr map dispatch
     final vptrMap = vptr;
     if (vptrMap.isNotEmpty) {
       final memberName = invocation.memberName.toString().split('"')[1];
@@ -297,6 +313,17 @@ class ClassInfo {
   int Function(AnyGC)? get_hashCode;
   void Function(AnyGC, int)? gcMark;
   String Function(AnyGC)? get_runtimeType;
+  // Common method fields (shared across multiple platform types)
+  int Function(AnyGC)? get_length;
+  bool Function(AnyGC)? get_isEmpty;
+  bool Function(AnyGC)? get_isNotEmpty;
+  Function? get_iterator;
+  bool Function(AnyGC, Object?)? contains;
+  int Function(AnyGC, AnyGC?)? compareTo;
+  dynamic Function(AnyGC, dynamic)? operatorIndex;
+  void Function(AnyGC, dynamic, dynamic)? operatorIndexSet;
+  // Dispatch map for noSuchMethod fallback (populated by subclasses)
+  final Map<String, Function> dispatch = {};
 }
 
 /// Box 类型定义（闭包引用语义）
@@ -483,6 +510,53 @@ class Array<T> extends AnyGC {
   String toString() => 'Array(${_storage.take(_length).join(', ')})';
 }
 
+/// StaticListClassInfo — StaticList 的结构化虚表
+class StaticListClassInfo extends ClassInfo {
+  Function? get_first;
+  Function? get_last;
+  Function? get_single;
+  Function? get_reversed;
+  Function? add;
+  Function? addAll;
+  Function? insert;
+  Function? insertAll;
+  Function? removeAt;
+  Function? remove;
+  Function? removeLast;
+  Function? removeWhere;
+  Function? retainWhere;
+  Function? clear;
+  Function? sort;
+  Function? indexOf;
+  Function? lastIndexOf;
+  Function? indexWhere;
+  Function? forEach;
+  Function? where;
+  Function? any;
+  Function? every;
+  Function? firstWhere;
+  Function? lastWhere;
+  Function? singleWhere;
+  Function? reduce;
+  Function? take;
+  Function? skip;
+  Function? takeWhile;
+  Function? skipWhile;
+  Function? sublist;
+  Function? join;
+  Function? toList;
+  Function? toSet;
+  Function? followedBy;
+  Function? asMap;
+  Function? operatorPlus;
+  Function? elementAt;
+  Function? map;
+  Function? expand;
+  Function? cast;
+  Function? fold;
+  Function? whereType;
+}
+
 /// StaticList<T> — 完全独立的静态列表，不继承 List/ListMixin。
 /// 内部基于 Array<T> 管理数据，所有方法自行实现。
 /// 通过提供 `Iterator<T> get iterator` 支持 Dart for-in 循环。
@@ -522,14 +596,6 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
 
   int get length => _data.length;
 
-  set length(int newLength) {
-    if (newLength < _data.length) {
-      while (_data.length > newLength) _data.removeAt(_data.length - 1);
-    } else {
-      while (_data.length < newLength) _data.add(null as T);
-    }
-  }
-
   bool get isEmpty => _data.length == 0;
   bool get isNotEmpty => _data.length > 0;
 
@@ -551,54 +617,6 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
   // -- 索引访问 --
 
   T operator [](int index) => _data[index];
-  void operator []=(int index, T value) => _data[index] = value;
-
-  // -- 修改操作 --
-
-  void add(T element) => _data.add(element);
-
-  void addAll(Iterable<T> elements) {
-    for (final element in elements) _data.add(element);
-  }
-
-  void insert(int index, T element) => _data.insert(index, element);
-
-  void insertAll(int index, Iterable<T> elements) {
-    int i = index;
-    for (final e in elements) {
-      _data.insert(i, e);
-      i++;
-    }
-  }
-
-  T removeAt(int index) => _data.removeAt(index);
-
-  bool remove(Object? element) {
-    try {
-      return _data.remove(element as T);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  void removeLast() {
-    if (isEmpty) throw DartRangeError('Cannot removeLast on empty list');
-    _data.removeAt(_data.length - 1);
-  }
-
-  void removeWhere(bool Function(T) test) {
-    for (int i = _data.length - 1; i >= 0; i--) {
-      if (test(_data[i])) _data.removeAt(i);
-    }
-  }
-
-  void retainWhere(bool Function(T) test) {
-    for (int i = _data.length - 1; i >= 0; i--) {
-      if (!test(_data[i])) _data.removeAt(i);
-    }
-  }
-
-  void clear() => _data.clear();
 
   // -- 查询操作 --
 
@@ -608,28 +626,6 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
     } catch (_) {
       return false;
     }
-  }
-
-  int indexOf(Object? element, [int start = 0]) {
-    for (int i = start; i < _data.length; i++) {
-      if (_data[i] == element) return i;
-    }
-    return -1;
-  }
-
-  int lastIndexOf(Object? element, [int? end]) {
-    final endIdx = end ?? _data.length - 1;
-    for (int i = endIdx; i >= 0; i--) {
-      if (_data[i] == element) return i;
-    }
-    return -1;
-  }
-
-  int indexWhere(bool Function(T) test, [int start = 0]) {
-    for (int i = start; i < _data.length; i++) {
-      if (test(_data[i])) return i;
-    }
-    return -1;
   }
 
   T elementAt(int index) => _data[index];
@@ -644,14 +640,14 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
 
   StaticList<R> map<R>(R Function(T) convert) {
     final result = StaticList<R>();
-    for (int i = 0; i < _data.length; i++) result.add(convert(_data[i]));
+    for (int i = 0; i < _data.length; i++) result._data.add(convert(_data[i]));
     return result;
   }
 
   StaticList<T> where(bool Function(T) test) {
     final result = StaticList<T>();
     for (int i = 0; i < _data.length; i++) {
-      if (test(_data[i])) result.add(_data[i]);
+      if (test(_data[i])) result._data.add(_data[i]);
     }
     return result;
   }
@@ -660,7 +656,7 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
   Iterable<R> whereType<R>() {
     final result = StaticList<R>();
     for (int i = 0; i < _data.length; i++) {
-      if (_data[i] is R) result.add(_data[i] as R);
+      if (_data[i] is R) result._data.add(_data[i] as R);
     }
     return result;
   }
@@ -668,7 +664,7 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
   StaticList<R> expand<R>(Iterable<R> Function(T) convert) {
     final result = StaticList<R>();
     for (int i = 0; i < _data.length; i++) {
-      for (final r in convert(_data[i])) result.add(r);
+      for (final r in convert(_data[i])) result._data.add(r);
     }
     return result;
   }
@@ -719,58 +715,22 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
   StaticList<T> take(int count) {
     final result = StaticList<T>();
     final end = count < _data.length ? count : _data.length;
-    for (int i = 0; i < end; i++) result.add(_data[i]);
+    for (int i = 0; i < end; i++) result._data.add(_data[i]);
     return result;
   }
 
   StaticList<T> skip(int count) {
     final result = StaticList<T>();
-    for (int i = count; i < _data.length; i++) result.add(_data[i]);
+    for (int i = count; i < _data.length; i++) result._data.add(_data[i]);
     return result;
   }
 
   // -- 变换 --
 
-  StaticList<T> sublist(int start, [int? end]) {
-    final actualEnd = end ?? _data.length;
-    final result = StaticList<T>();
-    for (int i = start; i < actualEnd; i++) result.add(_data[i]);
-    return result;
-  }
-
-  StaticList<T> toStaticList() => StaticList<T>.of(this);
-
-  StaticSet<T> toStaticSet() => StaticSet<T>.of(this);
-
   StaticList<R> cast<R>() {
     final result = StaticList<R>();
-    for (int i = 0; i < _data.length; i++) result.add(_data[i] as R);
+    for (int i = 0; i < _data.length; i++) result._data.add(_data[i] as R);
     return result;
-  }
-
-  StaticList<T> get reversed {
-    final result = StaticList<T>();
-    for (int i = _data.length - 1; i >= 0; i--) result.add(_data[i]);
-    return result;
-  }
-
-  StaticList<T> operator +(dynamic other) {
-    final result = StaticList<T>.of(this);
-    if (other is StaticList<T>) {
-      result.addAll(other);
-    } else if (other is Iterable<T>) {
-      result.addAll(other);
-    }
-    return result;
-  }
-
-  // -- 排序 --
-
-  void sort([int Function(T, T)? compare]) {
-    final list = _data.toList();
-    list.sort(compare);
-    _data.clear();
-    for (final e in list) _data.add(e);
   }
 
   // -- 字符串 --
@@ -786,19 +746,11 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
     return buf.toString();
   }
 
-  // -- Map 辅助 --
-
-  StaticMap<int, T> asMap() {
-    final result = StaticMap<int, T>();
-    for (int i = 0; i < _data.length; i++) result[i] = _data[i];
-    return result;
-  }
-
   // -- Iterable 接口补充 --
 
   StaticList<T> followedBy(Iterable<T> other) {
     final result = StaticList<T>.of(this);
-    for (final e in other) result.add(e);
+    for (final e in other) result._data.add(e);
     return result;
   }
 
@@ -824,7 +776,7 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
     final result = StaticList<T>();
     for (int i = 0; i < _data.length; i++) {
       if (!test(_data[i])) break;
-      result.add(_data[i]);
+      result._data.add(_data[i]);
     }
     return result;
   }
@@ -835,7 +787,7 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
     for (int i = 0; i < _data.length; i++) {
       if (skipping && test(_data[i])) continue;
       skipping = false;
-      result.add(_data[i]);
+      result._data.add(_data[i]);
     }
     return result;
   }
@@ -846,8 +798,330 @@ class StaticList<T> extends AnyGC implements Iterable<T> {
   @override
   Set<T> toSet() => Set<T>.of(_data.iterable);
 
+  // ── ClassInfo dispatch ──
+
+  static final StaticListClassInfo _classInfo = _initClassInfo();
+
+  static StaticListClassInfo _initClassInfo() {
+    final ci = StaticListClassInfo();
+    // Base ClassInfo fields
+    ci.toString_ = _vptr_toString;
+    ci.operatorEq = _vptr_operatorEq;
+    ci.get_hashCode = _vptr_hashCode;
+    ci.get_runtimeType = _vptr_runtimeType;
+    ci.gcMark = _vptr_gcMark;
+    ci.get_length = _vptr_length;
+    ci.contains = _vptr_contains;
+    ci.operatorIndex = _vptr_index;
+    ci.operatorIndexSet = _vptr_setIndex;
+    // List-specific getters
+    ci.get_isEmpty = _vptr_isEmpty;
+    ci.get_isNotEmpty = _vptr_isNotEmpty;
+    ci.get_first = _vptr_first;
+    ci.get_last = _vptr_last;
+    ci.get_single = _vptr_single;
+    ci.get_reversed = _vptr_reversed;
+    ci.get_iterator = _vptr_iterator;
+    // List-specific methods
+    ci.add = _vptr_add;
+    ci.addAll = _vptr_addAll;
+    ci.insert = _vptr_insert;
+    ci.insertAll = _vptr_insertAll;
+    ci.removeAt = _vptr_removeAt;
+    ci.remove = _vptr_remove;
+    ci.removeLast = _vptr_removeLast;
+    ci.removeWhere = _vptr_removeWhere;
+    ci.retainWhere = _vptr_retainWhere;
+    ci.clear = _vptr_clear;
+    ci.sort = _vptr_sort;
+    ci.indexOf = _vptr_indexOf;
+    ci.lastIndexOf = _vptr_lastIndexOf;
+    ci.indexWhere = _vptr_indexWhere;
+    ci.forEach = _vptr_forEach;
+    ci.where = _vptr_where;
+    ci.any = _vptr_any;
+    ci.every = _vptr_every;
+    ci.firstWhere = _vptr_firstWhere;
+    ci.lastWhere = _vptr_lastWhere;
+    ci.singleWhere = _vptr_singleWhere;
+    ci.reduce = _vptr_reduce;
+    ci.take = _vptr_take;
+    ci.skip = _vptr_skip;
+    ci.takeWhile = _vptr_takeWhile;
+    ci.skipWhile = _vptr_skipWhile;
+    ci.sublist = _vptr_sublist;
+    ci.join = _vptr_join;
+    ci.toList = _vptr_toList;
+    ci.toSet = _vptr_toSet;
+    ci.followedBy = _vptr_followedBy;
+    ci.asMap = _vptr_asMap;
+    ci.operatorPlus = _vptr_plus;
+    ci.elementAt = _vptr_elementAt;
+    ci.map = _vptr_map;
+    ci.expand = _vptr_expand;
+    ci.cast = _vptr_cast;
+    ci.fold = _vptr_fold;
+    ci.whereType = _vptr_whereType;
+    // Populate dispatch map for noSuchMethod
+    final d = ci.dispatch;
+    d['get_length'] = _vptr_length;
+    d['contains'] = _vptr_contains;
+    d['operatorIndex'] = _vptr_index;
+    d['operatorIndexSet'] = _vptr_setIndex;
+    d['get_isEmpty'] = _vptr_isEmpty;
+    d['get_isNotEmpty'] = _vptr_isNotEmpty;
+    d['get_first'] = _vptr_first;
+    d['get_last'] = _vptr_last;
+    d['get_single'] = _vptr_single;
+    d['get_reversed'] = _vptr_reversed;
+    d['get_iterator'] = _vptr_iterator;
+    d['add'] = _vptr_add;
+    d['addAll'] = _vptr_addAll;
+    d['insert'] = _vptr_insert;
+    d['insertAll'] = _vptr_insertAll;
+    d['removeAt'] = _vptr_removeAt;
+    d['remove'] = _vptr_remove;
+    d['removeLast'] = _vptr_removeLast;
+    d['removeWhere'] = _vptr_removeWhere;
+    d['retainWhere'] = _vptr_retainWhere;
+    d['clear'] = _vptr_clear;
+    d['sort'] = _vptr_sort;
+    d['indexOf'] = _vptr_indexOf;
+    d['lastIndexOf'] = _vptr_lastIndexOf;
+    d['indexWhere'] = _vptr_indexWhere;
+    d['forEach'] = _vptr_forEach;
+    d['where'] = _vptr_where;
+    d['any'] = _vptr_any;
+    d['every'] = _vptr_every;
+    d['firstWhere'] = _vptr_firstWhere;
+    d['lastWhere'] = _vptr_lastWhere;
+    d['singleWhere'] = _vptr_singleWhere;
+    d['reduce'] = _vptr_reduce;
+    d['take'] = _vptr_take;
+    d['skip'] = _vptr_skip;
+    d['takeWhile'] = _vptr_takeWhile;
+    d['skipWhile'] = _vptr_skipWhile;
+    d['sublist'] = _vptr_sublist;
+    d['join'] = _vptr_join;
+    d['toList'] = _vptr_toList;
+    d['toSet'] = _vptr_toSet;
+    d['followedBy'] = _vptr_followedBy;
+    d['asMap'] = _vptr_asMap;
+    d['operatorPlus'] = _vptr_plus;
+    d['elementAt'] = _vptr_elementAt;
+    d['map'] = _vptr_map;
+    d['expand'] = _vptr_expand;
+    d['cast'] = _vptr_cast;
+    d['fold'] = _vptr_fold;
+    d['whereType'] = _vptr_whereType;
+    return ci;
+  }
+
   @override
-  String toString() => '[${join(', ')}]';
+  StaticListClassInfo get classInfo => _classInfo;
+
+  static String _vptr_toString(AnyGC self) {
+    final d = (self as StaticList)._data;
+    if (d.length == 0) return '[]';
+    final buf = StringBuffer('[');
+    buf.write(d[0]);
+    for (int i = 1; i < d.length; i++) {
+      buf.write(', ');
+      buf.write(d[i]);
+    }
+    buf.write(']');
+    return buf.toString();
+  }
+  static bool _vptr_operatorEq(AnyGC self, Object other) => (self as StaticList) == other;
+  static int _vptr_hashCode(AnyGC self) => (self as StaticList).hashCode;
+  static String _vptr_runtimeType(AnyGC self) => 'List';
+  static void _vptr_gcMark(AnyGC self, int flag) => (self as StaticList).gcMark(flag);
+  static int _vptr_length(AnyGC self) => (self as StaticList)._data.length;
+  static bool _vptr_contains(AnyGC self, Object? element) {
+    final d = (self as StaticList)._data;
+    try {
+      return d.contains(element as dynamic);
+    } catch (_) {
+      return false;
+    }
+  }
+  static dynamic _vptr_index(AnyGC self, dynamic index) => (self as StaticList)._data[index as int];
+  static void _vptr_setIndex(AnyGC self, dynamic index, dynamic value) {
+    (self as StaticList)._data[index as int] = value;
+  }
+  static bool _vptr_isEmpty(AnyGC self) => (self as StaticList)._data.length == 0;
+  static bool _vptr_isNotEmpty(AnyGC self) => (self as StaticList)._data.length > 0;
+  static dynamic _vptr_first(AnyGC self) {
+    final d = (self as StaticList)._data;
+    if (d.length == 0) throw DartStateError('No element');
+    return d[0];
+  }
+  static dynamic _vptr_last(AnyGC self) {
+    final d = (self as StaticList)._data;
+    if (d.length == 0) throw DartStateError('No element');
+    return d[d.length - 1];
+  }
+  static dynamic _vptr_single(AnyGC self) {
+    final d = (self as StaticList)._data;
+    if (d.length != 1) throw DartStateError('Not single element');
+    return d[0];
+  }
+  static dynamic _vptr_reversed(AnyGC self) {
+    final d = (self as StaticList)._data;
+    final result = StaticList();
+    for (int i = d.length - 1; i >= 0; i--) result._data.add(d[i]);
+    return result;
+  }
+  static dynamic _vptr_iterator(AnyGC self) => StaticIterator._fromArray((self as StaticList)._data);
+  static void _vptr_add(AnyGC self, dynamic element) => (self as StaticList)._data.add(element);
+  static void _vptr_addAll(AnyGC self, dynamic other) {
+    final d = (self as StaticList)._data;
+    for (final element in other as Iterable) d.add(element);
+  }
+  static void _vptr_insert(AnyGC self, dynamic index, dynamic element) =>
+      (self as StaticList)._data.insert(index as int, element);
+  static void _vptr_insertAll(AnyGC self, dynamic index, dynamic other) {
+    int i = index as int;
+    final d = (self as StaticList)._data;
+    for (final e in other as Iterable) {
+      d.insert(i, e);
+      i++;
+    }
+  }
+  static dynamic _vptr_removeAt(AnyGC self, dynamic index) => (self as StaticList)._data.removeAt(index as int);
+  static bool _vptr_remove(AnyGC self, dynamic element) {
+    final d = (self as StaticList)._data;
+    try {
+      return d.remove(element as dynamic);
+    } catch (_) {
+      return false;
+    }
+  }
+  static void _vptr_removeLast(AnyGC self) {
+    final d = (self as StaticList)._data;
+    if (d.length == 0) throw DartRangeError('Cannot removeLast on empty list');
+    d.removeAt(d.length - 1);
+  }
+  static void _vptr_removeWhere(AnyGC self, dynamic test) {
+    final d = (self as StaticList)._data;
+    for (int i = d.length - 1; i >= 0; i--) {
+      if (test(d[i])) d.removeAt(i);
+    }
+  }
+  static void _vptr_retainWhere(AnyGC self, dynamic test) {
+    final d = (self as StaticList)._data;
+    for (int i = d.length - 1; i >= 0; i--) {
+      if (!test(d[i])) d.removeAt(i);
+    }
+  }
+  static void _vptr_clear(AnyGC self) => (self as StaticList)._data.clear();
+  static void _vptr_sort(AnyGC self, [dynamic compare]) {
+    final d = (self as StaticList)._data;
+    final list = d.toList();
+    list.sort(compare);
+    d.clear();
+    for (final e in list) d.add(e);
+  }
+  static int _vptr_indexOf(AnyGC self, dynamic element, [dynamic start]) {
+    final d = (self as StaticList)._data;
+    final s = start ?? 0;
+    for (int i = s; i < d.length; i++) {
+      if (d[i] == element) return i;
+    }
+    return -1;
+  }
+  static int _vptr_lastIndexOf(AnyGC self, dynamic element, [dynamic end]) {
+    final d = (self as StaticList)._data;
+    final endIdx = end ?? d.length - 1;
+    for (int i = endIdx; i >= 0; i--) {
+      if (d[i] == element) return i;
+    }
+    return -1;
+  }
+  static int _vptr_indexWhere(AnyGC self, dynamic test, [dynamic start]) {
+    final d = (self as StaticList)._data;
+    final s = start ?? 0;
+    for (int i = s; i < d.length; i++) {
+      if (test(d[i])) return i;
+    }
+    return -1;
+  }
+  static void _vptr_forEach(AnyGC self, dynamic action) => (self as StaticList).forEach(action);
+  static dynamic _vptr_where(AnyGC self, dynamic test) => (self as StaticList).where(test);
+  static bool _vptr_any(AnyGC self, dynamic test) => (self as StaticList).any(test);
+  static bool _vptr_every(AnyGC self, dynamic test) => (self as StaticList).every(test);
+  static dynamic _vptr_firstWhere(AnyGC self, dynamic test, [dynamic orElse]) {
+    return (self as StaticList).firstWhere(test, orElse: orElse);
+  }
+  static dynamic _vptr_lastWhere(AnyGC self, dynamic test, [dynamic orElse]) {
+    return (self as StaticList).lastWhere(test, orElse: orElse);
+  }
+  static dynamic _vptr_singleWhere(AnyGC self, dynamic test, [dynamic orElse]) {
+    return (self as StaticList).singleWhere(test, orElse: orElse);
+  }
+  static dynamic _vptr_reduce(AnyGC self, dynamic combine) => (self as StaticList).reduce(combine);
+  static dynamic _vptr_take(AnyGC self, dynamic count) => (self as StaticList).take(count as int);
+  static dynamic _vptr_skip(AnyGC self, dynamic count) => (self as StaticList).skip(count as int);
+  static dynamic _vptr_takeWhile(AnyGC self, dynamic test) => (self as StaticList).takeWhile(test);
+  static dynamic _vptr_skipWhile(AnyGC self, dynamic test) => (self as StaticList).skipWhile(test);
+  static dynamic _vptr_sublist(AnyGC self, dynamic start, [dynamic end]) {
+    final d = (self as StaticList)._data;
+    final actualEnd = end ?? d.length;
+    final result = StaticList();
+    for (int i = start as int; i < actualEnd; i++) result._data.add(d[i]);
+    return result;
+  }
+  static String _vptr_join(AnyGC self, [dynamic separator]) =>
+      (self as StaticList).join(separator ?? '');
+  static dynamic _vptr_toList(AnyGC self) => (self as StaticList).toList();
+  static dynamic _vptr_toSet(AnyGC self) => (self as StaticList).toSet();
+  static dynamic _vptr_followedBy(AnyGC self, dynamic other) =>
+      (self as StaticList).followedBy(other as Iterable);
+  static dynamic _vptr_asMap(AnyGC self) {
+    final d = (self as StaticList)._data;
+    final result = StaticMap();
+    for (int i = 0; i < d.length; i++) result[i] = d[i];
+    return result;
+  }
+  static dynamic _vptr_plus(AnyGC self, dynamic other) {
+    final sl = self as StaticList;
+    final result = StaticList();
+    for (int i = 0; i < sl._data.length; i++) result._data.add(sl._data[i]);
+    if (other is StaticList) {
+      for (int i = 0; i < other._data.length; i++) result._data.add(other._data[i]);
+    } else if (other is Iterable) {
+      for (final e in other) result._data.add(e);
+    }
+    return result;
+  }
+  static dynamic _vptr_elementAt(AnyGC self, dynamic index) =>
+      (self as StaticList).elementAt(index as int);
+  static dynamic _vptr_map(AnyGC self, dynamic convert) => (self as StaticList).map(convert);
+  static dynamic _vptr_expand(AnyGC self, dynamic convert) => (self as StaticList).expand(convert);
+  static dynamic _vptr_cast(AnyGC self) => (self as StaticList).cast();
+  static dynamic _vptr_fold(AnyGC self, dynamic initial, dynamic combine) =>
+      (self as StaticList).fold(initial, combine);
+  static dynamic _vptr_whereType(AnyGC self) => (self as StaticList).whereType();
+}
+
+/// StaticMapClassInfo — StaticMap 的结构化虚表
+class StaticMapClassInfo extends ClassInfo {
+  Function? get_keys;
+  Function? get_values;
+  Function? get_entries;
+  Function? containsKey;
+  Function? containsValue;
+  Function? remove;
+  Function? removeWhere;
+  Function? clear;
+  Function? forEach;
+  Function? putIfAbsent;
+  Function? update;
+  Function? updateAll;
+  Function? addAll;
+  Function? addEntries;
+  Function? map;
+  Function? cast;
 }
 
 /// StaticMap<K, V> — implements Map<K,V>，内部基于 Array 独立管理键值对。
@@ -939,22 +1213,6 @@ class StaticMap<K, V> extends AnyGC {
     }
   }
 
-  bool containsKey(Object? key) {
-    try {
-      return _keys.indexOf(key as K) != -1;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  bool containsValue(Object? value) {
-    try {
-      return _values.indexOf(value as V) != -1;
-    } catch (_) {
-      return false;
-    }
-  }
-
   // -- 集合视图 --
 
   StaticList<K> get keys => StaticList<K>._internal(_keys);
@@ -963,79 +1221,9 @@ class StaticMap<K, V> extends AnyGC {
   StaticList<StaticMapEntry<K, V>> get entries {
     final result = StaticList<StaticMapEntry<K, V>>();
     for (int i = 0; i < _keys.length; i++) {
-      result.add(StaticMapEntry<K, V>(_keys[i], _values[i]));
+      result._data.add(StaticMapEntry<K, V>(_keys[i], _values[i]));
     }
     return result;
-  }
-
-  // -- 修改 --
-
-  V? remove(Object? key) {
-    final idx = _keys.indexOf(key as K);
-    if (idx == -1) return null;
-    _keys.removeAt(idx);
-    return _values.removeAt(idx);
-  }
-
-  void removeWhere(bool Function(K key, V value) test) {
-    for (int i = _keys.length - 1; i >= 0; i--) {
-      if (test(_keys[i], _values[i])) {
-        _keys.removeAt(i);
-        _values.removeAt(i);
-      }
-    }
-  }
-
-  void clear() {
-    _keys.clear();
-    _values.clear();
-  }
-
-  V putIfAbsent(K key, V Function() ifAbsent) {
-    final idx = _keys.indexOf(key);
-    if (idx != -1) return _values[idx];
-    final value = ifAbsent();
-    _keys.add(key);
-    _values.add(value);
-    return value;
-  }
-
-  V update(K key, V Function(V) update, {V Function()? ifAbsent}) {
-    final idx = _keys.indexOf(key);
-    if (idx != -1) {
-      final newVal = update(_values[idx]);
-      _values[idx] = newVal;
-      return newVal;
-    }
-    if (ifAbsent != null) {
-      final newVal = ifAbsent();
-      _keys.add(key);
-      _values.add(newVal);
-      return newVal;
-    }
-    throw DartArgumentError('Key not found: $key');
-  }
-
-  void updateAll(V Function(K key, V value) update) {
-    for (int i = 0; i < _keys.length; i++) {
-      _values[i] = update(_keys[i], _values[i]);
-    }
-  }
-
-  void addAll(dynamic other) {
-    if (other is StaticMap<K, V>) {
-      for (int i = 0; i < other._keys.length; i++) {
-        this[other._keys[i]] = other._values[i];
-      }
-    } else if (other is Map<K, V>) {
-      other.forEach((k, v) => this[k] = v);
-    }
-  }
-
-  void addEntries(Iterable<StaticMapEntry<K, V>> newEntries) {
-    for (final entry in newEntries) {
-      this[entry.key] = entry.value;
-    }
   }
 
   // -- 函数式 --
@@ -1063,17 +1251,229 @@ class StaticMap<K, V> extends AnyGC {
     return result;
   }
 
+  // ── ClassInfo dispatch ──
+
+  static final StaticMapClassInfo _classInfo = _initClassInfo();
+
+  static StaticMapClassInfo _initClassInfo() {
+    final ci = StaticMapClassInfo();
+    ci.toString_ = _vptr_toString;
+    ci.operatorEq = _vptr_operatorEq;
+    ci.get_hashCode = _vptr_hashCode;
+    ci.get_runtimeType = _vptr_runtimeType;
+    ci.gcMark = _vptr_gcMark;
+    ci.get_length = _vptr_length;
+    ci.operatorIndex = _vptr_index;
+    ci.operatorIndexSet = _vptr_setIndex;
+    ci.get_isEmpty = _vptr_isEmpty;
+    ci.get_isNotEmpty = _vptr_isNotEmpty;
+    ci.get_keys = _vptr_keys;
+    ci.get_values = _vptr_values;
+    ci.get_entries = _vptr_entries;
+    ci.containsKey = _vptr_containsKey;
+    ci.containsValue = _vptr_containsValue;
+    ci.remove = _vptr_remove;
+    ci.removeWhere = _vptr_removeWhere;
+    ci.clear = _vptr_clear;
+    ci.forEach = _vptr_forEach;
+    ci.putIfAbsent = _vptr_putIfAbsent;
+    ci.update = _vptr_update;
+    ci.updateAll = _vptr_updateAll;
+    ci.addAll = _vptr_addAll;
+    ci.addEntries = _vptr_addEntries;
+    ci.map = _vptr_map;
+    ci.cast = _vptr_cast;
+    final d = ci.dispatch;
+    d['get_length'] = _vptr_length;
+    d['operatorIndex'] = _vptr_index;
+    d['operatorIndexSet'] = _vptr_setIndex;
+    d['get_isEmpty'] = _vptr_isEmpty;
+    d['get_isNotEmpty'] = _vptr_isNotEmpty;
+    d['get_keys'] = _vptr_keys;
+    d['get_values'] = _vptr_values;
+    d['get_entries'] = _vptr_entries;
+    d['containsKey'] = _vptr_containsKey;
+    d['containsValue'] = _vptr_containsValue;
+    d['remove'] = _vptr_remove;
+    d['removeWhere'] = _vptr_removeWhere;
+    d['clear'] = _vptr_clear;
+    d['forEach'] = _vptr_forEach;
+    d['putIfAbsent'] = _vptr_putIfAbsent;
+    d['update'] = _vptr_update;
+    d['updateAll'] = _vptr_updateAll;
+    d['addAll'] = _vptr_addAll;
+    d['addEntries'] = _vptr_addEntries;
+    d['map'] = _vptr_map;
+    d['cast'] = _vptr_cast;
+    return ci;
+  }
+
   @override
-  String toString() {
-    if (isEmpty) return '{}';
+  StaticMapClassInfo get classInfo => _classInfo;
+
+  static String _vptr_toString(AnyGC self) {
+    final m = self as StaticMap;
+    if (m._keys.length == 0) return '{}';
     final buf = StringBuffer('{');
-    for (int i = 0; i < _keys.length; i++) {
+    for (int i = 0; i < m._keys.length; i++) {
       if (i > 0) buf.write(', ');
-      buf.write('${_keys[i]}: ${_values[i]}');
+      buf.write('${m._keys[i]}: ${m._values[i]}');
     }
     buf.write('}');
     return buf.toString();
   }
+  static bool _vptr_operatorEq(AnyGC self, Object other) => (self as StaticMap) == other;
+  static int _vptr_hashCode(AnyGC self) => (self as StaticMap).hashCode;
+  static String _vptr_runtimeType(AnyGC self) => 'Map';
+  static void _vptr_gcMark(AnyGC self, int flag) => (self as StaticMap).gcMark(flag);
+  static int _vptr_length(AnyGC self) => (self as StaticMap)._keys.length;
+  static dynamic _vptr_index(AnyGC self, dynamic key) {
+    final m = self as StaticMap;
+    final idx = m._keys.indexOf(key);
+    if (idx == -1) return null;
+    return m._values[idx];
+  }
+  static void _vptr_setIndex(AnyGC self, dynamic key, dynamic value) {
+    final m = self as StaticMap;
+    final idx = m._keys.indexOf(key);
+    if (idx != -1) {
+      m._values[idx] = value;
+    } else {
+      m._keys.add(key);
+      m._values.add(value);
+    }
+  }
+  static bool _vptr_isEmpty(AnyGC self) => (self as StaticMap)._keys.length == 0;
+  static bool _vptr_isNotEmpty(AnyGC self) => (self as StaticMap)._keys.length > 0;
+  static dynamic _vptr_keys(AnyGC self) => (self as StaticMap).keys;
+  static dynamic _vptr_values(AnyGC self) => (self as StaticMap).values;
+  static dynamic _vptr_entries(AnyGC self) => (self as StaticMap).entries;
+  static bool _vptr_containsKey(AnyGC self, dynamic key) {
+    final m = self as StaticMap;
+    try {
+      return m._keys.indexOf(key) != -1;
+    } catch (_) {
+      return false;
+    }
+  }
+  static bool _vptr_containsValue(AnyGC self, dynamic value) {
+    final m = self as StaticMap;
+    try {
+      return m._values.indexOf(value) != -1;
+    } catch (_) {
+      return false;
+    }
+  }
+  static dynamic _vptr_remove(AnyGC self, dynamic key) {
+    final m = self as StaticMap;
+    final idx = m._keys.indexOf(key);
+    if (idx == -1) return null;
+    m._keys.removeAt(idx);
+    return m._values.removeAt(idx);
+  }
+  static void _vptr_removeWhere(AnyGC self, dynamic test) {
+    final m = self as StaticMap;
+    for (int i = m._keys.length - 1; i >= 0; i--) {
+      if (test(m._keys[i], m._values[i])) {
+        m._keys.removeAt(i);
+        m._values.removeAt(i);
+      }
+    }
+  }
+  static void _vptr_clear(AnyGC self) {
+    final m = self as StaticMap;
+    m._keys.clear();
+    m._values.clear();
+  }
+  static void _vptr_forEach(AnyGC self, dynamic action) => (self as StaticMap).forEach(action);
+  static dynamic _vptr_putIfAbsent(AnyGC self, dynamic key, dynamic ifAbsent) {
+    final m = self as StaticMap;
+    final idx = m._keys.indexOf(key);
+    if (idx != -1) return m._values[idx];
+    final value = ifAbsent();
+    m._keys.add(key);
+    m._values.add(value);
+    return value;
+  }
+  static dynamic _vptr_update(AnyGC self, dynamic key, dynamic updateFn, [dynamic ifAbsent]) {
+    final m = self as StaticMap;
+    final idx = m._keys.indexOf(key);
+    if (idx != -1) {
+      final newVal = updateFn(m._values[idx]);
+      m._values[idx] = newVal;
+      return newVal;
+    }
+    if (ifAbsent != null) {
+      final newVal = ifAbsent();
+      m._keys.add(key);
+      m._values.add(newVal);
+      return newVal;
+    }
+    throw DartArgumentError('Key not found: $key');
+  }
+  static void _vptr_updateAll(AnyGC self, dynamic updateFn) {
+    final m = self as StaticMap;
+    for (int i = 0; i < m._keys.length; i++) {
+      m._values[i] = updateFn(m._keys[i], m._values[i]);
+    }
+  }
+  static void _vptr_addAll(AnyGC self, dynamic other) {
+    final m = self as StaticMap;
+    if (other is StaticMap) {
+      for (int i = 0; i < other._keys.length; i++) {
+        m[other._keys[i]] = other._values[i];
+      }
+    } else if (other is Map) {
+      other.forEach((k, v) => m[k] = v);
+    }
+  }
+  static void _vptr_addEntries(AnyGC self, dynamic entries) {
+    final m = self as StaticMap;
+    for (final entry in entries as Iterable) {
+      m[entry.key] = entry.value;
+    }
+  }
+  static dynamic _vptr_map(AnyGC self, dynamic convert) => (self as StaticMap).map(convert);
+  static dynamic _vptr_cast(AnyGC self) => (self as StaticMap).cast();
+}
+
+/// StaticSetClassInfo — StaticSet 的结构化虚表
+class StaticSetClassInfo extends ClassInfo {
+  Function? get_first;
+  Function? get_last;
+  Function? get_single;
+  Function? add;
+  Function? addAll;
+  Function? remove;
+  Function? removeWhere;
+  Function? retainWhere;
+  Function? clear;
+  Function? lookup;
+  Function? forEach;
+  Function? where;
+  Function? any;
+  Function? every;
+  Function? firstWhere;
+  Function? lastWhere;
+  Function? singleWhere;
+  Function? reduce;
+  Function? union;
+  Function? intersection;
+  Function? difference;
+  Function? toList;
+  Function? toSet;
+  Function? followedBy;
+  Function? take;
+  Function? skip;
+  Function? takeWhile;
+  Function? skipWhile;
+  Function? join;
+  Function? elementAt;
+  Function? map;
+  Function? expand;
+  Function? cast;
+  Function? fold;
+  Function? whereType;
 }
 
 /// StaticSet<T> — 完全独立的静态 Set，不继承 Set/SetMixin。
@@ -1084,11 +1484,16 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
   StaticSet() : _data = Array<T>.empty();
 
   StaticSet.of(Iterable<T> elements) : _data = Array<T>.empty() {
-    for (final element in elements) add(element);
+    for (final element in elements) {
+      if (!_data.contains(element)) _data.add(element);
+    }
   }
 
   StaticSet.from(Iterable elements) : _data = Array<T>.empty() {
-    for (final element in elements) add(element as T);
+    for (final element in elements) {
+      final e = element as T;
+      if (!_data.contains(e)) _data.add(e);
+    }
   }
 
   /// gcMark — 递归标记内部 _data（Array 会递归标记其元素）
@@ -1120,40 +1525,6 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
     return _data[0];
   }
 
-  // -- 修改 --
-
-  bool add(T element) {
-    if (_data.contains(element)) return false;
-    _data.add(element);
-    return true;
-  }
-
-  void addAll(Iterable<T> elements) {
-    for (final element in elements) add(element);
-  }
-
-  bool remove(Object? element) {
-    try {
-      return _data.remove(element as T);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  void removeWhere(bool Function(T) test) {
-    for (int i = _data.length - 1; i >= 0; i--) {
-      if (test(_data[i])) _data.removeAt(i);
-    }
-  }
-
-  void retainWhere(bool Function(T) test) {
-    for (int i = _data.length - 1; i >= 0; i--) {
-      if (!test(_data[i])) _data.removeAt(i);
-    }
-  }
-
-  void clear() => _data.clear();
-
   // -- 查询 --
 
   bool contains(Object? element) {
@@ -1161,16 +1532,6 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
       return _data.contains(element as T);
     } catch (_) {
       return false;
-    }
-  }
-
-  T? lookup(Object? element) {
-    try {
-      final idx = _data.indexOf(element as T);
-      if (idx == -1) return null;
-      return _data[idx];
-    } catch (_) {
-      return null;
     }
   }
 
@@ -1186,14 +1547,14 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
 
   StaticList<R> map<R>(R Function(T) convert) {
     final result = StaticList<R>();
-    for (int i = 0; i < _data.length; i++) result.add(convert(_data[i]));
+    for (int i = 0; i < _data.length; i++) result._data.add(convert(_data[i]));
     return result;
   }
 
   StaticSet<T> where(bool Function(T) test) {
     final result = StaticSet<T>();
     for (int i = 0; i < _data.length; i++) {
-      if (test(_data[i])) result.add(_data[i]);
+      if (test(_data[i])) result._data.add(_data[i]);
     }
     return result;
   }
@@ -1225,43 +1586,11 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
     return value;
   }
 
-  // -- 集合操作 --
-
-  StaticSet<T> union(StaticSet<T> other) {
-    final result = StaticSet<T>.of(this);
-    for (int i = 0; i < other._data.length; i++) result.add(other._data[i]);
-    return result;
-  }
-
-  StaticSet<T> intersection(StaticSet<T> other) {
-    final result = StaticSet<T>();
-    for (int i = 0; i < _data.length; i++) {
-      if (other.contains(_data[i])) result.add(_data[i]);
-    }
-    return result;
-  }
-
-  StaticSet<T> difference(StaticSet<T> other) {
-    final result = StaticSet<T>();
-    for (int i = 0; i < _data.length; i++) {
-      if (!other.contains(_data[i])) result.add(_data[i]);
-    }
-    return result;
-  }
-
   // -- 变换 --
-
-  StaticList<T> toStaticList() {
-    final result = StaticList<T>();
-    for (int i = 0; i < _data.length; i++) result.add(_data[i]);
-    return result;
-  }
-
-  StaticSet<T> toStaticSet() => StaticSet<T>.of(this);
 
   StaticSet<R> cast<R>() {
     final result = StaticSet<R>();
-    for (int i = 0; i < _data.length; i++) result.add(_data[i] as R);
+    for (int i = 0; i < _data.length; i++) result._data.add(_data[i] as R);
     return result;
   }
 
@@ -1272,7 +1601,7 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
   StaticList<R> expand<R>(Iterable<R> Function(T) convert) {
     final result = StaticList<R>();
     for (int i = 0; i < _data.length; i++) {
-      for (final r in convert(_data[i])) result.add(r);
+      for (final r in convert(_data[i])) result._data.add(r);
     }
     return result;
   }
@@ -1313,20 +1642,22 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
 
   StaticSet<T> followedBy(Iterable<T> other) {
     final result = StaticSet<T>.of(this);
-    for (final e in other) result.add(e);
+    for (final e in other) {
+      if (!result._data.contains(e)) result._data.add(e);
+    }
     return result;
   }
 
   StaticSet<T> take(int count) {
     final result = StaticSet<T>();
     final end = count < _data.length ? count : _data.length;
-    for (int i = 0; i < end; i++) result.add(_data[i]);
+    for (int i = 0; i < end; i++) result._data.add(_data[i]);
     return result;
   }
 
   StaticSet<T> skip(int count) {
     final result = StaticSet<T>();
-    for (int i = count; i < _data.length; i++) result.add(_data[i]);
+    for (int i = count; i < _data.length; i++) result._data.add(_data[i]);
     return result;
   }
 
@@ -1334,7 +1665,7 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
     final result = StaticSet<T>();
     for (int i = 0; i < _data.length; i++) {
       if (!test(_data[i])) break;
-      result.add(_data[i]);
+      result._data.add(_data[i]);
     }
     return result;
   }
@@ -1345,7 +1676,7 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
     for (int i = 0; i < _data.length; i++) {
       if (skipping && test(_data[i])) continue;
       skipping = false;
-      result.add(_data[i]);
+      result._data.add(_data[i]);
     }
     return result;
   }
@@ -1353,7 +1684,7 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
   Iterable<R> whereType<R>() {
     final result = StaticSet<R>();
     for (int i = 0; i < _data.length; i++) {
-      if (_data[i] is R) result.add(_data[i] as R);
+      if (_data[i] is R) result._data.add(_data[i] as R);
     }
     return result;
   }
@@ -1377,8 +1708,246 @@ class StaticSet<T> extends AnyGC implements Iterable<T> {
     return buf.toString();
   }
 
+  // ── ClassInfo dispatch ──
+
+  static final StaticSetClassInfo _classInfo = _initClassInfo();
+
+  static StaticSetClassInfo _initClassInfo() {
+    final ci = StaticSetClassInfo();
+    ci.toString_ = _vptr_toString;
+    ci.operatorEq = _vptr_operatorEq;
+    ci.get_hashCode = _vptr_hashCode;
+    ci.get_runtimeType = _vptr_runtimeType;
+    ci.gcMark = _vptr_gcMark;
+    ci.get_length = _vptr_length;
+    ci.contains = _vptr_contains;
+    ci.get_isEmpty = _vptr_isEmpty;
+    ci.get_isNotEmpty = _vptr_isNotEmpty;
+    ci.get_first = _vptr_first;
+    ci.get_last = _vptr_last;
+    ci.get_single = _vptr_single;
+    ci.get_iterator = _vptr_iterator;
+    ci.add = _vptr_add;
+    ci.addAll = _vptr_addAll;
+    ci.remove = _vptr_remove;
+    ci.removeWhere = _vptr_removeWhere;
+    ci.retainWhere = _vptr_retainWhere;
+    ci.clear = _vptr_clear;
+    ci.lookup = _vptr_lookup;
+    ci.forEach = _vptr_forEach;
+    ci.where = _vptr_where;
+    ci.any = _vptr_any;
+    ci.every = _vptr_every;
+    ci.firstWhere = _vptr_firstWhere;
+    ci.lastWhere = _vptr_lastWhere;
+    ci.singleWhere = _vptr_singleWhere;
+    ci.reduce = _vptr_reduce;
+    ci.union = _vptr_union;
+    ci.intersection = _vptr_intersection;
+    ci.difference = _vptr_difference;
+    ci.toList = _vptr_toList;
+    ci.toSet = _vptr_toSet;
+    ci.followedBy = _vptr_followedBy;
+    ci.take = _vptr_take;
+    ci.skip = _vptr_skip;
+    ci.takeWhile = _vptr_takeWhile;
+    ci.skipWhile = _vptr_skipWhile;
+    ci.join = _vptr_join;
+    ci.elementAt = _vptr_elementAt;
+    ci.map = _vptr_map;
+    ci.expand = _vptr_expand;
+    ci.cast = _vptr_cast;
+    ci.fold = _vptr_fold;
+    ci.whereType = _vptr_whereType;
+    final d = ci.dispatch;
+    d['get_length'] = _vptr_length;
+    d['contains'] = _vptr_contains;
+    d['get_isEmpty'] = _vptr_isEmpty;
+    d['get_isNotEmpty'] = _vptr_isNotEmpty;
+    d['get_first'] = _vptr_first;
+    d['get_last'] = _vptr_last;
+    d['get_single'] = _vptr_single;
+    d['get_iterator'] = _vptr_iterator;
+    d['add'] = _vptr_add;
+    d['addAll'] = _vptr_addAll;
+    d['remove'] = _vptr_remove;
+    d['removeWhere'] = _vptr_removeWhere;
+    d['retainWhere'] = _vptr_retainWhere;
+    d['clear'] = _vptr_clear;
+    d['lookup'] = _vptr_lookup;
+    d['forEach'] = _vptr_forEach;
+    d['where'] = _vptr_where;
+    d['any'] = _vptr_any;
+    d['every'] = _vptr_every;
+    d['firstWhere'] = _vptr_firstWhere;
+    d['lastWhere'] = _vptr_lastWhere;
+    d['singleWhere'] = _vptr_singleWhere;
+    d['reduce'] = _vptr_reduce;
+    d['union'] = _vptr_union;
+    d['intersection'] = _vptr_intersection;
+    d['difference'] = _vptr_difference;
+    d['toList'] = _vptr_toList;
+    d['toSet'] = _vptr_toSet;
+    d['followedBy'] = _vptr_followedBy;
+    d['take'] = _vptr_take;
+    d['skip'] = _vptr_skip;
+    d['takeWhile'] = _vptr_takeWhile;
+    d['skipWhile'] = _vptr_skipWhile;
+    d['join'] = _vptr_join;
+    d['elementAt'] = _vptr_elementAt;
+    d['map'] = _vptr_map;
+    d['expand'] = _vptr_expand;
+    d['cast'] = _vptr_cast;
+    d['fold'] = _vptr_fold;
+    d['whereType'] = _vptr_whereType;
+    return ci;
+  }
+
   @override
-  String toString() => '{${join(', ')}}';
+  StaticSetClassInfo get classInfo => _classInfo;
+
+  static String _vptr_toString(AnyGC self) {
+    final d = (self as StaticSet)._data;
+    if (d.length == 0) return '{}';
+    final buf = StringBuffer('{');
+    buf.write(d[0]);
+    for (int i = 1; i < d.length; i++) {
+      buf.write(', ');
+      buf.write(d[i]);
+    }
+    buf.write('}');
+    return buf.toString();
+  }
+  static bool _vptr_operatorEq(AnyGC self, Object other) => (self as StaticSet) == other;
+  static int _vptr_hashCode(AnyGC self) => (self as StaticSet).hashCode;
+  static String _vptr_runtimeType(AnyGC self) => 'Set';
+  static void _vptr_gcMark(AnyGC self, int flag) => (self as StaticSet).gcMark(flag);
+  static int _vptr_length(AnyGC self) => (self as StaticSet)._data.length;
+  static bool _vptr_contains(AnyGC self, Object? element) {
+    final d = (self as StaticSet)._data;
+    try {
+      return d.contains(element as dynamic);
+    } catch (_) {
+      return false;
+    }
+  }
+  static bool _vptr_isEmpty(AnyGC self) => (self as StaticSet)._data.length == 0;
+  static bool _vptr_isNotEmpty(AnyGC self) => (self as StaticSet)._data.length > 0;
+  static dynamic _vptr_first(AnyGC self) {
+    final d = (self as StaticSet)._data;
+    if (d.length == 0) throw DartStateError('No element');
+    return d[0];
+  }
+  static dynamic _vptr_last(AnyGC self) {
+    final d = (self as StaticSet)._data;
+    if (d.length == 0) throw DartStateError('No element');
+    return d[d.length - 1];
+  }
+  static dynamic _vptr_single(AnyGC self) {
+    final d = (self as StaticSet)._data;
+    if (d.length != 1) throw DartStateError('Not single element');
+    return d[0];
+  }
+  static dynamic _vptr_iterator(AnyGC self) => StaticIterator._fromArray((self as StaticSet)._data);
+  static bool _vptr_add(AnyGC self, dynamic element) {
+    final d = (self as StaticSet)._data;
+    if (d.contains(element)) return false;
+    d.add(element);
+    return true;
+  }
+  static void _vptr_addAll(AnyGC self, dynamic other) {
+    final d = (self as StaticSet)._data;
+    for (final element in other as Iterable) {
+      if (!d.contains(element)) d.add(element);
+    }
+  }
+  static bool _vptr_remove(AnyGC self, dynamic element) {
+    final d = (self as StaticSet)._data;
+    try {
+      return d.remove(element as dynamic);
+    } catch (_) {
+      return false;
+    }
+  }
+  static void _vptr_removeWhere(AnyGC self, dynamic test) {
+    final d = (self as StaticSet)._data;
+    for (int i = d.length - 1; i >= 0; i--) {
+      if (test(d[i])) d.removeAt(i);
+    }
+  }
+  static void _vptr_retainWhere(AnyGC self, dynamic test) {
+    final d = (self as StaticSet)._data;
+    for (int i = d.length - 1; i >= 0; i--) {
+      if (!test(d[i])) d.removeAt(i);
+    }
+  }
+  static void _vptr_clear(AnyGC self) => (self as StaticSet)._data.clear();
+  static dynamic _vptr_lookup(AnyGC self, dynamic element) {
+    final d = (self as StaticSet)._data;
+    try {
+      final idx = d.indexOf(element);
+      if (idx == -1) return null;
+      return d[idx];
+    } catch (_) {
+      return null;
+    }
+  }
+  static void _vptr_forEach(AnyGC self, dynamic action) => (self as StaticSet).forEach(action);
+  static dynamic _vptr_where(AnyGC self, dynamic test) => (self as StaticSet).where(test);
+  static bool _vptr_any(AnyGC self, dynamic test) => (self as StaticSet).any(test);
+  static bool _vptr_every(AnyGC self, dynamic test) => (self as StaticSet).every(test);
+  static dynamic _vptr_firstWhere(AnyGC self, dynamic test, [dynamic orElse]) =>
+      (self as StaticSet).firstWhere(test, orElse: orElse);
+  static dynamic _vptr_lastWhere(AnyGC self, dynamic test, [dynamic orElse]) =>
+      (self as StaticSet).lastWhere(test, orElse: orElse);
+  static dynamic _vptr_singleWhere(AnyGC self, dynamic test, [dynamic orElse]) =>
+      (self as StaticSet).singleWhere(test, orElse: orElse);
+  static dynamic _vptr_reduce(AnyGC self, dynamic combine) => (self as StaticSet).reduce(combine);
+  static dynamic _vptr_union(AnyGC self, dynamic other) {
+    final sl = self as StaticSet;
+    final o = other as StaticSet;
+    final result = StaticSet.of(sl._data.iterable);
+    for (int i = 0; i < o._data.length; i++) {
+      if (!result._data.contains(o._data[i])) result._data.add(o._data[i]);
+    }
+    return result;
+  }
+  static dynamic _vptr_intersection(AnyGC self, dynamic other) {
+    final sl = self as StaticSet;
+    final o = other as StaticSet;
+    final result = StaticSet();
+    for (int i = 0; i < sl._data.length; i++) {
+      if (o._data.contains(sl._data[i])) result._data.add(sl._data[i]);
+    }
+    return result;
+  }
+  static dynamic _vptr_difference(AnyGC self, dynamic other) {
+    final sl = self as StaticSet;
+    final o = other as StaticSet;
+    final result = StaticSet();
+    for (int i = 0; i < sl._data.length; i++) {
+      if (!o._data.contains(sl._data[i])) result._data.add(sl._data[i]);
+    }
+    return result;
+  }
+  static dynamic _vptr_toList(AnyGC self) => (self as StaticSet).toList();
+  static dynamic _vptr_toSet(AnyGC self) => (self as StaticSet).toSet();
+  static dynamic _vptr_followedBy(AnyGC self, dynamic other) =>
+      (self as StaticSet).followedBy(other as Iterable);
+  static dynamic _vptr_take(AnyGC self, dynamic count) => (self as StaticSet).take(count as int);
+  static dynamic _vptr_skip(AnyGC self, dynamic count) => (self as StaticSet).skip(count as int);
+  static dynamic _vptr_takeWhile(AnyGC self, dynamic test) => (self as StaticSet).takeWhile(test);
+  static dynamic _vptr_skipWhile(AnyGC self, dynamic test) => (self as StaticSet).skipWhile(test);
+  static String _vptr_join(AnyGC self, [dynamic separator]) =>
+      (self as StaticSet).join(separator ?? '');
+  static dynamic _vptr_elementAt(AnyGC self, dynamic index) =>
+      (self as StaticSet).elementAt(index as int);
+  static dynamic _vptr_map(AnyGC self, dynamic convert) => (self as StaticSet).map(convert);
+  static dynamic _vptr_expand(AnyGC self, dynamic convert) => (self as StaticSet).expand(convert);
+  static dynamic _vptr_cast(AnyGC self) => (self as StaticSet).cast();
+  static dynamic _vptr_fold(AnyGC self, dynamic initial, dynamic combine) =>
+      (self as StaticSet).fold(initial, combine);
+  static dynamic _vptr_whereType(AnyGC self) => (self as StaticSet).whereType();
 }
 
 // ============================================================================

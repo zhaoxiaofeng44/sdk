@@ -435,6 +435,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     // 只存在于具体子类上，改用 dynamic 派发在运行期解析
     const baseClassInfoFields = {
       'toString_', 'operatorEq', 'get_hashCode', 'get_runtimeType', 'gcMark',
+      'get_length', 'get_isEmpty', 'get_isNotEmpty', 'get_iterator',
+      'contains', 'compareTo', 'operatorIndex', 'operatorIndexSet',
     };
     if (ciName == 'ClassInfo' && !baseClassInfoFields.contains(vtableField)) {
       ciName = 'dynamic';
@@ -452,6 +454,13 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return "(() { final $tmpVar = $recv; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar, $args); })()";
   }
 
+  /// Platform types that have ClassInfo subclasses in runtime_classes.dart
+  static const platformClassInfoNames = {
+    'StaticList': 'StaticListClassInfo',
+    'StaticSet': 'StaticSetClassInfo',
+    'StaticMap': 'StaticMapClassInfo',
+  };
+
   /// 根据接收者表达式的静态类型推断具体的 ClassInfo 类名。
   /// vtable 字段声明在具体的 XxxClassInfo 子类上，基类 ClassInfo 只有固定字段，
   /// 因此派发时必须 cast 到具体子类；无法确定时回退到基类 ClassInfo。
@@ -460,6 +469,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         _classNameFromExprType(recvExpr);
     if (className != null && _isUserClass(className)) {
       return '${className}ClassInfo';
+    }
+    if (className != null && platformClassInfoNames.containsKey(className)) {
+      return platformClassInfoNames[className]!;
     }
     return 'ClassInfo';
   }
