@@ -7,7 +7,7 @@ A Dart-to-C++ compiler that transforms Dart source code into lowered C++ compati
 The core component is a **Dart Restorer** that reconstructs readable Dart source code from Kernel AST with OOP lowering transformations:
 
 - Classes → `XValue` structs + static functions
-- Virtual dispatch → `vptr` (virtual pointer) tables
+- Virtual dispatch → `ClassInfo` vtable
 - Closures → environment classes with captured variable boxing
 - Async/await → state machine coroutines
 
@@ -51,11 +51,10 @@ lib/                              # Core converter
 │   └── enum_restorer.dart        # Enum lowering
 └── platform/
     ├── dart/                     # Dart runtime (VPtr, Box, TypeFunction, etc.)
-    │   ├── runtime_classes.dart  # Barrel re-export for all runtime classes
-    │   └── _*.dart               # Internal implementation files
+    │   └── runtime_classes.dart  # All runtime classes
     └── cpp/                      # C++ runtime headers and sources
 
-test/                             # Test suite (12 cases)
+test/                             # Test suite (15 cases)
 tool/                             # Development utilities
 sample/                           # Conversion pipeline examples
 docs/archive/                     # Archived analysis documents
@@ -73,14 +72,14 @@ class Dog { void speak() { print("Woof!"); } }
 void Dog_speak(dynamic this_) { print("Woof!"); }
 ```
 
-### Virtual Dispatch via vptr
+### Virtual Dispatch via ClassInfo
 
 ```dart
 // Original
 animal.speak();
 
 // Lowered
-(animal.vptr['speak'] as void Function(dynamic))(animal);
+(animal.classInfo as AnimalClassInfo).speak!(animal);
 ```
 
 ### Closure Environment Classes

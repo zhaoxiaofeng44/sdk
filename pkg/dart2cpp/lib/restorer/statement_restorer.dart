@@ -76,10 +76,43 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
         if (_currentReturnType == 'AnyGC' && _mayBeNull(exprStr, stmt.expression!)) {
           exprStr = '$exprStr!';
         }
+        // ClassInfo 分派返回 StaticList<dynamic>（类型擦除），
+        // 需用 StaticList<T>.of() 包装以匹配返回类型 StaticList<T>
+        exprStr = _adaptReturnValueForCollection(exprStr, stmt.expression!);
         _buf.write(' $exprStr');
       }
       _buf.write(';\n');
     }
+  }
+
+  /// 当返回类型是 StaticList/StaticSet/StaticMap 但返回表达式是 ClassInfo 分派结果
+  /// （类型擦除为 StaticList<dynamic>），用 StaticXxx.of() 包装以匹配精确返回类型
+  String _adaptReturnValueForCollection(String exprStr, Expression expr) {
+    final rt = _currentReturnType;
+    // 确定返回类型对应的静态包装类名和泛型实参
+    String? staticName;
+    String? typeArgs;
+    for (final sn in const ['StaticList', 'StaticSet', 'StaticMap']) {
+      if (rt.startsWith(sn)) {
+        staticName = sn;
+        final idx = rt.indexOf('<');
+        if (idx >= 0) typeArgs = rt.substring(idx + 1, rt.lastIndexOf('>'));
+        break;
+      }
+    }
+    if (staticName == null) return exprStr;
+    // 已是 StaticXxx 表达式（构造器、级联等）——无需包装
+    var probe = exprStr.trimLeft();
+    while (probe.startsWith('(')) {
+      probe = probe.substring(1).trimLeft();
+    }
+    if (probe.startsWith(staticName)) return exprStr;
+    // 仅对 ClassInfo 分派结果包装（IIFE 或直接 .classInfo 调用）
+    if (!exprStr.contains('.classInfo')) return exprStr;
+    if (typeArgs != null) {
+      return '$staticName<$typeArgs>.of($exprStr)';
+    }
+    return '$staticName.of($exprStr)';
   }
 
   /// 检查表达式是否可能为 null（需要 ! 断言来转为非可空类型）
@@ -359,7 +392,14 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
 
     // 还原类型：使用 _restoreType（dynamic 保留以支持隐式方法派发）
     final restoredType = _restoreType(v.type);
-    _buf.write(restoredType);
+    // ClassInfo get_iterator 返回 StaticIterator<dynamic>（原始类型转换丢失泛型参数）
+    // 用 var 避免运行时类型不匹配
+    if (restoredType.startsWith('StaticIterator<') &&
+        adaptedInitStr != null && adaptedInitStr.contains('get_iterator')) {
+      _buf.write('var');
+    } else {
+      _buf.write(restoredType);
+    }
     _buf.write(' $name');
     if (adaptedInitStr != null) {
       _buf.write(' = $adaptedInitStr');
@@ -516,6 +556,7 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // 需用 StaticIterator 包装；StaticList/StaticSet 的 .iterator 已返回 StaticIterator 不需包装
     if (raw == 'Iterator' || raw == '_ListIterator') {
       if (initStr.trimLeft().startsWith('StaticIterator')) return initStr;
+      if (initStr.contains('get_iterator')) return initStr;
       return 'StaticIterator($initStr)';
     }
 
@@ -663,7 +704,8 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     final name = _cleanVarName(stmt.variable.name ?? '_fn${_varCounter++}');
     stmt.variable.name = name;
     _buf.write('$_pad');
-    _buf.write(_restoreType(stmt.function.returnType));
+    final returnTypeStr = _restoreType(stmt.function.returnType);
+    _buf.write(returnTypeStr);
     _buf.write(' $name');
     _writeTypeParams(stmt.function.typeParameters);
     _buf.write('(');
@@ -678,6 +720,8 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // 同步局部函数不应继承外层 async 函数的 _insideAsyncFunction 标志
     final savedInsideAsync = _insideAsyncFunction;
     final savedAsyncInnerType = _asyncInnerReturnType;
+    final savedReturnType = _currentReturnType;
+    _currentReturnType = returnTypeStr;
     if (marker != AsyncMarker.Async) {
       _insideAsyncFunction = false;
     }
@@ -691,5 +735,6 @@ mixin _StatementRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer {
     // 恢复异步状态
     _insideAsyncFunction = savedInsideAsync;
     _asyncInnerReturnType = savedAsyncInnerType;
+    _currentReturnType = savedReturnType;
   }
 }

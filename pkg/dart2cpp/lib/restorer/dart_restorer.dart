@@ -1,5 +1,6 @@
 import 'package:kernel/kernel.dart';
 import 'package:kernel/ast.dart';
+import 'package:kernel/type_algebra.dart';
 
 part 'type_utils.dart';
 part 'constant_restorer.dart';
@@ -120,7 +121,7 @@ abstract class _DartRestorerBase {
 
   /// 判断是否是运算符名称
   bool _isOperatorName(String name) {
-    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
+    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '>>>', '==', '[]', '[]=', '~', 'unary-'}.contains(name);
   }
 
 
@@ -176,7 +177,7 @@ abstract class _DartRestorerBase {
   /// 是否在 async 函数体内（用于 return 语句包装为 Promise.value）
   bool _insideAsyncFunction = false;
 
-  /// 当前函数的返回类型字符串（用于 return 语句中判断是否需要 ! 断言）
+  /// 当前函数的返回类型字符串（用于 return 语句中判断是否需要 ! 断言或 StaticList 包装）
   String _currentReturnType = '';
 
   /// 当前 async 函数的内部返回类型（Future<T> 中的 T）
@@ -359,6 +360,10 @@ abstract class _DartRestorerBase {
   ///   - 作为闭包构造参数传递：直接传 Box 实例（多个闭包共享同一 Box）
   ///   - 闭包 env 字段类型：Box 类型；env 内部访问额外 `.value`
   final Set<VariableDeclaration> _boxedVars = {};
+
+  /// 被 _paramTypeForDefault 降级的参数（StaticList→Iterable 等）。
+  /// 这些参数在函数体内不走 ClassInfo 分派，因为运行时值可能是原生类型。
+  final Set<VariableDeclaration> _demotedParams = {};
 
   /// 当前正在生成的函数/方法的参数列表（用于判断 VariableDeclaration 是参数还是局部变量）
   /// 在进入函数/方法/闭包前填充，退出时清理。
@@ -725,11 +730,11 @@ abstract class _DartRestorerBase {
       }
       return '$paramName$suffix';
     }
-    // 在函数签名中保持 dynamic 以支持协变（dynamic 在函数参数/返回值位置具有特殊的子类型关系）
-    if (type is DynamicType) return 'dynamic';
+    // OOP lowering 后对象引用统一走 AnyGC，不再保留 dynamic
+    if (type is DynamicType) return 'AnyGC';
     if (type is VoidType) return 'void';
     if (type is NeverType) return 'Never$suffix';
-    return 'dynamic';
+    return 'AnyGC';
   }
 
   /// 判断类名是否是用户自定义类（包括合成 mixin 中间类）
@@ -788,7 +793,7 @@ abstract class _DartRestorerBase {
       '+': 'Plus', '-': 'Minus', '*': 'Star', '/': 'Div',
       '%': 'Mod', '~/': 'TruncDiv', '>': 'Gt', '<': 'Lt',
       '>=': 'Gte', '<=': 'Lte', '&': 'BitAnd', '|': 'BitOr',
-      '^': 'BitXor', '<<': 'Shl', '>>': 'Shr', '==': 'Eq',
+      '^': 'BitXor', '<<': 'Shl', '>>': 'Shr', '>>>': 'Ushr', '==': 'Eq',
       '[]': 'Index', '[]=': 'IndexSet', '~': 'BitNot', 'unary-': 'Neg',
     };
     return mapping[operatorSymbol] ?? operatorSymbol;
@@ -1755,6 +1760,7 @@ class DartRestorer extends _DartRestorerBase
               kind: ifaceEntry.kind,
               staticFuncName: ifaceEntry.staticFuncName,
               signature: ifaceEntry.signature,
+              proc: ifaceEntry.proc,
               declaringClassName: ifaceEntry.declaringClassName,
             ));
           }

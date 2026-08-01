@@ -16,7 +16,7 @@ Function makeCounter({int start = 0, int step = 1}) {
   };
 }
 
-Function makeAccumulator(int initial) {
+String Function() Function(int) makeAccumulator(int initial) {
   int total = initial;
   // 返回一个闭包，闭包内再创建闭包
   return (int amount) {

@@ -57,7 +57,7 @@ dart test/hello_restored.dart
 
 The converted Dart code uses the OOP-lowering transformation:
 - Classes become `XValue` structs + static functions
-- Virtual method dispatch via `vptr` Map
+- Virtual method dispatch via `ClassInfo.dispatch`
 - Closures become `ClosureEnv` classes
 
 Example transformation:
@@ -69,17 +69,22 @@ class Dog {
 
 // Lowered
 class DogClassInfo extends ClassInfo {
-  void Function(DogValue this_)? speak;
+  void Function(AnyGC)? speak;
 }
 
 class DogValue extends AnyGC {
-  static DogClassInfo? _classInfo;
   @override
-  DogClassInfo get classInfo => _classInfo ??= _initClassInfo();
+  ClassInfo get classInfo => ClassInfoRegistry.get<DogClassInfo>(runtimeType, _initClassInfo);
+  static DogClassInfo _initClassInfo() {
+    final ci = DogClassInfo();
+    ci.speak = Dog_speak;
+    ci.dispatch['speak'] = Dog_speak;
+    return ci;
+  }
   // ...
 }
 
-void Dog_speak(dynamic this__) {
+void Dog_speak(AnyGC this__) {
   final this_ = this__ as DogValue;
   staticPrint("Woof!");
 }
@@ -93,7 +98,8 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 ```
 
 This provides:
-- `AnyGC` - Base class with GC management and virtual method table
+- `AnyGC` - Base class with GC management and `classInfo` hook
+- `ClassInfo` / `ClassInfoRegistry` - Typed vtable + dispatch map for virtual method dispatch
 - `TypeFunction` - Callable closure base classes
 - Box types - For closure capture semantics
 - Static collections - `StaticList`, `StaticMap`, `StaticSet`
@@ -115,7 +121,7 @@ If the conversion fails:
 ### Execution errors
 If the converted code doesn't run:
 - Compare with the original source
-- Check for missing vptr registrations
+- Check for missing ClassInfo.dispatch registrations
 - Verify closure environment setup
 
 ## Related Documentation

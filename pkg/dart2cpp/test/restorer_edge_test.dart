@@ -528,5 +528,66 @@ void main() async {
     print('  $v => ${describeValue(v)}');
   }
 
+  // 13. common String methods
+  print('\n--- 13. String methods ---');
+  final s = '  hello world  ';
+  print('  trimLeft: "${s.trimLeft()}"');
+  print('  trimRight: "${s.trimRight()}"');
+  print('  replaceFirst: "${'hello world'.replaceFirst('o', '0')}"');
+  print('  replaceRange: "${'hello world'.replaceRange(2, 5, 'LL')}"');
+  print('  padLeft: "${'hi'.padLeft(6, '*')}"');
+  print('  padRight: "${'hi'.padRight(6, '*')}"');
+  print('  lastIndexOf: ${'hello world'.lastIndexOf('o')}, ${'hello world'.lastIndexOf('o', 5)}');
+  print('  codeUnitAt: ${'ABC'.codeUnitAt(1)}');
+
+  // 14. common int/double methods
+  print('\n--- 14. Number methods ---');
+  final d = 3.14159;
+  final n = -17;
+  print('  round: ${d.round()}');
+  print('  floor: ${d.floor()}');
+  print('  ceil: ${d.ceil()}');
+  print('  truncate: ${d.truncate()}');
+  print('  sign: ${d.sign}, ${n.sign}');
+  print('  isNegative: ${d.isNegative}, ${n.isNegative}');
+  print('  toStringAsPrecision: ${d.toStringAsPrecision(3)}');
+  print('  toStringAsExponential: ${d.toStringAsExponential(2)}');
+  print('  toRadixString: ${n.toRadixString(16)}');
+  print('  ceilToDouble: ${d.ceilToDouble()}');
+  print('  floorToDouble: ${d.floorToDouble()}');
+  print('  roundToDouble: ${d.roundToDouble()}');
+  print('  truncateToDouble: ${d.truncateToDouble()}');
+  print('  remainder: ${d.remainder(2.0)}');
+
+  // 15. unsigned right shift
+  print('\n--- 15. Unsigned right shift ---');
+  final neg = -8;
+  print('  -8 >>> 2: ${neg >>> 2}');
+  print('  16 >>> 2: ${16 >>> 2}');
+
+  // 16. common collection methods
+  print('\n--- 16. Collection methods ---');
+  final nums = [1, 2, 3, 4, 5];
+  nums.removeRange(1, 3);
+  print('  after removeRange(1,3): $nums');
+  nums.fillRange(1, 3, 9);
+  print('  after fillRange(1,3,9): $nums');
+  final idx = nums.lastIndexWhere((x) => x == 9);
+  print('  lastIndexWhere(==9): $idx');
+  final range = nums.getRange(0, 2);
+  print('  getRange(0,2): $range');
+
+  // 17. Set.containsAll
+  print('\n--- 17. Set.containsAll ---');
+  final fruits = {'apple', 'banana', 'cherry'};
+  print('  containsAll({apple, cherry}): ${fruits.containsAll(<String>{'apple', 'cherry'})}');
+  print('  containsAll({apple, grape}): ${fruits.containsAll(<String>{'apple', 'grape'})}');
+
+  // 18. String.fromCharCode / fromCharCodes
+  print('\n--- 18. String.fromCharCode / fromCharCodes ---');
+  print('  fromCharCode(65): ${String.fromCharCode(65)}');
+  print('  fromCharCode(90): ${String.fromCharCode(90)}');
+  print('  fromCharCodes([72, 101, 108, 108, 111]): ${String.fromCharCodes([72, 101, 108, 108, 111])}');
+
   print('\n=== all edge case tests passed ===');
 }

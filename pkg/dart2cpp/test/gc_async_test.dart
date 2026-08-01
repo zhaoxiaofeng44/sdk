@@ -27,18 +27,8 @@ class AnimalValue extends AnyGC {
   late int age;
   late AnimalValue? friend; // 可空引用，用于构造引用链
 
-  static Map<String, dynamic>? vptrMap;
   @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    vptrMap ??= <String, dynamic>{
-      'toString': null,
-      'operatorEq': null,
-      'get_hashCode': null,
-    };
-    vptrMap!['toString'] = Animal_toString;
-    return vptrMap!;
-  }
+  String toString() => Animal_toString(this);
 
   @override
   void gcMark(int flag) {
@@ -65,18 +55,6 @@ String Animal_toString(dynamic this__) {
 class ResultHolderValue extends AnyGC {
   late dynamic data;
   late String label;
-
-  static Map<String, dynamic>? vptrMap;
-  @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    vptrMap ??= <String, dynamic>{
-      'toString': null,
-      'operatorEq': null,
-      'get_hashCode': null,
-    };
-    return vptrMap!;
-  }
 
   @override
   void gcMark(int flag) {

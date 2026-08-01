@@ -10,5 +10,6 @@ void main() {
   lib_1.greetFromA(cat);
   lib_2.greetFromB(dog);
   lib_2.greetFromB(cat);
+  drainScheduler();
 }
 

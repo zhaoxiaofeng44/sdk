@@ -7,17 +7,29 @@ enum CompleterState {
 }
 
 class PromiseClassInfo<T> extends ClassInfo {
-  Function? get_state;
-  Function? get_isCompleted;
-  Function? get_isError;
-  Function? get_isPending;
-  Function? get_error;
-  Function? get_result;
-  Function? complete;
-  Function? completeError;
+  CompleterState Function(AnyGC)? get_state;
+  bool Function(AnyGC)? get_isCompleted;
+  bool Function(AnyGC)? get_isError;
+  bool Function(AnyGC)? get_isPending;
+  Object? Function(AnyGC)? get_error;
+  T Function(AnyGC)? get_result;
+  void Function(AnyGC, T)? complete;
+  void Function(AnyGC, Object)? completeError;
   Function? then;
-  dynamic then_String;
-  dynamic then_int;
+  PromiseValue<String> Function(AnyGC, TypeFunction1<String, T>)? then_String;
+  PromiseValue<int> Function(AnyGC, TypeFunction1<int, T>)? then_int;
+  PromiseClassInfo() {
+    get_state = Promise_get_state<T>;
+    get_isCompleted = Promise_get_isCompleted<T>;
+    get_isError = Promise_get_isError<T>;
+    get_isPending = Promise_get_isPending<T>;
+    get_error = Promise_get_error<T>;
+    get_result = Promise_get_result<T>;
+    complete = Promise_complete<T>;
+    completeError = Promise_completeError<T>;
+    then_String = Promise_then<T, String>;
+    then_int = Promise_then<T, int>;
+  }
 }
 
 class PromiseValue<T> extends AnyGC {
@@ -26,20 +38,7 @@ class PromiseValue<T> extends AnyGC {
   late Object? _error = null;
   late TypeFunction0<bool>? _onTick = null;
   @override
-  ClassInfo get classInfo {
-    final ci = PromiseClassInfo<T>();
-    ci.get_state = Promise_get_state<T>;
-    ci.get_isCompleted = Promise_get_isCompleted<T>;
-    ci.get_isError = Promise_get_isError<T>;
-    ci.get_isPending = Promise_get_isPending<T>;
-    ci.get_error = Promise_get_error<T>;
-    ci.get_result = Promise_get_result<T>;
-    ci.complete = Promise_complete<T>;
-    ci.completeError = Promise_completeError<T>;
-    ci.then_String = Promise_then<T, String>;
-    ci.then_int = Promise_then<T, int>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PromiseClassInfo<T>>(runtimeType, PromiseClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -48,6 +47,24 @@ class PromiseValue<T> extends AnyGC {
     if (_result is AnyGC) (_result as AnyGC).gcMark(flag);
     if (_error is AnyGC) (_error as AnyGC).gcMark(flag);
     if (_onTick is AnyGC) (_onTick as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as PromiseClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as PromiseClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as PromiseClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -110,7 +127,7 @@ void Promise_completeError<T>(AnyGC this__, Object error) {
 
 PromiseValue<T> Promise_value<T>(T val) {
   final PromiseValue<T> promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
-  (promise.classInfo as PromiseClassInfo).complete!(promise, val);
+  (promise.classInfo as PromiseClassInfo<T>).complete!(promise, val);
   return promise;
 }
 
@@ -130,35 +147,50 @@ PromiseValue<R> Promise_then<T, R>(AnyGC this__, TypeFunction1<R, T> onValue) {
 
 
 class GlobalSchedulerClassInfo extends ClassInfo {
-  Function? registerActivePromise;
-  Function? registerDelayedTask;
-  Function? tick;
-  Function? get_hasActiveTasks;
-  Function? reset;
+  void Function(AnyGC, PromiseValue<dynamic>)? registerActivePromise;
+  void Function(AnyGC, int, TypeFunction0<void>)? registerDelayedTask;
+  void Function(AnyGC)? tick;
+  bool Function(AnyGC)? get_hasActiveTasks;
+  void Function(AnyGC)? reset;
+  GlobalSchedulerClassInfo() {
+    registerActivePromise = GlobalScheduler_registerActivePromise;
+    registerDelayedTask = GlobalScheduler_registerDelayedTask;
+    tick = GlobalScheduler_tick;
+    get_hasActiveTasks = GlobalScheduler_get_hasActiveTasks;
+    reset = GlobalScheduler_reset;
+  }
 }
 
 class GlobalSchedulerValue extends AnyGC {
   late StaticList<PromiseValue<dynamic>> _activePromises = StaticList<PromiseValue<dynamic>>();
   late StaticList<_DelayedTaskValue> _delayedTasks = StaticList<_DelayedTaskValue>();
   late int _currentTick = 0;
-  static GlobalSchedulerClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GlobalSchedulerClassInfo _initClassInfo() {
-    final ci = GlobalSchedulerClassInfo();
-    ci.registerActivePromise = GlobalScheduler_registerActivePromise;
-    ci.registerDelayedTask = GlobalScheduler_registerDelayedTask;
-    ci.tick = GlobalScheduler_tick;
-    ci.get_hasActiveTasks = GlobalScheduler_get_hasActiveTasks;
-    ci.reset = GlobalScheduler_reset;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<GlobalSchedulerClassInfo>(runtimeType, GlobalSchedulerClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_activePromises is AnyGC) (_activePromises as AnyGC).gcMark(flag);
     if (_delayedTasks is AnyGC) (_delayedTasks as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as GlobalSchedulerClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as GlobalSchedulerClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as GlobalSchedulerClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -171,24 +203,24 @@ GlobalSchedulerValue GlobalScheduler_new__(AnyGC this__) {
 void GlobalScheduler_registerActivePromise(AnyGC this__, PromiseValue<dynamic> promise) {
   final this_ = this__ as GlobalSchedulerValue;
   log('registerActivePromise');
-  this_._activePromises.add(promise);
+  (this_._activePromises.classInfo as StaticListClassInfo).add!(this_._activePromises, promise);
 }
 
 void GlobalScheduler_registerDelayedTask(AnyGC this__, int delayTicks, TypeFunction0<void> callback) {
   final this_ = this__ as GlobalSchedulerValue;
   final int target = (this_._currentTick + delayTicks);
   log('registerDelayed: trigger@tick=${target} (delay=${delayTicks})');
-  this_._delayedTasks.add(_DelayedTask_new(GC.allocateLocal(_DelayedTaskValue()), target, callback));
+  (this_._delayedTasks.classInfo as StaticListClassInfo).add!(this_._delayedTasks, _DelayedTask_new(GC.allocateLocal(_DelayedTaskValue()), target, callback));
 }
 
 void GlobalScheduler_tick(AnyGC this__) {
   final this_ = this__ as GlobalSchedulerValue;
   this_._currentTick = (this_._currentTick + 1);
-  log('--- tick #${this_._currentTick} start (active=${this_._activePromises.length}, delayed=${this_._delayedTasks.length}) ---');
-  final StaticList<_DelayedTaskValue> expired = StaticList.of(this_._delayedTasks.where(ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_)).toList());
-  this_._delayedTasks.removeWhere(ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()), this_));
+  log('--- tick #${this_._currentTick} start (active=${(this_._activePromises.classInfo as StaticListClassInfo).get_length!(this_._activePromises)}, delayed=${(this_._delayedTasks.classInfo as StaticListClassInfo).get_length!(this_._delayedTasks)}) ---');
+  final StaticList<_DelayedTaskValue> expired = StaticList<_DelayedTaskValue>.of((() { final _r1 = StaticList<_DelayedTaskValue>.of((this_._delayedTasks.classInfo as StaticListClassInfo).where!(this_._delayedTasks, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()), this_))); return (_r1.classInfo as StaticListClassInfo).toList!(_r1); })());
+  (this_._delayedTasks.classInfo as StaticListClassInfo).removeWhere!(this_._delayedTasks, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()), this_));
 {
-    StaticIterator<_DelayedTaskValue> sync_for_iterator = StaticIterator(expired.iterator);
+    var sync_for_iterator = (expired.classInfo as StaticListClassInfo).get_iterator!(expired);
     for (; sync_for_iterator.moveNext(); ) {
       final _DelayedTaskValue task = sync_for_iterator.current;
 {
@@ -198,39 +230,39 @@ void GlobalScheduler_tick(AnyGC this__) {
     }
   }
   final StaticList<PromiseValue<dynamic>> snapshot = StaticList<PromiseValue<dynamic>>.of(this_._activePromises);
-  final StaticSet<PromiseValue<dynamic>> finished = StaticSet<PromiseValue<dynamic>>.of((() {   final StaticSet<PromiseValue<dynamic>> _v1 = StaticSet<PromiseValue<dynamic>>();
- return _v1; })());
+  final StaticSet<PromiseValue<dynamic>> finished = StaticSet<PromiseValue<dynamic>>.of((() {   final StaticSet<PromiseValue<dynamic>> _v2 = StaticSet<PromiseValue<dynamic>>();
+ return _v2; })());
 {
-    StaticIterator<PromiseValue<dynamic>> sync_for_iterator = StaticIterator(snapshot.iterator);
+    var sync_for_iterator = (snapshot.classInfo as StaticListClassInfo).get_iterator!(snapshot);
     for (; sync_for_iterator.moveNext(); ) {
       final PromiseValue<dynamic> promise = sync_for_iterator.current;
-      _L2: do {
+      _L3: do {
 {
-          if (((promise.classInfo as PromiseClassInfo).get_isCompleted!(promise) || (promise.classInfo as PromiseClassInfo).get_isError!(promise))) {
-            finished.add(promise);
-            break _L2;
+          if (((promise.classInfo as PromiseClassInfo<dynamic>).get_isCompleted!(promise) || (promise.classInfo as PromiseClassInfo<dynamic>).get_isError!(promise))) {
+            (finished.classInfo as StaticSetClassInfo).add!(finished, promise);
+            break _L3;
           }
           final TypeFunction0<bool>? onTick = promise._onTick;
           if ((!((onTick == null)) && onTick.call())) {
-            finished.add(promise);
+            (finished.classInfo as StaticSetClassInfo).add!(finished, promise);
           }
         }
       } while (false);
     }
   }
-  this_._activePromises.removeWhere(ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()), finished));
-  log('--- tick #${this_._currentTick} end (remaining active=${this_._activePromises.length}) ---');
+  (this_._activePromises.classInfo as StaticListClassInfo).removeWhere!(this_._activePromises, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()), finished));
+  log('--- tick #${this_._currentTick} end (remaining active=${(this_._activePromises.classInfo as StaticListClassInfo).get_length!(this_._activePromises)}) ---');
 }
 
 bool GlobalScheduler_get_hasActiveTasks(AnyGC this__) {
   final this_ = this__ as GlobalSchedulerValue;
-  return (this_._activePromises.isNotEmpty || this_._delayedTasks.isNotEmpty);
+  return ((this_._activePromises.classInfo as StaticListClassInfo).get_isNotEmpty!(this_._activePromises) || (this_._delayedTasks.classInfo as StaticListClassInfo).get_isNotEmpty!(this_._delayedTasks));
 }
 
 void GlobalScheduler_reset(AnyGC this__) {
   final this_ = this__ as GlobalSchedulerValue;
-  this_._activePromises.clear();
-  this_._delayedTasks.clear();
+  (this_._activePromises.classInfo as StaticListClassInfo).clear!(this_._activePromises);
+  (this_._delayedTasks.classInfo as StaticListClassInfo).clear!(this_._delayedTasks);
   this_._currentTick = 0;
 }
 
@@ -241,18 +273,31 @@ class _DelayedTaskClassInfo extends ClassInfo {
 class _DelayedTaskValue extends AnyGC {
   late int targetTick;
   late TypeFunction0<void> callback;
-  static _DelayedTaskClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static _DelayedTaskClassInfo _initClassInfo() {
-    final ci = _DelayedTaskClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<_DelayedTaskClassInfo>(runtimeType, _DelayedTaskClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (callback is AnyGC) (callback as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as _DelayedTaskClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as _DelayedTaskClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as _DelayedTaskClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -265,22 +310,46 @@ _DelayedTaskValue _DelayedTask_new(AnyGC this__, int targetTick, TypeFunction0<v
 
 
 class AsyncStateMachineClassInfo<T> extends ClassInfo {
-  Function? step;
-  Function? completeWith;
-  Function? completeWithError;
-  Function? start;
+  bool Function(AnyGC)? step;
+  void Function(AnyGC, T)? completeWith;
+  void Function(AnyGC, Object)? completeWithError;
+  PromiseValue<T> Function(AnyGC)? start;
+  AsyncStateMachineClassInfo() {
+    step = AsyncStateMachine_step<T>;
+    completeWith = AsyncStateMachine_completeWith<T>;
+    completeWithError = AsyncStateMachine_completeWithError<T>;
+    start = AsyncStateMachine_start<T>;
+  }
 }
 
 class AsyncStateMachineValue<T> extends AnyGC {
   late int smState = 0;
   late PromiseValue<T> promise = Promise_new<T>(GC.allocateLocal(PromiseValue<T>()));
   @override
-  ClassInfo get classInfo => AsyncStateMachineClassInfo<T>();
+  ClassInfo get classInfo => ClassInfoRegistry.get<AsyncStateMachineClassInfo<T>>(runtimeType, AsyncStateMachineClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (promise is AnyGC) (promise as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as AsyncStateMachineClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AsyncStateMachineClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AsyncStateMachineClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -289,18 +358,18 @@ AsyncStateMachineValue<T> AsyncStateMachine_new<T>(AnyGC this__) {
   return this_;
 }
 
-bool AsyncStateMachine_step<T>(dynamic this_) {
+bool AsyncStateMachine_step<T>(AnyGC this_) {
   throw UnimplementedError('AsyncStateMachine.step is abstract');
 }
 
 void AsyncStateMachine_completeWith<T>(AnyGC this__, T value) {
   final this_ = this__ as AsyncStateMachineValue<T>;
-  (this_.promise.classInfo as PromiseClassInfo).complete!(this_.promise, value);
+  (this_.promise.classInfo as PromiseClassInfo<T>).complete!(this_.promise, value);
 }
 
 void AsyncStateMachine_completeWithError<T>(AnyGC this__, Object error) {
   final this_ = this__ as AsyncStateMachineValue<T>;
-  (this_.promise.classInfo as PromiseClassInfo).completeError!(this_.promise, error);
+  (this_.promise.classInfo as PromiseClassInfo<T>).completeError!(this_.promise, error);
 }
 
 PromiseValue<T> AsyncStateMachine_start<T>(AnyGC this__) {
@@ -312,7 +381,14 @@ PromiseValue<T> AsyncStateMachine_start<T>(AnyGC this__) {
 
 
 class AddAsyncStateMachineClassInfo extends AsyncStateMachineClassInfo<int> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  AddAsyncStateMachineClassInfo() {
+    step = AddAsyncStateMachine_step;
+    completeWith = AddAsyncStateMachine_completeWith;
+    completeWithError = AddAsyncStateMachine_completeWithError;
+    start = AddAsyncStateMachine_start;
+    get_debugName = AddAsyncStateMachine_get_debugName;
+  }
 }
 
 class AddAsyncStateMachineValue extends AsyncStateMachineValue<int> {
@@ -321,18 +397,8 @@ class AddAsyncStateMachineValue extends AsyncStateMachineValue<int> {
   late int _x = 0;
   late int _y = 0;
   late PromiseValue<int>? _pendingFuture = null;
-  static AddAsyncStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AddAsyncStateMachineClassInfo _initClassInfo() {
-    final ci = AddAsyncStateMachineClassInfo();
-    ci.step = AddAsyncStateMachine_step;
-    ci.completeWith = AddAsyncStateMachine_completeWith;
-    ci.completeWithError = AddAsyncStateMachine_completeWithError;
-    ci.start = AddAsyncStateMachine_start;
-    ci.get_debugName = AddAsyncStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AddAsyncStateMachineClassInfo>(runtimeType, AddAsyncStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -356,7 +422,7 @@ String AddAsyncStateMachine_get_debugName(AnyGC this__) {
 
 bool AddAsyncStateMachine_step(AnyGC this__) {
   final this_ = this__ as AddAsyncStateMachineValue;
-  _L3: do {
+  _L4: do {
     switch (this_.smState) {
       case 0:
 {
@@ -367,8 +433,8 @@ bool AddAsyncStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((() { final _r4 = this_._pendingFuture!; return (_r4.classInfo as PromiseClassInfo).get_isPending!(_r4); })())           return false;
-          this_._x = (() { final _r5 = this_._pendingFuture!; return (_r5.classInfo as PromiseClassInfo).get_result!(_r5); })();
+          if ((() { final _r5 = this_._pendingFuture!; return (_r5.classInfo as PromiseClassInfo<int>).get_isPending!(_r5); })())           return false;
+          this_._x = (() { final _r6 = this_._pendingFuture!; return (_r6.classInfo as PromiseClassInfo<int>).get_result!(_r6); })();
           this_._pendingFuture = Promise_delayed<int>(2, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()), this_));
           this_.smState = 2;
           log('  ${(this_.classInfo as AddAsyncStateMachineClassInfo).get_debugName!(this_)}: state 1→2, got x=${this_._x}, created delayed future for ${this_.b}');
@@ -376,8 +442,8 @@ bool AddAsyncStateMachine_step(AnyGC this__) {
         }
       case 2:
 {
-          if ((() { final _r6 = this_._pendingFuture!; return (_r6.classInfo as PromiseClassInfo).get_isPending!(_r6); })())           return false;
-          this_._y = (() { final _r7 = this_._pendingFuture!; return (_r7.classInfo as PromiseClassInfo).get_result!(_r7); })();
+          if ((() { final _r7 = this_._pendingFuture!; return (_r7.classInfo as PromiseClassInfo<int>).get_isPending!(_r7); })())           return false;
+          this_._y = (() { final _r8 = this_._pendingFuture!; return (_r8.classInfo as PromiseClassInfo<int>).get_result!(_r8); })();
           log('  ${(this_.classInfo as AddAsyncStateMachineClassInfo).get_debugName!(this_)}: state 2→done, got y=${this_._y}, result=${(this_._x + this_._y)}');
           (this_.classInfo as AddAsyncStateMachineClassInfo).completeWith!(this_, (this_._x + this_._y));
           return true;
@@ -407,23 +473,20 @@ PromiseValue<int> AddAsyncStateMachine_start(AnyGC this__) {
 
 
 class InnerAsyncStateMachineClassInfo extends AsyncStateMachineClassInfo<String> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  InnerAsyncStateMachineClassInfo() {
+    step = InnerAsyncStateMachine_step;
+    completeWith = InnerAsyncStateMachine_completeWith;
+    completeWithError = InnerAsyncStateMachine_completeWithError;
+    start = InnerAsyncStateMachine_start;
+    get_debugName = InnerAsyncStateMachine_get_debugName;
+  }
 }
 
 class InnerAsyncStateMachineValue extends AsyncStateMachineValue<String> {
   late PromiseValue<String>? _pendingFuture = null;
-  static InnerAsyncStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static InnerAsyncStateMachineClassInfo _initClassInfo() {
-    final ci = InnerAsyncStateMachineClassInfo();
-    ci.step = InnerAsyncStateMachine_step;
-    ci.completeWith = InnerAsyncStateMachine_completeWith;
-    ci.completeWithError = InnerAsyncStateMachine_completeWithError;
-    ci.start = InnerAsyncStateMachine_start;
-    ci.get_debugName = InnerAsyncStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<InnerAsyncStateMachineClassInfo>(runtimeType, InnerAsyncStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -445,7 +508,7 @@ String InnerAsyncStateMachine_get_debugName(AnyGC this__) {
 
 bool InnerAsyncStateMachine_step(AnyGC this__) {
   final this_ = this__ as InnerAsyncStateMachineValue;
-  _L8: do {
+  _L9: do {
     switch (this_.smState) {
       case 0:
 {
@@ -456,8 +519,8 @@ bool InnerAsyncStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((() { final _r9 = this_._pendingFuture!; return (_r9.classInfo as PromiseClassInfo).get_isPending!(_r9); })())           return false;
-          final String val = (() { final _r10 = this_._pendingFuture!; return (_r10.classInfo as PromiseClassInfo).get_result!(_r10); })();
+          if ((() { final _r10 = this_._pendingFuture!; return (_r10.classInfo as PromiseClassInfo<String>).get_isPending!(_r10); })())           return false;
+          final String val = (() { final _r11 = this_._pendingFuture!; return (_r11.classInfo as PromiseClassInfo<String>).get_result!(_r11); })();
           log('  ${(this_.classInfo as InnerAsyncStateMachineClassInfo).get_debugName!(this_)}: state 1→done, val=${val} → ${val.toUpperCase()}');
           (this_.classInfo as InnerAsyncStateMachineClassInfo).completeWith!(this_, val.toUpperCase());
           return true;
@@ -487,24 +550,21 @@ PromiseValue<String> InnerAsyncStateMachine_start(AnyGC this__) {
 
 
 class OuterAsyncStateMachineClassInfo extends AsyncStateMachineClassInfo<String> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  OuterAsyncStateMachineClassInfo() {
+    step = OuterAsyncStateMachine_step;
+    completeWith = OuterAsyncStateMachine_completeWith;
+    completeWithError = OuterAsyncStateMachine_completeWithError;
+    start = OuterAsyncStateMachine_start;
+    get_debugName = OuterAsyncStateMachine_get_debugName;
+  }
 }
 
 class OuterAsyncStateMachineValue extends AsyncStateMachineValue<String> {
   late String _prefix = '';
   late PromiseValue<String>? _pendingFuture = null;
-  static OuterAsyncStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static OuterAsyncStateMachineClassInfo _initClassInfo() {
-    final ci = OuterAsyncStateMachineClassInfo();
-    ci.step = OuterAsyncStateMachine_step;
-    ci.completeWith = OuterAsyncStateMachine_completeWith;
-    ci.completeWithError = OuterAsyncStateMachine_completeWithError;
-    ci.start = OuterAsyncStateMachine_start;
-    ci.get_debugName = OuterAsyncStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<OuterAsyncStateMachineClassInfo>(runtimeType, OuterAsyncStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -526,7 +586,7 @@ String OuterAsyncStateMachine_get_debugName(AnyGC this__) {
 
 bool OuterAsyncStateMachine_step(AnyGC this__) {
   final this_ = this__ as OuterAsyncStateMachineValue;
-  _L11: do {
+  _L12: do {
     switch (this_.smState) {
       case 0:
 {
@@ -537,8 +597,8 @@ bool OuterAsyncStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((() { final _r12 = this_._pendingFuture!; return (_r12.classInfo as PromiseClassInfo).get_isPending!(_r12); })())           return false;
-          this_._prefix = (() { final _r13 = this_._pendingFuture!; return (_r13.classInfo as PromiseClassInfo).get_result!(_r13); })();
+          if ((() { final _r13 = this_._pendingFuture!; return (_r13.classInfo as PromiseClassInfo<String>).get_isPending!(_r13); })())           return false;
+          this_._prefix = (() { final _r14 = this_._pendingFuture!; return (_r14.classInfo as PromiseClassInfo<String>).get_result!(_r14); })();
           final InnerAsyncStateMachineValue innerSm = InnerAsyncStateMachine_new(GC.allocateLocal(InnerAsyncStateMachineValue()));
           this_._pendingFuture = (innerSm.classInfo as InnerAsyncStateMachineClassInfo).start!(innerSm);
           this_.smState = 2;
@@ -547,8 +607,8 @@ bool OuterAsyncStateMachine_step(AnyGC this__) {
         }
       case 2:
 {
-          if ((() { final _r14 = this_._pendingFuture!; return (_r14.classInfo as PromiseClassInfo).get_isPending!(_r14); })())           return false;
-          final String innerResult = (() { final _r15 = this_._pendingFuture!; return (_r15.classInfo as PromiseClassInfo).get_result!(_r15); })();
+          if ((() { final _r15 = this_._pendingFuture!; return (_r15.classInfo as PromiseClassInfo<String>).get_isPending!(_r15); })())           return false;
+          final String innerResult = (() { final _r16 = this_._pendingFuture!; return (_r16.classInfo as PromiseClassInfo<String>).get_result!(_r16); })();
           log('  ${(this_.classInfo as OuterAsyncStateMachineClassInfo).get_debugName!(this_)}: state 2→done, inner=${innerResult}');
           (this_.classInfo as OuterAsyncStateMachineClassInfo).completeWith!(this_, '${this_._prefix} ${innerResult}');
           return true;
@@ -578,23 +638,20 @@ PromiseValue<String> OuterAsyncStateMachine_start(AnyGC this__) {
 
 
 class ErrorStateMachineClassInfo extends AsyncStateMachineClassInfo<String> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  ErrorStateMachineClassInfo() {
+    step = ErrorStateMachine_step;
+    completeWith = ErrorStateMachine_completeWith;
+    completeWithError = ErrorStateMachine_completeWithError;
+    start = ErrorStateMachine_start;
+    get_debugName = ErrorStateMachine_get_debugName;
+  }
 }
 
 class ErrorStateMachineValue extends AsyncStateMachineValue<String> {
   late PromiseValue<int>? _pendingFuture = null;
-  static ErrorStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ErrorStateMachineClassInfo _initClassInfo() {
-    final ci = ErrorStateMachineClassInfo();
-    ci.step = ErrorStateMachine_step;
-    ci.completeWith = ErrorStateMachine_completeWith;
-    ci.completeWithError = ErrorStateMachine_completeWithError;
-    ci.start = ErrorStateMachine_start;
-    ci.get_debugName = ErrorStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ErrorStateMachineClassInfo>(runtimeType, ErrorStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -616,7 +673,7 @@ String ErrorStateMachine_get_debugName(AnyGC this__) {
 
 bool ErrorStateMachine_step(AnyGC this__) {
   final this_ = this__ as ErrorStateMachineValue;
-  _L16: do {
+  _L17: do {
     switch (this_.smState) {
       case 0:
 {
@@ -627,10 +684,10 @@ bool ErrorStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((() { final _r17 = this_._pendingFuture!; return (_r17.classInfo as PromiseClassInfo).get_isPending!(_r17); })())           return false;
-          if ((() { final _r18 = this_._pendingFuture!; return (_r18.classInfo as PromiseClassInfo).get_isError!(_r18); })()) {
+          if ((() { final _r18 = this_._pendingFuture!; return (_r18.classInfo as PromiseClassInfo<int>).get_isPending!(_r18); })())           return false;
+          if ((() { final _r19 = this_._pendingFuture!; return (_r19.classInfo as PromiseClassInfo<int>).get_isError!(_r19); })()) {
             log('  ${(this_.classInfo as ErrorStateMachineClassInfo).get_debugName!(this_)}: state 1→done, caught error');
-            (this_.classInfo as ErrorStateMachineClassInfo).completeWith!(this_, 'caught: ${(() { final _r19 = this_._pendingFuture!; return (_r19.classInfo as PromiseClassInfo).get_error!(_r19); })()}');
+            (this_.classInfo as ErrorStateMachineClassInfo).completeWith!(this_, 'caught: ${(() { final _r20 = this_._pendingFuture!; return (_r20.classInfo as PromiseClassInfo<int>).get_error!(_r20); })()}');
             return true;
           }
           (this_.classInfo as ErrorStateMachineClassInfo).completeWith!(this_, 'unexpected success');
@@ -661,23 +718,20 @@ PromiseValue<String> ErrorStateMachine_start(AnyGC this__) {
 
 
 class ParallelAwaitStateMachineClassInfo extends AsyncStateMachineClassInfo<StaticList<int>> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  ParallelAwaitStateMachineClassInfo() {
+    step = ParallelAwaitStateMachine_step;
+    completeWith = ParallelAwaitStateMachine_completeWith;
+    completeWithError = ParallelAwaitStateMachine_completeWithError;
+    start = ParallelAwaitStateMachine_start;
+    get_debugName = ParallelAwaitStateMachine_get_debugName;
+  }
 }
 
 class ParallelAwaitStateMachineValue extends AsyncStateMachineValue<StaticList<int>> {
   late StaticList<PromiseValue<int>> _futures;
-  static ParallelAwaitStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ParallelAwaitStateMachineClassInfo _initClassInfo() {
-    final ci = ParallelAwaitStateMachineClassInfo();
-    ci.step = ParallelAwaitStateMachine_step;
-    ci.completeWith = ParallelAwaitStateMachine_completeWith;
-    ci.completeWithError = ParallelAwaitStateMachine_completeWithError;
-    ci.start = ParallelAwaitStateMachine_start;
-    ci.get_debugName = ParallelAwaitStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ParallelAwaitStateMachineClassInfo>(runtimeType, ParallelAwaitStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -699,7 +753,7 @@ String ParallelAwaitStateMachine_get_debugName(AnyGC this__) {
 
 bool ParallelAwaitStateMachine_step(AnyGC this__) {
   final this_ = this__ as ParallelAwaitStateMachineValue;
-  _L20: do {
+  _L21: do {
     switch (this_.smState) {
       case 0:
 {
@@ -710,10 +764,10 @@ bool ParallelAwaitStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          final bool allDone = this_._futures.every(ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15())));
+          final bool allDone = (this_._futures.classInfo as StaticListClassInfo).every!(this_._futures, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15())));
           if (!(allDone))           return false;
-          final StaticList<int> results = StaticList.of(this_._futures.map(ClosureEnv_anon_16_new(GC.allocateLocal(ClosureEnv_anon_16()))).toList());
-          log('  ${(this_.classInfo as ParallelAwaitStateMachineClassInfo).get_debugName!(this_)}: state 1→done, all futures completed: ${results}');
+          final StaticList<int> results = StaticList<int>.of((() { final _r22 = StaticList<int>.of((this_._futures.classInfo as StaticListClassInfo).map!(this_._futures, ClosureEnv_anon_16_new(GC.allocateLocal(ClosureEnv_anon_16())))); return (_r22.classInfo as StaticListClassInfo).toList!(_r22); })());
+          log('  ${(this_.classInfo as ParallelAwaitStateMachineClassInfo).get_debugName!(this_)}: state 1→done, all futures completed: ${(results.classInfo as StaticListClassInfo).toString_!(results)}');
           (this_.classInfo as ParallelAwaitStateMachineClassInfo).completeWith!(this_, results);
           return true;
         }
@@ -742,24 +796,21 @@ PromiseValue<StaticList<int>> ParallelAwaitStateMachine_start(AnyGC this__) {
 
 
 class ComputeStepStateMachineClassInfo extends AsyncStateMachineClassInfo<int> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  ComputeStepStateMachineClassInfo() {
+    step = ComputeStepStateMachine_step;
+    completeWith = ComputeStepStateMachine_completeWith;
+    completeWithError = ComputeStepStateMachine_completeWithError;
+    start = ComputeStepStateMachine_start;
+    get_debugName = ComputeStepStateMachine_get_debugName;
+  }
 }
 
 class ComputeStepStateMachineValue extends AsyncStateMachineValue<int> {
   late int input;
   late PromiseValue<int>? _pendingFuture = null;
-  static ComputeStepStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ComputeStepStateMachineClassInfo _initClassInfo() {
-    final ci = ComputeStepStateMachineClassInfo();
-    ci.step = ComputeStepStateMachine_step;
-    ci.completeWith = ComputeStepStateMachine_completeWith;
-    ci.completeWithError = ComputeStepStateMachine_completeWithError;
-    ci.start = ComputeStepStateMachine_start;
-    ci.get_debugName = ComputeStepStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ComputeStepStateMachineClassInfo>(runtimeType, ComputeStepStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -782,7 +833,7 @@ String ComputeStepStateMachine_get_debugName(AnyGC this__) {
 
 bool ComputeStepStateMachine_step(AnyGC this__) {
   final this_ = this__ as ComputeStepStateMachineValue;
-  _L21: do {
+  _L23: do {
     switch (this_.smState) {
       case 0:
 {
@@ -793,8 +844,8 @@ bool ComputeStepStateMachine_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((() { final _r22 = this_._pendingFuture!; return (_r22.classInfo as PromiseClassInfo).get_isPending!(_r22); })())           return false;
-          final int r = (() { final _r23 = this_._pendingFuture!; return (_r23.classInfo as PromiseClassInfo).get_result!(_r23); })();
+          if ((() { final _r24 = this_._pendingFuture!; return (_r24.classInfo as PromiseClassInfo<int>).get_isPending!(_r24); })())           return false;
+          final int r = (() { final _r25 = this_._pendingFuture!; return (_r25.classInfo as PromiseClassInfo<int>).get_result!(_r25); })();
           log('  ${(this_.classInfo as ComputeStepStateMachineClassInfo).get_debugName!(this_)}: state 1→done, result=${r}');
           (this_.classInfo as ComputeStepStateMachineClassInfo).completeWith!(this_, r);
           return true;
@@ -824,7 +875,14 @@ PromiseValue<int> ComputeStepStateMachine_start(AnyGC this__) {
 
 
 class PipelineStateMachineClassInfo extends AsyncStateMachineClassInfo<int> {
-  Function? get_debugName;
+  String Function(AnyGC)? get_debugName;
+  PipelineStateMachineClassInfo() {
+    step = PipelineStateMachine_step;
+    completeWith = PipelineStateMachine_completeWith;
+    completeWithError = PipelineStateMachine_completeWithError;
+    start = PipelineStateMachine_start;
+    get_debugName = PipelineStateMachine_get_debugName;
+  }
 }
 
 class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
@@ -832,18 +890,8 @@ class PipelineStateMachineValue extends AsyncStateMachineValue<int> {
   late int _b = 0;
   late int _c = 0;
   late PromiseValue<int>? _pendingFuture = null;
-  static PipelineStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static PipelineStateMachineClassInfo _initClassInfo() {
-    final ci = PipelineStateMachineClassInfo();
-    ci.step = PipelineStateMachine_step;
-    ci.completeWith = PipelineStateMachine_completeWith;
-    ci.completeWithError = PipelineStateMachine_completeWithError;
-    ci.start = PipelineStateMachine_start;
-    ci.get_debugName = PipelineStateMachine_get_debugName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PipelineStateMachineClassInfo>(runtimeType, PipelineStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -865,37 +913,37 @@ String PipelineStateMachine_get_debugName(AnyGC this__) {
 
 bool PipelineStateMachine_step(AnyGC this__) {
   final this_ = this__ as PipelineStateMachineValue;
-  _L24: do {
+  _L26: do {
     switch (this_.smState) {
       case 0:
 {
-          this_._pendingFuture = (() { final _r25 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1); return (_r25.classInfo as AsyncStateMachineClassInfo).start!(_r25); })();
+          this_._pendingFuture = (() { final _r27 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), 1); return (_r27.classInfo as AsyncStateMachineClassInfo<int>).start!(_r27); })();
           this_.smState = 1;
           log('  ${(this_.classInfo as PipelineStateMachineClassInfo).get_debugName!(this_)}: state 0→1, started ComputeStep(1)');
           return false;
         }
       case 1:
 {
-          if ((() { final _r26 = this_._pendingFuture!; return (_r26.classInfo as PromiseClassInfo).get_isPending!(_r26); })())           return false;
-          this_._a = (() { final _r27 = this_._pendingFuture!; return (_r27.classInfo as PromiseClassInfo).get_result!(_r27); })();
-          this_._pendingFuture = (() { final _r28 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a); return (_r28.classInfo as AsyncStateMachineClassInfo).start!(_r28); })();
+          if ((() { final _r28 = this_._pendingFuture!; return (_r28.classInfo as PromiseClassInfo<int>).get_isPending!(_r28); })())           return false;
+          this_._a = (() { final _r29 = this_._pendingFuture!; return (_r29.classInfo as PromiseClassInfo<int>).get_result!(_r29); })();
+          this_._pendingFuture = (() { final _r30 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._a); return (_r30.classInfo as AsyncStateMachineClassInfo<int>).start!(_r30); })();
           this_.smState = 2;
           log('  ${(this_.classInfo as PipelineStateMachineClassInfo).get_debugName!(this_)}: state 1→2, a=${this_._a}, started ComputeStep(${this_._a})');
           return false;
         }
       case 2:
 {
-          if ((() { final _r29 = this_._pendingFuture!; return (_r29.classInfo as PromiseClassInfo).get_isPending!(_r29); })())           return false;
-          this_._b = (() { final _r30 = this_._pendingFuture!; return (_r30.classInfo as PromiseClassInfo).get_result!(_r30); })();
-          this_._pendingFuture = (() { final _r31 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b); return (_r31.classInfo as AsyncStateMachineClassInfo).start!(_r31); })();
+          if ((() { final _r31 = this_._pendingFuture!; return (_r31.classInfo as PromiseClassInfo<int>).get_isPending!(_r31); })())           return false;
+          this_._b = (() { final _r32 = this_._pendingFuture!; return (_r32.classInfo as PromiseClassInfo<int>).get_result!(_r32); })();
+          this_._pendingFuture = (() { final _r33 = ComputeStepStateMachine_new(GC.allocateLocal(ComputeStepStateMachineValue()), this_._b); return (_r33.classInfo as AsyncStateMachineClassInfo<int>).start!(_r33); })();
           this_.smState = 3;
           log('  ${(this_.classInfo as PipelineStateMachineClassInfo).get_debugName!(this_)}: state 2→3, b=${this_._b}, started ComputeStep(${this_._b})');
           return false;
         }
       case 3:
 {
-          if ((() { final _r32 = this_._pendingFuture!; return (_r32.classInfo as PromiseClassInfo).get_isPending!(_r32); })())           return false;
-          this_._c = (() { final _r33 = this_._pendingFuture!; return (_r33.classInfo as PromiseClassInfo).get_result!(_r33); })();
+          if ((() { final _r34 = this_._pendingFuture!; return (_r34.classInfo as PromiseClassInfo<int>).get_isPending!(_r34); })())           return false;
+          this_._c = (() { final _r35 = this_._pendingFuture!; return (_r35.classInfo as PromiseClassInfo<int>).get_result!(_r35); })();
           log('  ${(this_.classInfo as PipelineStateMachineClassInfo).get_debugName!(this_)}: state 3→done, c=${this_._c}, sum=${((this_._a + this_._b) + this_._c)}');
           (this_.classInfo as PipelineStateMachineClassInfo).completeWith!(this_, ((this_._a + this_._b) + this_._c));
           return true;
@@ -931,20 +979,20 @@ void log(String msg) {
 T smAwait<T>(PromiseValue<T> future) {
   int roundCount = 0;
   const int maxRounds = 100000;
-  log('smAwait: waiting for future (completed=${(future.classInfo as PromiseClassInfo).get_isCompleted!(future)})');
-  while ((!((future.classInfo as PromiseClassInfo).get_isCompleted!(future)) && !((future.classInfo as PromiseClassInfo).get_isError!(future)))) {
+  log('smAwait: waiting for future (completed=${(future.classInfo as PromiseClassInfo<T>).get_isCompleted!(future)})');
+  while ((!((future.classInfo as PromiseClassInfo<T>).get_isCompleted!(future)) && !((future.classInfo as PromiseClassInfo<T>).get_isError!(future)))) {
     (GlobalScheduler_instance.classInfo as GlobalSchedulerClassInfo).tick!(GlobalScheduler_instance);
     roundCount = (roundCount + 1);
     if ((roundCount > 100000)) {
       throw DartStateError('smAwait exceeded 100000 rounds — possible deadlock');
     }
   }
-  if ((future.classInfo as PromiseClassInfo).get_isError!(future)) {
+  if ((future.classInfo as PromiseClassInfo<T>).get_isError!(future)) {
     log('smAwait: future resolved with ERROR after ${roundCount} ticks');
-    throw (future.classInfo as PromiseClassInfo).get_error!(future)!;
+    throw (future.classInfo as PromiseClassInfo<T>).get_error!(future)!;
   }
   log('smAwait: future resolved with value after ${roundCount} ticks');
-  return (future.classInfo as PromiseClassInfo).get_result!(future);
+  return (future.classInfo as PromiseClassInfo<T>).get_result!(future);
 }
 
 void testBasicAwait() {
@@ -988,7 +1036,7 @@ void testNestedAsync() {
 void testThenChain() {
   staticPrint('\n--- Demo 5: then 链式调用 ---');
   (GlobalScheduler_instance.classInfo as GlobalSchedulerClassInfo).reset!(GlobalScheduler_instance);
-  final PromiseValue<String> future = (() { final _r35 = (() { final _r34 = Promise_value<int>(5); return (_r34.classInfo as dynamic).then_int!(_r34, ClosureEnv_testThenChain_19_new(GC.allocateLocal(ClosureEnv_testThenChain_19()))); })(); return (_r35.classInfo as PromiseClassInfo).then_String!(_r35, ClosureEnv_testThenChain_20_new(GC.allocateLocal(ClosureEnv_testThenChain_20()))); })();
+  final PromiseValue<String> future = (() { final _r37 = (() { final _r36 = Promise_value<int>(5); return (_r36.classInfo as PromiseClassInfo<int>).then_int!(_r36, ClosureEnv_testThenChain_19_new(GC.allocateLocal(ClosureEnv_testThenChain_19()))); })(); return (_r37.classInfo as PromiseClassInfo<int>).then_String!(_r37, ClosureEnv_testThenChain_20_new(GC.allocateLocal(ClosureEnv_testThenChain_20()))); })();
   final String result = smAwait<String>(future);
   assert((result == 'value=10'), 'Expected "value=10", got "${result}"');
   staticPrint('  ✓ Promise.value(5).then(*2).then(format) = "${result}"');
@@ -1010,9 +1058,9 @@ void testParallelAwait() {
   final ParallelAwaitStateMachineValue sm = ParallelAwaitStateMachine_new(GC.allocateLocal(ParallelAwaitStateMachineValue()));
   final PromiseValue<StaticList<int>> future = (sm.classInfo as ParallelAwaitStateMachineClassInfo).start!(sm);
   final StaticList<int> result = StaticList<int>.of(smAwait<StaticList<int>>(future));
-  assert((result.length == 3), 'Expected 3 results');
-  assert((((result[0] == 10) && (result[1] == 20)) && (result[2] == 30)), 'Unexpected results: ${result}');
-  staticPrint('  ✓ parallel([d3→10, d2→20, d1→30]) = ${result}');
+  assert(((result.classInfo as StaticListClassInfo).get_length!(result) == 3), 'Expected 3 results');
+  assert(((((result.classInfo as StaticListClassInfo).operatorIndex!(result, 0) == 10) && ((result.classInfo as StaticListClassInfo).operatorIndex!(result, 1) == 20)) && ((result.classInfo as StaticListClassInfo).operatorIndex!(result, 2) == 30)), 'Unexpected results: ${(result.classInfo as StaticListClassInfo).toString_!(result)}');
+  staticPrint('  ✓ parallel([d3→10, d2→20, d1→30]) = ${(result.classInfo as StaticListClassInfo).toString_!(result)}');
 }
 
 void testPipeline() {
@@ -1082,10 +1130,10 @@ void ClosureEnv_anon_0_call<T>(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_0<T>;
 
     try {
-      (env.promise.classInfo as PromiseClassInfo).complete!(env.promise, env.computation.call());
+      (env.promise.classInfo as PromiseClassInfo<T>).complete!(env.promise, env.computation.call());
     }
  catch (e) {
-      (env.promise.classInfo as PromiseClassInfo).completeError!(env.promise, e);
+      (env.promise.classInfo as PromiseClassInfo<T>).completeError!(env.promise, e);
     }
   }
 
@@ -1115,17 +1163,17 @@ ClosureEnv_anon_1<R, T> ClosureEnv_anon_1_new<R, T>(ClosureEnv_anon_1<R, T> env_
 bool ClosureEnv_anon_1_call<R, T>(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_1<R, T>;
 
-    if ((env.this_.classInfo as PromiseClassInfo).get_isCompleted!(env.this_)) {
+    if ((env.this_.classInfo as PromiseClassInfo<T>).get_isCompleted!(env.this_)) {
       try {
-        (env.nextPromise.classInfo as PromiseClassInfo).complete!(env.nextPromise, env.onValue.call((env.this_.classInfo as PromiseClassInfo).get_result!(env.this_)));
+        (env.nextPromise.classInfo as PromiseClassInfo<R>).complete!(env.nextPromise, env.onValue.call((env.this_.classInfo as PromiseClassInfo<T>).get_result!(env.this_)));
       }
  catch (e) {
-        (env.nextPromise.classInfo as PromiseClassInfo).completeError!(env.nextPromise, e);
+        (env.nextPromise.classInfo as PromiseClassInfo<R>).completeError!(env.nextPromise, e);
       }
       return true;
     }
-    if ((env.this_.classInfo as PromiseClassInfo).get_isError!(env.this_)) {
-      (env.nextPromise.classInfo as PromiseClassInfo).completeError!(env.nextPromise, (env.this_.classInfo as PromiseClassInfo).get_error!(env.this_)!);
+    if ((env.this_.classInfo as PromiseClassInfo<T>).get_isError!(env.this_)) {
+      (env.nextPromise.classInfo as PromiseClassInfo<R>).completeError!(env.nextPromise, (env.this_.classInfo as PromiseClassInfo<T>).get_error!(env.this_)!);
       return true;
     }
     return false;
@@ -1197,11 +1245,11 @@ ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_, StaticSet<Promis
 bool ClosureEnv_anon_4_call(AnyGC env__, PromiseValue<dynamic> p) {
   final env = env__ as ClosureEnv_anon_4;
 
-  return env.finished.contains(p);
+  return (env.finished.classInfo as StaticSetClassInfo).contains!(env.finished, p);
 }
 
 class ClosureEnv_anon_5 extends TypeFunction0<bool> {
-  late dynamic _r;
+  late AnyGC _r;
   ClosureEnv_anon_5();
   @override
   bool call() => fnPtr(this);
@@ -1212,7 +1260,7 @@ class ClosureEnv_anon_5 extends TypeFunction0<bool> {
     if (_r is AnyGC) (_r as AnyGC).gcMark(flag);
   }
 }
-ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_, dynamic _r) {
+ClosureEnv_anon_5 ClosureEnv_anon_5_new(ClosureEnv_anon_5 env_, AnyGC _r) {
   env_.fnPtr = ClosureEnv_anon_5_call;
   env_._r = _r;
   return env_;
@@ -1376,7 +1424,7 @@ ClosureEnv_anon_15 ClosureEnv_anon_15_new(ClosureEnv_anon_15 env_) {
 bool ClosureEnv_anon_15_call(AnyGC env__, PromiseValue<int> f) {
   final env = env__ as ClosureEnv_anon_15;
 
-  return ((f.classInfo as PromiseClassInfo).get_isCompleted!(f) || (f.classInfo as PromiseClassInfo).get_isError!(f));
+  return ((f.classInfo as PromiseClassInfo<int>).get_isCompleted!(f) || (f.classInfo as PromiseClassInfo<int>).get_isError!(f));
 }
 
 class ClosureEnv_anon_16 extends TypeFunction1<int, PromiseValue<int>> {
@@ -1391,7 +1439,7 @@ ClosureEnv_anon_16 ClosureEnv_anon_16_new(ClosureEnv_anon_16 env_) {
 int ClosureEnv_anon_16_call(AnyGC env__, PromiseValue<int> f) {
   final env = env__ as ClosureEnv_anon_16;
 
-  return (f.classInfo as PromiseClassInfo).get_result!(f);
+  return (f.classInfo as PromiseClassInfo<int>).get_result!(f);
 }
 
 class ClosureEnv_anon_17 extends TypeFunction0<int> {

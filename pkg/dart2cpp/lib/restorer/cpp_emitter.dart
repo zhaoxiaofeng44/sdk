@@ -55,9 +55,6 @@ class CppEmitter {
   /// 变量类型映射（用于判断变量是否是 AnyGC* 类型）
   final Map<String, String> _variableTypeMap = {};
 
-  /// catch 块中的引用变量名（使用 . 而非 -> 访问成员）
-  final Set<String> _referenceVariables = {};
-
   /// 枚举常量索引映射：'EnumName.constantName' → index
   final Map<String, int> _enumConstantIndices = {};
 
@@ -70,8 +67,6 @@ class CppEmitter {
   /// 已发出的前向声明
   final Set<String> _emittedForwardDecls = {};
 
-  /// 已解析的函数签名（函数名 → 参数类型列表），用于 wrapper 查找实际参数类型
-  final Map<String, List<String>> _resolvedFuncParams = {};
   /// 已解析的函数返回类型（函数名 → 返回类型）
   final Map<String, String> _resolvedFuncReturnTypes = {};
 
@@ -189,7 +184,6 @@ class CppEmitter {
     _implBuf.clear();
     _mainBuf.clear();
     _emittedForwardDecls.clear();
-    _resolvedFuncParams.clear();
     _resolvedFuncReturnTypes.clear();
     _emittedStructs.clear();
     _emittedImplementations.clear();
@@ -448,9 +442,6 @@ class CppEmitter {
       } else if (node is FunctionInvocation) {
         check(node.receiver);
         for (final a in node.arguments.positional) check(a);
-      } else if (node is DynamicInvocation) {
-        check(node.receiver);
-        for (final a in node.arguments.positional) check(a);
       } else if (node is BlockExpression) {
         check(node.body);
         check(node.value);
@@ -702,9 +693,9 @@ class CppEmitter {
         // are no longer deducible after making closures return AnyGC*
         String methodTemplateArgs = '';
         if (!isGetter && !isSetter && entry.proc != null) {
-          final methodTypeParamCount = entry.proc!.function.typeParameters.length;
-          if (methodTypeParamCount > 0) {
-            methodTemplateArgs = List.filled(methodTypeParamCount, 'AnyGC*').join(', ');
+          final methodTypeParams = entry.proc!.function.typeParameters.map((tp) => tp.name ?? 'T').toList();
+          if (methodTypeParams.isNotEmpty) {
+            methodTemplateArgs = methodTypeParams.join(', ');
           }
         }
         // Build function call template args (class + method params)
@@ -1175,18 +1166,6 @@ class CppEmitter {
       }
       if (hasUnresolved) continue;
 
-      // 存储解析后的签名信息
-      final resolvedParamTypes = <String>[];
-      for (final p in params) {
-        final type = p.split(' ').first;
-        resolvedParamTypes.add(type);
-      }
-      // 去掉 this__ 参数（第一个）
-      if (resolvedParamTypes.isNotEmpty && resolvedParamTypes[0].contains('Value')) {
-        _resolvedFuncParams[funcName] = resolvedParamTypes.sublist(1);
-      } else {
-        _resolvedFuncParams[funcName] = resolvedParamTypes;
-      }
       _resolvedFuncReturnTypes[funcName] = returnType;
 
       final fwdDecl = combinedTemplateDecl.isNotEmpty
@@ -1469,6 +1448,7 @@ class CppEmitter {
       // 模板类需要 this-> 前缀访问依赖基类成员
       final prefix = hasTemplate ? 'this->' : '';
       _structBuf.writeln('    $classInfoName() {');
+      _structBuf.writeln('        ${prefix}typeName = "$className";');
       for (final entry in vtableEntries) {
         final fieldName = _classInfoFieldName(entry);
         _structBuf.writeln('        ${prefix}$fieldName = &_vptr_wrap_${cleanName}_$fieldName$tplArgs;');
@@ -1542,7 +1522,7 @@ class CppEmitter {
     // 生成 vptr wrapper 函数（在构造函数之前，这样构造函数可以引用它们）
     _emitVptrWrappers(className, structName, cls, typeParams);
 
-    // gcMark 静态函数 — 通过 vptrMap 派发，不依赖 C++ virtual override
+    // gcMark 静态函数 — 通过 ClassInfo dispatch 派发，不依赖 C++ virtual override
     if (inheritsVPtr) {
       final cleanName = _cleanName(className);
       final gcMarkFuncName = '_gcMark_$cleanName';
@@ -1590,7 +1570,7 @@ class CppEmitter {
       _implBuf.writeln();
     }
 
-    // AsyncStateMachine 子类：生成 _gcMark 静态函数（标记子类字段，由 AsyncStateMachine::gcMark 通过 vptrMap 调用）
+    // AsyncStateMachine 子类：生成 _gcMark 静态函数（标记子类字段，由 AsyncStateMachine::gcMark 通过 ClassInfo dispatch 调用）
     if (isAsyncSM) {
       final cleanName = _cleanName(className);
       _implBuf.writeln('void _gcMark_$cleanName(AnyGC* obj__, int flag) {');
@@ -1615,7 +1595,7 @@ class CppEmitter {
       _implBuf.writeln();
     }
 
-    // 非模板类：通过静态初始化器提前注册 vptrMap，确保即使通过 new X() 直接创建对象也能正确派发
+    // 非模板类：通过静态初始化器提前注册 ClassInfo dispatch，确保即使通过 new X() 直接创建对象也能正确派发
     final vtableEntriesForReg = _classVTableEntries[className] ?? [];
 
     // AsyncStateMachine 子类：生成继承方法的 wrapper（直接调用基类方法）
@@ -1629,34 +1609,22 @@ class CppEmitter {
       if (clsNode != null && clsNode.supertype != null && clsNode.supertype!.typeArguments.isNotEmpty) {
         smInnerType = _cppType(clsNode.supertype!.typeArguments.first);
       }
-      // start() → Promise<T>*
+      // start() → Promise<T>* (dispatch through AsyncStateMachine<T> base vptr)
       if (!existingNames.contains('start')) {
         _implBuf.writeln('AnyGC* _vptr_wrap_${cleanName}_start(AnyGC* obj__) {');
-        _implBuf.writeln('    return _box(static_cast<$structName*>(obj__)->start());');
+        _implBuf.writeln('    return AsyncStateMachine<$smInnerType>::_vptr_start(obj__);');
         _implBuf.writeln('}');
       }
-      // completeWith(value)
+      // completeWith(value) (dispatch through AsyncStateMachine<T> base vptr)
       if (!existingNames.contains('completeWith')) {
         _implBuf.writeln('void _vptr_wrap_${cleanName}_completeWith(AnyGC* obj__, AnyGC* arg0) {');
-        if (smInnerType == 'int64_t') {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(dynAs<int64_t>(arg0));');
-        } else if (smInnerType == 'double') {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(dynAs<double>(arg0));');
-        } else if (smInnerType == 'bool') {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(dynAs<bool>(arg0));');
-        } else if (smInnerType == 'std::string') {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(dynAs<std::string>(arg0));');
-        } else if (smInnerType.endsWith('*')) {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(static_cast<$smInnerType>(arg0));');
-        } else {
-          _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWith(dynAs<$smInnerType>(arg0));');
-        }
+        _implBuf.writeln('    AsyncStateMachine<$smInnerType>::_vptr_completeWith(obj__, arg0);');
         _implBuf.writeln('}');
       }
-      // completeWithError(error)
+      // completeWithError(error) (dispatch through AsyncStateMachine<T> base vptr)
       if (!existingNames.contains('completeWithError')) {
         _implBuf.writeln('void _vptr_wrap_${cleanName}_completeWithError(AnyGC* obj__, AnyGC* arg0) {');
-        _implBuf.writeln('    static_cast<$structName*>(obj__)->completeWithError(arg0);');
+        _implBuf.writeln('    AsyncStateMachine<$smInnerType>::_vptr_completeWithError(obj__, arg0);');
         _implBuf.writeln('}');
       }
     }
@@ -2746,22 +2714,6 @@ class CppEmitter {
         : '$returnType $funcName(${params.join(', ')})';
     _addForwardDecl(fwdDecl);
 
-    // 存储解析后的签名信息，供 wrapper 生成使用
-    // 跳过 this__ 参数（第一个参数，类型为结构体指针）
-    final paramTypes = <String>[];
-    bool skippedThis = false;
-    for (final param in func.positionalParameters) {
-      final paramType = _cppType(param.type);
-      if (!skippedThis && paramType.endsWith('*') && (param.name == 'this__' || paramType.contains('Value'))) {
-        skippedThis = true;
-        continue; // 跳过 this__ 参数
-      }
-      paramTypes.add(paramType);
-    }
-    for (final param in func.namedParameters) {
-      paramTypes.add(_cppType(param.type));
-    }
-    _resolvedFuncParams[funcName] = paramTypes;
     _resolvedFuncReturnTypes[funcName] = returnType;
   }
 
@@ -3051,6 +3003,7 @@ class CppEmitter {
         final retType = _procReturnType(proc, isSetter: proc.isSetter);
         _structBuf.writeln('    ${_classInfoFieldDecl(fieldName, argCount, retType: retType)};');
       }
+      _structBuf.writeln('    ${enumName}ClassInfo() { typeName = "$enumName"; }');
       _structBuf.writeln('};');
       _structBuf.writeln();
     }
@@ -3289,6 +3242,7 @@ class CppEmitter {
       }
       _structBuf.writeln('    ${_classInfoFieldDecl(fieldName, argCount, retType: _procReturnType(proc, isSetter: proc.isSetter))};');
     }
+    _structBuf.writeln('    ${structName}ClassInfo() { typeName = "$structName"; }');
     _structBuf.writeln('};');
     _structBuf.writeln();
 
@@ -3686,13 +3640,6 @@ class CppEmitter {
     if (expr is ConstantExpression) return _emitCppConstant(expr.constant);
     if (expr is BlockExpression) return _emitCppBlockExpression(expr);
 
-    // Dynamic dispatch expressions
-    if (expr is DynamicInvocation) {
-      return _emitCppDynamicInvocation(expr);
-    }
-    if (expr is DynamicGet) return _emitCppDynamicGet(expr);
-    if (expr is DynamicSet) return _emitCppDynamicSet(expr);
-
     // Super access expressions
     if (expr is SuperPropertyGet) return _emitCppSuperPropertyGet(expr);
     if (expr is SuperMethodInvocation) return _emitCppSuperMethodInvocation(expr);
@@ -3738,254 +3685,6 @@ class CppEmitter {
     final value = _emitCppExpr(expr.value);
     final cleanedStmts = tmpBuf.toString();
     return '([&]() { $cleanedStmts return $value; })()';
-  }
-
-  // ==========================================================================
-  // Dynamic dispatch expressions
-  // ==========================================================================
-
-  String _emitCppDynamicInvocation(DynamicInvocation expr) {
-    final rawReceiver = _emitCppExpr(expr.receiver);
-    final methodName = _cleanName(expr.name.text);
-    final args = expr.arguments.positional.map((e) => _emitCppExpr(e)).join(', ');
-
-    // 检查接收器类型，对已知类型使用直接调用
-    final receiverType = _getExpressionType(expr.receiver);
-    // 将 AnyGC* 接收器转换为真实类型（仿照 Dart 的 dynamic dispatch）
-    final receiver = _castReceiverToType(rawReceiver, receiverType);
-
-    // 对 catch 块中的异常变量使用直接方法调用（DartException 不参与 ClassInfo 派发）
-    if (_catchExceptionVars.contains(receiver) || _catchExceptionVars.contains(rawReceiver)) {
-      final exVar = _catchExceptionVars.contains(receiver) ? receiver : rawReceiver;
-      if (methodName == 'toString') return '$exVar.toString()';
-      if (methodName == 'get_message' || methodName == 'message') return '$exVar.message';
-      return '$exVar.$methodName($args)';
-    }
-
-    // 检查是否是运算符
-    if (_isOperatorName(expr.name.text)) {
-      return _emitCppOperatorCall(expr, rawReceiver, expr.name.text, args);
-    }
-
-    // 检查是否是索引操作符 [] / []=
-    if (expr.name.text == '[]') {
-      final index = args;
-      return '$receiver->get($index)';
-    }
-    if (expr.name.text == '[]=') {
-      final argList = args.split(',');
-      if (argList.length >= 2) {
-        return '$receiver->set(${argList[0].trim()}, ${argList[1].trim()})';
-      }
-    }
-
-    // 如果接收器表达式是 std::string 类型，处理字符串方法
-    if (_cppExprReturnsString(receiver) || receiver.startsWith('dynAs<std::string>')) {
-      final strResult = _emitCppStringMethodCall(receiver, methodName, args);
-      if (strResult != null) return strResult;
-    }
-
-    if (receiverType != null) {
-      // 检查是否为基本类型（int, double, bool, String）
-      if (_isPrimitiveType(receiverType)) {
-        return _emitCppPrimitiveMethodCall(receiver, methodName, args, receiverType);
-      }
-
-      if (receiverType is InterfaceType) {
-        final typeName = receiverType.classNode.name;
-        // 集合类型
-        if (typeName == 'List' || typeName == 'Set' || typeName == 'Map' || typeName == 'Iterable' ||
-            typeName == 'StaticList' || typeName == 'StaticSet' || typeName == 'StaticMap' ||
-            typeName == 'StaticIterator' || typeName == 'Array' || typeName == 'Iterator' ||
-            typeName == '_List' || typeName == '_GrowableList' || typeName == '_Iterable' ||
-            typeName == '_Set' || typeName == '_Map' ||
-            typeName.contains('Iterator')) {
-          return _emitCppCollectionMethodCall(receiver, methodName, expr.arguments, receiverType, expr.arguments.types);
-        }
-        if ((typeName == 'Promise' || typeName == 'Future') && !_userClasses.contains(typeName)) {
-          return _emitCppPromiseMethodCall(receiver, methodName, args, receiverType, expr.arguments.types);
-        }
-        if ((typeName == 'StringBuffer' || typeName == 'StaticStringBuffer') && !_userClasses.contains(typeName)) {
-          return _emitCppStringBufferMethodCall(receiver, methodName, args);
-        }
-        if (typeName == 'GlobalScheduler' && !_userClasses.contains(typeName)) {
-          return _emitCppGlobalSchedulerMethodCall(receiver, methodName, args);
-        }
-      }
-    }
-
-    // TypeFunction.call() → cast to typed TypeFunctionN<AnyGC*, ...> and call fnPtr()
-    if (methodName == 'call' && (receiverType == null || _isDynamicOrAnyGC(receiverType))) {
-      final argList = args.isEmpty ? <String>[] : _splitTopLevel(args);
-      final anyArgs = List.filled(argList.length, 'AnyGC*').join(', ');
-      final typeArgs = anyArgs.isEmpty ? 'AnyGC*' : 'AnyGC*, $anyArgs';
-      final castReceiver = 'static_cast<TypeFunctionN<$typeArgs>*>($receiver)';
-      if (args.isEmpty) return '$castReceiver->fnPtr($castReceiver)';
-      return '$castReceiver->fnPtr($castReceiver, ${_wrapVptrArgs(args)})';
-    }
-
-    // 动态方法调用 → 通过 ClassInfo 派发
-    final argCount = expr.arguments.positional.length;
-    String vptrReceiver = receiver;
-    if (_needsToVPtr(receiver, receiverType)) {
-      vptrReceiver = _convertToVPtr(receiver, receiverType);
-    }
-    final wrappedArgs = _wrapVptrArgs(args);
-    final allArgs = wrappedArgs.isNotEmpty ? '$vptrReceiver, $wrappedArgs' : vptrReceiver;
-    final ciField = _cleanMethodName(methodName);
-    // 如果类型未知或含未解析类型参数，且方法是集合方法（不在 base ClassInfo 中）
-    final isCollectionMethod = _collectionMethods.values.any((s) => s.contains(methodName));
-    final hasUnresolved = receiverType != null && _dartTypeHasUnresolvedTypeParam(receiverType);
-    if ((_classInfoTypeName(receiverType) == 'ClassInfo' || hasUnresolved) && isCollectionMethod && !_baseClassInfoFields.contains(ciField)) {
-      // 尝试基于 C++ 表达式模式的 ClassInfo 派发
-      final collTypeName = _detectCollTypeFromPattern(receiver);
-      if (collTypeName != null && _collectionMethods[collTypeName]!.contains(methodName)) {
-        final collCiField = _collectionMethodToCiField[methodName] ?? ciField;
-        final argList = args.isEmpty ? <String>[] : _splitTopLevel(args);
-        final boxedArgs = argList.map((a) => _boxCollectionArg(a, null)).toList();
-        final ciCall = _patternClassInfoDispatch(receiver, collTypeName, collCiField, boxedArgs);
-        if (ciCall.isNotEmpty) return _unboxPatternMethodResult(ciCall, methodName, collTypeName);
-      }
-      // 无法确定集合类型 — 使用直接调用
-      String directReceiver = receiver;
-      final castPrefix = 'static_cast<AnyGC*>(';
-      if (directReceiver.startsWith(castPrefix) && directReceiver.endsWith(')')) {
-        directReceiver = directReceiver.substring(castPrefix.length, directReceiver.length - 1);
-      }
-      if (args.isEmpty) return '$directReceiver->$methodName()';
-      return '$directReceiver->$methodName($args)';
-    }
-    final call = '${_classInfoAccess(vptrReceiver, receiverType, ciField)}($allArgs)';
-    if (_isRawReturnField(ciField)) return call;
-    // 根据表达式静态类型添加返回值转换
-    final exprType = _getExpressionType(expr);
-    if (exprType != null) {
-      final cppRetType = _cppType(exprType);
-      if (cppRetType == 'double') return 'dynAs<double>($call)';
-      if (cppRetType == 'std::string') return 'dynAs<std::string>($call)';
-      if (cppRetType == 'int64_t' || cppRetType == 'bool') return call;
-      if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') return 'static_cast<$cppRetType>($call)';
-      if (_isConcreteCppReturnType(cppRetType)) return 'dynAs<$cppRetType>($call)';
-    }
-    return call;
-  }
-
-  String _emitCppDynamicGet(DynamicGet expr) {
-    final rawReceiver = _emitCppExpr(expr.receiver);
-    final fieldName = _cleanName(expr.name.text);
-
-    // 对引用变量（如 catch 块中的异常变量），直接访问字段
-    if (_referenceVariables.contains(rawReceiver)) {
-      return '$rawReceiver.$fieldName';
-    }
-
-    // 对 catch 块中的异常变量使用直接字段访问（DartException 不参与 ClassInfo 派发）
-    if (_catchExceptionVars.contains(rawReceiver)) {
-      if (fieldName == 'message') return '$rawReceiver.message';
-      return '$rawReceiver.$fieldName';
-    }
-
-    // 检查接收器类型，对已知类型使用直接属性访问
-    final receiverType = _getExpressionType(expr.receiver);
-    // 将 AnyGC* 接收器转换为真实类型
-    final receiver = _castReceiverToType(rawReceiver, receiverType);
-
-    if (receiverType is InterfaceType) {
-      final typeName = receiverType.classNode.name;
-      if ((typeName == 'Promise' || typeName == 'Future') && !_userClasses.contains(typeName)) {
-        return _emitCppPromiseGetter(receiver, fieldName);
-      }
-      if (typeName == 'GlobalScheduler' && !_userClasses.contains(typeName)) {
-        // GlobalScheduler.instance → GlobalScheduler::instance()
-        if (fieldName == 'instance') return 'GlobalScheduler::instance()';
-      }
-      // String 属性
-      if (typeName == 'String') {
-        switch (fieldName) {
-          case 'isEmpty': return '$receiver.empty()';
-          case 'isNotEmpty': return '!$receiver.empty()';
-          case 'length': return 'static_cast<int64_t>($receiver.length())';
-        }
-      }
-      // 集合类型 getter — ClassInfo 派发
-      final isListType = typeName == 'List' || typeName == 'StaticList' ||
-          typeName == 'Iterable' || typeName == '_Iterable' ||
-          typeName == '_List' || typeName == '_GrowableList';
-      final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
-      final isSetType = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
-      if (isListType || isMapType || isSetType) {
-        final collectionGetters = {
-          'length', 'isEmpty', 'isNotEmpty',
-          'first', 'last', 'single', 'reversed', 'iterator',
-          'keys', 'values', 'entries',
-        };
-        if (collectionGetters.contains(fieldName)) {
-          if (_dartTypeHasUnresolvedTypeParam(receiverType)) {
-            final collTypeName = _normalizeCollTypeName(typeName);
-            final result = _patternGetterFallback(receiver, fieldName, collTypeName);
-            if (result.isNotEmpty) return result;
-          }
-          final ciField = _collectionMethodToCiField[fieldName] ?? fieldName;
-          final vptrReceiver = 'static_cast<AnyGC*>($receiver)';
-          final ciCall = '${_classInfoAccess(vptrReceiver, receiverType, ciField)}($vptrReceiver)';
-          return _unboxCollectionResult(ciCall, receiverType, fieldName);
-        }
-      }
-      if (typeName == 'Array') {
-        if (fieldName == 'length') return 'static_cast<int>($receiver->_storage.size())';
-      }
-    }
-
-    // 基于 C++ 表达式模式的 fallback：StaticList/StaticMap/StaticSet → ClassInfo 派发
-    {
-      final result = _patternGetterFallback(receiver, fieldName);
-      if (result.isNotEmpty) return result;
-    }
-
-    // Duration 属性访问的特殊处理：当 AnyGC* 结果上访问 Duration 属性时
-    if (_isAnyPtrResult(receiver)) {
-      switch (fieldName) {
-        case 'inMilliseconds': return 'dynAs<int64_t>($receiver)';
-        case 'inSeconds': return '(dynAs<int64_t>($receiver) / 1000)';
-        case 'inMicroseconds': return '(dynAs<int64_t>($receiver) * 1000)';
-        case 'inMinutes': return '(dynAs<int64_t>($receiver) / 60000)';
-        case 'inHours': return '(dynAs<int64_t>($receiver) / 3600000)';
-        case 'inDays': return '(dynAs<int64_t>($receiver) / 86400000)';
-      }
-    }
-
-    // 通过 ClassInfo 派发 getter
-    String vptrReceiver = receiver;
-    if (_needsToVPtr(receiver, receiverType)) {
-      vptrReceiver = _convertToVPtr(receiver, receiverType);
-    }
-    final ciField = 'get_$fieldName';
-    final call = '${_classInfoAccess(vptrReceiver, receiverType, ciField)}($vptrReceiver)';
-    if (_isRawReturnField(ciField)) return call;
-    // 根据表达式静态类型添加返回值转换
-    final exprType = _getExpressionType(expr);
-    if (exprType != null) {
-      final cppRetType = _cppType(exprType);
-      if (cppRetType == 'double') return 'dynAs<double>($call)';
-      if (cppRetType == 'std::string') return 'dynAs<std::string>($call)';
-      if (cppRetType == 'int64_t' || cppRetType == 'bool') return call;
-      if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') return 'static_cast<$cppRetType>($call)';
-      if (_isConcreteCppReturnType(cppRetType)) return 'dynAs<$cppRetType>($call)';
-    }
-    return call;
-  }
-
-  String _emitCppDynamicSet(DynamicSet expr) {
-    final receiver = _emitCppExpr(expr.receiver);
-    final fieldName = _cleanName(expr.name.text);
-    final value = _emitCppExpr(expr.value);
-    final receiverType = _getExpressionType(expr.receiver);
-    // 通过 ClassInfo 派发 setter
-    String vptrReceiver = receiver;
-    if (_needsToVPtr(receiver, receiverType)) {
-      vptrReceiver = _convertToVPtr(receiver, receiverType);
-    }
-    return '${_classInfoAccess(vptrReceiver, receiverType, 'set_$fieldName')}($vptrReceiver, _box($value))';
   }
 
   // ==========================================================================
@@ -4394,12 +4093,7 @@ class CppEmitter {
     final rawReceiver = _emitCppExpr(expr.receiver);
     final fieldName = _cleanName(expr.name.text);
 
-    // 对引用变量（如 catch 块中的异常变量），直接访问字段
-    if (_referenceVariables.contains(rawReceiver)) {
-      return '$rawReceiver.$fieldName';
-    }
-
-    // 对 this.field，优先使用直接字段访问（避免 vptrMap 返回 AnyGC* 的类型不匹配）
+    // 对 this.field，优先使用直接字段访问（避免 ClassInfo dispatch 返回 AnyGC* 的类型不匹配）
     // 跳过枚举类型（枚举有特殊的字段名映射，如 index → _index）
     if (rawReceiver == 'this_' && _currentClassName.isNotEmpty &&
         !_enumNames.contains(_currentClassName)) {
@@ -4448,12 +4142,23 @@ class CppEmitter {
 
       // 特殊处理 int/double 类型的属性
       if (receiverType is InterfaceType && (receiverType.classNode.name == 'int' || receiverType.classNode.name == 'double')) {
-        if (fieldName == 'hashCode') {
-          if (receiverType.classNode.name == 'int') {
-            return 'static_cast<int64_t>($receiver)';
-          } else {
+        final typeName = receiverType.classNode.name;
+        switch (fieldName) {
+          case 'hashCode':
+            if (typeName == 'int') return 'static_cast<int64_t>($receiver)';
             return 'static_cast<int64_t>(std::hash<double>{}($receiver))';
-          }
+          case 'sign':
+            if (typeName == 'int') return '(($receiver > 0) ? 1LL : (($receiver < 0) ? -1LL : 0LL))';
+            return '(std::isnan($receiver) ? $receiver : (($receiver == 0.0) ? $receiver : (($receiver > 0.0) ? 1.0 : -1.0)))';
+          case 'isNegative':
+            if (typeName == 'int') return '($receiver < 0)';
+            return '(($receiver < 0.0) || ($receiver == 0.0 && std::signbit($receiver)))';
+          case 'isNaN':
+            if (typeName == 'double') return 'std::isnan($receiver)';
+            return 'false';
+          case 'isInfinite':
+            if (typeName == 'double') return 'std::isinf($receiver)';
+            return 'false';
         }
       }
 
@@ -4699,10 +4404,6 @@ class CppEmitter {
       }
     }
 
-    // 默认使用 -> 访问指针，但对引用类型使用 .
-    if (_referenceVariables.contains(receiver)) {
-      return '$receiver.$fieldName';
-    }
     final receiverVarType = _variableTypeMap[receiver];
     if (receiverVarType != null && receiverVarType.endsWith('&')) {
       return '$receiver.$fieldName';
@@ -4854,7 +4555,7 @@ class CppEmitter {
     if (receiverType != null) {
       // 检查是否为基本类型（int, double, bool, string）
       if (_isPrimitiveType(receiverType)) {
-        return _emitCppPrimitiveMethodCall(receiver, methodName, args, receiverType);
+        return _emitCppPrimitiveMethodCallByName(receiver, methodName, args, (receiverType as InterfaceType).classNode.name);
       }
 
       // 检查是否为集合类型（List, Set, Map, Iterable, StaticList, StaticSet, StaticMap, StaticIterator, Array, Iterator）
@@ -4930,16 +4631,6 @@ class CppEmitter {
       return _emitCppTemplateParamMethodCall(receiver, methodName, args, expr);
     }
 
-    // 集合类型：通过 ClassInfo 派发（包括模板方法）
-    if (receiverType is InterfaceType) {
-      final typeName = receiverType.classNode.name;
-      if (typeName == 'List' || typeName == 'StaticList' || typeName == 'Iterable' || typeName == '_Iterable' || typeName == '_List' || typeName == '_GrowableList' ||
-          typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set' ||
-          typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map') {
-        return _emitCppCollectionMethodCall(receiver, methodName, expr.arguments, receiverType, expr.arguments.types);
-      }
-    }
-
     // TypeFunction.call() → cast to typed TypeFunctionN<AnyGC*, ...> and call fnPtr()
     if (methodName == 'call' && (receiverType == null || _isDynamicOrAnyGC(receiverType))) {
       final argList = args.isEmpty ? <String>[] : _splitTopLevel(args);
@@ -4950,7 +4641,7 @@ class CppEmitter {
       return '$castReceiver->fnPtr($castReceiver, ${_wrapVptrArgs(args)})';
     }
 
-    // 私有方法调用 — 不在 vptrMap 中，直接调用静态函数
+    // 私有方法调用 — 不在 ClassInfo dispatch 中，直接调用静态函数
     if (rawMethodName.startsWith('_') && receiver == 'this_' && _currentClassName.isNotEmpty) {
       final cls = _classNodes[_currentClassName];
       if (cls != null && _userClasses.contains(_currentClassName) && cls.typeParameters.isEmpty) {
@@ -4994,7 +4685,11 @@ class CppEmitter {
         else if (cppRetType == 'std::string') retSuffix = 'dynAs<std::string>';
         else if (cppRetType == 'int64_t') retSuffix = 'dynAs<int64_t>';
         else if (cppRetType == 'bool') retSuffix = 'dynAs<bool>';
-        else if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') return 'static_cast<$cppRetType>($_call)';
+        else if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') {
+          // Collection template methods return type-erased AnyGC* — skip cast
+          if (methodName == 'map' || methodName == 'expand' || methodName == 'cast' || methodName == 'whereType') return _call;
+          return 'static_cast<$cppRetType>($_call)';
+        }
         else if (exprType is TypeParameterType) retSuffix = 'dynAs<$cppRetType>';
       }
     }
@@ -5061,9 +4756,9 @@ class CppEmitter {
       'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'sort', 'sublist',
       'first', 'last', 'single', 'any', 'every', 'fold', 'reduce', 'reversed',
       'indexOf', 'insert', 'insertAll', 'remove', 'removeAt', 'removeLast', 'removeWhere',
-      'retainWhere', 'iterator', 'take', 'skip', 'takeWhile', 'skipWhile',
-      'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere', 'lastIndexOf',
-      'cast', 'whereType', 'toString', 'asMap', 'followedBy', 'elementAt',
+      'retainWhere', 'removeRange', 'fillRange', 'iterator', 'take', 'skip', 'takeWhile', 'skipWhile',
+      'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere', 'lastIndexWhere', 'lastIndexOf',
+      'getRange', 'cast', 'whereType', 'toString', 'asMap', 'followedBy', 'elementAt',
     },
     'Iterable': {
       'contains', 'isEmpty', 'isNotEmpty', 'length', 'map', 'expand', 'where', 'forEach',
@@ -5077,23 +4772,23 @@ class CppEmitter {
       'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'sort', 'sublist',
       'first', 'last', 'single', 'any', 'every', 'fold', 'reduce', 'reversed',
       'indexOf', 'insert', 'insertAll', 'remove', 'removeAt', 'removeLast', 'removeWhere',
-      'retainWhere', 'iterator', 'take', 'skip', 'takeWhile', 'skipWhile',
-      'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere', 'lastIndexOf',
-      'cast', 'whereType', 'toString', 'asMap', 'followedBy', 'elementAt',
+      'retainWhere', 'removeRange', 'fillRange', 'iterator', 'take', 'skip', 'takeWhile', 'skipWhile',
+      'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere', 'lastIndexWhere', 'lastIndexOf',
+      'getRange', 'cast', 'whereType', 'toString', 'asMap', 'followedBy', 'elementAt',
     },
     'Set': {
       'add', 'addAll', 'clear', 'contains', 'isEmpty', 'isNotEmpty', 'length',
       'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'first', 'last',
       'single', 'any', 'every', 'iterator', 'take', 'skip', 'takeWhile',
       'skipWhile', 'firstWhere', 'lastWhere', 'singleWhere',
-      'remove', 'removeWhere', 'retainWhere', 'lookup',
+      'remove', 'containsAll', 'removeWhere', 'retainWhere', 'lookup',
       'union', 'unionSet', 'union_', 'intersection', 'difference',
       'reduce', 'cast', 'whereType', 'toString', 'fold', 'elementAt',
     },
     'StaticSet': {
       'add', 'addAll', 'clear', 'contains', 'isEmpty', 'isNotEmpty', 'length',
       'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'first', 'last',
-      'single', 'any', 'every', 'remove', 'removeWhere', 'retainWhere', 'lookup',
+      'single', 'any', 'every', 'remove', 'containsAll', 'removeWhere', 'retainWhere', 'lookup',
       'union', 'unionSet', 'union_', 'intersection', 'difference',
       'take', 'skip', 'takeWhile', 'skipWhile', 'firstWhere', 'lastWhere', 'singleWhere',
       'reduce', 'cast', 'whereType', 'toString', 'fold', 'elementAt',
@@ -5132,7 +4827,7 @@ class CppEmitter {
         if (args.contains('[') && args.contains('](') && !args.contains('TypeFunction')) {
           return 'promise_then<$R>($receiver, $args)';
         }
-        return '_PromiseThen<$R>::call($receiver, static_cast<TypeFunction*>($args))';
+        return '_PromiseThen<$R>::call($receiver, $args)';
       case 'catchError': return 'promise_catchError($receiver, $args)';
       case 'whenComplete': return 'promise_whenComplete($receiver, $args)';
       case 'complete': return 'promise_complete($receiver, $args)';
@@ -5230,8 +4925,9 @@ class CppEmitter {
   /// 集合方法的可选参数最大数量（不含 self）
   static const _collectionMethodMaxArgs = <String, int>{
     'firstWhere': 2, 'lastWhere': 2, 'singleWhere': 2,
-    'indexOf': 2, 'lastIndexOf': 2, 'indexWhere': 2,
-    'sublist': 2, 'join': 1, 'sort': 1, 'update': 3,
+    'indexOf': 2, 'lastIndexOf': 2, 'indexWhere': 2, 'lastIndexWhere': 2,
+    'sublist': 2, 'getRange': 2, 'join': 1, 'sort': 1, 'update': 3,
+    'fillRange': 3, 'setRange': 4,
     'map': 1, 'expand': 1, 'fold': 2,
   };
 
@@ -5271,25 +4967,22 @@ class CppEmitter {
   String _patternClassInfoDispatch(String receiver, String collTypeName, String ciField, [List<String> boxedArgs = const []]) {
     final vptrReceiver = 'static_cast<AnyGC*>($receiver)';
     String ciType;
-    if (_baseClassInfoFields.contains(ciField)) {
-      ciType = 'ClassInfo';
-    } else if (collTypeName == 'StaticList') {
+    // Prefer the collection-specific ClassInfo subclass so that shadowed fields
+    // (e.g. StaticList's lastIndexOf) resolve to the correct implementation.
+    // Base fields are inherited, so accessing them through the derived cast is safe.
+    if (collTypeName == 'StaticList') {
       ciType = 'StaticListClassInfo<AnyGC*>';
     } else if (collTypeName == 'StaticSet') {
       ciType = 'StaticSetClassInfo<AnyGC*>';
     } else if (collTypeName == 'StaticMap') {
       ciType = 'StaticMapClassInfo<AnyGC*, AnyGC*>';
+    } else if (_baseClassInfoFields.contains(ciField)) {
+      ciType = 'ClassInfo';
     } else {
       return '';
     }
     final allArgs = boxedArgs.isNotEmpty ? '$vptrReceiver, ${boxedArgs.join(', ')}' : vptrReceiver;
     return 'static_cast<$ciType*>(${vptrReceiver}->AnyGC::_classInfo)->$ciField($allArgs)';
-  }
-
-  /// Unbox collection getter result for pattern-based dispatch (element type unknown).
-  /// Returns dynAs<T> for primitive returns, raw AnyGC* for element/collection returns.
-  String _unboxPatternGetterResult(String ciCall, String ciField) {
-    return ciCall;
   }
 
   /// Unbox collection method result for pattern-based dispatch (element type unknown).
@@ -5319,7 +5012,7 @@ class CppEmitter {
     if (primitiveGetters.contains(fieldName)) {
       final ciField = _collectionMethodToCiField[fieldName] ?? 'get_$fieldName';
       final ciCall = _patternClassInfoDispatch(receiver, collTypeName, ciField);
-      if (ciCall.isNotEmpty) return _unboxPatternGetterResult(ciCall, ciField);
+      if (ciCall.isNotEmpty) return ciCall;
     }
 
     final typedGetters = {'first', 'last', 'single', 'reversed', 'iterator', 'keys', 'values', 'entries'};
@@ -5364,7 +5057,7 @@ class CppEmitter {
   /// 集合方法的 void 返回（返回 nullptr，结果不使用）
   static const _voidCollectionMethods = <String>{
     'add', 'addAll', 'clear', 'forEach', 'insert', 'insertAll',
-    'removeWhere', 'retainWhere', 'sort', 'updateAll', 'addEntries',
+    'removeWhere', 'retainWhere', 'removeRange', 'fillRange', 'sort', 'updateAll', 'addEntries',
     'put',
   };
 
@@ -5376,7 +5069,7 @@ class CppEmitter {
 
   /// 集合方法的 int 返回
   static const _intCollectionMethods = <String>{
-    'get_length', 'indexOf', 'lastIndexOf', 'indexWhere',
+    'get_length', 'indexOf', 'lastIndexOf', 'indexWhere', 'lastIndexWhere',
   };
 
   /// 集合方法的 String 返回
@@ -5549,7 +5242,7 @@ class CppEmitter {
     final args = allArgExprs.join(', ');
     
     if (methods == null || !methods.contains(methodName)) {
-      return '/* unsupported collection method: $methodName on $typeName */ $receiver->$methodName($args)';
+      return '(throw DartUnsupportedError("unsupported collection method: $methodName on $typeName"), $receiver)';
     }
 
     // toList on List/Iterable returns self; toSet on Set returns self
@@ -5679,13 +5372,11 @@ class CppEmitter {
     }
 
     // Map.map<K2,V2> and Map.cast<K2,V2> return StaticMap<K2,V2>*
+    // but _vptr_map creates StaticMap<AnyGC*,AnyGC*>*, so the cast would be
+    // between unrelated types. All chained calls use ClassInfo dispatch
+    // (identical layout regardless of type args), so return as AnyGC*.
     if ((methodName == 'map' || methodName == 'cast') && isMapType) {
-      if (methodTypeArgs != null && methodTypeArgs.length >= 2) {
-        final k2 = _cppType(methodTypeArgs[0]);
-        final v2 = _cppType(methodTypeArgs[1]);
-        return 'static_cast<StaticMap<$k2, $v2>*>($ciCall)';
-      }
-      return 'static_cast<StaticMap<AnyGC*, AnyGC*>*>($ciCall)';
+      return ciCall;
     }
 
     // Determine R from method type args
@@ -5698,37 +5389,18 @@ class CppEmitter {
       R = 'AnyGC*';
     }
 
-    // expand always returns StaticList<R>* regardless of receiver type
-    if (methodName == 'expand') {
-      return 'static_cast<StaticList<$R>*>($ciCall)';
-    }
-
-    // map, whereType, cast on Set → StaticSet<R>*
-    if (isSetType) {
-      return 'static_cast<StaticSet<$R>*>($ciCall)';
-    }
-
-    // map, whereType, cast on List → StaticList<R>*
-    return 'static_cast<StaticList<$R>*>($ciCall)';
-  }
-
-  /// 将 AnyGC* 表达式转换为指定的 C++ 类型
-  String _convertAnyPtrToType(String expr, String targetType) {
-    if (targetType == 'int64_t') return 'dynAs<int64_t>($expr)';
-    if (targetType == 'double') return 'dynAs<double>($expr)';
-    if (targetType == 'bool') return 'dynAs<bool>($expr)';
-    if (targetType == 'std::string') return 'dynAs<std::string>($expr)';
-    if (targetType.endsWith('*')) {
-      return 'static_cast<$targetType>($expr)';
-    }
-    return expr;
+    // expand, map, whereType, cast on Set/List → return AnyGC* (type-erased
+    // StaticList/StaticSet). The _vptr_* trampolines create StaticList<AnyGC*>*,
+    // so static_cast to StaticList<R>* would be invalid. ClassInfo dispatch
+    // works correctly regardless of the type parameter.
+    return ciCall;
   }
 
   /// 检查是否是运算符名称
   bool _isOperatorName(String name) {
     const operators = {
       '+', '-', '*', '/', '%', '<', '>', '<=', '>=', '==', '!=',
-      '&', '|', '^', '~', '<<', '>>', '~/', '_', 'unary-',
+      '&', '|', '^', '~', '<<', '>>', '>>>', '~/', '_', 'unary-',
       '[]', '[]=',  // 索引运算符
     };
     return operators.contains(name);
@@ -5762,6 +5434,10 @@ class CppEmitter {
     if (expr.startsWith('dynAs<std::string>')) {
       return true;
     }
+    // 检查是否是 Dart 字符串字面量生成的 std::string("...")
+    if (expr.startsWith('std::string("') && expr.endsWith('")')) {
+      return true;
+    }
     // 检查是否是 StaticList<std::string> 的索引访问: (*var)[i]
     final listAccess = RegExp(r'^\(\*([A-Za-z_][A-Za-z0-9_]*)\)\[').firstMatch(expr);
     if (listAccess != null) {
@@ -5792,7 +5468,7 @@ class CppEmitter {
 
     // 特殊处理索引运算符
     if (op == '[]') {
-      final receiverExpr = (expr is InstanceInvocation) ? expr.receiver : (expr is DynamicInvocation ? expr.receiver : expr);
+      final receiverExpr = (expr is InstanceInvocation) ? expr.receiver : expr;
       final receiverType = _getExpressionType(receiverExpr);
       final receiverCppType = receiverType != null ? _cppType(receiverType) : '';
 
@@ -5894,7 +5570,7 @@ class CppEmitter {
       if (argList.length >= 2) {
         final index = argList[0].trim();
         final value = argList[1].trim();
-        final receiverExpr = (expr is InstanceInvocation) ? expr.receiver : (expr is DynamicInvocation ? expr.receiver : expr);
+        final receiverExpr = (expr is InstanceInvocation) ? expr.receiver : expr;
       final receiverType = _getExpressionType(receiverExpr);
         final receiverCppType = receiverType != null ? _cppType(receiverType) : '';
         // 集合类型通过 ClassInfo 派发 []= 运算符
@@ -5940,7 +5616,7 @@ class CppEmitter {
     }
 
     // 用户自定义类的运算符通过 vptr 调度（指针类型不能直接用 C++ 运算符）
-    final opReceiverExpr = (expr is InstanceInvocation) ? expr.receiver : (expr is DynamicInvocation ? expr.receiver : expr);
+    final opReceiverExpr = (expr is InstanceInvocation) ? expr.receiver : expr;
     final receiverType = _getExpressionType(opReceiverExpr);
     if (receiverType is InterfaceType && _userClasses.contains(receiverType.classNode.name)) {
       final receiverCppType = _cppType(receiverType);
@@ -5972,7 +5648,7 @@ class CppEmitter {
     }
 
     // 对 AnyGC* 接收器的算术运算符，需要先拆箱
-    final opReceiverExpr2 = (expr is InstanceInvocation) ? expr.receiver : (expr is DynamicInvocation ? expr.receiver : null);
+    final opReceiverExpr2 = (expr is InstanceInvocation) ? expr.receiver : null;
     final opReceiverType2 = opReceiverExpr2 != null ? _getExpressionType(opReceiverExpr2) : null;
     final opReceiverCppType2 = opReceiverType2 != null ? _cppType(opReceiverType2) : '';
     if (opReceiverCppType2 == 'AnyGC*' && ['+', '-', '*', '/', '%'].contains(op)) {
@@ -6046,7 +5722,7 @@ class CppEmitter {
 
     // List + List 通过 ClassInfo 派发
     if (op == '+') {
-      final opReceiverExpr = (expr is InstanceInvocation) ? expr.receiver : (expr is DynamicInvocation ? expr.receiver : expr);
+      final opReceiverExpr = (expr is InstanceInvocation) ? expr.receiver : expr;
       final opType = _getExpressionType(opReceiverExpr);
       if (opType is InterfaceType) {
         final typeName = opType.classNode.name;
@@ -6096,9 +5772,10 @@ class CppEmitter {
       case '~': return '(~$receiver)';
       case '<<': return '($receiver << $right)';
       case '>>': return '($receiver >> $right)';
+      case '>>>': return 'static_cast<int64_t>(static_cast<uint64_t>($receiver) >> $right)';
       case '~/': return '($receiver / $right)';  // Integer division
       case 'unary-': return '(-$receiver)';
-      default: return '/* unsupported operator: $op */ $receiver';
+      default: return '(throw DartUnsupportedError("unsupported operator: $op"), $receiver)';
     }
   }
 
@@ -6174,13 +5851,6 @@ class CppEmitter {
     } else if (expr is AsExpression) {
       // AsExpression 的类型就是目标类型
       return expr.type;
-    } else if (expr is DynamicInvocation) {
-      // 尝试通过方法名推断返回类型
-      // 对于 [] 操作符，无法直接推断，返回 null
-      return null;
-    } else if (expr is DynamicGet) {
-      // 动态属性访问，无法静态推断类型
-      return null;
     } else if (expr is Let) {
       return _getExpressionType(expr.body);
     } else if (expr is MapLiteral) {
@@ -6291,7 +5961,7 @@ class CppEmitter {
     return false;
   }
 
-  /// 将 AnyPtr/AnyGC* 转换为 AnyGC*（用于访问 _classInfo/_typeName）
+  /// 将 AnyPtr/AnyGC* 转换为 AnyGC*（用于访问 _classInfo）
   String _convertToVPtr(String expr, DartType? type) {
     return 'static_cast<AnyGC*>($expr)';
   }
@@ -6314,12 +5984,6 @@ class CppEmitter {
     if (expr == '_box()') return true;
     // 默认认为不是 AnyPtr（保守，避免误加 static_cast 到 AnyGC*）
     return false;
-  }
-
-  /// 生成基本类型的方法调用
-  String _emitCppPrimitiveMethodCall(String receiver, String methodName, String args, DartType type) {
-    final typeName = (type as InterfaceType).classNode.name;
-    return _emitCppPrimitiveMethodCallByName(receiver, methodName, args, typeName);
   }
 
   /// 根据类型名生成基本类型方法调用（不需要 DartType 对象）
@@ -6359,6 +6023,37 @@ class CppEmitter {
         case 'replaceAll':
           final argList = args.split(',');
           return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
+        case 'replaceFirst':
+          final argList = args.split(',');
+          final from = argList[0].trim();
+          final to = argList[1].trim();
+          final start = argList.length > 2 ? argList[2].trim() : '0';
+          return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
+        case 'replaceRange':
+          final argList = args.split(',');
+          return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
+        case 'padLeft':
+          final argList = args.split(',');
+          final width = argList[0].trim();
+          final padding = argList.length > 1 ? argList[1].trim() : 'std::string(" ")';
+          return 'dart_str_padLeft($receiver, $width, $padding)';
+        case 'padRight':
+          final argList = args.split(',');
+          final width = argList[0].trim();
+          final padding = argList.length > 1 ? argList[1].trim() : 'std::string(" ")';
+          return 'dart_str_padRight($receiver, $width, $padding)';
+        case 'trimLeft':
+          return 'dart_str_trimLeft($receiver)';
+        case 'trimRight':
+          return 'dart_str_trimRight($receiver)';
+        case 'lastIndexOf':
+          final argList = args.split(',');
+          final pattern = argList[0].trim();
+          final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
+          return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
+        case 'codeUnitAt':
+          final arg = args.split(',').first.trim();
+          return 'dart_str_codeUnitAt($receiver, $arg)';
         case 'length':
           return 'static_cast<int64_t>($receiver.length())';
         case 'isEmpty':
@@ -6371,7 +6066,7 @@ class CppEmitter {
         case 'hashCode':
           return 'static_cast<int64_t>(std::hash<std::string>{}($receiver))';
         default:
-          return '/* unsupported String method: $methodName */ $receiver';
+          return '(throw DartUnsupportedError("unsupported String method: $methodName"), $receiver)';
       }
     }
 
@@ -6401,22 +6096,78 @@ class CppEmitter {
             final cppType = typeName == 'int' ? 'int64_t' : 'double';
             return 'std::max(static_cast<$cppType>($lower), std::min($receiver, static_cast<$cppType>($upper)))';
           }
-          return '/* unsupported clamp args */ $receiver';
+          return '(throw DartUnsupportedError("unsupported clamp arguments"), $receiver)';
         case 'toStringAsFixed':
           if (typeName == 'double') {
             final fracDigits = args.split(',').first.trim();
             return '([&]() { std::ostringstream _ss; _ss << std::fixed << std::setprecision($fracDigits) << $receiver; return _ss.str(); })()';
           }
           return 'std::to_string($receiver)';
+        case 'toStringAsPrecision':
+          if (typeName == 'double') {
+            final precision = args.split(',').first.trim();
+            return '([&]() { std::ostringstream _ss; _ss << std::setprecision($precision) << $receiver; return _ss.str(); })()';
+          }
+          return 'std::to_string($receiver)';
+        case 'toRadixString':
+          if (typeName == 'int') {
+            final radix = args.split(',').first.trim();
+            return 'dart_int_toRadixString($receiver, $radix)';
+          }
+          return 'std::to_string($receiver)';
+        case 'round':
+          if (typeName == 'double') return 'static_cast<int64_t>(std::round($receiver))';
+          return '$receiver';
+        case 'floor':
+          if (typeName == 'double') return 'static_cast<int64_t>(std::floor($receiver))';
+          return '$receiver';
+        case 'ceil':
+          if (typeName == 'double') return 'static_cast<int64_t>(std::ceil($receiver))';
+          return '$receiver';
+        case 'truncate':
+          if (typeName == 'double') return 'static_cast<int64_t>($receiver)';
+          return '$receiver';
+        case 'sign':
+          if (typeName == 'int') return '(($receiver > 0) ? 1LL : (($receiver < 0) ? -1LL : 0LL))';
+          return '(std::isnan($receiver) ? $receiver : (($receiver == 0.0) ? $receiver : (($receiver > 0.0) ? 1.0 : -1.0)))';
+        case 'isNaN':
+          if (typeName == 'double') return 'std::isnan($receiver)';
+          return 'false';
+        case 'isInfinite':
+          if (typeName == 'double') return 'std::isinf($receiver)';
+          return 'false';
+        case 'isNegative':
+          if (typeName == 'double') return '(($receiver < 0.0) || ($receiver == 0.0 && std::signbit($receiver)))';
+          return '($receiver < 0)';
         case 'compareTo':
           final cmpType = typeName == 'int' ? 'int64_t' : 'double';
           return '(($receiver) > static_cast<$cmpType>($args) ? 1LL : (($receiver) < static_cast<$cmpType>($args) ? -1LL : 0LL))';
+        case 'ceilToDouble':
+          return 'static_cast<double>(std::ceil($receiver))';
+        case 'floorToDouble':
+          return 'static_cast<double>(std::floor($receiver))';
+        case 'roundToDouble':
+          return 'static_cast<double>(std::round($receiver))';
+        case 'truncateToDouble':
+          return 'static_cast<double>(static_cast<int64_t>($receiver))';
+        case 'toStringAsExponential':
+          if (typeName == 'double') {
+            final fracDigits = args.split(',').first.trim();
+            return 'dart_double_toStringAsExponential($receiver, $fracDigits)';
+          }
+          return 'std::to_string($receiver)';
+        case 'remainder':
+          if (typeName == 'double') {
+            final other = args.split(',').first.trim();
+            return 'std::remainder($receiver, static_cast<double>($other))';
+          }
+          return 'static_cast<double>(0)';
         default:
-          return '/* unsupported ${typeName} method: $methodName */ $receiver';
+          return '(throw DartUnsupportedError("unsupported ${typeName} method: $methodName"), $receiver)';
       }
     }
 
-    return '/* unsupported primitive method: $methodName on $typeName */ $receiver';
+    return '(throw DartUnsupportedError("unsupported primitive method: $methodName on $typeName"), $receiver)';
   }
 
   /// 当接收器是 std::string C++ 表达式时，处理字符串方法调用
@@ -6454,6 +6205,37 @@ class CppEmitter {
       case 'replaceAll':
         final argList = args.split(',');
         return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
+      case 'replaceFirst':
+        final argList = args.split(',');
+        final from = argList[0].trim();
+        final to = argList[1].trim();
+        final start = argList.length > 2 ? argList[2].trim() : '0';
+        return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
+      case 'replaceRange':
+        final argList = args.split(',');
+        return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
+      case 'padLeft':
+        final argList = args.split(',');
+        final width = argList[0].trim();
+        final padding = argList.length > 1 ? argList[1].trim() : 'std::string(" ")';
+        return 'dart_str_padLeft($receiver, $width, $padding)';
+      case 'padRight':
+        final argList = args.split(',');
+        final width = argList[0].trim();
+        final padding = argList.length > 1 ? argList[1].trim() : 'std::string(" ")';
+        return 'dart_str_padRight($receiver, $width, $padding)';
+      case 'trimLeft':
+        return 'dart_str_trimLeft($receiver)';
+      case 'trimRight':
+        return 'dart_str_trimRight($receiver)';
+      case 'lastIndexOf':
+        final argList = args.split(',');
+        final pattern = argList[0].trim();
+        final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
+        return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
+      case 'codeUnitAt':
+        final arg = args.split(',').first.trim();
+        return 'dart_str_codeUnitAt($receiver, $arg)';
       case 'hashCode':
         return 'static_cast<int64_t>(std::hash<std::string>{}($receiver))';
       case 'compareTo':
@@ -6872,6 +6654,15 @@ class CppEmitter {
           return 'StaticMap<$keyType, $valType>::from($arg)';
         }
         return 'StaticMap<AnyGC*, AnyGC*>::from($arg)';
+      }
+      // Handle String.fromCharCode(code) / String.fromCharCodes(list)
+      if (className == 'String' && methodName == 'fromCharCode') {
+        final arg = _emitCppExpr(expr.arguments.positional.first);
+        return 'dart_str_fromCharCode($arg)';
+      }
+      if (className == 'String' && methodName == 'fromCharCodes') {
+        final arg = _emitCppExpr(expr.arguments.positional.first);
+        return 'dart_str_fromCharCodes($arg)';
       }
       // Handle List.filled(count, value) → create StaticList with count copies of value
       if ((className == 'List' || className == 'StaticList') && methodName == 'filled') {
@@ -7785,17 +7576,6 @@ class CppEmitter {
     return result;
   }
 
-  /// 替换模板参数字符串中的旧参数为新参数
-  String _replaceTemplateArgs(String templateStr, List<String> oldArgs, List<String> newArgs) {
-    var result = templateStr;
-    for (var i = 0; i < oldArgs.length; i++) {
-      if (oldArgs[i].trim() != newArgs[i].trim()) {
-        result = result.replaceAll(oldArgs[i].trim(), newArgs[i].trim());
-      }
-    }
-    return result;
-  }
-
   /// 检查表达式是否为 void（如 setter 调用）
   bool _isVoidExpression(String expr) {
     // vptr setter 调用返回 void
@@ -8203,13 +7983,13 @@ class CppEmitter {
         case 'String': return 'dart_is<StringBox>($gcOperand)';
         case 'List':
           if (targetType == 'StaticList<AnyGC*>*') {
-            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_typeName == "List")';
+            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo->typeName == "List")';
           }
           final baseType = targetType.substring(0, targetType.length - 1);
           return 'dart_is<$baseType>($gcOperand)';
         case 'Map':
           if (targetType == 'StaticMap<AnyGC*, AnyGC*>*') {
-            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_typeName == "Map")';
+            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo->typeName == "Map")';
           }
           final baseType = targetType.substring(0, targetType.length - 1);
           return 'dart_is<$baseType>($gcOperand)';
@@ -8669,6 +8449,7 @@ class CppEmitter {
       _structBuf.writeln(templatePrefix);
     }
     _structBuf.writeln('${closureName}ClassInfo$templateArgs::${closureName}ClassInfo() {');
+    _structBuf.writeln('    typeName = "Closure";');
     _structBuf.writeln('    gcMark = &$closureName$templateArgs::_gcMark_impl;');
     _structBuf.writeln('}');
     if (templatePrefix.isNotEmpty) {
@@ -9812,8 +9593,6 @@ class CppEmitter {
       return _expressionReferencesVariable(expr.receiver, variable);
     } else if (expr is InstanceInvocation) {
       return _expressionReferencesVariable(expr.receiver, variable);
-    } else if (expr is DynamicInvocation) {
-      return _expressionReferencesVariable(expr.receiver, variable);
     } else if (expr is Not) {
       return _expressionReferencesVariable(expr.operand, variable);
     } else if (expr is ConditionalExpression) {
@@ -10072,7 +9851,7 @@ class CppEmitter {
       // Wrap in extra parens to protect commas in template arguments from the macro
       buf.writeln('${_pad}assert(($cond));');
     } else {
-      buf.writeln('${_pad}// unsupported: ${stmt.runtimeType}');
+      buf.writeln('${_pad}throw DartUnsupportedError("unsupported statement: ${stmt.runtimeType}");');
     }
   }
 
@@ -10112,12 +9891,6 @@ class CppEmitter {
       if (value.isEmpty) {
         final expr = stmt.expression!;
         if (expr is InstanceGet && expr.receiver is VariableGet) {
-          final recv = expr.receiver as VariableGet;
-          if (recv.variable.name == 'this' || recv.variable.name == '#this') {
-            final fieldName = _cleanName(expr.name.text);
-            value = 'this_->$fieldName';
-          }
-        } else if (expr is DynamicGet && expr.receiver is VariableGet) {
           final recv = expr.receiver as VariableGet;
           if (recv.variable.name == 'this' || recv.variable.name == '#this') {
             final fieldName = _cleanName(expr.name.text);
@@ -10307,7 +10080,7 @@ class CppEmitter {
     if (_looksLikeConcreteValue(value)) return value;
     // 检查值是否可能是 AnyPtr/AnyGC*：模式匹配 或 变量类型查找
     final isAnyGCPtr = _isAnyGCPtrExpr(value);
-    final isAnyGCVal = !isAnyGCPtr && (_isAnyPtrExpr(value) || _isAnyPtrResult(value) || _isVariableOfType_box(value));
+    final isAnyGCVal = !isAnyGCPtr && (_isAnyPtrExpr(value) || _isAnyGCPtrExpr(value));
     if (!isAnyGCPtr && !isAnyGCVal) return value;
     if (isAnyGCPtr) return _unwrapFromAnyGCPtr(value, targetCppType);
     return _unwrapFrom_box(value, targetCppType);
@@ -10315,7 +10088,7 @@ class CppEmitter {
 
   /// 检查表达式是否是 AnyGC* 类型（简单变量名为 AnyGC* 类型）
   bool _isAnyGCPtrExpr(String expr) {
-    // 检查复杂表达式是否返回 AnyGC*（vptrMap 调用、_box、smAwait 等）
+    // 检查复杂表达式是否返回 AnyGC*（ClassInfo dispatch 调用、_box、smAwait 等）
     if (_isAnyPtrResult(expr)) return true;
     final cleanName = expr.replaceAll(RegExp(r'^[&*]+'), '').trim();
     final type = _variableTypeMap[cleanName];
@@ -10446,14 +10219,6 @@ class CppEmitter {
     return false;
   }
 
-  /// 检查简单变量名是否声明为 AnyGC* 类型
-  bool _isVariableOfType_box(String name) {
-    // 去除可能的前缀 & 或 * 操作符
-    final cleanName = name.replaceAll(RegExp(r'^[&*]+'), '').trim();
-    final type = _variableTypeMap[cleanName];
-    return type == 'AnyGC*';
-  }
-
   /// 检查表达式是否是直接的 ClassInfo 派发结果（返回 AnyGC*）
   /// 仅匹配 static_cast<XxxClassInfo<...>*>(...->_classInfo)->method(args) 模式
   /// 排除已被 _unboxElem<> / dynAs<> 转换或被进一步 ->method()/->field 访问的表达式
@@ -10502,10 +10267,11 @@ class CppEmitter {
     'contains', 'containsKey', 'setIndex',
     // StaticListClassInfo
     'get_isEmpty', 'get_isNotEmpty', 'remove', 'any_', 'every_',
-    'indexOf', 'lastIndexOf', 'indexWhere',
+    'indexOf', 'lastIndexOf', 'indexWhere', 'lastIndexWhere',
+    'removeRange', 'fillRange',
     // StaticSetClassInfo
     'add', // Set.add returns bool (List.add is void, handled separately)
-    'containsValue',
+    'containsValue', 'containsAll', 'removeWhere', 'retainWhere', 'clear',
     // StaticIteratorClassInfo
     'moveNext',
     // PromiseBaseClassInfo
@@ -10585,6 +10351,32 @@ class CppEmitter {
     return false;
   }
 
+  /// Try to resolve the Procedure for a ClassInfo dispatch expression.
+  /// Handles patterns like `static_cast<XxxClassInfo<TArgs>*>(...)->method(...)`.
+  /// Returns null if the class or method cannot be determined from the expression.
+  Procedure? _resolveClassInfoMethodProc(String expr, String fieldName) {
+    // Pattern 1: static_cast<XxxClassInfo<TArgs>*>(...)->field(
+    final castMatch = RegExp(r'static_cast<([A-Za-z_][A-Za-z0-9_]*ClassInfo)(?:<[^>]*>)?\*>\(')
+        .firstMatch(expr);
+    if (castMatch != null) {
+      final ciClassName = castMatch.group(1)!;
+      if (ciClassName == 'ClassInfo') return null;
+      final dartClassName = ciClassName.substring(0, ciClassName.length - 'ClassInfo'.length);
+      final cls = _classNodes[dartClassName];
+      if (cls != null) {
+        // Search class and its superclasses for the procedure.
+        Class? current = cls;
+        while (current != null) {
+          for (final p in current.procedures) {
+            if (_cleanMethodName(p.name.text) == fieldName) return p;
+          }
+          current = current.supertype?.classNode;
+        }
+      }
+    }
+    return null;
+  }
+
   /// Check if a ClassInfo dispatch expression returns a raw type (bool/int64_t/void)
   /// instead of AnyGC*. Used to avoid unnecessary dynAs wrapping.
   /// Fallback for cases where ciField/proc are not available (uses string parsing).
@@ -10592,6 +10384,8 @@ class CppEmitter {
     if (!expr.contains('_classInfo')) return false;
     final fieldName = _extractClassInfoFieldName(expr);
     if (fieldName == null) return false;
+    final proc = _resolveClassInfoMethodProc(expr, fieldName);
+    if (proc != null) return _isRawReturnField(fieldName, proc);
     return _isRawReturnField(fieldName);
   }
 
@@ -10628,6 +10422,15 @@ class CppEmitter {
     return false;
   }
 
+  /// 判断表达式是否是类型擦除的集合模板方法结果（map/expand/cast/whereType）。
+  /// 这些方法通过 ClassInfo 派发返回 StaticList/Set/Map<AnyGC*, ...>*，
+  /// 不应该再 static_cast 到具体的 StaticList<T>* 类型。
+  bool _isTypeErasedCollectionResult(String expr) {
+    // 匹配 ...ClassInfo<...>->map(...) / ->expand(...) / ->cast_(...) / ->whereType(...)
+    final dispatchPattern = RegExp(r'_classInfo\)->(map|expand|cast_|whereType)\(');
+    return dispatchPattern.hasMatch(expr);
+  }
+
   /// 将 AnyPtr/AnyGC* 接收器转换为真实类型（仿照 Dart 的 dynamic dispatch）
   /// 如果接收器已经是真实类型，直接返回
   String _castReceiverToType(String receiver, DartType? expectedType) {
@@ -10654,6 +10457,12 @@ class CppEmitter {
       // 模板类型包含未解析的类型参数（如 PipelineValue<TInput, TNewOutput>）：
       // 如果类型参数不在当前作用域内，无法使用该类型，回退到 AnyGC* 以保留派发能力
       if (_containsTypeParameter(cppType) && _hasOutOfScopeTypeParam(cppType)) {
+        return 'static_cast<AnyGC*>($receiver)';
+      }
+      // Collection template methods (map/expand/cast/whereType) return type-erased
+      // StaticList<AnyGC*>* / StaticSet<AnyGC*>* / StaticMap<AnyGC*,AnyGC*>*.
+      // Casting that to a specific StaticList<T>* is invalid; leave as AnyGC*.
+      if (_isTypeErasedCollectionResult(receiver)) {
         return 'static_cast<AnyGC*>($receiver)';
       }
       return 'static_cast<$baseType*>($receiver)';
@@ -11443,6 +11252,25 @@ class CppEmitter {
     final sourceType = _getExpressionType(sourceExpr);
     final sourceCppType = sourceType != null ? _cppType(sourceType) : '';
 
+    // Type-erased collection dispatch (map/expand/cast_/whereType) returns AnyGC*
+    // pointing to a collection whose element type is erased. When the target type
+    // is a concrete StaticList/Set/Map, copy the elements into a properly typed
+    // collection instead of doing an unsafe static_cast.
+    if (_isTypeErasedCollectionResult(expr)) {
+      final listMatch = RegExp(r'^StaticList<(.+)>\*$').firstMatch(targetType);
+      if (listMatch != null) {
+        return '_typedListFromAnyGC<${listMatch.group(1)}>($expr)';
+      }
+      final setMatch = RegExp(r'^StaticSet<(.+)>\*$').firstMatch(targetType);
+      if (setMatch != null) {
+        return '_typedSetFromAnyGC<${setMatch.group(1)}>($expr)';
+      }
+      final mapMatch = RegExp(r'^StaticMap<(.+)>\*$').firstMatch(targetType);
+      if (mapMatch != null) {
+        return '_typedMapFromAnyGC<${mapMatch.group(1)}>($expr)';
+      }
+    }
+
     // Wrap if source is explicitly AnyPtr
     if (sourceCppType == 'AnyGC*' || _isAnyPtrResult(expr)) {
       switch (targetType) {
@@ -11469,6 +11297,8 @@ class CppEmitter {
         }
         return 'static_cast<$baseType*>($expr)';
       }
+      // For boxed value types (StaticMapEntry, StaticDuration, etc.)
+      return 'dynAs<$targetType>($expr)';
     }
 
     // Wrap if source is AnyGC* (use dynAs for basic types, static_cast for pointers)
@@ -11482,14 +11312,6 @@ class CppEmitter {
   // ==========================================================================
   // VPtr dispatch helpers
   // ==========================================================================
-
-  /// Generate function pointer type for vptr dispatch.
-  /// [argCount] is the number of method arguments (excluding `this`).
-  String _vptrFnType(int argCount) {
-    if (argCount == 0) return 'AnyGC*(*)(AnyGC*)';
-    final restParams = List.filled(argCount, 'AnyGC*').join(', ');
-    return 'AnyGC*(*)(AnyGC*, $restParams)';
-  }
 
   /// Generate a typed ClassInfo field declaration.
   /// e.g. _classInfoFieldDecl('area', 0, retType: 'double') → 'double(*area)(AnyGC*) = nullptr'
@@ -12088,6 +11910,7 @@ class CppEmitter {
     '~': 'bnot',
     '<<': 'shl',
     '>>': 'shr',
+    '>>>': 'ushr',
     '[]': 'index',
     '[]=': 'setIndex',
     'unary-': 'neg',
@@ -12099,7 +11922,9 @@ class CppEmitter {
   static const Set<String> _baseClassInfoFields = {
     'toString', 'get_runtimeType', 'eq', 'get_hashCode', 'compareTo',
     'get_length', 'get_isEmpty', 'get_isNotEmpty', 'get_iterator',
-    'toUpperCase', 'toLowerCase', 'contains', 'trim',
+    'toUpperCase', 'toLowerCase', 'contains', 'trim', 'trimLeft', 'trimRight',
+    'replaceFirst', 'replaceRange', 'padLeft', 'padRight',
+    'lastIndexOf', 'codeUnitAt',
     'index', 'setIndex', 'containsKey',
   };
 
@@ -12151,28 +11976,6 @@ class CppEmitter {
       parent = parentClass.supertype;
     }
     return null;
-  }
-
-  /// Check if a method is inherited/overridden from a generic parent class
-  /// where the return type was a type parameter (e.g., R → int64_t when resolved).
-  /// In such cases, the ClassInfo field is AnyGC* (from the parent), so the wrapper
-  /// must also return AnyGC* to match.
-  bool _isInheritedFromGenericParent(Procedure proc, String procName) {
-    final enclosingClass = proc.enclosingClass;
-    if (enclosingClass == null) return false;
-    var parent = enclosingClass.supertype;
-    while (parent != null) {
-      final parentClass = parent.classNode;
-      // Check if parent class has a method with the same name
-      for (final p in parentClass.procedures) {
-        if (p.name.text == procName) {
-          final parentRetType = _cppType(p.function.returnType);
-          if (_isCppTypeParameter(parentRetType)) return true;
-        }
-      }
-      parent = parentClass.supertype;
-    }
-    return false;
   }
 
   /// 确定 _vptr_wrap_* 函数的返回类型
@@ -12289,7 +12092,6 @@ class CppEmitter {
     if (cppType == 'double') return '0.0';
     if (cppType == 'bool') return 'false';
     if (cppType == 'std::string') return '""';
-    if (cppType == 'AnyGC*') return 'nullptr';
     if (cppType.endsWith('*')) return 'nullptr';
     // 对于模板类型参数（如 A, B, T），返回空字符串以避免 {{}} 歧义
     // 使用 A field{}; 而非 A field{{}};

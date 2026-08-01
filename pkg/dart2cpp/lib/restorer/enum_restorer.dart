@@ -141,7 +141,7 @@ mixin _EnumRestorer on _DartRestorerBase, _TypeUtils, _ExpressionRestorer, _Stat
       final named = proc.function.namedParameters;
       if (pos.isNotEmpty || named.isNotEmpty) {
         _buf.write(', ');
-        _writeParams(proc.function, proc: proc);
+        _writeParams(proc.function);
       }
     }
 

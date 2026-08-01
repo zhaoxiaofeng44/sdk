@@ -1,6 +1,6 @@
 # Dart(静态) → C++ 转换对照文档
 
-> 基于 Restorer 的 OOP Lowering 输出（Value对象 + 静态方法 + vptr虚表），将还原后的静态 Dart 代码映射为 C++ 代码的完整对照表。
+> 基于 Restorer 的 OOP Lowering 输出（Value对象 + 静态方法 + ClassInfo 虚表），将还原后的静态 Dart 代码映射为 C++ 代码的完整对照表。ClassInfo.dispatch 在 C++ 端等价于 vptr map。
 
 ---
 
@@ -8,7 +8,7 @@
 
 1. [架构总览](#1-架构总览)
 2. [核心类型映射](#2-核心类型映射)
-3. [VPtr + vptr虚表](#3-vptr--vptr虚表)
+3. [ClassInfo / vptr 虚表](#3-classinfo--vptr-虚表)
 4. [AnyPtr 类型擦除](#4-anyptr-类型擦除)
 5. [TypeFunction + 闭包系统](#5-typefunction--闭包系统)
 6. [Box类型（闭包可变捕获）](#6-box类型闭包可变捕获)
@@ -35,9 +35,9 @@
 
 Restorer已完成 OOP Lowering，将 Dart 类体系降级为：
 
-- **Value对象**：`class XxxValue extends VPtr { fields }` — 仅存数据字段，无方法体
-- **静态方法**：`Xxx_method(dynamic this__)` — 所有方法转为自由函数，首参数为 `this`
-- **vptr虚表**：`Map<String, dynamic> vptr` — 方法指针用匿名指针存储，使用时强制转换为具体签名调用
+- **Value对象**：`class XxxValue extends AnyGC { fields }` — 仅存数据字段，无方法体
+- **静态方法**：`Xxx_method(AnyGC this__)` — 所有方法转为自由函数，首参数为 `this`（`AnyGC` 对应 C++ `AnyPtr`）
+- **ClassInfo 虚表**：每类生成 `XxxClassInfo extends ClassInfo`，字段为精确函数类型（`R Function(AnyGC, ...)?`），另有 `Map<String, Function> dispatch` 供动态派发；根 Value 类覆写 `toString`/`==`/`hashCode` 委托给 ClassInfo
 - **闭包展开**：`ClosureEnv_N extends TypeFunctionN` — 每个闭包生成具名类
 - **Box装箱**：`IntBox/DoubleBox/BoolBox/ObjectBox` — 闭包可变捕获
 - **GC管理**：`AnyGC + GC.allocateLocal/Global` — 标记-清除垃圾回收
@@ -74,7 +74,7 @@ C++端完全沿用这套架构，不需要传统C++ OOP（虚函数、继承多�
 
 | 静态 Dart 类型 | C++ 类型 | 说明 |
 |---|---|---|
-| `VPtr` | `VPtr` (struct) | vptr虚表基类 |
+| `ClassInfo` / `AnyGC` | `VPtr` (struct) | 虚表基类；Dart 侧拆分为 `ClassInfo` + `AnyGC`，C++ 侧仍可用 `VPtr` 兼容表示 |
 | `AnyGC` | `AnyGC` (struct) | GC基类 |
 | `TypeFunction` | `TypeFunction` (struct) | 闭包基类 |
 | `TypeFunction0<R>` | `TypeFunction0<R>` | 0参闭包模板 |
@@ -86,42 +86,54 @@ C++端完全沿用这套架构，不需要传统C++ OOP（虚函数、继承多�
 
 ---
 
-## 3. VPtr + vptr虚表
+## 3. ClassInfo / vptr 虚表
 
 ### 3.1 设计原则
 
-vptr中的函数指针采用**匿名指针（`void*`）存储，使用时按已知签名强制转换调用**，与Dart版 `Map<String, dynamic>` 存函数、`as Function` 强制转换的模式完全对齐。不需要统一函数签名。
+Dart 侧使用 `ClassInfo` 子类保存**带类型的函数指针字段**（如 `double Function(AnyGC)? area`），同时维护一个 `Map<String, Function?> dispatch` 用于 `dynamic` 调用查找。`AnyGC` 基类不再桥接 `toString`/`==`/`hashCode`；根 `Value` 类直接覆写这些方法并委托给 `ClassInfo` 对应条目。
 
-### 3.2 VPtr基类定义
+C++ 侧仍可用 **匿名指针（`void*`）的 `vptr` map** 来等价表示 `ClassInfo.dispatch`：键相同，值存储为 `void*`，使用时按已知签名 `reinterpret_cast` 调用。不需要统一函数签名。
+
+### 3.2 基类定义
 
 **Dart:**
 
 ```dart
-class VPtr extends AnyGC {
-  late Map<String, dynamic> vptr;
-  VPtr() {
-    vptr = <String, dynamic>{
-      'toString': null,
-      'operatorEq': null,
-      'get_hashCode': null,
-    };
-  }
+class ClassInfo {
+  Map<String, Function?> dispatch = {};
+  String Function(AnyGC)? toString_;
+  bool Function(AnyGC, Object)? operatorEq;
+  int Function(AnyGC)? get_hashCode;
+  // ... 每类一个子类添加具体方法字段
+}
+
+class AnyGC {
+  ClassInfo? get classInfo => null;
+  // 不再桥接 toString/==/hashCode
+}
+
+class ShapeValue extends AnyGC {
+  @override
+  ClassInfo get classInfo => _shapeClassInfo;
+
   @override
   String toString() {
-    final fn = vptr['toString'];
-    if (fn != null) return (fn as String Function(dynamic))(this);
+    final fn = (classInfo as ShapeClassInfo).toString_;
+    if (fn != null) return fn(this);
     return super.toString();
   }
+
   @override
   bool operator ==(Object other) {
-    final fn = vptr['operatorEq'];
-    if (fn != null) return (fn as bool Function(dynamic, Object))(this, other);
+    final fn = (classInfo as ShapeClassInfo).operatorEq;
+    if (fn != null) return fn(this, other);
     return identical(this, other);
   }
+
   @override
   int get hashCode {
-    final fn = vptr['get_hashCode'];
-    if (fn != null) return (fn as int Function(dynamic))(this);
+    final fn = (classInfo as ShapeClassInfo).get_hashCode;
+    if (fn != null) return fn(this);
     return super.hashCode;
   }
 }
@@ -185,24 +197,53 @@ struct VPtr : AnyGC {
 **Dart:**
 
 ```dart
-class ShapeValue extends VPtr {
-  ShapeValue() {
-    vptr['get_name'] = Shape_get_name;
-    vptr['area'] = Shape_area;
-    vptr['perimeter'] = Shape_perimeter;
-    vptr['toString'] = Shape_toString;
+class ShapeClassInfo extends ClassInfo {
+  String Function(AnyGC)? get_name;
+  double Function(AnyGC)? area;
+  double Function(AnyGC)? perimeter;
+}
+
+class ShapeValue extends AnyGC {
+  @override
+  ClassInfo get classInfo => ClassInfoRegistry.get<ShapeClassInfo>(runtimeType, _initClassInfo);
+  static ShapeClassInfo _initClassInfo() {
+    final ci = ShapeClassInfo();
+    ci.get_name = Shape_get_name;
+    ci.dispatch['get_name'] = Shape_get_name;
+    ci.area = Shape_area;
+    ci.dispatch['area'] = Shape_area;
+    ci.perimeter = Shape_perimeter;
+    ci.dispatch['perimeter'] = Shape_perimeter;
+    ci.toString_ = Shape_toString;
+    ci.dispatch['toString_'] = Shape_toString;
+    return ci;
   }
+}
+
+class CircleClassInfo extends ShapeClassInfo {
+  double Function(AnyGC)? get_radius;
+  void Function(AnyGC, double)? set_radius;
 }
 
 class CircleValue extends ShapeValue {
   late double _radius;
-  CircleValue() {
-    vptr['get_name'] = Circle_get_name;
-    vptr['area'] = Circle_area;
-    vptr['perimeter'] = Circle_perimeter;
-    vptr['toString'] = Circle_toString;
-    vptr['get_radius'] = Circle_get_radius;
-    vptr['set_radius'] = Circle_set_radius;
+  @override
+  ClassInfo get classInfo => ClassInfoRegistry.get<CircleClassInfo>(runtimeType, _initClassInfo);
+  static CircleClassInfo _initClassInfo() {
+    final ci = CircleClassInfo();
+    ci.get_name = Circle_get_name;
+    ci.dispatch['get_name'] = Circle_get_name;
+    ci.area = Circle_area;
+    ci.dispatch['area'] = Circle_area;
+    ci.perimeter = Circle_perimeter;
+    ci.dispatch['perimeter'] = Circle_perimeter;
+    ci.toString_ = Circle_toString;
+    ci.dispatch['toString_'] = Circle_toString;
+    ci.get_radius = Circle_get_radius;
+    ci.dispatch['get_radius'] = Circle_get_radius;
+    ci.set_radius = Circle_set_radius;
+    ci.dispatch['set_radius'] = Circle_set_radius;
+    return ci;
   }
 }
 ```
@@ -236,17 +277,19 @@ struct CircleValue : ShapeValue {
 };
 ```
 
-### 3.4 vptr调用
+### 3.4 ClassInfo 调用
 
 **Dart:**
 
 ```dart
 // 单参数调用
-(shape.vptr['area'] as double Function(dynamic))(shape)
+(shape.classInfo as ShapeClassInfo).area!(shape)
 // 多参数调用
-(this_.vptr['compareTo'] as int Function(dynamic, T))(this_, other)
+(this_.classInfo as ComparableClassInfo).compareTo!(this_, other)
 // void返回调用
-(circle.vptr['set_radius'] as void Function(dynamic, double))(circle, 5.0)
+(circle.classInfo as CircleClassInfo).set_radius!(circle, 5.0)
+// dynamic 调用（运行时查找 dispatch）
+dynamicDispatch(shape, 'area', [shape])
 ```
 
 **C++:**
@@ -269,13 +312,13 @@ setRadiusFn(AnyPtr::fromVPtr(&circle), 5.0);
 
 | Dart模式 | C++生成 |
 |---|---|
-| `vptr['method'] = Xxx_method` | `vptr["method"] = reinterpret_cast<void*>(Xxx_method)` |
-| `(vptr['method'] as R Function(dynamic))(this_)` | `reinterpret_cast<R(*)(AnyPtr)>(vptr["method"])(AnyPtr::fromVPtr(this_))` |
-| `(vptr['method'] as R Function(dynamic, T))(this_, arg)` | `reinterpret_cast<R(*)(AnyPtr, TCpp)>(vptr["method"])(AnyPtr::fromVPtr(this_), arg)` |
-| `vptr['method'] != null` | `vptr["method"] != nullptr` |
-| `vptr['method'] = null` | `vptr["method"] = nullptr` |
+| `ci.method = Xxx_method` 并 `ci.dispatch['method'] = Xxx_method` | `vptr["method"] = reinterpret_cast<void*>(Xxx_method)` |
+| `(recv.classInfo as XxxClassInfo).method!(recv)` | `reinterpret_cast<R(*)(AnyPtr)>(vptr["method"])(AnyPtr::fromVPtr(recv))` |
+| `(recv.classInfo as XxxClassInfo).method!(recv, arg)` | `reinterpret_cast<R(*)(AnyPtr, TCpp)>(vptr["method"])(AnyPtr::fromVPtr(recv), arg)` |
+| `dynamicDispatch(recv, 'method', [args])` | 运行时按 `vptr["method"]` 查找并调用 |
+| `ci.method != null` / `ci.dispatch['method'] != null` | `vptr["method"] != nullptr` |
 
-**可行性**：⭐⭐⭐⭐⭐ — `void*` + `reinterpret_cast` 是C/C++经典手法，与Dart `dynamic` + `as Function` 完全等价。运行时零开销（1次hash查找 + 1次间接调用）。
+**可行性**：⭐⭐⭐⭐⭐ — Dart 侧直接字段访问为零开销；`dynamicDispatch` 回退到 1 次 map 查找。C++ 侧 `void*` + `reinterpret_cast` 仍是经典手法，与 `ClassInfo.dispatch` map 完全等价。
 
 ---
 
@@ -2593,7 +2636,7 @@ struct StaticComparable {
 };
 ```
 
-**注**：Restorer中使用 `StaticComparable<T>` 替代原生 `Comparable<T>`，C++端直接映射为抽象基类模板。Value对象实现compareTo时通过vptr委托：`vptr["compareTo"]` 指向 `Xxx_compareTo` 静态方法。
+**注**：Restorer中使用 `StaticComparable<T>` 替代原生 `Comparable<T>`，C++端直接映射为抽象基类模板。Value对象实现compareTo时通过ClassInfo.dispatch委托：`ci.dispatch['compareTo']` 指向 `Xxx_compareTo` 静态方法。
 
 ### 15.8 StaticIterator\<T\>
 
@@ -2715,7 +2758,7 @@ std::string doubleToString(double val, int precision = -1) {
 | `a || b` | `a || b` | 直接映射 |
 | `!a` | `!a` | 直接映射 |
 
-### 17.4 自定义运算符（通过vptr/静态方法）
+### 17.4 自定义运算符（通过ClassInfo.dispatch/静态方法）
 
 **Dart:**
 
@@ -2732,7 +2775,7 @@ MoneyValue* Money_operatorPlus(AnyPtr this__, MoneyValue* other);
 MoneyValue* Money_operatorMinus(AnyPtr this__, MoneyValue* other);
 ```
 
-**设计决策**：Value对象间的自定义运算符保持为自由函数，与vptr模式一致。只在基本类型（int/double/bool/String）上直接使用C++内置运算符。
+**设计决策**：Value对象间的自定义运算符保持为自由函数，与ClassInfo.dispatch模式一致。只在基本类型（int/double/bool/String）上直接使用C++内置运算符。
 
 ---
 
@@ -2907,7 +2950,7 @@ GC::allocateLocal(new PairValue())   // 泛型参数在运行时无意义
 ```dart
 String Printable_toPrettyString(dynamic this__) {
   final this_ = this__;
-  return '[${(this_.vptr['get_label'] as String Function(dynamic))(this_)}]';
+  return '[${(this_.classInfo as PrintableClassInfo).get_label!(this_)}]';
 }
 ```
 
@@ -2926,10 +2969,21 @@ std::string Printable_toPrettyString(AnyPtr this__) {
 **Dart:**
 
 ```dart
+class Entity_Object_Printable_CacheableClassInfo<ID> extends ObjectClassInfo {
+  Function? get_label;
+  Function? toPrettyString;
+}
+
 class Entity_Object_Printable_CacheableValue<ID> extends ObjectValue {
-  Entity_Object_Printable_CacheableValue() {
-    vptr['get_label'] = Entity_get_label<ID>;
-    vptr['toPrettyString'] = Entity_toPrettyString<ID>;
+  @override
+  ClassInfo get classInfo => ClassInfoRegistry.get<Entity_Object_Printable_CacheableClassInfo<ID>>(runtimeType, _initClassInfo<ID>);
+  static Entity_Object_Printable_CacheableClassInfo<ID> _initClassInfo<ID>() {
+    final ci = Entity_Object_Printable_CacheableClassInfo<ID>();
+    ci.get_label = Entity_get_label<ID>;
+    ci.dispatch['get_label'] = Entity_get_label<ID>;
+    ci.toPrettyString = Entity_toPrettyString<ID>;
+    ci.dispatch['toPrettyString'] = Entity_toPrettyString<ID>;
+    return ci;
   }
 }
 ```
@@ -2946,7 +3000,7 @@ struct Entity_Object_Printable_CacheableValue : ObjectValue {
 };
 ```
 
-**可行性**：⭐⭐⭐⭐⭐ — mixin已完全展平为静态函数+vptr委托，C++端无需任何特殊mixin机制。
+**可行性**：⭐⭐⭐⭐⭐ — mixin已完全展平为静态函数+ClassInfo.dispatch委托，C++端无需任何特殊mixin机制。
 
 ---
 
@@ -3060,7 +3114,7 @@ template<typename T> using Predicate = TypeFunction1<bool, T>*;
 | `dynamic`映射 | AnyPtr tagged union | 类型擦除的唯一可行方案，影响面可控 |
 | `T?`映射 | AnyPtr(内含null语义) | 不引入std::optional，简化系统 |
 | 泛型字段映射 | AnyPtr | Dart reified泛型在C++中需运行时类型标签 |
-| 自定义运算符 | 自由函数（不映射为C++ operator） | 与vptr/静态方法模式一致 |
+| 自定义运算符 | 自由函数（不映射为C++ operator） | 与ClassInfo.dispatch/静态方法模式一致 |
 | finally | RAII guard或嵌套try-catch | C++无finally关键字 |
 
 ### 22.3 建议的实施顺序

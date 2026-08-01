@@ -3,11 +3,18 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 typedef UnaryFunc<A, B> = TypeFunction1<B, A>;
 
 class TreeNodeClassInfo<T> extends ClassInfo {
-  Function? preorder;
-  Function? inorder;
-  Function? get_depth;
+  StaticList<T> Function(AnyGC)? preorder;
+  StaticList<T> Function(AnyGC)? inorder;
+  int Function(AnyGC)? get_depth;
   Function? map;
-  dynamic map_String;
+  TreeNodeValue<String> Function(AnyGC, TypeFunction1<String, T>)? map_String;
+  TreeNodeClassInfo() {
+    preorder = TreeNode_preorder<T>;
+    inorder = TreeNode_inorder<T>;
+    get_depth = TreeNode_get_depth<T>;
+    toString_ = TreeNode_toString<T>;
+    map_String = TreeNode_map<T, String>;
+  }
 }
 
 class TreeNodeValue<T> extends AnyGC {
@@ -15,15 +22,7 @@ class TreeNodeValue<T> extends AnyGC {
   late TreeNodeValue<T>? left;
   late TreeNodeValue<T>? right;
   @override
-  ClassInfo get classInfo {
-    final ci = TreeNodeClassInfo<T>();
-    ci.preorder = TreeNode_preorder<T>;
-    ci.inorder = TreeNode_inorder<T>;
-    ci.get_depth = TreeNode_get_depth<T>;
-    ci.toString_ = TreeNode_toString<T>;
-    ci.map_String = TreeNode_map<T, String>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TreeNodeClassInfo<T>>(runtimeType, TreeNodeClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -31,6 +30,24 @@ class TreeNodeValue<T> extends AnyGC {
     if (value is AnyGC) (value as AnyGC).gcMark(flag);
     if (left is AnyGC) (left as AnyGC).gcMark(flag);
     if (right is AnyGC) (right as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as TreeNodeClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as TreeNodeClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as TreeNodeClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -45,24 +62,24 @@ TreeNodeValue<T> TreeNode_new<T>(AnyGC this__, T value, [TreeNodeValue<T>? left 
 StaticList<T> TreeNode_preorder<T>(AnyGC this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
-  if (!((this_.left == null)))   result.addAll((() { final _r0 = this_.left!; return (_r0.classInfo as TreeNodeClassInfo).preorder!(_r0); })());
-  if (!((this_.right == null)))   result.addAll((() { final _r1 = this_.right!; return (_r1.classInfo as TreeNodeClassInfo).preorder!(_r1); })());
+  if (!((this_.left == null)))   (result.classInfo as StaticListClassInfo).addAll!(result, (() { final _r0 = this_.left!; return (_r0.classInfo as TreeNodeClassInfo<T>).preorder!(_r0); })());
+  if (!((this_.right == null)))   (result.classInfo as StaticListClassInfo).addAll!(result, (() { final _r1 = this_.right!; return (_r1.classInfo as TreeNodeClassInfo<T>).preorder!(_r1); })());
   return result;
 }
 
 StaticList<T> TreeNode_inorder<T>(AnyGC this__) {
   final this_ = this__ as TreeNodeValue<T>;
   final StaticList<T> result = StaticList<T>();
-  if (!((this_.left == null)))   result.addAll((() { final _r2 = this_.left!; return (_r2.classInfo as TreeNodeClassInfo).inorder!(_r2); })());
-  result.add(this_.value);
-  if (!((this_.right == null)))   result.addAll((() { final _r3 = this_.right!; return (_r3.classInfo as TreeNodeClassInfo).inorder!(_r3); })());
+  if (!((this_.left == null)))   (result.classInfo as StaticListClassInfo).addAll!(result, (() { final _r2 = this_.left!; return (_r2.classInfo as TreeNodeClassInfo<T>).inorder!(_r2); })());
+  (result.classInfo as StaticListClassInfo).add!(result, this_.value);
+  if (!((this_.right == null)))   (result.classInfo as StaticListClassInfo).addAll!(result, (() { final _r3 = this_.right!; return (_r3.classInfo as TreeNodeClassInfo<T>).inorder!(_r3); })());
   return result;
 }
 
 int TreeNode_get_depth<T>(AnyGC this__) {
   final this_ = this__ as TreeNodeValue<T>;
-  final int leftDepth = ((() { final _let5 = this_.left; return (_let5 == null) ? null : (_let5.classInfo as TreeNodeClassInfo).get_depth!(_let5); })() ?? 0);
-  final int rightDepth = ((() { final _let7 = this_.right; return (_let7 == null) ? null : (_let7.classInfo as TreeNodeClassInfo).get_depth!(_let7); })() ?? 0);
+  final int leftDepth = ((() { final _let5 = this_.left; return (_let5 == null) ? null : (_let5.classInfo as TreeNodeClassInfo<T>).get_depth!(_let5); })() ?? 0);
+  final int rightDepth = ((() { final _let7 = this_.right; return (_let7 == null) ? null : (_let7.classInfo as TreeNodeClassInfo<T>).get_depth!(_let7); })() ?? 0);
   return (1 + ((leftDepth > rightDepth) ? leftDepth : rightDepth));
 }
 
@@ -78,29 +95,45 @@ String TreeNode_toString<T>(AnyGC this__) {
 
 
 class LinkedNodeClassInfo<T> extends ClassInfo {
-  Function? reversed;
-  Function? toList;
-  Function? get_length;
+  LinkedNodeValue<T> Function(AnyGC)? reversed;
+  StaticList<T> Function(AnyGC)? toList;
+  LinkedNodeClassInfo() {
+    reversed = LinkedNode_reversed<T>;
+    toList = LinkedNode_toList<T>;
+    get_length = LinkedNode_get_length<T>;
+    toString_ = LinkedNode_toString<T>;
+  }
 }
 
 class LinkedNodeValue<T> extends AnyGC {
   late T data;
   late LinkedNodeValue<T>? next;
   @override
-  ClassInfo get classInfo {
-    final ci = LinkedNodeClassInfo<T>();
-    ci.reversed = LinkedNode_reversed<T>;
-    ci.toList = LinkedNode_toList<T>;
-    ci.get_length = LinkedNode_get_length<T>;
-    ci.toString_ = LinkedNode_toString<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LinkedNodeClassInfo<T>>(runtimeType, LinkedNodeClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (data is AnyGC) (data as AnyGC).gcMark(flag);
     if (next is AnyGC) (next as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as LinkedNodeClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as LinkedNodeClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as LinkedNodeClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -114,7 +147,7 @@ LinkedNodeValue<T> LinkedNode_new<T>(AnyGC this__, T data, [LinkedNodeValue<T>? 
 LinkedNodeValue<T> LinkedNode_reversed<T>(AnyGC this__) {
   final this_ = this__ as LinkedNodeValue<T>;
   if ((this_.next == null))   return LinkedNode_new<T>(GC.allocateLocal(LinkedNodeValue<T>()), this_.data);
-  final LinkedNodeValue<T> rev = (() { final _r10 = this_.next!; return (_r10.classInfo as LinkedNodeClassInfo).reversed!(_r10); })();
+  final LinkedNodeValue<T> rev = (() { final _r10 = this_.next!; return (_r10.classInfo as LinkedNodeClassInfo<T>).reversed!(_r10); })();
   LinkedNodeValue<T> tail = rev;
   while (!((tail.next == null))) {
     tail = tail.next!;
@@ -128,7 +161,7 @@ StaticList<T> LinkedNode_toList<T>(AnyGC this__) {
   final StaticList<T> result = StaticList<T>.of([this_.data]);
   LinkedNodeValue<T>? current = this_.next;
   while (!((current == null))) {
-    result.add(current!.data);
+    (result.classInfo as StaticListClassInfo).add!(result, current!.data);
     current = current!.next;
   }
   return result;
@@ -147,18 +180,25 @@ int LinkedNode_get_length<T>(AnyGC this__) {
 
 String LinkedNode_toString<T>(AnyGC this__) {
   final this_ = this__ as LinkedNodeValue<T>;
-  return 'LinkedNode(${(this_.classInfo as LinkedNodeClassInfo).toList!(this_).join(' -> ')})';
+  return 'LinkedNode(${(() { final _r11 = (this_.classInfo as LinkedNodeClassInfo<T>).toList!(this_); return (_r11.classInfo as StaticListClassInfo).join!(_r11, ' -> '); })()})';
 }
 
 
 class EitherClassInfo<L, R> extends ClassInfo {
-  Function? get_isLeft;
-  Function? get_isRight;
-  Function? get_leftValue;
-  Function? get_rightValue;
+  bool Function(AnyGC)? get_isLeft;
+  bool Function(AnyGC)? get_isRight;
+  L Function(AnyGC)? get_leftValue;
+  R Function(AnyGC)? get_rightValue;
   Function? fold;
   Function? mapRight;
   Function? flatMap;
+  EitherClassInfo() {
+    get_isLeft = Either_get_isLeft<L, R>;
+    get_isRight = Either_get_isRight<L, R>;
+    get_leftValue = Either_get_leftValue<L, R>;
+    get_rightValue = Either_get_rightValue<L, R>;
+    toString_ = Either_toString<L, R>;
+  }
 }
 
 class EitherValue<L, R> extends AnyGC {
@@ -166,21 +206,31 @@ class EitherValue<L, R> extends AnyGC {
   late R? _right;
   late bool _isRight;
   @override
-  ClassInfo get classInfo {
-    final ci = EitherClassInfo<L, R>();
-    ci.get_isLeft = Either_get_isLeft<L, R>;
-    ci.get_isRight = Either_get_isRight<L, R>;
-    ci.get_leftValue = Either_get_leftValue<L, R>;
-    ci.get_rightValue = Either_get_rightValue<L, R>;
-    ci.toString_ = Either_toString<L, R>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<EitherClassInfo<L, R>>(runtimeType, EitherClassInfo<L, R>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_left is AnyGC) (_left as AnyGC).gcMark(flag);
     if (_right is AnyGC) (_right as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as EitherClassInfo<L, R>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as EitherClassInfo<L, R>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as EitherClassInfo<L, R>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -212,13 +262,13 @@ bool Either_get_isRight<L, R>(AnyGC this__) {
 
 L Either_get_leftValue<L, R>(AnyGC this__) {
   final this_ = this__ as EitherValue<L, R>;
-  if (!((this_.classInfo as EitherClassInfo).get_isLeft!(this_)))   throw DartStateError('Not a left value');
+  if (!((this_.classInfo as EitherClassInfo<L, R>).get_isLeft!(this_)))   throw DartStateError('Not a left value');
   return (this_._left as L);
 }
 
 R Either_get_rightValue<L, R>(AnyGC this__) {
   final this_ = this__ as EitherValue<L, R>;
-  if (!((this_.classInfo as EitherClassInfo).get_isRight!(this_)))   throw DartStateError('Not a right value');
+  if (!((this_.classInfo as EitherClassInfo<L, R>).get_isRight!(this_)))   throw DartStateError('Not a right value');
   return (this_._right as R);
 }
 
@@ -251,7 +301,7 @@ String Either_toString<L, R>(AnyGC this__) {
 String Serializable_serialize(AnyGC this__) {
   final dynamic this_ = this__;
   final StaticMap<String, dynamic> map = StaticMap<String, dynamic>.of((this_.classInfo as dynamic).toMap!(this_));
-  final String entries = map.entries.map(ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0()))).join(', ');
+  final String entries = (() { final _r20 = StaticList<String>.of((StaticList<StaticMapEntry>.of((map.classInfo as StaticMapClassInfo).get_entries!(map)).classInfo as StaticListClassInfo).map!(StaticList<StaticMapEntry>.of((map.classInfo as StaticMapClassInfo).get_entries!(map)), ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0())))); return (_r20.classInfo as StaticListClassInfo).join!(_r20, ', '); })();
   return '{${entries}}';
 }
 
@@ -259,39 +309,36 @@ String Serializable_serialize(AnyGC this__) {
 // mixin Validatable → static functions for delegation
 bool Validatable_get_isValid(AnyGC this__) {
   final dynamic this_ = this__;
-  return (this_.classInfo as dynamic).validate!(this_).isEmpty;
+  return (() { final _r21 = (this_.classInfo as dynamic).validate!(this_); return (_r21.classInfo as StaticListClassInfo).get_isEmpty!(_r21); })();
 }
 
 String Validatable_get_validationSummary(AnyGC this__) {
   final dynamic this_ = this__;
   final StaticList<String> errors = StaticList<String>.of((this_.classInfo as dynamic).validate!(this_));
-  if (errors.isEmpty)   return 'valid';
-  return 'invalid: ${errors.join('; ')}';
+  if ((errors.classInfo as StaticListClassInfo).get_isEmpty!(errors))   return 'valid';
+  return 'invalid: ${(errors.classInfo as StaticListClassInfo).join!(errors, '; ')}';
 }
 
 
 // mixin Copyable → static functions for delegation
 
 class UserProfileClassInfo extends UserProfile_Object_Serializable_ValidatableClassInfo {
+  UserProfileClassInfo() {
+    toMap = UserProfile_toMap;
+    serialize = UserProfile_serialize;
+    validate = UserProfile_validate;
+    get_isValid = UserProfile_get_isValid;
+    get_validationSummary = UserProfile_get_validationSummary;
+    toString_ = UserProfile_toString;
+  }
 }
 
 class UserProfileValue extends UserProfile_Object_Serializable_ValidatableValue {
   late String name;
   late String email;
   late int age;
-  static UserProfileClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static UserProfileClassInfo _initClassInfo() {
-    final ci = UserProfileClassInfo();
-    ci.toMap = UserProfile_toMap;
-    ci.serialize = UserProfile_serialize;
-    ci.validate = UserProfile_validate;
-    ci.get_isValid = UserProfile_get_isValid;
-    ci.get_validationSummary = UserProfile_get_validationSummary;
-    ci.toString_ = UserProfile_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<UserProfileClassInfo>(runtimeType, UserProfileClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -315,9 +362,9 @@ StaticMap<String, dynamic> UserProfile_toMap(AnyGC this__) {
 StaticList<String> UserProfile_validate(AnyGC this__) {
   final this_ = this__ as UserProfileValue;
   final StaticList<String> errors = StaticList<String>();
-  if (this_.name.isEmpty)   errors.add('name is empty');
-  if (!(this_.email.contains('@')))   errors.add('invalid email');
-  if (((this_.age < 0) || (this_.age > 150)))   errors.add('invalid age');
+  if (this_.name.isEmpty)   (errors.classInfo as StaticListClassInfo).add!(errors, 'name is empty');
+  if (!(this_.email.contains('@')))   (errors.classInfo as StaticListClassInfo).add!(errors, 'invalid email');
+  if (((this_.age < 0) || (this_.age > 150)))   (errors.classInfo as StaticListClassInfo).add!(errors, 'invalid age');
   return errors;
 }
 
@@ -343,15 +390,39 @@ String UserProfile_get_validationSummary(AnyGC this__) {
 
 
 class DataTransformerClassInfo<TInput, TOutput> extends ClassInfo {
-  Function? transform;
+  TOutput Function(AnyGC, TInput)? transform;
   Function? preValidate;
   Function? process;
   Function? postProcess;
+  DataTransformerClassInfo() {
+    transform = DataTransformer_transform<TInput, TOutput>;
+    preValidate = DataTransformer_preValidate<TInput, TOutput>;
+    process = DataTransformer_process<TInput, TOutput>;
+    postProcess = DataTransformer_postProcess<TInput, TOutput>;
+  }
 }
 
 class DataTransformerValue<TInput, TOutput> extends AnyGC {
   @override
-  ClassInfo get classInfo => DataTransformerClassInfo<TInput, TOutput>();
+  ClassInfo get classInfo => ClassInfoRegistry.get<DataTransformerClassInfo<TInput, TOutput>>(runtimeType, DataTransformerClassInfo<TInput, TOutput>.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DataTransformerClassInfo<TInput, TOutput>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DataTransformerClassInfo<TInput, TOutput>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DataTransformerClassInfo<TInput, TOutput>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(AnyGC this__) {
@@ -361,9 +432,9 @@ DataTransformerValue<TInput, TOutput> DataTransformer_new<TInput, TOutput>(AnyGC
 
 TOutput DataTransformer_transform<TInput, TOutput>(AnyGC this__, TInput input) {
   final this_ = this__ as DataTransformerValue<TInput, TOutput>;
-  final TInput validated = (this_.classInfo as DataTransformerClassInfo).preValidate!(this_, input);
-  final TOutput processed = (this_.classInfo as DataTransformerClassInfo).process!(this_, validated);
-  return (this_.classInfo as DataTransformerClassInfo).postProcess!(this_, processed);
+  final TInput validated = (this_.classInfo as DataTransformerClassInfo<TInput, TOutput>).preValidate!(this_, input);
+  final TOutput processed = (this_.classInfo as DataTransformerClassInfo<TInput, TOutput>).process!(this_, validated);
+  return (this_.classInfo as DataTransformerClassInfo<TInput, TOutput>).postProcess!(this_, processed);
 }
 
 TInput DataTransformer_preValidate<TInput, TOutput>(AnyGC this__, TInput input) {
@@ -371,7 +442,7 @@ TInput DataTransformer_preValidate<TInput, TOutput>(AnyGC this__, TInput input) 
   return input;
 }
 
-TOutput DataTransformer_process<TInput, TOutput>(dynamic this_, TInput input) {
+TOutput DataTransformer_process<TInput, TOutput>(AnyGC this_, TInput input) {
   throw UnimplementedError('DataTransformer.process is abstract');
 }
 
@@ -382,20 +453,17 @@ TOutput DataTransformer_postProcess<TInput, TOutput>(AnyGC this__, TOutput outpu
 
 
 class StringToIntTransformerClassInfo extends DataTransformerClassInfo<String, int> {
+  StringToIntTransformerClassInfo() {
+    transform = StringToIntTransformer_transform;
+    preValidate = StringToIntTransformer_preValidate;
+    process = StringToIntTransformer_process;
+    postProcess = StringToIntTransformer_postProcess;
+  }
 }
 
 class StringToIntTransformerValue extends DataTransformerValue<String, int> {
-  static StringToIntTransformerClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static StringToIntTransformerClassInfo _initClassInfo() {
-    final ci = StringToIntTransformerClassInfo();
-    ci.transform = StringToIntTransformer_transform;
-    ci.preValidate = StringToIntTransformer_preValidate;
-    ci.process = StringToIntTransformer_process;
-    ci.postProcess = StringToIntTransformer_postProcess;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<StringToIntTransformerClassInfo>(runtimeType, StringToIntTransformerClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -431,21 +499,18 @@ int StringToIntTransformer_postProcess(AnyGC this__, int output) {
 
 
 class IntToStringTransformerClassInfo extends DataTransformerClassInfo<int, String> {
+  IntToStringTransformerClassInfo() {
+    transform = IntToStringTransformer_transform;
+    preValidate = IntToStringTransformer_preValidate;
+    process = IntToStringTransformer_process;
+    postProcess = IntToStringTransformer_postProcess;
+  }
 }
 
 class IntToStringTransformerValue extends DataTransformerValue<int, String> {
   late String prefix;
-  static IntToStringTransformerClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static IntToStringTransformerClassInfo _initClassInfo() {
-    final ci = IntToStringTransformerClassInfo();
-    ci.transform = IntToStringTransformer_transform;
-    ci.preValidate = IntToStringTransformer_preValidate;
-    ci.process = IntToStringTransformer_process;
-    ci.postProcess = IntToStringTransformer_postProcess;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<IntToStringTransformerClassInfo>(runtimeType, IntToStringTransformerClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -482,20 +547,19 @@ int IntToStringTransformer_preValidate(AnyGC this__, int input) {
 
 
 class ChainedTransformerClassInfo<A, B, C> extends DataTransformerClassInfo<A, C> {
+  ChainedTransformerClassInfo() {
+    transform = ChainedTransformer_transform<A, B, C>;
+    preValidate = ChainedTransformer_preValidate<A, B, C>;
+    process = ChainedTransformer_process<A, B, C>;
+    postProcess = ChainedTransformer_postProcess<A, B, C>;
+  }
 }
 
 class ChainedTransformerValue<A, B, C> extends DataTransformerValue<A, C> {
   late DataTransformerValue<A, B> first;
   late DataTransformerValue<B, C> second;
   @override
-  ClassInfo get classInfo {
-    final ci = ChainedTransformerClassInfo<A, B, C>();
-    ci.transform = ChainedTransformer_transform<A, B, C>;
-    ci.preValidate = ChainedTransformer_preValidate<A, B, C>;
-    ci.process = ChainedTransformer_process<A, B, C>;
-    ci.postProcess = ChainedTransformer_postProcess<A, B, C>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ChainedTransformerClassInfo<A, B, C>>(runtimeType, ChainedTransformerClassInfo<A, B, C>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -515,8 +579,8 @@ ChainedTransformerValue<A, B, C> ChainedTransformer_new<A, B, C>(AnyGC this__, D
 
 C ChainedTransformer_process<A, B, C>(AnyGC this__, A input) {
   final this_ = this__ as ChainedTransformerValue<A, B, C>;
-  final B intermediate = (this_.first.classInfo as DataTransformerClassInfo).transform!(this_.first, input);
-  return (this_.second.classInfo as DataTransformerClassInfo).transform!(this_.second, intermediate);
+  final B intermediate = (this_.first.classInfo as DataTransformerClassInfo<A, B>).transform!(this_.first, input);
+  return (this_.second.classInfo as DataTransformerClassInfo<B, C>).transform!(this_.second, intermediate);
 }
 
 C ChainedTransformer_transform<A, B, C>(AnyGC this__, A input) {
@@ -536,38 +600,52 @@ C ChainedTransformer_postProcess<A, B, C>(AnyGC this__, C output) {
 
 
 class RegistryClassInfo extends ClassInfo {
-  Function? register;
-  Function? lookup;
-  Function? contains;
-  Function? get_size;
-  Function? get_accessCount;
-  Function? get_keys;
-  Function? clear;
+  void Function(AnyGC, String, AnyGC)? register;
+  dynamic Function(AnyGC, String)? lookup;
+  int Function(AnyGC)? get_size;
+  int Function(AnyGC)? get_accessCount;
+  StaticList<String> Function(AnyGC)? get_keys;
+  void Function(AnyGC)? clear;
+  RegistryClassInfo() {
+    register = Registry_register;
+    lookup = Registry_lookup;
+    contains = Registry_contains;
+    get_size = Registry_get_size;
+    get_accessCount = Registry_get_accessCount;
+    get_keys = Registry_get_keys;
+    clear = Registry_clear;
+    toString_ = Registry_toString;
+  }
 }
 
 class RegistryValue extends AnyGC {
   late StaticMap<String, dynamic> _store = StaticMap<String, dynamic>.of({});
   late int _accessCount = 0;
-  static RegistryClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static RegistryClassInfo _initClassInfo() {
-    final ci = RegistryClassInfo();
-    ci.register = Registry_register;
-    ci.lookup = Registry_lookup;
-    ci.contains = Registry_contains;
-    ci.get_size = Registry_get_size;
-    ci.get_accessCount = Registry_get_accessCount;
-    ci.get_keys = Registry_get_keys;
-    ci.clear = Registry_clear;
-    ci.toString_ = Registry_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<RegistryClassInfo>(runtimeType, RegistryClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_store is AnyGC) (_store as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as RegistryClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as RegistryClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as RegistryClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -583,24 +661,24 @@ RegistryValue Registry_new() {
 
 void Registry_register(AnyGC this__, String key, AnyGC value) {
   final this_ = this__ as RegistryValue;
-  this_._store[key] = value;
+  (this_._store.classInfo as StaticMapClassInfo).operatorIndexSet!(this_._store, key, value);
   this_._accessCount = (this_._accessCount + 1);
 }
 
 dynamic Registry_lookup(AnyGC this__, String key) {
   final this_ = this__ as RegistryValue;
   this_._accessCount = (this_._accessCount + 1);
-  return this_._store[key];
+  return (this_._store.classInfo as StaticMapClassInfo).operatorIndex!(this_._store, key);
 }
 
 bool Registry_contains(AnyGC this__, String key) {
   final this_ = this__ as RegistryValue;
-  return this_._store.containsKey(key);
+  return (this_._store.classInfo as StaticMapClassInfo).containsKey!(this_._store, key);
 }
 
 int Registry_get_size(AnyGC this__) {
   final this_ = this__ as RegistryValue;
-  return this_._store.length;
+  return (this_._store.classInfo as StaticMapClassInfo).get_length!(this_._store);
 }
 
 int Registry_get_accessCount(AnyGC this__) {
@@ -610,12 +688,12 @@ int Registry_get_accessCount(AnyGC this__) {
 
 StaticList<String> Registry_get_keys(AnyGC this__) {
   final this_ = this__ as RegistryValue;
-  return (StaticList.of(this_._store.keys.toList())..sort());
+  return (() { final _let22 = StaticList<String>.of((StaticList<String>.of((this_._store.classInfo as StaticMapClassInfo).get_keys!(this_._store)).classInfo as StaticListClassInfo).toList!(StaticList<String>.of((this_._store.classInfo as StaticMapClassInfo).get_keys!(this_._store)))); (_let22.classInfo as StaticListClassInfo).sort!(_let22); return _let22; })();
 }
 
 void Registry_clear(AnyGC this__) {
   final this_ = this__ as RegistryValue;
-  this_._store.clear();
+  (this_._store.classInfo as StaticMapClassInfo).clear!(this_._store);
   this_._accessCount = 0;
 }
 
@@ -629,12 +707,25 @@ class DataProcessorClassInfo extends ClassInfo {
 }
 
 class DataProcessorValue extends AnyGC {
-  static DataProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DataProcessorClassInfo _initClassInfo() {
-    final ci = DataProcessorClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DataProcessorClassInfo>(runtimeType, DataProcessorClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DataProcessorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DataProcessorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DataProcessorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -644,7 +735,7 @@ DataProcessorValue DataProcessor_new(AnyGC this__) {
 }
 
 StaticList<StaticMap<String, dynamic>> DataProcessor_processRecords(StaticList<StaticMap<String, dynamic>> records) {
-  return (StaticList.of(records.where(ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()))).where(ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()))).map(ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()))).toList())..sort(ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1()))));
+  return (() { final _let23 = StaticList<StaticMap<String, Object>>.of((() { final _r26 = StaticList<StaticMap<String, Object>>.of((() { final _r25 = StaticList<StaticMap<String, dynamic>>.of((() { final _r24 = StaticList<StaticMap<String, dynamic>>.of((records.classInfo as StaticListClassInfo).where!(records, ClosureEnv_anon_1_new(GC.allocateLocal(ClosureEnv_anon_1())))); return (_r24.classInfo as StaticListClassInfo).where!(_r24, ClosureEnv_anon_2_new(GC.allocateLocal(ClosureEnv_anon_2()))); })()); return (_r25.classInfo as StaticListClassInfo).map!(_r25, ClosureEnv_anon_3_new(GC.allocateLocal(ClosureEnv_anon_3()))); })()); return (_r26.classInfo as StaticListClassInfo).toList!(_r26); })()); (_let23.classInfo as StaticListClassInfo).sort!(_let23, ClosureEnv_anon_4_new(GC.allocateLocal(ClosureEnv_anon_4()))); return _let23; })();
 }
 
 String DataProcessor__scoreToGrade(int score) {
@@ -658,13 +749,13 @@ String DataProcessor__scoreToGrade(int score) {
 StaticMap<String, StaticList<StaticMap<String, dynamic>>> DataProcessor_groupByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of({});
 {
-    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(records.iterator);
+    var sync_for_iterator = (records.classInfo as StaticListClassInfo).get_iterator!(records);
     for (; sync_for_iterator.moveNext(); ) {
       final StaticMap<String, dynamic> record = StaticMap<String, dynamic>.of(sync_for_iterator.current);
 {
-        final String grade = (record['grade'] as String);
-        groups.putIfAbsent(grade, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5())));
-        groups[grade]!.add(record);
+        final String grade = ((record.classInfo as StaticMapClassInfo).operatorIndex!(record, 'grade') as String);
+        StaticList<StaticMap<String, dynamic>>.of((groups.classInfo as StaticMapClassInfo).putIfAbsent!(groups, grade, ClosureEnv_anon_5_new(GC.allocateLocal(ClosureEnv_anon_5()))));
+        (() { final _r27 = (groups.classInfo as StaticMapClassInfo).operatorIndex!(groups, grade)!; return (_r27.classInfo as StaticListClassInfo).add!(_r27, record); })();
       }
     }
   }
@@ -673,26 +764,41 @@ StaticMap<String, StaticList<StaticMap<String, dynamic>>> DataProcessor_groupByG
 
 StaticMap<String, double> DataProcessor_averageByGrade(StaticList<StaticMap<String, dynamic>> records) {
   final StaticMap<String, StaticList<StaticMap<String, dynamic>>> groups = StaticMap<String, StaticList<StaticMap<String, dynamic>>>.of(DataProcessor_groupByGrade(records));
-  return groups.map(ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6())));
+  return StaticMap<String, double>.of((groups.classInfo as StaticMapClassInfo).map!(groups, ClosureEnv_anon_6_new(GC.allocateLocal(ClosureEnv_anon_6()))));
 }
 
 
 class ExpensiveComputationClassInfo extends ClassInfo {
-  Function? initialize;
+  void Function(AnyGC, String)? initialize;
+  ExpensiveComputationClassInfo() {
+    initialize = ExpensiveComputation_initialize;
+    toString_ = ExpensiveComputation_toString;
+  }
 }
 
 class ExpensiveComputationValue extends AnyGC {
   late int seed;
   late int computedValue = ExpensiveComputation__computeExpensive(this);
   late String description;
-  static ExpensiveComputationClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ExpensiveComputationClassInfo _initClassInfo() {
-    final ci = ExpensiveComputationClassInfo();
-    ci.initialize = ExpensiveComputation_initialize;
-    ci.toString_ = ExpensiveComputation_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ExpensiveComputationClassInfo>(runtimeType, ExpensiveComputationClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ExpensiveComputationClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ExpensiveComputationClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ExpensiveComputationClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -726,12 +832,25 @@ class MathUtilsClassInfo extends ClassInfo {
 }
 
 class MathUtilsValue extends AnyGC {
-  static MathUtilsClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MathUtilsClassInfo _initClassInfo() {
-    final ci = MathUtilsClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<MathUtilsClassInfo>(runtimeType, MathUtilsClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as MathUtilsClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as MathUtilsClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as MathUtilsClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -744,9 +863,9 @@ int MathUtils_fibonacci(int n) {
   final StaticMap<int, int> memo = StaticMap<int, int>.of({});
   int fib(int k) {
     if ((k <= 1))     return k;
-    if (memo.containsKey(k))     return memo[k]!;
+    if ((memo.classInfo as StaticMapClassInfo).containsKey!(memo, k))     return (memo.classInfo as StaticMapClassInfo).operatorIndex!(memo, k)!;
     final int result = (fib((k - 1)) + fib((k - 2)));
-    memo[k] = result;
+    (memo.classInfo as StaticMapClassInfo).operatorIndexSet!(memo, k, result);
     return result;
   }
 
@@ -757,7 +876,7 @@ StaticList<int> MathUtils_primeFactors(int n) {
   final StaticList<int> factors = StaticList<int>();
   void extractFactor(int factor) {
     while (((n % factor) == 0)) {
-      factors.add(factor);
+      (factors.classInfo as StaticListClassInfo).add!(factors, factor);
       n = (n ~/ factor);
     }
   }
@@ -766,7 +885,7 @@ StaticList<int> MathUtils_primeFactors(int n) {
   for (var i = 3; ((i * i) <= n); i = (i + 2)) {
     extractFactor(i);
   }
-  if ((n > 1))   factors.add(n);
+  if ((n > 1))   (factors.classInfo as StaticListClassInfo).add!(factors, n);
   return factors;
 }
 
@@ -785,17 +904,32 @@ int MathUtils_lcm(int a, int b) {
 
 
 class Printable3ClassInfo extends ClassInfo {
-  Function? prettyPrint;
+  String Function(AnyGC)? prettyPrint;
+  Printable3ClassInfo() {
+    prettyPrint = Printable3_prettyPrint;
+  }
 }
 
 class Printable3Value extends AnyGC {
-  static Printable3ClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Printable3ClassInfo _initClassInfo() {
-    final ci = Printable3ClassInfo();
-    ci.prettyPrint = Printable3_prettyPrint;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Printable3ClassInfo>(runtimeType, Printable3ClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Printable3ClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Printable3ClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Printable3ClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -804,31 +938,46 @@ Printable3Value Printable3_new(AnyGC this__) {
   return this_;
 }
 
-String Printable3_prettyPrint(dynamic this_) {
+String Printable3_prettyPrint(AnyGC this_) {
   throw UnimplementedError('Printable3.prettyPrint is abstract');
 }
 
 
 class ScoreClassInfo extends Printable3ClassInfo {
-  Function? compareTo2;
-  Function? isLessThan;
-  Function? isGreaterThan;
+  int Function(AnyGC, ScoreValue)? compareTo2;
+  bool Function(AnyGC, ScoreValue)? isLessThan;
+  bool Function(AnyGC, ScoreValue)? isGreaterThan;
+  ScoreClassInfo() {
+    prettyPrint = Score_prettyPrint;
+    compareTo2 = Score_compareTo2;
+    isLessThan = Score_isLessThan;
+    isGreaterThan = Score_isGreaterThan;
+    toString_ = Score_toString;
+  }
 }
 
 class ScoreValue extends AnyGC implements Printable3Value {
   late String subject;
   late int points;
-  static ScoreClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ScoreClassInfo _initClassInfo() {
-    final ci = ScoreClassInfo();
-    ci.prettyPrint = Score_prettyPrint;
-    ci.compareTo2 = Score_compareTo2;
-    ci.isLessThan = Score_isLessThan;
-    ci.isGreaterThan = Score_isGreaterThan;
-    ci.toString_ = Score_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ScoreClassInfo>(runtimeType, ScoreClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ScoreClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ScoreClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ScoreClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -866,24 +1015,21 @@ String Score_toString(AnyGC this__) {
 
 
 class WeightedScoreClassInfo extends ScoreClassInfo {
-  Function? get_weightedPoints;
+  double Function(AnyGC)? get_weightedPoints;
+  WeightedScoreClassInfo() {
+    prettyPrint = WeightedScore_prettyPrint;
+    compareTo2 = WeightedScore_compareTo2;
+    isLessThan = WeightedScore_isLessThan;
+    isGreaterThan = WeightedScore_isGreaterThan;
+    toString_ = WeightedScore_toString;
+    get_weightedPoints = WeightedScore_get_weightedPoints;
+  }
 }
 
 class WeightedScoreValue extends ScoreValue {
   late double weight;
-  static WeightedScoreClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static WeightedScoreClassInfo _initClassInfo() {
-    final ci = WeightedScoreClassInfo();
-    ci.prettyPrint = WeightedScore_prettyPrint;
-    ci.compareTo2 = WeightedScore_compareTo2;
-    ci.isLessThan = WeightedScore_isLessThan;
-    ci.isGreaterThan = WeightedScore_isGreaterThan;
-    ci.toString_ = WeightedScore_toString;
-    ci.get_weightedPoints = WeightedScore_get_weightedPoints;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<WeightedScoreClassInfo>(runtimeType, WeightedScoreClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -936,12 +1082,25 @@ class TextProcessorClassInfo extends ClassInfo {
 }
 
 class TextProcessorValue extends AnyGC {
-  static TextProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static TextProcessorClassInfo _initClassInfo() {
-    final ci = TextProcessorClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<TextProcessorClassInfo>(runtimeType, TextProcessorClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as TextProcessorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as TextProcessorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as TextProcessorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -964,21 +1123,21 @@ String TextProcessor_camelToSnake(String input) {
 
 String TextProcessor_snakeToCamel(String input) {
   final StaticList<String> parts = StaticList<String>.of(input.split('_'));
-  if (parts.isEmpty)   return input;
-  final String first = parts[0];
-  final String rest = parts.skip(1).map(ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8()))).join();
+  if ((parts.classInfo as StaticListClassInfo).get_isEmpty!(parts))   return input;
+  final String first = (parts.classInfo as StaticListClassInfo).operatorIndex!(parts, 0);
+  final String rest = (() { final _r29 = StaticList<String>.of((() { final _r28 = StaticList<String>.of((parts.classInfo as StaticListClassInfo).skip!(parts, 1)); return (_r28.classInfo as StaticListClassInfo).map!(_r28, ClosureEnv_anon_8_new(GC.allocateLocal(ClosureEnv_anon_8()))); })()); return (_r29.classInfo as StaticListClassInfo).join!(_r29); })();
   return '${first}${rest}';
 }
 
 StaticMap<String, int> TextProcessor_wordFrequency(String text) {
-  final StaticList<String> words = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+')).where(ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))).toList());
+  final StaticList<String> words = StaticList<String>.of((() { final _r31 = StaticList<String>.of((() { final _r30 = StaticList.of(text.toLowerCase().replaceAll(StaticRegExp('[^a-z\\s]'), '').split(StaticRegExp('\\s+'))); return (_r30.classInfo as StaticListClassInfo).where!(_r30, ClosureEnv_anon_9_new(GC.allocateLocal(ClosureEnv_anon_9()))); })()); return (_r31.classInfo as StaticListClassInfo).toList!(_r31); })());
   final StaticMap<String, int> freq = StaticMap<String, int>.of({});
 {
-    StaticIterator<String> sync_for_iterator = StaticIterator(words.iterator);
+    var sync_for_iterator = (words.classInfo as StaticListClassInfo).get_iterator!(words);
     for (; sync_for_iterator.moveNext(); ) {
       final String word = sync_for_iterator.current;
 {
-        freq[word] = ((freq[word] ?? 0) + 1);
+        (freq.classInfo as StaticMapClassInfo).operatorIndexSet!(freq, word, (((freq.classInfo as StaticMapClassInfo).operatorIndex!(freq, word) ?? 0) + 1));
       }
     }
   }
@@ -999,7 +1158,7 @@ enum Season {
 }
 
 String Season_get_displayName(Season this_) {
-  _L22: do {
+  _L33: do {
     switch (this_) {
       case Season.spring:
 {
@@ -1022,7 +1181,7 @@ String Season_get_displayName(Season this_) {
 }
 
 Season Season_get_next(Season this_) {
-  _L23: do {
+  _L34: do {
     switch (this_) {
       case Season.spring:
 {
@@ -1052,12 +1211,25 @@ class JsonLikeProcessorClassInfo extends ClassInfo {
 }
 
 class JsonLikeProcessorValue extends AnyGC {
-  static JsonLikeProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static JsonLikeProcessorClassInfo _initClassInfo() {
-    final ci = JsonLikeProcessorClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<JsonLikeProcessorClassInfo>(runtimeType, JsonLikeProcessorClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as JsonLikeProcessorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as JsonLikeProcessorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as JsonLikeProcessorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1069,15 +1241,15 @@ JsonLikeProcessorValue JsonLikeProcessor_new(AnyGC this__) {
 dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<String, dynamic> overlay) {
   final StaticMap<String, dynamic> result = StaticMap<String, dynamic>.from(base);
 {
-    StaticIterator<String> sync_for_iterator = StaticIterator(overlay.keys.iterator);
+    var sync_for_iterator = (StaticList<String>.of((overlay.classInfo as StaticMapClassInfo).get_keys!(overlay)).classInfo as StaticListClassInfo).get_iterator!(StaticList<String>.of((overlay.classInfo as StaticMapClassInfo).get_keys!(overlay)));
     for (; sync_for_iterator.moveNext(); ) {
       final String key = sync_for_iterator.current;
 {
-        if (((result.containsKey(key) && (result[key] is StaticMap<String, dynamic>)) && (overlay[key] is StaticMap<String, dynamic>))) {
-          result[key] = JsonLikeProcessor_deepMerge((result[key] as StaticMap<String, dynamic>), (overlay[key] as StaticMap<String, dynamic>));
+        if ((((result.classInfo as StaticMapClassInfo).containsKey!(result, key) && ((result.classInfo as StaticMapClassInfo).operatorIndex!(result, key) is StaticMap<String, dynamic>)) && ((overlay.classInfo as StaticMapClassInfo).operatorIndex!(overlay, key) is StaticMap<String, dynamic>))) {
+          (result.classInfo as StaticMapClassInfo).operatorIndexSet!(result, key, JsonLikeProcessor_deepMerge(((result.classInfo as StaticMapClassInfo).operatorIndex!(result, key) as StaticMap<String, dynamic>), ((overlay.classInfo as StaticMapClassInfo).operatorIndex!(overlay, key) as StaticMap<String, dynamic>)));
         }
  else {
-          result[key] = overlay[key];
+          (result.classInfo as StaticMapClassInfo).operatorIndexSet!(result, key, (overlay.classInfo as StaticMapClassInfo).operatorIndex!(overlay, key));
         }
       }
     }
@@ -1088,60 +1260,75 @@ dynamic JsonLikeProcessor_deepMerge(StaticMap<String, dynamic> base, StaticMap<S
 StaticList<String> JsonLikeProcessor_flattenKeys(StaticMap<String, dynamic> map, {String prefix = ''}) {
   final StaticList<String> keys = StaticList<String>();
 {
-    StaticIterator<StaticMapEntry<String, dynamic>> sync_for_iterator = StaticIterator(map.entries.iterator);
+    var sync_for_iterator = (StaticList<StaticMapEntry>.of((map.classInfo as StaticMapClassInfo).get_entries!(map)).classInfo as StaticListClassInfo).get_iterator!(StaticList<StaticMapEntry>.of((map.classInfo as StaticMapClassInfo).get_entries!(map)));
     for (; sync_for_iterator.moveNext(); ) {
-      final StaticMapEntry<String, dynamic> entry = sync_for_iterator.current;
+      final StaticMapEntry entry = sync_for_iterator.current;
 {
         final String fullKey = (prefix.isEmpty ? entry.key : '${prefix}.${entry.key}');
         if ((entry.value is StaticMap<String, dynamic>)) {
-          keys.addAll(JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
+          (keys.classInfo as StaticListClassInfo).addAll!(keys, JsonLikeProcessor_flattenKeys((entry.value as StaticMap<String, dynamic>), prefix: fullKey));
         }
  else {
-          keys.add(fullKey);
+          (keys.classInfo as StaticListClassInfo).add!(keys, fullKey);
         }
       }
     }
   }
-  return (keys..sort());
+  return (() { final _let35 = keys; (_let35.classInfo as StaticListClassInfo).sort!(_let35); return _let35; })();
 }
 
 
 class Matrix2DClassInfo extends ClassInfo {
-  Function? get;
-  Function? operatorPlus;
-  Function? operatorStar;
-  Function? get_trace;
+  double Function(AnyGC, int, int)? get;
+  Matrix2DValue Function(AnyGC, Matrix2DValue)? operatorPlus;
+  Matrix2DValue Function(AnyGC, Matrix2DValue)? operatorStar;
+  double Function(AnyGC)? get_trace;
+  Matrix2DClassInfo() {
+    get = Matrix2D_get;
+    operatorPlus = Matrix2D_operatorPlus;
+    operatorStar = Matrix2D_operatorStar;
+    get_trace = Matrix2D_get_trace;
+    toString_ = Matrix2D_toString;
+  }
 }
 
 class Matrix2DValue extends AnyGC {
   late StaticList<StaticList<double>> _data;
   late int rows;
   late int cols;
-  static Matrix2DClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Matrix2DClassInfo _initClassInfo() {
-    final ci = Matrix2DClassInfo();
-    ci.get = Matrix2D_get;
-    ci.operatorPlus = Matrix2D_operatorPlus;
-    ci.operatorStar = Matrix2D_operatorStar;
-    ci.get_trace = Matrix2D_get_trace;
-    ci.toString_ = Matrix2D_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Matrix2DClassInfo>(runtimeType, Matrix2DClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_data is AnyGC) (_data as AnyGC).gcMark(flag);
   }
+  @override
+  String toString() {
+    final fn = (classInfo as Matrix2DClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Matrix2DClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Matrix2DClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 Matrix2DValue Matrix2D_new(AnyGC this__, StaticList<StaticList<double>> _data) {
   final this_ = this__ as Matrix2DValue;
   this_._data = _data;
-  this_.rows = _data.length;
-  this_.cols = (_data.isEmpty ? 0 : _data[0].length);
+  this_.rows = (_data.classInfo as StaticListClassInfo).get_length!(_data);
+  this_.cols = ((_data.classInfo as StaticListClassInfo).get_isEmpty!(_data) ? 0 : (() { final _r36 = (_data.classInfo as StaticListClassInfo).operatorIndex!(_data, 0); return (_r36.classInfo as StaticListClassInfo).get_length!(_r36); })());
   return this_;
 }
 
@@ -1163,7 +1350,7 @@ Matrix2DValue Matrix2D_new_identity(AnyGC this__, int size) {
 
 double Matrix2D_get(AnyGC this__, int row, int col) {
   final this_ = this__ as Matrix2DValue;
-  return this_._data[row][col];
+  return (() { final _r37 = (this_._data.classInfo as StaticListClassInfo).operatorIndex!(this_._data, row); return (_r37.classInfo as ClassInfo).operatorIndex!(_r37, col); })();
 }
 
 Matrix2DValue Matrix2D_operatorPlus(AnyGC this__, Matrix2DValue other) {
@@ -1171,7 +1358,7 @@ Matrix2DValue Matrix2D_operatorPlus(AnyGC this__, Matrix2DValue other) {
   final Matrix2DValue result = Matrix2D_new_zeros(GC.allocateLocal(Matrix2DValue()), this_.rows, this_.cols);
   for (var i = 0; (i < this_.rows); i = (i + 1)) {
     for (var j = 0; (j < this_.cols); j = (j + 1)) {
-      result._data[i][j] = (this_._data[i][j] + other._data[i][j]);
+      (() { final _r40 = (result._data.classInfo as StaticListClassInfo).operatorIndex!(result._data, i); return (_r40.classInfo as ClassInfo).operatorIndexSet!(_r40, j, ((() { final _r38 = (this_._data.classInfo as StaticListClassInfo).operatorIndex!(this_._data, i); return (_r38.classInfo as ClassInfo).operatorIndex!(_r38, j); })() + (() { final _r39 = (other._data.classInfo as StaticListClassInfo).operatorIndex!(other._data, i); return (_r39.classInfo as ClassInfo).operatorIndex!(_r39, j); })())); })();
     }
   }
   return result;
@@ -1184,9 +1371,9 @@ Matrix2DValue Matrix2D_operatorStar(AnyGC this__, Matrix2DValue other) {
     for (var j = 0; (j < other.cols); j = (j + 1)) {
       double sum = 0.0;
       for (var k = 0; (k < this_.cols); k = (k + 1)) {
-        sum = (sum + (this_._data[i][k] * other._data[k][j]));
+        sum = (sum + ((() { final _r41 = (this_._data.classInfo as StaticListClassInfo).operatorIndex!(this_._data, i); return (_r41.classInfo as ClassInfo).operatorIndex!(_r41, k); })() * (() { final _r42 = (other._data.classInfo as StaticListClassInfo).operatorIndex!(other._data, k); return (_r42.classInfo as ClassInfo).operatorIndex!(_r42, j); })()));
       }
-      result._data[i][j] = sum;
+      (() { final _r43 = (result._data.classInfo as StaticListClassInfo).operatorIndex!(result._data, i); return (_r43.classInfo as ClassInfo).operatorIndexSet!(_r43, j, sum); })();
     }
   }
   return result;
@@ -1197,30 +1384,45 @@ double Matrix2D_get_trace(AnyGC this__) {
   double sum = 0.0;
   final int minDim = ((this_.rows < this_.cols) ? this_.rows : this_.cols);
   for (var i = 0; (i < minDim); i = (i + 1)) {
-    sum = (sum + this_._data[i][i]);
+    sum = (sum + (() { final _r44 = (this_._data.classInfo as StaticListClassInfo).operatorIndex!(this_._data, i); return (_r44.classInfo as ClassInfo).operatorIndex!(_r44, i); })());
   }
   return sum;
 }
 
 String Matrix2D_toString(AnyGC this__) {
   final this_ = this__ as Matrix2DValue;
-  final String rowStrings = this_._data.map(ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()))).map(ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()))).join(', ');
+  final String rowStrings = (() { final _r47 = StaticList<String>.of((() { final _r46 = StaticList<String>.of((this_._data.classInfo as StaticListClassInfo).map!(this_._data, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13())))); return (_r46.classInfo as StaticListClassInfo).map!(_r46, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()))); })()); return (_r47.classInfo as StaticListClassInfo).join!(_r47, ', '); })();
   return 'Matrix(${this_.rows}x${this_.cols}: ${rowStrings})';
 }
 
 
 class EntityClassInfo extends ClassInfo {
-  Function? get_entityId;
+  String Function(AnyGC)? get_entityId;
+  EntityClassInfo() {
+    get_entityId = Entity_get_entityId;
+  }
 }
 
 class EntityValue extends AnyGC {
-  static EntityClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static EntityClassInfo _initClassInfo() {
-    final ci = EntityClassInfo();
-    ci.get_entityId = Entity_get_entityId;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<EntityClassInfo>(runtimeType, EntityClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as EntityClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as EntityClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as EntityClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1229,7 +1431,7 @@ EntityValue Entity_new(AnyGC this__) {
   return this_;
 }
 
-String Entity_get_entityId(dynamic this_) {
+String Entity_get_entityId(AnyGC this_) {
   throw UnimplementedError('Entity.entityId is abstract');
 }
 
@@ -1237,7 +1439,7 @@ String Entity_get_entityId(dynamic this_) {
 // mixin Auditable → static functions for delegation
 void Auditable_audit(AnyGC this__, String action) {
   final dynamic this_ = this__;
-  this_._auditLog.add('[${(this_.classInfo as dynamic).get_entityId!(this_)}] ${action}');
+  (this_._auditLog.classInfo as StaticListClassInfo).add!(this_._auditLog, '[${(this_.classInfo as dynamic).get_entityId!(this_)}] ${action}');
 }
 
 StaticList<String> Auditable_get_auditLog(AnyGC this__) {
@@ -1270,27 +1472,24 @@ String Cacheable_get_cacheStatus(AnyGC this__) {
 
 
 class ProductClassInfo extends Product_Entity_Auditable_CacheableClassInfo {
+  ProductClassInfo() {
+    get_entityId = Product_get_entityId;
+    audit = Product_audit;
+    get_auditLog = Product_get_auditLog;
+    markDirty = Product_markDirty;
+    markCached = Product_markCached;
+    get_isDirty = Product_get_isDirty;
+    get_cacheStatus = Product_get_cacheStatus;
+    toString_ = Product_toString;
+  }
 }
 
 class ProductValue extends Product_Entity_Auditable_CacheableValue {
   late String entityId;
   late String name;
   late double price;
-  static ProductClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ProductClassInfo _initClassInfo() {
-    final ci = ProductClassInfo();
-    ci.get_entityId = Product_get_entityId;
-    ci.audit = Product_audit;
-    ci.get_auditLog = Product_get_auditLog;
-    ci.markDirty = Product_markDirty;
-    ci.markCached = Product_markCached;
-    ci.get_isDirty = Product_get_isDirty;
-    ci.get_cacheStatus = Product_get_cacheStatus;
-    ci.toString_ = Product_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ProductClassInfo>(runtimeType, ProductClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1309,7 +1508,7 @@ ProductValue Product_new(AnyGC this__, String entityId, String name, double pric
 
 String Product_toString(AnyGC this__) {
   final this_ = this__ as ProductValue;
-  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.classInfo as ProductClassInfo).get_cacheStatus!(this_)}, audits=${this_._auditLog.length})';
+  return 'Product(${this_.entityId}, ${this_.name}, \$${this_.price}, ${(this_.classInfo as ProductClassInfo).get_cacheStatus!(this_)}, audits=${(this_._auditLog.classInfo as StaticListClassInfo).get_length!(this_._auditLog)})';
 }
 
 String Product_get_entityId(AnyGC this__) {
@@ -1349,35 +1548,43 @@ String Product_get_cacheStatus(AnyGC this__) {
 
 
 class UserProfile_Object_SerializableClassInfo extends ClassInfo {
-  Function? toMap;
-  Function? serialize;
+  StaticMap<String, dynamic> Function(AnyGC)? toMap;
+  String Function(AnyGC)? serialize;
 }
 
 class UserProfile_Object_SerializableValue extends AnyGC {
-  static UserProfile_Object_SerializableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static UserProfile_Object_SerializableClassInfo _initClassInfo() {
-    final ci = UserProfile_Object_SerializableClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<UserProfile_Object_SerializableClassInfo>(runtimeType, UserProfile_Object_SerializableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as UserProfile_Object_SerializableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as UserProfile_Object_SerializableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as UserProfile_Object_SerializableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class UserProfile_Object_Serializable_ValidatableClassInfo extends UserProfile_Object_SerializableClassInfo {
-  Function? validate;
-  Function? get_isValid;
-  Function? get_validationSummary;
+  StaticList<String> Function(AnyGC)? validate;
+  bool Function(AnyGC)? get_isValid;
+  String Function(AnyGC)? get_validationSummary;
 }
 
 class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Object_SerializableValue {
-  static UserProfile_Object_Serializable_ValidatableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static UserProfile_Object_Serializable_ValidatableClassInfo _initClassInfo() {
-    final ci = UserProfile_Object_Serializable_ValidatableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<UserProfile_Object_Serializable_ValidatableClassInfo>(runtimeType, UserProfile_Object_Serializable_ValidatableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1387,19 +1594,14 @@ class UserProfile_Object_Serializable_ValidatableValue extends UserProfile_Objec
 
 
 class Product_Entity_AuditableClassInfo extends EntityClassInfo {
-  Function? audit;
-  Function? get_auditLog;
+  void Function(AnyGC, String)? audit;
+  StaticList<String> Function(AnyGC)? get_auditLog;
 }
 
 class Product_Entity_AuditableValue extends EntityValue {
   late StaticList<String> _auditLog = StaticList<String>();
-  static Product_Entity_AuditableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Product_Entity_AuditableClassInfo _initClassInfo() {
-    final ci = Product_Entity_AuditableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Product_Entity_AuditableClassInfo>(runtimeType, Product_Entity_AuditableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1410,22 +1612,17 @@ class Product_Entity_AuditableValue extends EntityValue {
 
 
 class Product_Entity_Auditable_CacheableClassInfo extends Product_Entity_AuditableClassInfo {
-  Function? markDirty;
-  Function? markCached;
-  Function? get_isDirty;
-  Function? get_cacheStatus;
+  void Function(AnyGC)? markDirty;
+  void Function(AnyGC)? markCached;
+  bool Function(AnyGC)? get_isDirty;
+  String Function(AnyGC)? get_cacheStatus;
 }
 
 class Product_Entity_Auditable_CacheableValue extends Product_Entity_AuditableValue {
   late StaticDateTime? _cachedAt = null;
   late bool _isDirty = true;
-  static Product_Entity_Auditable_CacheableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Product_Entity_Auditable_CacheableClassInfo _initClassInfo() {
-    final ci = Product_Entity_Auditable_CacheableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Product_Entity_Auditable_CacheableClassInfo>(runtimeType, Product_Entity_Auditable_CacheableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1440,7 +1637,7 @@ dynamic makeCounter({int start = 0, int step = 1}) {
   return ClosureEnv_makeCounter_16_new(GC.allocateLocal(ClosureEnv_makeCounter_16()), current, step);
 }
 
-dynamic makeAccumulator(int initial) {
+TypeFunction1<TypeFunction0<String>, int> makeAccumulator(int initial) {
   IntBox total = IntBox(initial);
   return ClosureEnv_makeAccumulator_17_new(GC.allocateLocal(ClosureEnv_makeAccumulator_17()), total);
 }
@@ -1448,7 +1645,7 @@ dynamic makeAccumulator(int initial) {
 StaticList<dynamic> makeClosureList(int count) {
   final StaticList<dynamic> closures = StaticList<dynamic>();
   for (var i = 0; (i < count); i = (i + 1)) {
-    closures.add(ClosureEnv_makeClosureList_19_new(GC.allocateLocal(ClosureEnv_makeClosureList_19()), i));
+    (closures.classInfo as StaticListClassInfo).add!(closures, ClosureEnv_makeClosureList_19_new(GC.allocateLocal(ClosureEnv_makeClosureList_19()), i));
   }
   return closures;
 }
@@ -1464,7 +1661,7 @@ TypeFunction1<TypeFunction1<C, B>, A> curry<A, B, C>(TypeFunction2<C, A, B> biFu
 T pipe<T>(T value, StaticList<TypeFunction1<T, T>> transforms) {
   T result = value;
 {
-    StaticIterator<TypeFunction1<T, T>> sync_for_iterator = StaticIterator(transforms.iterator);
+    var sync_for_iterator = (transforms.classInfo as StaticListClassInfo).get_iterator!(transforms);
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<T, T> transform = sync_for_iterator.current;
 {
@@ -1506,22 +1703,22 @@ String classifyNumber(int number) {
  else {
     result = 'positive';
     bool isPrime = (number > 1);
-    _L26:
+    _L49:
     for (var i = 2; ((i * i) <= number); i = (i + 1)) {
       if (((number % i) == 0)) {
         isPrime = false;
-        break _L26;
+        break _L49;
       }
     }
     if ((isPrime && (number > 1))) {
       result = (result + '_prime');
     }
  else     if ((number > 1)) {
-      _L27:
+      _L50:
       for (var i = 2; (i <= number); i = (i + 1)) {
         if (((number % i) == 0)) {
           result = (result + '_composite(smallest_factor=${i})');
-          break _L27;
+          break _L50;
         }
       }
     }
@@ -1531,22 +1728,22 @@ String classifyNumber(int number) {
 
 StaticList<int> parseNumbers(StaticList<String> inputs) {
   final StaticList<int> results = StaticList<int>();
-  for (var i = 0; (i < inputs.length); i = (i + 1))   _L28: do {
+  for (var i = 0; (i < (inputs.classInfo as StaticListClassInfo).get_length!(inputs)); i = (i + 1))   _L51: do {
 {
       try {
-        final String trimmed = inputs[i].trim();
-        if (trimmed.isEmpty)         break _L28;
+        final String trimmed = (inputs.classInfo as StaticListClassInfo).operatorIndex!(inputs, i).trim();
+        if (trimmed.isEmpty)         break _L51;
         final int value = int.parse(trimmed);
         if ((value < 0)) {
           throw DartArgumentError('Negative value at index ${i}: ${value}');
         }
-        results.add(value);
+        (results.classInfo as StaticListClassInfo).add!(results, value);
       }
  on FormatException {
-        results.add((-1));
+        (results.classInfo as StaticListClassInfo).add!(results, (-1));
       }
  on ArgumentError catch (e) {
-        results.add((-2));
+        (results.classInfo as StaticListClassInfo).add!(results, (-2));
       }
     }
   } while (false);
@@ -1596,25 +1793,25 @@ StaticList<int> IntMathExtension_get_digits(final int this_) {
   final StaticList<int> result = StaticList<int>();
   int n = this_.abs();
   while ((n > 0)) {
-    result.insert(0, (n % 10));
+    (result.classInfo as StaticListClassInfo).insert!(result, 0, (n % 10));
     n = (n ~/ 10);
   }
   return result;
 }
 
-T IterableStats_get_sum<T extends num>(final Iterable<T> this_) {
+T IterableStats_get_sum<T extends num>(final StaticList<T> this_) {
   return this_.reduce(ClosureEnv_IterableStats_get_sum_27_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_sum_27<T>())));
 }
 
-double IterableStats_get_average<T extends num>(final Iterable<T> this_) {
+double IterableStats_get_average<T extends num>(final StaticList<T> this_) {
   return (this_.isEmpty ? 0.0 : (IterableStats_get_sum(this_) / this_.length));
 }
 
-T IterableStats_get_max<T extends num>(final Iterable<T> this_) {
+T IterableStats_get_max<T extends num>(final StaticList<T> this_) {
   return this_.reduce(ClosureEnv_IterableStats_get_max_28_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_max_28<T>())));
 }
 
-T IterableStats_get_min<T extends num>(final Iterable<T> this_) {
+T IterableStats_get_min<T extends num>(final StaticList<T> this_) {
   return this_.reduce(ClosureEnv_IterableStats_get_min_29_new<T>(GC.allocateLocal(ClosureEnv_IterableStats_get_min_29<T>())));
 }
 
@@ -1623,14 +1820,14 @@ void main() {
   staticPrint('--- 1. 嵌套闭包 ---');
   final dynamic counter = makeCounter(start: 5, step: 3);
   staticPrint('counter: ${counter.call()}, ${counter.call()}, ${counter.call()}');
-  final dynamic acc = makeAccumulator(100);
-  final dynamic snap1 = acc.call(10);
-  final dynamic snap2 = acc.call(20);
+  final TypeFunction1<TypeFunction0<String>, int> acc = makeAccumulator(100);
+  final TypeFunction0<String> snap1 = acc.call(10);
+  final TypeFunction0<String> snap2 = acc.call(20);
   staticPrint('snap1: ${snap1.call()}');
   staticPrint('snap2: ${snap2.call()}');
   final StaticList<dynamic> closures = StaticList<dynamic>.of(makeClosureList(4));
 {
-    StaticIterator<dynamic> sync_for_iterator = StaticIterator(closures.iterator);
+    var sync_for_iterator = (closures.classInfo as StaticListClassInfo).get_iterator!(closures);
     for (; sync_for_iterator.moveNext(); ) {
       final dynamic cl = sync_for_iterator.current;
 {
@@ -1640,21 +1837,21 @@ void main() {
   }
   staticPrint('\n--- 2. 二叉树 ---');
   final TreeNodeValue<int> tree = TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 1, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 2, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 4), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 5)), TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 3, null, TreeNode_new<int>(GC.allocateLocal(TreeNodeValue<int>()), 6)));
-  staticPrint('preorder: ${(tree.classInfo as TreeNodeClassInfo).preorder!(tree)}');
-  staticPrint('inorder: ${(tree.classInfo as TreeNodeClassInfo).inorder!(tree)}');
-  staticPrint('depth: ${(tree.classInfo as TreeNodeClassInfo).get_depth!(tree)}');
-  final TreeNodeValue<String> strTree = (tree.classInfo as TreeNodeClassInfo).map_String!(tree, ClosureEnv_main_30_new(GC.allocateLocal(ClosureEnv_main_30())));
-  staticPrint('mapped preorder: ${(strTree.classInfo as TreeNodeClassInfo).preorder!(strTree)}');
+  staticPrint('preorder: ${(() { final _r52 = (tree.classInfo as TreeNodeClassInfo<int>).preorder!(tree); return (_r52.classInfo as StaticListClassInfo).toString_!(_r52); })()}');
+  staticPrint('inorder: ${(() { final _r53 = (tree.classInfo as TreeNodeClassInfo<int>).inorder!(tree); return (_r53.classInfo as StaticListClassInfo).toString_!(_r53); })()}');
+  staticPrint('depth: ${(tree.classInfo as TreeNodeClassInfo<int>).get_depth!(tree)}');
+  final TreeNodeValue<String> strTree = (tree.classInfo as TreeNodeClassInfo<int>).map_String!(tree, ClosureEnv_main_30_new(GC.allocateLocal(ClosureEnv_main_30())));
+  staticPrint('mapped preorder: ${(() { final _r54 = (strTree.classInfo as TreeNodeClassInfo<String>).preorder!(strTree); return (_r54.classInfo as StaticListClassInfo).toString_!(_r54); })()}');
   staticPrint('\n--- 3. 链表 ---');
   final LinkedNodeValue<int> list = LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 1, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 2, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 3, LinkedNode_new<int>(GC.allocateLocal(LinkedNodeValue<int>()), 4))));
   staticPrint('list: ${list}');
-  staticPrint('length: ${(list.classInfo as LinkedNodeClassInfo).get_length!(list)}');
-  final LinkedNodeValue<int> revList = (list.classInfo as LinkedNodeClassInfo).reversed!(list);
+  staticPrint('length: ${(list.classInfo as LinkedNodeClassInfo<int>).get_length!(list)}');
+  final LinkedNodeValue<int> revList = (list.classInfo as LinkedNodeClassInfo<int>).reversed!(list);
   staticPrint('reversed: ${revList}');
   staticPrint('\n--- 6. 多重嵌套控制流 ---');
   final StaticList<int> testNumbers = StaticList<int>.of([(-150), (-42), (-3), 0, 1, 7, 12, 97]);
 {
-    StaticIterator<int> sync_for_iterator = StaticIterator(testNumbers.iterator);
+    var sync_for_iterator = (testNumbers.classInfo as StaticListClassInfo).get_iterator!(testNumbers);
     for (; sync_for_iterator.moveNext(); ) {
       final int n = sync_for_iterator.current;
 {
@@ -1676,7 +1873,7 @@ void main() {
   final IntToStringTransformerValue intToStr = IntToStringTransformer_new(GC.allocateLocal(IntToStringTransformerValue()), 'NUM:');
   staticPrint('intToStr(123): ${(intToStr.classInfo as IntToStringTransformerClassInfo).transform!(intToStr, 123)}');
   final ChainedTransformerValue<String, int, String> chained2 = ChainedTransformer_new<String, int, String>(GC.allocateLocal(ChainedTransformerValue<String, int, String>()), strToInt, intToStr);
-  staticPrint('chained(" 99 "): ${(chained2.classInfo as ChainedTransformerClassInfo).transform!(chained2, ' 99 ')}');
+  staticPrint('chained(" 99 "): ${(chained2.classInfo as ChainedTransformerClassInfo<String, int, String>).transform!(chained2, ' 99 ')}');
   staticPrint('\n--- 9. 单例 Registry ---');
   final RegistryValue reg1 = Registry_new();
   final RegistryValue reg2 = Registry_new();
@@ -1685,22 +1882,22 @@ void main() {
   (reg1.classInfo as RegistryClassInfo).register!(reg1, 'version', IntBox(3));
   staticPrint('registry: ${reg1}');
   staticPrint('lookup name: ${(reg2.classInfo as RegistryClassInfo).lookup!(reg2, 'name')}');
-  staticPrint('keys: ${(reg1.classInfo as RegistryClassInfo).get_keys!(reg1)}');
+  staticPrint('keys: ${((reg1.classInfo as RegistryClassInfo).get_keys!(reg1).classInfo as StaticListClassInfo).toString_!((reg1.classInfo as RegistryClassInfo).get_keys!(reg1))}');
   (reg1.classInfo as RegistryClassInfo).clear!(reg1);
   staticPrint('\n--- 10. 集合操作链 ---');
   final StaticList<StaticMap<String, Object>> records = StaticList<StaticMap<String, Object>>.of([StaticMap<String, Object>.of({'name': 'Alice', 'score': 95}), StaticMap<String, Object>.of({'name': 'Bob', 'score': 72}), StaticMap<String, Object>.of({'name': 'Carol', 'score': 88}), StaticMap<String, Object>.of({'name': 'Dave', 'score': 45}), StaticMap<String, Object>.of({'name': 'Eve', 'score': 91}), StaticMap<String, Object>.of({'name': 'Frank', 'score': 63})]);
   final StaticList<StaticMap<String, dynamic>> processed = StaticList<StaticMap<String, dynamic>>.of(DataProcessor_processRecords(records));
 {
-    StaticIterator<StaticMap<String, dynamic>> sync_for_iterator = StaticIterator(processed.iterator);
+    var sync_for_iterator = (processed.classInfo as StaticListClassInfo).get_iterator!(processed);
     for (; sync_for_iterator.moveNext(); ) {
       final StaticMap<String, dynamic> r = StaticMap<String, dynamic>.of(sync_for_iterator.current);
 {
-        staticPrint('  ${r['name']}: ${r['score']} (${r['grade']}, passed=${r['passed']})');
+        staticPrint('  ${(r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'name')}: ${(r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score')} (${(r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'grade')}, passed=${(r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'passed')})');
       }
     }
   }
   final StaticMap<String, double> averages = StaticMap<String, double>.of(DataProcessor_averageByGrade(processed));
-  staticPrint('averages: ${averages}');
+  staticPrint('averages: ${(averages.classInfo as StaticMapClassInfo).toString_!(averages)}');
   staticPrint('\n--- 11. late 变量 ---');
   final ExpensiveComputationValue comp = ExpensiveComputation_new(GC.allocateLocal(ExpensiveComputationValue()), 42);
   staticPrint('comp: ${comp}');
@@ -1716,7 +1913,7 @@ void main() {
   staticPrint('\n--- 13. 多重 implements ---');
   final StaticList<ScoreValue> scores = StaticList<ScoreValue>.of([Score_new(GC.allocateLocal(ScoreValue()), 'Math', 90), Score_new(GC.allocateLocal(ScoreValue()), 'English', 75), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Physics', 85, 1.5), WeightedScore_new(GC.allocateLocal(WeightedScoreValue()), 'Art', 95, 0.5)]);
 {
-    StaticIterator<ScoreValue> sync_for_iterator = StaticIterator(scores.iterator);
+    var sync_for_iterator = (scores.classInfo as StaticListClassInfo).get_iterator!(scores);
     for (; sync_for_iterator.moveNext(); ) {
       final ScoreValue s = sync_for_iterator.current;
 {
@@ -1724,20 +1921,20 @@ void main() {
       }
     }
   }
-  final WeightedScoreValue ws1 = (scores[2] as WeightedScoreValue);
-  final WeightedScoreValue ws2 = (scores[3] as WeightedScoreValue);
+  final WeightedScoreValue ws1 = ((scores.classInfo as StaticListClassInfo).operatorIndex!(scores, 2) as WeightedScoreValue);
+  final WeightedScoreValue ws2 = ((scores.classInfo as StaticListClassInfo).operatorIndex!(scores, 3) as WeightedScoreValue);
   staticPrint('physics > art (weighted): ${(ws1.classInfo as WeightedScoreClassInfo).isGreaterThan!(ws1, ws2)}');
   staticPrint('\n--- 14. 字符串操作 ---');
   staticPrint('camelToSnake("helloWorldFoo"): ${TextProcessor_camelToSnake('helloWorldFoo')}');
   staticPrint('snakeToCamel("hello_world_foo"): ${TextProcessor_snakeToCamel('hello_world_foo')}');
   final StaticMap<String, int> freq = StaticMap<String, int>.of(TextProcessor_wordFrequency('the quick brown fox jumps over the lazy fox'));
-  staticPrint('word frequency: ${freq}');
+  staticPrint('word frequency: ${(freq.classInfo as StaticMapClassInfo).toString_!(freq)}');
   staticPrint('truncate: ${TextProcessor_truncate('Hello, World! This is a long string.', 20)}');
   staticPrint('\n--- 15. async 链 ---');
   final String asyncResult = smAwait(asyncTransform(5));
   staticPrint('asyncTransform(5): ${asyncResult}');
   final StaticList<int> asyncSeq = StaticList<int>.of(smAwait(asyncSequence(5)));
-  staticPrint('asyncSequence(5): ${asyncSeq}');
+  staticPrint('asyncSequence(5): ${(asyncSeq.classInfo as StaticListClassInfo).toString_!(asyncSeq)}');
   staticPrint('\n--- 16. 增强枚举 ---');
 {
     StaticIterator<Season> sync_for_iterator = StaticIterator(const [Season.spring, Season.summer, Season.autumn, Season.winter].iterator);
@@ -1778,41 +1975,41 @@ void main() {
   (product.classInfo as ProductClassInfo).audit!(product, 'priced');
   (product.classInfo as ProductClassInfo).markCached!(product);
   staticPrint('product: ${product}');
-  staticPrint('auditLog: ${(product.classInfo as ProductClassInfo).get_auditLog!(product)}');
+  staticPrint('auditLog: ${((product.classInfo as ProductClassInfo).get_auditLog!(product).classInfo as StaticListClassInfo).toString_!((product.classInfo as ProductClassInfo).get_auditLog!(product))}');
   (product.classInfo as ProductClassInfo).markDirty!(product);
   staticPrint('after markDirty: ${(product.classInfo as ProductClassInfo).get_cacheStatus!(product)}');
   staticPrint('\n=== 所有高级语法测试通过 ✅ ===');
   drainScheduler();
 }
 
-class ClosureEnv_anon_0 extends TypeFunction1<String, StaticMapEntry<String, dynamic>> {
+class ClosureEnv_anon_0 extends TypeFunction1<String, StaticMapEntry> {
   ClosureEnv_anon_0();
   @override
-  String call(StaticMapEntry<String, dynamic> e) => fnPtr(this, e);
+  String call(StaticMapEntry e) => fnPtr(this, e);
 }
 ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_) {
   env_.fnPtr = ClosureEnv_anon_0_call;
   return env_;
 }
-String ClosureEnv_anon_0_call(AnyGC env__, StaticMapEntry<String, dynamic> e) {
+String ClosureEnv_anon_0_call(AnyGC env__, StaticMapEntry e) {
   final env = env__ as ClosureEnv_anon_0;
 
   return '${e.key}=${e.value}';
 }
 
-class ClosureEnv_anon_1 extends TypeFunction2<int, StaticMap<String, dynamic>, StaticMap<String, dynamic>> {
+class ClosureEnv_anon_1 extends TypeFunction1<bool, StaticMap<String, dynamic>> {
   ClosureEnv_anon_1();
   @override
-  int call(StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) => fnPtr(this, a, b);
+  bool call(StaticMap<String, dynamic> r) => fnPtr(this, r);
 }
 ClosureEnv_anon_1 ClosureEnv_anon_1_new(ClosureEnv_anon_1 env_) {
   env_.fnPtr = ClosureEnv_anon_1_call;
   return env_;
 }
-int ClosureEnv_anon_1_call(AnyGC env__, StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) {
+bool ClosureEnv_anon_1_call(AnyGC env__, StaticMap<String, dynamic> r) {
   final env = env__ as ClosureEnv_anon_1;
 
-  return (b['score'] as int).compareTo((a['score'] as int));
+  return ((r.classInfo as StaticMapClassInfo).containsKey!(r, 'name') && (r.classInfo as StaticMapClassInfo).containsKey!(r, 'score'));
 }
 
 class ClosureEnv_anon_2 extends TypeFunction1<bool, StaticMap<String, dynamic>> {
@@ -1827,37 +2024,37 @@ ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_) {
 bool ClosureEnv_anon_2_call(AnyGC env__, StaticMap<String, dynamic> r) {
   final env = env__ as ClosureEnv_anon_2;
 
-  return (r.containsKey('name') && r.containsKey('score'));
+  return (((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score') as int) >= 0);
 }
 
-class ClosureEnv_anon_3 extends TypeFunction1<bool, StaticMap<String, dynamic>> {
+class ClosureEnv_anon_3 extends TypeFunction1<StaticMap<String, Object>, StaticMap<String, dynamic>> {
   ClosureEnv_anon_3();
   @override
-  bool call(StaticMap<String, dynamic> r) => fnPtr(this, r);
+  StaticMap<String, Object> call(StaticMap<String, dynamic> r) => fnPtr(this, r);
 }
 ClosureEnv_anon_3 ClosureEnv_anon_3_new(ClosureEnv_anon_3 env_) {
   env_.fnPtr = ClosureEnv_anon_3_call;
   return env_;
 }
-bool ClosureEnv_anon_3_call(AnyGC env__, StaticMap<String, dynamic> r) {
+StaticMap<String, Object> ClosureEnv_anon_3_call(AnyGC env__, StaticMap<String, dynamic> r) {
   final env = env__ as ClosureEnv_anon_3;
 
-  return ((r['score'] as int) >= 0);
+  return StaticMap<String, Object>.of({'name': ((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'name') as String).toUpperCase(), 'score': ((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score') as int), 'grade': DataProcessor__scoreToGrade(((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score') as int)), 'passed': (((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score') as int) >= 60)});
 }
 
-class ClosureEnv_anon_4 extends TypeFunction1<StaticMap<String, Object>, StaticMap<String, dynamic>> {
+class ClosureEnv_anon_4 extends TypeFunction2<int, StaticMap<String, dynamic>, StaticMap<String, dynamic>> {
   ClosureEnv_anon_4();
   @override
-  StaticMap<String, Object> call(StaticMap<String, dynamic> r) => fnPtr(this, r);
+  int call(StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) => fnPtr(this, a, b);
 }
 ClosureEnv_anon_4 ClosureEnv_anon_4_new(ClosureEnv_anon_4 env_) {
   env_.fnPtr = ClosureEnv_anon_4_call;
   return env_;
 }
-StaticMap<String, Object> ClosureEnv_anon_4_call(AnyGC env__, StaticMap<String, dynamic> r) {
+int ClosureEnv_anon_4_call(AnyGC env__, StaticMap<String, dynamic> a, StaticMap<String, dynamic> b) {
   final env = env__ as ClosureEnv_anon_4;
 
-  return StaticMap<String, Object>.of({'name': (r['name'] as String).toUpperCase(), 'score': (r['score'] as int), 'grade': DataProcessor__scoreToGrade((r['score'] as int)), 'passed': ((r['score'] as int) >= 60)});
+  return ((b.classInfo as StaticMapClassInfo).operatorIndex!(b, 'score') as int).compareTo(((a.classInfo as StaticMapClassInfo).operatorIndex!(a, 'score') as int));
 }
 
 class ClosureEnv_anon_5 extends TypeFunction0<StaticList<StaticMap<String, dynamic>>> {
@@ -1887,23 +2084,23 @@ ClosureEnv_ClosureEnv_anon_6_7 ClosureEnv_ClosureEnv_anon_6_7_new(ClosureEnv_Clo
 int ClosureEnv_ClosureEnv_anon_6_7_call(AnyGC env__, int sum, StaticMap<String, dynamic> r) {
   final env = env__ as ClosureEnv_ClosureEnv_anon_6_7;
 
-  return (sum + (r['score'] as int));
+  return (sum + ((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'score') as int));
 }
 
-class ClosureEnv_anon_6 extends TypeFunction2<StaticMapEntry<String, double>, String, StaticList<StaticMap<String, dynamic>>> {
+class ClosureEnv_anon_6 extends TypeFunction2<StaticMapEntry, String, StaticList<StaticMap<String, dynamic>>> {
   ClosureEnv_anon_6();
   @override
-  StaticMapEntry<String, double> call(String grade, StaticList<StaticMap<String, dynamic>> items) => fnPtr(this, grade, items);
+  StaticMapEntry call(String grade, StaticList<StaticMap<String, dynamic>> items) => fnPtr(this, grade, items);
 }
 ClosureEnv_anon_6 ClosureEnv_anon_6_new(ClosureEnv_anon_6 env_) {
   env_.fnPtr = ClosureEnv_anon_6_call;
   return env_;
 }
-StaticMapEntry<String, double> ClosureEnv_anon_6_call(AnyGC env__, String grade, StaticList<StaticMap<String, dynamic>> items) {
+StaticMapEntry ClosureEnv_anon_6_call(AnyGC env__, String grade, StaticList<StaticMap<String, dynamic>> items) {
   final env = env__ as ClosureEnv_anon_6;
 
-    final int total = items.fold(0, ClosureEnv_ClosureEnv_anon_6_7_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_6_7())));
-    return StaticMapEntry(grade, (total / items.length));
+    final int total = (items.classInfo as StaticListClassInfo).fold!(items, 0, ClosureEnv_ClosureEnv_anon_6_7_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_6_7())));
+    return StaticMapEntry(grade, (total / (items.classInfo as StaticListClassInfo).get_length!(items)));
   }
 
 class ClosureEnv_anon_8 extends TypeFunction1<String, String> {
@@ -2033,7 +2230,7 @@ ClosureEnv_anon_13 ClosureEnv_anon_13_new(ClosureEnv_anon_13 env_) {
 String ClosureEnv_anon_13_call(AnyGC env__, StaticList<double> row) {
   final env = env__ as ClosureEnv_anon_13;
 
-  return row.map(ClosureEnv_ClosureEnv_anon_13_14_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_13_14()))).join(', ');
+  return (() { final _r45 = StaticList<String>.of((row.classInfo as StaticListClassInfo).map!(row, ClosureEnv_ClosureEnv_anon_13_14_new(GC.allocateLocal(ClosureEnv_ClosureEnv_anon_13_14())))); return (_r45.classInfo as StaticListClassInfo).join!(_r45, ', '); })();
 }
 
 class ClosureEnv_anon_15 extends TypeFunction1<String, String> {
@@ -2251,9 +2448,9 @@ ClosureEnv_memoize_23<A, B> ClosureEnv_memoize_23_new<A, B>(ClosureEnv_memoize_2
 B ClosureEnv_memoize_23_call<A, B>(AnyGC env__, A arg) {
   final env = env__ as ClosureEnv_memoize_23<A, B>;
 
-    if (env.cache.containsKey(arg))     return (env.cache[arg] as B);
+    if ((env.cache.classInfo as StaticMapClassInfo).containsKey!(env.cache, arg))     return ((env.cache.classInfo as StaticMapClassInfo).operatorIndex!(env.cache, arg) as B);
     final B result = env.func.call(arg);
-    env.cache[arg] = result;
+    (env.cache.classInfo as StaticMapClassInfo).operatorIndexSet!(env.cache, arg, result);
     return result;
   }
 
@@ -2299,7 +2496,7 @@ void ClosureEnv_asyncSequence_26_call(ClosureEnv_asyncSequence_26 env) {
   final StaticList<int> results = StaticList<int>();
   for (var i = 0; (i < env.count.value); i = (i + 1)) {
     final int value = smAwait(asyncAdd(i, (i * i)));
-    results.add(value);
+    (results.classInfo as StaticListClassInfo).add!(results, value);
   }
 {
     env._promise.complete(results);

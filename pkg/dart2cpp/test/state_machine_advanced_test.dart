@@ -128,7 +128,7 @@ class Level1SM extends AsyncStateMachine<String> {
 void testExceptionPropagation() {
   print('\n--- 2. 异常传播链 (3层) ---');
   GlobalScheduler.instance.reset();
-  final r = smAwait(Level1SM().start());
+  final r = smAwait<String>(Level1SM().start());
   assert(r.contains('deep error'), 'Expected deep error, got: $r');
   print('  ✓ level1() caught 3-level exception: "$r"');
 }
@@ -554,7 +554,7 @@ class ProcessWithClosureSM extends AsyncStateMachine<List<int>> {
 void testClosureCaptureAwait() {
   print('\n--- 9. 闭包捕获 + await (ClosureEnv 模式) ---');
   GlobalScheduler.instance.reset();
-  final r = smAwait(ProcessWithClosureSM([1, 2, 3]).start());
+  final r = smAwait<List<int>>(ProcessWithClosureSM([1, 2, 3]).start());
   // items * factor(3) = [3, 6, 9], then factor=5, 100*5=500
   assert(r.length == 4, 'Expected 4 results');
   assert(r[0] == 3 && r[1] == 6 && r[2] == 9 && r[3] == 500,
@@ -609,7 +609,7 @@ class AsyncGeneratorSM extends AsyncStateMachine<List<int>> {
 void testAsyncGenerator() {
   print('\n--- 10. async* 生成器模拟 ---');
   GlobalScheduler.instance.reset();
-  final r = smAwait(AsyncGeneratorSM(5).start());
+  final r = smAwait<List<int>>(AsyncGeneratorSM(5).start());
   // 0,1,4,9,16
   assert(r.length == 5, 'Expected 5 items');
   assert(r[0] == 0 && r[1] == 1 && r[2] == 4 && r[3] == 9 && r[4] == 16,
@@ -665,7 +665,7 @@ class ComplexBusinessSM extends AsyncStateMachine<Map<String, dynamic>> {
 void testComplexBusiness() {
   print('\n--- 11. 复合场景：递归+异常+条件 ---');
   GlobalScheduler.instance.reset();
-  final r = smAwait(ComplexBusinessSM(3).start());
+  final r = smAwait<Map<String, dynamic>>(ComplexBusinessSM(3).start());
   // depth=3 → try depth=2 → try depth=1 → try depth=0 → throws
   // depth=1 catches → {depth:1, error:...}
   // depth=2 gets child → {depth:2, child:{depth:1, error:...}}

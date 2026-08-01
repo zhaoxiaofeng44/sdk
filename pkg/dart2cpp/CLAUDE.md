@@ -18,11 +18,10 @@ lib/
 │   └── enum_restorer.dart         # Enum lowering
 └── platform/
     ├── dart/                      # Dart runtime (VPtr, Box, TypeFunction, etc.)
-    │   ├── runtime_classes.dart   # Barrel re-export for all runtime classes
-    │   └── _*.dart                # Internal implementation files
+    │   └── runtime_classes.dart   # All runtime classes
     └── cpp/                       # C++ runtime headers and sources
 
-test/                              # Test suite (12 test cases)
+test/                              # Test suite (15 test cases)
 tool/                              # Development utilities
 sample/                            # Conversion pipeline examples
 docs/archive/                      # Archived analysis documents
@@ -34,7 +33,7 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
 
 ### OOP Lowering
 - Converts object-oriented patterns to procedural code
-- Virtual method dispatch via vptr (virtual pointer) tables
+- Virtual method dispatch via ClassInfo vtable
 - Closure environment generation for captured variables
 - Box types for mutable value captures
 
@@ -49,13 +48,13 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
    void Dog_speak(dynamic this_) { print("Woof!"); }
    ```
 
-2. **Virtual Dispatch via vptr**
+2. **Virtual Dispatch via ClassInfo**
    ```dart
    // Original
    animal.speak();
 
    // Lowered
-   (animal.vptr['speak'] as void Function(dynamic))(animal);
+   (animal.classInfo as AnimalClassInfo).speak!(animal);
    ```
 
 3. **Closure Environment Classes**
@@ -91,7 +90,7 @@ The restorer transforms Kernel AST back into readable Dart source code with spec
 
 ## Testing
 
-All 12 test cases pass with identical output:
+All 15 test cases pass with identical output:
 
 ```bash
 dart test/run_all_restorer_tests.dart
@@ -126,7 +125,6 @@ dart tool/inspect_kernel.dart <dill_file> <class_name>
 
 ## Dependencies
 
-- `args`: Command-line argument parsing (for tools)
 - `kernel`: Dart Kernel AST (via local path override)
 - `front_end`: Dart compiler frontend (via local path override)
 

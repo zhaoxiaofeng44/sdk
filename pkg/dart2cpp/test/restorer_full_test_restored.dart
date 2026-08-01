@@ -16,30 +16,45 @@ void Printable_printInfo(AnyGC this__) {
 // mixin Orderable → static functions for delegation
 bool Orderable_isLessThan<T>(AnyGC this__, T other) {
   final dynamic this_ = this__;
-  return ((this_.classInfo as dynamic).compareTo!(this_, other) < 0);
+  return ((this_.classInfo as ClassInfo).compareTo!(this_, other) < 0);
 }
 
 bool Orderable_isGreaterThan<T>(AnyGC this__, T other) {
   final dynamic this_ = this__;
-  return ((this_.classInfo as dynamic).compareTo!(this_, other) > 0);
+  return ((this_.classInfo as ClassInfo).compareTo!(this_, other) > 0);
 }
 
 
 class AnimalClassInfo extends ClassInfo {
-  Function? speak;
+  String Function(AnyGC)? speak;
+  AnimalClassInfo() {
+    speak = Animal_speak;
+    toString_ = Animal_toString;
+  }
 }
 
 class AnimalValue extends AnyGC {
   late String name;
   late int age;
-  static AnimalClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AnimalClassInfo _initClassInfo() {
-    final ci = AnimalClassInfo();
-    ci.speak = Animal_speak;
-    ci.toString_ = Animal_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<AnimalClassInfo>(runtimeType, AnimalClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as AnimalClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AnimalClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AnimalClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -50,7 +65,7 @@ AnimalValue Animal_new(AnyGC this__, String name, int age) {
   return this_;
 }
 
-String Animal_speak(dynamic this_) {
+String Animal_speak(AnyGC this_) {
   throw UnimplementedError('Animal.speak is abstract');
 }
 
@@ -61,24 +76,21 @@ String Animal_toString(AnyGC this__) {
 
 
 class DogClassInfo extends Dog_Animal_Printable_OrderableClassInfo {
+  DogClassInfo() {
+    speak = Dog_speak;
+    toString_ = Dog_toString;
+    get_displayName = Dog_get_displayName;
+    printInfo = Dog_printInfo;
+    compareTo = Dog_compareTo;
+    isLessThan = Dog_isLessThan;
+    isGreaterThan = Dog_isGreaterThan;
+  }
 }
 
 class DogValue extends Dog_Animal_Printable_OrderableValue {
   late String breed;
-  static DogClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DogClassInfo _initClassInfo() {
-    final ci = DogClassInfo();
-    ci.speak = Dog_speak;
-    ci.toString_ = Dog_toString;
-    ci.get_displayName = Dog_get_displayName;
-    ci.printInfo = Dog_printInfo;
-    ci.compareTo = Dog_compareTo;
-    ci.isLessThan = Dog_isLessThan;
-    ci.isGreaterThan = Dog_isGreaterThan;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DogClassInfo>(runtimeType, DogClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -130,25 +142,22 @@ bool Dog_isGreaterThan(AnyGC this__, DogValue other) {
 
 
 class CatClassInfo extends Cat_Animal_PrintableClassInfo {
-  Function? get_mood;
-  Function? set_mood;
+  String Function(AnyGC)? get_mood;
+  void Function(AnyGC, String)? set_mood;
+  CatClassInfo() {
+    speak = Cat_speak;
+    toString_ = Cat_toString;
+    get_displayName = Cat_get_displayName;
+    printInfo = Cat_printInfo;
+    get_mood = Cat_get_mood;
+    set_mood = Cat_set_mood;
+  }
 }
 
 class CatValue extends Cat_Animal_PrintableValue {
   late String _mood;
-  static CatClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CatClassInfo _initClassInfo() {
-    final ci = CatClassInfo();
-    ci.speak = Cat_speak;
-    ci.toString_ = Cat_toString;
-    ci.get_displayName = Cat_get_displayName;
-    ci.printInfo = Cat_printInfo;
-    ci.get_mood = Cat_get_mood;
-    ci.set_mood = Cat_set_mood;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<CatClassInfo>(runtimeType, CatClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -195,27 +204,41 @@ void Cat_printInfo(AnyGC this__) {
 
 
 class Vector2DClassInfo extends ClassInfo {
-  Function? operatorPlus;
-  Function? operatorMinus;
-  Function? operatorStar;
-  Function? get_length;
+  Vector2DValue Function(AnyGC, Vector2DValue)? operatorPlus;
+  Vector2DValue Function(AnyGC, Vector2DValue)? operatorMinus;
+  Vector2DValue Function(AnyGC, double)? operatorStar;
+  Vector2DClassInfo() {
+    operatorPlus = Vector2D_operatorPlus;
+    operatorMinus = Vector2D_operatorMinus;
+    operatorStar = Vector2D_operatorStar;
+    operatorEq = Vector2D_operatorEq;
+    get_length = Vector2D_get_length;
+    toString_ = Vector2D_toString;
+  }
 }
 
 class Vector2DValue extends AnyGC {
   late double x;
   late double y;
-  static Vector2DClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Vector2DClassInfo _initClassInfo() {
-    final ci = Vector2DClassInfo();
-    ci.operatorPlus = Vector2D_operatorPlus;
-    ci.operatorMinus = Vector2D_operatorMinus;
-    ci.operatorStar = Vector2D_operatorStar;
-    ci.operatorEq = Vector2D_operatorEq;
-    ci.get_length = Vector2D_get_length;
-    ci.toString_ = Vector2D_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Vector2DClassInfo>(runtimeType, Vector2DClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Vector2DClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Vector2DClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Vector2DClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -267,24 +290,39 @@ String Vector2D_toString(AnyGC this__) {
 
 
 class CounterClassInfo extends ClassInfo {
-  Function? increment;
-  Function? decrement;
-  Function? get_value;
+  void Function(AnyGC, int)? increment;
+  void Function(AnyGC, int)? decrement;
+  int Function(AnyGC)? get_value;
+  CounterClassInfo() {
+    increment = Counter_increment;
+    decrement = Counter_decrement;
+    get_value = Counter_get_value;
+    toString_ = Counter_toString;
+  }
 }
 
 class CounterValue extends AnyGC {
   late int _value;
   late String label;
-  static CounterClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CounterClassInfo _initClassInfo() {
-    final ci = CounterClassInfo();
-    ci.increment = Counter_increment;
-    ci.decrement = Counter_decrement;
-    ci.get_value = Counter_get_value;
-    ci.toString_ = Counter_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<CounterClassInfo>(runtimeType, CounterClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as CounterClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as CounterClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as CounterClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -304,7 +342,7 @@ CounterValue Counter_new(String label, {int initialValue = 0}) {
 
 CounterValue Counter_new_fromString(String spec) {
   final StaticList<String> parts = StaticList<String>.of(spec.split(':'));
-  return Counter_new__(GC.allocateLocal(CounterValue()), parts[0], int.parse(parts[1]));
+  return Counter_new__(GC.allocateLocal(CounterValue()), (parts.classInfo as StaticListClassInfo).operatorIndex!(parts, 0), int.parse((parts.classInfo as StaticListClassInfo).operatorIndex!(parts, 1)));
 }
 
 int Counter_instanceCount() {
@@ -334,7 +372,11 @@ String Counter_toString(AnyGC this__) {
 
 class ResultClassInfo<T> extends ClassInfo {
   Function? fold;
-  dynamic fold_String;
+  String Function(AnyGC, TypeFunction1<String, T>, TypeFunction1<String, String>)? fold_String;
+  ResultClassInfo() {
+    toString_ = Result_toString<T>;
+    fold_String = Result_fold<T, String>;
+  }
 }
 
 class ResultValue<T> extends AnyGC {
@@ -342,17 +384,30 @@ class ResultValue<T> extends AnyGC {
   late String? error;
   late bool isSuccess;
   @override
-  ClassInfo get classInfo {
-    final ci = ResultClassInfo<T>();
-    ci.toString_ = Result_toString<T>;
-    ci.fold_String = Result_fold<T, String>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ResultClassInfo<T>>(runtimeType, ResultClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (data is AnyGC) (data as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ResultClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ResultClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ResultClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -387,24 +442,39 @@ String Result_toString<T>(AnyGC this__) {
 
 
 class LazyLoaderClassInfo extends ClassInfo {
-  Function? initialize;
-  Function? get_data;
-  Function? get_computedValue;
+  void Function(AnyGC, String)? initialize;
+  String Function(AnyGC)? get_data;
+  int Function(AnyGC)? get_computedValue;
+  LazyLoaderClassInfo() {
+    initialize = LazyLoader_initialize;
+    get_data = LazyLoader_get_data;
+    get_computedValue = LazyLoader_get_computedValue;
+  }
 }
 
 class LazyLoaderValue extends AnyGC {
   late String _data;
   late int _computedValue;
   late bool _initialized = false;
-  static LazyLoaderClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static LazyLoaderClassInfo _initClassInfo() {
-    final ci = LazyLoaderClassInfo();
-    ci.initialize = LazyLoader_initialize;
-    ci.get_data = LazyLoader_get_data;
-    ci.get_computedValue = LazyLoader_get_computedValue;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<LazyLoaderClassInfo>(runtimeType, LazyLoaderClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as LazyLoaderClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as LazyLoaderClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as LazyLoaderClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -432,22 +502,37 @@ int LazyLoader_get_computedValue(AnyGC this__) {
 
 
 class BoundedValueClassInfo extends ClassInfo {
-  Function? set;
-  Function? get_current;
+  void Function(AnyGC, double)? set;
+  double Function(AnyGC)? get_current;
+  BoundedValueClassInfo() {
+    set = BoundedValue_set;
+    get_current = BoundedValue_get_current;
+  }
 }
 
 class BoundedValueValue extends AnyGC {
   late double min;
   late double max;
   late double _current;
-  static BoundedValueClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static BoundedValueClassInfo _initClassInfo() {
-    final ci = BoundedValueClassInfo();
-    ci.set = BoundedValue_set;
-    ci.get_current = BoundedValue_get_current;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<BoundedValueClassInfo>(runtimeType, BoundedValueClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as BoundedValueClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as BoundedValueClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as BoundedValueClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -474,19 +559,34 @@ double BoundedValue_get_current(AnyGC this__) {
 
 
 class ShapeClassInfo extends ClassInfo {
-  Function? describe;
+  String Function(AnyGC)? describe;
+  ShapeClassInfo() {
+    describe = Shape_describe;
+  }
 }
 
 class ShapeValue extends AnyGC {
   late String color;
   late double opacity;
-  static ShapeClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ShapeClassInfo _initClassInfo() {
-    final ci = ShapeClassInfo();
-    ci.describe = Shape_describe;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ShapeClassInfo>(runtimeType, ShapeClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ShapeClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ShapeClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ShapeClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -511,19 +611,16 @@ String Shape_describe(AnyGC this__) {
 
 class PolygonClassInfo extends ShapeClassInfo {
   Function? perimeter;
+  PolygonClassInfo() {
+    describe = Polygon_describe;
+    perimeter = Polygon_perimeter;
+  }
 }
 
 class PolygonValue extends ShapeValue {
   late int sides;
-  static PolygonClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static PolygonClassInfo _initClassInfo() {
-    final ci = PolygonClassInfo();
-    ci.describe = Polygon_describe;
-    ci.perimeter = Polygon_perimeter;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PolygonClassInfo>(runtimeType, PolygonClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -550,21 +647,18 @@ double Polygon_perimeter(AnyGC this__, double sideLength) {
 
 
 class RegularPolygonClassInfo extends PolygonClassInfo {
-  Function? area;
+  double Function(AnyGC)? area;
+  RegularPolygonClassInfo() {
+    describe = RegularPolygon_describe;
+    perimeter = RegularPolygon_perimeter;
+    area = RegularPolygon_area;
+  }
 }
 
 class RegularPolygonValue extends PolygonValue {
   late double sideLength;
-  static RegularPolygonClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static RegularPolygonClassInfo _initClassInfo() {
-    final ci = RegularPolygonClassInfo();
-    ci.describe = RegularPolygon_describe;
-    ci.perimeter = RegularPolygon_perimeter;
-    ci.area = RegularPolygon_area;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<RegularPolygonClassInfo>(runtimeType, RegularPolygonClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -596,19 +690,16 @@ double RegularPolygon_area(AnyGC this__) {
 
 
 class SquareClassInfo extends RegularPolygonClassInfo {
+  SquareClassInfo() {
+    describe = Square_describe;
+    perimeter = Square_perimeter;
+    area = Square_area;
+  }
 }
 
 class SquareValue extends RegularPolygonValue {
-  static SquareClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static SquareClassInfo _initClassInfo() {
-    final ci = SquareClassInfo();
-    ci.describe = Square_describe;
-    ci.perimeter = Square_perimeter;
-    ci.area = Square_area;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<SquareClassInfo>(runtimeType, SquareClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -639,17 +730,32 @@ double Square_area(AnyGC this__) {
 
 
 class SerializableClassInfo extends ClassInfo {
-  Function? serialize;
+  String Function(AnyGC)? serialize;
+  SerializableClassInfo() {
+    serialize = Serializable_serialize;
+  }
 }
 
 class SerializableValue extends AnyGC {
-  static SerializableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static SerializableClassInfo _initClassInfo() {
-    final ci = SerializableClassInfo();
-    ci.serialize = Serializable_serialize;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<SerializableClassInfo>(runtimeType, SerializableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as SerializableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as SerializableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as SerializableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -658,18 +764,39 @@ SerializableValue Serializable_new(AnyGC this__) {
   return this_;
 }
 
-String Serializable_serialize(dynamic this_) {
+String Serializable_serialize(AnyGC this_) {
   throw UnimplementedError('Serializable.serialize is abstract');
 }
 
 
 class CloneableClassInfo<T> extends ClassInfo {
   Function? clone;
+  CloneableClassInfo() {
+    clone = Cloneable_clone<T>;
+  }
 }
 
 class CloneableValue<T> extends AnyGC {
   @override
-  ClassInfo get classInfo => CloneableClassInfo<T>();
+  ClassInfo get classInfo => ClassInfoRegistry.get<CloneableClassInfo<T>>(runtimeType, CloneableClassInfo<T>.new);
+  @override
+  String toString() {
+    final fn = (classInfo as CloneableClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as CloneableClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as CloneableClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 CloneableValue<T> Cloneable_new<T>(AnyGC this__) {
@@ -677,18 +804,39 @@ CloneableValue<T> Cloneable_new<T>(AnyGC this__) {
   return this_;
 }
 
-T Cloneable_clone<T>(dynamic this_) {
+T Cloneable_clone<T>(AnyGC this_) {
   throw UnimplementedError('Cloneable.clone is abstract');
 }
 
 
 class Comparable2ClassInfo<T> extends ClassInfo {
   Function? compareTo2;
+  Comparable2ClassInfo() {
+    compareTo2 = Comparable2_compareTo2<T>;
+  }
 }
 
 class Comparable2Value<T> extends AnyGC {
   @override
-  ClassInfo get classInfo => Comparable2ClassInfo<T>();
+  ClassInfo get classInfo => ClassInfoRegistry.get<Comparable2ClassInfo<T>>(runtimeType, Comparable2ClassInfo<T>.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Comparable2ClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Comparable2ClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Comparable2ClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
@@ -696,30 +844,45 @@ Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
   return this_;
 }
 
-int Comparable2_compareTo2<T>(dynamic this_, T other) {
+int Comparable2_compareTo2<T>(AnyGC this_, T other) {
   throw UnimplementedError('Comparable2.compareTo2 is abstract');
 }
 
 
 class DataPointClassInfo extends SerializableClassInfo {
-  Function? clone;
-  Function? compareTo2;
+  DataPointValue Function(AnyGC)? clone;
+  int Function(AnyGC, DataPointValue)? compareTo2;
+  DataPointClassInfo() {
+    serialize = DataPoint_serialize;
+    clone = DataPoint_clone;
+    compareTo2 = DataPoint_compareTo2;
+    toString_ = DataPoint_toString;
+  }
 }
 
 class DataPointValue extends AnyGC implements SerializableValue, CloneableValue<DataPointValue>, Comparable2Value<DataPointValue> {
   late double x;
   late double y;
   late String label;
-  static DataPointClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DataPointClassInfo _initClassInfo() {
-    final ci = DataPointClassInfo();
-    ci.serialize = DataPoint_serialize;
-    ci.clone = DataPoint_clone;
-    ci.compareTo2 = DataPoint_compareTo2;
-    ci.toString_ = DataPoint_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DataPointClassInfo>(runtimeType, DataPointClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DataPointClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DataPointClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DataPointClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -771,23 +934,20 @@ bool Validatable_validate(AnyGC this__) {
 
 
 class LoggedDataPointClassInfo extends LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo {
+  LoggedDataPointClassInfo() {
+    serialize = LoggedDataPoint_serialize;
+    clone = LoggedDataPoint_clone;
+    compareTo2 = LoggedDataPoint_compareTo2;
+    toString_ = LoggedDataPoint_toString;
+    get_logTag = LoggedDataPoint_get_logTag;
+    log = LoggedDataPoint_log;
+    validate = LoggedDataPoint_validate;
+  }
 }
 
 class LoggedDataPointValue extends LoggedDataPoint_DataPoint_Loggable_ValidatableValue {
-  static LoggedDataPointClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static LoggedDataPointClassInfo _initClassInfo() {
-    final ci = LoggedDataPointClassInfo();
-    ci.serialize = LoggedDataPoint_serialize;
-    ci.clone = LoggedDataPoint_clone;
-    ci.compareTo2 = LoggedDataPoint_compareTo2;
-    ci.toString_ = LoggedDataPoint_toString;
-    ci.get_logTag = LoggedDataPoint_get_logTag;
-    ci.log = LoggedDataPoint_log;
-    ci.validate = LoggedDataPoint_validate;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LoggedDataPointClassInfo>(runtimeType, LoggedDataPointClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -873,6 +1033,9 @@ bool HttpMethod_get_isReadOnly(HttpMethod this_) {
 }
 
 class ConfigClassInfo extends ClassInfo {
+  ConfigClassInfo() {
+    toString_ = Config_toString;
+  }
 }
 
 class ConfigValue extends AnyGC {
@@ -880,13 +1043,25 @@ class ConfigValue extends AnyGC {
   late int port;
   late bool secure;
   late String baseUrl;
-  static ConfigClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ConfigClassInfo _initClassInfo() {
-    final ci = ConfigClassInfo();
-    ci.toString_ = Config_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ConfigClassInfo>(runtimeType, ConfigClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ConfigClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ConfigClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ConfigClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -917,32 +1092,48 @@ String Config_toString(AnyGC this__) {
 }
 
 
-class SortedListClassInfo<T> extends ClassInfo {
-  Function? add;
-  Function? get_first;
-  Function? get_last;
-  Function? get_length;
-  Function? toList;
+class SortedListClassInfo<T extends Comparable<dynamic>> extends ClassInfo {
+  void Function(AnyGC, T)? add;
+  T Function(AnyGC)? get_first;
+  T Function(AnyGC)? get_last;
+  StaticList<T> Function(AnyGC)? toList;
+  SortedListClassInfo() {
+    add = SortedList_add<T>;
+    get_first = SortedList_get_first<T>;
+    get_last = SortedList_get_last<T>;
+    get_length = SortedList_get_length<T>;
+    toList = SortedList_toList<T>;
+    toString_ = SortedList_toString<T>;
+  }
 }
 
 class SortedListValue<T extends Comparable<dynamic>> extends AnyGC {
   late StaticList<T> _items = StaticList<T>();
   @override
-  ClassInfo get classInfo {
-    final ci = SortedListClassInfo<T>();
-    ci.add = SortedList_add<T>;
-    ci.get_first = SortedList_get_first<T>;
-    ci.get_last = SortedList_get_last<T>;
-    ci.get_length = SortedList_get_length<T>;
-    ci.toList = SortedList_toList<T>;
-    ci.toString_ = SortedList_toString<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<SortedListClassInfo<T>>(runtimeType, SortedListClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_items is AnyGC) (_items as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as SortedListClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as SortedListClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as SortedListClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -953,23 +1144,23 @@ SortedListValue<T> SortedList_new<T extends Comparable<dynamic>>(AnyGC this__) {
 
 void SortedList_add<T extends Comparable<dynamic>>(AnyGC this__, T item) {
   final this_ = this__ as SortedListValue<T>;
-  this_._items.add(item);
-  this_._items.sort();
+  (this_._items.classInfo as StaticListClassInfo).add!(this_._items, item);
+  (this_._items.classInfo as StaticListClassInfo).sort!(this_._items);
 }
 
 T SortedList_get_first<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
-  return this_._items.first;
+  return (this_._items.classInfo as StaticListClassInfo).get_first!(this_._items);
 }
 
 T SortedList_get_last<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
-  return this_._items.last;
+  return (this_._items.classInfo as StaticListClassInfo).get_last!(this_._items);
 }
 
 int SortedList_get_length<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
-  return this_._items.length;
+  return (this_._items.classInfo as StaticListClassInfo).get_length!(this_._items);
 }
 
 StaticList<T> SortedList_toList<T extends Comparable<dynamic>>(AnyGC this__) {
@@ -979,24 +1170,39 @@ StaticList<T> SortedList_toList<T extends Comparable<dynamic>>(AnyGC this__) {
 
 String SortedList_toString<T extends Comparable<dynamic>>(AnyGC this__) {
   final this_ = this__ as SortedListValue<T>;
-  return 'SortedList(${this_._items})';
+  return 'SortedList(${(this_._items.classInfo as StaticListClassInfo).toString_!(this_._items)})';
 }
 
 
 class NullSafetyDemoClassInfo extends ClassInfo {
-  Function? demonstrate;
+  String Function(AnyGC)? demonstrate;
+  NullSafetyDemoClassInfo() {
+    demonstrate = NullSafetyDemo_demonstrate;
+  }
 }
 
 class NullSafetyDemoValue extends AnyGC {
   late String? nullableField;
   late String nonNullField;
-  static NullSafetyDemoClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static NullSafetyDemoClassInfo _initClassInfo() {
-    final ci = NullSafetyDemoClassInfo();
-    ci.demonstrate = NullSafetyDemo_demonstrate;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<NullSafetyDemoClassInfo>(runtimeType, NullSafetyDemoClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as NullSafetyDemoClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as NullSafetyDemoClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as NullSafetyDemoClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1019,18 +1225,33 @@ String NullSafetyDemo_demonstrate(AnyGC this__) {
 
 class RendererClassInfo extends ClassInfo {
   Function? render;
-  Function? get_name;
+  String Function(AnyGC)? get_name;
+  RendererClassInfo() {
+    render = Renderer_render;
+    get_name = Renderer_get_name;
+  }
 }
 
 class RendererValue extends AnyGC {
-  static RendererClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static RendererClassInfo _initClassInfo() {
-    final ci = RendererClassInfo();
-    ci.render = Renderer_render;
-    ci.get_name = Renderer_get_name;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<RendererClassInfo>(runtimeType, RendererClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as RendererClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as RendererClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as RendererClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1039,28 +1260,25 @@ RendererValue Renderer_new(AnyGC this__) {
   return this_;
 }
 
-void Renderer_render(dynamic this_, Object shape) {
+void Renderer_render(AnyGC this_, Object shape) {
   throw UnimplementedError('Renderer.render is abstract');
 }
 
-String Renderer_get_name(dynamic this_) {
+String Renderer_get_name(AnyGC this_) {
   throw UnimplementedError('Renderer.name is abstract');
 }
 
 
 class CircleRendererClassInfo extends RendererClassInfo {
+  CircleRendererClassInfo() {
+    render = CircleRenderer_render;
+    get_name = CircleRenderer_get_name;
+  }
 }
 
 class CircleRendererValue extends RendererValue {
-  static CircleRendererClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CircleRendererClassInfo _initClassInfo() {
-    final ci = CircleRendererClassInfo();
-    ci.render = CircleRenderer_render;
-    ci.get_name = CircleRenderer_get_name;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<CircleRendererClassInfo>(runtimeType, CircleRendererClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1086,23 +1304,40 @@ String CircleRenderer_get_name(AnyGC this__) {
 
 
 class PipelineClassInfo<TInput, TOutput> extends ClassInfo {
-  Function? execute;
+  TOutput Function(AnyGC, TInput)? execute;
   Function? then;
+  PipelineClassInfo() {
+    execute = Pipeline_execute<TInput, TOutput>;
+  }
 }
 
 class PipelineValue<TInput, TOutput> extends AnyGC {
   late TypeFunction1<TOutput, TInput> _transform;
   @override
-  ClassInfo get classInfo {
-    final ci = PipelineClassInfo<TInput, TOutput>();
-    ci.execute = Pipeline_execute<TInput, TOutput>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PipelineClassInfo<TInput, TOutput>>(runtimeType, PipelineClassInfo<TInput, TOutput>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_transform is AnyGC) (_transform as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as PipelineClassInfo<TInput, TOutput>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as PipelineClassInfo<TInput, TOutput>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as PipelineClassInfo<TInput, TOutput>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1124,23 +1359,38 @@ PipelineValue<TInput, TNewOutput> Pipeline_then<TInput, TOutput, TNewOutput>(Any
 
 
 class BitFlagsClassInfo extends ClassInfo {
-  Function? set;
-  Function? clear;
-  Function? has;
+  void Function(AnyGC, int)? set;
+  void Function(AnyGC, int)? clear;
+  bool Function(AnyGC, int)? has;
+  BitFlagsClassInfo() {
+    set = BitFlags_set;
+    clear = BitFlags_clear;
+    has = BitFlags_has;
+    toString_ = BitFlags_toString;
+  }
 }
 
 class BitFlagsValue extends AnyGC {
   late int _flags;
-  static BitFlagsClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static BitFlagsClassInfo _initClassInfo() {
-    final ci = BitFlagsClassInfo();
-    ci.set = BitFlags_set;
-    ci.clear = BitFlags_clear;
-    ci.has = BitFlags_has;
-    ci.toString_ = BitFlags_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<BitFlagsClassInfo>(runtimeType, BitFlagsClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as BitFlagsClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as BitFlagsClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as BitFlagsClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1171,10 +1421,10 @@ bool BitFlags_has(AnyGC this__, int flag) {
 String BitFlags_toString(AnyGC this__) {
   final this_ = this__ as BitFlagsValue;
   final StaticList<String> parts = StaticList<String>();
-  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 1))   parts.add('r');
-  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 2))   parts.add('w');
-  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 4))   parts.add('x');
-  return (parts.isEmpty ? '-' : parts.join(''));
+  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 1))   (parts.classInfo as StaticListClassInfo).add!(parts, 'r');
+  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 2))   (parts.classInfo as StaticListClassInfo).add!(parts, 'w');
+  if ((this_.classInfo as BitFlagsClassInfo).has!(this_, 4))   (parts.classInfo as StaticListClassInfo).add!(parts, 'x');
+  return ((parts.classInfo as StaticListClassInfo).get_isEmpty!(parts) ? '-' : (parts.classInfo as StaticListClassInfo).join!(parts, ''));
 }
 
 
@@ -1193,7 +1443,7 @@ String Timestamped_get_timeStr(AnyGC this__) {
 // mixin Tagged → static functions for delegation
 void Tagged_addTag(AnyGC this__, String tag) {
   final dynamic this_ = this__;
-  this_._tags.add(tag);
+  (this_._tags.classInfo as StaticListClassInfo).add!(this_._tags, tag);
 }
 
 StaticList<String> Tagged_get_tags(AnyGC this__) {
@@ -1203,22 +1453,19 @@ StaticList<String> Tagged_get_tags(AnyGC this__) {
 
 
 class EventClassInfo extends Event_Object_Timestamped_TaggedClassInfo {
+  EventClassInfo() {
+    get_timestamp = Event_get_timestamp;
+    get_timeStr = Event_get_timeStr;
+    addTag = Event_addTag;
+    get_tags = Event_get_tags;
+    toString_ = Event_toString;
+  }
 }
 
 class EventValue extends Event_Object_Timestamped_TaggedValue {
   late String name;
-  static EventClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static EventClassInfo _initClassInfo() {
-    final ci = EventClassInfo();
-    ci.get_timestamp = Event_get_timestamp;
-    ci.get_timeStr = Event_get_timeStr;
-    ci.addTag = Event_addTag;
-    ci.get_tags = Event_get_tags;
-    ci.toString_ = Event_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<EventClassInfo>(runtimeType, EventClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1234,7 +1481,7 @@ EventValue Event_new(AnyGC this__, String name) {
 
 String Event_toString(AnyGC this__) {
   final this_ = this__ as EventValue;
-  return 'Event(${this_.name}, ${(this_.classInfo as EventClassInfo).get_timeStr!(this_)}, tags=${(this_.classInfo as EventClassInfo).get_tags!(this_)})';
+  return 'Event(${this_.name}, ${(this_.classInfo as EventClassInfo).get_timeStr!(this_)}, tags=${((this_.classInfo as EventClassInfo).get_tags!(this_).classInfo as StaticListClassInfo).toString_!((this_.classInfo as EventClassInfo).get_tags!(this_))})';
 }
 
 int Event_get_timestamp(AnyGC this__) {
@@ -1259,24 +1506,21 @@ StaticList<String> Event_get_tags(AnyGC this__) {
 
 
 class ImportantEventClassInfo extends ImportantEvent_Event_LoggableClassInfo {
+  ImportantEventClassInfo() {
+    get_timestamp = ImportantEvent_get_timestamp;
+    get_timeStr = ImportantEvent_get_timeStr;
+    addTag = ImportantEvent_addTag;
+    get_tags = ImportantEvent_get_tags;
+    toString_ = ImportantEvent_toString;
+    get_logTag = ImportantEvent_get_logTag;
+    log = ImportantEvent_log;
+  }
 }
 
 class ImportantEventValue extends ImportantEvent_Event_LoggableValue {
   late Priority priority;
-  static ImportantEventClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ImportantEventClassInfo _initClassInfo() {
-    final ci = ImportantEventClassInfo();
-    ci.get_timestamp = ImportantEvent_get_timestamp;
-    ci.get_timeStr = ImportantEvent_get_timeStr;
-    ci.addTag = ImportantEvent_addTag;
-    ci.get_tags = ImportantEvent_get_tags;
-    ci.toString_ = ImportantEvent_toString;
-    ci.get_logTag = ImportantEvent_get_logTag;
-    ci.log = ImportantEvent_log;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ImportantEventClassInfo>(runtimeType, ImportantEventClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1329,18 +1573,13 @@ void ImportantEvent_log(AnyGC this__, String message) {
 
 
 class Dog_Animal_PrintableClassInfo extends AnimalClassInfo {
-  Function? get_displayName;
-  Function? printInfo;
+  String Function(AnyGC)? get_displayName;
+  void Function(AnyGC)? printInfo;
 }
 
 class Dog_Animal_PrintableValue extends AnimalValue {
-  static Dog_Animal_PrintableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Dog_Animal_PrintableClassInfo _initClassInfo() {
-    final ci = Dog_Animal_PrintableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Dog_Animal_PrintableClassInfo>(runtimeType, Dog_Animal_PrintableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1350,19 +1589,13 @@ class Dog_Animal_PrintableValue extends AnimalValue {
 
 
 class Dog_Animal_Printable_OrderableClassInfo extends Dog_Animal_PrintableClassInfo {
-  Function? compareTo;
-  Function? isLessThan;
-  Function? isGreaterThan;
+  bool Function(AnyGC, DogValue)? isLessThan;
+  bool Function(AnyGC, DogValue)? isGreaterThan;
 }
 
 class Dog_Animal_Printable_OrderableValue extends Dog_Animal_PrintableValue {
-  static Dog_Animal_Printable_OrderableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Dog_Animal_Printable_OrderableClassInfo _initClassInfo() {
-    final ci = Dog_Animal_Printable_OrderableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Dog_Animal_Printable_OrderableClassInfo>(runtimeType, Dog_Animal_Printable_OrderableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1372,18 +1605,13 @@ class Dog_Animal_Printable_OrderableValue extends Dog_Animal_PrintableValue {
 
 
 class Cat_Animal_PrintableClassInfo extends AnimalClassInfo {
-  Function? get_displayName;
-  Function? printInfo;
+  String Function(AnyGC)? get_displayName;
+  void Function(AnyGC)? printInfo;
 }
 
 class Cat_Animal_PrintableValue extends AnimalValue {
-  static Cat_Animal_PrintableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Cat_Animal_PrintableClassInfo _initClassInfo() {
-    final ci = Cat_Animal_PrintableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Cat_Animal_PrintableClassInfo>(runtimeType, Cat_Animal_PrintableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1393,18 +1621,13 @@ class Cat_Animal_PrintableValue extends AnimalValue {
 
 
 class LoggedDataPoint_DataPoint_LoggableClassInfo extends DataPointClassInfo {
-  Function? get_logTag;
-  Function? log;
+  String Function(AnyGC)? get_logTag;
+  void Function(AnyGC, String)? log;
 }
 
 class LoggedDataPoint_DataPoint_LoggableValue extends DataPointValue {
-  static LoggedDataPoint_DataPoint_LoggableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static LoggedDataPoint_DataPoint_LoggableClassInfo _initClassInfo() {
-    final ci = LoggedDataPoint_DataPoint_LoggableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LoggedDataPoint_DataPoint_LoggableClassInfo>(runtimeType, LoggedDataPoint_DataPoint_LoggableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1414,17 +1637,12 @@ class LoggedDataPoint_DataPoint_LoggableValue extends DataPointValue {
 
 
 class LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo extends LoggedDataPoint_DataPoint_LoggableClassInfo {
-  Function? validate;
+  bool Function(AnyGC)? validate;
 }
 
 class LoggedDataPoint_DataPoint_Loggable_ValidatableValue extends LoggedDataPoint_DataPoint_LoggableValue {
-  static LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo _initClassInfo() {
-    final ci = LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo>(runtimeType, LoggedDataPoint_DataPoint_Loggable_ValidatableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1434,35 +1652,43 @@ class LoggedDataPoint_DataPoint_Loggable_ValidatableValue extends LoggedDataPoin
 
 
 class Event_Object_TimestampedClassInfo extends ClassInfo {
-  Function? get_timestamp;
-  Function? get_timeStr;
+  int Function(AnyGC)? get_timestamp;
+  String Function(AnyGC)? get_timeStr;
 }
 
 class Event_Object_TimestampedValue extends AnyGC {
-  static Event_Object_TimestampedClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Event_Object_TimestampedClassInfo _initClassInfo() {
-    final ci = Event_Object_TimestampedClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Event_Object_TimestampedClassInfo>(runtimeType, Event_Object_TimestampedClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Event_Object_TimestampedClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Event_Object_TimestampedClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Event_Object_TimestampedClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class Event_Object_Timestamped_TaggedClassInfo extends Event_Object_TimestampedClassInfo {
-  Function? addTag;
-  Function? get_tags;
+  void Function(AnyGC, String)? addTag;
+  StaticList<String> Function(AnyGC)? get_tags;
 }
 
 class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue {
   late StaticList<String> _tags = StaticList<String>();
-  static Event_Object_Timestamped_TaggedClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Event_Object_Timestamped_TaggedClassInfo _initClassInfo() {
-    final ci = Event_Object_Timestamped_TaggedClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Event_Object_Timestamped_TaggedClassInfo>(runtimeType, Event_Object_Timestamped_TaggedClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1473,18 +1699,13 @@ class Event_Object_Timestamped_TaggedValue extends Event_Object_TimestampedValue
 
 
 class ImportantEvent_Event_LoggableClassInfo extends EventClassInfo {
-  Function? get_logTag;
-  Function? log;
+  String Function(AnyGC)? get_logTag;
+  void Function(AnyGC, String)? log;
 }
 
 class ImportantEvent_Event_LoggableValue extends EventValue {
-  static ImportantEvent_Event_LoggableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ImportantEvent_Event_LoggableClassInfo _initClassInfo() {
-    final ci = ImportantEvent_Event_LoggableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ImportantEvent_Event_LoggableClassInfo>(runtimeType, ImportantEvent_Event_LoggableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1502,7 +1723,7 @@ String formatMessage(String template, [String? subject = null, int? count = null
 
 String buildQuery({required String endpoint, StaticMap<String, String>? params = null, int maxWait = 30, bool secure = true}) {
   final String scheme = (secure ? 'https' : 'http');
-  final String query = ((() { final _let8 = params; return (_let8 == null) ? null : _let8.entries.map(ClosureEnv_buildQuery_1_new(GC.allocateLocal(ClosureEnv_buildQuery_1()))).join('&'); })() ?? '');
+  final String query = ((() { final _let8 = params; return (_let8 == null) ? null : (() { final _r9 = StaticList<String>.of((StaticList<StaticMapEntry>.of((_let8.classInfo as StaticMapClassInfo).get_entries!(_let8)).classInfo as StaticListClassInfo).map!(StaticList<StaticMapEntry>.of((_let8.classInfo as StaticMapClassInfo).get_entries!(_let8)), ClosureEnv_buildQuery_1_new(GC.allocateLocal(ClosureEnv_buildQuery_1())))); return (_r9.classInfo as StaticListClassInfo).join!(_r9, '&'); })(); })() ?? '');
   final String suffix = (query.isEmpty ? '' : '?${query}');
   return '${scheme}://${endpoint}${suffix} (timeout=${maxWait}s)';
 }
@@ -1543,75 +1764,75 @@ Promise<StaticList<String>> countDown(int from) {
 }
 
 String describeValue(Object? value) {
-  return (() {   late String _v9;
-  final Object? _v10 = value;
-  const dynamic _v11 = null;
-  _L12: do {
+  return (() {   late String _v10;
+  final Object? _v11 = value;
+  const dynamic _v12 = null;
+  _L13: do {
 {
 {
-        if ((_v10 == null)) {
-          _v9 = 'null';
-          break _L12;
+        if ((_v11 == null)) {
+          _v10 = 'null';
+          break _L13;
         }
       }
 {
         late int n;
-        if ((((_v10 is int) && (() { final _let13 = n = _v10; return true; })()) && (n < 0))) {
-          _v9 = 'negative int: ${n}';
-          break _L12;
+        if ((((_v11 is int) && (() { final _let14 = n = _v11; return true; })()) && (n < 0))) {
+          _v10 = 'negative int: ${n}';
+          break _L13;
         }
       }
 {
         late int n;
-        if ((_v10 is int)) {
-          n = _v10;
-          _v9 = 'positive int: ${n}';
-          break _L12;
+        if ((_v11 is int)) {
+          n = _v11;
+          _v10 = 'positive int: ${n}';
+          break _L13;
         }
       }
 {
         late String s;
-        if ((((_v10 is String) && (() { final _let14 = s = _v10; return true; })()) && s.isEmpty)) {
-          _v9 = 'empty string';
-          break _L12;
+        if ((((_v11 is String) && (() { final _let15 = s = _v11; return true; })()) && s.isEmpty)) {
+          _v10 = 'empty string';
+          break _L13;
         }
       }
 {
         late String s;
-        if ((_v10 is String)) {
-          s = _v10;
-          _v9 = 'string: "${s}"';
-          break _L12;
+        if ((_v11 is String)) {
+          s = _v11;
+          _v10 = 'string: "${s}"';
+          break _L13;
         }
       }
 {
         late StaticList<dynamic> list;
-        if ((((_v10 is StaticList<dynamic>) && (() { final _let15 = list = _v10; return true; })()) && list.isEmpty)) {
-          _v9 = 'empty list';
-          break _L12;
+        if ((((_v11 is StaticList<dynamic>) && (() { final _let16 = list = _v11; return true; })()) && (list.classInfo as StaticListClassInfo).get_isEmpty!(list))) {
+          _v10 = 'empty list';
+          break _L13;
         }
       }
 {
         late StaticList<dynamic> list;
-        if ((_v10 is StaticList<dynamic>)) {
-          list = _v10;
-          _v9 = 'list of ${list.length}';
-          break _L12;
+        if ((_v11 is StaticList<dynamic>)) {
+          list = _v11;
+          _v10 = 'list of ${(list.classInfo as StaticListClassInfo).get_length!(list)}';
+          break _L13;
         }
       }
 {
         if (true) {
-          _v9 = 'unknown: ${value.runtimeType}';
-          break _L12;
+          _v10 = 'unknown: ${value.runtimeType}';
+          break _L13;
         }
       }
     }
   } while (false);
- return _v9; })();
+ return _v10; })();
 }
 
 StaticList<int> buildList() {
-  return (StaticList<int>()..add(1)..add(2)..addAll(StaticList<int>.of([3, 4, 5]))..sort());
+  return StaticList<int>.of((() { final _let17 = StaticList<int>(); (_let17.classInfo as StaticListClassInfo).add!(_let17, 1); (_let17.classInfo as StaticListClassInfo).add!(_let17, 2); (_let17.classInfo as StaticListClassInfo).addAll!(_let17, StaticList<int>.of([3, 4, 5])); (_let17.classInfo as StaticListClassInfo).sort!(_let17); return _let17; })());
 }
 
 StaticStringBuffer buildBuffer() {
@@ -1619,18 +1840,18 @@ StaticStringBuffer buildBuffer() {
 }
 
 StaticList<int> mergeAndFilter(StaticList<int> a, StaticList<int> b, bool includeNegative) {
-  return (() {   final StaticList<int> _v18 = StaticList<int>.of(a);
-  _v18.addAll(b);
-  if (includeNegative)   _v18.add((-1));
-  for (var i = 10; (i <= 12); i = (i + 1))   _v18.add(i);
- return _v18; })();
+  return StaticList<int>.of((() {   final StaticList<int> _v19 = StaticList<int>.of(a);
+  (_v19.classInfo as StaticListClassInfo).addAll!(_v19, b);
+  if (includeNegative)   (_v19.classInfo as StaticListClassInfo).add!(_v19, (-1));
+  for (var i = 10; (i <= 12); i = (i + 1))   (_v19.classInfo as StaticListClassInfo).add!(_v19, i);
+ return _v19; })());
 }
 
 StaticMap<String, int> buildScoreMap(StaticList<String> names, bool addBonus) {
-  return (() {   final StaticMap<String, int> _v19 = StaticMap<String, int>.of({});
-  for (var i = 0; (i < names.length); i = (i + 1))   _v19[names[i]] = ((i + 1) * 10);
-  if (addBonus)   _v19['bonus'] = 999;
- return _v19; })();
+  return StaticMap<String, int>.of((() {   final StaticMap<String, int> _v20 = StaticMap<String, int>.of({});
+  for (var i = 0; (i < (names.classInfo as StaticListClassInfo).get_length!(names)); i = (i + 1))   (_v20.classInfo as StaticMapClassInfo).operatorIndexSet!(_v20, (names.classInfo as StaticListClassInfo).operatorIndex!(names, i), ((i + 1) * 10));
+  if (addBonus)   (_v20.classInfo as StaticMapClassInfo).operatorIndexSet!(_v20, 'bonus', 999);
+ return _v20; })());
 }
 
 int parseAndDivide(String a, String b) {
@@ -1651,7 +1872,7 @@ int parseAndDivide(String a, String b) {
 String multiLineExample() {
   final String raw = 'raw\\nstring\\ttabs';
   final String multiLine = 'line1\nline2\nline3';
-  final String nested = 'lines: ${multiLine.split('\n').length}, raw: ${raw}';
+  final String nested = 'lines: ${(() { final _r21 = StaticList.of(multiLine.split('\n')); return (_r21.classInfo as StaticListClassInfo).get_length!(_r21); })()}, raw: ${raw}';
   return nested;
 }
 
@@ -1664,13 +1885,13 @@ TypeFunction1<bool, T> and<T>(TypeFunction1<bool, T> p1, TypeFunction1<bool, T> 
 }
 
 StaticList<B> flatMap<A, B>(StaticList<A> list, TypeFunction1<StaticList<B>, A> f) {
-  return StaticList.of(list.expand(f).toList());
+  return StaticList<B>.of((() { final _r22 = StaticList<B>.of((list.classInfo as StaticListClassInfo).expand!(list, f)); return (_r22.classInfo as StaticListClassInfo).toList!(_r22); })());
 }
 
 T findMax<T extends Comparable<dynamic>>(StaticList<T> items) {
-  T maxItem = items.first;
+  T maxItem = (items.classInfo as StaticListClassInfo).get_first!(items);
 {
-    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
+    var sync_for_iterator = (items.classInfo as StaticListClassInfo).get_iterator!(items);
     for (; sync_for_iterator.moveNext(); ) {
       final T item = sync_for_iterator.current;
 {
@@ -1689,7 +1910,7 @@ R applyTwice<T, R>(T value, TypeFunction1<R, T> fn1, TypeFunction1<R, R> fn2) {
 
 String? findFirst(StaticList<String> items, TypeFunction1<bool, String> test) {
 {
-    StaticIterator<String> sync_for_iterator = StaticIterator(items.iterator);
+    var sync_for_iterator = (items.classInfo as StaticListClassInfo).get_iterator!(items);
     for (; sync_for_iterator.moveNext(); ) {
       final String item = sync_for_iterator.current;
 {
@@ -1703,12 +1924,12 @@ String? findFirst(StaticList<String> items, TypeFunction1<bool, String> test) {
 StaticList<int> filterWithForIn(StaticList<int> items) {
   final StaticList<int> result = StaticList<int>();
 {
-    StaticIterator<int> sync_for_iterator = StaticIterator(items.iterator);
+    var sync_for_iterator = (items.classInfo as StaticListClassInfo).get_iterator!(items);
     for (; sync_for_iterator.moveNext(); ) {
       final int item = sync_for_iterator.current;
 {
         if (((item >= 0) && (item <= 100))) {
-          result.add(item);
+          (result.classInfo as StaticListClassInfo).add!(result, item);
         }
       }
     }
@@ -1718,9 +1939,9 @@ StaticList<int> filterWithForIn(StaticList<int> items) {
 
 int collatzSteps(int n) {
   int steps = 0;
-  _L20:
+  _L23:
   do {
-    if ((n == 1))     break _L20;
+    if ((n == 1))     break _L23;
     if (((n % 2) == 0)) {
       n = (n ~/ 2);
     }
@@ -1741,7 +1962,7 @@ String typeTest(Object value) {
     return 'string: ${value.toUpperCase()}';
   }
  else   if ((value is StaticList<int>)) {
-    return 'list<int>: ${value.length} items';
+    return 'list<int>: ${(value.classInfo as StaticListClassInfo).get_length!(value)} items';
   }
  else   if ((value is bool)) {
     return 'bool: ${value}';
@@ -1782,7 +2003,7 @@ String tryCatchFinally(int code) {
 }
 
 String dayType(int day) {
-  _L21: do {
+  _L24: do {
     switch (day) {
       case 1:
       case 7:
@@ -1822,13 +2043,13 @@ void main() {
   staticPrint('\n--- 2. operator 重载 ---');
   final Vector2DValue v1 = Vector2D_new(Vector2DValue(), 3.0, 4.0);
   final Vector2DValue v2 = Vector2D_new(Vector2DValue(), 1.0, 2.0);
-  final Vector2DValue sum = (() { final _r22 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r22.classInfo as dynamic).operatorPlus!(_r22, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue diff = (() { final _r23 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r23.classInfo as dynamic).operatorMinus!(_r23, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
-  final Vector2DValue scaled = (() { final _r24 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r24.classInfo as dynamic).operatorStar!(_r24, 2.0); })();
+  final Vector2DValue sum = (() { final _r25 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r25.classInfo as dynamic).operatorPlus!(_r25, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue diff = (() { final _r26 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r26.classInfo as dynamic).operatorMinus!(_r26, Vector2D_new(Vector2DValue(), 1.0, 2.0)); })();
+  final Vector2DValue scaled = (() { final _r27 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r27.classInfo as dynamic).operatorStar!(_r27, 2.0); })();
   staticPrint('v1 + v2 = ${sum}');
   staticPrint('v1 - v2 = ${diff}');
   staticPrint('v1 * 2 = ${scaled}');
-  staticPrint('v1.length = ${(() { final _r25 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r25.classInfo as dynamic).get_length!(_r25); })().toStringAsFixed(2)}');
+  staticPrint('v1.length = ${(() { final _r28 = Vector2D_new(Vector2DValue(), 3.0, 4.0); return (_r28.classInfo as ClassInfo).get_length!(_r28); })().toStringAsFixed(2)}');
   staticPrint('v1 == Vector2D(3,4): ${(Vector2D_new(Vector2DValue(), 3.0, 4.0) == Vector2D_new(Vector2DValue(), 3.0, 4.0))}');
   staticPrint('\n--- 3. static + factory ---');
   final CounterValue c1 = Counter_new('alpha');
@@ -1845,8 +2066,8 @@ void main() {
   final ResultValue<int> err = Result_new_failure<int>(ResultValue<int>(), 'not found');
   staticPrint('ok: ${Result_new_success<int>(ResultValue<int>(), 42)}');
   staticPrint('err: ${Result_new_failure<int>(ResultValue<int>(), 'not found')}');
-  final String okMsg = (() { final _r26 = Result_new_success<int>(ResultValue<int>(), 42); return (_r26.classInfo as dynamic).fold_String!(_r26, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
-  final String errMsg = (() { final _r27 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r27.classInfo as dynamic).fold_String!(_r27, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
+  final String okMsg = (() { final _r29 = Result_new_success<int>(ResultValue<int>(), 42); return (_r29.classInfo as dynamic).fold_String!(_r29, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())), ClosureEnv_main_6_new(GC.allocateLocal(ClosureEnv_main_6()))); })();
+  final String errMsg = (() { final _r30 = Result_new_failure<int>(ResultValue<int>(), 'not found'); return (_r30.classInfo as dynamic).fold_String!(_r30, ClosureEnv_main_7_new(GC.allocateLocal(ClosureEnv_main_7())), ClosureEnv_main_8_new(GC.allocateLocal(ClosureEnv_main_8()))); })();
   staticPrint('okMsg: ${okMsg}');
   staticPrint('errMsg: ${errMsg}');
   staticPrint('\n--- 5. 可选参数 ---');
@@ -1856,13 +2077,13 @@ void main() {
   staticPrint(buildQuery(endpoint: 'api.example.com/users'));
   staticPrint(buildQuery(endpoint: 'api.example.com/search', params: StaticMap<String, String>.of({'q': 'dart', 'page': '1'}), maxWait: 10, secure: false));
   staticPrint('\n--- 6. sync* 生成器 ---');
-  final StaticList<int> r = StaticList.of(range(0, 10, 2).toList());
-  staticPrint('range(0,10,2): ${r}');
-  final StaticList<int> fib = StaticList.of(fibonacci(8).toList());
-  staticPrint('fibonacci(8): ${fib}');
+  final StaticList<int> r = StaticList<int>.of(range(0, 10, 2).toList());
+  staticPrint('range(0,10,2): ${(r.classInfo as StaticListClassInfo).toString_!(r)}');
+  final StaticList<int> fib = StaticList<int>.of(fibonacci(8).toList());
+  staticPrint('fibonacci(8): ${(fib.classInfo as StaticListClassInfo).toString_!(fib)}');
   staticPrint('\n--- 7. async countdown ---');
   final StaticList<String> countdown = StaticList<String>.of(smAwait(countDown(3)));
-  staticPrint('countdown: ${countdown}');
+  staticPrint('countdown: ${(countdown.classInfo as StaticListClassInfo).toString_!(countdown)}');
   staticPrint('\n--- 8. record 类型 ---');
   final (String, int) person = getPersonRecord();
   staticPrint('person: ${person.$1}, age=${person.$2}');
@@ -1871,15 +2092,15 @@ void main() {
   final int q;
   final int r2;
 {
-    final (int, int) _v10 = divmod(17, 5);
-    q = _v10.$1;
-    r2 = _v10.$2;
+    final (int, int) _v11 = divmod(17, 5);
+    q = _v11.$1;
+    r2 = _v11.$2;
   }
   staticPrint('divmod(17,5): quotient=${q}, remainder=${r2}');
   staticPrint('\n--- 9. pattern matching ---');
   final StaticList<Object?> values = StaticList<Object?>.of([null, (-5), 42, '', 'hello']);
 {
-    StaticIterator<Object?> sync_for_iterator = StaticIterator(values.iterator);
+    var sync_for_iterator = (values.classInfo as StaticListClassInfo).get_iterator!(values);
     for (; sync_for_iterator.moveNext(); ) {
       final Object? v = sync_for_iterator.current;
 {
@@ -1889,16 +2110,16 @@ void main() {
   }
   staticPrint('\n--- 10. 级联操作符 ---');
   final StaticList<int> list = StaticList<int>.of(buildList());
-  staticPrint('buildList: ${list}');
+  staticPrint('buildList: ${(list.classInfo as StaticListClassInfo).toString_!(list)}');
   final StaticStringBuffer buf = buildBuffer();
   staticPrint('buildBuffer: ${buf.toString().trim()}');
   staticPrint('\n--- 11. 展开 + 集合 if/for ---');
   final StaticList<int> merged = StaticList<int>.of(mergeAndFilter(StaticList<int>.of([1, 2]), StaticList<int>.of([3, 4]), true));
-  staticPrint('merged(includeNeg=true): ${merged}');
+  staticPrint('merged(includeNeg=true): ${(merged.classInfo as StaticListClassInfo).toString_!(merged)}');
   final StaticList<int> mergedNoNeg = StaticList<int>.of(mergeAndFilter(StaticList<int>.of([1, 2]), StaticList<int>.of([3, 4]), false));
-  staticPrint('merged(includeNeg=false): ${mergedNoNeg}');
+  staticPrint('merged(includeNeg=false): ${(mergedNoNeg.classInfo as StaticListClassInfo).toString_!(mergedNoNeg)}');
   final StaticMap<String, int> scores = StaticMap<String, int>.of(buildScoreMap(StaticList<String>.of(['Alice', 'Bob', 'Carol']), true));
-  staticPrint('scores: ${scores}');
+  staticPrint('scores: ${(scores.classInfo as StaticMapClassInfo).toString_!(scores)}');
   staticPrint('\n--- 12. late 变量 ---');
   final LazyLoaderValue loader = LazyLoader_new(GC.allocateLocal(LazyLoaderValue()));
   staticPrint('before init: ${(loader.classInfo as LazyLoaderClassInfo).get_data!(loader)}, ${(loader.classInfo as LazyLoaderClassInfo).get_computedValue!(loader)}');
@@ -1937,9 +2158,9 @@ void main() {
   final TypeFunction1<bool, int> isEven = ClosureEnv_main_12_new(GC.allocateLocal(ClosureEnv_main_12()));
   final TypeFunction1<bool, int> isPositiveEven = and<int>(isPositive, isEven);
   final StaticList<int> nums = StaticList<int>.of([(-2), (-1), 0, 1, 2, 3, 4]);
-  staticPrint('positiveEvens: ${StaticList.of(nums.where(isPositiveEven).toList())}');
+  staticPrint('positiveEvens: ${(() { final _r32 = StaticList<int>.of((() { final _r31 = StaticList<int>.of((nums.classInfo as StaticListClassInfo).where!(nums, isPositiveEven)); return (_r31.classInfo as StaticListClassInfo).toList!(_r31); })()); return (_r32.classInfo as StaticListClassInfo).toString_!(_r32); })()}');
   final StaticList<int> nested = StaticList<int>.of(flatMap<int, int>(StaticList<int>.of([1, 2, 3]), ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13()))));
-  staticPrint('flatMap: ${nested}');
+  staticPrint('flatMap: ${(nested.classInfo as StaticListClassInfo).toString_!(nested)}');
   staticPrint('\n--- 19. 多层继承链 ---');
   final ShapeValue shape = Shape_new(GC.allocateLocal(ShapeValue()), 'red');
   staticPrint((shape.classInfo as ShapeClassInfo).describe!(shape));
@@ -2001,7 +2222,7 @@ void main() {
   staticPrint('findFirst(z): ${notFound}');
   staticPrint('\n--- 26. for-in + do-while ---');
   final StaticList<int> filtered = StaticList<int>.of(filterWithForIn(StaticList<int>.of([5, (-3), 10, 200, 50, (-1), 80])));
-  staticPrint('filterWithForIn: ${filtered}');
+  staticPrint('filterWithForIn: ${(filtered.classInfo as StaticListClassInfo).toString_!(filtered)}');
   staticPrint('collatz(6): ${collatzSteps(6)}');
   staticPrint('collatz(27): ${collatzSteps(27)}');
   staticPrint('\n--- 27. 类型测试 ---');
@@ -2074,16 +2295,16 @@ TNewOutput ClosureEnv_anon_0_call<TNewOutput, TOutput, TInput>(AnyGC env__, TInp
   return env.next.call((() { final _let6 = input; return env.this_._transform.call(_let6); })());
 }
 
-class ClosureEnv_buildQuery_1 extends TypeFunction1<String, StaticMapEntry<String, String>> {
+class ClosureEnv_buildQuery_1 extends TypeFunction1<String, StaticMapEntry> {
   ClosureEnv_buildQuery_1();
   @override
-  String call(StaticMapEntry<String, String> e) => fnPtr(this, e);
+  String call(StaticMapEntry e) => fnPtr(this, e);
 }
 ClosureEnv_buildQuery_1 ClosureEnv_buildQuery_1_new(ClosureEnv_buildQuery_1 env_) {
   env_.fnPtr = ClosureEnv_buildQuery_1_call;
   return env_;
 }
-String ClosureEnv_buildQuery_1_call(AnyGC env__, StaticMapEntry<String, String> e) {
+String ClosureEnv_buildQuery_1_call(AnyGC env__, StaticMapEntry e) {
   final env = env__ as ClosureEnv_buildQuery_1;
 
   return '${e.key}=${e.value}';
@@ -2099,7 +2320,7 @@ void ClosureEnv_countDown_2_call(ClosureEnv_countDown_2 env) {
   final StaticList<String> result = StaticList<String>();
   for (var i = env.from.value; (i >= 0); i = (i - 1)) {
     smAwait(promiseDelayed<dynamic>(StaticDuration(milliseconds: 1)));
-    result.add(((i == 0) ? 'Go!' : '${i}...'));
+    (result.classInfo as StaticListClassInfo).add!(result, ((i == 0) ? 'Go!' : '${i}...'));
   }
 {
     env._promise.complete(result);

@@ -3,19 +3,34 @@ import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 typedef IntPredicate = TypeFunction1<bool, int>;
 
 class PersonClassInfo extends ClassInfo {
-  Function? greet;
+  void Function(AnyGC)? greet;
+  PersonClassInfo() {
+    greet = Person_greet;
+  }
 }
 
 class PersonValue extends AnyGC {
   late String name = '';
   late int age = 0;
-  static PersonClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static PersonClassInfo _initClassInfo() {
-    final ci = PersonClassInfo();
-    ci.greet = Person_greet;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<PersonClassInfo>(runtimeType, PersonClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as PersonClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as PersonClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as PersonClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -31,20 +46,35 @@ void Person_greet(AnyGC this__) {
 
 
 class LateTestClassInfo extends ClassInfo {
-  Function? init;
-  Function? get;
+  void Function(AnyGC)? init;
+  String Function(AnyGC)? get;
+  LateTestClassInfo() {
+    init = LateTest_init;
+    get = LateTest_get;
+  }
 }
 
 class LateTestValue extends AnyGC {
   late String value;
-  static LateTestClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static LateTestClassInfo _initClassInfo() {
-    final ci = LateTestClassInfo();
-    ci.init = LateTest_init;
-    ci.get = LateTest_get;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<LateTestClassInfo>(runtimeType, LateTestClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as LateTestClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as LateTestClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as LateTestClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -71,7 +101,7 @@ enum Color {
 }
 
 String Color_get_name(Color this_) {
-  return 'Color.${this_.name}'.split('.').last;
+  return (() { final _r0 = StaticList.of('Color.${this_.name}'.split('.')); return (_r0.classInfo as StaticListClassInfo).get_last!(_r0); })();
 }
 
 int Color_get_value(Color this_) {
@@ -79,17 +109,32 @@ int Color_get_value(Color this_) {
 }
 
 class ShapeClassInfo extends ClassInfo {
-  Function? area;
+  double Function(AnyGC)? area;
+  ShapeClassInfo() {
+    area = Shape_area;
+  }
 }
 
 class ShapeValue extends AnyGC {
-  static ShapeClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ShapeClassInfo _initClassInfo() {
-    final ci = ShapeClassInfo();
-    ci.area = Shape_area;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ShapeClassInfo>(runtimeType, ShapeClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ShapeClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ShapeClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ShapeClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -98,24 +143,21 @@ ShapeValue Shape_new(AnyGC this__) {
   return this_;
 }
 
-double Shape_area(dynamic this_) {
+double Shape_area(AnyGC this_) {
   throw UnimplementedError('Shape.area is abstract');
 }
 
 
 class CircleClassInfo extends ShapeClassInfo {
+  CircleClassInfo() {
+    area = Circle_area;
+  }
 }
 
 class CircleValue extends ShapeValue {
   late double radius;
-  static CircleClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CircleClassInfo _initClassInfo() {
-    final ci = CircleClassInfo();
-    ci.area = Circle_area;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<CircleClassInfo>(runtimeType, CircleClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -137,18 +179,15 @@ double Circle_area(AnyGC this__) {
 
 
 class SquareClassInfo extends ShapeClassInfo {
+  SquareClassInfo() {
+    area = Square_area;
+  }
 }
 
 class SquareValue extends ShapeValue {
   late double side;
-  static SquareClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static SquareClassInfo _initClassInfo() {
-    final ci = SquareClassInfo();
-    ci.area = Square_area;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<SquareClassInfo>(runtimeType, SquareClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -170,22 +209,37 @@ double Square_area(AnyGC this__) {
 
 
 class VectorClassInfo extends ClassInfo {
-  Function? operatorPlus;
-  Function? operatorStar;
+  VectorValue Function(AnyGC, VectorValue)? operatorPlus;
+  VectorValue Function(AnyGC, double)? operatorStar;
+  VectorClassInfo() {
+    operatorPlus = Vector_operatorPlus;
+    operatorStar = Vector_operatorStar;
+    toString_ = Vector_toString;
+  }
 }
 
 class VectorValue extends AnyGC {
   late double x;
   late double y;
-  static VectorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static VectorClassInfo _initClassInfo() {
-    final ci = VectorClassInfo();
-    ci.operatorPlus = Vector_operatorPlus;
-    ci.operatorStar = Vector_operatorStar;
-    ci.toString_ = Vector_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<VectorClassInfo>(runtimeType, VectorClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as VectorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as VectorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as VectorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -216,12 +270,25 @@ class CounterClassInfo extends ClassInfo {
 }
 
 class CounterValue extends AnyGC {
-  static CounterClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CounterClassInfo _initClassInfo() {
-    final ci = CounterClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<CounterClassInfo>(runtimeType, CounterClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as CounterClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as CounterClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as CounterClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -241,17 +308,32 @@ int Counter_value() {
 
 
 class AnimalClassInfo extends ClassInfo {
-  Function? speak;
+  void Function(AnyGC)? speak;
+  AnimalClassInfo() {
+    speak = Animal_speak;
+  }
 }
 
 class AnimalValue extends AnyGC {
-  static AnimalClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AnimalClassInfo _initClassInfo() {
-    final ci = AnimalClassInfo();
-    ci.speak = Animal_speak;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<AnimalClassInfo>(runtimeType, AnimalClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as AnimalClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AnimalClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AnimalClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -260,22 +342,37 @@ AnimalValue Animal_new(AnyGC this__) {
   return this_;
 }
 
-void Animal_speak(dynamic this_) {
+void Animal_speak(AnyGC this_) {
   throw UnimplementedError('Animal.speak is abstract');
 }
 
 
 class DogClassInfo extends AnimalClassInfo {
+  DogClassInfo() {
+    speak = Dog_speak;
+  }
 }
 
 class DogValue extends AnyGC implements AnimalValue {
-  static DogClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DogClassInfo _initClassInfo() {
-    final ci = DogClassInfo();
-    ci.speak = Dog_speak;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DogClassInfo>(runtimeType, DogClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DogClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DogClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DogClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -305,20 +402,17 @@ void Swimmable_swim(AnyGC this__) {
 
 
 class DuckClassInfo extends Duck_Object_Flyable_SwimmableClassInfo {
-  Function? quack;
+  void Function(AnyGC)? quack;
+  DuckClassInfo() {
+    fly = Duck_fly;
+    swim = Duck_swim;
+    quack = Duck_quack;
+  }
 }
 
 class DuckValue extends Duck_Object_Flyable_SwimmableValue {
-  static DuckClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DuckClassInfo _initClassInfo() {
-    final ci = DuckClassInfo();
-    ci.fly = Duck_fly;
-    ci.swim = Duck_swim;
-    ci.quack = Duck_quack;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DuckClassInfo>(runtimeType, DuckClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -348,32 +442,40 @@ void Duck_swim(AnyGC this__) {
 
 
 class Duck_Object_FlyableClassInfo extends ClassInfo {
-  Function? fly;
+  void Function(AnyGC)? fly;
 }
 
 class Duck_Object_FlyableValue extends AnyGC {
-  static Duck_Object_FlyableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Duck_Object_FlyableClassInfo _initClassInfo() {
-    final ci = Duck_Object_FlyableClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Duck_Object_FlyableClassInfo>(runtimeType, Duck_Object_FlyableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Duck_Object_FlyableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Duck_Object_FlyableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Duck_Object_FlyableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class Duck_Object_Flyable_SwimmableClassInfo extends Duck_Object_FlyableClassInfo {
-  Function? swim;
+  void Function(AnyGC)? swim;
 }
 
 class Duck_Object_Flyable_SwimmableValue extends Duck_Object_FlyableValue {
-  static Duck_Object_Flyable_SwimmableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Duck_Object_Flyable_SwimmableClassInfo _initClassInfo() {
-    final ci = Duck_Object_Flyable_SwimmableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Duck_Object_Flyable_SwimmableClassInfo>(runtimeType, Duck_Object_Flyable_SwimmableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -385,29 +487,29 @@ class Duck_Object_Flyable_SwimmableValue extends Duck_Object_FlyableValue {
 void testSpread() {
   final StaticList<int> list1 = StaticList<int>.of([1, 2, 3]);
   final StaticList<int> list2 = StaticList<int>.of([4, 5, 6]);
-  final StaticList<int> combined = StaticList<int>.of((() {   final StaticList<int> _v0 = StaticList<int>.of(list1);
-  _v0.addAll(list2);
- return _v0; })());
+  final StaticList<int> combined = StaticList<int>.of((() {   final StaticList<int> _v1 = StaticList<int>.of(list1);
+  (_v1.classInfo as StaticListClassInfo).addAll!(_v1, list2);
+ return _v1; })());
   staticPrint(combined);
   final StaticMap<String, int> map1 = StaticMap<String, int>.of({'a': 1});
   final StaticMap<String, int> map2 = StaticMap<String, int>.of({'b': 2});
-  final StaticMap<String, int> combinedMap = StaticMap<String, int>.of((() {   final StaticMap<String, int> _v1 = StaticMap<String, int>.of(map1);
-  _v1.addAll(map2);
- return _v1; })());
+  final StaticMap<String, int> combinedMap = StaticMap<String, int>.of((() {   final StaticMap<String, int> _v2 = StaticMap<String, int>.of(map1);
+  (_v2.classInfo as StaticMapClassInfo).addAll!(_v2, map2);
+ return _v2; })());
   staticPrint(combinedMap);
 }
 
 void testCollectionIfFor() {
   final bool includeExtra = true;
-  final StaticList<int> list = StaticList<int>.of((() {   final StaticList<int> _v2 = StaticList<int>.of([1]);
-  if (includeExtra)   _v2.add(2);
-  for (var i = 3; (i <= 5); i = (i + 1))   _v2.add(i);
- return _v2; })());
+  final StaticList<int> list = StaticList<int>.of((() {   final StaticList<int> _v3 = StaticList<int>.of([1]);
+  if (includeExtra)   (_v3.classInfo as StaticListClassInfo).add!(_v3, 2);
+  for (var i = 3; (i <= 5); i = (i + 1))   (_v3.classInfo as StaticListClassInfo).add!(_v3, i);
+ return _v3; })());
   staticPrint(list);
 }
 
 void testCascade() {
-  final PersonValue p = (() { final _let3 = Person_new(GC.allocateLocal(PersonValue())); _let3.name = 'Alice'; _let3.age = 30; (_let3.classInfo as PersonClassInfo).greet!(_let3); return _let3; })();
+  final PersonValue p = (() { final _let4 = Person_new(GC.allocateLocal(PersonValue())); _let4.name = 'Alice'; _let4.age = 30; (_let4.classInfo as PersonClassInfo).greet!(_let4); return _let4; })();
   staticPrint(p.name);
 }
 
@@ -464,7 +566,7 @@ Stream<int> asyncGen() async* {
 }
 
 void testGenerators() {
-  staticPrint(StaticList.of(syncGen().toList()));
+  staticPrint(syncGen().toList());
   asyncGen().toList().then(print);
 }
 
@@ -491,7 +593,7 @@ void testExtension() {
 }
 
 ({int age, String name}) getNamedRecord() {
-  return (() { final _let7 = 'Alice'; return (age: 30, name: _let7); })();
+  return (() { final _let8 = 'Alice'; return (age: 30, name: _let8); })();
 }
 
 void testRecords() {
@@ -503,17 +605,17 @@ void testRecords() {
 
 void testPatternMatching() {
   final StaticList<int> obj = StaticList<int>.of([1, 2, 3]);
-  _L8: do {
+  _L9: do {
 {
-      final StaticList<int> _v9 = obj;
-      const int _v10 = 3;
-      const int _v11 = 1;
-      const int _v12 = 2;
+      final StaticList<int> _v10 = obj;
+      const int _v11 = 3;
+      const int _v12 = 1;
+      const int _v13 = 2;
 {
-        if (((((_v9.length == 3) && (1 == _v9[0])) && (2 == _v9[1])) && (3 == _v9[2]))) {
+        if ((((((_v10.classInfo as StaticListClassInfo).get_length!(_v10) == 3) && (1 == (_v10.classInfo as StaticListClassInfo).operatorIndex!(_v10, 0))) && (2 == (_v10.classInfo as StaticListClassInfo).operatorIndex!(_v10, 1))) && (3 == (_v10.classInfo as StaticListClassInfo).operatorIndex!(_v10, 2)))) {
 {
             staticPrint('matched');
-            break _L8;
+            break _L9;
           }
         }
       }
@@ -529,9 +631,9 @@ void testPatternMatching() {
   final int a;
   final int b;
 {
-    final (int, int) _v13 = (1, 2);
-    a = _v13.$1;
-    b = _v13.$2;
+    final (int, int) _v14 = (1, 2);
+    a = _v14.$1;
+    b = _v14.$2;
   }
   staticPrint('${a}, ${b}');
 }
@@ -539,7 +641,7 @@ void testPatternMatching() {
 void testSealed() {
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Square_new(GC.allocateLocal(SquareValue()), 4.0)]);
 {
-    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    var sync_for_iterator = (shapes.classInfo as StaticListClassInfo).get_iterator!(shapes);
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue shape = sync_for_iterator.current;
 {
@@ -599,10 +701,10 @@ void testAssert() {
 }
 
 void testLabels() {
-  _L14:
+  _L15:
   for (var i = 0; (i < 3); i = (i + 1)) {
     for (var j = 0; (j < 3); j = (j + 1)) {
-      if (((i == 1) && (j == 1)))       break _L14;
+      if (((i == 1) && (j == 1)))       break _L15;
       staticPrint('${i}, ${j}');
     }
   }

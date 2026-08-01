@@ -1,7 +1,10 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 class FibStateMachineClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  FibStateMachineClassInfo() {
+    step = FibStateMachine_step;
+  }
 }
 
 class FibStateMachineValue extends AsyncStateMachine<int> {
@@ -12,19 +15,31 @@ class FibStateMachineValue extends AsyncStateMachine<int> {
   bool step() {
     return ((classInfo as FibStateMachineClassInfo).step as bool Function(AnyGC))(this);
   }
-  static FibStateMachineClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static FibStateMachineClassInfo _initClassInfo() {
-    final ci = FibStateMachineClassInfo();
-    ci.step = FibStateMachine_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<FibStateMachineClassInfo>(runtimeType, FibStateMachineClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as FibStateMachineClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as FibStateMachineClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as FibStateMachineClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -72,7 +87,10 @@ bool FibStateMachine_step(AnyGC this__) {
 
 
 class Level3SMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  Level3SMClassInfo() {
+    step = Level3SM_step;
+  }
 }
 
 class Level3SMValue extends AsyncStateMachine<int> {
@@ -80,13 +98,25 @@ class Level3SMValue extends AsyncStateMachine<int> {
   bool step() {
     return ((classInfo as Level3SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static Level3SMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Level3SMClassInfo _initClassInfo() {
-    final ci = Level3SMClassInfo();
-    ci.step = Level3SM_step;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Level3SMClassInfo>(runtimeType, Level3SMClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Level3SMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Level3SMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Level3SMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -103,7 +133,10 @@ bool Level3SM_step(AnyGC this__) {
 
 
 class Level2SMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  Level2SMClassInfo() {
+    step = Level2SM_step;
+  }
 }
 
 class Level2SMValue extends AsyncStateMachine<int> {
@@ -112,19 +145,31 @@ class Level2SMValue extends AsyncStateMachine<int> {
   bool step() {
     return ((classInfo as Level2SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static Level2SMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Level2SMClassInfo _initClassInfo() {
-    final ci = Level2SMClassInfo();
-    ci.step = Level2SM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Level2SMClassInfo>(runtimeType, Level2SMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as Level2SMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Level2SMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Level2SMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -163,7 +208,10 @@ bool Level2SM_step(AnyGC this__) {
 
 
 class Level1SMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  Level1SMClassInfo() {
+    step = Level1SM_step;
+  }
 }
 
 class Level1SMValue extends AsyncStateMachine<String> {
@@ -172,19 +220,31 @@ class Level1SMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as Level1SMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static Level1SMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Level1SMClassInfo _initClassInfo() {
-    final ci = Level1SMClassInfo();
-    ci.step = Level1SM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Level1SMClassInfo>(runtimeType, Level1SMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as Level1SMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Level1SMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Level1SMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -223,7 +283,10 @@ bool Level1SM_step(AnyGC this__) {
 
 
 class ConditionalAwaitSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  ConditionalAwaitSMClassInfo() {
+    step = ConditionalAwaitSM_step;
+  }
 }
 
 class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
@@ -233,19 +296,31 @@ class ConditionalAwaitSMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as ConditionalAwaitSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static ConditionalAwaitSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ConditionalAwaitSMClassInfo _initClassInfo() {
-    final ci = ConditionalAwaitSMClassInfo();
-    ci.step = ConditionalAwaitSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ConditionalAwaitSMClassInfo>(runtimeType, ConditionalAwaitSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ConditionalAwaitSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ConditionalAwaitSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ConditionalAwaitSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -293,7 +368,10 @@ bool ConditionalAwaitSM_step(AnyGC this__) {
 
 
 class FindFirstSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  FindFirstSMClassInfo() {
+    step = FindFirstSM_step;
+  }
 }
 
 class FindFirstSMValue extends AsyncStateMachine<int> {
@@ -304,20 +382,32 @@ class FindFirstSMValue extends AsyncStateMachine<int> {
   bool step() {
     return ((classInfo as FindFirstSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static FindFirstSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static FindFirstSMClassInfo _initClassInfo() {
-    final ci = FindFirstSMClassInfo();
-    ci.step = FindFirstSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<FindFirstSMClassInfo>(runtimeType, FindFirstSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (items is AnyGC) (items as AnyGC).gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as FindFirstSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as FindFirstSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as FindFirstSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -333,7 +423,7 @@ bool FindFirstSM_step(AnyGC this__) {
     switch (this_.smState) {
       case 0:
 {
-          if ((this_._index >= this_.items.length)) {
+          if ((this_._index >= (this_.items.classInfo as StaticListClassInfo).get_length!(this_.items))) {
             this_.completeWith((-1));
             return true;
           }
@@ -363,7 +453,10 @@ bool FindFirstSM_step(AnyGC this__) {
 
 
 class TryCatchSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  TryCatchSMClassInfo() {
+    step = TryCatchSM_step;
+  }
 }
 
 class TryCatchSMValue extends AsyncStateMachine<String> {
@@ -373,19 +466,31 @@ class TryCatchSMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as TryCatchSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static TryCatchSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static TryCatchSMClassInfo _initClassInfo() {
-    final ci = TryCatchSMClassInfo();
-    ci.step = TryCatchSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TryCatchSMClassInfo>(runtimeType, TryCatchSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as TryCatchSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as TryCatchSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as TryCatchSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -434,7 +539,10 @@ bool TryCatchSM_step(AnyGC this__) {
 
 
 class FutureAnySMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  FutureAnySMClassInfo() {
+    step = FutureAnySM_step;
+  }
 }
 
 class FutureAnySMValue extends AsyncStateMachine<String> {
@@ -443,19 +551,31 @@ class FutureAnySMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as FutureAnySMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static FutureAnySMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static FutureAnySMClassInfo _initClassInfo() {
-    final ci = FutureAnySMClassInfo();
-    ci.step = FutureAnySM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<FutureAnySMClassInfo>(runtimeType, FutureAnySMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_futures is AnyGC) (_futures as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as FutureAnySMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as FutureAnySMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as FutureAnySMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -477,7 +597,7 @@ bool FutureAnySM_step(AnyGC this__) {
       case 1:
 {
 {
-            StaticIterator<Promise<String>> sync_for_iterator = StaticIterator(this_._futures.iterator);
+            var sync_for_iterator = (this_._futures.classInfo as StaticListClassInfo).get_iterator!(this_._futures);
             for (; sync_for_iterator.moveNext(); ) {
               final Promise<String> f = sync_for_iterator.current;
 {
@@ -500,7 +620,10 @@ bool FutureAnySM_step(AnyGC this__) {
 
 
 class TimeoutSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  TimeoutSMClassInfo() {
+    step = TimeoutSM_step;
+  }
 }
 
 class TimeoutSMValue extends AsyncStateMachine<String> {
@@ -512,20 +635,32 @@ class TimeoutSMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as TimeoutSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static TimeoutSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static TimeoutSMClassInfo _initClassInfo() {
-    final ci = TimeoutSMClassInfo();
-    ci.step = TimeoutSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TimeoutSMClassInfo>(runtimeType, TimeoutSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_taskFuture is AnyGC) (_taskFuture as AnyGC).gcMark(flag);
     if (_timeoutFuture is AnyGC) (_timeoutFuture as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as TimeoutSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as TimeoutSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as TimeoutSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -569,7 +704,10 @@ bool TimeoutSM_step(AnyGC this__) {
 
 
 class AsyncMapSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  AsyncMapSMClassInfo() {
+    step = AsyncMapSM_step;
+  }
 }
 
 class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
@@ -581,14 +719,8 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
   bool step() {
     return ((classInfo as AsyncMapSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static AsyncMapSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AsyncMapSMClassInfo _initClassInfo() {
-    final ci = AsyncMapSMClassInfo();
-    ci.step = AsyncMapSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AsyncMapSMClassInfo>(runtimeType, AsyncMapSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -596,6 +728,24 @@ class AsyncMapSMValue extends AsyncStateMachine<StaticList<String>> {
     if (items is AnyGC) (items as AnyGC).gcMark(flag);
     if (_results is AnyGC) (_results as AnyGC).gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as AsyncMapSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AsyncMapSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AsyncMapSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -611,11 +761,11 @@ bool AsyncMapSM_step(AnyGC this__) {
     switch (this_.smState) {
       case 0:
 {
-          if ((this_._index >= this_.items.length)) {
+          if ((this_._index >= (this_.items.classInfo as StaticListClassInfo).get_length!(this_.items))) {
             this_.completeWith(this_._results);
             return true;
           }
-          IntBox item = IntBox(this_.items[this_._index]);
+          IntBox item = IntBox((this_.items.classInfo as StaticListClassInfo).operatorIndex!(this_.items, this_._index));
           this_._pending = Promise.delayed(1, ClosureEnv_anon_13_new(GC.allocateLocal(ClosureEnv_anon_13()), item));
           this_.smState = 1;
           return false;
@@ -623,7 +773,7 @@ bool AsyncMapSM_step(AnyGC this__) {
       case 1:
 {
           if (this_._pending!.isPending)           return false;
-          this_._results.add(this_._pending!.result);
+          (this_._results.classInfo as StaticListClassInfo).add!(this_._results, this_._pending!.result);
           this_._index = (this_._index + 1);
           this_.smState = 0;
           return false;
@@ -638,7 +788,10 @@ bool AsyncMapSM_step(AnyGC this__) {
 
 
 class AsyncReduceSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  AsyncReduceSMClassInfo() {
+    step = AsyncReduceSM_step;
+  }
 }
 
 class AsyncReduceSMValue extends AsyncStateMachine<String> {
@@ -651,14 +804,8 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
   bool step() {
     return ((classInfo as AsyncReduceSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static AsyncReduceSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AsyncReduceSMClassInfo _initClassInfo() {
-    final ci = AsyncReduceSMClassInfo();
-    ci.step = AsyncReduceSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AsyncReduceSMClassInfo>(runtimeType, AsyncReduceSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -666,6 +813,24 @@ class AsyncReduceSMValue extends AsyncStateMachine<String> {
     if (_mapFuture is AnyGC) (_mapFuture as AnyGC).gcMark(flag);
     if (_reducePending is AnyGC) (_reducePending as AnyGC).gcMark(flag);
     if (_items is AnyGC) (_items as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as AsyncReduceSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AsyncReduceSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AsyncReduceSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -693,7 +858,7 @@ bool AsyncReduceSM_step(AnyGC this__) {
         }
       case 2:
 {
-          if ((this_._index >= this_._items.length)) {
+          if ((this_._index >= (this_._items.classInfo as StaticListClassInfo).get_length!(this_._items))) {
             this_.completeWith(this_._acc);
             return true;
           }
@@ -719,18 +884,33 @@ bool AsyncReduceSM_step(AnyGC this__) {
 
 
 class ClosureEnv_process_0ClassInfo extends ClassInfo {
-  Function? call;
+  int Function(AnyGC, int)? call;
+  ClosureEnv_process_0ClassInfo() {
+    call = ClosureEnv_process_0_call;
+  }
 }
 
 class ClosureEnv_process_0Value extends AnyGC {
   late int factor;
-  static ClosureEnv_process_0ClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ClosureEnv_process_0ClassInfo _initClassInfo() {
-    final ci = ClosureEnv_process_0ClassInfo();
-    ci.call = ClosureEnv_process_0_call;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ClosureEnv_process_0ClassInfo>(runtimeType, ClosureEnv_process_0ClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ClosureEnv_process_0ClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ClosureEnv_process_0ClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ClosureEnv_process_0ClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -747,7 +927,10 @@ int ClosureEnv_process_0_call(AnyGC this__, int x) {
 
 
 class ProcessWithClosureSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  ProcessWithClosureSMClassInfo() {
+    step = ProcessWithClosureSM_step;
+  }
 }
 
 class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
@@ -760,14 +943,8 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
   bool step() {
     return ((classInfo as ProcessWithClosureSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static ProcessWithClosureSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ProcessWithClosureSMClassInfo _initClassInfo() {
-    final ci = ProcessWithClosureSMClassInfo();
-    ci.step = ProcessWithClosureSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ProcessWithClosureSMClassInfo>(runtimeType, ProcessWithClosureSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -776,6 +953,24 @@ class ProcessWithClosureSMValue extends AsyncStateMachine<StaticList<int>> {
     if (items is AnyGC) (items as AnyGC).gcMark(flag);
     if (_results is AnyGC) (_results as AnyGC).gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ProcessWithClosureSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ProcessWithClosureSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ProcessWithClosureSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -797,11 +992,11 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
         }
       case 1:
 {
-          if ((this_._index >= this_.items.length)) {
+          if ((this_._index >= (this_.items.classInfo as StaticListClassInfo).get_length!(this_.items))) {
             this_.smState = 3;
             return false;
           }
-          IntBox item = IntBox(this_.items[this_._index]);
+          IntBox item = IntBox((this_.items.classInfo as StaticListClassInfo).operatorIndex!(this_.items, this_._index));
           this_._pending = Promise.delayed(1, ClosureEnv_anon_15_new(GC.allocateLocal(ClosureEnv_anon_15()), this_, item));
           this_.smState = 2;
           return false;
@@ -809,7 +1004,7 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
       case 2:
 {
           if (this_._pending!.isPending)           return false;
-          this_._results.add(this_._pending!.result);
+          (this_._results.classInfo as StaticListClassInfo).add!(this_._results, this_._pending!.result);
           this_._index = (this_._index + 1);
           this_.smState = 1;
           return false;
@@ -817,7 +1012,7 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
       case 3:
 {
           this_._env.factor = 5;
-          this_._results.add((this_._env.classInfo as ClosureEnv_process_0ClassInfo).call!(this_._env, 100));
+          (this_._results.classInfo as StaticListClassInfo).add!(this_._results, (this_._env.classInfo as ClosureEnv_process_0ClassInfo).call!(this_._env, 100));
           this_.completeWith(this_._results);
           return true;
         }
@@ -831,7 +1026,10 @@ bool ProcessWithClosureSM_step(AnyGC this__) {
 
 
 class AsyncGeneratorSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  AsyncGeneratorSMClassInfo() {
+    step = AsyncGeneratorSM_step;
+  }
 }
 
 class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
@@ -843,20 +1041,32 @@ class AsyncGeneratorSMValue extends AsyncStateMachine<StaticList<int>> {
   bool step() {
     return ((classInfo as AsyncGeneratorSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static AsyncGeneratorSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AsyncGeneratorSMClassInfo _initClassInfo() {
-    final ci = AsyncGeneratorSMClassInfo();
-    ci.step = AsyncGeneratorSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AsyncGeneratorSMClassInfo>(runtimeType, AsyncGeneratorSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_yielded is AnyGC) (_yielded as AnyGC).gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as AsyncGeneratorSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AsyncGeneratorSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AsyncGeneratorSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -883,7 +1093,7 @@ bool AsyncGeneratorSM_step(AnyGC this__) {
       case 1:
 {
           if (this_._pending!.isPending)           return false;
-          this_._yielded.add(this_._pending!.result);
+          (this_._yielded.classInfo as StaticListClassInfo).add!(this_._yielded, this_._pending!.result);
           this_._i = (this_._i + 1);
           this_.smState = 0;
           return false;
@@ -898,7 +1108,10 @@ bool AsyncGeneratorSM_step(AnyGC this__) {
 
 
 class ComplexBusinessSMClassInfo extends ClassInfo {
-  Function? step;
+  bool Function(AnyGC)? step;
+  ComplexBusinessSMClassInfo() {
+    step = ComplexBusinessSM_step;
+  }
 }
 
 class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic>> {
@@ -908,19 +1121,31 @@ class ComplexBusinessSMValue extends AsyncStateMachine<StaticMap<String, dynamic
   bool step() {
     return ((classInfo as ComplexBusinessSMClassInfo).step as bool Function(AnyGC))(this);
   }
-  static ComplexBusinessSMClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ComplexBusinessSMClassInfo _initClassInfo() {
-    final ci = ComplexBusinessSMClassInfo();
-    ci.step = ComplexBusinessSM_step;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ComplexBusinessSMClassInfo>(runtimeType, ComplexBusinessSMClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_pending is AnyGC) (_pending as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ComplexBusinessSMClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ComplexBusinessSMClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ComplexBusinessSMClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -974,8 +1199,8 @@ void testRecursiveAsync() {
 void testExceptionPropagation() {
   staticPrint('\n--- 2. 异常传播链 (3层) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(Level1SM_new(GC.allocateLocal(Level1SMValue())).start());
-  assert((r.contains('deep error') as bool), 'Expected deep error, got: ${r}');
+  final String r = smAwait<String>(Level1SM_new(GC.allocateLocal(Level1SMValue())).start());
+  assert(r.contains('deep error'), 'Expected deep error, got: ${r}');
   staticPrint('  ✓ level1() caught 3-level exception: "${r}"');
 }
 
@@ -1038,32 +1263,32 @@ void testAsyncPipeline() {
 void testClosureCaptureAwait() {
   staticPrint('\n--- 9. 闭包捕获 + await (ClosureEnv 模式) ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(ProcessWithClosureSM_new(GC.allocateLocal(ProcessWithClosureSMValue()), StaticList<int>.of([1, 2, 3])).start());
-  assert((r.length == 4), 'Expected 4 results');
-  assert(((((r[0] == 3) && (r[1] == 6)) && (r[2] == 9)) && (r[3] == 500)), 'Unexpected: ${r}');
-  staticPrint('  ✓ processWithClosure([1,2,3]) = ${r}');
+  final StaticList<int> r = StaticList<int>.of(smAwait<StaticList<int>>(ProcessWithClosureSM_new(GC.allocateLocal(ProcessWithClosureSMValue()), StaticList<int>.of([1, 2, 3])).start()));
+  assert(((r.classInfo as StaticListClassInfo).get_length!(r) == 4), 'Expected 4 results');
+  assert((((((r.classInfo as StaticListClassInfo).operatorIndex!(r, 0) == 3) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 1) == 6)) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 2) == 9)) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 3) == 500)), 'Unexpected: ${(r.classInfo as StaticListClassInfo).toString_!(r)}');
+  staticPrint('  ✓ processWithClosure([1,2,3]) = ${(r.classInfo as StaticListClassInfo).toString_!(r)}');
   staticPrint('    (factor=3→[3,6,9], mutate factor=5→100*5=500)');
 }
 
 void testAsyncGenerator() {
   staticPrint('\n--- 10. async* 生成器模拟 ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(AsyncGeneratorSM_new(GC.allocateLocal(AsyncGeneratorSMValue()), 5).start());
-  assert((r.length == 5), 'Expected 5 items');
-  assert((((((r[0] == 0) && (r[1] == 1)) && (r[2] == 4)) && (r[3] == 9)) && (r[4] == 16)), 'Unexpected: ${r}');
-  staticPrint('  ✓ countUp(5) yields ${r}');
+  final StaticList<int> r = StaticList<int>.of(smAwait<StaticList<int>>(AsyncGeneratorSM_new(GC.allocateLocal(AsyncGeneratorSMValue()), 5).start()));
+  assert(((r.classInfo as StaticListClassInfo).get_length!(r) == 5), 'Expected 5 items');
+  assert(((((((r.classInfo as StaticListClassInfo).operatorIndex!(r, 0) == 0) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 1) == 1)) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 2) == 4)) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 3) == 9)) && ((r.classInfo as StaticListClassInfo).operatorIndex!(r, 4) == 16)), 'Unexpected: ${(r.classInfo as StaticListClassInfo).toString_!(r)}');
+  staticPrint('  ✓ countUp(5) yields ${(r.classInfo as StaticListClassInfo).toString_!(r)}');
 }
 
 void testComplexBusiness() {
   staticPrint('\n--- 11. 复合场景：递归+异常+条件 ---');
   GlobalScheduler.instance.reset();
-  final dynamic r = smAwait<dynamic>(ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), 3).start());
-  assert((r['depth'] == 3), 'Top level depth should be 3');
-  final StaticMap<String, dynamic> child2 = StaticMap<String, dynamic>.of((r['child'] as StaticMap<String, dynamic>));
-  assert((child2['depth'] == 2), 'Child depth should be 2');
-  final StaticMap<String, dynamic> child1 = StaticMap<String, dynamic>.of((child2['child'] as StaticMap<String, dynamic>));
-  assert((child1['depth'] == 1), 'Deepest depth should be 1');
-  assert((child1['error'] as String).contains('max depth'), 'Should contain error');
+  final StaticMap<String, dynamic> r = StaticMap<String, dynamic>.of(smAwait<StaticMap<String, dynamic>>(ComplexBusinessSM_new(GC.allocateLocal(ComplexBusinessSMValue()), 3).start()));
+  assert(((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'depth') == 3), 'Top level depth should be 3');
+  final StaticMap<String, dynamic> child2 = StaticMap<String, dynamic>.of(((r.classInfo as StaticMapClassInfo).operatorIndex!(r, 'child') as StaticMap<String, dynamic>));
+  assert(((child2.classInfo as StaticMapClassInfo).operatorIndex!(child2, 'depth') == 2), 'Child depth should be 2');
+  final StaticMap<String, dynamic> child1 = StaticMap<String, dynamic>.of(((child2.classInfo as StaticMapClassInfo).operatorIndex!(child2, 'child') as StaticMap<String, dynamic>));
+  assert(((child1.classInfo as StaticMapClassInfo).operatorIndex!(child1, 'depth') == 1), 'Deepest depth should be 1');
+  assert(((child1.classInfo as StaticMapClassInfo).operatorIndex!(child1, 'error') as String).contains('max depth'), 'Should contain error');
   staticPrint('  ✓ complexBusiness(3) = nested map with error at bottom');
   staticPrint('    depth=3 → child(depth=2) → child(depth=1, error:"max depth")');
 }
@@ -1139,7 +1364,7 @@ ClosureEnv_anon_2 ClosureEnv_anon_2_new(ClosureEnv_anon_2 env_, FindFirstSMValue
 int ClosureEnv_anon_2_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_2;
 
-  return (env.this_.items[env.this_._index] * 3);
+  return ((env.this_.items.classInfo as StaticListClassInfo).operatorIndex!(env.this_.items, env.this_._index) * 3);
 }
 
 class ClosureEnv_anon_3 extends TypeFunction0<Never> {
@@ -1336,7 +1561,7 @@ String ClosureEnv_anon_14_call(AnyGC env__) {
   final env = env__ as ClosureEnv_anon_14;
 
             final String sep = (env.this_._acc.isEmpty ? '' : '+');
-            return '${env.this_._acc}${sep}${env.this_._items[env.this_._index]}';
+            return '${env.this_._acc}${sep}${(env.this_._items.classInfo as StaticListClassInfo).operatorIndex!(env.this_._items, env.this_._index)}';
           }
 
 class ClosureEnv_anon_15 extends TypeFunction0<int> {

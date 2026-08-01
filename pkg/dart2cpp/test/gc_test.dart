@@ -12,18 +12,10 @@ class NodeValue extends AnyGC {
   late NodeValue? left;
   late NodeValue? right;
 
-  static Map<String, dynamic>? vptrMap;
-  @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-      vptrMap!['toString'] = Node_toString;
-    }
-    return vptrMap!;
-  }
-
   NodeValue() {}
+
+  @override
+  String toString() => Node_toString(this);
 
   @override
   void gcMark(int flag) {
@@ -53,16 +45,6 @@ String Node_toString(dynamic this__) {
 class ContainerValue<T> extends AnyGC {
   late T value;
 
-  static Map<String, dynamic>? vptrMap;
-  @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
-  }
-
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -81,15 +63,6 @@ ContainerValue<T> Container_new<T>(dynamic this__, T value) {
 // 模拟 restored 代码：Registry 类（含静态字段 → allocateGlobal）
 // ============================================================================
 class RegistryValue extends AnyGC {
-  static Map<String, dynamic>? vptrMap;
-  @override
-  Map<String, dynamic> get vptr => getVptrMap();
-  static Map<String, dynamic> getVptrMap() {
-    if (vptrMap == null) {
-      vptrMap = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
-    }
-    return vptrMap!;
-  }
 }
 
 // 静态字段 → allocateGlobal 包裹 Value 创建（与 restorer 生成的格式一致）

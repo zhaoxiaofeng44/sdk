@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd /Users/tbsg/Project/MyProject/sdk/mydart/sdk/pkg/dart2cpp
+cd "$(dirname "$0")"
 
 TESTS=(
     "restorer_full_test"
@@ -26,8 +26,8 @@ for test in "${TESTS[@]}"; do
     echo "Testing: $test"
     echo "=========================================="
     
-    CPP_FILE="generated/${test}_restored.cpp"
-    BIN_FILE="cpp_output/${test}_restored"
+    CPP_FILE="cpp_output/${test}_verify.cpp"
+    BIN_FILE="cpp_output/${test}_verify_run"
     
     # Compile
     echo "Compiling..."

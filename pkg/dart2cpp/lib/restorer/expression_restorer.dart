@@ -10,9 +10,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (expr is InstanceSet) return _restoreInstanceSet(expr);
     if (expr is InstanceInvocation) return _restoreInstanceInvocation(expr);
     if (expr is FunctionInvocation) return _restoreFunctionInvocation(expr);
-    if (expr is DynamicInvocation) return _restoreDynamicInvocation(expr);
-    if (expr is DynamicGet) return '${_restoreExpr(expr.receiver)}.${expr.name.text}';
-    if (expr is DynamicSet) return _restoreDynamicSet(expr);
     if (expr is EqualsNull) return '(${_restoreExpr(expr.expression)} == null)';
     if (expr is EqualsCall) return _restoreEqualsCall(expr);
     if (expr is StaticInvocation) return _restoreStaticInvocation(expr);
@@ -58,28 +55,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (expr is LocalFunctionInvocation) return _restoreLocalFunctionInvocation(expr);
     if (expr is InstanceTearOff) return _restoreInstanceTearOff(expr);
     return '/* unknown: ${expr.runtimeType} */';
-  }
-
-  /// 还原 DynamicSet 表达式
-  String _restoreDynamicSet(DynamicSet expr) {
-    final recv = _restoreExpr(expr.receiver);
-    final fieldName = expr.name.text;
-    final value = _restoreExpr(expr.value);
-    // mixin 内部的 setter 调用：通过 vptr 代理
-    // OOP lowering 后 this 变成了 this_ 参数变量（VariableGet），不再是 ThisExpression
-    final insideMixin = _currentClass != null && _isMixinName(_currentClass!.name);
-    final isThisReceiver = expr.receiver is ThisExpression ||
-        (expr.receiver is VariableGet &&
-            (expr.receiver as VariableGet).variable.name == _thisReplacementName);
-    if (insideMixin && _insideMethodBody && isThisReceiver) {
-      // 检查是否有对应的 setter（非下划线字段）
-      // 下划线字段直接赋值，非下划线字段通过 vptr setter
-      if (!fieldName.startsWith('_')) {
-        // DynamicSet 没有 interfaceTarget，签名退化为 (dynamic, dynamic) → void
-        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', 'void Function(AnyGC, AnyGC)', value);
-      }
-    }
-    return '$recv.$fieldName = $value';
   }
 
   /// 还原 ThisExpression
@@ -161,11 +136,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure) {
-        final sig = _buildPreciseFuncSignature(target,
-            receiverClassName: receiverClassName, receiver: expr.receiver);
         // Lowered ABI：named 全部铺平为 positional，缺省值由调用方补齐
         final args = _restoreFlattenedArgs(target.function, expr.arguments);
-        return _emitVptrMethodCall(recv, expr.receiver, methodName, sig, args);
+        return _emitVptrMethodCall(recv, expr.receiver, methodName, args);
       }
       // fallback: 非 Procedure 类型的 target
       final args = _restoreArgs(expr.arguments);
@@ -219,7 +192,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// OOP lowering 后用户方法都是按 ClassInfo 分发的静态函数，tear-off 必须捕获
   /// receiver 并保留虚分发语义。这里合成一个 `ClosureEnv_*` 子类（继承
   /// `TypeFunctionN<R, T...>`），把 receiver 存为字段，`call(...)` 体内
-  /// 走 `((_r.classInfo as XxxClassInfo).name as R Function(dynamic, T...))(...)`。
+  /// 走 `((_r.classInfo as XxxClassInfo).name as R Function(AnyGC, T...))(...)`。
   String _restoreInstanceTearOff(InstanceTearOff expr) {
     final target = expr.interfaceTarget;
     final func = target.function;
@@ -252,13 +225,23 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     final isVptrTarget = receiverClassName != null &&
         (_isUserClass(receiverClassName) || _isMixinName(receiverClassName));
 
+    //  lowered 用户类 / mixin 方法通过 classInfo 派发，receiver 用 AnyGC；
+    //  非 lowered 目标（如 SDK 类型方法）尽量使用接收者静态类型，推断不出时回退 dynamic。
+    final receiverFieldType = isVptrTarget
+        ? 'AnyGC'
+        : () {
+            final recvDartType = _getExpressionDartType(expr.receiver);
+            if (recvDartType != null) return _restoreTypeForSignature(recvDartType);
+            return 'dynamic';
+          }();
+
     final typeArgs = [returnType, ...paramTypes].join(', ');
     final newFuncName = '${envClassName}_new';
     final staticCallName = '${envClassName}_call';
     final tearOffCallArgs = paramNames.isEmpty ? 'this' : 'this, ${paramNames.join(', ')}';
     final decl = StringBuffer()
       ..writeln('class $envClassName extends TypeFunction$arity<$typeArgs> {')
-      ..writeln('  late dynamic _r;')
+      ..writeln('  late $receiverFieldType _r;')
       ..writeln('  $envClassName();')
       ..writeln('  @override')
       ..writeln('  $returnType call($callSig) => fnPtr($tearOffCallArgs);')
@@ -269,12 +252,12 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       ..writeln('    if (_r is AnyGC) (_r as AnyGC).gcMark(flag);')
       ..writeln('  }')
       ..writeln('}')
-      ..writeln('$envClassName $newFuncName($envClassName env_, dynamic _r) {')
+      ..writeln('$envClassName $newFuncName($envClassName env_, $receiverFieldType _r) {')
       ..writeln('  env_.fnPtr = $staticCallName;')
       ..writeln('  env_._r = _r;')
       ..writeln('  return env_;')
       ..writeln('}');
-    // _call 静态函数：第一个参数为 dynamic，内部 cast
+    // _call 静态函数：第一个参数为 AnyGC（闭包环境自身），内部 cast 到具体环境类
     if (isVptrTarget) {
       // mixin 没有独立的 ClassInfo 类（方法合并进具体用户类），回退到 dynamic 派发
       final classInfoName = _isUserClass(receiverClassName) ? '${receiverClassName}ClassInfo' : 'dynamic';
@@ -353,9 +336,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
           return '$recv.$fieldName';
         }
         // 使用 expr.resultType 获取调用处已具体化的返回类型（避免泛型 T 未替换问题）
-        final returnType = _restoreTypeForSignature(expr.resultType);
-        final sig = _emitFuncSig(returnType, [_thisParamType]);
-        return _emitVptrMethodCall(recv, expr.receiver, 'get_$fieldName', sig, '');
+        return _emitVptrMethodCall(recv, expr.receiver, 'get_$fieldName', '');
       }
     }
 
@@ -372,6 +353,25 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
           return '$recv.$fieldName';
         }
         return '${receiverClassName}_get_$fieldName($recv)';
+      }
+    }
+
+    // 集合类属性访问 → 通过 ClassInfo 分派
+    if (receiverClassName != null && (_isCollectionClass(receiverClassName) || platformClassInfoNames.containsKey(receiverClassName))) {
+      final isSdkType = _isCollectionClass(receiverClassName!);
+      final platformName = isSdkType ? _mapSdkTypeName(receiverClassName) : receiverClassName;
+      final ciName = platformClassInfoNames[platformName];
+      if (ciName != null) {
+        final call = _emitVptrMethodCall(recv, expr.receiver, 'get_$fieldName', '', classInfoName: ciName, platformName: platformName);
+        // 类型擦除包装：keys/values/entries/reversed 等返回 StaticXxx<T>，
+        // ClassInfo 分派擦除为 StaticXxx<dynamic>，需用 StaticXxx<T>.of() 包装
+        final returnTypeStr = _restoreType(expr.resultType);
+        for (final sn in const ['StaticList', 'StaticSet', 'StaticMap']) {
+          if (returnTypeStr.startsWith(sn)) {
+            return '$returnTypeStr.of($call)';
+          }
+        }
+        return call;
       }
     }
 
@@ -396,10 +396,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (receiverClassName != null && (_isUserClass(receiverClassName) || _isMixinName(receiverClassName))) {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isSetter) {
-        // this_ 统一为 AnyGC，精确签名始终安全
-        final sig = _buildPreciseFuncSignature(target, receiverClassName: receiverClassName, receiver: expr.receiver);
         final value = _restoreExpr(expr.value);
-        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', sig, value);
+        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', value);
       }
     }
 
@@ -408,6 +406,17 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final target = expr.interfaceTarget;
       if (target is Procedure && target.isSetter) {
         return '${receiverClassName}_set_$fieldName($recv, ${_restoreExpr(expr.value)})';
+      }
+    }
+
+    // 集合类属性赋值 → 通过 ClassInfo 分派
+    if (receiverClassName != null && (_isCollectionClass(receiverClassName) || platformClassInfoNames.containsKey(receiverClassName))) {
+      final isSdkType = _isCollectionClass(receiverClassName!);
+      final platformName = isSdkType ? _mapSdkTypeName(receiverClassName) : receiverClassName;
+      final ciName = platformClassInfoNames[platformName];
+      if (ciName != null) {
+        final value = _restoreExpr(expr.value);
+        return _emitVptrMethodCall(recv, expr.receiver, 'set_$fieldName', value, classInfoName: ciName, platformName: platformName);
       }
     }
 
@@ -429,7 +438,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
 
   /// 生成 ClassInfo 方法调用，处理复杂接收者避免重复求值
   /// 字段已有真实函数类型，无需 as 转换，只需 ! 非空断言
-  String _emitVptrMethodCall(String recv, Expression recvExpr, String vtableField, String sig, String args, {String? classInfoName}) {
+  String _emitVptrMethodCall(String recv, Expression recvExpr, String vtableField, String args, {String? classInfoName, String? platformName}) {
     var ciName = classInfoName ?? _classInfoNameForReceiver(recvExpr);
     // 回退到基类 ClassInfo 时，非基类固定字段（如 mixin 引入的 get_xxx）
     // 只存在于具体子类上，改用 dynamic 派发在运行期解析
@@ -441,6 +450,20 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     if (ciName == 'ClassInfo' && !baseClassInfoFields.contains(vtableField)) {
       ciName = 'dynamic';
     }
+    // 集合类非简单表达式可能产生原生 List/Set/Map（无 classInfo）
+    // 用 StaticXxx.of() 包装确保有 classInfo
+    // 仅对非简单表达式应用——简单变量引用已是 StaticList（类型映射时包装过）
+    String wrapIfNeeded(String expr) {
+      if (platformName == null) return expr;
+      // ClassInfo dispatch 结果已是 StaticList——不再包装
+      if (expr.contains('.classInfo')) return expr;
+      var probe = expr.trimLeft();
+      while (probe.startsWith('(')) {
+        probe = probe.substring(1).trimLeft();
+      }
+      if (probe.startsWith(platformName)) return expr;
+      return '$platformName.of($expr)';
+    }
     if (_isSimpleExpression(recvExpr)) {
       if (args.isEmpty) {
         return "($recv.classInfo as $ciName).$vtableField!($recv)";
@@ -448,10 +471,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return "($recv.classInfo as $ciName).$vtableField!($recv, $args)";
     }
     final tmpVar = '_r${_varCounter++}';
+    final initExpr = wrapIfNeeded(recv);
     if (args.isEmpty) {
-      return "(() { final $tmpVar = $recv; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar); })()";
+      return "(() { final $tmpVar = $initExpr; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar); })()";
     }
-    return "(() { final $tmpVar = $recv; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar, $args); })()";
+    return "(() { final $tmpVar = $initExpr; return ($tmpVar.classInfo as $ciName).$vtableField!($tmpVar, $args); })()";
   }
 
   /// Platform types that have ClassInfo subclasses in runtime_classes.dart
@@ -461,17 +485,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     'StaticMap': 'StaticMapClassInfo',
   };
 
-  /// 根据接收者表达式的静态类型推断具体的 ClassInfo 类名。
+  /// 根据接收者表达式的静态类型推断具体的 ClassInfo 类名（含泛型实参）。
   /// vtable 字段声明在具体的 XxxClassInfo 子类上，基类 ClassInfo 只有固定字段，
   /// 因此派发时必须 cast 到具体子类；无法确定时回退到基类 ClassInfo。
   String _classInfoNameForReceiver(Expression recvExpr) {
     final className = _getReceiverClassNameFromReceiver(recvExpr, null) ??
         _classNameFromExprType(recvExpr);
     if (className != null && _isUserClass(className)) {
-      return '${className}ClassInfo';
+      final typeArgs = _classInfoCastTypeArgs(recvExpr, className);
+      final typeArgStr = typeArgs.isEmpty ? '' : '<${typeArgs.join(', ')}>';
+      return '${className}ClassInfo$typeArgStr';
     }
-    if (className != null && platformClassInfoNames.containsKey(className)) {
-      return platformClassInfoNames[className]!;
+    if (className != null) {
+      final platformName = _mapSdkTypeName(className);
+      if (platformClassInfoNames.containsKey(platformName)) {
+        return platformClassInfoNames[platformName]!;
+      }
     }
     return 'ClassInfo';
   }
@@ -492,6 +521,15 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
     } else if (expr is InstanceTearOff) {
       type = expr.resultType;
+    } else if (expr is StaticInvocation) {
+      final target = expr.target;
+      if (target is Procedure && target.enclosingClass != null) {
+        final className = _getActualClassName(target.enclosingClass!.name);
+        if (_isUserClass(className) || _isMixinName(className)) return className;
+        if (_isCollectionClass(className) || platformClassInfoNames.containsKey(className)) {
+          return className;
+        }
+      }
     }
     if (type is InterfaceType) {
       final rawName = type.classNode.name;
@@ -499,8 +537,11 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         final className = rawName.substring(0, rawName.length - 5);
         if (_isUserClass(className)) return className;
       }
-      final className = _getActualClassName(rawName);
-      if (_isUserClass(className)) return className;
+      final className = _mapSdkTypeName(_getActualClassName(rawName));
+      if (_isUserClass(className) || _isMixinName(className)) return className;
+      if (_isCollectionClass(className) || platformClassInfoNames.containsKey(className)) {
+        return className;
+      }
     }
     return null;
   }
@@ -522,18 +563,36 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return _restoreEnumMethodInvocation(recv, name, receiverClassName, expr.arguments);
     }
 
-    // mixin 方法调用 → 通过 Map 查找精确类型转换调用（接收者对象的 vptr Map 中已包含 mixin 方法）
-    if (receiverClassName != null && _isMixinName(receiverClassName)) {
-      return _restoreMixinMethodInvocation(expr, recv, name);
-    }
-
-    // 静态集合: 拦截集合类返回 List/Set 的方法，包装为 StaticList/StaticSet
-    if (receiverClassName != null && _isCollectionClass(receiverClassName)) {
-      if (name == 'toList') {
-        return 'StaticList.of($recv.$name())';
-      }
-      if (name == 'toSet') {
-        return 'StaticSet.of($recv.$name().toList())';
+    // 集合类方法调用 → 通过 ClassInfo 分派
+    if (receiverClassName != null && (_isCollectionClass(receiverClassName) || platformClassInfoNames.containsKey(receiverClassName))) {
+      final isSdkType = _isCollectionClass(receiverClassName!);
+      final platformName = isSdkType ? _mapSdkTypeName(receiverClassName) : receiverClassName;
+      final ciName = platformClassInfoNames[platformName];
+      if (ciName != null) {
+        // 返回类型检查：ClassInfo 分派会擦除泛型（StaticList<T> → StaticList<dynamic>），
+        // 需用 StaticXxx<T>.of() 包装以匹配精确返回类型
+        final returnTypeStr = _restoreType(expr.functionType.returnType);
+        String? wrapType;
+        for (final sn in const ['StaticList', 'StaticSet', 'StaticMap']) {
+          if (returnTypeStr.startsWith(sn)) {
+            wrapType = returnTypeStr;
+            break;
+          }
+        }
+        // toList/toSet
+        if (name == 'toList' || name == 'toSet') {
+          final call = _emitVptrMethodCall(recv, expr.receiver, name, '', classInfoName: ciName, platformName: platformName);
+          return wrapType != null ? '$wrapType.of($call)' : call;
+        }
+        // 运算符 → _tryRestoreOperatorCall
+        final opReturnType = _restoreTypeForSignature(expr.functionType.returnType);
+        final opResult = _tryRestoreOperatorCall(expr, recv, name, opReturnType, _thisParamType);
+        if (opResult != null) return opResult;
+        // 普通方法 → vtable 分派
+        final vtableField = _vtableFieldName(name);
+        final args = _restoreArgs(expr.arguments);
+        final call = _emitVptrMethodCall(recv, expr.receiver, vtableField, args, classInfoName: ciName, platformName: platformName);
+        return wrapType != null ? '$wrapType.of($call)' : call;
       }
     }
 
@@ -578,31 +637,54 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return _restoreGenericMethodCall(expr, recv, name, vtableField, returnType, thisType, actualClassName, receiverClassName);
     }
 
-    // this_ 统一为 dynamic，逆变问题已消除，统一使用精确签名
-    // 从 interfaceTarget 获取完整参数列表（含默认参数），签名包含全部参数类型
-    final targetFunc = expr.interfaceTarget.function;
-    final sigParamTypes = <String>[thisType];
-    for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
-      if (i < expr.functionType.positionalParameters.length) {
-        sigParamTypes.add(_restoreParamType(expr.functionType.positionalParameters[i]));
-      } else {
-        sigParamTypes.add(_restoreParamType(targetFunc.positionalParameters[i].type));
-      }
-    }
-    // Lowered ABI：named 已铺平到 positional，这里只把类型透传给 sig
-    // builder，由它接到 positional 列表末尾。
-    final namedTypes = <String>[
-      for (final np in expr.functionType.namedParameters)
-        _restoreParamType(np.type),
-    ];
-    final sig = _emitFuncSig(returnType, sigParamTypes, namedTypes: namedTypes);
-
     // Lowered ABI：positional 缺省值 + named 都按声明顺序铺平为 positional，
     // 调用方补默认值。
+    final targetFunc = expr.interfaceTarget.function;
     final fullArgs = _restoreFlattenedArgs(targetFunc, expr.arguments);
     // mixin 没有独立的 ClassInfo 类（方法合并进具体用户类），回退到 dynamic 派发
-    final ciName = _isUserClass(receiverClassName) ? '${receiverClassName}ClassInfo' : null;
-    return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, fullArgs, classInfoName: ciName);
+    // ClassInfo 携带与类相同的泛型参数，cast 时带上接收者的具体类型实参，
+    // 使字段的泛型返回/参数类型（如 PairValue<B, A>）在调用处具体化
+    String? ciName;
+    if (_isUserClass(receiverClassName)) {
+      final typeArgs = _classInfoCastTypeArgs(expr.receiver, receiverClassName);
+      final typeArgStr = typeArgs.isEmpty ? '' : '<${typeArgs.join(', ')}>';
+      ciName = '${receiverClassName}ClassInfo$typeArgStr';
+    }
+    return _emitVptrMethodCall(recv, expr.receiver, vtableField, fullArgs, classInfoName: ciName);
+  }
+
+  /// 计算 ClassInfo cast 需要的泛型实参。
+  /// 优先取接收者静态类型上的类型实参；如果为空且目标类（声明方法的类）是
+  /// 泛型的，则沿接收者实际类的继承链解析祖先的具体类型实参
+  /// （如 ComputeStepStateMachine extends AsyncStateMachine<int> → ['int']）。
+  List<String> _classInfoCastTypeArgs(Expression receiver, String receiverClassName) {
+    final args = _extractClassTypeArgsFromReceiver(receiver);
+    if (args.isNotEmpty) return args;
+    final declaringCls = _classNodes[receiverClassName];
+    if (declaringCls == null || declaringCls.typeParameters.isEmpty) return const [];
+    final actualCls = _receiverActualClassNode(receiver);
+    if (actualCls == null || actualCls == declaringCls) return const [];
+    return _resolveConcreteTypeArgsForAncestor(actualCls, declaringCls) ?? const [];
+  }
+
+  /// 提取接收者表达式静态类型对应的 Class 节点
+  Class? _receiverActualClassNode(Expression receiver) {
+    if (receiver is ConstructorInvocation) return receiver.target.enclosingClass;
+    if (receiver is NullCheck) return _receiverActualClassNode(receiver.operand);
+    DartType? t;
+    if (receiver is VariableGet) {
+      t = receiver.promotedType ?? receiver.variable.type;
+    } else if (receiver is InstanceGet) {
+      t = receiver.resultType;
+    } else if (receiver is InstanceInvocation) {
+      t = receiver.functionType.returnType;
+    } else if (receiver is StaticInvocation) {
+      t = receiver.target.function.returnType;
+    } else if (receiver is ThisExpression) {
+      return _currentClass;
+    }
+    if (t is InterfaceType) return t.classNode;
+    return null;
   }
 
   /// 还原私有方法调用
@@ -651,41 +733,34 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   /// 尝试还原运算符调用，如果不是运算符则返回 null
   String? _tryRestoreOperatorCall(
       InstanceInvocation expr, String recv, String name, String returnType, String thisType) {
-    // 二元运算符 → Map 查找精确类型转换调用
+    // 二元运算符 → ClassInfo 分派
     if (_isBinaryOp(name) && expr.arguments.positional.length == 1) {
       final rightParamType = expr.functionType.positionalParameters[0];
       final rightExpr = _restoreExpr(expr.arguments.positional[0]);
       final rightDartType = _getExpressionDartType(expr.arguments.positional[0]);
       final right = _maybeBoxForAnyGC(rightParamType, rightExpr, rightDartType);
-      final rightType = _restoreParamType(rightParamType);
-      final sig = _emitFuncSig(returnType, [thisType, rightType]);
       final vtableField = 'operator${_operatorFuncName(name)}';
-      return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, right);
+      return _emitVptrMethodCall(recv, expr.receiver, vtableField, right);
     }
     // 一元运算符
     if (name == 'unary-') {
-      final sig = _emitFuncSig(returnType, [thisType]);
-      return _emitVptrMethodCall(recv, expr.receiver, 'operatorNeg', sig, '');
+      return _emitVptrMethodCall(recv, expr.receiver, 'operatorNeg', '');
     }
     if (name == '~') {
-      final sig = _emitFuncSig(returnType, [thisType]);
-      return _emitVptrMethodCall(recv, expr.receiver, 'operatorBitNot', sig, '');
+      return _emitVptrMethodCall(recv, expr.receiver, 'operatorBitNot', '');
     }
     if (name == '[]') {
       final idxParamType = expr.functionType.positionalParameters[0];
       final idxExpr = _restoreExpr(expr.arguments.positional[0]);
       final idxDartType = _getExpressionDartType(expr.arguments.positional[0]);
       final idx = _maybeBoxForAnyGC(idxParamType, idxExpr, idxDartType);
-      final idxType = _restoreParamType(idxParamType);
-      final sig = _emitFuncSig(returnType, [thisType, idxType]);
-      return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndex', sig, idx);
+      return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndex', idx);
     }
     if (name == '[]=') {
       final idxParamType = expr.functionType.positionalParameters[0];
       final idxExpr = _restoreExpr(expr.arguments.positional[0]);
       final idxDartType = _getExpressionDartType(expr.arguments.positional[0]);
       final idx = _maybeBoxForAnyGC(idxParamType, idxExpr, idxDartType);
-      final idxType = _restoreParamType(idxParamType);
       final valParamType = expr.functionType.positionalParameters.length > 1
           ? expr.functionType.positionalParameters[1]
           : null;
@@ -694,11 +769,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final val = valParamType != null
           ? _maybeBoxForAnyGC(valParamType, valExpr, valDartType)
           : valExpr;
-      final valType = valParamType != null
-          ? _restoreParamType(valParamType)
-          : 'AnyGC';
-      final sig = _emitFuncSig(returnType, [thisType, idxType, valType]);
-      return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndexSet', sig, '$idx, $val');
+      return _emitVptrMethodCall(recv, expr.receiver, 'operatorIndexSet', '$idx, $val');
     }
     return null;
   }
@@ -733,33 +804,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final specKey = '${baseKey}_$typeSuffix';
       final args = _restoreFlattenedArgs(expr.interfaceTarget.function, expr.arguments);
 
-      // this_ 统一为 dynamic，逆变问题已消除，统一使用精确签名
-      final specReturnType = _restoreTypeForSignature(expr.functionType.returnType);
-      final specSigParams = <String>[thisType];
-      final targetFunc = expr.interfaceTarget.function;
-      for (var i = 0; i < targetFunc.positionalParameters.length; i++) {
-        if (i < expr.functionType.positionalParameters.length) {
-          specSigParams.add(_restoreParamType(expr.functionType.positionalParameters[i]));
-        } else {
-          specSigParams.add(_restoreParamType(targetFunc.positionalParameters[i].type));
-        }
-      }
-      // Lowered ABI：named 已铺平到 positional，按 **target 的声明顺序**
-      // 取，不能用 expr.functionType.namedParameters 因为后者是 kernel 在
-      // call-site 处的视角顺序，与 target 声明顺序可能不一致。
-      // 类型仍要走 functionType（含具体化后的 R/T 实参），因此按名字索引
-      // 到 functionType.namedParameters 的对应类型。
-      final ftNamedByName = <String, DartType>{
-        for (final np in expr.functionType.namedParameters)
-          np.name: np.type,
-      };
-      final specNamedTypes = <String>[
-        for (final np in targetFunc.namedParameters)
-          _restoreParamType(ftNamedByName[np.name] ?? np.type),
-      ];
-      final specSig = _emitFuncSig(specReturnType, specSigParams, namedTypes: specNamedTypes);
-
-      return _emitVptrMethodCall(recv, expr.receiver, specKey, specSig, args);
+      return _emitVptrMethodCall(recv, expr.receiver, specKey, args);
     }
 
     // 去重后无方法级泛型（如 Triple.mapFirst<C> 中 C 与类泛型同名）
@@ -799,15 +844,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return '$staticName($recv, $allArgs)';
   }
 
-  /// 还原 mixin 方法调用
-  String _restoreMixinMethodInvocation(InstanceInvocation expr, String recv, String name) {
-    final target = expr.interfaceTarget;
-    final sig = _buildPreciseFuncSignature(target);
-    final vtableField = _vtableFieldName(name);
-    final allArgs = _restoreFlattenedArgs(target.function, expr.arguments);
-    return _emitVptrMethodCall(recv, expr.receiver, vtableField, sig, allArgs);
-  }
-
   /// 还原直接方法调用（非用户类）
   String _restoreDirectMethodCall(String recv, String name, Arguments args) {
     if (_isBinaryOp(name) && args.positional.length == 1) {
@@ -826,43 +862,8 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return '$recv.$name($allArgs)';
   }
 
-  /// 从 Procedure AST 构建精确的函数签名字符串，用于 vptr Map 的类型转换
-  /// [receiverClassName] 指定接收者的类名，用于解析 this_ 类型
-  /// 如果未指定，则使用 target.enclosingClass 解析
-  ///
-  /// Lowered ABI：named 已铺平为 positional，没有可选参数。这里直接把
-  /// proc.function 的全部参数（this_ + positional + named）按顺序当成
-  /// positional 传给 [_emitFuncSig]。
-  String _buildPreciseFuncSignature(Procedure proc, {String? receiverClassName, Expression? receiver}) {
-    // async 函数：返回类型需要与 lowering 后的实际类型一致
-    final returnType = _asyncAwareRestoreType(
-        proc.function.returnType, proc.function.asyncMarker);
-    final paramTypes = <String>[_thisParamType];
-    for (final param in proc.function.positionalParameters) {
-      paramTypes.add(_restoreParamType(param.type));
-    }
-    final namedTypes = <String>[
-      for (final np in proc.function.namedParameters)
-        _restoreParamType(np.type),
-    ];
-    return _emitFuncSig(returnType, paramTypes, namedTypes: namedTypes);
-  }
-
   /// this_ 参数统一为 AnyGC（声明侧和调用侧一致，支持 GC 追踪）
   static const String _thisParamType = 'AnyGC';
-
-  /// 将函数签名构造为 `R Function(T1, T2, ...)` 字符串，用于把 vptr 槽里
-  /// 保存的静态函数 tear-off 强转为可调用的 Function。
-  ///
-  /// Lowered ABI：所有原 named 参数都已铺平为 positional，没有可选参数，
-  /// 默认值由调用点补齐。`namedTypes` 应是**纯类型字符串**，会顺次接到
-  /// positional 列表末尾；`required` 关键字与参数名都不属于函数类型。
-  /// 函数类型无 arity 限制，不再有 dynamic 兜底。
-  String _emitFuncSig(String returnType, List<String> positional,
-      {List<String> namedTypes = const []}) {
-    final all = [...positional, ...namedTypes];
-    return '$returnType Function(${all.join(', ')})';
-  }
 
 
   /// 获取类的实际规范化名称（处理合成 mixin 中间类名）
@@ -897,11 +898,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         if (_isUserClass(className) || _isMixinName(className)) {
           return className;
         }
+        // 被降级的参数（StaticList→Iterable 等）不走 ClassInfo 分派，
+        // 因为运行时值可能是原生类型（const [] 是 Dart List 而非 StaticList）
+        if (!_demotedParams.contains(receiver.variable) &&
+            (_isCollectionClass(className) || platformClassInfoNames.containsKey(className))) {
+          return className;
+        }
       }
     }
     // 从 ThisExpression 推断（在类方法内部）
     if (receiver is ThisExpression && _currentClass != null) {
       return _getActualClassName(_currentClass!.name);
+    }
+    // 从表达式的 resultType 推断（构造函数调用、方法链等）
+    final exprTypeName = _classNameFromExprType(receiver);
+    if (exprTypeName != null) {
+      return exprTypeName;
     }
     // fallback 到 interfaceTarget.enclosingClass
     return _getReceiverClassName(target);
@@ -962,6 +974,22 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
         return retType.typeArguments.map((ta) => _restoreType(ta)).toList();
       }
     }
+    // StaticInvocation：如 Promise.value<int>(5) → 从返回类型中提取类型实参。
+    // 静态方法可能有自己的类型参数（如 value<T>），返回类型中的 TypeParameterType
+    // 需用调用处实际类型实参替换后才得到具体类型。
+    if (receiver is StaticInvocation) {
+      final func = receiver.target.function;
+      var retType = func.returnType;
+      if (func.typeParameters.isNotEmpty &&
+          receiver.arguments.types.isNotEmpty) {
+        final sub = Substitution.fromPairs(
+            func.typeParameters, receiver.arguments.types);
+        retType = sub.substituteType(retType);
+      }
+      if (retType is InterfaceType && retType.typeArguments.isNotEmpty) {
+        return retType.typeArguments.map((ta) => _restoreType(ta)).toList();
+      }
+    }
     // NullCheck：如 this_.left! → 递归提取 operand 的类型参数
     if (receiver is NullCheck) {
       return _extractClassTypeArgsFromReceiver(receiver.operand);
@@ -972,8 +1000,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       if (resultType is InterfaceType && resultType.typeArguments.isNotEmpty) {
         return resultType.typeArguments.map((ta) => _restoreType(ta)).toList();
       }
-      // 对于 nullable 类型（如 TreeNodeValue<T>?），unwrap nullable
-      if (resultType is NullType) return [];
     }
     // AsExpression：如 (x as SomeType) → 递归提取
     if (receiver is AsExpression) {
@@ -1010,24 +1036,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       return '$recv.call()';
     }
     return '$recv.call($args)';
-  }
-
-  String _restoreDynamicInvocation(DynamicInvocation expr) {
-    final recv = _restoreExpr(expr.receiver);
-    final name = expr.name.text;
-    // 处理下标操作符 []
-    if (name == '[]') {
-      final idx = _restoreExpr(expr.arguments.positional[0]);
-      return '$recv[$idx]';
-    }
-    // 处理下标赋值操作符 []=
-    if (name == '[]=') {
-      final idx = _restoreExpr(expr.arguments.positional[0]);
-      final val = _restoreExpr(expr.arguments.positional[1]);
-      return '$recv[$idx] = $val';
-    }
-    final args = _restoreArgs(expr.arguments);
-    return '$recv.$name($args)';
   }
 
   String _restoreEqualsCall(EqualsCall expr) {
@@ -1234,7 +1242,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // SDK 扩展类（如 _EnumName）的 getter → 直接在对象上访问
       // 例如 EnumName.name getter → p.name
       if (className == '_EnumName' || className == 'EnumName') {
-        return '$memberName'; // 会被上层替换为直接属性访问
+        return memberName; // 会被上层替换为直接属性访问
       }
       return '$className.$memberName';
     }
@@ -1316,9 +1324,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
     return '$mappedClassName.$ctorName($allArgs)';
   }
 
-  /// SDK 类名 → 包装类名映射（语义脱钩）
-  /// SDK 类名映射已移至 _TypeUtils._sdkTypeMap 集中管理
-
   /// 判断是否是 Set 的内部实现类（Kernel 脱糖后的内部类名）
   bool _isSetInternalClass(String className) {
     return className == '_Set' ||
@@ -1337,9 +1342,9 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   }
 
   /// 判断是否是集合类（List/Map/Set 及其内部实现类）
+  /// Iterable 不包含——Iterable 参数可能被降级为原生类型，不走 ClassInfo 分派
   bool _isCollectionClass(String className) {
     return className == 'List' || className == '_GrowableList' || className == '_List' ||
-        className == 'Iterable' || className == '_Iterable' ||
         className == 'Map' || _isMapInternalClass(className) ||
         className == 'Set' || _isSetInternalClass(className);
   }
@@ -1368,6 +1373,19 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       // 对于有自定义 toString 的枚举，在字符串插值中调用静态 toString 函数
       final enumToStringCall = _tryEnumToStringInInterpolation(e);
       if (enumToStringCall != null) return '\${$enumToStringCall}';
+      // 集合类已无实例 toString，需通过 ClassInfo 分派
+      final collClassName = _getReceiverClassNameFromReceiver(e, null);
+      if (collClassName != null &&
+          (_isCollectionClass(collClassName) || platformClassInfoNames.containsKey(collClassName))) {
+        final isSdkType = _isCollectionClass(collClassName);
+        final platformName = isSdkType
+            ? _mapSdkTypeName(collClassName) : collClassName;
+        final ciName = platformClassInfoNames[platformName];
+        if (ciName != null) {
+          final recv = _restoreExpr(e);
+          return '\${${_emitVptrMethodCall(recv, e, 'toString_', '', classInfoName: ciName, platformName: platformName)}}';
+        }
+      }
       return '\${${_restoreExpr(e)}}';
     }).join();
     return "'$parts'";
@@ -1415,14 +1433,7 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
   String _restoreListLiteral(ListLiteral expr) {
     final typeArg = _restoreType(expr.typeArgument);
     // 处理展开元素 ...
-    final items = expr.expressions.map((e) {
-      // 检查是否是展开元素（内核中表示为带有展开标记的表达式）
-      // 对于列表，展开元素通常是 VariableGet 或 InstanceGet，需要添加 ...
-      final restored = _restoreExpr(e);
-      // 如果表达式本身已经是展开形式（如 ...list），直接返回
-      if (restored.startsWith('...')) return restored;
-      return restored;
-    }).join(', ');
+    final items = expr.expressions.map(_restoreExpr).join(', ');
     // 静态集合: ListLiteral → StaticList<T>.of([...])
     if (expr.isConst) {
       return 'StaticList<$typeArg>.of([$items])';
@@ -1645,14 +1656,6 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       final receiver = expr.receiver;
       if (receiver is VariableGet && receiver.variable == cascadeVar) {
         return '..${expr.name.text} = ${_restoreExpr(expr.value)}';
-      }
-    }
-    // DynamicInvocation（某些情况下方法调用可能是 dynamic）
-    if (expr is DynamicInvocation) {
-      final receiver = expr.receiver;
-      if (receiver is VariableGet && receiver.variable == cascadeVar) {
-        final args = _restoreArgs(expr.arguments);
-        return '..${expr.name.text}($args)';
       }
     }
     return null;
@@ -2147,6 +2150,10 @@ mixin _ExpressionRestorer on _DartRestorerBase, _TypeUtils, _ConstantRestorer {
       }
       final className = _getActualClassName(rawName);
       if (_isUserClass(className) || _isMixinName(className) || _isEnumName(className)) {
+        return true;
+      }
+      // 集合类也需要 lowering（级联方法调用走 ClassInfo 分派）
+      if (_isCollectionClass(className) || platformClassInfoNames.containsKey(className)) {
         return true;
       }
     }

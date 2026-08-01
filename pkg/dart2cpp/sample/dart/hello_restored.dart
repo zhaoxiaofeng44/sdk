@@ -1,21 +1,18 @@
 import 'package:dart2cpp/platform/dart/runtime_classes.dart';
 
 class GreeterClassInfo extends ClassInfo {
+  GreeterClassInfo() {
+    greet = Greeter_greet;
+    sayHello = Greeter_sayHello;
+  }
   String Function(GreeterValue this_)? greet;
   void Function(GreeterValue this_)? sayHello;
 }
 
 class GreeterValue extends AnyGC {
   late String name;
-  static GreeterClassInfo? _classInfo;
   @override
-  GreeterClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GreeterClassInfo _initClassInfo() {
-    final ci = GreeterClassInfo();
-    ci.greet = Greeter_greet;
-    ci.sayHello = Greeter_sayHello;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<GreeterClassInfo>(runtimeType, GreeterClassInfo.new);
 }
 
 GreeterValue Greeter_new(AnyGC this__, String name) {

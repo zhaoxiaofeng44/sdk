@@ -25,21 +25,18 @@ String Formatter_format(AnyGC this__, String msg) {
 
 
 class DiamondClassClassInfo extends DiamondClass_Object_Logger_FormatterClassInfo {
-  Function? display;
+  String Function(AnyGC, String)? display;
+  DiamondClassClassInfo() {
+    get_prefix = DiamondClass_get_prefix;
+    format = DiamondClass_format;
+    display = DiamondClass_display;
+  }
 }
 
 class DiamondClassValue extends DiamondClass_Object_Logger_FormatterValue {
   late String name;
-  static DiamondClassClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DiamondClassClassInfo _initClassInfo() {
-    final ci = DiamondClassClassInfo();
-    ci.get_prefix = DiamondClass_get_prefix;
-    ci.format = DiamondClass_format;
-    ci.display = DiamondClass_display;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DiamondClassClassInfo>(runtimeType, DiamondClassClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -97,23 +94,20 @@ String StatefulMixin_get_counterStatus(AnyGC this__) {
 
 
 class StatefulWidgetClassInfo extends StatefulWidget_Object_StatefulMixinClassInfo {
+  StatefulWidgetClassInfo() {
+    get_counter = StatefulWidget_get_counter;
+    increment = StatefulWidget_increment;
+    decrement = StatefulWidget_decrement;
+    get_counterStatus = StatefulWidget_get_counterStatus;
+    set_counter = StatefulWidget_set_counter;
+    toString_ = StatefulWidget_toString;
+  }
 }
 
 class StatefulWidgetValue extends StatefulWidget_Object_StatefulMixinValue {
   late String id;
-  static StatefulWidgetClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static StatefulWidgetClassInfo _initClassInfo() {
-    final ci = StatefulWidgetClassInfo();
-    ci.get_counter = StatefulWidget_get_counter;
-    ci.increment = StatefulWidget_increment;
-    ci.decrement = StatefulWidget_decrement;
-    ci.get_counterStatus = StatefulWidget_get_counterStatus;
-    ci.set_counter = StatefulWidget_set_counter;
-    ci.toString_ = StatefulWidget_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<StatefulWidgetClassInfo>(runtimeType, StatefulWidgetClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -195,22 +189,19 @@ String LayerC_onlyC(AnyGC this__) {
 
 
 class DeepMixinClassClassInfo extends DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo {
-  Function? allLayers;
+  String Function(AnyGC)? allLayers;
+  DeepMixinClassClassInfo() {
+    layer = DeepMixinClass_layer;
+    onlyA = DeepMixinClass_onlyA;
+    onlyB = DeepMixinClass_onlyB;
+    onlyC = DeepMixinClass_onlyC;
+    allLayers = DeepMixinClass_allLayers;
+  }
 }
 
 class DeepMixinClassValue extends DeepMixinClass_Object_LayerA_LayerB_LayerCValue {
-  static DeepMixinClassClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DeepMixinClassClassInfo _initClassInfo() {
-    final ci = DeepMixinClassClassInfo();
-    ci.layer = DeepMixinClass_layer;
-    ci.onlyA = DeepMixinClass_onlyA;
-    ci.onlyB = DeepMixinClass_onlyB;
-    ci.onlyC = DeepMixinClass_onlyC;
-    ci.allLayers = DeepMixinClass_allLayers;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DeepMixinClassClassInfo>(runtimeType, DeepMixinClassClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -269,23 +260,22 @@ bool Filterable_test<T>(AnyGC this__, TypeFunction1<bool, T> predicate) {
 
 
 class BoxClassInfo<T> extends Box_Object_Mappable_FilterableClassInfo<T> {
-  dynamic mapValue_int;
-  dynamic mapValue_String;
+  int Function(AnyGC, TypeFunction1<int, T>)? mapValue_int;
+  String Function(AnyGC, TypeFunction1<String, T>)? mapValue_String;
+  BoxClassInfo() {
+    get_value = Box_get_value<T>;
+    describe = Box_describe<T>;
+    test = Box_test<T>;
+    toString_ = Box_toString<T>;
+    mapValue_int = Box_mapValue<T, int>;
+    mapValue_String = Box_mapValue<T, String>;
+  }
 }
 
 class BoxValue<T> extends Box_Object_Mappable_FilterableValue<T> {
   late T value;
   @override
-  ClassInfo get classInfo {
-    final ci = BoxClassInfo<T>();
-    ci.get_value = Box_get_value<T>;
-    ci.describe = Box_describe<T>;
-    ci.test = Box_test<T>;
-    ci.toString_ = Box_toString<T>;
-    ci.mapValue_int = Box_mapValue<T, int>;
-    ci.mapValue_String = Box_mapValue<T, String>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<BoxClassInfo<T>>(runtimeType, BoxClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -327,17 +317,32 @@ bool Box_test<T>(AnyGC this__, TypeFunction1<bool, T> predicate) {
 
 
 class IdentifiableClassInfo extends ClassInfo {
-  Function? get_id;
+  String Function(AnyGC)? get_id;
+  IdentifiableClassInfo() {
+    get_id = Identifiable_get_id;
+  }
 }
 
 class IdentifiableValue extends AnyGC {
-  static IdentifiableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static IdentifiableClassInfo _initClassInfo() {
-    final ci = IdentifiableClassInfo();
-    ci.get_id = Identifiable_get_id;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<IdentifiableClassInfo>(runtimeType, IdentifiableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as IdentifiableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as IdentifiableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as IdentifiableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -346,23 +351,38 @@ IdentifiableValue Identifiable_new(AnyGC this__) {
   return this_;
 }
 
-String Identifiable_get_id(dynamic this_) {
+String Identifiable_get_id(AnyGC this_) {
   throw UnimplementedError('Identifiable.id is abstract');
 }
 
 
 class DescribableClassInfo extends ClassInfo {
-  Function? describe;
+  String Function(AnyGC)? describe;
+  DescribableClassInfo() {
+    describe = Describable_describe;
+  }
 }
 
 class DescribableValue extends AnyGC {
-  static DescribableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DescribableClassInfo _initClassInfo() {
-    final ci = DescribableClassInfo();
-    ci.describe = Describable_describe;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DescribableClassInfo>(runtimeType, DescribableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DescribableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DescribableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DescribableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -371,7 +391,7 @@ DescribableValue Describable_new(AnyGC this__) {
   return this_;
 }
 
-String Describable_describe(dynamic this_) {
+String Describable_describe(AnyGC this_) {
   throw UnimplementedError('Describable.describe is abstract');
 }
 
@@ -379,7 +399,7 @@ String Describable_describe(dynamic this_) {
 // mixin Taggable → static functions for delegation
 void Taggable_tag(AnyGC this__, String t) {
   final dynamic this_ = this__;
-  this_._tags.add(t);
+  (this_._tags.classInfo as StaticListClassInfo).add!(this_._tags, t);
 }
 
 StaticList<String> Taggable_get_allTags(AnyGC this__) {
@@ -389,25 +409,40 @@ StaticList<String> Taggable_get_allTags(AnyGC this__) {
 
 bool Taggable_hasTag(AnyGC this__, String t) {
   final dynamic this_ = this__;
-  return this_._tags.contains(t);
+  return (this_._tags.classInfo as StaticListClassInfo).contains!(this_._tags, t);
 }
 
 
 class ResourceClassInfo extends IdentifiableClassInfo {
-  Function? describe;
+  String Function(AnyGC)? describe;
+  ResourceClassInfo() {
+    get_id = Resource_get_id;
+    describe = Resource_describe;
+  }
 }
 
 class ResourceValue extends AnyGC implements IdentifiableValue, DescribableValue {
   late String id;
   late String type;
-  static ResourceClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ResourceClassInfo _initClassInfo() {
-    final ci = ResourceClassInfo();
-    ci.get_id = Resource_get_id;
-    ci.describe = Resource_describe;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ResourceClassInfo>(runtimeType, ResourceClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ResourceClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ResourceClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ResourceClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -423,27 +458,25 @@ String Resource_describe(AnyGC this__) {
   return 'Resource(${this_.id}, type=${this_.type})';
 }
 
-AnyGC Resource_get_id(ResourceValue this_) {
-  throw UnimplementedError('Resource.id delegate missing proc');
+String Resource_get_id(AnyGC this__) {
+  final this_ = this__ as ResourceValue;
+  return this_.id;
 }
 
 
 class TaggedResourceClassInfo extends TaggedResource_Resource_TaggableClassInfo {
+  TaggedResourceClassInfo() {
+    get_id = TaggedResource_get_id;
+    describe = TaggedResource_describe;
+    tag = TaggedResource_tag;
+    get_allTags = TaggedResource_get_allTags;
+    hasTag = TaggedResource_hasTag;
+  }
 }
 
 class TaggedResourceValue extends TaggedResource_Resource_TaggableValue {
-  static TaggedResourceClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static TaggedResourceClassInfo _initClassInfo() {
-    final ci = TaggedResourceClassInfo();
-    ci.get_id = TaggedResource_get_id;
-    ci.describe = TaggedResource_describe;
-    ci.tag = TaggedResource_tag;
-    ci.get_allTags = TaggedResource_get_allTags;
-    ci.hasTag = TaggedResource_hasTag;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TaggedResourceClassInfo>(runtimeType, TaggedResourceClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -459,11 +492,12 @@ TaggedResourceValue TaggedResource_new(AnyGC this__, String id, String type) {
 
 String TaggedResource_describe(AnyGC this__) {
   final this_ = this__ as TaggedResourceValue;
-  return '${Resource_describe(this_)}, tags=${(this_.classInfo as TaggedResourceClassInfo).get_allTags!(this_)}';
+  return '${Resource_describe(this_)}, tags=${((this_.classInfo as TaggedResourceClassInfo).get_allTags!(this_).classInfo as StaticListClassInfo).toString_!((this_.classInfo as TaggedResourceClassInfo).get_allTags!(this_))}';
 }
 
-AnyGC TaggedResource_get_id(TaggedResourceValue this_) {
-  throw UnimplementedError('TaggedResource.id delegate missing proc');
+String TaggedResource_get_id(AnyGC this__) {
+  final this_ = this__ as TaggedResourceValue;
+  return this_.id;
 }
 
 void TaggedResource_tag(AnyGC this__, String t) {
@@ -483,19 +517,34 @@ bool TaggedResource_hasTag(AnyGC this__, String t) {
 
 
 class BaseProcessorClassInfo extends ClassInfo {
-  Function? process;
-  Function? get_processorName;
+  String Function(AnyGC, String)? process;
+  String Function(AnyGC)? get_processorName;
+  BaseProcessorClassInfo() {
+    process = BaseProcessor_process;
+    get_processorName = BaseProcessor_get_processorName;
+  }
 }
 
 class BaseProcessorValue extends AnyGC {
-  static BaseProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static BaseProcessorClassInfo _initClassInfo() {
-    final ci = BaseProcessorClassInfo();
-    ci.process = BaseProcessor_process;
-    ci.get_processorName = BaseProcessor_get_processorName;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<BaseProcessorClassInfo>(runtimeType, BaseProcessorClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as BaseProcessorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as BaseProcessorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as BaseProcessorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -516,18 +565,15 @@ String BaseProcessor_get_processorName(AnyGC this__) {
 
 
 class UpperProcessorClassInfo extends BaseProcessorClassInfo {
+  UpperProcessorClassInfo() {
+    process = UpperProcessor_process;
+    get_processorName = UpperProcessor_get_processorName;
+  }
 }
 
 class UpperProcessorValue extends BaseProcessorValue {
-  static UpperProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static UpperProcessorClassInfo _initClassInfo() {
-    final ci = UpperProcessorClassInfo();
-    ci.process = UpperProcessor_process;
-    ci.get_processorName = UpperProcessor_get_processorName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<UpperProcessorClassInfo>(runtimeType, UpperProcessorClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -553,19 +599,16 @@ String UpperProcessor_get_processorName(AnyGC this__) {
 
 
 class PrefixProcessorClassInfo extends UpperProcessorClassInfo {
+  PrefixProcessorClassInfo() {
+    process = PrefixProcessor_process;
+    get_processorName = PrefixProcessor_get_processorName;
+  }
 }
 
 class PrefixProcessorValue extends UpperProcessorValue {
   late String prefix;
-  static PrefixProcessorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static PrefixProcessorClassInfo _initClassInfo() {
-    final ci = PrefixProcessorClassInfo();
-    ci.process = PrefixProcessor_process;
-    ci.get_processorName = PrefixProcessor_get_processorName;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PrefixProcessorClassInfo>(runtimeType, PrefixProcessorClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -604,29 +647,26 @@ int Addable_doubleValue(AnyGC this__) {
 
 
 class AmountClassInfo extends Amount_Object_AddableClassInfo {
-  Function? operatorPlus;
-  Function? operatorMinus;
-  Function? operatorLt;
-  Function? operatorGt;
+  AmountValue Function(AnyGC, AmountValue)? operatorPlus;
+  AmountValue Function(AnyGC, AmountValue)? operatorMinus;
+  bool Function(AnyGC, AmountValue)? operatorLt;
+  bool Function(AnyGC, AmountValue)? operatorGt;
+  AmountClassInfo() {
+    get_numericValue = Amount_get_numericValue;
+    addValues = Amount_addValues;
+    doubleValue = Amount_doubleValue;
+    operatorPlus = Amount_operatorPlus;
+    operatorMinus = Amount_operatorMinus;
+    operatorLt = Amount_operatorLt;
+    operatorGt = Amount_operatorGt;
+    toString_ = Amount_toString;
+  }
 }
 
 class AmountValue extends Amount_Object_AddableValue {
   late int numericValue;
-  static AmountClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AmountClassInfo _initClassInfo() {
-    final ci = AmountClassInfo();
-    ci.get_numericValue = Amount_get_numericValue;
-    ci.addValues = Amount_addValues;
-    ci.doubleValue = Amount_doubleValue;
-    ci.operatorPlus = Amount_operatorPlus;
-    ci.operatorMinus = Amount_operatorMinus;
-    ci.operatorLt = Amount_operatorLt;
-    ci.operatorGt = Amount_operatorGt;
-    ci.toString_ = Amount_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AmountClassInfo>(runtimeType, AmountClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -689,18 +729,33 @@ void Printable2_prettyPrint(AnyGC this__) {
 
 
 class VehicleClassInfo extends ClassInfo {
+  VehicleClassInfo() {
+    toString_ = Vehicle_toString;
+  }
 }
 
 class VehicleValue extends AnyGC {
   late String make;
   late int year;
-  static VehicleClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static VehicleClassInfo _initClassInfo() {
-    final ci = VehicleClassInfo();
-    ci.toString_ = Vehicle_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<VehicleClassInfo>(runtimeType, VehicleClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as VehicleClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as VehicleClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as VehicleClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -718,20 +773,17 @@ String Vehicle_toString(AnyGC this__) {
 
 
 class CarClassInfo extends Car_Vehicle_Printable2ClassInfo {
+  CarClassInfo() {
+    toString_ = Car_toString;
+    toPrettyString = Car_toPrettyString;
+    prettyPrint = Car_prettyPrint;
+  }
 }
 
 class CarValue extends Car_Vehicle_Printable2Value {
   late int doors;
-  static CarClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CarClassInfo _initClassInfo() {
-    final ci = CarClassInfo();
-    ci.toString_ = Car_toString;
-    ci.toPrettyString = Car_toPrettyString;
-    ci.prettyPrint = Car_prettyPrint;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<CarClassInfo>(runtimeType, CarClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -763,20 +815,17 @@ void Car_prettyPrint(AnyGC this__) {
 
 
 class ElectricCarClassInfo extends CarClassInfo {
+  ElectricCarClassInfo() {
+    toString_ = ElectricCar_toString;
+    toPrettyString = ElectricCar_toPrettyString;
+    prettyPrint = ElectricCar_prettyPrint;
+  }
 }
 
 class ElectricCarValue extends CarValue {
   late int range;
-  static ElectricCarClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ElectricCarClassInfo _initClassInfo() {
-    final ci = ElectricCarClassInfo();
-    ci.toString_ = ElectricCar_toString;
-    ci.toPrettyString = ElectricCar_toPrettyString;
-    ci.prettyPrint = ElectricCar_prettyPrint;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ElectricCarClassInfo>(runtimeType, ElectricCarClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -808,17 +857,32 @@ void ElectricCar_prettyPrint(AnyGC this__) {
 
 
 class MeasurableClassInfo extends ClassInfo {
-  Function? measure;
+  double Function(AnyGC)? measure;
+  MeasurableClassInfo() {
+    measure = Measurable_measure;
+  }
 }
 
 class MeasurableValue extends AnyGC {
-  static MeasurableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MeasurableClassInfo _initClassInfo() {
-    final ci = MeasurableClassInfo();
-    ci.measure = Measurable_measure;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<MeasurableClassInfo>(runtimeType, MeasurableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as MeasurableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as MeasurableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as MeasurableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -827,7 +891,7 @@ MeasurableValue Measurable_new(AnyGC this__) {
   return this_;
 }
 
-double Measurable_measure(dynamic this_) {
+double Measurable_measure(AnyGC this_) {
   throw UnimplementedError('Measurable.measure is abstract');
 }
 
@@ -845,21 +909,18 @@ String Scalable_measureInfo(AnyGC this__) {
 
 
 class SegmentClassInfo extends Segment_Measurable_ScalableClassInfo {
+  SegmentClassInfo() {
+    measure = Segment_measure;
+    scale = Segment_scale;
+    measureInfo = Segment_measureInfo;
+    toString_ = Segment_toString;
+  }
 }
 
 class SegmentValue extends Segment_Measurable_ScalableValue {
   late double length;
-  static SegmentClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static SegmentClassInfo _initClassInfo() {
-    final ci = SegmentClassInfo();
-    ci.measure = Segment_measure;
-    ci.scale = Segment_scale;
-    ci.measureInfo = Segment_measureInfo;
-    ci.toString_ = Segment_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<SegmentClassInfo>(runtimeType, SegmentClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -896,21 +957,18 @@ String Segment_measureInfo(AnyGC this__) {
 
 
 class WeightedSegmentClassInfo extends SegmentClassInfo {
+  WeightedSegmentClassInfo() {
+    measure = WeightedSegment_measure;
+    scale = WeightedSegment_scale;
+    measureInfo = WeightedSegment_measureInfo;
+    toString_ = WeightedSegment_toString;
+  }
 }
 
 class WeightedSegmentValue extends SegmentValue {
   late double weight;
-  static WeightedSegmentClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static WeightedSegmentClassInfo _initClassInfo() {
-    final ci = WeightedSegmentClassInfo();
-    ci.measure = WeightedSegment_measure;
-    ci.scale = WeightedSegment_scale;
-    ci.measureInfo = WeightedSegment_measureInfo;
-    ci.toString_ = WeightedSegment_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<WeightedSegmentClassInfo>(runtimeType, WeightedSegmentClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -971,21 +1029,18 @@ String DescribedMixin_info(AnyGC this__) {
 
 
 class MultiMixinEntityClassInfo extends MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo {
-  Function? fullInfo;
+  String Function(AnyGC)? fullInfo;
+  MultiMixinEntityClassInfo() {
+    get_label = MultiMixinEntity_get_label;
+    greet = MultiMixinEntity_greet;
+    info = MultiMixinEntity_info;
+    fullInfo = MultiMixinEntity_fullInfo;
+  }
 }
 
 class MultiMixinEntityValue extends MultiMixinEntity_Object_NamedMixin_DescribedMixinValue {
-  static MultiMixinEntityClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiMixinEntityClassInfo _initClassInfo() {
-    final ci = MultiMixinEntityClassInfo();
-    ci.get_label = MultiMixinEntity_get_label;
-    ci.greet = MultiMixinEntity_greet;
-    ci.info = MultiMixinEntity_info;
-    ci.fullInfo = MultiMixinEntity_fullInfo;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiMixinEntityClassInfo>(runtimeType, MultiMixinEntityClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1020,17 +1075,32 @@ String MultiMixinEntity_info(AnyGC this__) {
 
 
 class EncoderClassInfo extends ClassInfo {
-  Function? encode;
+  String Function(AnyGC, String)? encode;
+  EncoderClassInfo() {
+    encode = Encoder_encode;
+  }
 }
 
 class EncoderValue extends AnyGC {
-  static EncoderClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static EncoderClassInfo _initClassInfo() {
-    final ci = EncoderClassInfo();
-    ci.encode = Encoder_encode;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<EncoderClassInfo>(runtimeType, EncoderClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as EncoderClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as EncoderClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as EncoderClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1039,7 +1109,7 @@ EncoderValue Encoder_new(AnyGC this__) {
   return this_;
 }
 
-String Encoder_encode(dynamic this_, String input) {
+String Encoder_encode(AnyGC this_, String input) {
   throw UnimplementedError('Encoder.encode is abstract');
 }
 
@@ -1059,19 +1129,16 @@ String HexMixin_encode(AnyGC this__, String input) {
 
 
 class MultiEncoderClassInfo extends MultiEncoder_Object_Base64Mixin_HexMixinClassInfo {
-  Function? encodeAll;
+  String Function(AnyGC, String)? encodeAll;
+  MultiEncoderClassInfo() {
+    encode = MultiEncoder_encode;
+    encodeAll = MultiEncoder_encodeAll;
+  }
 }
 
 class MultiEncoderValue extends MultiEncoder_Object_Base64Mixin_HexMixinValue {
-  static MultiEncoderClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiEncoderClassInfo _initClassInfo() {
-    final ci = MultiEncoderClassInfo();
-    ci.encode = MultiEncoder_encode;
-    ci.encodeAll = MultiEncoder_encodeAll;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiEncoderClassInfo>(runtimeType, MultiEncoderClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1096,18 +1163,15 @@ String MultiEncoder_encode(AnyGC this__, String input) {
 
 
 class CustomEncoderClassInfo extends MultiEncoderClassInfo {
+  CustomEncoderClassInfo() {
+    encode = CustomEncoder_encode;
+    encodeAll = CustomEncoder_encodeAll;
+  }
 }
 
 class CustomEncoderValue extends MultiEncoderValue {
-  static CustomEncoderClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CustomEncoderClassInfo _initClassInfo() {
-    final ci = CustomEncoderClassInfo();
-    ci.encode = CustomEncoder_encode;
-    ci.encodeAll = CustomEncoder_encodeAll;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<CustomEncoderClassInfo>(runtimeType, CustomEncoderClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1133,24 +1197,41 @@ String CustomEncoder_encodeAll(AnyGC this__, String input) {
 
 
 class ContainerClassInfo<T> extends ClassInfo {
-  Function? describe;
-  Function? get_content;
+  String Function(AnyGC)? describe;
+  T Function(AnyGC)? get_content;
+  ContainerClassInfo() {
+    describe = Container_describe<T>;
+    get_content = Container_get_content<T>;
+  }
 }
 
 class ContainerValue<T> extends AnyGC {
   late T item;
   @override
-  ClassInfo get classInfo {
-    final ci = ContainerClassInfo<T>();
-    ci.describe = Container_describe<T>;
-    ci.get_content = Container_get_content<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ContainerClassInfo<T>>(runtimeType, ContainerClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (item is AnyGC) (item as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ContainerClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ContainerClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ContainerClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1172,17 +1253,16 @@ T Container_get_content<T>(AnyGC this__) {
 
 
 class LabeledContainerClassInfo<T> extends ContainerClassInfo<T> {
+  LabeledContainerClassInfo() {
+    describe = LabeledContainer_describe<T>;
+    get_content = LabeledContainer_get_content<T>;
+  }
 }
 
 class LabeledContainerValue<T> extends ContainerValue<T> {
   late String label;
   @override
-  ClassInfo get classInfo {
-    final ci = LabeledContainerClassInfo<T>();
-    ci.describe = LabeledContainer_describe<T>;
-    ci.get_content = LabeledContainer_get_content<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LabeledContainerClassInfo<T>>(runtimeType, LabeledContainerClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1209,17 +1289,16 @@ T LabeledContainer_get_content<T>(AnyGC this__) {
 
 
 class PriorityContainerClassInfo<T> extends LabeledContainerClassInfo<T> {
+  PriorityContainerClassInfo() {
+    describe = PriorityContainer_describe<T>;
+    get_content = PriorityContainer_get_content<T>;
+  }
 }
 
 class PriorityContainerValue<T> extends LabeledContainerValue<T> {
   late int priority;
   @override
-  ClassInfo get classInfo {
-    final ci = PriorityContainerClassInfo<T>();
-    ci.describe = PriorityContainer_describe<T>;
-    ci.get_content = PriorityContainer_get_content<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PriorityContainerClassInfo<T>>(runtimeType, PriorityContainerClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1268,20 +1347,17 @@ String ChainMixin_fullChain(AnyGC this__) {
 
 
 class ChainClassClassInfo extends ChainClass_Object_ChainMixinClassInfo {
+  ChainClassClassInfo() {
+    step1 = ChainClass_step1;
+    step2 = ChainClass_step2;
+    step3 = ChainClass_step3;
+    fullChain = ChainClass_fullChain;
+  }
 }
 
 class ChainClassValue extends ChainClass_Object_ChainMixinValue {
-  static ChainClassClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ChainClassClassInfo _initClassInfo() {
-    final ci = ChainClassClassInfo();
-    ci.step1 = ChainClass_step1;
-    ci.step2 = ChainClass_step2;
-    ci.step3 = ChainClass_step3;
-    ci.fullChain = ChainClass_fullChain;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ChainClassClassInfo>(runtimeType, ChainClassClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1316,20 +1392,17 @@ String ChainClass_fullChain(AnyGC this__) {
 
 
 class ChainSubClassClassInfo extends ChainClassClassInfo {
+  ChainSubClassClassInfo() {
+    step1 = ChainSubClass_step1;
+    step2 = ChainSubClass_step2;
+    step3 = ChainSubClass_step3;
+    fullChain = ChainSubClass_fullChain;
+  }
 }
 
 class ChainSubClassValue extends ChainClassValue {
-  static ChainSubClassClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ChainSubClassClassInfo _initClassInfo() {
-    final ci = ChainSubClassClassInfo();
-    ci.step1 = ChainSubClass_step1;
-    ci.step2 = ChainSubClass_step2;
-    ci.step3 = ChainSubClass_step3;
-    ci.fullChain = ChainSubClass_fullChain;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ChainSubClassClassInfo>(runtimeType, ChainSubClassClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1365,19 +1438,34 @@ String ChainSubClass_fullChain(AnyGC this__) {
 
 
 class Expression2ClassInfo extends ClassInfo {
-  Function? evaluate;
-  Function? display;
+  double Function(AnyGC)? evaluate;
+  String Function(AnyGC)? display;
+  Expression2ClassInfo() {
+    evaluate = Expression2_evaluate;
+    display = Expression2_display;
+  }
 }
 
 class Expression2Value extends AnyGC {
-  static Expression2ClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Expression2ClassInfo _initClassInfo() {
-    final ci = Expression2ClassInfo();
-    ci.evaluate = Expression2_evaluate;
-    ci.display = Expression2_display;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Expression2ClassInfo>(runtimeType, Expression2ClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Expression2ClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Expression2ClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Expression2ClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1386,29 +1474,26 @@ Expression2Value Expression2_new(AnyGC this__) {
   return this_;
 }
 
-double Expression2_evaluate(dynamic this_) {
+double Expression2_evaluate(AnyGC this_) {
   throw UnimplementedError('Expression2.evaluate is abstract');
 }
 
-String Expression2_display(dynamic this_) {
+String Expression2_display(AnyGC this_) {
   throw UnimplementedError('Expression2.display is abstract');
 }
 
 
 class NumberExprClassInfo extends Expression2ClassInfo {
+  NumberExprClassInfo() {
+    evaluate = NumberExpr_evaluate;
+    display = NumberExpr_display;
+  }
 }
 
 class NumberExprValue extends Expression2Value {
   late double value;
-  static NumberExprClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static NumberExprClassInfo _initClassInfo() {
-    final ci = NumberExprClassInfo();
-    ci.evaluate = NumberExpr_evaluate;
-    ci.display = NumberExpr_display;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<NumberExprClassInfo>(runtimeType, NumberExprClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1435,6 +1520,10 @@ String NumberExpr_display(AnyGC this__) {
 
 
 class BinaryExprClassInfo extends Expression2ClassInfo {
+  BinaryExprClassInfo() {
+    evaluate = BinaryExpr_evaluate;
+    display = BinaryExpr_display;
+  }
 }
 
 class BinaryExprValue extends Expression2Value {
@@ -1442,15 +1531,8 @@ class BinaryExprValue extends Expression2Value {
   late Expression2Value right;
   late String op;
   late TypeFunction2<double, double, double> _compute;
-  static BinaryExprClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static BinaryExprClassInfo _initClassInfo() {
-    final ci = BinaryExprClassInfo();
-    ci.evaluate = BinaryExpr_evaluate;
-    ci.display = BinaryExpr_display;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<BinaryExprClassInfo>(runtimeType, BinaryExprClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1542,28 +1624,25 @@ String StaminaMixin_staminaBar(AnyGC this__) {
 
 
 class GameCharacterClassInfo extends GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo {
-  Function? statusBars;
+  String Function(AnyGC)? statusBars;
+  GameCharacterClassInfo() {
+    get_maxHealth = GameCharacter_get_maxHealth;
+    get_health = GameCharacter_get_health;
+    healthBar = GameCharacter_healthBar;
+    get_maxMana = GameCharacter_get_maxMana;
+    get_mana = GameCharacter_get_mana;
+    manaBar = GameCharacter_manaBar;
+    get_maxStamina = GameCharacter_get_maxStamina;
+    get_stamina = GameCharacter_get_stamina;
+    staminaBar = GameCharacter_staminaBar;
+    statusBars = GameCharacter_statusBars;
+  }
 }
 
 class GameCharacterValue extends GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue {
   late String name;
-  static GameCharacterClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GameCharacterClassInfo _initClassInfo() {
-    final ci = GameCharacterClassInfo();
-    ci.get_maxHealth = GameCharacter_get_maxHealth;
-    ci.get_health = GameCharacter_get_health;
-    ci.healthBar = GameCharacter_healthBar;
-    ci.get_maxMana = GameCharacter_get_maxMana;
-    ci.get_mana = GameCharacter_get_mana;
-    ci.manaBar = GameCharacter_manaBar;
-    ci.get_maxStamina = GameCharacter_get_maxStamina;
-    ci.get_stamina = GameCharacter_get_stamina;
-    ci.staminaBar = GameCharacter_staminaBar;
-    ci.statusBars = GameCharacter_statusBars;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<GameCharacterClassInfo>(runtimeType, GameCharacterClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1629,26 +1708,23 @@ String GameCharacter_staminaBar(AnyGC this__) {
 
 
 class WarriorClassInfo extends GameCharacterClassInfo {
+  WarriorClassInfo() {
+    get_maxHealth = Warrior_get_maxHealth;
+    get_health = Warrior_get_health;
+    healthBar = Warrior_healthBar;
+    get_maxMana = Warrior_get_maxMana;
+    get_mana = Warrior_get_mana;
+    manaBar = Warrior_manaBar;
+    get_maxStamina = Warrior_get_maxStamina;
+    get_stamina = Warrior_get_stamina;
+    staminaBar = Warrior_staminaBar;
+    statusBars = Warrior_statusBars;
+  }
 }
 
 class WarriorValue extends GameCharacterValue {
-  static WarriorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static WarriorClassInfo _initClassInfo() {
-    final ci = WarriorClassInfo();
-    ci.get_maxHealth = Warrior_get_maxHealth;
-    ci.get_health = Warrior_get_health;
-    ci.healthBar = Warrior_healthBar;
-    ci.get_maxMana = Warrior_get_maxMana;
-    ci.get_mana = Warrior_get_mana;
-    ci.manaBar = Warrior_manaBar;
-    ci.get_maxStamina = Warrior_get_maxStamina;
-    ci.get_stamina = Warrior_get_stamina;
-    ci.staminaBar = Warrior_staminaBar;
-    ci.statusBars = Warrior_statusBars;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<WarriorClassInfo>(runtimeType, WarriorClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1714,26 +1790,23 @@ String Warrior_statusBars(AnyGC this__) {
 
 
 class MageClassInfo extends GameCharacterClassInfo {
+  MageClassInfo() {
+    get_maxHealth = Mage_get_maxHealth;
+    get_health = Mage_get_health;
+    healthBar = Mage_healthBar;
+    get_maxMana = Mage_get_maxMana;
+    get_mana = Mage_get_mana;
+    manaBar = Mage_manaBar;
+    get_maxStamina = Mage_get_maxStamina;
+    get_stamina = Mage_get_stamina;
+    staminaBar = Mage_staminaBar;
+    statusBars = Mage_statusBars;
+  }
 }
 
 class MageValue extends GameCharacterValue {
-  static MageClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MageClassInfo _initClassInfo() {
-    final ci = MageClassInfo();
-    ci.get_maxHealth = Mage_get_maxHealth;
-    ci.get_health = Mage_get_health;
-    ci.healthBar = Mage_healthBar;
-    ci.get_maxMana = Mage_get_maxMana;
-    ci.get_mana = Mage_get_mana;
-    ci.manaBar = Mage_manaBar;
-    ci.get_maxStamina = Mage_get_maxStamina;
-    ci.get_stamina = Mage_get_stamina;
-    ci.staminaBar = Mage_staminaBar;
-    ci.statusBars = Mage_statusBars;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MageClassInfo>(runtimeType, MageClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1799,17 +1872,30 @@ String Mage_statusBars(AnyGC this__) {
 
 
 class DiamondClass_Object_LoggerClassInfo extends ClassInfo {
-  Function? get_prefix;
-  Function? format;
+  String Function(AnyGC)? get_prefix;
+  String Function(AnyGC, String)? format;
 }
 
 class DiamondClass_Object_LoggerValue extends AnyGC {
-  static DiamondClass_Object_LoggerClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DiamondClass_Object_LoggerClassInfo _initClassInfo() {
-    final ci = DiamondClass_Object_LoggerClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DiamondClass_Object_LoggerClassInfo>(runtimeType, DiamondClass_Object_LoggerClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DiamondClass_Object_LoggerClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DiamondClass_Object_LoggerClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DiamondClass_Object_LoggerClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1818,13 +1904,8 @@ class DiamondClass_Object_Logger_FormatterClassInfo extends DiamondClass_Object_
 }
 
 class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_LoggerValue {
-  static DiamondClass_Object_Logger_FormatterClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DiamondClass_Object_Logger_FormatterClassInfo _initClassInfo() {
-    final ci = DiamondClass_Object_Logger_FormatterClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DiamondClass_Object_Logger_FormatterClassInfo>(runtimeType, DiamondClass_Object_Logger_FormatterClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1834,53 +1915,74 @@ class DiamondClass_Object_Logger_FormatterValue extends DiamondClass_Object_Logg
 
 
 class StatefulWidget_Object_StatefulMixinClassInfo extends ClassInfo {
-  Function? get_counter;
-  Function? increment;
-  Function? decrement;
-  Function? get_counterStatus;
-  Function? set_counter;
+  int Function(AnyGC)? get_counter;
+  void Function(AnyGC)? increment;
+  void Function(AnyGC)? decrement;
+  String Function(AnyGC)? get_counterStatus;
+  void Function(AnyGC, int)? set_counter;
 }
 
 class StatefulWidget_Object_StatefulMixinValue extends AnyGC {
   late int _counter = 0;
-  static StatefulWidget_Object_StatefulMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static StatefulWidget_Object_StatefulMixinClassInfo _initClassInfo() {
-    final ci = StatefulWidget_Object_StatefulMixinClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<StatefulWidget_Object_StatefulMixinClassInfo>(runtimeType, StatefulWidget_Object_StatefulMixinClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as StatefulWidget_Object_StatefulMixinClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as StatefulWidget_Object_StatefulMixinClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as StatefulWidget_Object_StatefulMixinClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class DeepMixinClass_Object_LayerAClassInfo extends ClassInfo {
-  Function? layer;
-  Function? onlyA;
+  String Function(AnyGC)? layer;
+  String Function(AnyGC)? onlyA;
 }
 
 class DeepMixinClass_Object_LayerAValue extends AnyGC {
-  static DeepMixinClass_Object_LayerAClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DeepMixinClass_Object_LayerAClassInfo _initClassInfo() {
-    final ci = DeepMixinClass_Object_LayerAClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DeepMixinClass_Object_LayerAClassInfo>(runtimeType, DeepMixinClass_Object_LayerAClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DeepMixinClass_Object_LayerAClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DeepMixinClass_Object_LayerAClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DeepMixinClass_Object_LayerAClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class DeepMixinClass_Object_LayerA_LayerBClassInfo extends DeepMixinClass_Object_LayerAClassInfo {
-  Function? onlyB;
+  String Function(AnyGC)? onlyB;
 }
 
 class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_LayerAValue {
-  static DeepMixinClass_Object_LayerA_LayerBClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DeepMixinClass_Object_LayerA_LayerBClassInfo _initClassInfo() {
-    final ci = DeepMixinClass_Object_LayerA_LayerBClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DeepMixinClass_Object_LayerA_LayerBClassInfo>(runtimeType, DeepMixinClass_Object_LayerA_LayerBClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1890,17 +1992,12 @@ class DeepMixinClass_Object_LayerA_LayerBValue extends DeepMixinClass_Object_Lay
 
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo extends DeepMixinClass_Object_LayerA_LayerBClassInfo {
-  Function? onlyC;
+  String Function(AnyGC)? onlyC;
 }
 
 class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Object_LayerA_LayerBValue {
-  static DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo _initClassInfo() {
-    final ci = DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo>(runtimeType, DeepMixinClass_Object_LayerA_LayerB_LayerCClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1910,30 +2007,42 @@ class DeepMixinClass_Object_LayerA_LayerB_LayerCValue extends DeepMixinClass_Obj
 
 
 class Box_Object_MappableClassInfo<T> extends ClassInfo {
-  Function? get_value;
+  T Function(AnyGC)? get_value;
   Function? mapValue;
-  Function? describe;
+  String Function(AnyGC)? describe;
 }
 
 class Box_Object_MappableValue<T> extends AnyGC {
   @override
-  ClassInfo get classInfo {
-    final ci = Box_Object_MappableClassInfo<T>();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Box_Object_MappableClassInfo<T>>(runtimeType, Box_Object_MappableClassInfo<T>.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Box_Object_MappableClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Box_Object_MappableClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Box_Object_MappableClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class Box_Object_Mappable_FilterableClassInfo<T> extends Box_Object_MappableClassInfo<T> {
-  Function? test;
+  bool Function(AnyGC, TypeFunction1<bool, T>)? test;
 }
 
 class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T> {
   @override
-  ClassInfo get classInfo {
-    final ci = Box_Object_Mappable_FilterableClassInfo<T>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Box_Object_Mappable_FilterableClassInfo<T>>(runtimeType, Box_Object_Mappable_FilterableClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1943,20 +2052,15 @@ class Box_Object_Mappable_FilterableValue<T> extends Box_Object_MappableValue<T>
 
 
 class TaggedResource_Resource_TaggableClassInfo extends ResourceClassInfo {
-  Function? tag;
-  Function? get_allTags;
-  Function? hasTag;
+  void Function(AnyGC, String)? tag;
+  StaticList<String> Function(AnyGC)? get_allTags;
+  bool Function(AnyGC, String)? hasTag;
 }
 
 class TaggedResource_Resource_TaggableValue extends ResourceValue {
   late StaticList<String> _tags = StaticList<String>();
-  static TaggedResource_Resource_TaggableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static TaggedResource_Resource_TaggableClassInfo _initClassInfo() {
-    final ci = TaggedResource_Resource_TaggableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TaggedResource_Resource_TaggableClassInfo>(runtimeType, TaggedResource_Resource_TaggableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1967,35 +2071,43 @@ class TaggedResource_Resource_TaggableValue extends ResourceValue {
 
 
 class Amount_Object_AddableClassInfo extends ClassInfo {
-  Function? get_numericValue;
-  Function? addValues;
-  Function? doubleValue;
+  int Function(AnyGC)? get_numericValue;
+  int Function(AnyGC, int)? addValues;
+  int Function(AnyGC)? doubleValue;
 }
 
 class Amount_Object_AddableValue extends AnyGC {
-  static Amount_Object_AddableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Amount_Object_AddableClassInfo _initClassInfo() {
-    final ci = Amount_Object_AddableClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Amount_Object_AddableClassInfo>(runtimeType, Amount_Object_AddableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Amount_Object_AddableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Amount_Object_AddableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Amount_Object_AddableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class Car_Vehicle_Printable2ClassInfo extends VehicleClassInfo {
-  Function? toPrettyString;
-  Function? prettyPrint;
+  String Function(AnyGC)? toPrettyString;
+  void Function(AnyGC)? prettyPrint;
 }
 
 class Car_Vehicle_Printable2Value extends VehicleValue {
-  static Car_Vehicle_Printable2ClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Car_Vehicle_Printable2ClassInfo _initClassInfo() {
-    final ci = Car_Vehicle_Printable2ClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Car_Vehicle_Printable2ClassInfo>(runtimeType, Car_Vehicle_Printable2ClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2005,18 +2117,13 @@ class Car_Vehicle_Printable2Value extends VehicleValue {
 
 
 class Segment_Measurable_ScalableClassInfo extends MeasurableClassInfo {
-  Function? scale;
-  Function? measureInfo;
+  double Function(AnyGC, double)? scale;
+  String Function(AnyGC)? measureInfo;
 }
 
 class Segment_Measurable_ScalableValue extends MeasurableValue {
-  static Segment_Measurable_ScalableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Segment_Measurable_ScalableClassInfo _initClassInfo() {
-    final ci = Segment_Measurable_ScalableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Segment_Measurable_ScalableClassInfo>(runtimeType, Segment_Measurable_ScalableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2026,33 +2133,41 @@ class Segment_Measurable_ScalableValue extends MeasurableValue {
 
 
 class MultiMixinEntity_Object_NamedMixinClassInfo extends ClassInfo {
-  Function? get_label;
-  Function? greet;
+  String Function(AnyGC)? get_label;
+  String Function(AnyGC)? greet;
 }
 
 class MultiMixinEntity_Object_NamedMixinValue extends AnyGC {
-  static MultiMixinEntity_Object_NamedMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiMixinEntity_Object_NamedMixinClassInfo _initClassInfo() {
-    final ci = MultiMixinEntity_Object_NamedMixinClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiMixinEntity_Object_NamedMixinClassInfo>(runtimeType, MultiMixinEntity_Object_NamedMixinClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as MultiMixinEntity_Object_NamedMixinClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as MultiMixinEntity_Object_NamedMixinClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as MultiMixinEntity_Object_NamedMixinClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo extends MultiMixinEntity_Object_NamedMixinClassInfo {
-  Function? info;
+  String Function(AnyGC)? info;
 }
 
 class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinEntity_Object_NamedMixinValue {
-  static MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo _initClassInfo() {
-    final ci = MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo>(runtimeType, MultiMixinEntity_Object_NamedMixin_DescribedMixinClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2062,16 +2177,29 @@ class MultiMixinEntity_Object_NamedMixin_DescribedMixinValue extends MultiMixinE
 
 
 class MultiEncoder_Object_Base64MixinClassInfo extends ClassInfo {
-  Function? encode;
+  String Function(AnyGC, String)? encode;
 }
 
 class MultiEncoder_Object_Base64MixinValue extends AnyGC {
-  static MultiEncoder_Object_Base64MixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiEncoder_Object_Base64MixinClassInfo _initClassInfo() {
-    final ci = MultiEncoder_Object_Base64MixinClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiEncoder_Object_Base64MixinClassInfo>(runtimeType, MultiEncoder_Object_Base64MixinClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as MultiEncoder_Object_Base64MixinClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as MultiEncoder_Object_Base64MixinClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as MultiEncoder_Object_Base64MixinClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -2080,13 +2208,8 @@ class MultiEncoder_Object_Base64Mixin_HexMixinClassInfo extends MultiEncoder_Obj
 }
 
 class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_Base64MixinValue {
-  static MultiEncoder_Object_Base64Mixin_HexMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MultiEncoder_Object_Base64Mixin_HexMixinClassInfo _initClassInfo() {
-    final ci = MultiEncoder_Object_Base64Mixin_HexMixinClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MultiEncoder_Object_Base64Mixin_HexMixinClassInfo>(runtimeType, MultiEncoder_Object_Base64Mixin_HexMixinClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2096,54 +2219,75 @@ class MultiEncoder_Object_Base64Mixin_HexMixinValue extends MultiEncoder_Object_
 
 
 class ChainClass_Object_ChainMixinClassInfo extends ClassInfo {
-  Function? step1;
-  Function? step2;
-  Function? step3;
-  Function? fullChain;
+  String Function(AnyGC)? step1;
+  String Function(AnyGC)? step2;
+  String Function(AnyGC)? step3;
+  String Function(AnyGC)? fullChain;
 }
 
 class ChainClass_Object_ChainMixinValue extends AnyGC {
-  static ChainClass_Object_ChainMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ChainClass_Object_ChainMixinClassInfo _initClassInfo() {
-    final ci = ChainClass_Object_ChainMixinClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ChainClass_Object_ChainMixinClassInfo>(runtimeType, ChainClass_Object_ChainMixinClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ChainClass_Object_ChainMixinClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ChainClass_Object_ChainMixinClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ChainClass_Object_ChainMixinClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class GameCharacter_Object_HealthMixinClassInfo extends ClassInfo {
-  Function? get_maxHealth;
-  Function? get_health;
-  Function? healthBar;
+  int Function(AnyGC)? get_maxHealth;
+  int Function(AnyGC)? get_health;
+  String Function(AnyGC)? healthBar;
 }
 
 class GameCharacter_Object_HealthMixinValue extends AnyGC {
-  static GameCharacter_Object_HealthMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GameCharacter_Object_HealthMixinClassInfo _initClassInfo() {
-    final ci = GameCharacter_Object_HealthMixinClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<GameCharacter_Object_HealthMixinClassInfo>(runtimeType, GameCharacter_Object_HealthMixinClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as GameCharacter_Object_HealthMixinClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as GameCharacter_Object_HealthMixinClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as GameCharacter_Object_HealthMixinClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class GameCharacter_Object_HealthMixin_ManaMixinClassInfo extends GameCharacter_Object_HealthMixinClassInfo {
-  Function? get_maxMana;
-  Function? get_mana;
-  Function? manaBar;
+  int Function(AnyGC)? get_maxMana;
+  int Function(AnyGC)? get_mana;
+  String Function(AnyGC)? manaBar;
 }
 
 class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Object_HealthMixinValue {
-  static GameCharacter_Object_HealthMixin_ManaMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GameCharacter_Object_HealthMixin_ManaMixinClassInfo _initClassInfo() {
-    final ci = GameCharacter_Object_HealthMixin_ManaMixinClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<GameCharacter_Object_HealthMixin_ManaMixinClassInfo>(runtimeType, GameCharacter_Object_HealthMixin_ManaMixinClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2153,19 +2297,14 @@ class GameCharacter_Object_HealthMixin_ManaMixinValue extends GameCharacter_Obje
 
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo extends GameCharacter_Object_HealthMixin_ManaMixinClassInfo {
-  Function? get_maxStamina;
-  Function? get_stamina;
-  Function? staminaBar;
+  int Function(AnyGC)? get_maxStamina;
+  int Function(AnyGC)? get_stamina;
+  String Function(AnyGC)? staminaBar;
 }
 
 class GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinValue extends GameCharacter_Object_HealthMixin_ManaMixinValue {
-  static GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo _initClassInfo() {
-    final ci = GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo>(runtimeType, GameCharacter_Object_HealthMixin_ManaMixin_StaminaMixinClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -2199,12 +2338,12 @@ void main() {
   staticPrint('\n--- 4. 泛型 mixin ---');
   final BoxValue<int> intBox = Box_new<int>(GC.allocateLocal(BoxValue<int>()), 42);
   staticPrint('intBox: ${intBox}');
-  staticPrint('describe: ${(intBox.classInfo as BoxClassInfo).describe!(intBox)}');
-  staticPrint('mapValue: ${(intBox.classInfo as BoxClassInfo).mapValue_int!(intBox, ClosureEnv_main_2_new(GC.allocateLocal(ClosureEnv_main_2())))}');
-  staticPrint('test >10: ${(intBox.classInfo as BoxClassInfo).test!(intBox, ClosureEnv_main_3_new(GC.allocateLocal(ClosureEnv_main_3())))}');
-  staticPrint('test >100: ${(intBox.classInfo as BoxClassInfo).test!(intBox, ClosureEnv_main_4_new(GC.allocateLocal(ClosureEnv_main_4())))}');
+  staticPrint('describe: ${(intBox.classInfo as BoxClassInfo<int>).describe!(intBox)}');
+  staticPrint('mapValue: ${(intBox.classInfo as BoxClassInfo<int>).mapValue_int!(intBox, ClosureEnv_main_2_new(GC.allocateLocal(ClosureEnv_main_2())))}');
+  staticPrint('test >10: ${(intBox.classInfo as BoxClassInfo<int>).test!(intBox, ClosureEnv_main_3_new(GC.allocateLocal(ClosureEnv_main_3())))}');
+  staticPrint('test >100: ${(intBox.classInfo as BoxClassInfo<int>).test!(intBox, ClosureEnv_main_4_new(GC.allocateLocal(ClosureEnv_main_4())))}');
   final BoxValue<String> strBox = Box_new<String>(GC.allocateLocal(BoxValue<String>()), 'dart');
-  staticPrint('strBox mapValue: ${(strBox.classInfo as BoxClassInfo).mapValue_String!(strBox, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())))}');
+  staticPrint('strBox mapValue: ${(strBox.classInfo as BoxClassInfo<String>).mapValue_String!(strBox, ClosureEnv_main_5_new(GC.allocateLocal(ClosureEnv_main_5())))}');
   staticPrint('\n--- 5. 抽象+mixin+implements ---');
   final TaggedResourceValue res = TaggedResource_new(GC.allocateLocal(TaggedResourceValue()), 'r1', 'file');
   (res.classInfo as TaggedResourceClassInfo).tag!(res, 'important');
@@ -2258,12 +2397,12 @@ void main() {
   staticPrint('custom.encodeAll: ${(custom.classInfo as CustomEncoderClassInfo).encodeAll!(custom, 'xyz')}');
   staticPrint('\n--- 12. 泛型继承链 ---');
   final ContainerValue<int> c1 = Container_new<int>(GC.allocateLocal(ContainerValue<int>()), 42);
-  staticPrint('c1: ${(c1.classInfo as ContainerClassInfo).describe!(c1)}');
+  staticPrint('c1: ${(c1.classInfo as ContainerClassInfo<int>).describe!(c1)}');
   final LabeledContainerValue<String> c2 = LabeledContainer_new<String>(GC.allocateLocal(LabeledContainerValue<String>()), 'hello', 'greeting');
-  staticPrint('c2: ${(c2.classInfo as LabeledContainerClassInfo).describe!(c2)}');
+  staticPrint('c2: ${(c2.classInfo as LabeledContainerClassInfo<String>).describe!(c2)}');
   final PriorityContainerValue<double> c3 = PriorityContainer_new<double>(GC.allocateLocal(PriorityContainerValue<double>()), 3.14, 'pi', 1);
-  staticPrint('c3: ${(c3.classInfo as PriorityContainerClassInfo).describe!(c3)}');
-  staticPrint('c3.content: ${(c3.classInfo as PriorityContainerClassInfo).get_content!(c3)}');
+  staticPrint('c3: ${(c3.classInfo as PriorityContainerClassInfo<double>).describe!(c3)}');
+  staticPrint('c3.content: ${(c3.classInfo as PriorityContainerClassInfo<double>).get_content!(c3)}');
   staticPrint('\n--- 13. mixin 调用链 ---');
   final ChainClassValue chain1 = ChainClass_new(GC.allocateLocal(ChainClassValue()));
   staticPrint('chain1.fullChain: ${(chain1.classInfo as ChainClassClassInfo).fullChain!(chain1)}');

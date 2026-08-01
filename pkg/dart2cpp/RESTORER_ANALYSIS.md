@@ -56,8 +56,8 @@ class DartRestorer extends _DartRestorerBase
 | 产物 | 说明 |
 |------|------|
 | `XValue` 类 | 只含字段，不含方法；继承 `VPtr` 基类 |
-| `X_new()` 函数 | 替代构造函数，接收 `dynamic this__` 作为首参 |
-| `X_method()` 静态函数 | 替代实例方法，首参为 `dynamic this__` |
+| `X_new()` 函数 | 替代构造函数，接收 `AnyGC this__` 作为首参 |
+| `X_method()` 静态函数 | 替代实例方法，首参为 `AnyGC this__` |
 
 ---
 
@@ -148,7 +148,7 @@ visit('SpecialCircle') → visit('Circle') → visit('Shape') → 输出 Shape �
 
 ### 2.5 Pass 2：`_collectMethodTypeSpecializations`
 
-**解决的问题**：泛型方法（如 `Either.fold<T>`）经 OOP lowering 后，`vptr['fold']` 无法携带类型参数。解决方案是注册带后缀的特化条目：`vptr['fold_String'] = Either_fold<String>`。
+**解决的问题**：泛型方法（如 `Either.fold<T>`）经 OOP lowering 后，`ci.dispatch['fold']` 无法携带类型参数。解决方案是注册带后缀的特化条目：`ci.dispatch['fold_String'] = Either_fold<String>`。
 
 **算法**：递归扫描所有 `InstanceInvocation` 节点，筛选条件：
 1. 方法有自身的类型参数（`methodTypeParams.isNotEmpty`）
@@ -198,13 +198,27 @@ class Circle extends Shape {
 
 **还原后**：
 ```dart
-// ① Value 类（只含字段）
+// ① ClassInfo 虚表（字段为精确函数类型，接收者统一 AnyGC）
+class CircleClassInfo extends ShapeClassInfo {
+  double Function(AnyGC)? get_radius;
+  void Function(AnyGC, double)? set_radius;
+  double Function(AnyGC)? area;
+}
+
+// ② Value 类（字段 + classInfo 注册）
 class CircleValue extends ShapeValue {
   late double _radius;
-  CircleValue() {
-    vptr['get_radius'] = Circle_get_radius;
-    vptr['set_radius'] = Circle_set_radius;
-    vptr['area'] = Circle_area;
+  @override
+  ClassInfo get classInfo => ClassInfoRegistry.get<CircleClassInfo>(runtimeType, _initClassInfo);
+  static CircleClassInfo _initClassInfo() {
+    final ci = CircleClassInfo();
+    ci.get_radius = Circle_get_radius;
+    ci.dispatch['get_radius'] = Circle_get_radius;
+    ci.set_radius = Circle_set_radius;
+    ci.dispatch['set_radius'] = Circle_set_radius;
+    ci.area = Circle_area;
+    ci.dispatch['area'] = Circle_area;
+    return ci;
   }
   @override
   void gcMark(int flag) {
@@ -214,24 +228,24 @@ class CircleValue extends ShapeValue {
   }
 }
 
-// ② 构造函数
-CircleValue Circle_new(dynamic this__, double _radius) {
+// ③ 构造函数
+CircleValue Circle_new(AnyGC this__, double _radius) {
   final this_ = this__ as CircleValue;
   Shape_new(this_);         // 调用父类构造函数
   this_._radius = _radius;
   return this_;
 }
 
-// ③ 静态方法
-double Circle_get_radius(dynamic this__) {
+// ④ 静态方法
+double Circle_get_radius(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return this_._radius;
 }
-void Circle_set_radius(dynamic this__, double v) {
+void Circle_set_radius(AnyGC this__, double v) {
   final this_ = this__ as CircleValue;
   this_._radius = v;
 }
-double Circle_area(dynamic this__) {
+double Circle_area(AnyGC this__) {
   final this_ = this__ as CircleValue;
   return 3.14159 * this_._radius * this_._radius;
 }
@@ -253,7 +267,7 @@ double Circle_area(dynamic this__) {
 ```
 1. 重定向构造函数 → 调用 X_new_other(this_, args)
 2. super 初始化 → Parent_new(this_, ...)（跳过合成中间类）
-3. 方法级泛型特化 → vptr['fold_String'] = Either_fold<String>
+3. 方法级泛型特化 → ci.dispatch['fold_String'] = Either_fold<String>
 4. 字段初始化器 → this_.field = expr
 5. this.field 参数 → this_.field = param
 6. 默认字段值 → this_.field = defaultValue
@@ -274,13 +288,13 @@ double Circle_area(dynamic this__) {
 
 **函数签名**：
 ```dart
-ReturnType ClassName_methodName<T1, T2>(dynamic this__, ParamType1 p1, ...) {
+ReturnType ClassName_methodName<T1, T2>(AnyGC this__, ParamType1 p1, ...) {
   final this_ = this__ as ClassNameValue<T1, T2>;
   // 方法体，this → this_
 }
 ```
 
-- `this__` 始终为 `dynamic`（消除逆变问题）
+- `this__` 始终为 `AnyGC`（与 C++ 的 `AnyPtr` 对应，消除逆变问题）
 - 可选位置参数的默认值在调用侧填充，函数签名中全部变为必需参数
 - 类级+方法级类型参数合并去重
 
@@ -295,7 +309,7 @@ mixin Printable {
 }
 
 // 还原后
-void Printable_print_info(dynamic this__) {
+void Printable_print_info(AnyGC this__) {
   final this_ = this__;
   staticPrint('Printable: $this_');
 }
@@ -307,7 +321,7 @@ void Printable_print_info(dynamic this__) {
 
 ```dart
 // Dog 继承了 Animal.speak 但没有覆盖
-void Dog_speak(dynamic this__) {
+void Dog_speak(AnyGC this__) {
   final this_ = this__ as DogValue;
   return Animal_speak(this_);
 }
@@ -361,21 +375,25 @@ String StringExtensions_capitalize(String this_) {
 
 ### 3.9 虚表调度机制
 
-**注册**（在 Value 类构造函数中）：
+**注册**（在 `ClassInfo` 初始化函数中）：
 ```dart
-vptr['area'] = Circle_area;
-vptr['get_radius'] = Circle_get_radius;
+void _initCircleClassInfo(CircleClassInfo ci) {
+  ci.area = Circle_area;
+  ci.get_radius = Circle_get_radius;
+  ci.dispatch['area'] = Circle_area;
+  ci.dispatch['get_radius'] = Circle_get_radius;
+}
 ```
 
 **调度**（调用点）：
 ```dart
 // shape.area() 被转成：
-(shape.vptr['area'] as double Function(dynamic))(shape)
+(shape.classInfo as CircleClassInfo).area!(shape)
 ```
 
-`VPtr` 基类桥接 `toString`、`==`、`hashCode`——检查 vptr 中是否有对应条目，有则调用，无则回退 `super.*`。
+根 `Value` 类直接覆写 `toString`、`==`、`hashCode`，委托给 `ClassInfo` 中对应的条目（`toString_`、`operatorEq`、`get_hashCode`）；条目为空时回退到 `super.*`。真正的 `dynamic` 调用通过运行时辅助函数 `dynamicGet` / `dynamicSet` / `dynamicDispatch` 在 `ClassInfo.dispatch` 中查找。
 
-**覆盖机制**：由于 Dart 构造函数链先调 `super()`，父类 vptr 赋值先发生，子类构造函数体覆盖它们。
+**覆盖机制**：子类 `ClassInfo` 初始化会覆盖从父类继承的对应条目。
 
 ---
 
@@ -463,7 +481,7 @@ int Function(String, [int?])      → TypeFunction<int>       // 有可选位置
 
 ```
 BEFORE:  recv.method(arg1, arg2)
-AFTER:   (recv.vptr['method'] as R Function(dynamic, T1, T2))(recv, arg1, arg2)
+AFTER:   (recv.classInfo as RecvClassInfo).method!(recv, arg1, arg2)
 ```
 
 签名精确构建：`returnType Function(dynamic, ...positionalTypes, ...namedTypes)`。命名参数展平为位置参数（"Lowered ABI"），缺失的可选参数在调用侧填默认值。
@@ -472,12 +490,12 @@ AFTER:   (recv.vptr['method'] as R Function(dynamic, T1, T2))(recv, arg1, arg2)
 
 ```
 BEFORE:  a + b
-AFTER:   (a.vptr['operatorPlus'] as R Function(dynamic, T))(a, b)
+AFTER:   (a.classInfo as AClassInfo).operatorPlus!(a, b)
 ```
 
 运算符名映射：`+` → `operatorPlus`，`-` → `operatorMinus`，`*` → `operatorMul`，`==` → `operatorEq`，`<` → `operatorLt`，`[]` → `operatorIndex`，etc.
 
-#### 5.1.3 私有方法（直接调用，不走 vptr）
+#### 5.1.3 私有方法（直接调用，不走 ClassInfo 虚表）
 
 ```
 BEFORE:  recv._helper(arg)
@@ -488,7 +506,7 @@ AFTER:   ClassName__helper<T1, T2>(recv, arg)
 
 ```
 BEFORE:  either.fold<String>(leftFn, rightFn)
-AFTER:   (either.vptr['fold_String'] as R Function(dynamic, ...))(either, leftFn, rightFn)
+AFTER:   (either.classInfo as EitherClassInfo).fold_String!(either, leftFn, rightFn)
 ```
 
 当类型实参含未解析的类型参数时，回退到直接静态调用：
@@ -576,17 +594,17 @@ AFTER:   Point_new<int>(GC.allocateLocal(PointValue<int>()), 1, 2)
 BEFORE:  obj._radius                          AFTER: obj._radius
 ```
 
-#### 5.4.2 用户类公开 getter（走 vptr）
+#### 5.4.2 用户类公开 getter（走 ClassInfo 虚表）
 
 ```
-BEFORE:  shape.area                           AFTER: (shape.vptr['get_area'] as R Function(dynamic))(shape)
+BEFORE:  shape.area                           AFTER: (shape.classInfo as ShapeClassInfo).get_area!(shape)
 ```
 
 #### 5.4.3 setter
 
 ```
 BEFORE:  shape.area = 10.0
-AFTER:   (shape.vptr['set_area'] as void Function(dynamic, double))(shape, 10.0)
+AFTER:   (shape.classInfo as ShapeClassInfo).set_area!(shape, 10.0)
 ```
 
 ### 5.5 `this` 改写
@@ -625,9 +643,9 @@ Kernel 将 `expr?.member` 反糖为 `Let(tmp = expr, tmp == null ? null : tmp.me
 AFTER:  str?.length
 ```
 
-**用户类**：IIFE（因为 `?.` 无法触发 vptr 调度）
+**用户类**：IIFE（因为 `?.` 无法触发 ClassInfo 虚表调度）
 ```
-AFTER:  (() { final tmp = shape; return (tmp == null) ? null : (tmp.vptr['area'] as double Function(dynamic))(tmp); })()
+AFTER:  (() { final tmp = shape; return (tmp == null) ? null : (tmp.classInfo as ShapeClassInfo).get_area!(tmp); })()
 ```
 
 ### 5.8 `??`（Null 合并）
@@ -644,9 +662,9 @@ AFTER:   (expr ?? fallback)
 AFTER:  (list..add(1)..add(2))
 ```
 
-**用户类**：IIFE（需要 vptr 调度）
+**用户类**：IIFE（需要 ClassInfo 虚表调度）
 ```
-AFTER:  (() { final tmp = builder; (tmp.vptr['setX'] as ...)(tmp, 1); (tmp.vptr['setY'] as ...)(tmp, 2); return tmp; })()
+AFTER:  (() { final tmp = builder; (tmp.classInfo as BuilderClassInfo).setX!(tmp, 1); (tmp.classInfo as BuilderClassInfo).setY!(tmp, 2); return tmp; })()
 ```
 
 ### 5.10 集合字面量
@@ -692,7 +710,7 @@ AFTER:   fn.closureCall(fn, 1, 2)
 
 ### 5.15 Tear-off 表达式
 
-用户类方法的 tear-off 生成 ClosureEnv 包装，捕获接收者并通过 vptr 调度：
+用户类方法的 tear-off 生成 ClosureEnv 包装，捕获接收者并通过 ClassInfo 虚表调度：
 
 ```
 BEFORE:  circle.area    // tear-off，未调用
@@ -702,7 +720,7 @@ AFTER:   ClosureEnv_main_0_new(GC.allocateLocal(ClosureEnv_main_0()), circle)
 class ClosureEnv_main_0 extends TypeFunction1<double, dynamic> { ... }
 double ClosureEnv_main_0_call(dynamic env__, dynamic a1) {
   final _r = (env__ as ClosureEnv_main_0)._r;
-  return (_r.vptr['area'] as double Function(dynamic))(_r);
+  return (_r.classInfo as CircleClassInfo).area!(_r);
 }
 ```
 
@@ -1016,7 +1034,7 @@ class Server {
 }
 
 AFTER:
-Promise<String> Server_fetch<T>(dynamic this__, String url) {
+Promise<String> Server_fetch<T>(AnyGC this__, String url) {
   final this_ = this__ as ServerValue<T>;
   final env = ClosureEnv_Server_fetch_0(this_, url);
   env._promise.setStartCallback(env.call);
@@ -1226,26 +1244,38 @@ TypeFunction (abstract, extends AnyGC)
 - 参与 GC 管理
 - 上限 16 个参数，超出退化为 `TypeFunction<R>`
 
-### 11.2 `VPtr` — 虚表基类
+### 11.2 `ClassInfo` — 虚表基类
 
 ```dart
-class VPtr extends AnyGC {
-  late Map<String, dynamic> vptr;
-  VPtr() {
-    vptr = <String, dynamic>{'toString': null, 'operatorEq': null, 'get_hashCode': null};
+class CircleClassInfo extends ClassInfo {
+  double Function(AnyGC)? area;
+  double Function(AnyGC, double)? get_radius;
+  // ...
+}
+
+class CircleValue extends AnyGC {
+  @override
+  ClassInfo get classInfo => _circleClassInfo;
+
+  @override
+  String toString() {
+    final fn = (classInfo as CircleClassInfo).toString_;
+    if (fn != null) return fn(this);
+    return super.toString();
   }
-  // 桥接 toString、==、hashCode → vptr 条目
+  // ...
 }
 ```
 
-**vptr key 命名约定**：
+**ClassInfo 字段 / dispatch key 命名约定**：
 
-| 类型 | key 格式 | 示例 |
+| 类型 | 字段名 / dispatch key | 示例 |
 |------|---------|------|
 | 方法 | `name` | `speak` |
 | getter | `get_name` | `get_radius` |
 | setter | `set_name` | `set_radius` |
 | 运算符 | `operatorXxx` | `operatorPlus`, `operatorEq`, `operatorIndex` |
+| Object 协议 | 特殊字段名 | `toString_`, `operatorEq`, `get_hashCode`, `get_runtimeType` |
 
 ### 11.3 静态集合
 
@@ -1291,7 +1321,7 @@ class VPtr extends AnyGC {
 
 | 问题 | 说明 |
 |------|------|
-| **vptr 重复赋值** | 同一 key 在构造函数中可能出现多次（继承链各级各登记一次），最后一次胜出，语义正确但视觉冗余 |
+| **ClassInfo.dispatch 重复赋值** | 同一 key 在 `_initClassInfo` 中可能出现多次（继承链各级各登记一次），最后一次胜出，语义正确但视觉冗余 |
 | **SDK platform dill 硬编码** | runner 中三处路径互不一致，跨机器需逐一更新 |
 | **`dart:`/`package:` 库不参与还原** | 只对用户库做 OOP lowering |
 | **async 模型非真状态机** | 当前把整个异步体放到一个 `_call` 函数，`state_machine_*` 测试路径才有真正的状态机风格 |
@@ -1301,8 +1331,8 @@ class VPtr extends AnyGC {
 | 取舍 | 选择 | 原因 |
 |------|------|------|
 | **所有闭包 → ClosureEnv** | 即使无捕获也转 | 统一为命名类，C++ 可引用 |
-| **`this__` 始终 `dynamic`** | 不用精确类型 | 消除逆变问题，简化 vptr 调度 |
-| **命名参数展平** | 全部变位置参数 | "Lowered ABI"——vptr 条目和静态函数不用命名参数 |
+| **`this__` 始终 `dynamic`** | 不用精确类型 | 消除逆变问题，简化 ClassInfo 虚表调度 |
+| **命名参数展平** | 全部变位置参数 | "Lowered ABI"——ClassInfo 条目和静态函数不用命名参数 |
 | **集合全部替换** | `List → StaticList` 等 | 脱离 `dart:collection` 依赖，自实现便于翻译到 C++ |
 | **GC 协作式** | 无写屏障/分代 | 简单可控，适合代码生成场景 |
 | **Promise 自旋** | `smAwait` 阻塞循环 | 单线程模拟异步，确定性可复现 |

@@ -43,16 +43,40 @@ bool Color_get_isWarm(Color this_) {
 }
 
 class Comparable2ClassInfo<T> extends ClassInfo {
-  Function? compareTo;
-  Function? operatorLt;
-  Function? operatorGt;
-  Function? operatorLte;
-  Function? operatorGte;
+  bool Function(AnyGC, T)? operatorLt;
+  bool Function(AnyGC, T)? operatorGt;
+  bool Function(AnyGC, T)? operatorLte;
+  bool Function(AnyGC, T)? operatorGte;
+  Comparable2ClassInfo() {
+    compareTo = Comparable2_compareTo<T>;
+    operatorLt = Comparable2_operatorLt<T>;
+    operatorGt = Comparable2_operatorGt<T>;
+    operatorLte = Comparable2_operatorLte<T>;
+    operatorGte = Comparable2_operatorGte<T>;
+  }
 }
 
 class Comparable2Value<T> extends AnyGC {
   @override
-  ClassInfo get classInfo => Comparable2ClassInfo<T>();
+  ClassInfo get classInfo => ClassInfoRegistry.get<Comparable2ClassInfo<T>>(runtimeType, Comparable2ClassInfo<T>.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Comparable2ClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Comparable2ClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Comparable2ClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
@@ -60,28 +84,28 @@ Comparable2Value<T> Comparable2_new<T>(AnyGC this__) {
   return this_;
 }
 
-int Comparable2_compareTo<T>(dynamic this_, T other) {
+int Comparable2_compareTo<T>(AnyGC this_, T other) {
   throw UnimplementedError('Comparable2.compareTo is abstract');
 }
 
 bool Comparable2_operatorLt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) < 0);
+  return ((this_.classInfo as Comparable2ClassInfo<T>).compareTo!(this_, other) < 0);
 }
 
 bool Comparable2_operatorGt<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) > 0);
+  return ((this_.classInfo as Comparable2ClassInfo<T>).compareTo!(this_, other) > 0);
 }
 
 bool Comparable2_operatorLte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) <= 0);
+  return ((this_.classInfo as Comparable2ClassInfo<T>).compareTo!(this_, other) <= 0);
 }
 
 bool Comparable2_operatorGte<T>(AnyGC this__, T other) {
   final this_ = this__ as Comparable2Value<T>;
-  return ((this_.classInfo as Comparable2ClassInfo).compareTo!(this_, other) >= 0);
+  return ((this_.classInfo as Comparable2ClassInfo<T>).compareTo!(this_, other) >= 0);
 }
 
 
@@ -103,39 +127,38 @@ String Serializable_toJson<T>(AnyGC this__) {
 final StaticMap<String, dynamic> Cacheable__cache = StaticMap<String, dynamic>.of({});
 void Cacheable_cacheValue<K>(AnyGC this__, dynamic value) {
   final dynamic this_ = this__;
-  Cacheable__cache['${(this_.classInfo as dynamic).get_cacheKey!(this_)}'] = value;
+  (Cacheable__cache.classInfo as ClassInfo).operatorIndexSet!(Cacheable__cache, '${(this_.classInfo as dynamic).get_cacheKey!(this_)}', value);
 }
 
 dynamic Cacheable_getCachedValue<K>(AnyGC this__) {
   final dynamic this_ = this__;
-  return Cacheable__cache['${(this_.classInfo as dynamic).get_cacheKey!(this_)}'];
+  return (Cacheable__cache.classInfo as ClassInfo).operatorIndex!(Cacheable__cache, '${(this_.classInfo as dynamic).get_cacheKey!(this_)}');
 }
 
 
 // mixin Validatable → static functions for delegation
 bool Validatable_get_isValid(AnyGC this__) {
   final dynamic this_ = this__;
-  return (this_.classInfo as dynamic).validate!(this_).isEmpty;
+  return (() { final _r1 = (this_.classInfo as dynamic).validate!(this_); return (_r1.classInfo as StaticListClassInfo).get_isEmpty!(_r1); })();
 }
 
 
 class EntityClassInfo<ID> extends Entity_Object_Printable_CacheableClassInfo<ID> {
+  EntityClassInfo() {
+    get_label = Entity_get_label<ID>;
+    toPrettyString = Entity_toPrettyString<ID>;
+    get_cacheKey = Entity_get_cacheKey<ID>;
+    cacheValue = Entity_cacheValue<ID>;
+    getCachedValue = Entity_getCachedValue<ID>;
+    toString_ = Entity_toString<ID>;
+  }
 }
 
 class EntityValue<ID> extends Entity_Object_Printable_CacheableValue<ID> {
   late ID id;
   late String name;
   @override
-  ClassInfo get classInfo {
-    final ci = EntityClassInfo<ID>();
-    ci.get_label = Entity_get_label<ID>;
-    ci.toPrettyString = Entity_toPrettyString<ID>;
-    ci.get_cacheKey = Entity_get_cacheKey<ID>;
-    ci.cacheValue = Entity_cacheValue<ID>;
-    ci.getCachedValue = Entity_getCachedValue<ID>;
-    ci.toString_ = Entity_toString<ID>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<EntityClassInfo<ID>>(runtimeType, EntityClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -183,24 +206,23 @@ dynamic Entity_getCachedValue<ID>(AnyGC this__) {
 
 
 class TimestampedEntityClassInfo<ID> extends EntityClassInfo<ID> {
-  Function? get_age;
+  StaticDuration Function(AnyGC)? get_age;
+  TimestampedEntityClassInfo() {
+    get_label = TimestampedEntity_get_label<ID>;
+    toPrettyString = TimestampedEntity_toPrettyString<ID>;
+    get_cacheKey = TimestampedEntity_get_cacheKey<ID>;
+    cacheValue = TimestampedEntity_cacheValue<ID>;
+    getCachedValue = TimestampedEntity_getCachedValue<ID>;
+    toString_ = TimestampedEntity_toString<ID>;
+    get_age = TimestampedEntity_get_age<ID>;
+  }
 }
 
 class TimestampedEntityValue<ID> extends EntityValue<ID> {
   late int createdAt;
   late int updatedAt;
   @override
-  ClassInfo get classInfo {
-    final ci = TimestampedEntityClassInfo<ID>();
-    ci.get_label = TimestampedEntity_get_label<ID>;
-    ci.toPrettyString = TimestampedEntity_toPrettyString<ID>;
-    ci.get_cacheKey = TimestampedEntity_get_cacheKey<ID>;
-    ci.cacheValue = TimestampedEntity_cacheValue<ID>;
-    ci.getCachedValue = TimestampedEntity_getCachedValue<ID>;
-    ci.toString_ = TimestampedEntity_toString<ID>;
-    ci.get_age = TimestampedEntity_get_age<ID>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TimestampedEntityClassInfo<ID>>(runtimeType, TimestampedEntityClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -223,7 +245,7 @@ StaticDuration TimestampedEntity_get_age<ID>(AnyGC this__) {
 
 String TimestampedEntity_get_label<ID>(AnyGC this__) {
   final this_ = this__ as TimestampedEntityValue<ID>;
-  return '${this_.name}(${this_.id}, age=${(this_.classInfo as TimestampedEntityClassInfo).get_age!(this_).inMilliseconds}ms)';
+  return '${this_.name}(${this_.id}, age=${(this_.classInfo as TimestampedEntityClassInfo<ID>).get_age!(this_).inMilliseconds}ms)';
 }
 
 String TimestampedEntity_toPrettyString<ID>(AnyGC this__) {
@@ -253,33 +275,32 @@ String TimestampedEntity_toString<ID>(AnyGC this__) {
 
 
 class VersionedEntityClassInfo<ID> extends VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID> {
-  Function? get_version;
-  Function? bump;
-  Function? get_changelog;
+  int Function(AnyGC)? get_version;
+  void Function(AnyGC, String)? bump;
+  StaticList<String> Function(AnyGC)? get_changelog;
+  VersionedEntityClassInfo() {
+    get_label = VersionedEntity_get_label<ID>;
+    toPrettyString = VersionedEntity_toPrettyString<ID>;
+    get_cacheKey = VersionedEntity_get_cacheKey<ID>;
+    cacheValue = VersionedEntity_cacheValue<ID>;
+    getCachedValue = VersionedEntity_getCachedValue<ID>;
+    toString_ = VersionedEntity_toString<ID>;
+    get_age = VersionedEntity_get_age<ID>;
+    serialize = VersionedEntity_serialize<ID>;
+    toJson = VersionedEntity_toJson<ID>;
+    validate = VersionedEntity_validate<ID>;
+    get_isValid = VersionedEntity_get_isValid<ID>;
+    get_version = VersionedEntity_get_version<ID>;
+    bump = VersionedEntity_bump<ID>;
+    get_changelog = VersionedEntity_get_changelog<ID>;
+  }
 }
 
 class VersionedEntityValue<ID> extends VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> {
   late int _version;
   late StaticList<String> _changelog;
   @override
-  ClassInfo get classInfo {
-    final ci = VersionedEntityClassInfo<ID>();
-    ci.get_label = VersionedEntity_get_label<ID>;
-    ci.toPrettyString = VersionedEntity_toPrettyString<ID>;
-    ci.get_cacheKey = VersionedEntity_get_cacheKey<ID>;
-    ci.cacheValue = VersionedEntity_cacheValue<ID>;
-    ci.getCachedValue = VersionedEntity_getCachedValue<ID>;
-    ci.toString_ = VersionedEntity_toString<ID>;
-    ci.get_age = VersionedEntity_get_age<ID>;
-    ci.serialize = VersionedEntity_serialize<ID>;
-    ci.toJson = VersionedEntity_toJson<ID>;
-    ci.validate = VersionedEntity_validate<ID>;
-    ci.get_isValid = VersionedEntity_get_isValid<ID>;
-    ci.get_version = VersionedEntity_get_version<ID>;
-    ci.bump = VersionedEntity_bump<ID>;
-    ci.get_changelog = VersionedEntity_get_changelog<ID>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<VersionedEntityClassInfo<ID>>(runtimeType, VersionedEntityClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -304,7 +325,7 @@ int VersionedEntity_get_version<ID>(AnyGC this__) {
 void VersionedEntity_bump<ID>(AnyGC this__, String change) {
   final this_ = this__ as VersionedEntityValue<ID>;
   this_._version = (this_._version + 1);
-  this_._changelog.add('v${this_._version}: ${change}');
+  (this_._changelog.classInfo as StaticListClassInfo).add!(this_._changelog, 'v${this_._version}: ${change}');
 }
 
 StaticList<String> VersionedEntity_get_changelog<ID>(AnyGC this__) {
@@ -320,8 +341,8 @@ String VersionedEntity_serialize<ID>(AnyGC this__) {
 StaticList<String> VersionedEntity_validate<ID>(AnyGC this__) {
   final this_ = this__ as VersionedEntityValue<ID>;
   final StaticList<String> errors = StaticList<String>();
-  if (this_.name.isEmpty)   errors.add('name is empty');
-  if ((this_._version < 1))   errors.add('invalid version');
+  if (this_.name.isEmpty)   (errors.classInfo as StaticListClassInfo).add!(errors, 'name is empty');
+  if ((this_._version < 1))   (errors.classInfo as StaticListClassInfo).add!(errors, 'invalid version');
   return errors;
 }
 
@@ -372,34 +393,31 @@ bool VersionedEntity_get_isValid<ID>(AnyGC this__) {
 
 
 class MoneyClassInfo extends Money_Comparable2_PrintableClassInfo {
-  Function? operatorPlus;
-  Function? operatorMinus;
-  Function? operatorStar;
-  Function? operatorNeg;
+  MoneyValue Function(AnyGC, MoneyValue)? operatorPlus;
+  MoneyValue Function(AnyGC, MoneyValue)? operatorMinus;
+  MoneyValue Function(AnyGC, int)? operatorStar;
+  MoneyValue Function(AnyGC)? operatorNeg;
+  MoneyClassInfo() {
+    compareTo = Money_compareTo;
+    operatorLt = Money_operatorLt;
+    operatorGt = Money_operatorGt;
+    operatorLte = Money_operatorLte;
+    operatorGte = Money_operatorGte;
+    get_label = Money_get_label;
+    toPrettyString = Money_toPrettyString;
+    operatorPlus = Money_operatorPlus;
+    operatorMinus = Money_operatorMinus;
+    operatorStar = Money_operatorStar;
+    operatorNeg = Money_operatorNeg;
+    toString_ = Money_toString;
+  }
 }
 
 class MoneyValue extends Money_Comparable2_PrintableValue {
   late int cents;
   late String currency;
-  static MoneyClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MoneyClassInfo _initClassInfo() {
-    final ci = MoneyClassInfo();
-    ci.compareTo = Money_compareTo;
-    ci.operatorLt = Money_operatorLt;
-    ci.operatorGt = Money_operatorGt;
-    ci.operatorLte = Money_operatorLte;
-    ci.operatorGte = Money_operatorGte;
-    ci.get_label = Money_get_label;
-    ci.toPrettyString = Money_toPrettyString;
-    ci.operatorPlus = Money_operatorPlus;
-    ci.operatorMinus = Money_operatorMinus;
-    ci.operatorStar = Money_operatorStar;
-    ci.operatorNeg = Money_operatorNeg;
-    ci.toString_ = Money_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<MoneyClassInfo>(runtimeType, MoneyClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -487,31 +505,43 @@ String Money_toPrettyString(AnyGC this__) {
 
 
 class ConfigClassInfo extends ClassInfo {
-  Function? operatorIndex;
-  Function? operatorIndexSet;
-  Function? containsKey;
-  Function? get_length;
+  bool Function(AnyGC, String)? containsKey;
+  ConfigClassInfo() {
+    operatorIndex = Config_operatorIndex;
+    operatorIndexSet = Config_operatorIndexSet;
+    containsKey = Config_containsKey;
+    get_length = Config_get_length;
+    toString_ = Config_toString;
+  }
 }
 
 class ConfigValue extends AnyGC {
   late StaticMap<String, dynamic> _data;
-  static ConfigClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ConfigClassInfo _initClassInfo() {
-    final ci = ConfigClassInfo();
-    ci.operatorIndex = Config_operatorIndex;
-    ci.operatorIndexSet = Config_operatorIndexSet;
-    ci.containsKey = Config_containsKey;
-    ci.get_length = Config_get_length;
-    ci.toString_ = Config_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ConfigClassInfo>(runtimeType, ConfigClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_data is AnyGC) (_data as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as ConfigClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ConfigClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ConfigClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -529,73 +559,88 @@ ConfigValue Config_new_empty(AnyGC this__) {
 
 ConfigValue Config_new_fromPairs(AnyGC this__, StaticList<StaticList<dynamic>> pairs) {
   final this_ = this__ as ConfigValue;
-  this_._data = (() {   final StaticMap<String, dynamic> _v1 = StaticMap<String, dynamic>.of({});
+  this_._data = (() {   final StaticMap<String, dynamic> _v2 = StaticMap<String, dynamic>.of({});
 {
-    StaticIterator<StaticList<dynamic>> sync_for_iterator = StaticIterator(pairs.iterator);
+    var sync_for_iterator = (pairs.classInfo as StaticListClassInfo).get_iterator!(pairs);
     for (; sync_for_iterator.moveNext(); ) {
       final StaticList<dynamic> p = StaticList<dynamic>.of(sync_for_iterator.current);
-      _v1[(p[0] as String)] = p[1];
+      (_v2.classInfo as StaticMapClassInfo).operatorIndexSet!(_v2, ((p.classInfo as StaticListClassInfo).operatorIndex!(p, 0) as String), (p.classInfo as StaticListClassInfo).operatorIndex!(p, 1));
     }
   }
- return _v1; })();
+ return _v2; })();
   return this_;
 }
 
 ConfigValue Config_new_withDefaults(StaticMap<String, dynamic> overrides) {
   final StaticMap<String, dynamic> defaults = StaticMap<String, dynamic>.of({'debug': false, 'maxRetries': 3, 'timeout': 30, 'name': 'default'});
-  defaults.addAll(overrides);
+  (defaults.classInfo as StaticMapClassInfo).addAll!(defaults, overrides);
   return Config_new(GC.allocateLocal(ConfigValue()), defaults);
 }
 
 dynamic Config_operatorIndex(AnyGC this__, String key) {
   final this_ = this__ as ConfigValue;
-  return this_._data[key];
+  return (this_._data.classInfo as StaticMapClassInfo).operatorIndex!(this_._data, key);
 }
 
 void Config_operatorIndexSet(AnyGC this__, String key, AnyGC value) {
   final this_ = this__ as ConfigValue;
-  (() { final _let2 = this_._data; return (() { final _let3 = key; return (() { final _let4 = value; return (() { final _let5 = _let2[_let3] = _let4; return _let4; })(); })(); })(); })();
+  (() { final _let3 = this_._data; return (() { final _let4 = key; return (() { final _let5 = value; return (() { final _let6 = (_let3.classInfo as StaticMapClassInfo).operatorIndexSet!(_let3, _let4, _let5); return _let5; })(); })(); })(); })();
 }
 
 bool Config_containsKey(AnyGC this__, String key) {
   final this_ = this__ as ConfigValue;
-  return this_._data.containsKey(key);
+  return (this_._data.classInfo as StaticMapClassInfo).containsKey!(this_._data, key);
 }
 
 int Config_get_length(AnyGC this__) {
   final this_ = this__ as ConfigValue;
-  return this_._data.length;
+  return (this_._data.classInfo as StaticMapClassInfo).get_length!(this_._data);
 }
 
 String Config_toString(AnyGC this__) {
   final this_ = this__ as ConfigValue;
-  final StaticList<String> sorted = (StaticList.of(this_._data.keys.toList())..sort());
-  final Iterable<String> entries = sorted.map(ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0()), this_));
+  final StaticList<String> sorted = StaticList<String>.of((() { final _let7 = StaticList<String>.of((StaticList<String>.of((this_._data.classInfo as StaticMapClassInfo).get_keys!(this_._data)).classInfo as StaticListClassInfo).toList!(StaticList<String>.of((this_._data.classInfo as StaticMapClassInfo).get_keys!(this_._data)))); (_let7.classInfo as StaticListClassInfo).sort!(_let7); return _let7; })());
+  final StaticList<String> entries = StaticList<String>.of((sorted.classInfo as StaticListClassInfo).map!(sorted, ClosureEnv_anon_0_new(GC.allocateLocal(ClosureEnv_anon_0()), this_)));
   return 'Config{${entries.join(', ')}}';
 }
 
 
 class EventBusClassInfo extends ClassInfo {
-  Function? on;
-  Function? emit;
+  void Function(AnyGC, TypeFunction1<void, String>)? on;
+  void Function(AnyGC, String)? emit;
+  EventBusClassInfo() {
+    on = EventBus_on;
+    emit = EventBus_emit;
+  }
 }
 
 class EventBusValue extends AnyGC {
   late StaticList<TypeFunction1<void, String>> _listeners = StaticList<TypeFunction1<void, String>>();
-  static EventBusClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static EventBusClassInfo _initClassInfo() {
-    final ci = EventBusClassInfo();
-    ci.on = EventBus_on;
-    ci.emit = EventBus_emit;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<EventBusClassInfo>(runtimeType, EventBusClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_listeners is AnyGC) (_listeners as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as EventBusClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as EventBusClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as EventBusClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -606,13 +651,13 @@ EventBusValue EventBus_new(AnyGC this__) {
 
 void EventBus_on(AnyGC this__, TypeFunction1<void, String> listener) {
   final this_ = this__ as EventBusValue;
-  this_._listeners.add(listener);
+  (this_._listeners.classInfo as StaticListClassInfo).add!(this_._listeners, listener);
 }
 
 void EventBus_emit(AnyGC this__, String event) {
   final this_ = this__ as EventBusValue;
 {
-    StaticIterator<TypeFunction1<void, String>> sync_for_iterator = StaticIterator(this_._listeners.iterator);
+    var sync_for_iterator = (this_._listeners.classInfo as StaticListClassInfo).get_iterator!(this_._listeners);
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<void, String> listener = sync_for_iterator.current;
 {
@@ -624,17 +669,32 @@ void EventBus_emit(AnyGC this__, String event) {
 
 
 class DrawableClassInfo extends ClassInfo {
-  Function? draw;
+  void Function(AnyGC)? draw;
+  DrawableClassInfo() {
+    draw = Drawable_draw;
+  }
 }
 
 class DrawableValue extends AnyGC {
-  static DrawableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static DrawableClassInfo _initClassInfo() {
-    final ci = DrawableClassInfo();
-    ci.draw = Drawable_draw;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<DrawableClassInfo>(runtimeType, DrawableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as DrawableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DrawableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DrawableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -643,23 +703,38 @@ DrawableValue Drawable_new(AnyGC this__) {
   return this_;
 }
 
-void Drawable_draw(dynamic this_) {
+void Drawable_draw(AnyGC this_) {
   throw UnimplementedError('Drawable.draw is abstract');
 }
 
 
 class ResizableClassInfo extends ClassInfo {
-  Function? resize;
+  void Function(AnyGC, double)? resize;
+  ResizableClassInfo() {
+    resize = Resizable_resize;
+  }
 }
 
 class ResizableValue extends AnyGC {
-  static ResizableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ResizableClassInfo _initClassInfo() {
-    final ci = ResizableClassInfo();
-    ci.resize = Resizable_resize;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ResizableClassInfo>(runtimeType, ResizableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ResizableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ResizableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ResizableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -668,23 +743,38 @@ ResizableValue Resizable_new(AnyGC this__) {
   return this_;
 }
 
-void Resizable_resize(dynamic this_, double factor) {
+void Resizable_resize(AnyGC this_, double factor) {
   throw UnimplementedError('Resizable.resize is abstract');
 }
 
 
 class ClickableClassInfo extends ClassInfo {
-  Function? onClick;
+  void Function(AnyGC)? onClick;
+  ClickableClassInfo() {
+    onClick = Clickable_onClick;
+  }
 }
 
 class ClickableValue extends AnyGC {
-  static ClickableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ClickableClassInfo _initClassInfo() {
-    final ci = ClickableClassInfo();
-    ci.onClick = Clickable_onClick;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ClickableClassInfo>(runtimeType, ClickableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ClickableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ClickableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ClickableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -693,31 +783,46 @@ ClickableValue Clickable_new(AnyGC this__) {
   return this_;
 }
 
-void Clickable_onClick(dynamic this_) {
+void Clickable_onClick(AnyGC this_) {
   throw UnimplementedError('Clickable.onClick is abstract');
 }
 
 
 class WidgetClassInfo extends DrawableClassInfo {
-  Function? resize;
-  Function? onClick;
-  Function? get_info;
+  void Function(AnyGC, double)? resize;
+  void Function(AnyGC)? onClick;
+  String Function(AnyGC)? get_info;
+  WidgetClassInfo() {
+    draw = Widget_draw;
+    resize = Widget_resize;
+    onClick = Widget_onClick;
+    get_info = Widget_get_info;
+  }
 }
 
 class WidgetValue extends AnyGC implements DrawableValue, ResizableValue, ClickableValue {
   late String _state = 'idle';
   late double _scale = 1.0;
   late int _clickCount = 0;
-  static WidgetClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static WidgetClassInfo _initClassInfo() {
-    final ci = WidgetClassInfo();
-    ci.draw = Widget_draw;
-    ci.resize = Widget_resize;
-    ci.onClick = Widget_onClick;
-    ci.get_info = Widget_get_info;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<WidgetClassInfo>(runtimeType, WidgetClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as WidgetClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as WidgetClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as WidgetClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -749,34 +854,51 @@ String Widget_get_info(AnyGC this__) {
 
 
 class PairClassInfo<A, B> extends ClassInfo {
-  Function? swap;
+  PairValue<B, A> Function(AnyGC)? swap;
   Function? mapFirst;
-  dynamic mapFirst_int;
+  PairValue<int, B> Function(AnyGC, TypeFunction1<int, A>)? mapFirst_int;
   Function? mapSecond;
-  dynamic mapSecond_String;
+  PairValue<A, String> Function(AnyGC, TypeFunction1<String, B>)? mapSecond_String;
   Function? fold;
-  dynamic fold_String;
+  String Function(AnyGC, TypeFunction2<String, A, B>)? fold_String;
+  PairClassInfo() {
+    swap = Pair_swap<A, B>;
+    toString_ = Pair_toString<A, B>;
+    mapFirst_int = Pair_mapFirst<A, B, int>;
+    mapSecond_String = Pair_mapSecond<A, B, String>;
+    fold_String = Pair_fold<A, B, String>;
+  }
 }
 
 class PairValue<A, B> extends AnyGC {
   late A first;
   late B second;
   @override
-  ClassInfo get classInfo {
-    final ci = PairClassInfo<A, B>();
-    ci.swap = Pair_swap<A, B>;
-    ci.toString_ = Pair_toString<A, B>;
-    ci.mapFirst_int = Pair_mapFirst<A, B, int>;
-    ci.mapSecond_String = Pair_mapSecond<A, B, String>;
-    ci.fold_String = Pair_fold<A, B, String>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<PairClassInfo<A, B>>(runtimeType, PairClassInfo<A, B>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (first is AnyGC) (first as AnyGC).gcMark(flag);
     if (second is AnyGC) (second as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as PairClassInfo<A, B>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as PairClassInfo<A, B>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as PairClassInfo<A, B>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -814,23 +936,22 @@ String Pair_toString<A, B>(AnyGC this__) {
 
 
 class TripleClassInfo<A, B, C> extends PairClassInfo<A, B> {
-  dynamic mapFirst_int;
-  dynamic mapSecond_String;
-  dynamic fold_String;
+  PairValue<int, B> Function(AnyGC, TypeFunction1<int, A>)? mapFirst_int;
+  PairValue<A, String> Function(AnyGC, TypeFunction1<String, B>)? mapSecond_String;
+  String Function(AnyGC, TypeFunction2<String, A, B>)? fold_String;
+  TripleClassInfo() {
+    swap = Triple_swap<A, B, C>;
+    mapFirst = Triple_mapFirst<A, B, C>;
+    mapSecond = Triple_mapSecond<A, B, C>;
+    toString_ = Triple_toString<A, B, C>;
+    fold_String = Triple_fold<A, B, C, String>;
+  }
 }
 
 class TripleValue<A, B, C> extends PairValue<A, B> {
   late C third;
   @override
-  ClassInfo get classInfo {
-    final ci = TripleClassInfo<A, B, C>();
-    ci.swap = Triple_swap<A, B, C>;
-    ci.mapFirst = Triple_mapFirst<A, B, C>;
-    ci.mapSecond = Triple_mapSecond<A, B, C>;
-    ci.toString_ = Triple_toString<A, B, C>;
-    ci.fold_String = Triple_fold<A, B, C, String>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<TripleClassInfo<A, B, C>>(runtimeType, TripleClassInfo<A, B, C>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -873,32 +994,46 @@ R Triple_fold<A, B, C, R>(AnyGC this__, TypeFunction2<R, A, B> combine) {
 
 
 class StringBuilderClassInfo extends ClassInfo {
-  Function? withSeparator;
-  Function? add;
-  Function? addAll;
-  Function? get_length;
+  StringBuilderValue Function(AnyGC, String)? withSeparator;
+  StringBuilderValue Function(AnyGC, String)? add;
+  StringBuilderValue Function(AnyGC, StaticList<String>)? addAll;
+  StringBuilderClassInfo() {
+    withSeparator = StringBuilder_withSeparator;
+    add = StringBuilder_add;
+    addAll = StringBuilder_addAll;
+    get_length = StringBuilder_get_length;
+    toString_ = StringBuilder_toString;
+  }
 }
 
 class StringBuilderValue extends AnyGC {
   late StaticStringBuffer _buf = StaticStringBuffer();
   late String _separator = '';
-  static StringBuilderClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static StringBuilderClassInfo _initClassInfo() {
-    final ci = StringBuilderClassInfo();
-    ci.withSeparator = StringBuilder_withSeparator;
-    ci.add = StringBuilder_add;
-    ci.addAll = StringBuilder_addAll;
-    ci.get_length = StringBuilder_get_length;
-    ci.toString_ = StringBuilder_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<StringBuilderClassInfo>(runtimeType, StringBuilderClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_buf is AnyGC) (_buf as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as StringBuilderClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as StringBuilderClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as StringBuilderClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -925,7 +1060,7 @@ StringBuilderValue StringBuilder_add(AnyGC this__, String text) {
 StringBuilderValue StringBuilder_addAll(AnyGC this__, StaticList<String> texts) {
   final this_ = this__ as StringBuilderValue;
 {
-    StaticIterator<String> sync_for_iterator = StaticIterator(texts.iterator);
+    var sync_for_iterator = (texts.classInfo as StaticListClassInfo).get_iterator!(texts);
     for (; sync_for_iterator.moveNext(); ) {
       final String t = sync_for_iterator.current;
 {
@@ -948,25 +1083,40 @@ String StringBuilder_toString(AnyGC this__) {
 
 
 class AppErrorClassInfo extends ClassInfo {
+  AppErrorClassInfo() {
+    toString_ = AppError_toString;
+  }
 }
 
 class AppErrorValue extends AnyGC {
   late String message;
   late String code;
   late AppErrorValue? cause;
-  static AppErrorClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static AppErrorClassInfo _initClassInfo() {
-    final ci = AppErrorClassInfo();
-    ci.toString_ = AppError_toString;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<AppErrorClassInfo>(runtimeType, AppErrorClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (cause is AnyGC) (cause as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as AppErrorClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as AppErrorClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as AppErrorClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -983,43 +1133,60 @@ String AppError_toString(AnyGC this__) {
   final StaticList<String> chain = StaticList<String>();
   AppErrorValue? current = this_;
   while (!((current == null))) {
-    chain.add('${current.code}:${current.message}');
+    (chain.classInfo as StaticListClassInfo).add!(chain, '${current.code}:${current.message}');
     current = current.cause;
   }
-  return chain.join(' -> ');
+  return (chain.classInfo as StaticListClassInfo).join!(chain, ' -> ');
 }
 
 
 class DataPipelineClassInfo<T> extends ClassInfo {
-  Function? where;
+  DataPipelineValue<T> Function(AnyGC, TypeFunction1<bool, T>)? where;
   Function? map;
-  dynamic map_int;
-  Function? sorted;
-  Function? take;
+  DataPipelineValue<int> Function(AnyGC, TypeFunction1<int, T>)? map_int;
+  DataPipelineValue<T> Function(AnyGC, TypeFunction2<int, T, T>)? sorted;
+  DataPipelineValue<T> Function(AnyGC, int)? take;
   Function? fold;
-  dynamic fold_int;
-  Function? toList;
+  int Function(AnyGC, int, TypeFunction2<int, int, T>)? fold_int;
+  StaticList<T> Function(AnyGC)? toList;
+  DataPipelineClassInfo() {
+    where = DataPipeline_where<T>;
+    sorted = DataPipeline_sorted<T>;
+    take = DataPipeline_take<T>;
+    toList = DataPipeline_toList<T>;
+    toString_ = DataPipeline_toString<T>;
+    map_int = DataPipeline_map<T, int>;
+    fold_int = DataPipeline_fold<T, int>;
+  }
 }
 
 class DataPipelineValue<T> extends AnyGC {
   late StaticList<T> _data;
   @override
-  ClassInfo get classInfo {
-    final ci = DataPipelineClassInfo<T>();
-    ci.where = DataPipeline_where<T>;
-    ci.sorted = DataPipeline_sorted<T>;
-    ci.take = DataPipeline_take<T>;
-    ci.toList = DataPipeline_toList<T>;
-    ci.toString_ = DataPipeline_toString<T>;
-    ci.map_int = DataPipeline_map<T, int>;
-    ci.fold_int = DataPipeline_fold<T, int>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<DataPipelineClassInfo<T>>(runtimeType, DataPipelineClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_data is AnyGC) (_data as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as DataPipelineClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as DataPipelineClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as DataPipelineClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1031,29 +1198,29 @@ DataPipelineValue<T> DataPipeline_new<T>(AnyGC this__, StaticList<T> _data) {
 
 DataPipelineValue<T> DataPipeline_where<T>(AnyGC this__, TypeFunction1<bool, T> test) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList.of(this_._data.where(test).toList()));
+  return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList<T>.of((() { final _r8 = StaticList<T>.of((this_._data.classInfo as StaticListClassInfo).where!(this_._data, test)); return (_r8.classInfo as StaticListClassInfo).toList!(_r8); })()));
 }
 
 DataPipelineValue<R> DataPipeline_map<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<R>(GC.allocateLocal(DataPipelineValue<R>()), StaticList.of(this_._data.map(transform).toList()));
+  return DataPipeline_new<R>(GC.allocateLocal(DataPipelineValue<R>()), StaticList<R>.of((() { final _r9 = StaticList<R>.of((this_._data.classInfo as StaticListClassInfo).map!(this_._data, transform)); return (_r9.classInfo as StaticListClassInfo).toList!(_r9); })()));
 }
 
 DataPipelineValue<T> DataPipeline_sorted<T>(AnyGC this__, TypeFunction2<int, T, T> compare) {
   final this_ = this__ as DataPipelineValue<T>;
   final StaticList<T> copy = StaticList<T>.of(this_._data);
-  copy.sort(compare);
+  (copy.classInfo as StaticListClassInfo).sort!(copy, compare);
   return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), copy);
 }
 
 DataPipelineValue<T> DataPipeline_take<T>(AnyGC this__, int count) {
   final this_ = this__ as DataPipelineValue<T>;
-  return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList.of(this_._data.take(count).toList()));
+  return DataPipeline_new<T>(GC.allocateLocal(DataPipelineValue<T>()), StaticList<T>.of((() { final _r10 = StaticList<T>.of((this_._data.classInfo as StaticListClassInfo).take!(this_._data, count)); return (_r10.classInfo as StaticListClassInfo).toList!(_r10); })()));
 }
 
 R DataPipeline_fold<T, R>(AnyGC this__, R initial, TypeFunction2<R, R, T> combine) {
   final this_ = this__ as DataPipelineValue<T>;
-  return this_._data.fold(initial, combine);
+  return (this_._data.classInfo as StaticListClassInfo).fold!(this_._data, initial, combine);
 }
 
 StaticList<T> DataPipeline_toList<T>(AnyGC this__) {
@@ -1063,30 +1230,45 @@ StaticList<T> DataPipeline_toList<T>(AnyGC this__) {
 
 String DataPipeline_toString<T>(AnyGC this__) {
   final this_ = this__ as DataPipelineValue<T>;
-  return 'Pipeline(${this_._data})';
+  return 'Pipeline(${(this_._data.classInfo as StaticListClassInfo).toString_!(this_._data)})';
 }
 
 
 class BoundedValueClassInfo extends ClassInfo {
-  Function? get_value;
-  Function? set_value;
-  Function? operatorPlus;
+  double Function(AnyGC)? get_value;
+  void Function(AnyGC, double)? set_value;
+  BoundedValueValue Function(AnyGC, double)? operatorPlus;
+  BoundedValueClassInfo() {
+    get_value = BoundedValue_get_value;
+    set_value = BoundedValue_set_value;
+    operatorPlus = BoundedValue_operatorPlus;
+    toString_ = BoundedValue_toString;
+  }
 }
 
 class BoundedValueValue extends AnyGC {
   late double _value;
   late double _min;
   late double _max;
-  static BoundedValueClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static BoundedValueClassInfo _initClassInfo() {
-    final ci = BoundedValueClassInfo();
-    ci.get_value = BoundedValue_get_value;
-    ci.set_value = BoundedValue_set_value;
-    ci.operatorPlus = BoundedValue_operatorPlus;
-    ci.toString_ = BoundedValue_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<BoundedValueClassInfo>(runtimeType, BoundedValueClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as BoundedValueClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as BoundedValueClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as BoundedValueClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1131,12 +1313,25 @@ class MathUtilsClassInfo extends ClassInfo {
 }
 
 class MathUtilsValue extends AnyGC {
-  static MathUtilsClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static MathUtilsClassInfo _initClassInfo() {
-    final ci = MathUtilsClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<MathUtilsClassInfo>(runtimeType, MathUtilsClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as MathUtilsClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as MathUtilsClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as MathUtilsClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1163,7 +1358,7 @@ StaticList<int> MathUtils_fibonacci(int count) {
   if ((count == 1))   return StaticList<int>.of([0]);
   final StaticList<int> fibs = StaticList<int>.of([0, 1]);
   for (var i = 2; (i < count); i = (i + 1)) {
-    fibs.add((fibs[(i - 1)] + fibs[(i - 2)]));
+    (fibs.classInfo as StaticListClassInfo).add!(fibs, ((fibs.classInfo as StaticListClassInfo).operatorIndex!(fibs, (i - 1)) + (fibs.classInfo as StaticListClassInfo).operatorIndex!(fibs, (i - 2))));
   }
   return fibs;
 }
@@ -1177,7 +1372,7 @@ double MathUtils_lerp(double a, double b, double t) {
 // mixin Loggable → static functions for delegation
 void Loggable_log(AnyGC this__, String message) {
   final dynamic this_ = this__;
-  this_._logs.add(message);
+  (this_._logs.classInfo as StaticListClassInfo).add!(this_._logs, message);
 }
 
 StaticList<String> Loggable_get_logs(AnyGC this__) {
@@ -1189,13 +1384,13 @@ StaticList<String> Loggable_get_logs(AnyGC this__) {
 // mixin Observable → static functions for delegation
 void Observable_observe<T>(AnyGC this__, TypeFunction1<void, T> callback) {
   final dynamic this_ = this__;
-  this_._observers.add(callback);
+  (this_._observers.classInfo as StaticListClassInfo).add!(this_._observers, callback);
 }
 
 void Observable_notify<T>(AnyGC this__, T value) {
   final dynamic this_ = this__;
 {
-    StaticIterator<TypeFunction1<void, T>> sync_for_iterator = StaticIterator(this_._observers.iterator);
+    var sync_for_iterator = (this_._observers.classInfo as StaticListClassInfo).get_iterator!(this_._observers);
     for (; sync_for_iterator.moveNext(); ) {
       final TypeFunction1<void, T> cb = sync_for_iterator.current;
 {
@@ -1207,26 +1402,25 @@ void Observable_notify<T>(AnyGC this__, T value) {
 
 
 class ReactiveStoreClassInfo<V> extends ReactiveStore_Object_Loggable_ObservableClassInfo<V> {
-  Function? get;
-  Function? set;
-  Function? get_size;
+  V? Function(AnyGC, String)? get;
+  void Function(AnyGC, String, V)? set;
+  int Function(AnyGC)? get_size;
+  ReactiveStoreClassInfo() {
+    log = ReactiveStore_log<V>;
+    get_logs = ReactiveStore_get_logs<V>;
+    observe = ReactiveStore_observe<V>;
+    notify = ReactiveStore_notify<V>;
+    get = ReactiveStore_get<V>;
+    set = ReactiveStore_set<V>;
+    get_size = ReactiveStore_get_size<V>;
+    toString_ = ReactiveStore_toString<V>;
+  }
 }
 
 class ReactiveStoreValue<V> extends ReactiveStore_Object_Loggable_ObservableValue<V> {
   late StaticMap<String, V> _store = StaticMap<String, V>.of({});
   @override
-  ClassInfo get classInfo {
-    final ci = ReactiveStoreClassInfo<V>();
-    ci.log = ReactiveStore_log<V>;
-    ci.get_logs = ReactiveStore_get_logs<V>;
-    ci.observe = ReactiveStore_observe<V>;
-    ci.notify = ReactiveStore_notify<V>;
-    ci.get = ReactiveStore_get<V>;
-    ci.set = ReactiveStore_set<V>;
-    ci.get_size = ReactiveStore_get_size<V>;
-    ci.toString_ = ReactiveStore_toString<V>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ReactiveStoreClassInfo<V>>(runtimeType, ReactiveStoreClassInfo<V>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1242,25 +1436,25 @@ ReactiveStoreValue<V> ReactiveStore_new<V>(AnyGC this__) {
 
 V? ReactiveStore_get<V>(AnyGC this__, String key) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.classInfo as ReactiveStoreClassInfo).log!(this_, 'get: ${key}');
-  return this_._store[key];
+  (this_.classInfo as ReactiveStoreClassInfo<V>).log!(this_, 'get: ${key}');
+  return (this_._store.classInfo as StaticMapClassInfo).operatorIndex!(this_._store, key);
 }
 
 void ReactiveStore_set<V>(AnyGC this__, String key, V value) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  (this_.classInfo as ReactiveStoreClassInfo).log!(this_, 'set: ${key}=${value}');
-  this_._store[key] = value;
-  (this_.classInfo as ReactiveStoreClassInfo).notify!(this_, value);
+  (this_.classInfo as ReactiveStoreClassInfo<V>).log!(this_, 'set: ${key}=${value}');
+  (this_._store.classInfo as StaticMapClassInfo).operatorIndexSet!(this_._store, key, value);
+  (this_.classInfo as ReactiveStoreClassInfo<V>).notify!(this_, value);
 }
 
 int ReactiveStore_get_size<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  return this_._store.length;
+  return (this_._store.classInfo as StaticMapClassInfo).get_length!(this_._store);
 }
 
 String ReactiveStore_toString<V>(AnyGC this__) {
   final this_ = this__ as ReactiveStoreValue<V>;
-  return 'Store(${this_._store})';
+  return 'Store(${(this_._store.classInfo as StaticMapClassInfo).toString_!(this_._store)})';
 }
 
 void ReactiveStore_log<V>(AnyGC this__, String message) {
@@ -1285,19 +1479,34 @@ void ReactiveStore_notify<V>(AnyGC this__, V value) {
 
 
 class ShapeClassInfo extends ClassInfo {
-  Function? area;
-  Function? get_shapeName;
+  double Function(AnyGC)? area;
+  String Function(AnyGC)? get_shapeName;
+  ShapeClassInfo() {
+    area = Shape_area;
+    get_shapeName = Shape_get_shapeName;
+  }
 }
 
 class ShapeValue extends AnyGC {
-  static ShapeClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ShapeClassInfo _initClassInfo() {
-    final ci = ShapeClassInfo();
-    ci.area = Shape_area;
-    ci.get_shapeName = Shape_get_shapeName;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<ShapeClassInfo>(runtimeType, ShapeClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as ShapeClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ShapeClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ShapeClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1306,29 +1515,44 @@ ShapeValue Shape_new(AnyGC this__) {
   return this_;
 }
 
-double Shape_area(dynamic this_) {
+double Shape_area(AnyGC this_) {
   throw UnimplementedError('Shape.area is abstract');
 }
 
-String Shape_get_shapeName(dynamic this_) {
+String Shape_get_shapeName(AnyGC this_) {
   throw UnimplementedError('Shape.shapeName is abstract');
 }
 
 
 class CircleClassInfo extends ShapeClassInfo {
+  CircleClassInfo() {
+    area = Circle_area;
+    get_shapeName = Circle_get_shapeName;
+    toString_ = Circle_toString;
+  }
 }
 
 class CircleValue extends AnyGC implements ShapeValue {
   late double radius;
-  static CircleClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static CircleClassInfo _initClassInfo() {
-    final ci = CircleClassInfo();
-    ci.area = Circle_area;
-    ci.get_shapeName = Circle_get_shapeName;
-    ci.toString_ = Circle_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<CircleClassInfo>(runtimeType, CircleClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as CircleClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as CircleClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as CircleClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1355,20 +1579,35 @@ String Circle_toString(AnyGC this__) {
 
 
 class RectangleClassInfo extends ShapeClassInfo {
+  RectangleClassInfo() {
+    area = Rectangle_area;
+    get_shapeName = Rectangle_get_shapeName;
+    toString_ = Rectangle_toString;
+  }
 }
 
 class RectangleValue extends AnyGC implements ShapeValue {
   late double width;
   late double height;
-  static RectangleClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static RectangleClassInfo _initClassInfo() {
-    final ci = RectangleClassInfo();
-    ci.area = Rectangle_area;
-    ci.get_shapeName = Rectangle_get_shapeName;
-    ci.toString_ = Rectangle_toString;
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<RectangleClassInfo>(runtimeType, RectangleClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as RectangleClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as RectangleClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as RectangleClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1396,28 +1635,45 @@ String Rectangle_toString(AnyGC this__) {
 
 
 class NodeClassInfo<T> extends ClassInfo {
-  Function? addChild;
-  Function? flatten;
+  void Function(AnyGC, NodeValue<T>)? addChild;
+  StaticList<T> Function(AnyGC)? flatten;
   Function? mapTree;
+  NodeClassInfo() {
+    addChild = Node_addChild<T>;
+    flatten = Node_flatten<T>;
+    toString_ = Node_toString<T>;
+  }
 }
 
 class NodeValue<T> extends AnyGC {
   late T value;
   late StaticList<NodeValue<T>> children;
   @override
-  ClassInfo get classInfo {
-    final ci = NodeClassInfo<T>();
-    ci.addChild = Node_addChild<T>;
-    ci.flatten = Node_flatten<T>;
-    ci.toString_ = Node_toString<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<NodeClassInfo<T>>(runtimeType, NodeClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (value is AnyGC) (value as AnyGC).gcMark(flag);
     if (children is AnyGC) (children as AnyGC).gcMark(flag);
+  }
+  @override
+  String toString() {
+    final fn = (classInfo as NodeClassInfo<T>).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as NodeClassInfo<T>).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as NodeClassInfo<T>).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
@@ -1430,18 +1686,18 @@ NodeValue<T> Node_new<T>(AnyGC this__, T value, [StaticList<NodeValue<T>>? child
 
 void Node_addChild<T>(AnyGC this__, NodeValue<T> child) {
   final this_ = this__ as NodeValue<T>;
-  this_.children.add(child);
+  (this_.children.classInfo as StaticListClassInfo).add!(this_.children, child);
 }
 
 StaticList<T> Node_flatten<T>(AnyGC this__) {
   final this_ = this__ as NodeValue<T>;
   final StaticList<T> result = StaticList<T>.of([this_.value]);
 {
-    StaticIterator<NodeValue<T>> sync_for_iterator = StaticIterator(this_.children.iterator);
+    var sync_for_iterator = (this_.children.classInfo as StaticListClassInfo).get_iterator!(this_.children);
     for (; sync_for_iterator.moveNext(); ) {
       final NodeValue<T> child = sync_for_iterator.current;
 {
-        result.addAll((child.classInfo as NodeClassInfo).flatten!(child));
+        (result.classInfo as StaticListClassInfo).addAll!(result, (child.classInfo as NodeClassInfo<T>).flatten!(child));
       }
     }
   }
@@ -1450,31 +1706,30 @@ StaticList<T> Node_flatten<T>(AnyGC this__) {
 
 NodeValue<R> Node_mapTree<T, R>(AnyGC this__, TypeFunction1<R, T> transform) {
   final this_ = this__ as NodeValue<T>;
-  return Node_new<R>(GC.allocateLocal(NodeValue<R>()), transform.call(this_.value), StaticList.of(this_.children.map(ClosureEnv_anon_1_new<R, T>(GC.allocateLocal(ClosureEnv_anon_1<R, T>()), transform)).toList()));
+  return Node_new<R>(GC.allocateLocal(NodeValue<R>()), transform.call(this_.value), StaticList<NodeValue<R>>.of((() { final _r12 = StaticList<NodeValue<R>>.of((this_.children.classInfo as StaticListClassInfo).map!(this_.children, ClosureEnv_anon_1_new<R, T>(GC.allocateLocal(ClosureEnv_anon_1<R, T>()), transform))); return (_r12.classInfo as StaticListClassInfo).toList!(_r12); })()));
 }
 
 String Node_toString<T>(AnyGC this__) {
   final this_ = this__ as NodeValue<T>;
-  if (this_.children.isEmpty)   return '${this_.value}';
-  return '${this_.value}(${this_.children.join(', ')})';
+  if ((this_.children.classInfo as StaticListClassInfo).get_isEmpty!(this_.children))   return '${this_.value}';
+  return '${this_.value}(${(this_.children.classInfo as StaticListClassInfo).join!(this_.children, ', ')})';
 }
 
 
 class LabeledNodeClassInfo<T> extends LabeledNode_Node_PrintableClassInfo<T> {
+  LabeledNodeClassInfo() {
+    addChild = LabeledNode_addChild<T>;
+    flatten = LabeledNode_flatten<T>;
+    toString_ = LabeledNode_toString<T>;
+    get_label = LabeledNode_get_label<T>;
+    toPrettyString = LabeledNode_toPrettyString<T>;
+  }
 }
 
 class LabeledNodeValue<T> extends LabeledNode_Node_PrintableValue<T> {
   late String nodeLabel;
   @override
-  ClassInfo get classInfo {
-    final ci = LabeledNodeClassInfo<T>();
-    ci.addChild = LabeledNode_addChild<T>;
-    ci.flatten = LabeledNode_flatten<T>;
-    ci.toString_ = LabeledNode_toString<T>;
-    ci.get_label = LabeledNode_get_label<T>;
-    ci.toPrettyString = LabeledNode_toPrettyString<T>;
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LabeledNodeClassInfo<T>>(runtimeType, LabeledNodeClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1521,33 +1776,43 @@ String LabeledNode_toPrettyString<T>(AnyGC this__) {
 
 
 class Entity_Object_PrintableClassInfo extends ClassInfo {
-  Function? get_label;
-  Function? toPrettyString;
+  String Function(AnyGC)? get_label;
+  String Function(AnyGC)? toPrettyString;
 }
 
 class Entity_Object_PrintableValue extends AnyGC {
-  static Entity_Object_PrintableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Entity_Object_PrintableClassInfo _initClassInfo() {
-    final ci = Entity_Object_PrintableClassInfo();
-    return ci;
+  ClassInfo get classInfo => ClassInfoRegistry.get<Entity_Object_PrintableClassInfo>(runtimeType, Entity_Object_PrintableClassInfo.new);
+  @override
+  String toString() {
+    final fn = (classInfo as Entity_Object_PrintableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as Entity_Object_PrintableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as Entity_Object_PrintableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
   }
 }
 
 
 class Entity_Object_Printable_CacheableClassInfo<ID> extends Entity_Object_PrintableClassInfo {
-  Function? get_cacheKey;
-  Function? cacheValue;
-  Function? getCachedValue;
+  ID Function(AnyGC)? get_cacheKey;
+  void Function(AnyGC, AnyGC)? cacheValue;
+  dynamic Function(AnyGC)? getCachedValue;
 }
 
 class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_PrintableValue {
   @override
-  ClassInfo get classInfo {
-    final ci = Entity_Object_Printable_CacheableClassInfo<ID>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Entity_Object_Printable_CacheableClassInfo<ID>>(runtimeType, Entity_Object_Printable_CacheableClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1557,16 +1822,13 @@ class Entity_Object_Printable_CacheableValue<ID> extends Entity_Object_Printable
 
 
 class VersionedEntity_TimestampedEntity_SerializableClassInfo<ID> extends TimestampedEntityClassInfo<ID> {
-  Function? serialize;
-  Function? toJson;
+  String Function(AnyGC)? serialize;
+  String Function(AnyGC)? toJson;
 }
 
 class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends TimestampedEntityValue<ID> {
   @override
-  ClassInfo get classInfo {
-    final ci = VersionedEntity_TimestampedEntity_SerializableClassInfo<ID>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<VersionedEntity_TimestampedEntity_SerializableClassInfo<ID>>(runtimeType, VersionedEntity_TimestampedEntity_SerializableClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1576,16 +1838,13 @@ class VersionedEntity_TimestampedEntity_SerializableValue<ID> extends Timestampe
 
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID> extends VersionedEntity_TimestampedEntity_SerializableClassInfo<ID> {
-  Function? validate;
-  Function? get_isValid;
+  StaticList<String> Function(AnyGC)? validate;
+  bool Function(AnyGC)? get_isValid;
 }
 
 class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extends VersionedEntity_TimestampedEntity_SerializableValue<ID> {
   @override
-  ClassInfo get classInfo {
-    final ci = VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID>>(runtimeType, VersionedEntity_TimestampedEntity_Serializable_ValidatableClassInfo<ID>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1595,18 +1854,13 @@ class VersionedEntity_TimestampedEntity_Serializable_ValidatableValue<ID> extend
 
 
 class Money_Comparable2_PrintableClassInfo extends Comparable2ClassInfo<MoneyValue> {
-  Function? get_label;
-  Function? toPrettyString;
+  String Function(AnyGC)? get_label;
+  String Function(AnyGC)? toPrettyString;
 }
 
 class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
-  static Money_Comparable2_PrintableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static Money_Comparable2_PrintableClassInfo _initClassInfo() {
-    final ci = Money_Comparable2_PrintableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<Money_Comparable2_PrintableClassInfo>(runtimeType, Money_Comparable2_PrintableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1616,40 +1870,50 @@ class Money_Comparable2_PrintableValue extends Comparable2Value<MoneyValue> {
 
 
 class ReactiveStore_Object_LoggableClassInfo extends ClassInfo {
-  Function? log;
-  Function? get_logs;
+  void Function(AnyGC, String)? log;
+  StaticList<String> Function(AnyGC)? get_logs;
 }
 
 class ReactiveStore_Object_LoggableValue extends AnyGC {
   late StaticList<String> _logs = StaticList<String>();
-  static ReactiveStore_Object_LoggableClassInfo? _classInfo;
   @override
-  ClassInfo get classInfo => _classInfo ??= _initClassInfo();
-  static ReactiveStore_Object_LoggableClassInfo _initClassInfo() {
-    final ci = ReactiveStore_Object_LoggableClassInfo();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ReactiveStore_Object_LoggableClassInfo>(runtimeType, ReactiveStore_Object_LoggableClassInfo.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
     super.gcMark(flag);
     if (_logs is AnyGC) (_logs as AnyGC).gcMark(flag);
   }
+  @override
+  String toString() {
+    final fn = (classInfo as ReactiveStore_Object_LoggableClassInfo).toString_;
+    if (fn != null) return fn!(this);
+    return super.toString();
+  }
+  @override
+  bool operator ==(Object other) {
+    final fn = (classInfo as ReactiveStore_Object_LoggableClassInfo).operatorEq;
+    if (fn != null) return fn!(this, other);
+    return identical(this, other);
+  }
+  @override
+  int get hashCode {
+    final fn = (classInfo as ReactiveStore_Object_LoggableClassInfo).get_hashCode;
+    if (fn != null) return fn!(this);
+    return super.hashCode;
+  }
 }
 
 
 class ReactiveStore_Object_Loggable_ObservableClassInfo<V> extends ReactiveStore_Object_LoggableClassInfo {
-  Function? observe;
-  Function? notify;
+  void Function(AnyGC, TypeFunction1<void, V>)? observe;
+  void Function(AnyGC, V)? notify;
 }
 
 class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Object_LoggableValue {
   late StaticList<TypeFunction1<void, V>> _observers = StaticList<TypeFunction1<void, V>>();
   @override
-  ClassInfo get classInfo {
-    final ci = ReactiveStore_Object_Loggable_ObservableClassInfo<V>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<ReactiveStore_Object_Loggable_ObservableClassInfo<V>>(runtimeType, ReactiveStore_Object_Loggable_ObservableClassInfo<V>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1660,16 +1924,13 @@ class ReactiveStore_Object_Loggable_ObservableValue<V> extends ReactiveStore_Obj
 
 
 class LabeledNode_Node_PrintableClassInfo<T> extends NodeClassInfo<T> {
-  Function? get_label;
-  Function? toPrettyString;
+  String Function(AnyGC)? get_label;
+  String Function(AnyGC)? toPrettyString;
 }
 
 class LabeledNode_Node_PrintableValue<T> extends NodeValue<T> {
   @override
-  ClassInfo get classInfo {
-    final ci = LabeledNode_Node_PrintableClassInfo<T>();
-    return ci;
-  }
+  ClassInfo get classInfo => ClassInfoRegistry.get<LabeledNode_Node_PrintableClassInfo<T>>(runtimeType, LabeledNode_Node_PrintableClassInfo<T>.new);
   @override
   void gcMark(int flag) {
     if (gcFlag == flag) return;
@@ -1685,11 +1946,11 @@ T applyTransform<T>(T value, TypeFunction1<T, T> transform) {
 StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicate) {
   final StaticList<T> result = StaticList<T>();
 {
-    StaticIterator<T> sync_for_iterator = StaticIterator(items.iterator);
+    var sync_for_iterator = (items.classInfo as StaticListClassInfo).get_iterator!(items);
     for (; sync_for_iterator.moveNext(); ) {
       final T item = sync_for_iterator.current;
 {
-        if (predicate.call(item))         result.add(item);
+        if (predicate.call(item))         (result.classInfo as StaticListClassInfo).add!(result, item);
       }
     }
   }
@@ -1697,9 +1958,9 @@ StaticList<T> filterWith<T>(StaticList<T> items, TypeFunction1<bool, T> predicat
 }
 
 T reduceList<T>(StaticList<T> items, TypeFunction2<T, T, T> reducer) {
-  T acc = items.first;
-  for (var i = 1; (i < items.length); i = (i + 1)) {
-    acc = reducer.call(acc, items[i]);
+  T acc = (items.classInfo as StaticListClassInfo).get_first!(items);
+  for (var i = 1; (i < (items.classInfo as StaticListClassInfo).get_length!(items)); i = (i + 1)) {
+    acc = reducer.call(acc, (items.classInfo as StaticListClassInfo).operatorIndex!(items, i));
   }
   return acc;
 }
@@ -1710,18 +1971,18 @@ StaticList<String> testClosureBoxing() {
   final TypeFunction0<int> increment = ClosureEnv_testClosureBoxing_2_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_2()), counter);
   increment.call();
   increment.call();
-  log.add('counter=${counter.value}');
+  (log.classInfo as StaticListClassInfo).add!(log, 'counter=${counter.value}');
   final StaticList<TypeFunction0<int>> fns = StaticList<TypeFunction0<int>>();
   for (var i = 0; (i < 3); i = (i + 1)) {
-    fns.add(ClosureEnv_testClosureBoxing_3_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_3()), i));
+    (fns.classInfo as StaticListClassInfo).add!(fns, ClosureEnv_testClosureBoxing_3_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_3()), i));
   }
-  log.add('fns=${StaticList.of(fns.map(ClosureEnv_testClosureBoxing_4_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_4()))).toList())}');
+  (log.classInfo as StaticListClassInfo).add!(log, 'fns=${(() { final _r14 = StaticList<int>.of((() { final _r13 = StaticList<int>.of((fns.classInfo as StaticListClassInfo).map!(fns, ClosureEnv_testClosureBoxing_4_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_4())))); return (_r13.classInfo as StaticListClassInfo).toList!(_r13); })()); return (_r14.classInfo as StaticListClassInfo).toString_!(_r14); })()}');
   IntBox outer = IntBox(0);
   final TypeFunction1<TypeFunction1<int, int>, int> makeAdder = ClosureEnv_testClosureBoxing_5_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_5()), outer);
   final TypeFunction1<int, int> adder = makeAdder.call(100);
   adder.call(5);
   adder.call(10);
-  log.add('outer=${outer.value}, adder(0)=${adder.call(0)}');
+  (log.classInfo as StaticListClassInfo).add!(log, 'outer=${outer.value}, adder(0)=${adder.call(0)}');
   String captureParam(String prefix) {
     int count = 0;
     final TypeFunction0<String> fn = ClosureEnv_testClosureBoxing_7_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_7()), count, prefix);
@@ -1730,13 +1991,13 @@ StaticList<String> testClosureBoxing() {
     return fn.call();
   }
 
-  log.add('captureParam=${captureParam('test')}');
+  (log.classInfo as StaticListClassInfo).add!(log, 'captureParam=${captureParam('test')}');
   final EventBusValue bus = EventBus_new(GC.allocateLocal(EventBusValue()));
   StaticList<String> received = StaticList<String>();
   (bus.classInfo as EventBusClassInfo).on!(bus, ClosureEnv_testClosureBoxing_8_new(GC.allocateLocal(ClosureEnv_testClosureBoxing_8()), received));
   (bus.classInfo as EventBusClassInfo).emit!(bus, 'hello');
   (bus.classInfo as EventBusClassInfo).emit!(bus, 'world');
-  log.add('received=${received}');
+  (log.classInfo as StaticListClassInfo).add!(log, 'received=${(received.classInfo as StaticListClassInfo).toString_!(received)}');
   return log;
 }
 
@@ -1761,11 +2022,11 @@ String testExceptionChain() {
 
 String formatRecord({required String name, int age = 0, String? email = null, bool active = true, Iterable<String> tags = const []}) {
   final StaticList<String> parts = StaticList<String>.of([name]);
-  if ((age > 0))   parts.add('age=${age}');
-  if (!((email == null)))   parts.add('email=${email}');
-  parts.add('active=${active}');
-  if (tags.isNotEmpty)   parts.add('tags=${tags}');
-  return 'Record(${parts.join(', ')})';
+  if ((age > 0))   (parts.classInfo as StaticListClassInfo).add!(parts, 'age=${age}');
+  if (!((email == null)))   (parts.classInfo as StaticListClassInfo).add!(parts, 'email=${email}');
+  (parts.classInfo as StaticListClassInfo).add!(parts, 'active=${active}');
+  if (tags.isNotEmpty)   (parts.classInfo as StaticListClassInfo).add!(parts, 'tags=${tags}');
+  return 'Record(${(parts.classInfo as StaticListClassInfo).join!(parts, ', ')})';
 }
 
 String greetAll(String greeting, [String name = 'World', String suffix = '!']) {
@@ -1785,27 +2046,27 @@ String describeShape(ShapeValue shape) {
 String evaluateGrade(int score) {
   final String letter = ((score >= 90) ? 'A' : ((score >= 80) ? 'B' : ((score >= 70) ? 'C' : ((score >= 60) ? 'D' : 'F'))));
   late String description;
-  _L8: do {
+  _L15: do {
     switch (letter) {
       case 'A':
 {
           description = 'Excellent';
-          break _L8;
+          break _L15;
         }
       case 'B':
 {
           description = 'Good';
-          break _L8;
+          break _L15;
         }
       case 'C':
 {
           description = 'Average';
-          break _L8;
+          break _L15;
         }
       case 'D':
 {
           description = 'Below Average';
-          break _L8;
+          break _L15;
         }
       default:
 {
@@ -1821,13 +2082,13 @@ void main() {
   final int doubled = applyTransform<int>(21, ClosureEnv_main_9_new(GC.allocateLocal(ClosureEnv_main_9())));
   staticPrint('applyTransform: ${doubled}');
   final StaticList<int> evens = StaticList<int>.of(filterWith<int>(StaticList<int>.of([1, 2, 3, 4, 5, 6]), ClosureEnv_main_10_new(GC.allocateLocal(ClosureEnv_main_10()))));
-  staticPrint('filterWith: ${evens}');
+  staticPrint('filterWith: ${(evens.classInfo as StaticListClassInfo).toString_!(evens)}');
   final int sum = reduceList<int>(StaticList<int>.of([1, 2, 3, 4, 5]), ClosureEnv_main_11_new(GC.allocateLocal(ClosureEnv_main_11())));
   staticPrint('reduceList: ${sum}');
   staticPrint('\n--- 2. 枚举类 ---');
   staticPrint('red hex: ${Color_get_hex(Color.red)}');
   staticPrint('green isWarm: ${Color_get_isWarm(Color.green)}');
-  staticPrint('priorities: ${StaticList.of(const [Priority.low, Priority.medium, Priority.high, Priority.critical].map(ClosureEnv_main_12_new(GC.allocateLocal(ClosureEnv_main_12()))).toList())}');
+  staticPrint('priorities: ${(() { final _r18 = StaticList<String>.of((() { final _r17 = StaticList.of(const [Priority.low, Priority.medium, Priority.high, Priority.critical].map(ClosureEnv_main_12_new(GC.allocateLocal(ClosureEnv_main_12())))); return (_r17.classInfo as StaticListClassInfo).toList!(_r17); })()); return (_r18.classInfo as StaticListClassInfo).toString_!(_r18); })()}');
   staticPrint('\n--- 3. 运算符重载 ---');
   final MoneyValue price1 = Money_new(GC.allocateLocal(MoneyValue()), 1099, 'USD');
   final MoneyValue price2 = Money_new_fromDollars(GC.allocateLocal(MoneyValue()), 5.5);
@@ -1843,21 +2104,21 @@ void main() {
   staticPrint('\n--- 4. 多层泛型继承 ---');
   final EntityValue<int> entity = Entity_new<int>(GC.allocateLocal(EntityValue<int>()), 1, 'alice');
   staticPrint('entity: ${entity}');
-  staticPrint('entity label: ${(entity.classInfo as EntityClassInfo).toPrettyString!(entity)}');
-  (entity.classInfo as EntityClassInfo).cacheValue!(entity, StringBox('cached_data'));
-  staticPrint('cached: ${(entity.classInfo as EntityClassInfo).getCachedValue!(entity)}');
+  staticPrint('entity label: ${(entity.classInfo as EntityClassInfo<int>).toPrettyString!(entity)}');
+  (entity.classInfo as EntityClassInfo<int>).cacheValue!(entity, StringBox('cached_data'));
+  staticPrint('cached: ${(entity.classInfo as EntityClassInfo<int>).getCachedValue!(entity)}');
   final TimestampedEntityValue<String> tsEntity = TimestampedEntity_new<String>(GC.allocateLocal(TimestampedEntityValue<String>()), 'u1', 'bob', 1000, 2000);
-  staticPrint('tsEntity label: ${(tsEntity.classInfo as TimestampedEntityClassInfo).toPrettyString!(tsEntity)}');
+  staticPrint('tsEntity label: ${(tsEntity.classInfo as TimestampedEntityClassInfo<String>).toPrettyString!(tsEntity)}');
   final VersionedEntityValue<int> vEntity = VersionedEntity_new<int>(GC.allocateLocal(VersionedEntityValue<int>()), 42, 'project', 1000, 5000);
-  (vEntity.classInfo as VersionedEntityClassInfo).bump!(vEntity, 'initial release');
-  (vEntity.classInfo as VersionedEntityClassInfo).bump!(vEntity, 'bug fix');
-  staticPrint('vEntity label: ${(vEntity.classInfo as VersionedEntityClassInfo).toPrettyString!(vEntity)}');
-  staticPrint('vEntity version: ${(vEntity.classInfo as VersionedEntityClassInfo).get_version!(vEntity)}');
-  staticPrint('vEntity changelog: ${(vEntity.classInfo as VersionedEntityClassInfo).get_changelog!(vEntity)}');
-  staticPrint('vEntity serialize: ${(vEntity.classInfo as VersionedEntityClassInfo).serialize!(vEntity)}');
-  staticPrint('vEntity toJson: ${(vEntity.classInfo as VersionedEntityClassInfo).toJson!(vEntity)}');
-  staticPrint('vEntity isValid: ${(vEntity.classInfo as VersionedEntityClassInfo).get_isValid!(vEntity)}');
-  staticPrint('vEntity validate: ${(vEntity.classInfo as VersionedEntityClassInfo).validate!(vEntity)}');
+  (vEntity.classInfo as VersionedEntityClassInfo<int>).bump!(vEntity, 'initial release');
+  (vEntity.classInfo as VersionedEntityClassInfo<int>).bump!(vEntity, 'bug fix');
+  staticPrint('vEntity label: ${(vEntity.classInfo as VersionedEntityClassInfo<int>).toPrettyString!(vEntity)}');
+  staticPrint('vEntity version: ${(vEntity.classInfo as VersionedEntityClassInfo<int>).get_version!(vEntity)}');
+  staticPrint('vEntity changelog: ${((vEntity.classInfo as VersionedEntityClassInfo<int>).get_changelog!(vEntity).classInfo as StaticListClassInfo).toString_!((vEntity.classInfo as VersionedEntityClassInfo<int>).get_changelog!(vEntity))}');
+  staticPrint('vEntity serialize: ${(vEntity.classInfo as VersionedEntityClassInfo<int>).serialize!(vEntity)}');
+  staticPrint('vEntity toJson: ${(vEntity.classInfo as VersionedEntityClassInfo<int>).toJson!(vEntity)}');
+  staticPrint('vEntity isValid: ${(vEntity.classInfo as VersionedEntityClassInfo<int>).get_isValid!(vEntity)}');
+  staticPrint('vEntity validate: ${(() { final _r19 = (vEntity.classInfo as VersionedEntityClassInfo<int>).validate!(vEntity); return (_r19.classInfo as StaticListClassInfo).toString_!(_r19); })()}');
   staticPrint('\n--- 5. 工厂构造 ---');
   final ConfigValue cfg1 = Config_new_empty(GC.allocateLocal(ConfigValue()));
   (cfg1.classInfo as ConfigClassInfo).operatorIndexSet!(cfg1, 'host', StringBox('localhost'));
@@ -1870,7 +2131,7 @@ void main() {
   staticPrint('\n--- 6. 闭包 Box 化 ---');
   final StaticList<String> closureLog = StaticList<String>.of(testClosureBoxing());
 {
-    StaticIterator<String> sync_for_iterator = StaticIterator(closureLog.iterator);
+    var sync_for_iterator = (closureLog.classInfo as StaticListClassInfo).get_iterator!(closureLog);
     for (; sync_for_iterator.moveNext(); ) {
       final String line = sync_for_iterator.current;
 {
@@ -1888,22 +2149,22 @@ void main() {
   staticPrint('\n--- 8. 泛型 Pair ---');
   final PairValue<int, String> pair = Pair_new<int, String>(GC.allocateLocal(PairValue<int, String>()), 42, 'hello');
   staticPrint('pair: ${pair}');
-  staticPrint('swap: ${(pair.classInfo as PairClassInfo).swap!(pair)}');
-  staticPrint('mapFirst: ${(pair.classInfo as PairClassInfo).mapFirst_int!(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
-  staticPrint('mapSecond: ${(pair.classInfo as PairClassInfo).mapSecond_String!(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
-  staticPrint('fold: ${(pair.classInfo as PairClassInfo).fold_String!(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
+  staticPrint('swap: ${(pair.classInfo as PairClassInfo<int, String>).swap!(pair)}');
+  staticPrint('mapFirst: ${(pair.classInfo as PairClassInfo<int, String>).mapFirst_int!(pair, ClosureEnv_main_13_new(GC.allocateLocal(ClosureEnv_main_13())))}');
+  staticPrint('mapSecond: ${(pair.classInfo as PairClassInfo<int, String>).mapSecond_String!(pair, ClosureEnv_main_14_new(GC.allocateLocal(ClosureEnv_main_14())))}');
+  staticPrint('fold: ${(pair.classInfo as PairClassInfo<int, String>).fold_String!(pair, ClosureEnv_main_15_new(GC.allocateLocal(ClosureEnv_main_15())))}');
   final TripleValue<int, String, bool> triple = Triple_new<int, String, bool>(GC.allocateLocal(TripleValue<int, String, bool>()), 1, 'yes', true);
   staticPrint('triple: ${triple}');
   staticPrint('\n--- 9. 级联操作 ---');
-  final StringBuilderValue sb = (() { final _let9 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let9.classInfo as StringBuilderClassInfo).withSeparator!(_let9, ', '); (_let9.classInfo as StringBuilderClassInfo).add!(_let9, 'alpha'); (_let9.classInfo as StringBuilderClassInfo).add!(_let9, 'beta'); (_let9.classInfo as StringBuilderClassInfo).addAll!(_let9, StaticList<String>.of(['gamma', 'delta'])); return _let9; })();
+  final StringBuilderValue sb = (() { final _let20 = StringBuilder_new(GC.allocateLocal(StringBuilderValue())); (_let20.classInfo as StringBuilderClassInfo).withSeparator!(_let20, ', '); (_let20.classInfo as StringBuilderClassInfo).add!(_let20, 'alpha'); (_let20.classInfo as StringBuilderClassInfo).add!(_let20, 'beta'); (_let20.classInfo as StringBuilderClassInfo).addAll!(_let20, StaticList<String>.of(['gamma', 'delta'])); return _let20; })();
   staticPrint('builder: ${sb}');
   staticPrint('length: ${(sb.classInfo as StringBuilderClassInfo).get_length!(sb)}');
   staticPrint('\n--- 10. 异常处理链 ---');
   staticPrint('chain: ${testExceptionChain()}');
   staticPrint('\n--- 11. 集合操作 ---');
-  final DataPipelineValue<int> pipeline = (() { final _r13 = (() { final _r12 = (() { final _r11 = (() { final _r10 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r10.classInfo as DataPipelineClassInfo).where!(_r10, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r11.classInfo as DataPipelineClassInfo).sorted!(_r11, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r12.classInfo as DataPipelineClassInfo).take!(_r12, 5); })(); return (_r13.classInfo as DataPipelineClassInfo).map_int!(_r13, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
-  staticPrint('pipeline: ${(pipeline.classInfo as DataPipelineClassInfo).toList!(pipeline)}');
-  final int pipeSum = (() { final _r14 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r14.classInfo as dynamic).fold_int!(_r14, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
+  final DataPipelineValue<int> pipeline = (() { final _r24 = (() { final _r23 = (() { final _r22 = (() { final _r21 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([5, 3, 8, 1, 9, 2, 7, 4, 6])); return (_r21.classInfo as DataPipelineClassInfo<int>).where!(_r21, ClosureEnv_main_16_new(GC.allocateLocal(ClosureEnv_main_16()))); })(); return (_r22.classInfo as DataPipelineClassInfo<int>).sorted!(_r22, ClosureEnv_main_17_new(GC.allocateLocal(ClosureEnv_main_17()))); })(); return (_r23.classInfo as DataPipelineClassInfo<int>).take!(_r23, 5); })(); return (_r24.classInfo as DataPipelineClassInfo<int>).map_int!(_r24, ClosureEnv_main_18_new(GC.allocateLocal(ClosureEnv_main_18()))); })();
+  staticPrint('pipeline: ${(() { final _r25 = (pipeline.classInfo as DataPipelineClassInfo<int>).toList!(pipeline); return (_r25.classInfo as StaticListClassInfo).toString_!(_r25); })()}');
+  final int pipeSum = (() { final _r26 = DataPipeline_new<int>(GC.allocateLocal(DataPipelineValue<int>()), StaticList<int>.of([1, 2, 3, 4, 5])); return (_r26.classInfo as dynamic).fold_int!(_r26, 0, ClosureEnv_main_19_new(GC.allocateLocal(ClosureEnv_main_19()))); })();
   staticPrint('pipeSum: ${pipeSum}');
   staticPrint('\n--- 12. 可选参数 ---');
   staticPrint(formatRecord(name: 'Alice', age: 30, email: 'alice@test.com'));
@@ -1927,18 +2188,18 @@ void main() {
   staticPrint('\n--- 15. ReactiveStore ---');
   final ReactiveStoreValue<int> store = ReactiveStore_new<int>(GC.allocateLocal(ReactiveStoreValue<int>()));
   final StaticList<int> observed = StaticList<int>();
-  (store.classInfo as ReactiveStoreClassInfo).observe!(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
-  (store.classInfo as ReactiveStoreClassInfo).set!(store, 'x', 10);
-  (store.classInfo as ReactiveStoreClassInfo).set!(store, 'y', 20);
+  (store.classInfo as ReactiveStoreClassInfo<int>).observe!(store, ClosureEnv_main_20_new(GC.allocateLocal(ClosureEnv_main_20()), observed));
+  (store.classInfo as ReactiveStoreClassInfo<int>).set!(store, 'x', 10);
+  (store.classInfo as ReactiveStoreClassInfo<int>).set!(store, 'y', 20);
   staticPrint('store: ${store}');
-  staticPrint('store.get(x): ${(store.classInfo as ReactiveStoreClassInfo).get!(store, 'x')}');
-  staticPrint('store.size: ${(store.classInfo as ReactiveStoreClassInfo).get_size!(store)}');
-  staticPrint('observed: ${observed}');
-  staticPrint('logs: ${(store.classInfo as ReactiveStoreClassInfo).get_logs!(store)}');
+  staticPrint('store.get(x): ${(store.classInfo as ReactiveStoreClassInfo<int>).get!(store, 'x')}');
+  staticPrint('store.size: ${(store.classInfo as ReactiveStoreClassInfo<int>).get_size!(store)}');
+  staticPrint('observed: ${(observed.classInfo as StaticListClassInfo).toString_!(observed)}');
+  staticPrint('logs: ${((store.classInfo as ReactiveStoreClassInfo<int>).get_logs!(store).classInfo as StaticListClassInfo).toString_!((store.classInfo as ReactiveStoreClassInfo<int>).get_logs!(store))}');
   staticPrint('\n--- 16. 类型转换 ---');
   final StaticList<ShapeValue> shapes = StaticList<ShapeValue>.of([Circle_new(GC.allocateLocal(CircleValue()), 5.0), Rectangle_new(GC.allocateLocal(RectangleValue()), 3.0, 4.0), Circle_new(GC.allocateLocal(CircleValue()), 1.0)]);
 {
-    StaticIterator<ShapeValue> sync_for_iterator = StaticIterator(shapes.iterator);
+    var sync_for_iterator = (shapes.classInfo as StaticListClassInfo).get_iterator!(shapes);
     for (; sync_for_iterator.moveNext(); ) {
       final ShapeValue s = sync_for_iterator.current;
 {
@@ -1975,7 +2236,7 @@ ClosureEnv_anon_0 ClosureEnv_anon_0_new(ClosureEnv_anon_0 env_, ConfigValue this
 String ClosureEnv_anon_0_call(AnyGC env__, String k) {
   final env = env__ as ClosureEnv_anon_0;
 
-  return '${k}=${env.this_._data[k]}';
+  return '${k}=${(env.this_._data.classInfo as StaticMapClassInfo).operatorIndex!(env.this_._data, k)}';
 }
 
 class ClosureEnv_anon_1<R, T> extends TypeFunction1<NodeValue<R>, NodeValue<T>> {
@@ -2162,7 +2423,7 @@ ClosureEnv_testClosureBoxing_8 ClosureEnv_testClosureBoxing_8_new(ClosureEnv_tes
 void ClosureEnv_testClosureBoxing_8_call(AnyGC env__, String event) {
   final env = env__ as ClosureEnv_testClosureBoxing_8;
 
-    env.received.add(event);
+    (env.received.classInfo as StaticListClassInfo).add!(env.received, event);
   }
 
 class ClosureEnv_main_9 extends TypeFunction1<int, int> {
@@ -2222,7 +2483,7 @@ ClosureEnv_main_12 ClosureEnv_main_12_new(ClosureEnv_main_12 env_) {
 String ClosureEnv_main_12_call(AnyGC env__, Priority p) {
   final env = env__ as ClosureEnv_main_12;
 
-  return '${p}'.split('.').last;
+  return (() { final _r16 = StaticList.of('${p}'.split('.')); return (_r16.classInfo as StaticListClassInfo).get_last!(_r16); })();
 }
 
 class ClosureEnv_main_13 extends TypeFunction1<int, int> {
@@ -2350,6 +2611,6 @@ ClosureEnv_main_20 ClosureEnv_main_20_new(ClosureEnv_main_20 env_, StaticList<in
 void ClosureEnv_main_20_call(AnyGC env__, int v) {
   final env = env__ as ClosureEnv_main_20;
 
-    env.observed.add(v);
+    (env.observed.classInfo as StaticListClassInfo).add!(env.observed, v);
   }
 

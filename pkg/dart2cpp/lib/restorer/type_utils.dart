@@ -21,6 +21,8 @@ mixin _TypeUtils on _DartRestorerBase {
     '_Set': 'StaticSet',
     'LinkedHashSet': 'StaticSet',
     '_CompactLinkedHashSet': 'StaticSet',
+    'Iterable': 'StaticList',
+    '_Iterable': 'StaticList',
     // 工具类型
     'StringBuffer': 'StaticStringBuffer',
     'Iterator': 'StaticIterator',
@@ -46,11 +48,13 @@ mixin _TypeUtils on _DartRestorerBase {
   }
 
   /// 判断是否是集合类型（List/Map/Set 及其内部实现类）
+  /// 注意：Iterable 不包含在内——Iterable 类型的参数可能被 _paramTypeForDefault
+  /// 降级为原生 Iterable（const [] 默认值），运行时不是 StaticList，
+  /// 因此不能走 ClassInfo 分派，需用标准 Iterable 方法。
   bool _isCollectionType(String name) {
     return name == 'List' || name == '_GrowableList' || name == '_List' ||
         name == 'Map' || name == '_Map' || name == 'LinkedHashMap' || name == '_InternalLinkedHashMap' ||
-        name == 'Set' || name == '_Set' || name == 'LinkedHashSet' || name == '_CompactLinkedHashSet' ||
-        name == 'Iterable';
+        name == 'Set' || name == '_Set' || name == 'LinkedHashSet' || name == '_CompactLinkedHashSet';
   }
 
   /// 转义字符串字面量中的特殊字符
@@ -197,7 +201,8 @@ mixin _TypeUtils on _DartRestorerBase {
 
   // ---- Types ----
 
-  String _restoreType(DartType type) {
+  String _restoreType(DartType type,
+      {bool dynamicAsAnyGC = false, bool isTopLevel = true}) {
     final nullable = type.nullability == Nullability.nullable;
     final suffix = nullable ? '?' : '';
 
@@ -208,9 +213,10 @@ mixin _TypeUtils on _DartRestorerBase {
       String name;
       if (rawName == 'Function') {
         // dart:core 的 `Function` 顶层类型缺少 arity 信息，无法选具体的
-        // TypeFunctionN；退化到 `dynamic`（变量仍能被动态派发调用，且产物
-        // 中不再出现 `Function` 字面量）。
-        return 'dynamic';
+        // TypeFunctionN；在普通上下文中退化到 `dynamic`，在 ClassInfo 字段
+        // 上下文中退化到 `AnyGC`（变量仍能被动态派发调用，且产物中不再出现
+        // `Function` 字面量）。
+        return (dynamicAsAnyGC && isTopLevel) ? 'AnyGC' : 'dynamic';
       } else if (_isUserClass(rawName)) {
         // 多文件支持：使用 Class 节点精确匹配，避免同名类冲突
         final prefix = _crossLibPrefixForClass(type.classNode);
@@ -219,11 +225,17 @@ mixin _TypeUtils on _DartRestorerBase {
         name = _mapSdkTypeName(rawName);
       }
       if (type.typeArguments.isEmpty) return '$name$suffix';
-      final args = type.typeArguments.map((t) => _restoreType(t)).join(', ');
+      // StaticMapEntry is non-generic — strip type arguments to avoid
+      // type erasure mismatch (StaticMapEntry<dynamic> vs StaticMapEntry<String>)
+      if (name == 'StaticMapEntry') return '$name$suffix';
+      final args = type.typeArguments
+          .map((t) => _restoreType(t, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false))
+          .join(', ');
       return '$name<$args>$suffix';
     }
     if (type is FunctionType) {
-      return _restoreFunctionTypeAsTypeFunction(type, suffix);
+      return _restoreFunctionTypeAsTypeFunction(type, suffix,
+          dynamicAsAnyGC: dynamicAsAnyGC);
     }
     if (type is TypeParameterType) {
       final paramName = type.parameter.name ?? 'T';
@@ -237,28 +249,28 @@ mixin _TypeUtils on _DartRestorerBase {
       }
       return '$paramName$suffix';
     }
-    if (type is DynamicType) return 'dynamic';
+    if (type is DynamicType) return (dynamicAsAnyGC && isTopLevel) ? 'AnyGC' : 'dynamic';
     if (type is VoidType) return 'void';
     if (type is NeverType) return 'Never$suffix';
     if (type is FutureOrType) {
       // FutureOr<T> 统一映射为 Promise<T>（Promise 是 Future 的运行时替代）
-      return 'Promise<${_restoreType(type.typeArgument)}>$suffix';
+      return 'Promise<${_restoreType(type.typeArgument, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false)}>$suffix';
     }
     if (type is RecordType) {
       final parts = <String>[];
       for (final p in type.positional) {
-        parts.add(_restoreType(p));
+        parts.add(_restoreType(p, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false));
       }
       if (type.named.isNotEmpty) {
         final namedParts = <String>[];
         for (final n in type.named) {
-          namedParts.add('${_restoreType(n.type)} ${n.name}');
+          namedParts.add('${_restoreType(n.type, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false)} ${n.name}');
         }
         parts.add('{${namedParts.join(', ')}}');
       }
       return '(${parts.join(', ')})$suffix';
     }
-    return 'dynamic';
+    return (dynamicAsAnyGC && isTopLevel) ? 'AnyGC' : 'dynamic';
   }
 
   /// 仅在函数参数位置使用：将 DynamicType 映射为 AnyGC（而非 dynamic）
@@ -273,33 +285,49 @@ mixin _TypeUtils on _DartRestorerBase {
   /// - async void → 'Promise<int>'（统一转化为 async int）
   /// - async Future<T> / _Future<T> → 'Promise<T>'
   /// - async int（裸值类型）→ 'Promise<int>'
-  String _asyncAwareRestoreType(DartType type, AsyncMarker marker) {
-    if (marker != AsyncMarker.Async) return _restoreType(type);
+  String _asyncAwareRestoreType(DartType type, AsyncMarker marker,
+      {bool dynamicAsAnyGC = false, bool isTopLevel = true}) {
+    if (marker == AsyncMarker.SyncStar) {
+      // sync* 函数必须返回 Iterable<T>，不能映射为 StaticList<T>
+      // 因为编译器生成的迭代器是 Iterable 而非 StaticList
+      if (type is InterfaceType && type.classNode.name == 'Iterable') {
+        final args = type.typeArguments
+            .map((t) => _restoreType(t, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false))
+            .join(', ');
+        return args.isEmpty ? 'Iterable' : 'Iterable<$args>';
+      }
+      return _restoreType(type, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: isTopLevel);
+    }
+    if (marker != AsyncMarker.Async) {
+      return _restoreType(type, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: isTopLevel);
+    }
     if (type is VoidType) return 'Promise<int>';
     if (type is InterfaceType) {
       final raw = type.classNode.name;
       if ((raw == 'Future' || raw == '_Future' || raw == 'Promise') &&
           type.typeArguments.isNotEmpty) {
-        return 'Promise<${_restoreType(type.typeArguments.first)}>';
+        return 'Promise<${_restoreType(type.typeArguments.first, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false)}>';
       }
     }
-    return 'Promise<${_restoreType(type)}>';
+    return 'Promise<${_restoreType(type, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: isTopLevel)}>';
   }
 
   /// 计算 async 函数的 inner return type（Promise<T> 中的 T）。
   /// - void → 'int'
   /// - Future<T> → T
   /// - 裸值类型 → 还原后的类型字符串
-  String _computeAsyncInnerReturnType(DartType retType) {
+  String _computeAsyncInnerReturnType(DartType retType,
+      {bool dynamicAsAnyGC = false, bool isTopLevel = true}) {
     if (retType is VoidType) return 'int';
     if (retType is InterfaceType) {
       final raw = retType.classNode.name;
       if ((raw == 'Future' || raw == '_Future' || raw == 'Promise') &&
           retType.typeArguments.isNotEmpty) {
-        return _restoreType(retType.typeArguments.first);
+        return _restoreType(retType.typeArguments.first,
+            dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: false);
       }
     }
-    return _restoreType(retType);
+    return _restoreType(retType, dynamicAsAnyGC: dynamicAsAnyGC, isTopLevel: isTopLevel);
   }
 
   // ---- Helpers ----
@@ -353,11 +381,58 @@ mixin _TypeUtils on _DartRestorerBase {
   /// arity 上限；与 runtime_classes.dart 的 TypeFunctionN 一致。
   static const int kMaxArity = 16;
 
+  /// 从当前类 cls 的继承链中，解析出祖先类 ancestorCls 的具体类型参数
+  /// 例如：StringToIntTransformer extends DataTransformer<String, int>
+  /// → 返回 ['String', 'int']
+  /// 如果类型参数仍然是类型变量（如 Box<T> extends Container<T>），则返回变量名
+  List<String>? _resolveConcreteTypeArgsForAncestor(Class cls, Class ancestorCls) {
+    // 沿着 supertype 链向上查找 ancestorCls
+    var currentClass = cls;
+    while (true) {
+      final superType = currentClass.supertype;
+      if (superType == null) return null;
+
+      if (superType.classNode == ancestorCls) {
+        // 找到了目标祖先类，提取具体化的类型参数
+        if (superType.typeArguments.isEmpty) return null;
+        return superType.typeArguments.map((ta) => _restoreType(ta)).toList();
+      }
+
+      // 如果当前 superType 的类型参数中包含映射关系，需要沿着链继续往上找
+      // 并在找到后进行类型参数替换
+      currentClass = superType.classNode;
+
+      // 检查 currentClass 是否最终继承自 ancestorCls
+      // 递归地在 currentClass 的继承链中查找
+      final result = _resolveConcreteTypeArgsForAncestor(currentClass, ancestorCls);
+      if (result != null) {
+        // 将 currentClass 的类型参数映射到从 cls 传入的具体类型
+        // 例如：A extends B<T>, B extends C<T>
+        // superType.typeArguments 是从 cls→currentClass 的映射
+        if (superType.typeArguments.isNotEmpty && currentClass.typeParameters.isNotEmpty) {
+          final typeParamMap = <String, String>{};
+          for (var i = 0; i < currentClass.typeParameters.length && i < superType.typeArguments.length; i++) {
+            final paramName = currentClass.typeParameters[i].name ?? 'T$i';
+            typeParamMap[paramName] = _restoreType(superType.typeArguments[i]);
+          }
+          // 替换 result 中仍然是类型变量的部分
+          return result.map((typeStr) {
+            return typeParamMap[typeStr] ?? typeStr;
+          }).toList();
+        }
+        return result;
+      }
+
+      return null;
+    }
+  }
+
   /// 把 kernel FunctionType 还原成 `TypeFunctionN<R, T1..Tn>$suffix`。
   /// 当存在命名/可选位置参数或 arity 超限时，回退到 `TypeFunction<R>$suffix`
   /// 基类（仍然不出现 `Function` 字面量）。
-  String _restoreFunctionTypeAsTypeFunction(FunctionType type, String suffix) {
-    final ret = _restoreType(type.returnType);
+  String _restoreFunctionTypeAsTypeFunction(FunctionType type, String suffix,
+      {bool dynamicAsAnyGC = false}) {
+    final ret = _restoreType(type.returnType, dynamicAsAnyGC: dynamicAsAnyGC);
     final hasNamed = type.namedParameters.isNotEmpty;
     final positional = type.positionalParameters;
     final required = type.requiredParameterCount;
@@ -366,13 +441,15 @@ mixin _TypeUtils on _DartRestorerBase {
       return 'TypeFunction<$ret>$suffix';
     }
     final arity = positional.length;
-    final paramTexts = [for (final p in positional) _restoreType(p)];
+    final paramTexts = [
+      for (final p in positional) _restoreType(p, dynamicAsAnyGC: dynamicAsAnyGC)
+    ];
     final args = [ret, ...paramTexts].join(', ');
     return 'TypeFunction$arity<$args>$suffix';
   }
 
   bool _isBinaryOp(String name) {
-    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>'}.contains(name);
+    return const {'+', '-', '*', '/', '%', '~/', '>', '<', '>=', '<=', '&', '|', '^', '<<', '>>', '>>>'}.contains(name);
   }
 
 

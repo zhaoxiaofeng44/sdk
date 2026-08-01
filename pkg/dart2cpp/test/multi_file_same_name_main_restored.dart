@@ -5,10 +5,11 @@ import 'multi_file_same_name_restored.dart' as lib_2;
 
 void main() {
   final lib_1.DogValue dogA = lib_1.Dog_new(GC.allocateLocal(lib_1.DogValue()), 'Buddy');
-  staticPrint('From A: ${(dogA.vptr['speak'] as String Function(dynamic))(dogA)}');
+  staticPrint('From A: ${(dogA.classInfo as DogClassInfo).speak!(dogA)}');
   final lib_2.AnimalValue animalC = lib_2.Animal_new(GC.allocateLocal(lib_2.AnimalValue()), 'Tiger');
-  staticPrint('From C: ${(animalC.vptr['describe'] as String Function(dynamic))(animalC)}');
+  staticPrint('From C: ${(animalC.classInfo as AnimalClassInfo).describe!(animalC)}');
   lib_1.greetFromA(dogA);
   lib_2.describeAnimal(animalC);
+  drainScheduler();
 }
 
