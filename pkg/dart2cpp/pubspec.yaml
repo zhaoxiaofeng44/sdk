@@ -7,12 +7,9 @@ environment:
 
 dev_dependencies:
   lints: ^3.0.0
-  test: ^1.16.0
 
 dependency_overrides:
   kernel:
     path: ../kernel
-  front_end:
-    path: ../front_end
   _fe_analyzer_shared:
     path: ../_fe_analyzer_shared
