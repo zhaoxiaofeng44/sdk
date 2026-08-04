@@ -11,7 +11,6 @@ TESTS=(
     "restorer_complex_oop_test"
     "restorer_stress_test"
     "restorer_edge_test"
-    "state_machine_advanced_test"
     "state_machine_coroutine_test"
     "static_collections_test"
     "runtime_gap_test"

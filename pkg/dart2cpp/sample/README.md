@@ -16,24 +16,11 @@ sample/
 ```bash
 # Compile a Dart source to Kernel, then generate C++
 dart tool/convert_dual.dart sample/src/hello.dart sample/output
-
-# Batch-generate C++ for all test cases
-dart tool/convert_all_dual.dart generated
 ```
 
 This will:
-1. Compile each `.dart` source to kernel format (`.dill`)
+1. Compile the `.dart` source to kernel format (`.dill`)
 2. Convert the kernel AST to C++ source
-
-## Manual conversion
-
-```bash
-# Step 1: Compile to kernel
-dart compile kernel src/hello.dart -o /tmp/hello.dill
-
-# Step 2: Generate C++
-dart tool/gen_cpp.dart hello
-```
 
 The generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lowered.h`, which provides:
 
@@ -47,7 +34,7 @@ The generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lower
 Compile the output with:
 
 ```bash
-g++ -std=c++17 -c output/hello_restored.cpp -I lib/platform/cpp -Wno-everything
+g++ -std=c++17 -c sample/output/hello.cpp -I lib/platform/cpp -Wno-everything
 ```
 
 ## Adding Your Own Examples

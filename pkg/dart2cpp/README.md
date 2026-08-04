@@ -1,94 +1,84 @@
 # dart2cpp
 
-A Dart-to-C++ compiler that transforms Dart source code into lowered C++ compatible structures via Kernel AST.
+A Dart-to-C++ compiler that transforms Dart source code into lowered C++ via Kernel AST.
 
 ## Overview
 
-The core component is a **Dart Restorer** that reconstructs readable Dart source code from Kernel AST with OOP lowering transformations:
+The pipeline compiles Dart source to Kernel AST, then emits C++ with OOP lowering transformations:
 
 - Classes → `XValue` structs + static functions
-- Virtual dispatch → `ClassInfo` vtable
+- Virtual dispatch → `ClassInfo` vtable (typed function pointers)
 - Closures → environment classes with captured variable boxing
-- Async/await → state machine coroutines
+- Async/await → state machine coroutines (`Promise` + `GlobalScheduler`)
+- Memory → mark-and-sweep GC (`AnyGC` base + `GC::collect`)
 
 ## Quick Start
 
 ### Prerequisites
 
 - Dart SDK ≥ 3.0.0
+- C++17 compiler (clang++ / g++)
 
 ### Run Tests
 
 ```bash
-dart test/run_all_restorer_tests.dart
+dart test/run_all_restorer_tests.dart   # Kernel compile → C++ generate → C++ compile
+./run_all_cpp_tests.sh                  # Compile & run generated C++ programs
 ```
 
 ### Convert a Dart File
 
 ```bash
-dart tool/convert_sample.dart <source.dart> <output.dart>
+dart tool/convert_dual.dart <source.dart> <output_dir>
 ```
 
-### Regenerate Test Outputs
+Generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lowered.h`:
 
 ```bash
-dart tool/regen_restored.dart <test_base_name>
+clang++ -std=c++17 -I lib/platform/cpp <output>.cpp -o <output>
 ```
 
 ## Project Structure
 
 ```
-lib/                              # Core converter
-├── dart_to_dart_restorer.dart    # Public API entry point
+lib/
+├── dart_to_cpp.dart                    # Public API entry point
 ├── restorer/
-│   ├── dart_restorer.dart        # Main restorer class + shared state
-│   ├── declaration_restorer.dart # Classes, methods, fields, constructors
-│   ├── expression_restorer.dart  # Expression handling
-│   ├── statement_restorer.dart   # Statement handling
-│   ├── constant_restorer.dart    # Constant expressions
-│   ├── type_utils.dart           # Type mapping utilities
-│   ├── closure_restorer.dart     # Closure environment generation
-│   └── enum_restorer.dart        # Enum lowering
+│   ├── dart_restorer.dart              # Analyzer: class info collection, vtables, closures
+│   └── cpp_emitter.dart                # C++ code emitter
 └── platform/
-    ├── dart/                     # Dart runtime (VPtr, Box, TypeFunction, etc.)
-    │   └── runtime_classes.dart  # All runtime classes
-    └── cpp/                      # C++ runtime headers and sources
+    └── cpp/
+        └── dart2cpp_lowered.h          # C++ runtime (GC, vtable, closures, async, collections)
 
-test/                             # Test suite (15 cases)
-tool/                             # Development utilities
-sample/                           # Conversion pipeline examples
-docs/archive/                     # Archived analysis documents
+test/                                   # Test suite (10 cases) + GC/leak verification
+tool/                                   # Development utilities
+sample/                                 # Conversion pipeline examples
+docs/                                   # GC and leak analysis reports
 ```
 
 ## Key Transformations
 
 ### Class Methods → Static Functions
 
-```dart
-// Original
-class Dog { void speak() { print("Woof!"); } }
-
-// Lowered
-void Dog_speak(dynamic this_) { print("Woof!"); }
+```cpp
+// Dart:  class Dog { void speak() { print("Woof!"); } }
+void Dog_speak(AnyGC this_);
 ```
 
 ### Virtual Dispatch via ClassInfo
 
-```dart
-// Original
-animal.speak();
-
-// Lowered
-(animal.classInfo as AnimalClassInfo).speak!(animal);
+```cpp
+// Dart:  animal.speak();
+animal->classInfo()->speak(animal);
 ```
 
 ### Closure Environment Classes
 
-Automatically generates `ClosureEnv_*` classes for closures with captured variables, with boxing for mutable value type captures.
+Automatically generates `ClosureEnv_N` classes for closures with captured variables, with Box types (`IntBox`, `ObjectBox<T>`, ...) for mutable value captures.
 
 ### Type Mapping
 
-| Dart | Lowered |
+| Dart | C++ |
 |------|---------|
 | `List` | `StaticList` |
 | `Map` | `StaticMap` |
@@ -104,8 +94,7 @@ Automatically generates `ClosureEnv_*` classes for closures with captured variab
 
 ## Documentation
 
-- **[DART_TO_CPP_MAPPING.md](DART_TO_CPP_MAPPING.md)** — Comprehensive Dart-to-C++ type and feature mapping
-- **[RESTORER_ANALYSIS.md](RESTORER_ANALYSIS.md)** — Restorer architecture analysis
+- **[docs/gc_leak_analysis.md](docs/gc_leak_analysis.md)** — C++ runtime GC mechanism and leak test report
 - **[CLAUDE.md](CLAUDE.md)** — Development guide for AI assistants
 
 ## License

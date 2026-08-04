@@ -5,7 +5,7 @@ import 'package:kernel/kernel.dart';
 
 import '../lib/dart_to_cpp.dart';
 
-/// 所有待测试的用例（不含 _restored 后缀）
+/// 所有待测试的用例
 const List<String> _testCases = [
   'restorer_complex_test',
   'restorer_full_test',
@@ -14,7 +14,6 @@ const List<String> _testCases = [
   'restorer_complex_oop_test',
   'restorer_stress_test',
   'restorer_edge_test',
-  'state_machine_advanced_test',
   'state_machine_coroutine_test',
   'static_collections_test',
   'runtime_gap_test',

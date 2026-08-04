@@ -52,7 +52,7 @@ void main(List<String> args) {
   // 生成 C++
   print('⚙️  生成 C++...');
   final cppSource = emitCppFromComponent(component);
-  final cppOutputPath = '$outDir/${basename}_restored.cpp';
+  final cppOutputPath = '$outDir/${basename}.cpp';
   File(cppOutputPath).writeAsStringSync(cppSource);
   print('✅ C++: $cppOutputPath (${cppSource.length} 字符, ${cppSource.split('\n').length} 行)');
 }

@@ -12,13 +12,11 @@ dart2cpp 是一个完整的 Dart 到 C++ 的转换编译器和运行时库项目
 - **目标语言**: C++ (C++20)
 - **构建工具**: 
   - Dart: pub
-  - C++: g++ (直接编译，无 CMake/Make)
+  - C++: g++/clang++ (直接编译，无 CMake/Make)
 - **核心依赖**:
   - kernel: Dart 内核表示 (via local path override)
-  - front_end: Dart 前端编译器 (via local path override)
   - _fe_analyzer_shared: 前端分析器共享组件 (via local path override)
   - lints: 代码规范检查
-  - test: 测试框架
 - **测试框架**: 自定义脚本 (dart run test/run_all_restorer_tests.dart)
 
 ## 项目约定
@@ -36,25 +34,21 @@ dart2cpp 是一个完整的 Dart 到 C++ 的转换编译器和运行时库项目
 
 ### 架构模式
 - **分层架构**:
-  - `lib/`: Dart 转换器核心库（编译器前端）
-    - `lib/restorer/`: 核心转换器实现 (part-of 结构)
-    - `lib/platform/dart/`: Dart 运行时 (runtime_classes.dart)
+  - `lib/`: Dart→C++ 转换器核心库（编译器前端）
+    - `lib/restorer/`: 核心转换器实现 (dart_restorer.dart + cpp_emitter.dart)
     - `lib/platform/cpp/`: C++ 运行时 (dart2cpp_lowered.h)
-  - `test/`: 测试套件 (15 个测试用例)
+  - `test/`: 测试套件 (10 个测试用例) + GC/泄漏验证
   - `tool/`: 开发工具
   - `sample/`: 转换示例
 - **核心组件**:
-  - `dart_restorer.dart`: 主恢复器类 + 共享状态
-  - `declaration_restorer.dart`: 声明恢复 (类、方法、字段、构造函数)
-  - `expression_restorer.dart`: 表达式恢复
-  - `statement_restorer.dart`: 语句恢复
+  - `dart_to_cpp.dart`: 公共 API 入口 (emitCppFromComponent / CppEmitter)
+  - `dart_restorer.dart`: 类信息收集器、虚表分析、闭包环境、泛型特化
   - `cpp_emitter.dart`: C++ 代码发射器
-  - `type_utils.dart`: 类型映射工具
 
 ### 测试策略
 - **Dart 测试**: 使用 `dart test/run_all_restorer_tests.dart` 运行
-  - 11 个批量测试 + 4 个独立测试 (gc_test, gc_async_test, promise_enhanced_test, mixin_lowering_test)
-  - 测试流程: 编译 → 恢复 → 运行 → 比较输出
+  - 10 个批量测试
+  - 测试流程: Kernel 编译 → C++ 生成 → C++ 编译验证
 - **C++ 测试**: 
   - 使用 `run_all_cpp_tests.sh` 编译运行 C++ 输出
   - 测试 C++ 代码生成和运行时正确性
@@ -98,6 +92,5 @@ dart2cpp 是一个完整的 Dart 到 C++ 的转换编译器和运行时库项目
 ## 外部依赖
 - **Dart SDK**: 依赖 Dart SDK 的前端编译器组件
   - `_fe_analyzer_shared`: 前端分析器共享组件
-  - `front_end`: Dart 前端编译器
   - `kernel`: Dart 内核表示
 - **C++ 编译器**: 需要支持 C++20 的编译器 (GCC, Clang)
