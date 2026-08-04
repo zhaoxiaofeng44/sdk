@@ -1,13 +1,11 @@
 #!/usr/bin/env dart
-/// 批量运行所有 restorer 测试用例（含 C++ 编译+运行验证）
+/// 批量运行所有 C++ 生成+编译测试用例
 import 'dart:io';
 import 'package:kernel/kernel.dart';
 
-import '../lib/dart_to_dart_restorer.dart';
 import '../lib/dart_to_cpp.dart';
 
 /// 所有待测试的用例（不含 _restored 后缀）
-/// 注意: mixin_lowering_test 是自包含测试脚本，不适用批量运行器
 const List<String> _testCases = [
   'restorer_complex_test',
   'restorer_full_test',
@@ -24,31 +22,20 @@ const List<String> _testCases = [
 
 class _TestResult {
   final String name;
-  final bool compileOk;
-  final bool restoreOk;
-  final bool runOk;
-  final bool outputMatch;
+  final bool kernelCompileOk;
   final bool cppGenerateOk;
   final bool cppCompileOk;
-  final bool cppRunOk;
-  final bool cppOutputMatch;
   final String? errorDetail;
 
   _TestResult({
     required this.name,
-    required this.compileOk,
-    required this.restoreOk,
-    required this.runOk,
-    required this.outputMatch,
+    required this.kernelCompileOk,
     this.cppGenerateOk = false,
     this.cppCompileOk = false,
-    this.cppRunOk = false,
-    this.cppOutputMatch = false,
     this.errorDetail,
   });
 
-  bool get passed => compileOk && restoreOk && runOk && outputMatch;
-  bool get cppPassed => cppGenerateOk && cppCompileOk && cppRunOk && cppOutputMatch;
+  bool get passed => kernelCompileOk && cppGenerateOk && cppCompileOk;
 }
 
 /// 检查系统是否有 g++ 可用
@@ -61,16 +48,15 @@ bool _hasGpp() {
   }
 }
 
-Future<_TestResult> runOneTest(String baseName, String scriptDir, {bool enableCpp = false}) async {
+Future<_TestResult> runOneTest(String baseName, String scriptDir) async {
   final testSourcePath = '$scriptDir/$baseName.dart';
-  final restoredOutputPath = '$scriptDir/${baseName}_restored.dart';
   final dillPath = '/tmp/${baseName}_test.dill';
   final dartExe = Platform.resolvedExecutable;
 
   print('\n${'─' * 60}');
   print('📦 测试: $baseName');
 
-  // 步骤 1: 使用 dart compile kernel CLI 编译
+  // 步骤 1: 编译到 Kernel
   final compileResult = await Process.run(
     dartExe,
     ['compile', 'kernel', testSourcePath, '-o', dillPath],
@@ -82,16 +68,13 @@ Future<_TestResult> runOneTest(String baseName, String scriptDir, {bool enableCp
     print('     $error');
     return _TestResult(
       name: baseName,
-      compileOk: false,
-      restoreOk: false,
-      runOk: false,
-      outputMatch: false,
+      kernelCompileOk: false,
       errorDetail: 'Kernel 编译失败: $error',
     );
   }
   print('  ✅ Dart Kernel 编译成功');
 
-  // 步骤 2: 加载 kernel 并还原
+  // 步骤 2: 加载 kernel
   Component component;
   try {
     component = loadComponentFromBinary(dillPath);
@@ -99,113 +82,51 @@ Future<_TestResult> runOneTest(String baseName, String scriptDir, {bool enableCp
     print('  ❌ Kernel 加载失败: $e');
     return _TestResult(
       name: baseName,
-      compileOk: true,
-      restoreOk: false,
-      runOk: false,
-      outputMatch: false,
+      kernelCompileOk: true,
       errorDetail: 'Kernel 加载失败: $e',
     );
   }
 
-  String restoredSource;
-  try {
-    restoredSource = restoreDartFromComponent(component);
-    print('  ✅ Dart 还原成功 (${restoredSource.length} 字符, ${restoredSource.split('\n').length} 行)');
-  } catch (e) {
-    print('  ❌ 还原失败: $e');
-    return _TestResult(
-      name: baseName,
-      compileOk: true,
-      restoreOk: false,
-      runOk: false,
-      outputMatch: false,
-      errorDetail: '还原异常: $e',
-    );
-  }
-
-  File(restoredOutputPath).writeAsStringSync(restoredSource);
-
-  // 步骤 3: 运行还原后代码
-  final runResult = await Process.run(dartExe, ['run', restoredOutputPath]);
-  final runOk = runResult.exitCode == 0;
-  if (runOk) {
-    print('  ✅ Dart 还原代码运行成功');
-  } else {
-    final firstError = (runResult.stderr as String).split('\n').take(3).join('\n');
-    print('  ❌ Dart 还原代码运行失败 (exit=${runResult.exitCode})');
-    print('     $firstError');
-    return _TestResult(
-      name: baseName,
-      compileOk: true,
-      restoreOk: true,
-      runOk: false,
-      outputMatch: false,
-      errorDetail: firstError,
-    );
-  }
-
-  // 步骤 4: 与原始输出对比
-  final origResult = await Process.run(dartExe, ['run', testSourcePath]);
-  final origOut = (origResult.stdout as String).trim();
-  final restOut = (runResult.stdout as String).trim();
-  final outputMatch = origOut == restOut;
-  if (outputMatch) {
-    print('  ✅ Dart 输出一致');
-  } else {
-    print('  ⚠️  Dart 输出不一致');
-  }
-
-  // 步骤 5: C++ 生成 + 编译验证（不运行，产物输出到当前目录）
+  // 步骤 3: 生成 C++ + 编译验证
   bool cppGenerateOk = false;
   bool cppCompileOk = false;
-  bool cppRunOk = false;
-  bool cppOutputMatch = false;
-  if (enableCpp) {
-    try {
-      final cppSource = emitCppFromComponent(component);
-      if (cppSource.isNotEmpty) {
-        cppGenerateOk = true;
-        print('  ✅ C++ 生成成功 (${cppSource.length} 字符)');
+  try {
+    final cppSource = emitCppFromComponent(component);
+    if (cppSource.isNotEmpty) {
+      cppGenerateOk = true;
+      print('  ✅ C++ 生成成功 (${cppSource.length} 字符)');
 
-        // 写入当前目录（不运行）
-        final cppDir = 'cpp_output';
-        Directory(cppDir).createSync(recursive: true);
-        final cppFile = '$cppDir/${baseName}_verify.cpp';
-        File(cppFile).writeAsStringSync(cppSource);
-        print('  📄 C++ 产物: $cppFile');
+      final cppDir = 'cpp_output';
+      Directory(cppDir).createSync(recursive: true);
+      final cppFile = '$cppDir/${baseName}_verify.cpp';
+      File(cppFile).writeAsStringSync(cppSource);
+      print('  📄 C++ 产物: $cppFile');
 
-        // 仅编译检查，不生成可执行文件
-        final cppResult = await Process.run(
-          'g++',
-          ['-std=c++17', '-c', cppFile, '-o', '/dev/null', '-I', 'lib/platform/cpp', '-Wno-everything'],
-        );
+      final cppResult = await Process.run(
+        'g++',
+        ['-std=c++17', '-c', cppFile, '-o', '/dev/null', '-I', 'lib/platform/cpp', '-Wno-everything'],
+      );
 
-        if (cppResult.exitCode == 0) {
-          cppCompileOk = true;
-          print('  ✅ C++ 编译成功');
-        } else {
-          final stderr = (cppResult.stderr as String).split('\n').take(5).join('\n     ');
-          print('  ❌ C++ 编译失败');
-          print('     $stderr');
-        }
+      if (cppResult.exitCode == 0) {
+        cppCompileOk = true;
+        print('  ✅ C++ 编译成功');
       } else {
-        print('  ⚠️  C++ 生成为空');
+        final stderr = (cppResult.stderr as String).split('\n').take(5).join('\n     ');
+        print('  ❌ C++ 编译失败');
+        print('     $stderr');
       }
-    } catch (e) {
-      print('  ❌ C++ 生成异常: $e');
+    } else {
+      print('  ⚠️  C++ 生成为空');
     }
+  } catch (e) {
+    print('  ❌ C++ 生成异常: $e');
   }
 
   return _TestResult(
     name: baseName,
-    compileOk: true,
-    restoreOk: true,
-    runOk: true,
-    outputMatch: outputMatch,
+    kernelCompileOk: true,
     cppGenerateOk: cppGenerateOk,
     cppCompileOk: cppCompileOk,
-    cppRunOk: cppRunOk,
-    cppOutputMatch: cppOutputMatch,
   );
 }
 
@@ -214,22 +135,19 @@ Future<void> main(List<String> args) async {
 
   // 检测 g++ 是否可用
   final hasGpp = _hasGpp();
-  final enableCpp = hasGpp && !args.contains('--no-cpp');
-  if (enableCpp) {
-    print('🔧 C++ 验证已启用 (g++ 可用, 编译+运行+输出对比)');
-  } else if (!hasGpp) {
-    print('⚠️  未检测到 g++，跳过 C++ 验证');
+  if (!hasGpp) {
+    print('⚠️  未检测到 g++，C++ 编译验证将跳过');
   }
 
   // 支持通过参数指定子集，默认全部运行
   final casesToRun = args.where((a) => !a.startsWith('--')).toList();
   final effectiveCases = casesToRun.isNotEmpty ? casesToRun : _testCases;
 
-  print('🚀 批量还原测试 — 共 ${effectiveCases.length} 个用例');
+  print('🚀 批量 C++ 测试 — 共 ${effectiveCases.length} 个用例');
 
   final results = <_TestResult>[];
   for (final name in effectiveCases) {
-    final r = await runOneTest(name, scriptDir, enableCpp: enableCpp);
+    final r = await runOneTest(name, scriptDir);
     results.add(r);
   }
 
@@ -247,39 +165,16 @@ Future<void> main(List<String> args) async {
         ? ''
         : ' — ${_failStage(r)}'
             '${r.errorDetail != null ? ": ${r.errorDetail!.split('\n').first}" : ""}';
-
-    // C++ 状态
-    String cppStatus = '';
-    if (enableCpp) {
-      if (r.cppPassed) {
-        cppStatus = ' [C++✅]';
-      } else if (r.cppGenerateOk && r.cppCompileOk && r.cppRunOk && !r.cppOutputMatch) {
-        cppStatus = ' [C++⚠️输出不一致]';
-      } else if (r.cppGenerateOk && r.cppCompileOk && !r.cppRunOk) {
-        cppStatus = ' [C++❌运行]';
-      } else if (r.cppGenerateOk && !r.cppCompileOk) {
-        cppStatus = ' [C++❌编译]';
-      } else if (!r.cppGenerateOk) {
-        cppStatus = ' [C++❌生成]';
-      }
-    }
-
-    print('  $icon ${r.name}$cppStatus$detail');
+    print('  $icon ${r.name}$detail');
   }
 
   print('\n${'─' * 60}');
-  print('Dart 通过: ${passed.length} / ${results.length}    失败: ${failed.length}');
+  print('C++ 通过: ${passed.length} / ${results.length}    失败: ${failed.length}');
 
-  if (enableCpp) {
-    final cppGenOk = results.where((r) => r.cppGenerateOk).length;
-    final cppCompOk = results.where((r) => r.cppCompileOk).length;
-    final cppRunOkCount = results.where((r) => r.cppRunOk).length;
-    final cppOutOk = results.where((r) => r.cppOutputMatch).length;
-    print('C++ 生成: $cppGenOk / ${results.length}');
-    print('C++ 编译: $cppCompOk / ${results.length}');
-    print('C++ 运行: $cppRunOkCount / ${results.length}');
-    print('C++ 输出一致: $cppOutOk / ${results.length}');
-  }
+  final cppGenOk = results.where((r) => r.cppGenerateOk).length;
+  final cppCompOk = results.where((r) => r.cppCompileOk).length;
+  print('C++ 生成: $cppGenOk / ${results.length}');
+  print('C++ 编译: $cppCompOk / ${results.length}');
 
   if (failed.isNotEmpty) {
     exit(1);
@@ -287,9 +182,8 @@ Future<void> main(List<String> args) async {
 }
 
 String _failStage(_TestResult r) {
-  if (!r.compileOk) return 'Kernel编译失败';
-  if (!r.restoreOk) return 'Dart还原失败';
-  if (!r.runOk) return 'Dart运行失败';
-  if (!r.outputMatch) return 'Dart输出不一致';
+  if (!r.kernelCompileOk) return 'Kernel编译失败';
+  if (!r.cppGenerateOk) return 'C++生成失败';
+  if (!r.cppCompileOk) return 'C++编译失败';
   return '';
 }

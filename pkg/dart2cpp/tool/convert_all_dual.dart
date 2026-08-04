@@ -1,11 +1,10 @@
 #!/usr/bin/env dart
-/// 批量双输出生成器：同时生成静态 Dart 和 C++
+/// 批量 C++ 生成器
 /// 用法: dart tool/convert_all_dual.dart [output_dir]
 /// 默认输出目录: generated/
 
 import 'dart:io';
 import 'package:kernel/kernel.dart' as k;
-import '../lib/dart_to_dart_restorer.dart';
 import '../lib/dart_to_cpp.dart';
 
 const List<String> _testCases = [
@@ -28,9 +27,9 @@ void main(List<String> args) {
   if (!dir.existsSync()) dir.createSync(recursive: true);
 
   final dartExe = Platform.resolvedExecutable;
-  print('🚀 批量双输出生成 — 共 ${_testCases.length} 个用例\n');
+  print('🚀 批量 C++ 生成 — 共 ${_testCases.length} 个用例\n');
 
-  int dartOk = 0, cppOk = 0;
+  int cppOk = 0;
 
   for (final name in _testCases) {
     final testFile = 'test/$name.dart';
@@ -54,15 +53,6 @@ void main(List<String> args) {
     // 加载
     final component = k.loadComponentFromBinary(dillPath);
 
-    // 生成 Dart
-    try {
-      final dartSource = restoreDartFromComponent(component);
-      File('$outDir/${name}_restored.dart').writeAsStringSync(dartSource);
-      dartOk++;
-    } catch (e) {
-      print('❌ $name Dart 生成失败: $e');
-    }
-
     // 生成 C++
     try {
       final cppSource = emitCppFromComponent(component);
@@ -76,8 +66,7 @@ void main(List<String> args) {
   }
 
   print('\n${'═' * 60}');
-  print('📊 批量双输出结果:');
-  print('  Dart: $dartOk / ${_testCases.length} 成功');
+  print('📊 批量 C++ 生成结果:');
   print('  C++:  $cppOk / ${_testCases.length} 成功');
   print('  输出目录: $outDir/');
 }

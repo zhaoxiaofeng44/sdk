@@ -33,6 +33,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <pthread.h>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -41,6 +42,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+// ASan 下栈扫描需要跳过被毒化（redzone/未使用）的栈槽
+#if defined(__SANITIZE_ADDRESS__) || \
+    (defined(__has_feature) && __has_feature(address_sanitizer))
+#include <sanitizer/asan_interface.h>
+#define DART2CPP_ASAN 1
+#endif
 
 // Forward declarations for template functions used in collection templates
 template<typename... Args>
@@ -74,6 +82,9 @@ class GC {
     static std::vector<AnyGC*> _roots;
     static std::unordered_set<AnyGC*> _registered;
     static GlobalScheduler _scheduler;
+    static int _allocSinceCollect;      // 距上次 collect 的分配数
+    static int _autoCollectThreshold;   // 自动触发阈值（0 = 关闭）
+    static bool _collecting;            // 重入保护
 
 public:
     /// 分配局部对象（非 root），注册到 GC 并返回
@@ -82,6 +93,7 @@ public:
         if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
             _objects.push_back(static_cast<AnyGC*>(obj));
         }
+        maybeAutoCollect();
         return obj;
     }
 
@@ -93,17 +105,40 @@ public:
             _objects.push_back(base);
         }
         bool found = false;
-        for (auto* r : _roots) {
-            if (r == base) { found = true; break; }
+        for (size_t i = 0; i < _roots.size(); i++) {
+            if (_roots[i] == base) { found = true; break; }
         }
         if (!found) {
             _roots.push_back(base);
         }
+        maybeAutoCollect();
         return obj;
     }
 
     /// 执行一轮标记-清除 GC，返回被回收的对象数量（定义在 GlobalScheduler 之后）
     static int collect();
+
+    /// 分配计数自动触发（定义在 GlobalScheduler 之后）：
+    /// 分配量达到阈值且不在 collect/tick 重入路径时执行 collect
+    static void maybeAutoCollect();
+
+    /// 设置自动 GC 阈值（每 N 次分配触发一轮 collect）；0 = 关闭。
+    /// 单元测试需要确定性计数时应设为 0。
+    static void setAutoCollectThreshold(int n) { _autoCollectThreshold = n; }
+    static int autoCollectThreshold() { return _autoCollectThreshold; }
+
+    /// 从 root 集中移除对象（全局/静态字段被覆盖赋值时使用，避免旧值永久钉住）
+    static void removeRoot(AnyGC* obj);
+
+    /// 保守栈扫描：扫描 [lo, 栈基) 范围内指向已注册对象的字并标记。
+    /// lo 取 collect() 自身帧地址：覆盖 collect 调用方（业务代码）及其
+    /// 所有上层活跃帧的局部变量；其下方（collector 递归帧、已返回的被调
+    /// 帧）全是陈旧值，不参与扫描 —— 否则上一轮 collect 遗留的指针槽会把
+    /// 同一对象反复钉住（永久假保留）。定义在 _gcMark 之后。
+    static void scanStack(int flag, void* lo);
+
+    /// 泄漏分析：按类型名统计存活对象并输出到 stderr，返回存活总数
+    static int reportAlive(const char* label);
 
     /// 获取当前管理的对象总数
     static int objectCount() { return static_cast<int>(_objects.size()); }
@@ -128,6 +163,9 @@ inline int GC::_currentFlag = 0;
 inline std::vector<AnyGC*> GC::_objects;
 inline std::vector<AnyGC*> GC::_roots;
 inline std::unordered_set<AnyGC*> GC::_registered;
+inline int GC::_allocSinceCollect = 0;
+inline int GC::_autoCollectThreshold = 10000;
+inline bool GC::_collecting = false;
 
 // ============================================================================
 // 前向声明
@@ -255,6 +293,69 @@ inline void _gcMark(AnyGC* obj, int flag) {
     if (obj->gcFlag == flag) return;
     obj->gcFlag = flag;
     if (obj->_classInfo && obj->_classInfo->gcMark) obj->_classInfo->gcMark(obj, flag);
+}
+
+// ── GC::removeRoot / scanStack / reportAlive 实现 ──
+
+inline void GC::removeRoot(AnyGC* obj) {
+    _roots.erase(std::remove(_roots.begin(), _roots.end(), obj), _roots.end());
+}
+
+inline void GC::scanStack(int flag, void* loHint) {
+    // 栈从高地址向低地址增长：lo = 调用方帧（高地址侧起点），hi = 栈基
+    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
+    uintptr_t hi = 0;
+#ifdef __APPLE__
+    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
+#elif defined(__linux__)
+    pthread_attr_t attr;
+    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
+        void* stackAddr = nullptr;
+        size_t stackSize = 0;
+        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
+            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
+        }
+        pthread_attr_destroy(&attr);
+    }
+#endif
+    if (!hi || hi <= lo) return;
+
+    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
+    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
+#ifdef DART2CPP_ASAN
+        // 被 ASan 毒化的槽（redzone/无效帧区域）不参与扫描；
+        // 用 region 检查覆盖整个字（部分毒化的字不可能存放有效指针）
+        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
+#endif
+        AnyGC* candidate = *reinterpret_cast<AnyGC* const*>(p);
+        if (_registered.find(candidate) != _registered.end()) {
+#ifdef DART2CPP_GC_SCAN_DEBUG
+            fprintf(stderr, "[scan] match %p at +%zu\n",
+                    static_cast<void*>(candidate), static_cast<size_t>(p - lo));
+#endif
+            _gcMark(candidate, flag);
+        }
+    }
+}
+
+inline int GC::reportAlive(const char* label) {
+    std::unordered_map<std::string, int> counts;
+    for (auto* obj : _objects) {
+        std::string name = (obj->_classInfo && !obj->_classInfo->typeName.empty())
+                               ? obj->_classInfo->typeName
+                               : std::string("<unknown>");
+        counts[name]++;
+    }
+    std::vector<std::pair<int, std::string>> sorted;
+    for (auto& kv : counts) sorted.emplace_back(kv.second, kv.first);
+    std::sort(sorted.begin(), sorted.end(),
+              [](const auto& a, const auto& b) { return a.first > b.first; });
+    fprintf(stderr, "[GC:%s] alive=%zu roots=%zu", label, _objects.size(), _roots.size());
+    for (auto& e : sorted) {
+        fprintf(stderr, " %s=%d", e.second.c_str(), e.first);
+    }
+    fprintf(stderr, "\n");
+    return static_cast<int>(_objects.size());
 }
 
 // ============================================================================
@@ -2842,6 +2943,10 @@ struct PromiseBase : AnyGC {
 
     PromiseBase() { AnyGC::_classInfo = &_classInfo; }
 
+    /// 析构时从调度器自注销（定义在 GlobalScheduler 之后）——
+    /// 使不可达的 pending Promise 被 GC 回收时自动解除调度器钉住（F2 修复）
+    ~PromiseBase() override;
+
     void addKeepAlive(AnyGC* obj) {
         if (obj) keepAlive.push_back(obj);
     }
@@ -2993,6 +3098,7 @@ class GlobalScheduler {
     std::vector<PromiseBase*> _activePromises;
     std::vector<_DelayedTask> _delayedTasks;
     std::vector<PromiseBase*> _readyPromises;
+    bool _ticking = false;  // tick 执行中：抑制自动 GC（防止回调中 collect 悬空 activeCopy）
 
     GlobalScheduler() = default;
 
@@ -3003,14 +3109,13 @@ public:
         return GC::scheduler();
     }
 
-    /// GC 标记：标记所有持有的 Promise
+    /// tick 是否执行中（自动 GC 据此抑制触发）
+    static bool ticking() { return instance()._ticking; }
+
+    /// GC 标记：仅保护延迟任务的 targetPromise（其 lambda 持有裸指针）。
+    /// active/ready Promise 不再作为 root：不可达的 pending Promise 应被
+    /// 回收，回收时经 ~PromiseBase 自注销从调度器移除（F2 修复）
     void gcMark(int flag) {
-        for (auto* p : _activePromises) {
-            if (p) _gcMark(p, flag);
-        }
-        for (auto* p : _readyPromises) {
-            if (p) _gcMark(p, flag);
-        }
         for (auto& task : _delayedTasks) {
             if (task.targetPromise) _gcMark(task.targetPromise, flag);
         }
@@ -3029,7 +3134,30 @@ public:
         _readyPromises.push_back(p);
     }
 
+    /// 显式注销 Promise（遗弃场景）：从调度器移除，使其子图可被 GC 回收。
+    /// 注意：注销后调度器不再驱动该 Promise，其延迟任务（如有）一并移除。
+    void unregisterPromise(PromiseBase* p) {
+        _activePromises.erase(
+            std::remove(_activePromises.begin(), _activePromises.end(), p),
+            _activePromises.end());
+        _readyPromises.erase(
+            std::remove(_readyPromises.begin(), _readyPromises.end(), p),
+            _readyPromises.end());
+        _delayedTasks.erase(
+            std::remove_if(_delayedTasks.begin(), _delayedTasks.end(),
+                [p](const _DelayedTask& t) { return t.targetPromise == p; }),
+            _delayedTasks.end());
+    }
+
     void tick() {
+        // RAII 守卫：tick 期间抑制自动 GC —— 若回调中触发 collect，
+        // activeCopy 中可能出现已回收的 Promise（悬空）
+        struct TickGuard {
+            bool& flag;
+            explicit TickGuard(bool& f) : flag(f) { flag = true; }
+            ~TickGuard() { flag = false; }
+        } guard(_ticking);
+
         _currentTick++;
 
         // 第一阶段：触发所有 ready 状态的 Promise 的启动回调
@@ -3077,6 +3205,13 @@ public:
             !_readyPromises.empty();
     }
 
+    /// 调度器队列计数（泄漏分析用）
+    void schedulerCounts(int* active, int* ready, int* delayed) {
+        if (active) *active = static_cast<int>(_activePromises.size());
+        if (ready) *ready = static_cast<int>(_readyPromises.size());
+        if (delayed) *delayed = static_cast<int>(_delayedTasks.size());
+    }
+
     void reset() {
         _activePromises.clear();
         _delayedTasks.clear();
@@ -3090,24 +3225,58 @@ public:
 inline GlobalScheduler GC::_scheduler;
 inline GlobalScheduler& GC::scheduler() { return _scheduler; }
 
+// ── PromiseBase 析构：从调度器自注销（F2 修复） ──
+
+inline PromiseBase::~PromiseBase() {
+    GlobalScheduler::instance().unregisterPromise(this);
+}
+
+// ── GC::maybeAutoCollect — 分配阈值自动触发（F1 修复） ──
+
+inline void GC::maybeAutoCollect() {
+    if (_autoCollectThreshold <= 0 || _collecting) return;
+    if (GlobalScheduler::ticking()) return;  // tick 回调中不触发（防悬空）
+    if (++_allocSinceCollect >= _autoCollectThreshold) {
+        _allocSinceCollect = 0;
+        collect();
+    }
+}
+
 inline int GC::collect() {
+    // 重入保护：collect 期间（含对象析构路径）不再触发自动 GC
+    struct CollectGuard {
+        bool& flag;
+        explicit CollectGuard(bool& f) : flag(f) { flag = true; }
+        ~CollectGuard() { flag = false; }
+    } guard(_collecting);
+    _allocSinceCollect = 0;
+
     _currentFlag++;
     int flag = _currentFlag;
+
+    // 标记阶段：保守栈扫描。lo 取 collect 自身帧指针（帧顶 = 调用方帧底）：
+    // [lo, 栈基) 恰好覆盖调用方及所有上层活跃帧的全部局部变量；
+    // lo 之下是 collector 递归帧与已返回的被调帧（含与 collect 同深度的
+    // 陈旧指针槽），一律不参与扫描 —— 否则会反复钉住已死对象。
+    // 依赖帧指针存在（-O0 或 -fno-omit-frame-pointer）。
+    scanStack(flag, __builtin_frame_address(0));
 
     // 标记阶段：GlobalScheduler 持有的 Promise 作为 root
     _scheduler.gcMark(flag);
 
-    // 标记阶段：从每个 root 出发递归标记
-    for (auto* root : _roots) {
-        _gcMark(root, flag);
+    // 标记阶段：从每个 root 出发递归标记。
+    // 注意：以下所有循环均用索引遍历 —— 若用 `for (auto* obj : ...)`，
+    // 遗留在本帧的指针槽会在下一轮 collect 的栈扫描中钉住对象（假保留）
+    for (size_t i = 0; i < _roots.size(); i++) {
+        _gcMark(_roots[i], flag);
     }
 
     // 清除阶段：收集未被标记的对象
     int beforeCount = static_cast<int>(_objects.size());
     std::vector<AnyGC*> toDelete;
-    for (auto* obj : _objects) {
-        if (obj->gcFlag != flag) {
-            toDelete.push_back(obj);
+    for (size_t i = 0; i < _objects.size(); i++) {
+        if (_objects[i]->gcFlag != flag) {
+            toDelete.push_back(_objects[i]);
         }
     }
 
@@ -3120,8 +3289,8 @@ inline int GC::collect() {
 
     // 重建 _registered
     _registered.clear();
-    for (auto* obj : _objects) {
-        _registered.insert(obj);
+    for (size_t i = 0; i < _objects.size(); i++) {
+        _registered.insert(_objects[i]);
     }
 
     // 防御性清理 roots（理论上 root 总是被标记的）
@@ -3131,9 +3300,10 @@ inline int GC::collect() {
         _roots.end()
     );
 
-    // 释放未被标记的对象内存
-    for (auto* obj : toDelete) {
-        delete obj;
+    // 释放未被标记的对象内存（索引遍历；遗留槽中的指针指向已删除
+    // 对象，不在 _registered 中，下轮扫描不会误钉）
+    for (size_t i = 0; i < toDelete.size(); i++) {
+        delete toDelete[i];
     }
 
     return beforeCount - static_cast<int>(_objects.size());
@@ -3141,7 +3311,7 @@ inline int GC::collect() {
 
 // ── PromiseBase 延迟实现（依赖 GlobalScheduler 完整类型） ──
 
-void PromiseBase::_vptr_setStartCallback(AnyGC* self, std::function<void()> cb) {
+inline void PromiseBase::_vptr_setStartCallback(AnyGC* self, std::function<void()> cb) {
     auto* p = static_cast<PromiseBase*>(self);
     p->startCallback = std::move(cb);
     GC::allocateLocal(p);
@@ -3149,7 +3319,7 @@ void PromiseBase::_vptr_setStartCallback(AnyGC* self, std::function<void()> cb) 
     GlobalScheduler::instance().registerReadyPromise(p);
 }
 
-void PromiseBase::_vptr_setTickCallback(AnyGC* self, std::function<bool()> cb) {
+inline void PromiseBase::_vptr_setTickCallback(AnyGC* self, std::function<bool()> cb) {
     auto* p = static_cast<PromiseBase*>(self);
     p->onTick = std::move(cb);
     GC::allocateLocal(p);
@@ -3201,6 +3371,7 @@ Promise<R>* promise_then(Promise<T>* self, std::function<AnyGC*(T)> onValue) {
                 // flatMap 场景：返回内部 Promise
                 auto* nextPromise = GC::allocateLocal(new Promise<R>());
                 auto* capturedInner = innerPromise;
+                nextPromise->addKeepAlive(static_cast<AnyGC*>(capturedInner));  // F5：钉住内部 Promise
                 nextPromise->onTick = [capturedInner, nextPromise]() -> bool {
                     if (capturedInner->state == PromiseBase::COMPLETED) {
                         promise_complete(nextPromise, capturedInner->result);
@@ -3235,6 +3406,9 @@ Promise<R>* promise_then(Promise<T>* self, std::function<AnyGC*(T)> onValue) {
 
     // 正常场景：延迟执行
     auto* nextPromise = GC::allocateLocal(new Promise<R>());
+    // F5 修复：lambda 捕获对 GC 标记不可见，用 keepAlive 显式钉住上游 Promise，
+    // 防止 self 在仅被 nextPromise->onTick 引用时被 collect 回收（UAF）
+    nextPromise->addKeepAlive(static_cast<AnyGC*>(self));
     nextPromise->onTick = [self, onValue, nextPromise]() -> bool {
         if (self->state == PromiseBase::COMPLETED) {
             try {
@@ -3242,6 +3416,7 @@ Promise<R>* promise_then(Promise<T>* self, std::function<AnyGC*(T)> onValue) {
                 AnyGC* gcResult = callbackResult;
                 PromiseBase* innerPromise = gcResult ? (_isInstanceOf(gcResult, &PromiseBase::_classInfo) ? static_cast<PromiseBase*>(gcResult) : nullptr) : nullptr;
                 if (innerPromise) {
+                    nextPromise->addKeepAlive(static_cast<AnyGC*>(innerPromise));  // F5：钉住内部 Promise
                     nextPromise->onTick = [innerPromise, nextPromise]() -> bool {
                         if (innerPromise->state == PromiseBase::COMPLETED) {
                             promise_complete(nextPromise, innerPromise->result);
@@ -3293,6 +3468,7 @@ Promise<T>* promise_catchError(Promise<T>* self, std::function<T(AnyGC*)> onErro
 
     // 正常场景：延迟执行
     auto* nextPromise = GC::allocateLocal(new Promise<T>());
+    nextPromise->addKeepAlive(static_cast<AnyGC*>(self));  // F5：钉住上游 Promise
     nextPromise->onTick = [self, onError, nextPromise]() -> bool {
         if (self->state == PromiseBase::COMPLETED) {
             promise_complete(nextPromise, self->result);
@@ -3336,6 +3512,7 @@ Promise<T>* promise_whenComplete(Promise<T>* self, std::function<void()> action)
 
     // 正常场景：延迟执行
     auto* nextPromise = GC::allocateLocal(new Promise<T>());
+    nextPromise->addKeepAlive(static_cast<AnyGC*>(self));  // F5：钉住上游 Promise
     nextPromise->onTick = [self, action, nextPromise]() -> bool {
         if (self->state == PromiseBase::COMPLETED) {
             try {
@@ -3487,8 +3664,10 @@ struct _PromiseThen {
 
 // ── smAwait<T> — 阻塞式 await（对齐 Dart smAwait，含递归深度计数） ──
 
-static int _smAwaitDepth = 0;
-static const int _smAwaitMaxDepth = 500;
+// inline：多 TU 共享同一实体（原 static 内部链接会导致每个 TU 一份副本，
+// 深度计数互相不可见）
+inline int _smAwaitDepth = 0;
+inline const int _smAwaitMaxDepth = 500;
 
 // RAII guard for smAwait depth tracking
 struct SmAwaitDepthGuard {
@@ -3606,6 +3785,9 @@ inline void drainScheduler() {
     int roundCount = 0;
     while (GlobalScheduler::instance().hasActiveWork()) {
         GlobalScheduler::instance().tick();
+        // 回收不可达的 pending Promise（析构自注销），
+        // 避免被遗弃的 Promise 使 hasActiveWork 永久为 true
+        GC::collect();
         roundCount++;
         if (roundCount > 1000000) {
             throw DartStateError("drainScheduler exceeded max rounds — possible deadlock");

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:kernel/kernel.dart';
-import 'package:dart2cpp/dart_to_dart_restorer.dart';
+import 'package:dart2cpp/dart_to_cpp.dart';
 
 void main(List<String> args) async {
   final testName = args.isNotEmpty ? args[0] : 'restorer_complex_test';

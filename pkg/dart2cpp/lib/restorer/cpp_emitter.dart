@@ -3,16 +3,8 @@ part of 'dart_restorer.dart';
 // ============================================================================
 // Dart Kernel AST → C++ 代码生成器
 // ============================================================================
-// 与 DartRestorer 平级，共享 Kernel AST 中间表示和类信息分析结果，
-// 分别生成静态 Dart 和 C++ 两份输出。
-//
-// 架构：
-//   Kernel AST (共享中间表示)
-//       ├─→ DartRestorer  → 静态 Dart (Lowered Dart)
-//       └─→ CppEmitter    → C++ (使用 dart2cpp_lowered.h 运行时)
-//
-// CppEmitter 复用 DartRestorer 的类信息收集、VTable 构建、泛型特化分析，
-// 但使用独立的 C++ 代码发射逻辑。
+// CppEmitter 复用 _ClassInfoCollector 的类信息收集、VTable 构建、泛型特化分析，
+// 使用独立的 C++ 代码发射逻辑，输出依赖 dart2cpp_lowered.h 运行时。
 // ============================================================================
 
 /// 将 Dart Kernel Component 转换为 C++ 源码字符串
@@ -198,30 +190,30 @@ class CppEmitter {
     _declaredVariables.clear();
     _variableNameMappings.clear();
 
-    // 第一遍：收集类信息（复用 DartRestorer 的分析逻辑）
-    final restorer = DartRestorer();
+    // 第一遍：收集类信息（复用 _ClassInfoCollector 的分析逻辑）
+    final collector = _ClassInfoCollector();
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
       if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
-      restorer._collectClassInfo(lib);
+      collector._collectClassInfo(lib);
     }
 
     // 复制分析结果
-    _userClasses.addAll(restorer._userClasses);
-    _mixinNames.addAll(restorer._mixinNames);
-    _enumNames.addAll(restorer._enumNames);
-    _classHierarchy.addAll(restorer._classHierarchy);
-    _classVTableEntries.addAll(restorer._classVTableEntries);
-    _classNodes.addAll(restorer._classNodes);
-    _syntheticLoweredNames.addAll(restorer._syntheticLoweredNames);
+    _userClasses.addAll(collector._userClasses);
+    _mixinNames.addAll(collector._mixinNames);
+    _enumNames.addAll(collector._enumNames);
+    _classHierarchy.addAll(collector._classHierarchy);
+    _classVTableEntries.addAll(collector._classVTableEntries);
+    _classNodes.addAll(collector._classNodes);
+    _syntheticLoweredNames.addAll(collector._syntheticLoweredNames);
 
     // 第二遍：预扫描泛型特化
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
       if (uri.startsWith('dart:') || uri.startsWith('package:')) continue;
-      restorer._collectMethodTypeSpecializations(lib);
+      collector._collectMethodTypeSpecializations(lib);
     }
-    _methodTypeSpecializations.addAll(restorer._methodTypeSpecializations);
+    _methodTypeSpecializations.addAll(collector._methodTypeSpecializations);
 
     // 第三遍：生成 C++ 代码
     for (final lib in component.libraries) {
@@ -1637,7 +1629,13 @@ class CppEmitter {
         final defaultVal = _cppDefaultValue(fieldType);
         if (field.initializer != null) {
           final initVal = _emitCppExpr(field.initializer!);
-          _implBuf.writeln('$fieldType $fieldName = $initVal;');
+          // F3 修复：GC 对象指针类型的静态字段必须注册为 root，
+          // 否则 collect() 会回收仍被全局变量引用的对象（use-after-free）
+          if (fieldType.endsWith('*') && initVal != 'nullptr') {
+            _implBuf.writeln('$fieldType $fieldName = GC::allocateGlobal($initVal);');
+          } else {
+            _implBuf.writeln('$fieldType $fieldName = $initVal;');
+          }
         } else {
           _implBuf.writeln('$fieldType $fieldName\{$defaultVal\};');
         }
@@ -2860,9 +2858,16 @@ class CppEmitter {
       if (func.body != null) {
         _emitCppStmt(func.body!, _implBuf);
       }
-      // main 函数需要返回 0
       if (isMainFunc) {
+        // 程序退出前 GC 检查点：回收不可达对象并输出泄漏分析（stderr）
+        _implBuf.writeln('${_pad}GC::collect();');
+        _implBuf.writeln('${_pad}GC::reportAlive("exit");');
         _implBuf.writeln('${_pad}return 0;');
+      } else if (returnType == 'void') {
+        // 每个测试用例（void 顶层函数）结束时 GC 检查点：
+        // 栈扫描 + root 化静态字段保证安全性，泄漏分析输出到 stderr
+        _implBuf.writeln('${_pad}GC::collect();');
+        _implBuf.writeln('${_pad}GC::reportAlive("$funcName");');
       }
     }
 
@@ -6625,9 +6630,17 @@ class CppEmitter {
       }
       // Handle List.from, Set.from, Map.from static methods
       if ((className == 'List' || className == 'StaticList') && methodName == 'from') {
+        String? savedExpectedType;
+        if (expr.arguments.types.isNotEmpty) {
+          savedExpectedType = _expectedCollectionElementType;
+          _expectedCollectionElementType = _cppType(expr.arguments.types.first);
+        }
         final arg = expr.arguments.positional.isNotEmpty
             ? _emitCppExpr(expr.arguments.positional.first)
             : 'nullptr';
+        if (savedExpectedType != null) {
+          _expectedCollectionElementType = savedExpectedType;
+        }
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
           return 'StaticList<$typeArg>::from($arg)';
@@ -6635,9 +6648,17 @@ class CppEmitter {
         return 'StaticList<AnyGC*>::from($arg)';
       }
       if ((className == 'Set' || className == 'StaticSet') && methodName == 'from') {
+        String? savedExpectedType;
+        if (expr.arguments.types.isNotEmpty) {
+          savedExpectedType = _expectedCollectionElementType;
+          _expectedCollectionElementType = _cppType(expr.arguments.types.first);
+        }
         final arg = expr.arguments.positional.isNotEmpty
             ? _emitCppExpr(expr.arguments.positional.first)
             : 'nullptr';
+        if (savedExpectedType != null) {
+          _expectedCollectionElementType = savedExpectedType;
+        }
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
           return 'StaticSet<$typeArg>::from($arg)';
@@ -6985,6 +7006,12 @@ class CppEmitter {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       return 'DartUnimplementedError(${_extractStringFromBox(callArgs)})';
     }
+    if (className == 'ReachabilityError') {
+      final msg = args.positional.isNotEmpty
+          ? _emitCppExpr(args.positional.first)
+          : 'std::string("")';
+      return 'ReachabilityError{._msg = $msg}';
+    }
     if (className == 'Duration' || className == 'DurationValue') {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       if (args.named.isNotEmpty) {
@@ -7152,7 +7179,7 @@ class CppEmitter {
       return 'GC::allocateLocal(new StaticList<AnyGC*>($callArgs))';
     }
 
-    if (className == 'StaticSet' || className == 'Set') {
+    if (className == 'StaticSet' || className == 'Set' || className == '_Set') {
       if (args.positional.isEmpty && args.named.isEmpty) {
         // 空集合：StaticSet<T>()
         if (args.types.isNotEmpty) {
@@ -8107,6 +8134,76 @@ class CppEmitter {
     } else if (node is TryFinally) {
       _collectAllCppFunctionExpressions(node.body, out);
       _collectAllCppFunctionExpressions(node.finalizer, out);
+    } else if (node is InstanceInvocation) {
+      // F7 修复：闭包常作为调用实参传递（如 map.forEach((k,v){...})），
+      // 必须穿透进 receiver 与实参，否则预分析漏掉闭包 → 可变捕获变量
+      // 不会在声明处装箱 → 闭包内修改无法传播到外层
+      _collectAllCppFunctionExpressions(node.receiver, out);
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is StaticInvocation) {
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is FunctionInvocation) {
+      _collectAllCppFunctionExpressions(node.receiver, out);
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is ConstructorInvocation) {
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is SuperMethodInvocation) {
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is LocalFunctionInvocation) {
+      _collectAllCppFunctionExpressionsFromArgs(node.arguments, out);
+    } else if (node is ConditionalExpression) {
+      _collectAllCppFunctionExpressions(node.condition, out);
+      _collectAllCppFunctionExpressions(node.then, out);
+      _collectAllCppFunctionExpressions(node.otherwise, out);
+    } else if (node is LogicalExpression) {
+      _collectAllCppFunctionExpressions(node.left, out);
+      _collectAllCppFunctionExpressions(node.right, out);
+    } else if (node is EqualsCall) {
+      _collectAllCppFunctionExpressions(node.left, out);
+      _collectAllCppFunctionExpressions(node.right, out);
+    } else if (node is Not) {
+      _collectAllCppFunctionExpressions(node.operand, out);
+    } else if (node is StringConcatenation) {
+      for (final e in node.expressions) {
+        _collectAllCppFunctionExpressions(e, out);
+      }
+    } else if (node is ListLiteral) {
+      for (final e in node.expressions) {
+        _collectAllCppFunctionExpressions(e, out);
+      }
+    } else if (node is SetLiteral) {
+      for (final e in node.expressions) {
+        _collectAllCppFunctionExpressions(e, out);
+      }
+    } else if (node is MapLiteral) {
+      for (final entry in node.entries) {
+        _collectAllCppFunctionExpressions(entry.key, out);
+        _collectAllCppFunctionExpressions(entry.value, out);
+      }
+    } else if (node is AwaitExpression) {
+      _collectAllCppFunctionExpressions(node.operand, out);
+    } else if (node is Throw) {
+      _collectAllCppFunctionExpressions(node.expression, out);
+    } else if (node is AsExpression) {
+      _collectAllCppFunctionExpressions(node.operand, out);
+    } else if (node is IsExpression) {
+      _collectAllCppFunctionExpressions(node.operand, out);
+    } else if (node is InstanceGet) {
+      _collectAllCppFunctionExpressions(node.receiver, out);
+    } else if (node is InstanceSet) {
+      _collectAllCppFunctionExpressions(node.receiver, out);
+      _collectAllCppFunctionExpressions(node.value, out);
+    }
+  }
+
+  /// 穿透调用实参（位置 + 命名）收集 FunctionExpression
+  void _collectAllCppFunctionExpressionsFromArgs(
+      Arguments args, List<FunctionExpression> out) {
+    for (final arg in args.positional) {
+      _collectAllCppFunctionExpressions(arg, out);
+    }
+    for (final named in args.named) {
+      _collectAllCppFunctionExpressions(named.value, out);
     }
   }
 
@@ -8865,6 +8962,16 @@ class CppEmitter {
     }
   }
 
+  /// 穿透调用实参（位置 + 命名）收集捕获变量
+  void _collectCapturedVarsFromArgs(Arguments args, List<VariableDeclaration> out) {
+    for (final arg in args.positional) {
+      _collectCapturedVarsFromExpression(arg, out);
+    }
+    for (final named in args.named) {
+      _collectCapturedVarsFromExpression(named.value, out);
+    }
+  }
+
   void _collectCapturedVarsFromExpression(Expression expr, List<VariableDeclaration> out) {
     if (expr is VariableGet) {
       final decl = expr.variable;
@@ -8880,13 +8987,9 @@ class CppEmitter {
       _collectCapturedVarsFromExpression(expr.value, out);
     } else if (expr is InstanceInvocation) {
       _collectCapturedVarsFromExpression(expr.receiver, out);
-      for (final arg in expr.arguments.positional) {
-        _collectCapturedVarsFromExpression(arg, out);
-      }
+      _collectCapturedVarsFromArgs(expr.arguments, out);
     } else if (expr is StaticInvocation) {
-      for (final arg in expr.arguments.positional) {
-        _collectCapturedVarsFromExpression(arg, out);
-      }
+      _collectCapturedVarsFromArgs(expr.arguments, out);
     } else if (expr is StringConcatenation) {
       for (final e in expr.expressions) {
         _collectCapturedVarsFromExpression(e, out);
@@ -8927,17 +9030,13 @@ class CppEmitter {
       _collectCapturedVarsFromExpression(expr.operand, out);
     } else if (expr is FunctionInvocation) {
       _collectCapturedVarsFromExpression(expr.receiver, out);
-      for (final arg in expr.arguments.positional) {
-        _collectCapturedVarsFromExpression(arg, out);
-      }
+      _collectCapturedVarsFromArgs(expr.arguments, out);
     } else if (expr is AwaitExpression) {
       _collectCapturedVarsFromExpression(expr.operand, out);
     } else if (expr is Throw) {
       _collectCapturedVarsFromExpression(expr.expression, out);
     } else if (expr is ConstructorInvocation) {
-      for (final arg in expr.arguments.positional) {
-        _collectCapturedVarsFromExpression(arg, out);
-      }
+      _collectCapturedVarsFromArgs(expr.arguments, out);
     } else if (expr is Let) {
       if (expr.variable.initializer != null) {
         _collectCapturedVarsFromExpression(expr.variable.initializer!, out);
@@ -9308,7 +9407,20 @@ class CppEmitter {
   String _emitCppStaticSet(StaticSet expr) {
     final target = expr.target;
     final value = _emitCppExpr(expr.value);
-    if (target is Field) return '${_cleanName(target.name.text)} = $value';
+    if (target is Field) {
+      final fieldName = _cleanName(target.name.text);
+      final fieldType = _cppType(target.type);
+      // F3/F4 修复：GC 对象指针类型的静态字段赋值时，
+      // 旧值移出 root 集（避免永久钉住），新值注册为 root
+      if (fieldType.endsWith('*') &&
+          !_enumNames.contains(target.enclosingClass?.name ?? '')) {
+        if (value == 'nullptr') {
+          return '(GC::removeRoot($fieldName), $fieldName = nullptr)';
+        }
+        return '(GC::removeRoot($fieldName), $fieldName = GC::allocateGlobal($value))';
+      }
+      return '$fieldName = $value';
+    }
     return '/* StaticSet */';
   }
 

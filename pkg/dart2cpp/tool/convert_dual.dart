@@ -1,11 +1,10 @@
 #!/usr/bin/env dart
-/// 双输出生成器：同时生成静态 Dart 和 C++
+/// C++ 生成器：将 Dart 源码编译为 C++
 /// 用法: dart tool/convert_dual.dart <source.dart> <output_dir>
 /// 示例: dart tool/convert_dual.dart sample/src/hello.dart sample/output
 
 import 'dart:io';
 import 'package:kernel/kernel.dart' as k;
-import '../lib/dart_to_dart_restorer.dart';
 import '../lib/dart_to_cpp.dart';
 
 void main(List<String> args) {
@@ -50,21 +49,10 @@ void main(List<String> args) {
   final component = k.loadComponentFromBinary(dillPath);
   print('✅ 加载成功');
 
-  // 生成静态 Dart
-  print('🔄 生成静态 Dart...');
-  final dartSource = restoreDartFromComponent(component);
-  final dartOutputPath = '$outDir/${basename}_restored.dart';
-  File(dartOutputPath).writeAsStringSync(dartSource);
-  print('✅ 静态 Dart: $dartOutputPath (${dartSource.length} 字符, ${dartSource.split('\n').length} 行)');
-
   // 生成 C++
   print('⚙️  生成 C++...');
   final cppSource = emitCppFromComponent(component);
   final cppOutputPath = '$outDir/${basename}_restored.cpp';
   File(cppOutputPath).writeAsStringSync(cppSource);
   print('✅ C++: $cppOutputPath (${cppSource.length} 字符, ${cppSource.split('\n').length} 行)');
-
-  print('\n📊 双输出完成:');
-  print('  📄 Dart: ${dartSource.split('\n').length} 行');
-  print('  📄 C++:  ${cppSource.split('\n').length} 行');
 }
