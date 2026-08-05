@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <functional>
 #include <iomanip>
@@ -38,6 +39,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -50,9 +52,303 @@
 #define DART2CPP_ASAN 1
 #endif
 
+// ============================================================================
+// 0. DartString / StringPool — 两层字符串体系
+// ============================================================================
+// 第一层 StringPool：全局字符串池，hashmap（hash → 桶）存储 char* 及
+//   相关信息（长度、hash、引用计数），内容相同的字符串共享同一池条目。
+// 第二层 DartString：值语义句柄，持有一个池条目指针；拷贝/移动/析构
+//   管理条目的引用计数，当没有任何 DartString 持有某条目时（计数归零），
+//   该条目从池中移除并释放内存。
+// 变更操作（+= / push_back / replace 等）采用"生成新内容 → 重新入池"
+//   策略，池内条目始终不可变，保证共享安全。
+
+class DartString;
+
+class StringPool {
+public:
+    struct Entry {
+        char* data = nullptr;      // NUL 结尾的字符数组（池拥有）
+        size_t length = 0;
+        size_t hash = 0;
+        int64_t refCount = 0;      // 持有该条目的 DartString 数量
+    };
+
+private:
+    std::unordered_map<size_t, std::vector<Entry*>> _buckets;
+
+    StringPool() = default;
+
+    static size_t _hashContent(const char* data, size_t len) {
+        // FNV-1a
+        size_t h = static_cast<size_t>(1469598103934665603ULL);
+        for (size_t i = 0; i < len; i++) {
+            h ^= static_cast<unsigned char>(data[i]);
+            h *= static_cast<size_t>(1099511628211ULL);
+        }
+        return h;
+    }
+
+public:
+    StringPool(const StringPool&) = delete;
+    StringPool& operator=(const StringPool&) = delete;
+
+    ~StringPool() {
+        // 清理仍被泄漏句柄持有的条目（如未回收的 GC 对象），避免退出时泄漏
+        for (auto& kv : _buckets) {
+            for (Entry* e : kv.second) {
+                delete[] e->data;
+                delete e;
+            }
+        }
+        _buckets.clear();
+    }
+
+    static StringPool& instance() {
+        static StringPool pool;
+        return pool;
+    }
+
+    /// 从池中获取（或创建）内容为 [data, data+len) 的条目，引用计数 +1
+    Entry* acquire(const char* data, size_t len) {
+        size_t h = _hashContent(data, len);
+        std::vector<Entry*>& bucket = _buckets[h];
+        for (size_t i = 0; i < bucket.size(); i++) {
+            Entry* e = bucket[i];
+            if (e->length == len && (len == 0 || std::memcmp(e->data, data, len) == 0)) {
+                e->refCount++;
+                return e;
+            }
+        }
+        Entry* e = new Entry();
+        char* buf = new char[len + 1];
+        if (len > 0) std::memcpy(buf, data, len);
+        buf[len] = '\0';
+        e->data = buf;
+        e->length = len;
+        e->hash = h;
+        e->refCount = 1;
+        bucket.push_back(e);
+        return e;
+    }
+
+    Entry* acquire(const std::string& s) { return acquire(s.data(), s.size()); }
+
+    /// 释放一个条目的引用；计数归零时从池中移除并释放内存
+    void release(Entry* e) {
+        if (!e) return;
+        e->refCount--;
+        if (e->refCount > 0) return;
+        auto it = _buckets.find(e->hash);
+        if (it != _buckets.end()) {
+            std::vector<Entry*>& bucket = it->second;
+            bucket.erase(std::remove(bucket.begin(), bucket.end(), e), bucket.end());
+            if (bucket.empty()) _buckets.erase(it);
+        }
+        delete[] e->data;
+        delete e;
+    }
+
+    /// 池中当前条目数（诊断/测试用）
+    size_t entryCount() const {
+        size_t n = 0;
+        for (const auto& kv : _buckets) n += kv.second.size();
+        return n;
+    }
+};
+
+/// DartString — 引用计数式字符串句柄（内容存储于 StringPool）
+class DartString {
+public:
+    static constexpr size_t npos = static_cast<size_t>(-1);
+    using const_iterator = const char*;
+
+private:
+    StringPool::Entry* _entry;
+
+    std::string_view _view() const {
+        return _entry ? std::string_view(_entry->data, _entry->length) : std::string_view();
+    }
+
+    /// 释放当前条目并绑定到内容 [data, data+len) 的池条目
+    void _reassign(const char* data, size_t len) {
+        StringPool& pool = StringPool::instance();
+        StringPool::Entry* next = pool.acquire(data, len);
+        if (_entry) pool.release(_entry);
+        _entry = next;
+    }
+
+public:
+    DartString() : _entry(StringPool::instance().acquire("", 0)) {}
+    DartString(const char* s)
+        : _entry(StringPool::instance().acquire(s ? s : "", s ? std::strlen(s) : 0)) {}
+    DartString(const char* s, size_t len)
+        : _entry(StringPool::instance().acquire(s ? s : "", s ? len : 0)) {}
+    DartString(const std::string& s)
+        : _entry(StringPool::instance().acquire(s.data(), s.size())) {}
+    DartString(std::string&& s)
+        : _entry(StringPool::instance().acquire(s.data(), s.size())) {}
+    DartString(std::string_view sv)
+        : _entry(StringPool::instance().acquire(sv.data(), sv.size())) {}
+    DartString(size_t count, char c) : _entry(nullptr) {
+        std::string buf(count, c);
+        _entry = StringPool::instance().acquire(buf.data(), buf.size());
+    }
+    DartString(const DartString& other) : _entry(other._entry) {
+        if (_entry) _entry->refCount++;
+    }
+    DartString(DartString&& other) noexcept : _entry(other._entry) {
+        // 源句柄重置为空串条目，保持析构安全
+        other._entry = StringPool::instance().acquire("", 0);
+    }
+    ~DartString() {
+        if (_entry) StringPool::instance().release(_entry);
+    }
+
+    DartString& operator=(const DartString& other) {
+        if (this != &other) {
+            StringPool::Entry* next = other._entry;
+            if (next) next->refCount++;
+            if (_entry) StringPool::instance().release(_entry);
+            _entry = next;
+        }
+        return *this;
+    }
+    DartString& operator=(DartString&& other) noexcept {
+        if (this != &other) {
+            if (_entry) StringPool::instance().release(_entry);
+            _entry = other._entry;
+            other._entry = StringPool::instance().acquire("", 0);
+        }
+        return *this;
+    }
+    DartString& operator=(const char* s) {
+        _reassign(s ? s : "", s ? std::strlen(s) : 0);
+        return *this;
+    }
+    DartString& operator=(const std::string& s) {
+        _reassign(s.data(), s.size());
+        return *this;
+    }
+
+    // ── 访问 ──
+    const char* c_str() const { return _entry ? _entry->data : ""; }
+    const char* data() const { return c_str(); }
+    size_t size() const { return _entry ? _entry->length : 0; }
+    size_t length() const { return size(); }
+    bool empty() const { return size() == 0; }
+    char operator[](int64_t i) const { return c_str()[i]; }
+    char at(size_t i) const {
+        if (i >= size()) throw std::out_of_range("DartString::at");
+        return c_str()[i];
+    }
+    const char* begin() const { return c_str(); }
+    const char* end() const { return c_str() + size(); }
+    const char* cbegin() const { return c_str(); }
+    const char* cend() const { return c_str() + size(); }
+
+    /// 转为 std::string（与标准库交互的边界转换）
+    std::string toStd() const { return std::string(c_str(), size()); }
+    size_t hashValue() const { return _entry ? _entry->hash : 0; }
+    /// 池条目指针（相同内容共享同一条目，可用于快速相等判断）
+    const StringPool::Entry* poolEntry() const { return _entry; }
+    int64_t poolRefCount() const { return _entry ? _entry->refCount : 0; }
+
+    // ── 比较 ──
+    int compare(const DartString& other) const { return _view().compare(other._view()); }
+    int compare(const char* other) const { return _view().compare(other ? other : ""); }
+    bool operator==(const DartString& other) const {
+        if (_entry == other._entry) return true;
+        return size() == other.size() && std::memcmp(c_str(), other.c_str(), size()) == 0;
+    }
+    bool operator!=(const DartString& other) const { return !(*this == other); }
+    bool operator==(const char* other) const {
+        return _view() == std::string_view(other ? other : "");
+    }
+    bool operator!=(const char* other) const { return !(*this == other); }
+    bool operator<(const DartString& other) const { return _view() < other._view(); }
+
+    // ── 拼接（生成新内容并重新入池） ──
+    DartString& operator+=(const DartString& other) {
+        if (other.empty()) return *this;
+        std::string buf = toStd();
+        buf.append(other.c_str(), other.size());
+        _reassign(buf.data(), buf.size());
+        return *this;
+    }
+    DartString& operator+=(const char* s) {
+        if (!s || !*s) return *this;
+        std::string buf = toStd();
+        buf.append(s);
+        _reassign(buf.data(), buf.size());
+        return *this;
+    }
+    DartString& operator+=(char c) {
+        std::string buf = toStd();
+        buf.push_back(c);
+        _reassign(buf.data(), buf.size());
+        return *this;
+    }
+
+    // ── 变更操作 ──
+    void reserve(size_t) {}  // 池化存储无需预留容量（兼容接口）
+    void push_back(char c) { *this += c; }
+    DartString& replace(size_t pos, size_t count, const DartString& str) {
+        std::string buf = toStd();
+        buf.replace(pos, count, str.c_str(), str.size());
+        _reassign(buf.data(), buf.size());
+        return *this;
+    }
+
+    // ── 子串与查找 ──
+    DartString substr(size_t pos = 0, size_t count = npos) const {
+        std::string_view v = _view();
+        if (pos > v.size()) pos = v.size();
+        return DartString(v.substr(pos, count));
+    }
+    size_t find(const DartString& sub, size_t pos = 0) const { return _view().find(sub._view(), pos); }
+    size_t find(const char* s, size_t pos = 0) const { return _view().find(s ? s : "", pos); }
+    size_t find(char c, size_t pos = 0) const { return _view().find(c, pos); }
+    size_t rfind(const DartString& sub, size_t pos = npos) const { return _view().rfind(sub._view(), pos); }
+    size_t rfind(char c, size_t pos = npos) const { return _view().rfind(c, pos); }
+    size_t find_first_of(const char* s, size_t pos = 0) const { return _view().find_first_of(s ? s : "", pos); }
+    size_t find_first_not_of(const char* s, size_t pos = 0) const { return _view().find_first_not_of(s ? s : "", pos); }
+    size_t find_last_not_of(const char* s, size_t pos = npos) const { return _view().find_last_not_of(s ? s : "", pos); }
+};
+
+inline DartString operator+(DartString lhs, const DartString& rhs) { lhs += rhs; return lhs; }
+inline DartString operator+(DartString lhs, const char* rhs) { lhs += rhs; return lhs; }
+inline DartString operator+(DartString lhs, char rhs) { lhs += rhs; return lhs; }
+inline DartString operator+(const char* lhs, const DartString& rhs) {
+    DartString result(lhs);
+    result += rhs;
+    return result;
+}
+inline DartString operator+(char lhs, const DartString& rhs) {
+    DartString result;
+    result += lhs;
+    result += rhs;
+    return result;
+}
+inline bool operator==(const char* lhs, const DartString& rhs) { return rhs == lhs; }
+inline bool operator!=(const char* lhs, const DartString& rhs) { return !(rhs == lhs); }
+
+inline std::ostream& operator<<(std::ostream& os, const DartString& s) {
+    if (s.size() > 0) os.write(s.data(), static_cast<std::streamsize>(s.size()));
+    return os;
+}
+
+// ── std::hash 特化 — 使 DartString 可作 unordered_map/set 的键 ──
+namespace std {
+template<>
+struct hash<DartString> {
+    size_t operator()(const DartString& s) const { return s.hashValue(); }
+};
+}  // namespace std
+
 // Forward declarations for template functions used in collection templates
 template<typename... Args>
-std::string dart_str(Args&&... args);
+DartString dart_str(Args&&... args);
 
 // Forward declarations needed by AnyGC (defined later)
 struct AnyGC;
@@ -69,7 +365,7 @@ struct AnyGC {
     ClassInfo* _classInfo = nullptr;
 
     virtual ~AnyGC() = default;
-    virtual std::string toString() const;
+    virtual DartString toString() const;
 };
 
 // ============================================================================
@@ -181,61 +477,61 @@ struct DartException;
 // ============================================================================
 
 struct DartException : std::exception {
-    std::string message;
-    DartException(const std::string& msg) : message(msg) {}
+    DartString message;
+    DartException(const DartString& msg) : message(msg) {}
     const char* what() const noexcept override { return message.c_str(); }
-    virtual std::string toString() const { return "Exception: " + message; }
+    virtual DartString toString() const { return "Exception: " + message; }
 };
 
 struct DartStateError : DartException {
-    DartStateError(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "StateError: " + message; }
+    DartStateError(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "StateError: " + message; }
 };
 
 struct DartArgumentError : DartException {
-    DartArgumentError(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "ArgumentError: " + message; }
+    DartArgumentError(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "ArgumentError: " + message; }
 };
 
 struct DartRangeError : DartException {
-    DartRangeError(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "RangeError: " + message; }
+    DartRangeError(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "RangeError: " + message; }
 };
 
 struct DartFormatException : DartException {
-    DartFormatException(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "FormatException: " + message; }
+    DartFormatException(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "FormatException: " + message; }
 };
 
-inline int64_t dart_stoll(const std::string& s) {
+inline int64_t dart_stoll(const DartString& s) {
     try {
-        return std::stoll(s);
+        return std::stoll(s.toStd());
     } catch (...) {
         throw DartFormatException(s);
     }
 }
 
-inline double dart_stod(const std::string& s) {
+inline double dart_stod(const DartString& s) {
     try {
-        return std::stod(s);
+        return std::stod(s.toStd());
     } catch (...) {
         throw DartFormatException(s);
     }
 }
 
 struct DartUnsupportedError : DartException {
-    DartUnsupportedError(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "UnsupportedError: " + message; }
+    DartUnsupportedError(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "UnsupportedError: " + message; }
 };
 
 struct DartUnimplementedError : DartException {
-    DartUnimplementedError(const std::string& msg) : DartException(msg) {}
-    std::string toString() const override { return "UnimplementedError: " + message; }
+    DartUnimplementedError(const DartString& msg) : DartException(msg) {}
+    DartString toString() const override { return "UnimplementedError: " + message; }
 };
 
 struct ReachabilityError {
-    std::string _msg;
-    std::string toStringValue() const { return _msg; }
+    DartString _msg;
+    DartString toStringValue() const { return _msg; }
 };
 
 // ============================================================================
@@ -243,7 +539,7 @@ struct ReachabilityError {
 // ============================================================================
 
 struct ClassInfo {
-    std::string typeName;
+    DartString typeName;
     void(*gcMark)(AnyGC*, int) = nullptr;
     const ClassInfo* _parent = nullptr;
     AnyGC*(*toString)(AnyGC*) = nullptr;
@@ -282,7 +578,7 @@ inline bool _isInstanceOf(AnyGC* obj, const ClassInfo* target) {
 }
 
 // AnyGC method definitions (require ClassInfo to be complete)
-inline std::string AnyGC::toString() const {
+inline DartString AnyGC::toString() const {
     if (_classInfo && !_classInfo->typeName.empty()) return _classInfo->typeName;
     return "Instance";
 }
@@ -339,14 +635,14 @@ inline void GC::scanStack(int flag, void* loHint) {
 }
 
 inline int GC::reportAlive(const char* label) {
-    std::unordered_map<std::string, int> counts;
+    std::unordered_map<DartString, int> counts;
     for (auto* obj : _objects) {
-        std::string name = (obj->_classInfo && !obj->_classInfo->typeName.empty())
+        DartString name = (obj->_classInfo && !obj->_classInfo->typeName.empty())
                                ? obj->_classInfo->typeName
-                               : std::string("<unknown>");
+                               : DartString("<unknown>");
         counts[name]++;
     }
-    std::vector<std::pair<int, std::string>> sorted;
+    std::vector<std::pair<int, DartString>> sorted;
     for (auto& kv : counts) sorted.emplace_back(kv.second, kv.first);
     std::sort(sorted.begin(), sorted.end(),
               [](const auto& a, const auto& b) { return a.first > b.first; });
@@ -363,20 +659,20 @@ inline int GC::reportAlive(const char* label) {
 // ============================================================================
 
 // Forward declarations for string helpers used in StringBox ClassInfo dispatch
-inline std::string dart_str_toUpper(const std::string& s);
-inline std::string dart_str_toLower(const std::string& s);
-inline std::string dart_str_trim(const std::string& s);
-inline std::string dart_str_trimLeft(const std::string& s);
-inline std::string dart_str_trimRight(const std::string& s);
-inline std::string dart_str_replaceFirst(const std::string& s, const std::string& from, const std::string& to, int64_t start);
-inline std::string dart_str_replaceRange(const std::string& s, int64_t start, int64_t end, const std::string& replacement);
-inline std::string dart_str_padLeft(const std::string& s, int64_t width, const std::string& padding);
-inline std::string dart_str_padRight(const std::string& s, int64_t width, const std::string& padding);
-inline int64_t dart_str_lastIndexOf(const std::string& s, const std::string& pattern, int64_t start);
-inline int64_t dart_str_codeUnitAt(const std::string& s, int64_t index);
-inline std::string dart_str_fromCharCode(int64_t code);
-inline std::string dart_str_fromCharCodes(AnyGC* list);
-inline std::string dart_double_toStringAsExponential(double value, int64_t fracDigits);
+inline DartString dart_str_toUpper(const DartString& s);
+inline DartString dart_str_toLower(const DartString& s);
+inline DartString dart_str_trim(const DartString& s);
+inline DartString dart_str_trimLeft(const DartString& s);
+inline DartString dart_str_trimRight(const DartString& s);
+inline DartString dart_str_replaceFirst(const DartString& s, const DartString& from, const DartString& to, int64_t start);
+inline DartString dart_str_replaceRange(const DartString& s, int64_t start, int64_t end, const DartString& replacement);
+inline DartString dart_str_padLeft(const DartString& s, int64_t width, const DartString& padding);
+inline DartString dart_str_padRight(const DartString& s, int64_t width, const DartString& padding);
+inline int64_t dart_str_lastIndexOf(const DartString& s, const DartString& pattern, int64_t start);
+inline int64_t dart_str_codeUnitAt(const DartString& s, int64_t index);
+inline DartString dart_str_fromCharCode(int64_t code);
+inline DartString dart_str_fromCharCodes(AnyGC* list);
+inline DartString dart_double_toStringAsExponential(double value, int64_t fracDigits);
 
 // ClassInfo subclasses — constructor bodies defined after the structs
 struct IntBoxClassInfo : ClassInfo { IntBoxClassInfo(); };
@@ -421,9 +717,9 @@ struct BoolBox : AnyGC {
 };
 
 struct StringBox : AnyGC {
-    std::string value;
+    DartString value;
     static StringBoxClassInfo _classInfo;
-    StringBox(const std::string& v) : value(v) { AnyGC::_classInfo = &StringBox::_classInfo; GC::allocateLocal(this); }
+    StringBox(const DartString& v) : value(v) { AnyGC::_classInfo = &StringBox::_classInfo; GC::allocateLocal(this); }
 
     static AnyGC* _vptr_toString(AnyGC* self);
     static AnyGC* _vptr_runtimeType(AnyGC*);
@@ -452,8 +748,8 @@ struct TupleBoxClassInfo : ClassInfo {
 struct TupleBox : AnyGC {
     static TupleBoxClassInfo _classInfo;
     void* data;
-    std::string str;
-    TupleBox(void* d, std::string s) : data(d), str(std::move(s)) {
+    DartString str;
+    TupleBox(void* d, DartString s) : data(d), str(std::move(s)) {
         AnyGC::_classInfo = &_classInfo;
         GC::allocateLocal(this);
     }
@@ -518,8 +814,11 @@ inline AnyGC* _box(int64_t v) { return GC::allocateLocal(new IntBox(v)); }
 inline AnyGC* _box(int v) { return GC::allocateLocal(new IntBox(static_cast<int64_t>(v))); }
 inline AnyGC* _box(double v) { return GC::allocateLocal(new DoubleBox(v)); }
 inline AnyGC* _box(bool v) { return GC::allocateLocal(new BoolBox(v)); }
-inline AnyGC* _box(const std::string& v) { return GC::allocateLocal(new StringBox(v)); }
-inline AnyGC* _box(const char* v) { return GC::allocateLocal(new StringBox(std::string(v))); }
+inline AnyGC* _box(const DartString& v) { return GC::allocateLocal(new StringBox(v)); }
+// std::string 边界值（std::to_string / oss.str() 等）直接装箱为 StringBox，
+// 避免落入泛型 ValueBox 路径（其 toString 会经 _anyToString 无限递归）
+inline AnyGC* _box(const std::string& v) { return GC::allocateLocal(new StringBox(DartString(v))); }
+inline AnyGC* _box(const char* v) { return GC::allocateLocal(new StringBox(DartString(v))); }
 
 // _vptrRet — vptr wrapper return helper: unboxes AnyGC* or returns raw value directly
 template<typename R, typename T>
@@ -537,10 +836,10 @@ inline AnyGC* _box(const DartException& v) {
 }
 
 /// _anyToString — convert AnyGC* to string (null-safe)
-inline std::string _anyToString(AnyGC* val) {
+inline DartString _anyToString(AnyGC* val) {
     if (!val) return "null";
     if (val->_classInfo && val->_classInfo->toString) {
-        return dynAs<std::string>(val->_classInfo->toString(val));
+        return dynAs<DartString>(val->_classInfo->toString(val));
     }
     if (val->_classInfo && !val->_classInfo->typeName.empty()) return val->_classInfo->typeName;
     return "Instance";
@@ -553,7 +852,7 @@ template<typename T, typename = std::enable_if_t<
     !std::is_same_v<std::decay_t<T>, int> &&
     !std::is_same_v<std::decay_t<T>, double> &&
     !std::is_same_v<std::decay_t<T>, bool> &&
-    !std::is_same_v<std::decay_t<T>, std::string> &&
+    !std::is_same_v<std::decay_t<T>, DartString> &&
     !std::is_same_v<std::decay_t<T>, DartException>
 >>
 AnyGC* _box(const T& v) {
@@ -566,7 +865,7 @@ inline AnyGC* IntBox::_vptr_toString(AnyGC* self) {
     return _box(std::to_string(static_cast<IntBox*>(self)->value));
 }
 inline AnyGC* IntBox::_vptr_runtimeType(AnyGC*) {
-    return _box(std::string("int"));
+    return _box(DartString("int"));
 }
 inline int64_t IntBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
     int64_t a = static_cast<IntBox*>(self)->value;
@@ -586,7 +885,7 @@ inline AnyGC* DoubleBox::_vptr_toString(AnyGC* self) {
     return _box(oss.str());
 }
 inline AnyGC* DoubleBox::_vptr_runtimeType(AnyGC*) {
-    return _box(std::string("double"));
+    return _box(DartString("double"));
 }
 inline int64_t DoubleBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
     double a = static_cast<DoubleBox*>(self)->value;
@@ -604,7 +903,7 @@ inline AnyGC* BoolBox::_vptr_toString(AnyGC* self) {
     return _box(static_cast<BoolBox*>(self)->value ? "true" : "false");
 }
 inline AnyGC* BoolBox::_vptr_runtimeType(AnyGC*) {
-    return _box(std::string("bool"));
+    return _box(DartString("bool"));
 }
 inline int64_t BoolBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
     bool a = static_cast<BoolBox*>(self)->value;
@@ -622,7 +921,7 @@ inline AnyGC* StringBox::_vptr_toString(AnyGC* self) {
     return _box(static_cast<StringBox*>(self)->value);
 }
 inline AnyGC* StringBox::_vptr_runtimeType(AnyGC*) {
-    return _box(std::string("String"));
+    return _box(DartString("String"));
 }
 inline AnyGC* StringBox::_vptr_toUpperCase(AnyGC* self) {
     return _box(dart_str_toUpper(static_cast<StringBox*>(self)->value));
@@ -631,7 +930,7 @@ inline AnyGC* StringBox::_vptr_toLowerCase(AnyGC* self) {
     return _box(dart_str_toLower(static_cast<StringBox*>(self)->value));
 }
 inline bool StringBox::_vptr_contains(AnyGC* self, AnyGC* other) {
-    return static_cast<StringBox*>(self)->value.find(dynAs<std::string>(other)) != std::string::npos;
+    return static_cast<StringBox*>(self)->value.find(dynAs<DartString>(other)) != DartString::npos;
 }
 inline int64_t StringBox::_vptr_length(AnyGC* self) {
     return static_cast<int64_t>(static_cast<StringBox*>(self)->value.size());
@@ -648,26 +947,26 @@ inline AnyGC* StringBox::_vptr_trimRight(AnyGC* self) {
 inline AnyGC* StringBox::_vptr_replaceFirst(AnyGC* self, AnyGC* from, AnyGC* to, AnyGC* start) {
     const auto& s = static_cast<StringBox*>(self)->value;
     int64_t st = start ? dynAs<int64_t>(start) : 0;
-    return _box(dart_str_replaceFirst(s, dynAs<std::string>(from), dynAs<std::string>(to), st));
+    return _box(dart_str_replaceFirst(s, dynAs<DartString>(from), dynAs<DartString>(to), st));
 }
 inline AnyGC* StringBox::_vptr_replaceRange(AnyGC* self, AnyGC* start, AnyGC* end, AnyGC* replacement) {
     const auto& s = static_cast<StringBox*>(self)->value;
-    return _box(dart_str_replaceRange(s, dynAs<int64_t>(start), dynAs<int64_t>(end), dynAs<std::string>(replacement)));
+    return _box(dart_str_replaceRange(s, dynAs<int64_t>(start), dynAs<int64_t>(end), dynAs<DartString>(replacement)));
 }
 inline AnyGC* StringBox::_vptr_padLeft(AnyGC* self, AnyGC* width, AnyGC* padding) {
     const auto& s = static_cast<StringBox*>(self)->value;
-    std::string pad = padding ? dynAs<std::string>(padding) : std::string(" ");
+    DartString pad = padding ? dynAs<DartString>(padding) : DartString(" ");
     return _box(dart_str_padLeft(s, dynAs<int64_t>(width), pad));
 }
 inline AnyGC* StringBox::_vptr_padRight(AnyGC* self, AnyGC* width, AnyGC* padding) {
     const auto& s = static_cast<StringBox*>(self)->value;
-    std::string pad = padding ? dynAs<std::string>(padding) : std::string(" ");
+    DartString pad = padding ? dynAs<DartString>(padding) : DartString(" ");
     return _box(dart_str_padRight(s, dynAs<int64_t>(width), pad));
 }
 inline int64_t StringBox::_vptr_lastIndexOf(AnyGC* self, AnyGC* pattern, AnyGC* start) {
     const auto& s = static_cast<StringBox*>(self)->value;
     int64_t st = start ? dynAs<int64_t>(start) : static_cast<int64_t>(s.size()) - 1;
-    return dart_str_lastIndexOf(s, dynAs<std::string>(pattern), st);
+    return dart_str_lastIndexOf(s, dynAs<DartString>(pattern), st);
 }
 inline int64_t StringBox::_vptr_codeUnitAt(AnyGC* self, AnyGC* index) {
     const auto& s = static_cast<StringBox*>(self)->value;
@@ -675,14 +974,14 @@ inline int64_t StringBox::_vptr_codeUnitAt(AnyGC* self, AnyGC* index) {
 }
 inline int64_t StringBox::_vptr_compareTo(AnyGC* self, AnyGC* other) {
     const auto& a = static_cast<StringBox*>(self)->value;
-    std::string b = dynAs<std::string>(other);
+    DartString b = dynAs<DartString>(other);
     return static_cast<int64_t>(a.compare(b));
 }
 inline bool StringBox::_vptr_eq(AnyGC* self, AnyGC* other) {
-    return static_cast<StringBox*>(self)->value == dynAs<std::string>(other);
+    return static_cast<StringBox*>(self)->value == dynAs<DartString>(other);
 }
 inline int64_t StringBox::_vptr_hashCode(AnyGC* self) {
-    return static_cast<int64_t>(std::hash<std::string>{}(static_cast<StringBox*>(self)->value));
+    return static_cast<int64_t>(std::hash<DartString>{}(static_cast<StringBox*>(self)->value));
 }
 
 // Box ClassInfo subclass constructor definitions — assign function pointers
@@ -771,10 +1070,10 @@ T dynAs(AnyGC* obj) {
         if (ci == &BoolBox::_classInfo) return static_cast<BoolBox*>(obj)->value;
         return false;
     }
-    else if constexpr (std::is_same_v<T, std::string>) {
+    else if constexpr (std::is_same_v<T, DartString>) {
         if (obj->_classInfo == &StringBox::_classInfo) return static_cast<StringBox*>(obj)->value;
         if (obj->_classInfo && obj->_classInfo->toString) {
-            return dynAs<std::string>(obj->_classInfo->toString(obj));
+            return dynAs<DartString>(obj->_classInfo->toString(obj));
         }
         if (obj->_classInfo && !obj->_classInfo->typeName.empty()) return obj->_classInfo->typeName;
         return "Instance";
@@ -794,10 +1093,12 @@ T dynAs(AnyGC* obj) {
 
 // TypeFunction — 可调用闭包基类。
 // 子类 TypeFunctionN 持有两个函数指针：
-//   fnPtr: AnyGC*(*)(AnyGC*, Args...) — boxed 版本，返回 AnyGC*（trampoline 内部已 box）。
-//          用于 boxed AnyGC* 返回路径，调用方按需 dynAs<R>(...) 拆箱。
-//   typedFnPtr: R(*)(AnyGC*, Args...) — typed 版本，直接返回 R。
-//          供 _vptr_ 方法使用，无需 dynAs 拆箱。
+//   fnPtr: AnyGC*(*)(AnyGC*, AnyGC*...) — boxed（全擦除）约定：所有实参均为
+//          AnyGC*（值类型经 _boxElem 装箱），返回 AnyGC*，调用方按需 dynAs 拆箱。
+//          用于擦除调度（_vptr_map/expand/fold 等）与直接调用，签名全局统一。
+//   typedFnPtr: R(*)(AnyGC*, Args...) — typed 约定：实参/返回为具体类型，
+//          仅在与静态类型严格匹配的 _vptr_ 路径使用（调用方持有 TypeFunctionN<R, T>
+//          且传 T 类型实参，trampoline 同签名生成，ABI 一致）。
 struct TypeFunction : AnyGC {};
 
 // _box overload for TypeFunction* — must appear after TypeFunction definition
@@ -812,7 +1113,13 @@ inline AnyGC* _box(TypeFunction* v) { return static_cast<AnyGC*>(v); }
 template<typename R, typename... Args>
 struct TypeFunctionN : TypeFunction {
     using ArgsTuple = std::tuple<Args...>;
-    using FnPtr = AnyGC*(*)(AnyGC*, Args...);
+    // 全擦除 FnPtr：每个类型参数对应一个 AnyGC* 形参
+    template<typename Seq> struct _ErasedFnBuilder;
+    template<size_t... I> struct _ErasedFnBuilder<std::index_sequence<I...>> {
+        template<size_t> using _Any = AnyGC*;
+        using type = AnyGC*(*)(AnyGC*, _Any<I>...);
+    };
+    using FnPtr = typename _ErasedFnBuilder<std::index_sequence_for<Args...>>::type;
     FnPtr fnPtr = nullptr;
     using TypedFnPtr = R(*)(AnyGC*, Args...);
     TypedFnPtr typedFnPtr = nullptr;
@@ -832,7 +1139,7 @@ struct TypeFunctionN<R> : TypeFunction {
 template<typename R, typename A>
 struct TypeFunctionN<R, A> : TypeFunction {
     using ArgsTuple = std::tuple<A>;
-    using FnPtr = AnyGC*(*)(AnyGC*, A);
+    using FnPtr = AnyGC*(*)(AnyGC*, AnyGC*);
     FnPtr fnPtr = nullptr;
     using TypedFnPtr = R(*)(AnyGC*, A);
     TypedFnPtr typedFnPtr = nullptr;
@@ -842,7 +1149,7 @@ struct TypeFunctionN<R, A> : TypeFunction {
 template<typename R, typename A1, typename A2>
 struct TypeFunctionN<R, A1, A2> : TypeFunction {
     using ArgsTuple = std::tuple<A1, A2>;
-    using FnPtr = AnyGC*(*)(AnyGC*, A1, A2);
+    using FnPtr = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*);
     FnPtr fnPtr = nullptr;
     using TypedFnPtr = R(*)(AnyGC*, A1, A2);
     TypedFnPtr typedFnPtr = nullptr;
@@ -893,7 +1200,7 @@ U _unboxElem(AnyGC* ptr) {
     if constexpr (std::is_same_v<U, int64_t>) return dynAs<int64_t>(ptr);
     else if constexpr (std::is_same_v<U, double>) return dynAs<double>(ptr);
     else if constexpr (std::is_same_v<U, bool>) return dynAs<bool>(ptr);
-    else if constexpr (std::is_same_v<U, std::string>) return dynAs<std::string>(ptr);
+    else if constexpr (std::is_same_v<U, DartString>) return dynAs<DartString>(ptr);
     else if constexpr (std::is_pointer_v<U>) return static_cast<U>(ptr);
     else return *reinterpret_cast<U*>(ptr);
 }
@@ -903,7 +1210,7 @@ inline AnyGC* TupleBox::_vptr_toString(AnyGC* self) {
     return _box(static_cast<TupleBox*>(self)->str);
 }
 inline AnyGC* TupleBox::_vptr_runtimeType(AnyGC* self) {
-    return _box(std::string("Record"));
+    return _box(DartString("Record"));
 }
 
 // ── ValueBox _vptr_* definitions (deferred until _box/_boxElem available) ──
@@ -913,7 +1220,7 @@ AnyGC* ValueBox<T>::_vptr_toString(AnyGC* self) {
 }
 template<typename T>
 AnyGC* ValueBox<T>::_vptr_runtimeType(AnyGC* self) {
-    return _box(std::string("ValueBox"));
+    return _box(DartString("ValueBox"));
 }
 template<typename T>
 bool ValueBox<T>::_vptr_eq(AnyGC* self, AnyGC* other) {
@@ -930,8 +1237,8 @@ int64_t ValueBox<T>::_vptr_hashCode(AnyGC* self) {
         return static_cast<int64_t>(std::hash<double>{}(static_cast<ValueBox*>(self)->value));
     else if constexpr (std::is_same_v<T, bool>)
         return static_cast<int64_t>(static_cast<ValueBox*>(self)->value ? 1 : 0);
-    else if constexpr (std::is_same_v<T, std::string>)
-        return static_cast<int64_t>(std::hash<std::string>{}(static_cast<ValueBox*>(self)->value));
+    else if constexpr (std::is_same_v<T, DartString>)
+        return static_cast<int64_t>(std::hash<DartString>{}(static_cast<ValueBox*>(self)->value));
     else
         return static_cast<int64_t>(0);
 }
@@ -1141,7 +1448,7 @@ struct Array : AnyGC {
     // ── ClassInfo dispatch ──
     static AnyGC* _vptr_toString(AnyGC* self) {
         auto* arr = static_cast<Array*>(self);
-        std::string result = "[";
+        DartString result = "[";
         for (size_t i = 0; i < arr->_storage.size(); i++) {
             if (i > 0) result += ", ";
             result += _anyToString(_boxElem<T>(arr->_storage[i]));
@@ -1150,7 +1457,7 @@ struct Array : AnyGC {
         return _box(result);
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("List"));
+        return _box(DartString("List"));
     }
     static int64_t _vptr_length(AnyGC* self) {
         return static_cast<int64_t>(static_cast<Array*>(self)->_storage.size());
@@ -1283,10 +1590,10 @@ struct StaticIterator : AnyGC {
 
     // ── ClassInfo dispatch ──
     static AnyGC* _vptr_toString(AnyGC* self) {
-        return _box(std::string("Iterator"));
+        return _box(DartString("Iterator"));
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("Iterator"));
+        return _box(DartString("Iterator"));
     }
     static bool _vptr_moveNext(AnyGC* self) {
         auto* it = static_cast<StaticIterator*>(self);
@@ -1389,14 +1696,14 @@ struct StaticList : AnyGC {
 
     // ── ClassInfo vptr support ──
     static AnyGC* _vptr_runtimeType(AnyGC*) {
-        return _box(std::string("List"));
+        return _box(DartString("List"));
     }
     static int64_t _vptr_length(AnyGC* self) {
         return static_cast<int64_t>(static_cast<StaticList*>(self)->_data->_storage.size());
     }
     static AnyGC* _vptr_toString(AnyGC* self) {
         auto* list = static_cast<StaticList*>(self);
-        std::string result = "[";
+        DartString result = "[";
         for (int i = 0; i < list->_data->_storage.size(); i++) {
             if (i > 0) result += ", ";
             result += dart_str(list->_data->_storage[i]);
@@ -1734,8 +2041,8 @@ struct StaticList : AnyGC {
     }
     static AnyGC* _vptr_join(AnyGC* self, AnyGC* separator) {
         auto* list = static_cast<StaticList*>(self);
-        std::string result;
-        std::string sep = separator ? dynAs<std::string>(separator) : "";
+        DartString result;
+        DartString sep = separator ? dynAs<DartString>(separator) : "";
         for (int i = 0; i < list->_data->_storage.size(); i++) {
             if (i > 0) result += sep;
             result += dart_str(list->_data->_storage[i]);
@@ -1780,7 +2087,7 @@ struct StaticList : AnyGC {
         auto* tf = static_cast<TypeFunction1<AnyGC*, T>*>(func);
         auto* result = new StaticList<AnyGC*>();
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            result->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, list->_data->_storage[i])));
+            result->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, _boxElem(list->_data->_storage[i]))));
         }
         return static_cast<AnyGC*>(GC::allocateLocal(result));
     }
@@ -1789,7 +2096,7 @@ struct StaticList : AnyGC {
         auto* tf = static_cast<TypeFunction1<AnyGC*, T>*>(func);
         auto* result = new StaticList<AnyGC*>();
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            AnyGC* inner = tf->fnPtr(tf, list->_data->_storage[i]);
+            AnyGC* inner = tf->fnPtr(tf, _boxElem(list->_data->_storage[i]));
             if (!inner) continue;
             AnyGC* it = iterator_get(inner);
             while (it && iterator_moveNext(it)) {
@@ -1811,7 +2118,7 @@ struct StaticList : AnyGC {
         auto* cmp = static_cast<TypeFunction2<AnyGC*, AnyGC*, T>*>(combine);
         AnyGC* value = initial;
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            value = dynAs<AnyGC*>(cmp->fnPtr(cmp, value, list->_data->_storage[i]));
+            value = cmp->fnPtr(cmp, value, _boxElem(list->_data->_storage[i]));
         }
         return value;
     }
@@ -1980,7 +2287,7 @@ struct StaticMap : AnyGC {
                 K ck;
                 if constexpr (std::is_same_v<K, SK>) { ck = k; }
                 else if constexpr (std::is_pointer_v<K> && std::is_pointer_v<SK>) { ck = static_cast<K>(k); }
-                else if constexpr (std::is_same_v<K, std::string> && std::is_pointer_v<SK>) { ck = dynAs<std::string>(k); }
+                else if constexpr (std::is_same_v<K, DartString> && std::is_pointer_v<SK>) { ck = dynAs<DartString>(k); }
                 else { ck = static_cast<K>(k); }
                 // Convert value
                 V cv;
@@ -1989,7 +2296,7 @@ struct StaticMap : AnyGC {
                 else if constexpr (std::is_same_v<V, int64_t> && std::is_pointer_v<SV>) { cv = dynAs<int64_t>(v); }
                 else if constexpr (std::is_same_v<V, double> && std::is_pointer_v<SV>) { cv = dynAs<double>(v); }
                 else if constexpr (std::is_same_v<V, bool> && std::is_pointer_v<SV>) { cv = dynAs<bool>(v); }
-                else if constexpr (std::is_same_v<V, std::string> && std::is_pointer_v<SV>) { cv = dynAs<std::string>(v); }
+                else if constexpr (std::is_same_v<V, DartString> && std::is_pointer_v<SV>) { cv = dynAs<DartString>(v); }
                 else if constexpr (std::is_pointer_v<V> && std::is_same_v<SV, int64_t>) { cv = static_cast<V>(GC::allocateLocal(new IntBox(v))); }
                 else { cv = static_cast<V>(v); }
                 result->_keys->_storage.push_back(ck);
@@ -2041,15 +2348,15 @@ struct StaticMap : AnyGC {
         }
     }
     static AnyGC* _vptr_runtimeType(AnyGC*) {
-        return _box(std::string("Map"));
+        return _box(DartString("Map"));
     }
     static int64_t _vptr_length(AnyGC* self) {
         return static_cast<int64_t>(static_cast<StaticMap*>(self)->_keys->_storage.size());
     }
     static AnyGC* _vptr_toString(AnyGC* self) {
         auto* map = static_cast<StaticMap*>(self);
-        if (map->_keys->_storage.size() == 0) return _box(std::string("{}"));
-        std::string result = "{";
+        if (map->_keys->_storage.size() == 0) return _box(DartString("{}"));
+        DartString result = "{";
         for (int i = 0; i < map->_keys->_storage.size(); i++) {
             if (i > 0) result += ", ";
             result += dart_str(map->_keys->_storage[i]) + ": " + dart_str(map->_values->_storage[i]);
@@ -2218,7 +2525,7 @@ struct StaticMap : AnyGC {
         auto* tf = static_cast<TypeFunction2<AnyGC*, K, V>*>(func);
         auto* result = new StaticMap<AnyGC*, AnyGC*>();
         for (int i = 0; i < map->_keys->_storage.size(); i++) {
-            auto entry = dynAs<StaticMapEntry<AnyGC*, AnyGC*>>(tf->fnPtr(tf, map->_keys->_storage[i], map->_values->_storage[i]));
+            auto entry = dynAs<StaticMapEntry<AnyGC*, AnyGC*>>(tf->fnPtr(tf, _boxElem(map->_keys->_storage[i]), _boxElem(map->_values->_storage[i])));
             int idx = array_indexOf(result->_keys, entry.key);
             if (idx != -1) {
                 result->_values->_storage[idx] = entry.value;
@@ -2344,14 +2651,14 @@ struct StaticSet : AnyGC {
 
     // ── vptrSet support ──
     static AnyGC* _vptr_runtimeType(AnyGC*) {
-        return _box(std::string("Set"));
+        return _box(DartString("Set"));
     }
     static int64_t _vptr_length(AnyGC* self) {
         return static_cast<int64_t>(static_cast<StaticSet*>(self)->_data->_storage.size());
     }
     static AnyGC* _vptr_toString(AnyGC* self) {
         auto* set = static_cast<StaticSet*>(self);
-        std::string result = "{";
+        DartString result = "{";
         for (int i = 0; i < set->_data->_storage.size(); i++) {
             if (i > 0) result += ", ";
             result += dart_str(set->_data->_storage[i]);
@@ -2703,8 +3010,8 @@ struct StaticSet : AnyGC {
     }
     static AnyGC* _vptr_join(AnyGC* self, AnyGC* separator) {
         auto* set = static_cast<StaticSet*>(self);
-        std::string result;
-        std::string sep = separator ? dynAs<std::string>(separator) : std::string();
+        DartString result;
+        DartString sep = separator ? dynAs<DartString>(separator) : DartString();
         for (int i = 0; i < set->_data->_storage.size(); i++) {
             if (i > 0) result += sep;
             result += dart_str(set->_data->_storage[i]);
@@ -2720,7 +3027,7 @@ struct StaticSet : AnyGC {
         auto* tf = static_cast<TypeFunction1<AnyGC*, T>*>(func);
         auto* result = new StaticList<AnyGC*>();
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            result->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, set->_data->_storage[i])));
+            result->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, _boxElem(set->_data->_storage[i]))));
         }
         return static_cast<AnyGC*>(GC::allocateLocal(result));
     }
@@ -2729,7 +3036,7 @@ struct StaticSet : AnyGC {
         auto* tf = static_cast<TypeFunction1<AnyGC*, T>*>(func);
         auto* result = new StaticList<AnyGC*>();
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            AnyGC* inner = tf->fnPtr(tf, set->_data->_storage[i]);
+            AnyGC* inner = tf->fnPtr(tf, _boxElem(set->_data->_storage[i]));
             if (!inner) continue;
             AnyGC* it = iterator_get(inner);
             while (it && iterator_moveNext(it)) {
@@ -2752,7 +3059,7 @@ struct StaticSet : AnyGC {
         auto* cmp = static_cast<TypeFunction2<AnyGC*, AnyGC*, T>*>(combine);
         AnyGC* value = initial;
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            value = dynAs<AnyGC*>(cmp->fnPtr(cmp, value, set->_data->_storage[i]));
+            value = cmp->fnPtr(cmp, value, _boxElem(set->_data->_storage[i]));
         }
         return value;
     }
@@ -2967,14 +3274,14 @@ struct PromiseBase : AnyGC {
     // ── ClassInfo dispatch ──
     static AnyGC* _vptr_toString(AnyGC* self) {
         auto* p = static_cast<PromiseBase*>(self);
-        std::string s = "Promise(";
+        DartString s = "Promise(";
         s += (p->state == COMPLETED ? "completed" : p->state == ERROR ? "error" :
               p->state == PENDING ? "pending" : "ready");
         s += ")";
         return _box(s);
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("Promise"));
+        return _box(DartString("Promise"));
     }
     static void _vptr_complete(AnyGC* self, AnyGC* value) {
         auto* p = static_cast<PromiseBase*>(self);
@@ -3335,7 +3642,7 @@ Promise<T>* Promise<T>::delayed(int ticks, std::function<T()> computation) {
         try {
             promise_complete(promise, _box(computation()));
         } catch (const std::exception& e) {
-            promise_completeError(promise, _box(std::string(e.what())));
+            promise_completeError(promise, _box(DartString(e.what())));
         } catch (...) {
             promise_completeError(promise, nullptr);
         }
@@ -3351,7 +3658,7 @@ Promise<T>* Promise<T>::delayed(int ticks, TypeFunction0<T>* computation) {
         try {
             promise_complete(promise, _box(computation ? computation->typedFnPtr(computation) : T{}));
         } catch (const std::exception& e) {
-            promise_completeError(promise, _box(std::string(e.what())));
+            promise_completeError(promise, _box(DartString(e.what())));
         } catch (...) {
             promise_completeError(promise, nullptr);
         }
@@ -3392,7 +3699,7 @@ Promise<R>* promise_then(Promise<T>* self, std::function<AnyGC*(T)> onValue) {
             return nextPromise;
         } catch (const std::exception& e) {
             auto* nextPromise = GC::allocateLocal(new Promise<R>());
-            promise_completeError(nextPromise, _box(std::string(e.what())));
+            promise_completeError(nextPromise, _box(DartString(e.what())));
             return nextPromise;
         }
     }
@@ -3432,7 +3739,7 @@ Promise<R>* promise_then(Promise<T>* self, std::function<AnyGC*(T)> onValue) {
                 }
                 promise_complete(nextPromise, callbackResult);
             } catch (const std::exception& e) {
-                promise_completeError(nextPromise, _box(std::string(e.what())));
+                promise_completeError(nextPromise, _box(DartString(e.what())));
             }
             return true;
         }
@@ -3461,7 +3768,7 @@ Promise<T>* promise_catchError(Promise<T>* self, std::function<T(AnyGC*)> onErro
         try {
             promise_complete(nextPromise, _box(onError(self->error)));
         } catch (const std::exception& e) {
-            promise_completeError(nextPromise, _box(std::string(e.what())));
+            promise_completeError(nextPromise, _box(DartString(e.what())));
         }
         return nextPromise;
     }
@@ -3478,7 +3785,7 @@ Promise<T>* promise_catchError(Promise<T>* self, std::function<T(AnyGC*)> onErro
             try {
                 promise_complete(nextPromise, _box(onError(self->error)));
             } catch (const std::exception& e) {
-                promise_completeError(nextPromise, _box(std::string(e.what())));
+                promise_completeError(nextPromise, _box(DartString(e.what())));
             }
             return true;
         }
@@ -3497,7 +3804,7 @@ Promise<T>* promise_whenComplete(Promise<T>* self, std::function<void()> action)
             action();
             promise_complete(nextPromise, self->result);
         } catch (const std::exception& e) {
-            promise_completeError(nextPromise, _box(std::string(e.what())));
+            promise_completeError(nextPromise, _box(DartString(e.what())));
         }
         return nextPromise;
     }
@@ -3519,7 +3826,7 @@ Promise<T>* promise_whenComplete(Promise<T>* self, std::function<void()> action)
                 action();
                 promise_complete(nextPromise, self->result);
             } catch (const std::exception& e) {
-                promise_completeError(nextPromise, _box(std::string(e.what())));
+                promise_completeError(nextPromise, _box(DartString(e.what())));
             }
             return true;
         }
@@ -3640,19 +3947,8 @@ struct _PromiseThen {
         resultPromise->addKeepAlive(static_cast<AnyGC*>(this__));
         resultPromise->addKeepAlive(static_cast<AnyGC*>(onValue));
         promise_then<R>(this__, std::function<AnyGC*(T)>([onValue, resultPromise](T val) -> AnyGC* {
-            using Arg0 = std::tuple_element_t<0, typename Closure::ArgsTuple>;
-            AnyGC* result;
-            if constexpr (std::is_same_v<Arg0, AnyGC*>) {
-                AnyGC* boxedVal;
-                if constexpr (std::is_pointer_v<T>) {
-                    boxedVal = static_cast<AnyGC*>(val);
-                } else {
-                    boxedVal = _box(val);
-                }
-                result = onValue->fnPtr(onValue, boxedVal);
-            } else {
-                result = onValue->fnPtr(onValue, val);
-            }
+            // fnPtr 为统一擦除签名：实参经 _boxElem 装箱为 AnyGC*
+            AnyGC* result = onValue->fnPtr(onValue, _boxElem(val));
             if constexpr (!std::is_void_v<R>) {
                 promise_completeTyped(resultPromise, dynAs<R>(result));
             }
@@ -3773,7 +4069,7 @@ inline PromiseBase* promiseDelayed(int ticks, std::function<AnyGC*()> computatio
             AnyGC* result = computation();
             promise_complete(promise, result);
         } catch (const std::exception& e) {
-            promise_completeError(promise, _box(std::string(e.what())));
+            promise_completeError(promise, _box(DartString(e.what())));
         }
     }, promise);
     return promise;
@@ -3824,10 +4120,10 @@ struct AsyncStateMachine : AnyGC {
 
     // ── ClassInfo dispatch ──
     static AnyGC* _vptr_toString(AnyGC* self) {
-        return _box(std::string("AsyncStateMachine"));
+        return _box(DartString("AsyncStateMachine"));
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("AsyncStateMachine"));
+        return _box(DartString("AsyncStateMachine"));
     }
     static bool _vptr_step(AnyGC* self) {
         auto* sm = static_cast<AsyncStateMachine*>(self);
@@ -3901,9 +4197,9 @@ inline void staticPrint(int64_t value) {
 inline void staticPrint(double value) {
     std::ostringstream oss;
     oss << value;
-    std::string s = oss.str();
-    if (s.find('.') == std::string::npos && s.find('e') == std::string::npos &&
-        s.find('i') == std::string::npos && s.find('n') == std::string::npos) {
+    DartString s = oss.str();
+    if (s.find('.') == DartString::npos && s.find('e') == DartString::npos &&
+        s.find('i') == DartString::npos && s.find('n') == DartString::npos) {
         s += ".0";
     }
     std::cout << s << std::endl;
@@ -3913,7 +4209,7 @@ inline void staticPrint(bool value) {
     std::cout << (value ? "true" : "false") << std::endl;
 }
 
-inline void staticPrint(const std::string& value) {
+inline void staticPrint(const DartString& value) {
     std::cout << value << std::endl;
 }
 
@@ -3924,7 +4220,7 @@ inline void staticPrint(const char* value) {
 /// staticPrint 重载 — 任意 GC 管理的对象指针（StaticList*, StaticMap* 等）
 template<typename T>
 inline typename std::enable_if<std::is_base_of<AnyGC, T>::value &&
-    !std::is_same<T, AnyGC>::value && !std::is_same<T, std::string>::value, void>::type
+    !std::is_same<T, AnyGC>::value && !std::is_same<T, DartString>::value, void>::type
 staticPrint(T* value) {
     if (!value) {
         std::cout << "null" << std::endl;
@@ -3976,7 +4272,7 @@ struct StaticStringBuffer : AnyGC {
         return _box(static_cast<StaticStringBuffer*>(self)->_buf.str());
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("StringBuffer"));
+        return _box(DartString("StringBuffer"));
     }
     static int64_t _vptr_length(AnyGC* self) {
         return static_cast<int64_t>(static_cast<StaticStringBuffer*>(self)->_buf.str().length());
@@ -3998,7 +4294,7 @@ struct StaticStringBuffer : AnyGC {
     static void _vptr_writeAll(AnyGC* self, AnyGC* objects, AnyGC* separator) {
         auto* sb = static_cast<StaticStringBuffer*>(self);
         auto* objs = static_cast<StaticList<AnyGC*>*>(objects);
-        std::string sep = separator ? dynAs<std::string>(separator) : "";
+        DartString sep = separator ? dynAs<DartString>(separator) : "";
         if (!objs) return;
         for (int i = 0; i < objs->_data->_storage.size(); i++) {
             if (i > 0) sb->_buf << sep;
@@ -4017,7 +4313,7 @@ struct StaticStringBuffer : AnyGC {
 };
 
 // Free functions for C++-specific write overloads
-inline void sbuf_write(StaticStringBuffer* sb, const std::string& value) {
+inline void sbuf_write(StaticStringBuffer* sb, const DartString& value) {
     sb->_buf << value;
 }
 inline void sbuf_write(StaticStringBuffer* sb, int64_t value) {
@@ -4032,7 +4328,7 @@ inline void sbuf_write(StaticStringBuffer* sb, bool value) {
 inline void sbuf_writeln(StaticStringBuffer* sb) {
     sb->_buf << "\n";
 }
-inline void sbuf_writeln(StaticStringBuffer* sb, const std::string& value) {
+inline void sbuf_writeln(StaticStringBuffer* sb, const DartString& value) {
     sb->_buf << value << "\n";
 }
 inline void sbuf_write(StaticStringBuffer* sb, AnyGC* value) {
@@ -4046,7 +4342,7 @@ inline void sbuf_clear(StaticStringBuffer* sb) {
     sb->_buf.str("");
     sb->_buf.clear();
 }
-inline void sbuf_writeAll(StaticStringBuffer* sb, StaticList<std::string>* objects, const std::string& separator = "") {
+inline void sbuf_writeAll(StaticStringBuffer* sb, StaticList<DartString>* objects, const DartString& separator = "") {
     if (!objects) return;
     for (int i = 0; i < objects->_data->_storage.size(); i++) {
         if (i > 0) sb->_buf << separator;
@@ -4092,41 +4388,41 @@ inline bool dart_isNull(T* v) { return v == nullptr; }
 inline bool dart_isNull(std::nullptr_t) { return true; }
 
 // _toStr 重载集（必须在 dart_str 模板之前声明）
-inline std::string _toStr(int64_t v) { return std::to_string(v); }
-inline std::string _toStr(int v) { return std::to_string(v); }
-inline std::string _toStr(double v) {
+inline DartString _toStr(int64_t v) { return std::to_string(v); }
+inline DartString _toStr(int v) { return std::to_string(v); }
+inline DartString _toStr(double v) {
     std::ostringstream oss;
     oss << v;
-    std::string s = oss.str();
-    if (s.find('.') == std::string::npos && s.find('e') == std::string::npos &&
-        s.find('i') == std::string::npos && s.find('n') == std::string::npos) {
+    DartString s = oss.str();
+    if (s.find('.') == DartString::npos && s.find('e') == DartString::npos &&
+        s.find('i') == DartString::npos && s.find('n') == DartString::npos) {
         s += ".0";
     }
     return s;
 }
-inline std::string _toStr(bool v) { return v ? "true" : "false"; }
-inline std::string _toStr(const std::string& v) { return v; }
-inline std::string _toStr(const char* v) { return v ? v : "null"; }
-inline std::string _toStr(AnyGC* v) {
+inline DartString _toStr(bool v) { return v ? "true" : "false"; }
+inline DartString _toStr(const DartString& v) { return v; }
+inline DartString _toStr(const char* v) { return v ? v : "null"; }
+inline DartString _toStr(AnyGC* v) {
     if (!v) return "null";
     if (v->_classInfo && v->_classInfo->toString) {
-        return dynAs<std::string>(v->_classInfo->toString(v));
+        return dynAs<DartString>(v->_classInfo->toString(v));
     }
     if (v->_classInfo && !v->_classInfo->typeName.empty()) return v->_classInfo->typeName;
     return "Instance";
 }
-inline std::string _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
-inline std::string _toStr(const DartException& e) { return e.toString(); }
-inline std::string _toStr(std::nullptr_t) { return "null"; }
-inline std::string _toStr(const ReachabilityError& v) { return v.toStringValue(); }
+inline DartString _toStr(TypeFunction* v) { return v ? "[TypeFunction]" : "null"; }
+inline DartString _toStr(const DartException& e) { return e.toString(); }
+inline DartString _toStr(std::nullptr_t) { return "null"; }
+inline DartString _toStr(const ReachabilityError& v) { return v.toStringValue(); }
 // 指针类型 _toStr — 处理任意指针（StaticList*, StaticMap* 等）
 template<typename T>
-inline typename std::enable_if<std::is_base_of<AnyGC, T>::value, std::string>::type
+inline typename std::enable_if<std::is_base_of<AnyGC, T>::value, DartString>::type
 _toStr(T* v) {
     if (!v) return "null";
     const ClassInfo* ci = v->AnyGC::_classInfo;
     if (ci && ci->toString) {
-        return dynAs<std::string>(ci->toString(v));
+        return dynAs<DartString>(ci->toString(v));
     }
     if (ci && !ci->typeName.empty()) return ci->typeName;
     return "Instance";
@@ -4134,13 +4430,13 @@ _toStr(T* v) {
 
 // _toStr for StaticMapEntry (value type, not pointer)
 template<typename K, typename V>
-inline std::string _toStr(const StaticMapEntry<K, V>& entry) {
+inline DartString _toStr(const StaticMapEntry<K, V>& entry) {
     return "MapEntry(" + _toStr(entry.key) + ": " + _toStr(entry.value) + ")";
 }
 
 /// dart_str — 字符串插值辅助（可变参数拼接）
 template<typename... Args>
-std::string dart_str(Args&&... args) {
+DartString dart_str(Args&&... args) {
     std::ostringstream oss;
     (void)(int[]){0, ((oss << _toStr(std::forward<Args>(args))), 0)...};
     return oss.str();
@@ -4151,39 +4447,39 @@ std::string dart_str(Args&&... args) {
 // ============================================================================
 
 /// dart_str_toUpper — 转换为大写
-inline std::string dart_str_toUpper(const std::string& s) {
-    std::string result = s;
-    std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-    return result;
+inline DartString dart_str_toUpper(const DartString& s) {
+    std::string buf = s.toStd();
+    std::transform(buf.begin(), buf.end(), buf.begin(), ::toupper);
+    return DartString(buf);
 }
 
 /// dart_str_toLower — 转换为小写
-inline std::string dart_str_toLower(const std::string& s) {
-    std::string result = s;
-    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-    return result;
+inline DartString dart_str_toLower(const DartString& s) {
+    std::string buf = s.toStd();
+    std::transform(buf.begin(), buf.end(), buf.begin(), ::tolower);
+    return DartString(buf);
 }
 
 /// dart_str_trim — 去除首尾空白
-inline std::string dart_str_trim(const std::string& s) {
+inline DartString dart_str_trim(const DartString& s) {
     size_t start = s.find_first_not_of(" \t\n\r\f\v");
-    if (start == std::string::npos) return "";
+    if (start == DartString::npos) return "";
     size_t end = s.find_last_not_of(" \t\n\r\f\v");
     return s.substr(start, end - start + 1);
 }
 
 /// dart_str_split — 分割字符串
-inline StaticList<std::string>* dart_str_split(const std::string& s, const std::string& delimiter) {
-    auto* result = new StaticList<std::string>();
+inline StaticList<DartString>* dart_str_split(const DartString& s, const DartString& delimiter) {
+    auto* result = new StaticList<DartString>();
     if (delimiter.empty()) {
         // Split into individual characters
         for (char c : s) {
-            result->_data->_storage.push_back(std::string(1, c));
+            result->_data->_storage.push_back(DartString(1, c));
         }
     } else {
         size_t start = 0;
         size_t end = s.find(delimiter);
-        while (end != std::string::npos) {
+        while (end != DartString::npos) {
             result->_data->_storage.push_back(s.substr(start, end - start));
             start = end + delimiter.length();
             end = s.find(delimiter, start);
@@ -4194,11 +4490,11 @@ inline StaticList<std::string>* dart_str_split(const std::string& s, const std::
 }
 
 /// dart_str_replaceAll — 替换所有匹配
-inline std::string dart_str_replaceAll(const std::string& s, const std::string& from, const std::string& to) {
+inline DartString dart_str_replaceAll(const DartString& s, const DartString& from, const DartString& to) {
     if (from.empty()) return s;
-    std::string result = s;
+    DartString result = s;
     size_t start_pos = 0;
-    while ((start_pos = result.find(from, start_pos)) != std::string::npos) {
+    while ((start_pos = result.find(from, start_pos)) != DartString::npos) {
         result.replace(start_pos, from.length(), to);
         start_pos += to.length();
     }
@@ -4206,49 +4502,49 @@ inline std::string dart_str_replaceAll(const std::string& s, const std::string& 
 }
 
 /// dart_str_replaceFirst — 替换首个匹配（可选起始位置）
-inline std::string dart_str_replaceFirst(const std::string& s, const std::string& from, const std::string& to, int64_t start) {
+inline DartString dart_str_replaceFirst(const DartString& s, const DartString& from, const DartString& to, int64_t start) {
     if (from.empty()) return s;
     if (start < 0) start = 0;
     size_t pos = s.find(from, static_cast<size_t>(start));
-    if (pos == std::string::npos) return s;
-    std::string result = s;
+    if (pos == DartString::npos) return s;
+    DartString result = s;
     result.replace(pos, from.length(), to);
     return result;
 }
 
 /// dart_str_replaceRange — 替换 [start, end) 区间
-inline std::string dart_str_replaceRange(const std::string& s, int64_t start, int64_t end, const std::string& replacement) {
+inline DartString dart_str_replaceRange(const DartString& s, int64_t start, int64_t end, const DartString& replacement) {
     int64_t len = static_cast<int64_t>(s.size());
     if (start < 0) start = 0;
     if (end < start) end = start;
     if (end > len) end = len;
-    std::string result = s;
+    DartString result = s;
     result.replace(static_cast<size_t>(start), static_cast<size_t>(end - start), replacement);
     return result;
 }
 
 /// dart_str_trimLeft — 去除左侧空白
-inline std::string dart_str_trimLeft(const std::string& s) {
+inline DartString dart_str_trimLeft(const DartString& s) {
     size_t start = s.find_first_not_of(" \t\n\r\f\v");
-    if (start == std::string::npos) return "";
+    if (start == DartString::npos) return "";
     return s.substr(start);
 }
 
 /// dart_str_trimRight — 去除右侧空白
-inline std::string dart_str_trimRight(const std::string& s) {
+inline DartString dart_str_trimRight(const DartString& s) {
     size_t end = s.find_last_not_of(" \t\n\r\f\v");
-    if (end == std::string::npos) return "";
+    if (end == DartString::npos) return "";
     return s.substr(0, end + 1);
 }
 
 /// dart_str_padLeft — 左侧填充至指定宽度
-inline std::string dart_str_padLeft(const std::string& s, int64_t width, const std::string& padding) {
+inline DartString dart_str_padLeft(const DartString& s, int64_t width, const DartString& padding) {
     if (width <= static_cast<int64_t>(s.size())) return s;
-    std::string pad = padding.empty() ? std::string(" ") : padding;
+    DartString pad = padding.empty() ? DartString(" ") : padding;
     int64_t missing = width - static_cast<int64_t>(s.size());
-    std::string prefix;
+    DartString prefix;
     if (pad.size() == 1) {
-        prefix = std::string(static_cast<size_t>(missing), pad[0]);
+        prefix = DartString(static_cast<size_t>(missing), pad[0]);
     } else {
         int64_t reps = missing / static_cast<int64_t>(pad.size());
         int64_t remainder = missing % static_cast<int64_t>(pad.size());
@@ -4259,13 +4555,13 @@ inline std::string dart_str_padLeft(const std::string& s, int64_t width, const s
 }
 
 /// dart_str_padRight — 右侧填充至指定宽度
-inline std::string dart_str_padRight(const std::string& s, int64_t width, const std::string& padding) {
+inline DartString dart_str_padRight(const DartString& s, int64_t width, const DartString& padding) {
     if (width <= static_cast<int64_t>(s.size())) return s;
-    std::string pad = padding.empty() ? std::string(" ") : padding;
+    DartString pad = padding.empty() ? DartString(" ") : padding;
     int64_t missing = width - static_cast<int64_t>(s.size());
-    std::string suffix;
+    DartString suffix;
     if (pad.size() == 1) {
-        suffix = std::string(static_cast<size_t>(missing), pad[0]);
+        suffix = DartString(static_cast<size_t>(missing), pad[0]);
     } else {
         int64_t reps = missing / static_cast<int64_t>(pad.size());
         int64_t remainder = missing % static_cast<int64_t>(pad.size());
@@ -4276,18 +4572,18 @@ inline std::string dart_str_padRight(const std::string& s, int64_t width, const 
 }
 
 /// dart_str_lastIndexOf — 从右侧查找子串（可选起始位置）
-inline int64_t dart_str_lastIndexOf(const std::string& s, const std::string& pattern, int64_t start) {
+inline int64_t dart_str_lastIndexOf(const DartString& s, const DartString& pattern, int64_t start) {
     if (pattern.empty()) return static_cast<int64_t>(s.size());
     if (start < 0) return -1;
     size_t searchEnd = static_cast<size_t>(std::min<int64_t>(start + static_cast<int64_t>(pattern.size()) - 1, static_cast<int64_t>(s.size()) - 1));
     if (searchEnd >= s.size() && !s.empty()) searchEnd = s.size() - 1;
     size_t pos = s.rfind(pattern, searchEnd);
-    if (pos == std::string::npos) return -1;
+    if (pos == DartString::npos) return -1;
     return static_cast<int64_t>(pos);
 }
 
 /// dart_str_codeUnitAt — 返回指定位置字符的码元
-inline int64_t dart_str_codeUnitAt(const std::string& s, int64_t index) {
+inline int64_t dart_str_codeUnitAt(const DartString& s, int64_t index) {
     if (index < 0 || static_cast<size_t>(index) >= s.size()) {
         throw DartRangeError("Index out of range");
     }
@@ -4295,21 +4591,21 @@ inline int64_t dart_str_codeUnitAt(const std::string& s, int64_t index) {
 }
 
 /// dart_str_fromCharCode — 将单个码元转为单字符字符串
-inline std::string dart_str_fromCharCode(int64_t code) {
-    return std::string(1, static_cast<char>(code));
+inline DartString dart_str_fromCharCode(int64_t code) {
+    return DartString(1, static_cast<char>(code));
 }
 
 /// dart_str_fromCharCodes — 将码元列表（StaticList<int64_t>）转为字符串
-inline std::string dart_str_fromCharCodes(AnyGC* list) {
+inline DartString dart_str_fromCharCodes(AnyGC* list) {
     auto* l = static_cast<StaticList<int64_t>*>(list);
-    std::string s;
+    DartString s;
     s.reserve(l->_data->_storage.size());
     for (int64_t c : l->_data->_storage) s.push_back(static_cast<char>(c));
     return s;
 }
 
 /// dart_int_toRadixString — 将整数按指定进制转换为字符串（radix 2-36）
-inline std::string dart_int_toRadixString(int64_t value, int64_t radix) {
+inline DartString dart_int_toRadixString(int64_t value, int64_t radix) {
     if (radix < 2 || radix > 36) {
         throw DartUnsupportedError("Radix out of range");
     }
@@ -4317,18 +4613,18 @@ inline std::string dart_int_toRadixString(int64_t value, int64_t radix) {
     const char* digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     bool negative = value < 0;
     uint64_t u = negative ? static_cast<uint64_t>(-(value + 1)) + 1 : static_cast<uint64_t>(value);
-    std::string result;
+    std::string buf;
     while (u > 0) {
-        result.push_back(digits[u % static_cast<uint64_t>(radix)]);
+        buf.push_back(digits[u % static_cast<uint64_t>(radix)]);
         u /= static_cast<uint64_t>(radix);
     }
-    if (negative) result.push_back('-');
-    std::reverse(result.begin(), result.end());
-    return result;
+    if (negative) buf.push_back('-');
+    std::reverse(buf.begin(), buf.end());
+    return DartString(buf);
 }
 
 /// dart_double_toStringAsExponential — 双精度浮点数科学计数法字符串
-inline std::string dart_double_toStringAsExponential(double value, int64_t fracDigits) {
+inline DartString dart_double_toStringAsExponential(double value, int64_t fracDigits) {
     if (fracDigits < 0) fracDigits = 0;
     std::ostringstream oss;
     oss << std::scientific << std::setprecision(static_cast<int>(fracDigits)) << value;
@@ -4402,7 +4698,7 @@ struct StaticDuration : AnyGC {
         return _box(oss.str());
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("Duration"));
+        return _box(DartString("Duration"));
     }
     static bool _vptr_eq(AnyGC* self, AnyGC* other) {
         return static_cast<StaticDuration*>(self)->inMicroseconds == static_cast<StaticDuration*>(other)->inMicroseconds;
@@ -4526,7 +4822,7 @@ struct StaticDateTime : AnyGC {
         return StaticDateTime(year, month, day, hour, minute, second, millisecond, microsecond, true);
     }
 
-    static StaticDateTime parse(const std::string& formattedString) {
+    static StaticDateTime parse(const DartString& formattedString) {
         struct tm t = {};
         int ms = 0;
         if (sscanf(formattedString.c_str(), "%d-%d-%dT%d:%d:%d.%d",
@@ -4547,7 +4843,7 @@ struct StaticDateTime : AnyGC {
         throw DartFormatException("Invalid date format: " + formattedString);
     }
 
-    static StaticDateTime tryParse(const std::string& formattedString) {
+    static StaticDateTime tryParse(const DartString& formattedString) {
         try { return parse(formattedString); }
         catch (...) { throw DartFormatException("Invalid date format: " + formattedString); }
     }
@@ -4565,16 +4861,16 @@ struct StaticDateTime : AnyGC {
         auto* dt = static_cast<StaticDateTime*>(self);
         time_t time = static_cast<time_t>(dt->_epochUs / 1000000);
         struct tm* t = dt->_isUtc ? std::gmtime(&time) : std::localtime(&time);
-        if (!t) return _box(std::string("Invalid Date"));
+        if (!t) return _box(DartString("Invalid Date"));
         char buf[40];
         snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d.%03lld",
                  t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
                  t->tm_hour, t->tm_min, t->tm_sec,
                  static_cast<long long>((dt->_epochUs / 1000) % 1000));
-        return _box(std::string(buf));
+        return _box(DartString(buf));
     }
     static AnyGC* _vptr_runtimeType(AnyGC* self) {
-        return _box(std::string("DateTime"));
+        return _box(DartString("DateTime"));
     }
     static bool _vptr_eq(AnyGC* self, AnyGC* other) {
         auto* a = static_cast<StaticDateTime*>(self);
@@ -4644,14 +4940,14 @@ struct StaticDateTime : AnyGC {
         auto* dt = static_cast<StaticDateTime*>(self);
         time_t time = static_cast<time_t>(dt->_epochUs / 1000000);
         struct tm* t = dt->_isUtc ? std::gmtime(&time) : std::localtime(&time);
-        if (!t) return _box(std::string("Invalid Date"));
+        if (!t) return _box(DartString("Invalid Date"));
         char buf[40];
         snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d.%03lld%s",
                  t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
                  t->tm_hour, t->tm_min, t->tm_sec,
                  static_cast<long long>((dt->_epochUs / 1000) % 1000),
                  dt->_isUtc ? "Z" : "");
-        return _box(std::string(buf));
+        return _box(DartString(buf));
     }
     static int64_t _vptr_microsecond(AnyGC* self) {
         return static_cast<StaticDateTime*>(self)->_epochUs % 1000;
@@ -4723,14 +5019,14 @@ inline StaticDateTimeClassInfo::StaticDateTimeClassInfo() {
 inline StaticDateTimeClassInfo StaticDateTime::_classInfo = StaticDateTimeClassInfo();
 
 struct StaticRegExpMatch : AnyGC {
-    std::string fullMatch;
-    std::vector<std::string> groups;
+    DartString fullMatch;
+    std::vector<DartString> groups;
     int startPos = 0;
     int endPos = 0;
 
     StaticRegExpMatch() { AnyGC::_classInfo = &_classInfo; }
 
-    std::string group(int index) const {
+    DartString group(int index) const {
         if (index == 0) return fullMatch;
         if (index > 0 && index <= static_cast<int>(groups.size())) return groups[index - 1];
         return "";
@@ -4738,7 +5034,7 @@ struct StaticRegExpMatch : AnyGC {
     int groupCount() const { return static_cast<int>(groups.size()); }
     int start() const { return startPos; }
     int end() const { return endPos; }
-    std::string toString() const override { return fullMatch; }
+    DartString toString() const override { return fullMatch; }
 
     static ClassInfo _classInfo;
     static AnyGC* _vptr_toString(AnyGC* self);
@@ -4759,22 +5055,22 @@ inline AnyGC* StaticRegExpMatch::_vptr_toString(AnyGC* self) {
     return _box(static_cast<StaticRegExpMatch*>(self)->fullMatch);
 }
 inline AnyGC* StaticRegExpMatch::_vptr_runtimeType(AnyGC*) {
-    return _box(std::string("RegExpMatch"));
+    return _box(DartString("RegExpMatch"));
 }
 
-inline std::string _toStr(const StaticRegExpMatch& v) {
+inline DartString _toStr(const StaticRegExpMatch& v) {
     return v.toString();
 }
 
 struct StaticRegExp {
-    std::string pattern;
+    DartString pattern;
     std::regex _regex;
     bool _isMultiLine = false;
     bool _isCaseSensitive = true;
     bool _isUnicode = false;
     bool _isDotAll = false;
 
-    StaticRegExp(const std::string& source,
+    StaticRegExp(const DartString& source,
                  bool multiLine = false, bool caseSensitive = true,
                  bool unicode = false, bool dotAll = false)
         : pattern(source), _isMultiLine(multiLine),
@@ -4788,17 +5084,17 @@ struct StaticRegExp {
         auto flags = std::regex::ECMAScript;
         if (multiLine) flags |= std::regex::multiline;
         if (!caseSensitive) flags |= std::regex::icase;
-        _regex = std::regex(source, flags);
+        _regex = std::regex(source.toStd(), flags);
     }
 
-    bool hasMatch(const std::string& input) const {
-        try { return std::regex_search(input, _regex); }
+    bool hasMatch(const DartString& input) const {
+        try { return std::regex_search(input.cbegin(), input.cend(), _regex); }
         catch (...) { return false; }
     }
 
-    StaticRegExpMatch* firstMatch(const std::string& input) const {
-        std::smatch m;
-        if (std::regex_search(input, m, _regex)) {
+    StaticRegExpMatch* firstMatch(const DartString& input) const {
+        std::cmatch m;
+        if (std::regex_search(input.cbegin(), input.cend(), m, _regex)) {
             auto* result = GC::allocateLocal(new StaticRegExpMatch());
             result->fullMatch = m[0].str();
             result->startPos = static_cast<int>(m.position(0));
@@ -4811,13 +5107,13 @@ struct StaticRegExp {
         return nullptr;
     }
 
-    StaticList<StaticRegExpMatch>* allMatches(const std::string& str, int start = 0) const {
+    StaticList<StaticRegExpMatch>* allMatches(const DartString& str, int start = 0) const {
         auto* result = new StaticList<StaticRegExpMatch>();
         if (start < 0) start = 0;
         if (start >= static_cast<int>(str.length())) return GC::allocateLocal(result);
-        std::string s = str.substr(start);
-        std::smatch m;
-        std::string::const_iterator searchStart = s.cbegin();
+        DartString s = str.substr(start);
+        std::cmatch m;
+        DartString::const_iterator searchStart = s.cbegin();
         int offset = start;
         while (searchStart != s.cend() && std::regex_search(searchStart, s.cend(), m, _regex)) {
             StaticRegExpMatch match;
@@ -4839,9 +5135,9 @@ struct StaticRegExp {
         return GC::allocateLocal(result);
     }
 
-    StaticRegExpMatch* matchAsPrefix(const std::string& str, int startPos = 0) const {
+    StaticRegExpMatch* matchAsPrefix(const DartString& str, int startPos = 0) const {
         if (startPos < 0 || startPos >= static_cast<int>(str.length())) return nullptr;
-        std::smatch m;
+        std::cmatch m;
         auto begin = str.cbegin() + startPos;
         auto end = str.cend();
         if (std::regex_search(begin, end, m, _regex, std::regex_constants::match_continuous)) {
@@ -4857,16 +5153,16 @@ struct StaticRegExp {
         return nullptr;
     }
 
-    std::string getPattern() const { return pattern; }
+    DartString getPattern() const { return pattern; }
     bool getIsMultiLine() const { return _isMultiLine; }
     bool getIsCaseSensitive() const { return _isCaseSensitive; }
     bool getIsUnicode() const { return _isUnicode; }
     bool getIsDotAll() const { return _isDotAll; }
 
-    static std::string escape(const std::string& text) {
-        std::string result;
+    static DartString escape(const DartString& text) {
+        DartString result;
         for (char c : text) {
-            if (std::string("\\.^$|?*+()[]{}").find(c) != std::string::npos) {
+            if (DartString("\\.^$|?*+()[]{}").find(c) != DartString::npos) {
                 result += '\\';
             }
             result += c;
@@ -4874,7 +5170,7 @@ struct StaticRegExp {
         return result;
     }
 
-    std::string toString() const { return "RegExp(" + pattern + ")"; }
+    DartString toString() const { return "RegExp(" + pattern + ")"; }
 };
 
 // ============================================================================
@@ -4952,7 +5248,7 @@ struct StreamValue : AnyGC {
         auto* tf = static_cast<TypeFunction1<AnyGC*, T>*>(func);
         auto* mapped = GC::allocateLocal(new StaticList<AnyGC*>());
         for (int i = 0; i < s->data->_data->_storage.size(); i++) {
-            mapped->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, s->data->_data->_storage[i])));
+            mapped->_data->_storage.push_back(dynAs<AnyGC*>(tf->fnPtr(tf, _boxElem(s->data->_data->_storage[i]))));
         }
         return static_cast<AnyGC*>(GC::allocateLocal(new StreamValue<AnyGC*>(mapped)));
     }
@@ -4972,7 +5268,7 @@ struct StreamValue : AnyGC {
         auto* cmp = static_cast<TypeFunction2<AnyGC*, AnyGC*, T>*>(combine);
         AnyGC* value = initial;
         for (int i = 0; i < s->data->_data->_storage.size(); i++) {
-            value = dynAs<AnyGC*>(cmp->fnPtr(cmp, value, s->data->_data->_storage[i]));
+            value = cmp->fnPtr(cmp, value, _boxElem(s->data->_data->_storage[i]));
         }
         return value;
     }
