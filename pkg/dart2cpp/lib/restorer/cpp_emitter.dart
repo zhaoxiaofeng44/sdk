@@ -164,6 +164,49 @@ class CppEmitter {
 
   String get _pad => '    ' * _indent;
 
+  /// Let 提升缓冲：语句级上下文中非 null。
+  /// Let 表达式的变量声明被写入该缓冲（前置到语句之前），
+  /// 表达式本身只留下函数体，从而消除 IIFE lambda。
+  /// 仅沿 let 链主干保持激活；进入任何子表达式前必须置空，
+  /// 以保证实参/操作数的求值顺序不变。
+  StringBuffer? _letHoistBuf;
+
+  /// 语法糖展开缓冲：BlockExpression 等语法糖展开为文件级
+  /// static inline _sugar_<ClassName>_<N>(<关联变量>...) 函数，
+  /// 原位置替换为函数调用。语义等价：函数不被调用即不执行，
+  /// 短路/条件位置天然保留。
+  final StringBuffer _sugarBuf = StringBuffer();
+  int _sugarCounter = 0;
+
+  /// 语句级上下文发射表达式（ExpressionStatement/Return/VariableDeclaration 初始化器）。
+  /// 当表达式是 Let 时激活提升：let 变量声明前置到语句之前，消除 IIFE。
+  /// 提升后声明与主体保持原求值顺序（声明先执行），表达式中可能出现的
+  /// throw 等关键字在语句位置同样合法。
+  String _emitExprWithLetHoisting(Expression expr, StringBuffer buf) {
+    if (expr is! Let) return _emitCppExpr(expr);
+    final savedHoist = _letHoistBuf;
+    final hb = StringBuffer();
+    _letHoistBuf = hb;
+    final value = _emitCppExpr(expr);
+    _letHoistBuf = savedHoist;
+    for (final line in hb.toString().trimRight().split('\n')) {
+      if (line.isNotEmpty) buf.writeln('$_pad$line');
+    }
+    return value;
+  }
+
+  /// let 链主干的子表达式发射：子表达式是 Let 时保持提升激活（链延续）；
+  /// 否则临时停用提升——防止深层子表达式中的 Let 被错误前置，
+  /// 保证实参/操作数的求值顺序不变。
+  String _emitLetChainExpr(Expression e) {
+    if (e is Let) return _emitCppExpr(e);
+    final saved = _letHoistBuf;
+    _letHoistBuf = null;
+    final r = _emitCppExpr(e);
+    _letHoistBuf = saved;
+    return r;
+  }
+
   // ==========================================================================
   // 主入口
   // ==========================================================================
@@ -175,6 +218,8 @@ class CppEmitter {
     _structBuf.clear();
     _implBuf.clear();
     _mainBuf.clear();
+    _sugarBuf.clear();
+    _sugarCounter = 0;
     _emittedForwardDecls.clear();
     _resolvedFuncReturnTypes.clear();
     _emittedStructs.clear();
@@ -235,6 +280,10 @@ class CppEmitter {
     if (_structBuf.isNotEmpty) {
       result.write(_structBuf);
       result.writeln();
+    }
+
+    if (_sugarBuf.isNotEmpty) {
+      result.write(_sugarBuf);
     }
 
     if (_implBuf.isNotEmpty) {
@@ -2414,6 +2463,7 @@ class CppEmitter {
           ? '$className$templateArgs'
           : '$structName$templateArgs';
       params.add('$thisType* this_');
+      _variableTypeMap['this_'] = '$thisType*';
     }
 
     for (final param in func.positionalParameters) {
@@ -3678,8 +3728,12 @@ class CppEmitter {
   }
 
   String _emitCppBlockExpression(BlockExpression expr) {
-    // BlockExpression 使用 IIFE (Immediately Invoked Function Expression) 模式
-    // (() { stmts; return value; })()
+    // 优先展开为文件级 static inline 糖函数（语法糖展开，消除 IIFE）
+    if (_inScopeTypeParams.isEmpty && _letHoistBuf == null) {
+      final sugar = _tryExtractSugarBlock(expr);
+      if (sugar != null) return sugar;
+    }
+    // 兜底：IIFE (Immediately Invoked Function Expression) 模式
     final oldBuf = _implBuf;
     final tmpBuf = StringBuffer();
     _implBuf = tmpBuf;
@@ -3690,6 +3744,114 @@ class CppEmitter {
     final value = _emitCppExpr(expr.value);
     final cleanedStmts = tmpBuf.toString();
     return '([&]() { $cleanedStmts return $value; })()';
+  }
+
+  /// 语法糖展开：将 BlockExpression 提取为文件级
+  /// static inline _sugar_<Class>_<N>(<关联变量>...) 函数。
+  /// 关联变量（糖体引用的外部变量）作为参数传入：
+  ///   - this_ 与指针/Box 变量按值传指针；
+  ///   - 其余值类型按引用传入（保持 [&] 捕获的读写语义）。
+  /// 返回调用表达式；无法安全提取时返回 null（调用方退回 IIFE）。
+  /// 嵌套糖函数在发射糖体时先行展开，定义序天然满足"先内后外"。
+  String? _tryExtractSugarBlock(BlockExpression expr) {
+    // 1. 收集块内局部声明与标签（首遍），再收集对外部变量的引用（次遍）
+    final collector = _SugarCaptureCollector();
+    expr.body.accept(collector);
+    expr.value.accept(collector);
+    if (collector.hasForbidden) return null;
+
+    // 2. 返回值类型（无法确定则不提取，避免调用点类型失配）
+    final valueType = _getExpressionType(expr.value);
+    if (valueType == null) return null;
+    final retType = _cppType(valueType);
+    if (retType.isEmpty || retType == 'void') return null;
+
+    // 3. 构建参数列表（保持引用顺序确定性）
+    final paramDecls = <String>[];
+    final paramArgs = <String>[];
+    final seen = <String>{};
+    void addParam(String decl, String arg) {
+      if (seen.add(arg)) {
+        paramDecls.add(decl);
+        paramArgs.add(arg);
+      }
+    }
+
+    if (collector.usesThis) {
+      final thisType = _variableTypeMap['this_'];
+      if (thisType == null) return null;
+      addParam('$thisType this_', 'this_');
+    }
+    for (final v in collector.captured) {
+      final argName = _resolveCapturedVarName(v);
+      if (argName == 'this_') continue;
+      if (_boxedVars.contains(v) || _scopeBoxedVars.contains(v)) {
+        final boxType = _cppBoxTypeName(v.type);
+        if (boxType == null) return null;
+        addParam('$boxType* $argName', argName);
+      } else {
+        final type = _variableTypeMap[argName] ?? _cppType(v.type);
+        if (type.isEmpty || type == 'void' || _inScopeTypeParams.contains(type)) {
+          return null;
+        }
+        if (type.endsWith('*')) {
+          addParam('$type $argName', argName);
+        } else {
+          addParam('$type& $argName', argName);
+        }
+      }
+    }
+
+    // 4. 发射糖体（隔离发射状态：缩进/声明集/提升缓冲/期望类型）
+    final funcName = _currentClassName.isNotEmpty
+        ? '_sugar_${_cleanName(_currentClassName)}_${_sugarCounter++}'
+        : '_sugar_top_${_sugarCounter++}';
+
+    final savedImplBuf = _implBuf;
+    final tmpBuf = StringBuffer();
+    _implBuf = tmpBuf;
+    final savedIndent = _indent;
+    _indent = 1;
+    final savedDeclared = Set<String>.from(_declaredVariables);
+    final savedHoist = _letHoistBuf;
+    _letHoistBuf = null;
+    for (final s in expr.body.statements) {
+      _emitCppStmt(s, _implBuf);
+    }
+    final value = _emitCppExpr(expr.value);
+    _letHoistBuf = savedHoist;
+    _declaredVariables
+      ..clear()
+      ..addAll(savedDeclared);
+    _indent = savedIndent;
+    _implBuf = savedImplBuf;
+
+    // 5. 写入糖函数定义（嵌套糖函数已在发射糖体时先行写入）
+    _sugarBuf.writeln(
+        'static inline $retType $funcName(${paramDecls.join(', ')}) {');
+    _sugarBuf.write(tmpBuf.toString());
+    _sugarBuf.writeln('    return $value;');
+    _sugarBuf.writeln('}');
+    _sugarBuf.writeln();
+
+    return '$funcName(${paramArgs.join(', ')})';
+  }
+
+  /// 解析被捕获变量在调用点/参数表中的名称（与 _emitCppVariableGet 的
+  /// 名称解析规则保持一致，保证糖体内引用与调用实参同名）。
+  String _resolveCapturedVarName(VariableDeclaration v) {
+    if (_varDeclNameMap.containsKey(v)) return _varDeclNameMap[v]!;
+    if (v.name == null && _nullNamedVarMap.containsKey(v)) {
+      return _nullNamedVarMap[v]!;
+    }
+    final rawName = v.name ?? 'v';
+    if (rawName.contains('#') && _currentClosureParamNames.isNotEmpty) {
+      final base = _cleanName(rawName.split('#').first);
+      if (_currentClosureParamNames.contains(base)) return base;
+    }
+    final name = _cleanName(rawName);
+    if (name == 'this') return 'this_';
+    return _variableNameMappings[name] ?? name;
   }
 
   // ==========================================================================
@@ -3889,18 +4051,8 @@ class CppEmitter {
     if (n == 0) {
       return 'GC::allocateLocal(new TupleBox(nullptr, DartString("()")))';
     }
-    final temps = List.generate(n, (i) => '_r$i');
-    final decls =
-        List.generate(n, (i) => 'auto ${temps[i]} = ${allExprs[i]}').join('; ');
-    final tupleArgs = temps.join(', ');
-    final strParts = <String>['DartString("(")'];
-    for (int i = 0; i < n; i++) {
-      if (i > 0) strParts.add('DartString(", ")');
-      strParts.add(temps[i]);
-    }
-    strParts.add('DartString(")")');
-    final strExpr = 'dart_str(${strParts.join(', ')})';
-    return '[&]() -> AnyGC* { $decls; auto* _t = new std::tuple($tupleArgs); return GC::allocateLocal(new TupleBox(_t, $strExpr)); }()';
+    // 装箱与 "(a, b, c)" 显示串统一由运行时辅助 makeTupleBox 完成（无 IIFE）
+    return 'makeTupleBox(${allExprs.join(', ')})';
   }
 
   String _emitCppRecordIndexGet(RecordIndexGet expr) {
@@ -3973,21 +4125,10 @@ class CppEmitter {
     _structBuf.writeln('    $className* recv_;');
     _structBuf.writeln('    TearOff_$closureId($className* r) : recv_(r) {');
     _structBuf.writeln('        this->fnPtr = &_trampoline;');
-    _structBuf.writeln('        this->typedFnPtr = &_typedTrampoline;');
     _structBuf.writeln('    }');
     _structBuf.writeln('    static AnyGC* _trampoline(AnyGC* _env) {');
     _structBuf.writeln('        auto* _self = static_cast<TearOff_$closureId*>(_env);');
     _structBuf.writeln('        return (static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
-    _structBuf.writeln('    }');
-    _structBuf.writeln('    static $returnType _typedTrampoline(AnyGC* _env) {');
-    _structBuf.writeln('        auto* _self = static_cast<TearOff_$closureId*>(_env);');
-    if (returnType == 'void') {
-      _structBuf.writeln('        (static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
-    } else if (returnType == 'AnyGC*') {
-      _structBuf.writeln('        return (static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
-    } else {
-      _structBuf.writeln('        return dynAs<$returnType>((static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_));');
-    }
     _structBuf.writeln('    }');
     _structBuf.writeln('};');
     return 'GC::allocateLocal(new TearOff_$closureId($receiver))';
@@ -4729,14 +4870,14 @@ class CppEmitter {
       final arg = args;
       final vptrCall = 'static_cast<AnyGC*>($receiver)->_classInfo->compareTo(static_cast<AnyGC*>($receiver), _box($arg))';
       final valueCall = '(($receiver) > ($arg) ? 1LL : (($receiver) < ($arg) ? -1LL : 0LL))';
-      return '([&]() -> int64_t { if constexpr (std::is_pointer_v<decltype($receiver)>) { auto* _gc = static_cast<AnyGC*>($receiver); if (_gc) { return $vptrCall; } else { return static_cast<int64_t>(0); } } else { return $valueCall; } })()';
+      return 'dart_compareTo($receiver, $arg)';
     }
 
     // toString: 指针类型用 ClassInfo 派发，值类型用 dart_str
     if (methodName == 'toString' && argCount == 0) {
       final vptrCall = 'static_cast<AnyGC*>($receiver)->_classInfo->toString(static_cast<AnyGC*>($receiver))';
       final valueCall = 'dart_str($receiver)';
-      return '([&]() -> AnyGC* { if constexpr (std::is_pointer_v<decltype($receiver)>) { auto* _gc = static_cast<AnyGC*>($receiver); if (_gc) { return $vptrCall; } else { return _box(static_cast<AnyGC*>($receiver)); } } else { return $valueCall; } })()';
+      return 'dart_toStringBoxed($receiver)';
     }
 
     // 默认：通过 ClassInfo 派发（13 个常用方法在基类 ClassInfo 中）
@@ -4864,7 +5005,7 @@ class CppEmitter {
         // Stream.toList() returns Future<List<T>>, which is Promise<StaticList<T>*>*
         // Create a resolved promise with the list
         final typeArg = type.typeArguments.isNotEmpty ? _cppType(type.typeArguments.first) : 'AnyGC*';
-        return '([&]() { auto* _stream = $receiver; auto* _promise = GC::allocateLocal(new Promise<StaticList<$typeArg>*>()); promise_complete(_promise, _box(streamValue_toList(static_cast<AnyGC*>(_stream)))); return _promise; })()';
+        return 'streamToListPromise<$typeArg>(static_cast<AnyGC*>($receiver))';
       case 'map':
         return 'streamValue_map(static_cast<AnyGC*>($receiver), $args)';
       case 'where':
@@ -5033,8 +5174,8 @@ class CppEmitter {
   /// 将 C++ 参数表达式 boxing 为 AnyGC*
   String _boxCollectionArg(String argExpr, DartType? argType) {
     if (argType == null) {
-      // 无类型信息：使用泛型 lambda 编译时判断指针/值类型
-      return '([&](auto&& _x) -> AnyGC* { if constexpr (std::is_pointer_v<std::decay_t<decltype(_x)>>) return static_cast<AnyGC*>(_x); else return _box(_x); })($argExpr)';
+      // 无类型信息：经运行时辅助函数 _boxElem（编译期区分指针/值类型）
+      return '_boxElem($argExpr)';
     }
     final cppType = _cppType(argType);
     if (cppType == 'int64_t' || cppType == 'int') {
@@ -6105,13 +6246,13 @@ class CppEmitter {
         case 'toStringAsFixed':
           if (typeName == 'double') {
             final fracDigits = args.split(',').first.trim();
-            return '([&]() { std::ostringstream _ss; _ss << std::fixed << std::setprecision($fracDigits) << $receiver; return _ss.str(); })()';
+            return 'dart_double_toStringAsFixed($receiver, $fracDigits)';
           }
           return 'std::to_string($receiver)';
         case 'toStringAsPrecision':
           if (typeName == 'double') {
             final precision = args.split(',').first.trim();
-            return '([&]() { std::ostringstream _ss; _ss << std::setprecision($precision) << $receiver; return _ss.str(); })()';
+            return 'dart_double_toStringAsPrecision($receiver, $precision)';
           }
           return 'std::to_string($receiver)';
         case 'toRadixString':
@@ -6424,12 +6565,12 @@ class CppEmitter {
                     return 'StaticList<$typeArg>::from($listExpr)';
                   }
                   // Create a new StaticList and copy from the source
-                  return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticList<$typeArg>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                  return 'listCopiedFrom<$typeArg>($listExpr)';
                 }
                 if (listExpr.startsWith('GC::allocateLocal(new StaticList')) {
                   return 'StaticList<AnyGC*>::from($listExpr)';
                 }
-                return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticList<AnyGC*>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                return 'listCopiedFrom<AnyGC*>($listExpr)';
               }
             }
           } else if (className == 'StaticSet' || className == 'Set') {
@@ -6456,16 +6597,16 @@ class CppEmitter {
                 final listExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
-                  return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticSet<$typeArg>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                  return 'setCopiedFrom<$typeArg>($listExpr)';
                 }
-                return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticSet<AnyGC*>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                return 'setCopiedFrom<AnyGC*>($listExpr)';
               } else {
                 final listExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
-                  return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticSet<$typeArg>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                  return 'setCopiedFrom<$typeArg>($listExpr)';
                 }
-                return '([&]() { auto* _src = $listExpr; auto* _dst = GC::allocateLocal(new StaticSet<AnyGC*>()); for (int _i = 0; _i < _src->_data->_storage.size(); _i++) _dst->_data->_storage.push_back(_src->_data->_storage[_i]); return _dst; })()';
+                return 'setCopiedFrom<AnyGC*>($listExpr)';
               }
             }
           }
@@ -6694,7 +6835,7 @@ class CppEmitter {
           final typeArg = expr.arguments.types.isNotEmpty
               ? _cppType(expr.arguments.types.first)
               : 'AnyGC*';
-          return '([&]() { auto* _list = GC::allocateLocal(new StaticList<$typeArg>()); for (int64_t _i = 0; _i < $countExpr; _i++) _list->_data->_storage.push_back($valueExpr); return _list; })()';
+          return 'listFilled<$typeArg>($countExpr, $valueExpr)';
         }
       }
       // Handle List.generate(count, generator) → create StaticList by calling generator for each index
@@ -6706,7 +6847,7 @@ class CppEmitter {
           final typeArg = expr.arguments.types.isNotEmpty
               ? _cppType(expr.arguments.types.first)
               : 'AnyGC*';
-          return '([&]() { auto* _list = GC::allocateLocal(new StaticList<$typeArg>()); auto* _gen = $genExpr; for (int64_t _i = 0; _i < $countExpr; _i++) _list->_data->_storage.push_back(_gen->typedFnPtr(_gen, _i)); return _list; })()';
+          return 'listGenerated<$typeArg>($countExpr, $genExpr)';
         }
       }
     }
@@ -6720,7 +6861,7 @@ class CppEmitter {
       final typeArg = expr.arguments.types.isNotEmpty
           ? _cppType(expr.arguments.types.first)
           : 'AnyGC*';
-      return '([&]() { auto* _list = GC::allocateLocal(new StaticList<$typeArg>()); for (int64_t _i = 0; _i < $countExpr; _i++) _list->_data->_storage.push_back($valueExpr); return _list; })()';
+      return 'listFilled<$typeArg>($countExpr, $valueExpr)';
     }
     if (funcNameLower == 'generate' && expr.arguments.positional.length >= 2) {
       final countExpr = _emitCppExpr(expr.arguments.positional[0]);
@@ -6728,7 +6869,7 @@ class CppEmitter {
       final typeArg = expr.arguments.types.isNotEmpty
           ? _cppType(expr.arguments.types.first)
           : 'AnyGC*';
-      return '([&]() { auto* _list = GC::allocateLocal(new StaticList<$typeArg>()); auto* _gen = $genExpr; for (int64_t _i = 0; _i < $countExpr; _i++) _list->_data->_storage.push_back(dynAs<$typeArg>(_gen->fnPtr(_gen, _box(_i)))); return _list; })()';
+      return 'listGenerated<$typeArg>($countExpr, $genExpr)';
     }
 
     var funcName = _cleanName(target.name.text);
@@ -7842,16 +7983,16 @@ class CppEmitter {
     if (expr.entries.isEmpty) {
       return 'StaticMap<$keyType, $valType>::empty()';
     }
-    // 非空 map 字面量：创建空 map 然后逐个添加
+    // 非空 map 字面量：经运行时辅助 mapOf 构造（花括号初始化列表保证条目从左到右求值）
     final entries = expr.entries.map((e) {
       var k = _emitCppExpr(e.key);
       var v = _emitCppExpr(e.value);
       // 如果 key/value 类型不匹配，需要 boxing
       k = _boxForMapComponent(k, e.key, keyType);
       v = _boxForMapComponent(v, e.value, valType);
-      return '_m->set($k, $v)';
-    }).join('; ');
-    return '([&]() { auto* _m = StaticMap<$keyType, $valType>::empty(); $entries; return _m; })()';
+      return 'StaticMapEntry<$keyType, $valType>($k, $v)';
+    }).join(', ');
+    return 'mapOf<$keyType, $valType>({$entries})';
   }
 
   /// 为 Map 的 key 或 value 进行 boxing（当期望 AnyGC* 但实际是基本类型时）
@@ -8326,7 +8467,7 @@ class CppEmitter {
     final paramNames = <String>[];
     final paramDecls = paramTypes.isNotEmpty
         ? func.positionalParameters.asMap().entries.map((e) {
-            final paramName = _cleanName(e.value.name ?? 'p${e.key}');
+            final paramName = _safeTrampParamName(e.value.name ?? 'p${e.key}');
             paramNames.add(paramName);
             return '${paramTypes[e.key]} $paramName';
           }).join(', ')
@@ -8455,7 +8596,7 @@ class CppEmitter {
       }
     }
 
-    // typed trampoline 参数：直接使用具体类型和参数名
+    // _invoke 参数：直接使用具体类型和参数名
     final typedParams = paramTypes.isNotEmpty
         ? paramTypes.asMap().entries.map((e) => '${paramTypes[e.key]} ${paramNames[e.key]}').join(', ')
         : '';
@@ -8485,20 +8626,18 @@ class CppEmitter {
     if (allCtorParams.isNotEmpty) {
       _structBuf.writeln('    $closureName(${allCtorParams.join(', ')}) : ${allInitList.join(', ')} {');
       _structBuf.writeln('        this->fnPtr = &_trampoline;');
-      _structBuf.writeln('        this->typedFnPtr = &_typedTrampoline;');
       _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
       _structBuf.writeln('    }');
     } else {
       _structBuf.writeln('    $closureName() {');
       _structBuf.writeln('        this->fnPtr = &_trampoline;');
-      _structBuf.writeln('        this->typedFnPtr = &_typedTrampoline;');
       _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
       _structBuf.writeln('    }');
     }
 
-    // typed trampoline — 函数体的唯一宿主，直接返回 R（无 _box/_impl 包装）。
-    // _vptr_ 路径经 typedFnPtr 调用；_trampoline 也委托到这里。
-    _structBuf.writeln('    static $returnType _typedTrampoline($allTypedParams) {');
+    // _invoke — 函数体的唯一宿主，返回具体类型 R。
+    // 仅供 _trampoline 委托调用，不对外暴露。
+    _structBuf.writeln('    static $returnType _invoke($allTypedParams) {');
     if (capturesThis || capturedVars.isNotEmpty) {
       _structBuf.writeln('        auto* _self = static_cast<$closureName$templateArgs*>(_env);');
       if (capturesThis && thisType != null) {
@@ -8513,12 +8652,12 @@ class CppEmitter {
     _structBuf.writeln('    }');
 
     // 擦除 trampoline — fnPtr 的统一签名（AnyGC* 参数，AnyGC* 返回）。
-    // 纯转发：入口 dynAs 拆箱 → 委托 _typedTrampoline → _box 装箱返回值。
+    // 入口 dynAs 拆箱 → 委托 _invoke → _box 装箱返回值。
     _structBuf.writeln('    static AnyGC* _trampoline($allErasedParams) {');
     _structBuf.write(erasedUnboxLines.toString());
     final delegateArgs = [paramNames.map((n) => n).join(', ')];
     if (delegateArgs.first.isEmpty) delegateArgs.removeLast();
-    final delegateCall = '_typedTrampoline(_env${delegateArgs.isNotEmpty ? ', ${delegateArgs.first}' : ''})';
+    final delegateCall = '_invoke(_env${delegateArgs.isNotEmpty ? ', ${delegateArgs.first}' : ''})';
     if (returnType == 'void') {
       _structBuf.writeln('        $delegateCall;');
       _structBuf.writeln('        return nullptr;');
@@ -9431,10 +9570,14 @@ class CppEmitter {
     // void 类型变量：直接执行表达式，不声明变量
     if (varType == 'void') {
       final init = expr.variable.initializer != null
-          ? _emitCppExpr(expr.variable.initializer!)
+          ? _emitLetChainExpr(expr.variable.initializer!)
           : '';
-      final body = _emitCppExpr(expr.body);
+      final body = _emitLetChainExpr(expr.body);
       if (init.isNotEmpty) {
+        if (_letHoistBuf != null) {
+          _letHoistBuf!.writeln('$init;');
+          return body;
+        }
         return '([&]() { $init; return $body; })()';
       }
       return body;
@@ -9449,7 +9592,7 @@ class CppEmitter {
     }
 
     final init = expr.variable.initializer != null
-        ? _emitCppExpr(expr.variable.initializer!)
+        ? _emitLetChainExpr(expr.variable.initializer!)
         : _cppDefaultValue(varType);
 
     // 包装初始化器以匹配目标类型
@@ -9457,13 +9600,18 @@ class CppEmitter {
     if (expr.variable.initializer != null) {
       wrappedInit = _wrapToType(init, varType, expr.variable.initializer!);
       // 如果目标类型是 AnyGC* 但初始化器产生了非指针类型（如 int64_t, DartString），
-      // 使用 IIFE 执行副作用并返回 nullptr
+      // 使用 IIFE 执行副作用并返回 nullptr（提升模式下副作用语句前置）
       if (varType == 'AnyGC*') {
         final initType = _getExpressionType(expr.variable.initializer!);
         final initCppType = initType != null ? _cppType(initType) : '';
         if (initCppType.isNotEmpty && initCppType != 'AnyGC*' && initCppType != 'AnyGC*' &&
             !initCppType.endsWith('*')) {
-          wrappedInit = '([&]() { (void)($init); return nullptr; })()';
+          if (_letHoistBuf != null) {
+            _letHoistBuf!.writeln('(void)($init);');
+            wrappedInit = 'nullptr';
+          } else {
+            wrappedInit = '([&]() { (void)($init); return nullptr; })()';
+          }
         }
       }
     } else {
@@ -9487,14 +9635,31 @@ class CppEmitter {
       return result;
     }
 
-    // 尝试识别 ?. 或 ?? 操作符的脱糖形式
+    // 尝试识别 ?. 或 ?? 操作符的脱糖形式。
+    // 探测期间停用提升：探测会发射子表达式，若模式不匹配则不能污染提升缓冲。
+    final savedHoist = _letHoistBuf;
+    _letHoistBuf = null;
     final nullSafe = _tryEmitNullSafeOperator(expr, varName, varType, init);
+    _letHoistBuf = savedHoist;
     if (nullSafe != null) {
+      // null-safe 结果是自包含表达式（可能含 IIFE），提升模式下原样返回
       // 清理变量名映射
       if (originalName != varName) {
         _variableNameMappings.remove(originalName);
       }
       return nullSafe;
+    }
+
+    // 提升模式：先写入声明（init 先于 body 求值），再发射 body
+    if (_letHoistBuf != null) {
+      _declaredVariables.add(varName);
+      _letHoistBuf!.writeln('$varType $varName = $wrappedInit;');
+      final body = _emitLetChainExpr(expr.body);
+      // 清理变量名映射
+      if (originalName != varName) {
+        _variableNameMappings.remove(originalName);
+      }
+      return body;
     }
 
     final body = _emitCppExpr(expr.body);
@@ -9510,6 +9675,9 @@ class CppEmitter {
   /// 处理 initializer 是 Let 表达式的情况
   String _emitCppNestedLetFromInit(Let innerLet, Let outerLet, String outerVarName, String outerVarType) {
     // 收集所有嵌套的 Let 变量（从 innerLet 开始，到 outerLet）
+    // 收集期间停用提升：收集循环自行发射声明，避免子 let 重复发射
+    final savedHoistBuf = _letHoistBuf;
+    _letHoistBuf = null;
     final vars = <String>[];
     final originalNames = <String>[];
     final types = <String>[];
@@ -9574,15 +9742,16 @@ class CppEmitter {
       _variableNameMappings[outerVarName] = _cleanName(outerVarName);
     }
 
-    // 生成 IIFE
-    final body = _emitCppExpr(outerLet.body);
-    final varDecls = StringBuffer();
+    // 恢复提升状态后发射 body（链可继续提升）
+    _letHoistBuf = savedHoistBuf;
+    final body = savedHoistBuf != null
+        ? _emitLetChainExpr(outerLet.body)
+        : _emitCppExpr(outerLet.body);
+    final declLines = <String>[];
     for (var i = 0; i < vars.length; i++) {
-      if (types[i] == 'void') {
-        varDecls.write('${inits[i]}; ');
-      } else {
-        varDecls.write('${types[i]} ${vars[i]} = ${inits[i]}; ');
-      }
+      declLines.add(types[i] == 'void'
+          ? '${inits[i]};'
+          : '${types[i]} ${vars[i]} = ${inits[i]};');
     }
 
     // 清理变量名映射
@@ -9592,12 +9761,22 @@ class CppEmitter {
       }
     }
 
-    return '([&]() { $varDecls return $body; })()';
+    // 提升模式：声明前置，主体直接返回（无 IIFE）
+    if (savedHoistBuf != null) {
+      for (final d in declLines) {
+        savedHoistBuf.writeln(d);
+      }
+      return body;
+    }
+    return '([&]() { ${declLines.join(' ')} return $body; })()';
   }
 
   /// 处理嵌套的 Let 表达式（用于 ?. 操作符链）
   String _emitCppNestedLet(Let expr, String varName, String varType, String init) {
     // 收集所有嵌套的 Let 变量
+    // 收集期间停用提升：收集循环自行发射声明，避免子 let 重复发射
+    final savedHoistBuf = _letHoistBuf;
+    _letHoistBuf = null;
     final vars = <String>[];
     final originalNames = <String>[];
     final types = <String>[];
@@ -9630,15 +9809,16 @@ class CppEmitter {
         current = current.body as Let;
       } else {
         // 到达最内层，生成完整的 IIFE
-        final body = _emitCppExpr(current.body);
-        final varDecls = StringBuffer();
+        // 恢复提升状态后发射 body（链可继续提升）
+        _letHoistBuf = savedHoistBuf;
+        final body = savedHoistBuf != null
+            ? _emitLetChainExpr(current.body)
+            : _emitCppExpr(current.body);
+        final declLines = <String>[];
         for (var i = 0; i < vars.length; i++) {
-          if (types[i] == 'void') {
-            // void 类型：直接执行表达式，不声明变量
-            varDecls.write('${inits[i]}; ');
-          } else {
-            varDecls.write('${types[i]} ${vars[i]} = ${inits[i]}; ');
-          }
+          declLines.add(types[i] == 'void'
+              ? '${inits[i]};'
+              : '${types[i]} ${vars[i]} = ${inits[i]};');
         }
 
         // 清理变量名映射
@@ -9648,7 +9828,14 @@ class CppEmitter {
           }
         }
 
-        return '([&]() { $varDecls return $body; })()';
+        // 提升模式：声明前置，主体直接返回（无 IIFE）
+        if (savedHoistBuf != null) {
+          for (final d in declLines) {
+            savedHoistBuf.writeln(d);
+          }
+          return body;
+        }
+        return '([&]() { ${declLines.join(' ')} return $body; })()';
       }
     }
 
@@ -9904,7 +10091,7 @@ class CppEmitter {
         _emitCppStmt(s, buf);
       }
     } else if (stmt is ExpressionStatement) {
-      final expr = _emitCppExpr(stmt.expression);
+      final expr = _emitExprWithLetHoisting(stmt.expression, buf);
       buf.writeln('$_pad$expr;');
     } else if (stmt is ReturnStatement) {
       _emitCppReturn(stmt, buf);
@@ -9975,7 +10162,7 @@ class CppEmitter {
         }
         buf.writeln('${_pad}return _promise;');
       } else {
-        final value = _emitCppExpr(stmt.expression!);
+        final value = _emitExprWithLetHoisting(stmt.expression!, buf);
         // 包装为 AnyPtr（Promise::complete 接受 AnyPtr）
         final wrappedValue = _wrapValueForPromise(value, stmt.expression!);
         buf.writeln('${_pad}promise_complete(_promise, $wrappedValue);');
@@ -9984,7 +10171,7 @@ class CppEmitter {
     } else if (_currentReturnType == 'void') {
       // void 函数：不允许 return expr;，先执行表达式再 return
       if (stmt.expression != null) {
-        final value = _emitCppExpr(stmt.expression!);
+        final value = _emitExprWithLetHoisting(stmt.expression!, buf);
         if (value.isNotEmpty && value != 'void') {
           buf.writeln('${_pad}$value;');
         }
@@ -9993,7 +10180,7 @@ class CppEmitter {
     } else if (stmt.expression == null) {
       buf.writeln('${_pad}return ${_inClosureTrampoline ? _cppDefaultValue(_currentReturnType) : ''};');
     } else {
-      var value = _emitCppExpr(stmt.expression!);
+      var value = _emitExprWithLetHoisting(stmt.expression!, buf);
       // 如果表达式产生了空结果，尝试检测 this.field 模式
       if (value.isEmpty) {
         final expr = stmt.expression!;
@@ -10059,19 +10246,14 @@ class CppEmitter {
     }
   }
 
-  /// 将值包装为 AnyGC* 以传递给 Promise::complete
-  String _wrapValueForPromise(String value, Expression expr) {
-    if (value.startsWith('_box(') || value == 'nullptr') {
-      return value;
-    }
-    // fnPtr always returns AnyGC* — if value is dynAs<R>(fnPtrCall), extract fnPtrCall directly
+  /// fnPtr 调用本身已返回 AnyGC*：剥离冗余的 dynAs<_box> 包装，无法识别时返回 null
+  String? _unwrapFnPtrCall(String value) {
     if (value.startsWith('dynAs<') && value.contains('->fnPtr(')) {
       final firstParen = value.indexOf('(');
       if (firstParen > 0) {
         return value.substring(firstParen + 1, value.length - 1);
       }
     }
-    // Raw fnPtr call already returns AnyGC*
     if (value.contains('->fnPtr(') && !value.startsWith('_box(')) {
       final callStart = value.indexOf('->fnPtr(');
       final beforeCall = value.substring(0, callStart);
@@ -10080,6 +10262,16 @@ class CppEmitter {
         return value;
       }
     }
+    return null;
+  }
+
+  /// 将值包装为 AnyGC* 以传递给 Promise::complete
+  String _wrapValueForPromise(String value, Expression expr) {
+    if (value.startsWith('_box(') || value == 'nullptr') {
+      return value;
+    }
+    final unwrapped = _unwrapFnPtrCall(value);
+    if (unwrapped != null) return unwrapped;
     return '_box($value)';
   }
 
@@ -10103,23 +10295,8 @@ class CppEmitter {
   /// 将值包装为 AnyPtr，根据表达式类型选择合适的包装方法
   String _wrapIn_box(String value, Expression expr) {
     if (value.startsWith('_box(') || value.startsWith('GC::allocateLocal(')) return value;
-    // fnPtr always returns AnyGC* — if value is dynAs<R>(fnPtrCall), extract fnPtrCall directly
-    if (value.startsWith('dynAs<') && value.contains('->fnPtr(')) {
-      final firstParen = value.indexOf('(');
-      if (firstParen > 0) {
-        return value.substring(firstParen + 1, value.length - 1);
-      }
-    }
-    // Raw fnPtr call already returns AnyGC*
-    if (value.contains('->fnPtr(') && !value.startsWith('_box(')) {
-      final callStart = value.indexOf('->fnPtr(');
-      final beforeCall = value.substring(0, callStart);
-      // Ensure the entire value is a fnPtr call (not e.g. fnPtr(x) + 1)
-      if (beforeCall.isEmpty || beforeCall.endsWith(')') || beforeCall.endsWith(']') ||
-          beforeCall.contains('static_cast<') || _isValidIdentifier(beforeCall)) {
-        return value;
-      }
-    }
+    final unwrapped = _unwrapFnPtrCall(value);
+    if (unwrapped != null) return unwrapped;
     if (expr is NullLiteral) return 'nullptr';
     if (expr is VariableGet) return _wrapValueByType(value, expr.variable.type);
     if (expr is StaticInvocation) return _wrapValueByType(value, expr.target.function.returnType);
@@ -10760,7 +10937,7 @@ class CppEmitter {
           _expectedMapValueType = _cppType(mapType.typeArguments[1]);
         }
       }
-      final init = _emitCppExpr(stmt.initializer!);
+      final init = _emitExprWithLetHoisting(stmt.initializer!, buf);
       final wrappedInit = _wrapToType(init, varType, stmt.initializer!);
       // 恢复期望的类型
       if (savedMapKeyType != null || savedMapValueType != null) {
@@ -11233,7 +11410,20 @@ class CppEmitter {
       }
       final assignStmts = fieldAssignments.isNotEmpty ? ' ${fieldAssignments.join('; ')};' : '';
       final ciInit = ' _obj->AnyGC::_classInfo = &$structName$templateArgs::_classInfo;';
-      return '([&]() { auto* _obj = GC::allocateLocal(new $structName$templateArgs());$ciInit$assignStmts return _obj; })()';
+      // 语法糖展开：const 构造器初始化无外部捕获，提取为无参糖函数
+      // 模板作用域内返回类型含未定类型参数，退回 IIFE
+      if (_inScopeTypeParams.isNotEmpty) {
+        return '([&]() { auto* _obj = GC::allocateLocal(new $structName$templateArgs());$ciInit$assignStmts return _obj; })()';
+      }
+      final funcName = '_sugar_const_${_sugarCounter++}';
+      _sugarBuf.writeln(
+          'static inline $structName$templateArgs* $funcName() {');
+      _sugarBuf.writeln('    auto* _obj = GC::allocateLocal(new $structName$templateArgs());');
+      _sugarBuf.writeln('   $ciInit$assignStmts');
+      _sugarBuf.writeln('    return _obj;');
+      _sugarBuf.writeln('}');
+      _sugarBuf.writeln();
+      return '$funcName()';
     }
     if (constant is StaticTearOffConstant) {
       final target = constant.target;
@@ -11256,12 +11446,14 @@ class CppEmitter {
       // Build parameter list for call method
       final callParams = <String>[];
       final callArgs = <String>[];
+      final trampParamNames = <String>[];
       for (var i = 0; i < params.length; i++) {
         final param = params[i];
-        final paramName = param.name ?? 'arg$i';
+        final paramName = _safeTrampParamName(param.name ?? 'arg$i');
         final paramType = paramTypes[i];
         callParams.add('$paramType $paramName');
         callArgs.add(paramName);
+        trampParamNames.add(paramName);
       }
 
       // Determine the function to call
@@ -11277,19 +11469,17 @@ class CppEmitter {
       final closureName = 'TearOff_$closureId';
       final argsStr = callArgs.join(', ');
 
-      // Build typed trampoline params (concrete types with actual names)
+      // Build _invoke params (concrete types with actual names)
       final typedTrampParams = <String>['AnyGC* _env'];
       for (var i = 0; i < params.length; i++) {
-        final paramName = params[i].name ?? 'arg$i';
-        final paramType = paramTypes[i];
-        typedTrampParams.add('$paramType $paramName');
+        typedTrampParams.add('${paramTypes[i]} ${trampParamNames[i]}');
       }
 
       // 擦除 trampoline 参数：统一 AnyGC*，与 TypeFunctionN::FnPtr 一致
       final erasedTrampParams = <String>['AnyGC* _env'];
       final erasedUnbox = StringBuffer();
       for (var i = 0; i < params.length; i++) {
-        final paramName = params[i].name ?? 'arg$i';
+        final paramName = trampParamNames[i];
         final paramType = paramTypes[i];
         erasedTrampParams.add('AnyGC* _arg$i');
         if (paramType == 'AnyGC*' || paramType.endsWith('*')) {
@@ -11306,13 +11496,9 @@ class CppEmitter {
         typedCallBody = 'return $callTarget($argsStr);';
       }
 
-      // 擦除 trampoline 为纯转发：拆箱 → 委托 _typedTrampoline → 装箱
-      final tearOffArgNames = <String>[];
-      for (var i = 0; i < params.length; i++) {
-        tearOffArgNames.add(params[i].name ?? 'arg$i');
-      }
-      final tearOffDelegateArgs = tearOffArgNames.isEmpty ? '' : ', ${tearOffArgNames.join(', ')}';
-      final tearOffDelegate = '_typedTrampoline(_env$tearOffDelegateArgs)';
+      // 擦除 trampoline 为转发：拆箱 → 委托 _invoke → 装箱
+      final tearOffDelegateArgs = trampParamNames.isEmpty ? '' : ', ${trampParamNames.join(', ')}';
+      final tearOffDelegate = '_invoke(_env$tearOffDelegateArgs)';
       String erasedCallBody;
       if (returnType == 'void') {
         erasedCallBody = '$tearOffDelegate; return nullptr;';
@@ -11324,13 +11510,12 @@ class CppEmitter {
       _structBuf.writeln('struct $closureName : $typeFunctionBase {');
       _structBuf.writeln('    $closureName() {');
       _structBuf.writeln('        this->fnPtr = &_trampoline;');
-      _structBuf.writeln('        this->typedFnPtr = &_typedTrampoline;');
       _structBuf.writeln('    }');
       _structBuf.writeln('    static AnyGC* _trampoline(${erasedTrampParams.join(', ')}) {');
       _structBuf.write(erasedUnbox.toString());
       _structBuf.writeln('        $erasedCallBody');
       _structBuf.writeln('    }');
-      _structBuf.writeln('    static $returnType _typedTrampoline(${typedTrampParams.join(', ')}) {');
+      _structBuf.writeln('    static $returnType _invoke(${typedTrampParams.join(', ')}) {');
       _structBuf.writeln('        $typedCallBody');
       _structBuf.writeln('    }');
       _structBuf.writeln('};');
@@ -12209,6 +12394,15 @@ class CppEmitter {
     return cleaned;
   }
 
+  /// 闭包 trampoline 形参名：避让合成名 _env/_self/_arg$i，防止生成代码重定义冲突
+  String _safeTrampParamName(String name) {
+    var cleaned = _cleanName(name);
+    if (cleaned == '_env' || cleaned == '_self' || RegExp(r'^_arg\d+$').hasMatch(cleaned)) {
+      cleaned = '${cleaned}_p';
+    }
+    return cleaned;
+  }
+
   /// Sanitize synthetic mixin class names (e.g., _Dog&Animal&Printable → Dog_Animal_Printable)
   String _sanitizeSyntheticName(String name) {
     var result = name;
@@ -12364,5 +12558,114 @@ class CppEmitter {
         final cppArgs = args.map(_cppType).join(', ');
         return '$name<$cppArgs>';
     }
+  }
+}
+
+/// 语法糖提取辅助：收集 BlockExpression 的局部声明与外部变量捕获。
+/// - locals：块内声明的变量（其引用不算捕获）
+/// - captured：块外声明、块内被引用的变量（将作为糖函数参数传入）
+/// - usesThis：块内是否出现 this/super 访问（糖函数需接收 this_）
+/// - hasForbidden：出现无法跨越函数边界的控制流时置位，放弃提取
+class _SugarCaptureCollector extends RecursiveVisitor {
+  final Set<VariableDeclaration> locals = {};
+  final Set<VariableDeclaration> captured = {};
+  final Set<Node> boundaryNodes = {};
+  bool usesThis = false;
+  bool hasForbidden = false;
+  // 嵌套函数深度：嵌套函数体（如排序比较器）有独立控制流作用域，
+  // 其中的 return/break/yield 不跨越糖函数边界，不构成禁止项
+  int _fnDepth = 0;
+
+  @override
+  void visitFunctionNode(FunctionNode node) {
+    // 嵌套函数的参数属于其内部作用域，不算外部捕获
+    for (final p in node.positionalParameters) {
+      locals.add(p);
+    }
+    for (final p in node.namedParameters) {
+      locals.add(p);
+    }
+    _fnDepth++;
+    defaultNode(node);
+    _fnDepth--;
+  }
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    locals.add(node);
+    node.initializer?.accept(this);
+  }
+
+  @override
+  void visitVariableGet(VariableGet node) {
+    if (!locals.contains(node.variable)) captured.add(node.variable);
+  }
+
+  @override
+  void visitVariableSet(VariableSet node) {
+    if (!locals.contains(node.variable)) captured.add(node.variable);
+    node.value.accept(this);
+  }
+
+  @override
+  void visitThisExpression(ThisExpression node) {
+    usesThis = true;
+  }
+
+  @override
+  void visitSuperMethodInvocation(SuperMethodInvocation node) {
+    usesThis = true;
+    defaultNode(node);
+  }
+
+  @override
+  void visitSuperPropertyGet(SuperPropertyGet node) {
+    usesThis = true;
+    defaultNode(node);
+  }
+
+  @override
+  void visitSuperPropertySet(SuperPropertySet node) {
+    usesThis = true;
+    defaultNode(node);
+  }
+
+  @override
+  void visitLabeledStatement(LabeledStatement node) {
+    boundaryNodes.add(node);
+    defaultNode(node);
+  }
+
+  @override
+  void visitSwitchStatement(SwitchStatement node) {
+    boundaryNodes.add(node);
+    defaultNode(node);
+  }
+
+  @override
+  void visitBreakStatement(BreakStatement node) {
+    // 跳出块外标签的 break 无法跨越函数边界
+    // （该 kernel 中 loop continue 已脱糖为 BreakStatement，同样受此检查）
+    if (_fnDepth == 0 && !boundaryNodes.contains(node.target)) {
+      hasForbidden = true;
+    }
+  }
+
+  @override
+  void visitContinueSwitchStatement(ContinueSwitchStatement node) {
+    // goto _sw_case_N：所属 switch 必须在块内
+    if (_fnDepth == 0 && !boundaryNodes.contains(node.target.parent)) {
+      hasForbidden = true;
+    }
+  }
+
+  @override
+  void visitReturnStatement(ReturnStatement node) {
+    if (_fnDepth == 0) hasForbidden = true;
+  }
+
+  @override
+  void visitYieldStatement(YieldStatement node) {
+    if (_fnDepth == 0) hasForbidden = true;
   }
 }

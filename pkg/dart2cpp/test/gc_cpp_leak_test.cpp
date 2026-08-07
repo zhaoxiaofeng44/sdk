@@ -114,13 +114,11 @@ struct CaptureEnv : TypeFunction0<int64_t> {
     static CaptureEnvClassInfo _classInfo;
     CaptureEnv(AnyGC* cap) : captured(cap) {
         this->fnPtr = &_trampoline;
-        this->typedFnPtr = &_typedTrampoline;
         AnyGC::_classInfo = &_classInfo;
     }
-    static AnyGC* _trampoline(AnyGC* env) { return _box(0LL); }
-    static int64_t _typedTrampoline(AnyGC* env) {
+    static AnyGC* _trampoline(AnyGC* env) {
         auto* e = static_cast<CaptureEnv*>(env);
-        return e->captured ? static_cast<NodeValue*>(e->captured)->tag : -1;
+        return _box(e->captured ? static_cast<NodeValue*>(e->captured)->tag : -1);
     }
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* e = static_cast<CaptureEnv*>(self);
@@ -257,7 +255,7 @@ static void test3_closureCapture() {
     auto* env2 = GC::allocateGlobal(new CaptureEnv(payload2));
     freed = GC::collect();
     EXPECT(freed == 0, "root 闭包钉住捕获对象（gcMark 遍历 captured 字段）");
-    EXPECT(CaptureEnv::_typedTrampoline(env2) == 77, "捕获对象可正常访问");
+    EXPECT(dynAs<int64_t>(CaptureEnv::_trampoline(env2)) == 77, "捕获对象可正常访问");
 }
 
 static StaticList<AnyGC*>* g_t4list = nullptr;  // 数据段持有，不参与栈扫描

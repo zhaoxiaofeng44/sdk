@@ -540,8 +540,8 @@ struct ReachabilityError {
 
 struct ClassInfo {
     DartString typeName;
-    void(*gcMark)(AnyGC*, int) = nullptr;
     const ClassInfo* _parent = nullptr;
+    void(*gcMark)(AnyGC*, int) = nullptr;
     AnyGC*(*toString)(AnyGC*) = nullptr;
     AnyGC*(*get_runtimeType)(AnyGC*) = nullptr;
     bool(*eq)(AnyGC*, AnyGC*) = nullptr;
@@ -684,61 +684,24 @@ struct IntBox : AnyGC {
     int64_t value;
     static IntBoxClassInfo _classInfo;
     IntBox(int64_t v) : value(v) { AnyGC::_classInfo = &IntBox::_classInfo; GC::allocateLocal(this); }
-
-    static AnyGC* _vptr_toString(AnyGC* self);
-    static AnyGC* _vptr_runtimeType(AnyGC*);
-    static int64_t _vptr_compareTo(AnyGC* self, AnyGC* other);
-    static bool _vptr_eq(AnyGC* self, AnyGC* other);
-    static int64_t _vptr_hashCode(AnyGC* self);
 };
 
 struct DoubleBox : AnyGC {
     double value;
     static DoubleBoxClassInfo _classInfo;
     DoubleBox(double v) : value(v) { AnyGC::_classInfo = &DoubleBox::_classInfo; GC::allocateLocal(this); }
-
-    static AnyGC* _vptr_toString(AnyGC* self);
-    static AnyGC* _vptr_runtimeType(AnyGC*);
-    static int64_t _vptr_compareTo(AnyGC* self, AnyGC* other);
-    static bool _vptr_eq(AnyGC* self, AnyGC* other);
-    static int64_t _vptr_hashCode(AnyGC* self);
 };
 
 struct BoolBox : AnyGC {
     bool value;
     static BoolBoxClassInfo _classInfo;
     BoolBox(bool v) : value(v) { AnyGC::_classInfo = &BoolBox::_classInfo; GC::allocateLocal(this); }
-
-    static AnyGC* _vptr_toString(AnyGC* self);
-    static AnyGC* _vptr_runtimeType(AnyGC*);
-    static int64_t _vptr_compareTo(AnyGC* self, AnyGC* other);
-    static bool _vptr_eq(AnyGC* self, AnyGC* other);
-    static int64_t _vptr_hashCode(AnyGC* self);
 };
 
 struct StringBox : AnyGC {
     DartString value;
     static StringBoxClassInfo _classInfo;
     StringBox(const DartString& v) : value(v) { AnyGC::_classInfo = &StringBox::_classInfo; GC::allocateLocal(this); }
-
-    static AnyGC* _vptr_toString(AnyGC* self);
-    static AnyGC* _vptr_runtimeType(AnyGC*);
-    static AnyGC* _vptr_toUpperCase(AnyGC* self);
-    static AnyGC* _vptr_toLowerCase(AnyGC* self);
-    static bool _vptr_contains(AnyGC* self, AnyGC* other);
-    static int64_t _vptr_length(AnyGC* self);
-    static AnyGC* _vptr_trim(AnyGC* self);
-    static AnyGC* _vptr_trimLeft(AnyGC* self);
-    static AnyGC* _vptr_trimRight(AnyGC* self);
-    static AnyGC* _vptr_replaceFirst(AnyGC* self, AnyGC* from, AnyGC* to, AnyGC* start);
-    static AnyGC* _vptr_replaceRange(AnyGC* self, AnyGC* start, AnyGC* end, AnyGC* replacement);
-    static AnyGC* _vptr_padLeft(AnyGC* self, AnyGC* width, AnyGC* padding);
-    static AnyGC* _vptr_padRight(AnyGC* self, AnyGC* width, AnyGC* padding);
-    static int64_t _vptr_lastIndexOf(AnyGC* self, AnyGC* pattern, AnyGC* start);
-    static int64_t _vptr_codeUnitAt(AnyGC* self, AnyGC* index);
-    static int64_t _vptr_compareTo(AnyGC* self, AnyGC* other);
-    static bool _vptr_eq(AnyGC* self, AnyGC* other);
-    static int64_t _vptr_hashCode(AnyGC* self);
 };
 
 // TupleBox — wraps std::tuple* as an AnyGC for record types (Dart records)
@@ -986,53 +949,22 @@ inline int64_t StringBox::_vptr_hashCode(AnyGC* self) {
 
 // Box ClassInfo subclass constructor definitions — assign function pointers
 
+// ── Box ClassInfo 构造函数 — box 只持有 value，方法分发由调用点 inline 判定 ──
+
 inline IntBoxClassInfo::IntBoxClassInfo() {
     typeName = "int";
-    toString = &IntBox::_vptr_toString;
-    get_runtimeType = &IntBox::_vptr_runtimeType;
-    compareTo = &IntBox::_vptr_compareTo;
-    eq = &IntBox::_vptr_eq;
-    get_hashCode = &IntBox::_vptr_hashCode;
 }
 
 inline DoubleBoxClassInfo::DoubleBoxClassInfo() {
     typeName = "double";
-    toString = &DoubleBox::_vptr_toString;
-    get_runtimeType = &DoubleBox::_vptr_runtimeType;
-    compareTo = &DoubleBox::_vptr_compareTo;
-    eq = &DoubleBox::_vptr_eq;
-    get_hashCode = &DoubleBox::_vptr_hashCode;
 }
 
 inline BoolBoxClassInfo::BoolBoxClassInfo() {
     typeName = "bool";
-    toString = &BoolBox::_vptr_toString;
-    get_runtimeType = &BoolBox::_vptr_runtimeType;
-    compareTo = &BoolBox::_vptr_compareTo;
-    eq = &BoolBox::_vptr_eq;
-    get_hashCode = &BoolBox::_vptr_hashCode;
 }
 
 inline StringBoxClassInfo::StringBoxClassInfo() {
     typeName = "String";
-    toString = &StringBox::_vptr_toString;
-    get_runtimeType = &StringBox::_vptr_runtimeType;
-    toUpperCase = &StringBox::_vptr_toUpperCase;
-    toLowerCase = &StringBox::_vptr_toLowerCase;
-    contains = &StringBox::_vptr_contains;
-    get_length = &StringBox::_vptr_length;
-    trim = &StringBox::_vptr_trim;
-    trimLeft = &StringBox::_vptr_trimLeft;
-    trimRight = &StringBox::_vptr_trimRight;
-    replaceFirst = &StringBox::_vptr_replaceFirst;
-    replaceRange = &StringBox::_vptr_replaceRange;
-    padLeft = &StringBox::_vptr_padLeft;
-    padRight = &StringBox::_vptr_padRight;
-    lastIndexOf = &StringBox::_vptr_lastIndexOf;
-    codeUnitAt = &StringBox::_vptr_codeUnitAt;
-    compareTo = &StringBox::_vptr_compareTo;
-    eq = &StringBox::_vptr_eq;
-    get_hashCode = &StringBox::_vptr_hashCode;
 }
 
 // Box ClassInfo static instances
@@ -1092,67 +1024,47 @@ T dynAs(AnyGC* obj) {
 // ============================================================================
 
 // TypeFunction — 可调用闭包基类。
-// 子类 TypeFunctionN 持有两个函数指针：
-//   fnPtr: AnyGC*(*)(AnyGC*, AnyGC*...) — boxed（全擦除）约定：所有实参均为
-//          AnyGC*（值类型经 _boxElem 装箱），返回 AnyGC*，调用方按需 dynAs 拆箱。
-//          用于擦除调度（_vptr_map/expand/fold 等）与直接调用，签名全局统一。
-//   typedFnPtr: R(*)(AnyGC*, Args...) — typed 约定：实参/返回为具体类型，
-//          仅在与静态类型严格匹配的 _vptr_ 路径使用（调用方持有 TypeFunctionN<R, T>
-//          且传 T 类型实参，trampoline 同签名生成，ABI 一致）。
+// 子类 TypeFunctionN 持有唯一函数指针：
+//   fnPtr: AnyGC*(*)(AnyGC*, AnyGC*...) — 全擦除约定：所有对象一律 AnyGC*
+//          （值类型经 _box/_boxElem 装箱），返回 AnyGC*，调用方按需 dynAs/_unboxElem
+//          拆箱。调度与直接调用统一走这一条路径，签名全局统一。
 struct TypeFunction : AnyGC {};
 
 // _box overload for TypeFunction* — must appear after TypeFunction definition
 // so static_cast (not reinterpret_cast) can be used.
 inline AnyGC* _box(TypeFunction* v) { return static_cast<AnyGC*>(v); }
 
-// TypeFunctionN<R, Args...> — typed function wrapper.
-// fnPtr 始终返回 AnyGC*（boxed），用于 boxed AnyGC* 返回路径。
-// typedFnPtr 返回 R（typed），供 _vptr_ 方法直接使用，无需 dynAs。
+// TypeFunctionN<R, Args...> — function wrapper.
+// fnPtr 为全擦除签名（每个类型参数对应一个 AnyGC* 形参，返回 AnyGC*）。
+// R/Args 仅保留用于类型标注，调用一律经 fnPtr。
 
 // General template (3+ args)
 template<typename R, typename... Args>
 struct TypeFunctionN : TypeFunction {
-    using ArgsTuple = std::tuple<Args...>;
-    // 全擦除 FnPtr：每个类型参数对应一个 AnyGC* 形参
-    template<typename Seq> struct _ErasedFnBuilder;
-    template<size_t... I> struct _ErasedFnBuilder<std::index_sequence<I...>> {
-        template<size_t> using _Any = AnyGC*;
-        using type = AnyGC*(*)(AnyGC*, _Any<I>...);
-    };
-    using FnPtr = typename _ErasedFnBuilder<std::index_sequence_for<Args...>>::type;
+    template<typename> using _Any = AnyGC*;
+    using FnPtr = AnyGC*(*)(AnyGC*, _Any<Args>...);
     FnPtr fnPtr = nullptr;
-    using TypedFnPtr = R(*)(AnyGC*, Args...);
-    TypedFnPtr typedFnPtr = nullptr;
 };
 
 // 0-arg specialization
 template<typename R>
 struct TypeFunctionN<R> : TypeFunction {
-    using ArgsTuple = std::tuple<>;
     using FnPtr = AnyGC*(*)(AnyGC*);
     FnPtr fnPtr = nullptr;
-    using TypedFnPtr = R(*)(AnyGC*);
-    TypedFnPtr typedFnPtr = nullptr;
 };
 
 // 1-arg specialization
 template<typename R, typename A>
 struct TypeFunctionN<R, A> : TypeFunction {
-    using ArgsTuple = std::tuple<A>;
     using FnPtr = AnyGC*(*)(AnyGC*, AnyGC*);
     FnPtr fnPtr = nullptr;
-    using TypedFnPtr = R(*)(AnyGC*, A);
-    TypedFnPtr typedFnPtr = nullptr;
 };
 
 // 2-arg specialization
 template<typename R, typename A1, typename A2>
 struct TypeFunctionN<R, A1, A2> : TypeFunction {
-    using ArgsTuple = std::tuple<A1, A2>;
     using FnPtr = AnyGC*(*)(AnyGC*, AnyGC*, AnyGC*);
     FnPtr fnPtr = nullptr;
-    using TypedFnPtr = R(*)(AnyGC*, A1, A2);
-    TypedFnPtr typedFnPtr = nullptr;
 };
 
 // 向后兼容的类型别名（保持 TypeFunction0-16 的命名）
@@ -1203,6 +1115,12 @@ U _unboxElem(AnyGC* ptr) {
     else if constexpr (std::is_same_v<U, DartString>) return dynAs<DartString>(ptr);
     else if constexpr (std::is_pointer_v<U>) return static_cast<U>(ptr);
     else return *reinterpret_cast<U*>(ptr);
+}
+
+/// 谓词调用：装箱实参 → fnPtr → 拆箱为 bool（集合 where/any/every 等共用）
+template<typename U>
+inline bool _predApply(TypeFunction1<bool, U>* tf, const U& value) {
+    return dynAs<bool>(tf->fnPtr(tf, _boxElem<U>(value)));
 }
 
 // ── TupleBox _vptr_* definitions (deferred until _box available) ──
@@ -1680,7 +1598,7 @@ struct StaticList : AnyGC {
     static StaticList* generate(int length, TypeFunction1<T, int64_t>* generator) {
         auto* result = GC::allocateLocal(new StaticList());
         if (generator) {
-            for (int i = 0; i < length; i++) result->_data->_storage.push_back(generator->typedFnPtr(generator, static_cast<int64_t>(i)));
+            for (int i = 0; i < length; i++) result->_data->_storage.push_back(_unboxElem<T>(generator->fnPtr(generator, _box(static_cast<int64_t>(i)))));
         }
         return result;
     }
@@ -1813,14 +1731,14 @@ struct StaticList : AnyGC {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = list->_data->_storage.size() - 1; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) array_removeAt(list->_data, i);
+            if (_predApply(tf, list->_data->_storage[i])) array_removeAt(list->_data, i);
         }
     }
     static void _vptr_retainWhere(AnyGC* self, AnyGC* test) {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = list->_data->_storage.size() - 1; i >= 0; i--) {
-            if (!tf->typedFnPtr(tf, list->_data->_storage[i])) array_removeAt(list->_data, i);
+            if (!_predApply(tf, list->_data->_storage[i])) array_removeAt(list->_data, i);
         }
     }
     static void _vptr_removeRange(AnyGC* self, AnyGC* start, AnyGC* end) {
@@ -1856,7 +1774,7 @@ struct StaticList : AnyGC {
         if (list->_data->_storage.size() <= 1) return;
         std::sort(list->_data->_storage.begin(), list->_data->_storage.end(),
             [cmp](const T& a, const T& b) {
-                return cmp->typedFnPtr(cmp, a, b) < 0;
+                return dynAs<int64_t>(cmp->fnPtr(cmp, _boxElem<T>(a), _boxElem<T>(b))) < 0;
             });
     }
     static int64_t _vptr_indexOf(AnyGC* self, AnyGC* element, AnyGC* start) {
@@ -1889,7 +1807,7 @@ struct StaticList : AnyGC {
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         int64_t s = start ? dynAs<int64_t>(start) : 0;
         for (int i = static_cast<int>(s); i < list->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) return static_cast<int64_t>(i);
+            if (_predApply(tf, list->_data->_storage[i])) return static_cast<int64_t>(i);
         }
         return static_cast<int64_t>(-1);
     }
@@ -1899,21 +1817,21 @@ struct StaticList : AnyGC {
         int startIdx = start ? static_cast<int>(dynAs<int64_t>(start)) : static_cast<int>(list->_data->_storage.size()) - 1;
         if (startIdx >= static_cast<int>(list->_data->_storage.size())) startIdx = static_cast<int>(list->_data->_storage.size()) - 1;
         for (int i = startIdx; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) return static_cast<int64_t>(i);
+            if (_predApply(tf, list->_data->_storage[i])) return static_cast<int64_t>(i);
         }
         return static_cast<int64_t>(-1);
     }
     static void _vptr_forEach(AnyGC* self, AnyGC* func) {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<void, T>*>(func);
-        for (int i = 0; i < list->_data->_storage.size(); i++) tf->typedFnPtr(tf, list->_data->_storage[i]);
+        for (int i = 0; i < list->_data->_storage.size(); i++) tf->fnPtr(tf, _boxElem<T>(list->_data->_storage[i]));
     }
     static AnyGC* _vptr_where(AnyGC* self, AnyGC* test) {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         auto* result = new StaticList<T>();
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) result->_data->_storage.push_back(list->_data->_storage[i]);
+            if (_predApply(tf, list->_data->_storage[i])) result->_data->_storage.push_back(list->_data->_storage[i]);
         }
         return static_cast<AnyGC*>(GC::allocateLocal(result));
     }
@@ -1921,7 +1839,7 @@ struct StaticList : AnyGC {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) return true;
+            if (_predApply(tf, list->_data->_storage[i])) return true;
         }
         return false;
     }
@@ -1929,7 +1847,7 @@ struct StaticList : AnyGC {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (!tf->typedFnPtr(tf, list->_data->_storage[i])) return false;
+            if (!_predApply(tf, list->_data->_storage[i])) return false;
         }
         return true;
     }
@@ -1937,11 +1855,11 @@ struct StaticList : AnyGC {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) return _boxElem<T>(list->_data->_storage[i]);
+            if (_predApply(tf, list->_data->_storage[i])) return _boxElem<T>(list->_data->_storage[i]);
         }
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -1949,11 +1867,11 @@ struct StaticList : AnyGC {
         auto* list = static_cast<StaticList*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = list->_data->_storage.size() - 1; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) return _boxElem<T>(list->_data->_storage[i]);
+            if (_predApply(tf, list->_data->_storage[i])) return _boxElem<T>(list->_data->_storage[i]);
         }
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -1964,7 +1882,7 @@ struct StaticList : AnyGC {
         T found{};
         bool hasFound = false;
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, list->_data->_storage[i])) {
+            if (_predApply(tf, list->_data->_storage[i])) {
                 if (hasFound) { foundMultiple = true; break; }
                 found = list->_data->_storage[i];
                 hasFound = true;
@@ -1974,7 +1892,7 @@ struct StaticList : AnyGC {
         if (hasFound) return _boxElem<T>(found);
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -1983,7 +1901,7 @@ struct StaticList : AnyGC {
         if (list->_data->_storage.size() == 0) throw DartStateError("No element");
         auto* cmp = static_cast<TypeFunction2<T, T, T>*>(combine);
         T value = list->_data->_storage[0];
-        for (int i = 1; i < list->_data->_storage.size(); i++) value = cmp->typedFnPtr(cmp, value, list->_data->_storage[i]);
+        for (int i = 1; i < list->_data->_storage.size(); i++) value = _unboxElem<T>(cmp->fnPtr(cmp, _boxElem<T>(value), _boxElem<T>(list->_data->_storage[i])));
         return _boxElem<T>(value);
     }
     static AnyGC* _vptr_take(AnyGC* self, AnyGC* count) {
@@ -2006,7 +1924,7 @@ struct StaticList : AnyGC {
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         auto* result = new StaticList<T>();
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (!tf->typedFnPtr(tf, list->_data->_storage[i])) break;
+            if (!_predApply(tf, list->_data->_storage[i])) break;
             result->_data->_storage.push_back(list->_data->_storage[i]);
         }
         return static_cast<AnyGC*>(GC::allocateLocal(result));
@@ -2017,7 +1935,7 @@ struct StaticList : AnyGC {
         auto* result = new StaticList<T>();
         bool skipping = true;
         for (int i = 0; i < list->_data->_storage.size(); i++) {
-            if (skipping && tf->typedFnPtr(tf, list->_data->_storage[i])) continue;
+            if (skipping && _predApply(tf, list->_data->_storage[i])) continue;
             skipping = false;
             result->_data->_storage.push_back(list->_data->_storage[i]);
         }
@@ -2438,7 +2356,7 @@ struct StaticMap : AnyGC {
     static void _vptr_forEach(AnyGC* self, AnyGC* action) {
         auto* map = static_cast<StaticMap*>(self);
         auto* tf = static_cast<TypeFunction2<void, K, V>*>(action);
-        for (int i = 0; i < map->_keys->_storage.size(); i++) tf->typedFnPtr(tf, map->_keys->_storage[i], map->_values->_storage[i]);
+        for (int i = 0; i < map->_keys->_storage.size(); i++) tf->fnPtr(tf, _boxElem<K>(map->_keys->_storage[i]), _boxElem<V>(map->_values->_storage[i]));
     }
     static void _vptr_clear(AnyGC* self) {
         auto* map = static_cast<StaticMap*>(self);
@@ -2450,25 +2368,25 @@ struct StaticMap : AnyGC {
         K k = _unboxElem<K>(key);
         int idx = array_indexOf(map->_keys, k);
         if (idx != -1) return _boxElem<V>(map->_values->_storage[idx]);
-        V value = static_cast<TypeFunction0<V>*>(ifAbsent)->typedFnPtr(ifAbsent);
+        AnyGC* boxed = static_cast<TypeFunction0<V>*>(ifAbsent)->fnPtr(ifAbsent);
         map->_keys->_storage.push_back(k);
-        map->_values->_storage.push_back(value);
-        return _boxElem<V>(value);
+        map->_values->_storage.push_back(_unboxElem<V>(boxed));
+        return boxed;
     }
     static AnyGC* _vptr_update(AnyGC* self, AnyGC* key, AnyGC* updateFn, AnyGC* ifAbsent) {
         auto* map = static_cast<StaticMap*>(self);
         K k = _unboxElem<K>(key);
         int idx = array_indexOf(map->_keys, k);
         if (idx != -1) {
-            V newVal = static_cast<TypeFunction1<V, V>*>(updateFn)->typedFnPtr(updateFn, map->_values->_storage[idx]);
-            map->_values->_storage[idx] = newVal;
-            return _boxElem<V>(newVal);
+            AnyGC* boxed = static_cast<TypeFunction1<V, V>*>(updateFn)->fnPtr(updateFn, _boxElem<V>(map->_values->_storage[idx]));
+            map->_values->_storage[idx] = _unboxElem<V>(boxed);
+            return boxed;
         }
         if (ifAbsent) {
-            V newVal = static_cast<TypeFunction0<V>*>(ifAbsent)->typedFnPtr(ifAbsent);
+            AnyGC* boxed = static_cast<TypeFunction0<V>*>(ifAbsent)->fnPtr(ifAbsent);
             map->_keys->_storage.push_back(k);
-            map->_values->_storage.push_back(newVal);
-            return _boxElem<V>(newVal);
+            map->_values->_storage.push_back(_unboxElem<V>(boxed));
+            return boxed;
         }
         throw DartArgumentError("Key not found");
     }
@@ -2476,7 +2394,7 @@ struct StaticMap : AnyGC {
         auto* map = static_cast<StaticMap*>(self);
         auto* tf = static_cast<TypeFunction2<V, K, V>*>(updateFn);
         for (int i = 0; i < map->_keys->_storage.size(); i++) {
-            map->_values->_storage[i] = tf->typedFnPtr(tf, map->_keys->_storage[i], map->_values->_storage[i]);
+            map->_values->_storage[i] = _unboxElem<V>(tf->fnPtr(tf, _boxElem<K>(map->_keys->_storage[i]), _boxElem<V>(map->_values->_storage[i])));
         }
     }
     static void _vptr_addAll(AnyGC* self, AnyGC* other) {
@@ -2514,7 +2432,7 @@ struct StaticMap : AnyGC {
         auto* map = static_cast<StaticMap*>(self);
         auto* tf = static_cast<TypeFunction2<bool, K, V>*>(test);
         for (int i = map->_keys->_storage.size() - 1; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, map->_keys->_storage[i], map->_values->_storage[i])) {
+            if (dynAs<bool>(tf->fnPtr(tf, _boxElem<K>(map->_keys->_storage[i]), _boxElem<V>(map->_values->_storage[i])))) {
                 array_removeAt(map->_keys, i);
                 array_removeAt(map->_values, i);
             }
@@ -2755,14 +2673,14 @@ struct StaticSet : AnyGC {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = set->_data->_storage.size() - 1; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, set->_data->_storage[i])) array_removeAt(set->_data, i);
+            if (_predApply(tf, set->_data->_storage[i])) array_removeAt(set->_data, i);
         }
     }
     static void _vptr_retainWhere(AnyGC* self, AnyGC* test) {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = set->_data->_storage.size() - 1; i >= 0; i--) {
-            if (!tf->typedFnPtr(tf, set->_data->_storage[i])) array_removeAt(set->_data, i);
+            if (!_predApply(tf, set->_data->_storage[i])) array_removeAt(set->_data, i);
         }
     }
     static void _vptr_clear(AnyGC* self) {
@@ -2781,7 +2699,7 @@ struct StaticSet : AnyGC {
     static void _vptr_forEach(AnyGC* self, AnyGC* action) {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<void, T>*>(action);
-        for (int i = 0; i < set->_data->_storage.size(); i++) tf->typedFnPtr(tf, set->_data->_storage[i]);
+        for (int i = 0; i < set->_data->_storage.size(); i++) tf->fnPtr(tf, _boxElem<T>(set->_data->_storage[i]));
     }
     static AnyGC* _vptr_where(AnyGC* self, AnyGC* test) {
         if constexpr (_isEqualityComparable<T>::value) {
@@ -2789,7 +2707,7 @@ struct StaticSet : AnyGC {
             auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
             auto* result = new StaticSet<T>();
             for (int i = 0; i < set->_data->_storage.size(); i++) {
-                if (tf->typedFnPtr(tf, set->_data->_storage[i])) {
+                if (_predApply(tf, set->_data->_storage[i])) {
                     auto& elem = set->_data->_storage[i];
                     if (!array_contains(result->_data, elem)) result->_data->_storage.push_back(elem);
                 }
@@ -2803,7 +2721,7 @@ struct StaticSet : AnyGC {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, set->_data->_storage[i])) return true;
+            if (_predApply(tf, set->_data->_storage[i])) return true;
         }
         return false;
     }
@@ -2811,7 +2729,7 @@ struct StaticSet : AnyGC {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            if (!tf->typedFnPtr(tf, set->_data->_storage[i])) return false;
+            if (!_predApply(tf, set->_data->_storage[i])) return false;
         }
         return true;
     }
@@ -2819,11 +2737,11 @@ struct StaticSet : AnyGC {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, set->_data->_storage[i])) return _boxElem<T>(set->_data->_storage[i]);
+            if (_predApply(tf, set->_data->_storage[i])) return _boxElem<T>(set->_data->_storage[i]);
         }
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -2831,11 +2749,11 @@ struct StaticSet : AnyGC {
         auto* set = static_cast<StaticSet*>(self);
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         for (int i = set->_data->_storage.size() - 1; i >= 0; i--) {
-            if (tf->typedFnPtr(tf, set->_data->_storage[i])) return _boxElem<T>(set->_data->_storage[i]);
+            if (_predApply(tf, set->_data->_storage[i])) return _boxElem<T>(set->_data->_storage[i]);
         }
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -2846,7 +2764,7 @@ struct StaticSet : AnyGC {
         T found{};
         bool hasFound = false;
         for (int i = 0; i < set->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, set->_data->_storage[i])) {
+            if (_predApply(tf, set->_data->_storage[i])) {
                 if (hasFound) { foundMultiple = true; break; }
                 found = set->_data->_storage[i];
                 hasFound = true;
@@ -2856,7 +2774,7 @@ struct StaticSet : AnyGC {
         if (hasFound) return _boxElem<T>(found);
         if (orElse) {
             auto* of = static_cast<TypeFunction0<T>*>(orElse);
-            return _boxElem<T>(of->typedFnPtr(of));
+            return of->fnPtr(of);
         }
         throw DartStateError("No element");
     }
@@ -2865,7 +2783,7 @@ struct StaticSet : AnyGC {
         if (set->_data->_storage.size() == 0) throw DartStateError("No element");
         auto* cmp = static_cast<TypeFunction2<T, T, T>*>(combine);
         T value = set->_data->_storage[0];
-        for (int i = 1; i < set->_data->_storage.size(); i++) value = cmp->typedFnPtr(cmp, value, set->_data->_storage[i]);
+        for (int i = 1; i < set->_data->_storage.size(); i++) value = _unboxElem<T>(cmp->fnPtr(cmp, _boxElem<T>(value), _boxElem<T>(set->_data->_storage[i])));
         return _boxElem<T>(value);
     }
     static AnyGC* _vptr_unionSet(AnyGC* self, AnyGC* other) {
@@ -2982,7 +2900,7 @@ struct StaticSet : AnyGC {
             auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
             auto* result = new StaticSet<T>();
             for (int i = 0; i < set->_data->_storage.size(); i++) {
-                if (!tf->typedFnPtr(tf, set->_data->_storage[i])) break;
+                if (!_predApply(tf, set->_data->_storage[i])) break;
                 auto& elem = set->_data->_storage[i];
                 if (!array_contains(result->_data, elem)) result->_data->_storage.push_back(elem);
             }
@@ -2998,7 +2916,7 @@ struct StaticSet : AnyGC {
             auto* result = new StaticSet<T>();
             bool skipping = true;
             for (int i = 0; i < set->_data->_storage.size(); i++) {
-                if (skipping && tf->typedFnPtr(tf, set->_data->_storage[i])) continue;
+                if (skipping && _predApply(tf, set->_data->_storage[i])) continue;
                 skipping = false;
                 auto& elem = set->_data->_storage[i];
                 if (!array_contains(result->_data, elem)) result->_data->_storage.push_back(elem);
@@ -3656,7 +3574,7 @@ Promise<T>* Promise<T>::delayed(int ticks, TypeFunction0<T>* computation) {
     promise->addKeepAlive(static_cast<AnyGC*>(computation));
     GlobalScheduler::instance().registerDelayedTask(ticks, [promise, computation]() {
         try {
-            promise_complete(promise, _box(computation ? computation->typedFnPtr(computation) : T{}));
+            promise_complete(promise, computation ? computation->fnPtr(computation) : _box(T{}));
         } catch (const std::exception& e) {
             promise_completeError(promise, _box(DartString(e.what())));
         } catch (...) {
@@ -3920,7 +3838,7 @@ Promise<T>* Promise<T>::any(std::vector<Promise<T>*> promises) {
 template<typename T>
 Promise<T>* delayed(int ticks, TypeFunction0<T>* computation) {
     return Promise<T>::delayed(ticks, [computation]() -> T {
-        return computation->typedFnPtr(computation);
+        return _unboxElem<T>(computation->fnPtr(computation));
     });
 }
 
@@ -4631,6 +4549,22 @@ inline DartString dart_double_toStringAsExponential(double value, int64_t fracDi
     return oss.str();
 }
 
+/// dart_double_toStringAsFixed — 定点小数（替代生成代码中的 ostringstream IIFE）
+inline DartString dart_double_toStringAsFixed(double value, int64_t fracDigits) {
+    if (fracDigits < 0) fracDigits = 0;
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(static_cast<int>(fracDigits)) << value;
+    return oss.str();
+}
+
+/// dart_double_toStringAsPrecision — 指定有效位数
+inline DartString dart_double_toStringAsPrecision(double value, int64_t precision) {
+    if (precision <= 0) precision = 1;
+    std::ostringstream oss;
+    oss << std::setprecision(static_cast<int>(precision)) << value;
+    return oss.str();
+}
+
 // ============================================================================
 // 12. Duration / DateTime / RegExp 包装
 // ============================================================================
@@ -5257,7 +5191,7 @@ struct StreamValue : AnyGC {
         auto* tf = static_cast<TypeFunction1<bool, T>*>(test);
         auto* filtered = GC::allocateLocal(new StaticList<T>());
         for (int i = 0; i < s->data->_data->_storage.size(); i++) {
-            if (tf->typedFnPtr(tf, s->data->_data->_storage[i])) {
+            if (_predApply(tf, s->data->_data->_storage[i])) {
                 filtered->_data->_storage.push_back(s->data->_data->_storage[i]);
             }
         }
@@ -5304,6 +5238,113 @@ inline AnyGC* streamValue_where(AnyGC* self, AnyGC* test) {
 inline AnyGC* streamValue_fold(AnyGC* self, AnyGC* initial, AnyGC* combine) {
     auto* ci = static_cast<StreamValueClassInfo<AnyGC*>*>(self->_classInfo);
     return ci->fold ? ci->fold(self, initial, combine) : nullptr;
+}
+
+// ============================================================================
+// 15. 表达式辅助 — 消除生成代码中的 IIFE lambda
+// ============================================================================
+// （dart_double_toStringAsFixed / dart_double_toStringAsPrecision 见第 11 节）
+
+/// listFilled — Dart List.filled(count, value)
+template<typename T>
+inline StaticList<T>* listFilled(int64_t count, T value) {
+    auto* list = new StaticList<T>();
+    for (int64_t i = 0; i < count; i++) list->_data->_storage.push_back(value);
+    return GC::allocateLocal(list);
+}
+
+/// listGenerated — Dart List.generate(count, generator)
+template<typename T>
+inline StaticList<T>* listGenerated(int64_t count, TypeFunction* gen) {
+    return StaticList<T>::generate(static_cast<int>(count), static_cast<TypeFunction1<T, int64_t>*>(gen));
+}
+
+/// mapOf — Map 字面量构造（花括号初始化列表保证从左到右求值）
+template<typename K, typename V>
+inline StaticMap<K, V>* mapOf(std::initializer_list<StaticMapEntry<K, V>> entries) {
+    auto* m = new StaticMap<K, V>();
+    for (const auto& e : entries) m->set(e.key, e.value);
+    return GC::allocateLocal(m);
+}
+
+/// dart_compareTo — compareTo 的指针/值类型统一分派
+template<typename T, typename U>
+inline int64_t dart_compareTo(const T& a, const U& b) {
+    if constexpr (std::is_pointer_v<T>) {
+        auto* gc = static_cast<AnyGC*>(a);
+        if (gc && gc->_classInfo && gc->_classInfo->compareTo) {
+            return gc->_classInfo->compareTo(gc, _boxElem(b));
+        }
+        return 0;
+    } else {
+        return (a > b ? 1LL : (a < b ? -1LL : 0LL));
+    }
+}
+
+/// dart_toStringBoxed — toString 的指针/值类型统一分派（返回装箱结果）
+template<typename T>
+inline AnyGC* dart_toStringBoxed(const T& v) {
+    if constexpr (std::is_pointer_v<T>) {
+        auto* gc = static_cast<AnyGC*>(v);
+        if (gc && gc->_classInfo && gc->_classInfo->toString) {
+            return gc->_classInfo->toString(gc);
+        }
+        return gc;
+    } else {
+        return _box(dart_str(v));
+    }
+}
+
+/// streamToListPromise — Stream.toList() → 已完成的 Promise<List<T>>
+template<typename T>
+inline Promise<StaticList<T>*>* streamToListPromise(AnyGC* stream) {
+    auto* promise = GC::allocateLocal(new Promise<StaticList<T>*>());
+    promise_complete(promise, _box(streamValue_toList(stream)));
+    return promise;
+}
+
+/// _tupleToStr — 从已构造的 tuple 生成 "(a, b, c)" 显示串
+template<typename Tuple, size_t... I>
+inline DartString _tupleToStr(const Tuple& t, std::index_sequence<I...>) {
+    std::ostringstream oss;
+    oss << "(";
+    size_t i = 0;
+    (void)(int[]){0, ((oss << (i++ ? ", " : "") << _toStr(std::get<I>(t))), 0)...};
+    oss << ")";
+    return oss.str();
+}
+
+/// makeTupleBox — Dart Record 字面量装箱（替代生成代码中的 tuple IIFE）。
+/// 先构造 tuple 再从 tuple 生成显示串，保证每个实参只求值一次。
+template<typename... Ts>
+inline TupleBox* makeTupleBox(Ts&&... elems) {
+    auto* t = new std::tuple<std::decay_t<Ts>...>(std::forward<Ts>(elems)...);
+    DartString str = _tupleToStr(*t, std::index_sequence_for<Ts...>{});
+    return GC::allocateLocal(new TupleBox(t, str));
+}
+
+/// listCopiedFrom — 按元素拷贝列表（目标/源元素类型可不同，隐式转换）
+template<typename Dst, typename Src>
+inline StaticList<Dst>* listCopiedFrom(StaticList<Src>* src) {
+    auto* dst = new StaticList<Dst>();
+    if (src) {
+        for (size_t i = 0; i < src->_data->_storage.size(); i++) {
+            dst->_data->_storage.push_back(src->_data->_storage[i]);
+        }
+    }
+    return GC::allocateLocal(dst);
+}
+
+/// setCopiedFrom — 按元素拷贝为集合（不去重，与原 IIFE 语义一致）
+template<typename Dst, typename Src>
+inline StaticSet<Dst>* setCopiedFrom(StaticList<Src>* src) {
+    auto* dst = new StaticSet<Dst>();
+    if (src) {
+        for (size_t i = 0; i < src->_data->_storage.size(); i++) {
+            dst->_data->_storage.push_back(src->_data->_storage[i]);
+        }
+    }
+    return GC::allocateLocal(dst);
 }
 
 #endif // DART2CPP_LOWERED_H

@@ -1,5 +1,6 @@
 import 'package:kernel/kernel.dart';
 import 'package:kernel/ast.dart';
+import 'package:kernel/visitor.dart';
 
 part 'cpp_emitter.dart';
 
