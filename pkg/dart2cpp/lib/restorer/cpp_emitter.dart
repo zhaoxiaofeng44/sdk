@@ -2226,8 +2226,7 @@ class CppEmitter {
         if (initializedFields.contains(field.name.text)) continue;
         if (field.initializer != null) {
           // 可空字段的隐式 null 初始化器（如 `DateTime? _cachedAt;`）跳过赋值：
-          // C++ 结构体的默认成员初始化器（{nullptr}/{0}/{false}/{...}）已提供正确默认值，
-          // 直接赋 nullptr 对值类型（如 StaticDateTime）会编译失败。
+          // C++ 结构体的默认成员初始化器（{nullptr}/{0}/{false}/{...}）已提供正确默认值。
           if (field.initializer is NullLiteral) continue;
           final fieldName = _cleanName(field.name.text);
           final fieldCppType = _cppType(field.type);
@@ -4121,16 +4120,29 @@ class CppEmitter {
     // Tear-off → 创建 TypeFunction 包装，捕获 receiver
     final closureId = _closureCounter++;
     final className = '${_currentClassName}Value';
+    _structBuf.writeln('struct TearOff_${closureId}ClassInfo : ClassInfo { TearOff_${closureId}ClassInfo(); };');
     _structBuf.writeln('struct TearOff_$closureId : TypeFunction0<$returnType> {');
     _structBuf.writeln('    $className* recv_;');
+    _structBuf.writeln('    static TearOff_${closureId}ClassInfo _classInfo;');
     _structBuf.writeln('    TearOff_$closureId($className* r) : recv_(r) {');
     _structBuf.writeln('        this->fnPtr = &_trampoline;');
+    _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
     _structBuf.writeln('    }');
     _structBuf.writeln('    static AnyGC* _trampoline(AnyGC* _env) {');
     _structBuf.writeln('        auto* _self = static_cast<TearOff_$closureId*>(_env);');
     _structBuf.writeln('        return (static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
     _structBuf.writeln('    }');
+    _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {');
+    _structBuf.writeln('        auto* _env = static_cast<TearOff_$closureId*>(self);');
+    _structBuf.writeln('        if (_env->recv_) _gcMark(_env->recv_, flag);');
+    _structBuf.writeln('    }');
     _structBuf.writeln('};');
+    _structBuf.writeln('TearOff_${closureId}ClassInfo::TearOff_${closureId}ClassInfo() {');
+    _structBuf.writeln('    typeName = "Closure";');
+    _structBuf.writeln('    gcMark = &TearOff_$closureId::_gcMark_impl;');
+    _structBuf.writeln('}');
+    _structBuf.writeln('TearOff_${closureId}ClassInfo TearOff_$closureId::_classInfo = TearOff_${closureId}ClassInfo();');
+    _structBuf.writeln();
     return 'GC::allocateLocal(new TearOff_$closureId($receiver))';
   }
 
@@ -4374,18 +4386,21 @@ class CppEmitter {
         }
       }
 
-      // 特殊处理 Duration/StaticDuration 类型的属性（值类型，无 *）
+      // 特殊处理 Duration/StaticDuration 类型的属性（StaticDuration* 指针语义）
       if (receiverType is InterfaceType &&
           (receiverType.classNode.name == 'StaticDuration' || receiverType.classNode.name == 'Duration')) {
-        // receiver 可能是 AnyPtr（来自 vptr 派发），需要转为 StaticDuration 值
+        // receiver 可能是 AnyGC*（来自 vptr 派发），需要向下转型
         String durReceiver = receiver;
         if (_isAnyPtrResult(receiver)) {
-          durReceiver = '(*static_cast<StaticDuration*>($receiver))';
+          durReceiver = 'static_cast<StaticDuration*>($receiver)';
         }
         switch (fieldName) {
-          case 'inMilliseconds': return '$durReceiver.inMilliseconds()';
-          case 'inSeconds': return '$durReceiver.inSeconds()';
-          case 'inMicroseconds': return '$durReceiver.inMicroseconds';
+          case 'inMilliseconds': return '$durReceiver->inMilliseconds()';
+          case 'inSeconds': return '$durReceiver->inSeconds()';
+          case 'inMinutes': return '$durReceiver->inMinutes()';
+          case 'inHours': return '$durReceiver->inHours()';
+          case 'inDays': return '$durReceiver->inDays()';
+          case 'inMicroseconds': return '$durReceiver->inMicroseconds';
         }
       }
 
@@ -4537,16 +4552,19 @@ class CppEmitter {
       }
     }
 
-    // Duration 属性访问的特殊处理：当 AnyGC* 结果上访问 Duration 属性时
-    // Duration 在 lowered 代码中通常存储为 int64_t（毫秒）
+    // Duration 属性访问的特殊处理：AnyGC* 接收器（dynamic 类型）经 StaticDurationClassInfo 派发
     if (_isAnyPtrResult(receiver)) {
+      String? ciGetter;
       switch (fieldName) {
-        case 'inMilliseconds': return 'dynAs<int64_t>($receiver)';
-        case 'inSeconds': return '(dynAs<int64_t>($receiver) / 1000)';
-        case 'inMicroseconds': return '(dynAs<int64_t>($receiver) * 1000)';
-        case 'inMinutes': return '(dynAs<int64_t>($receiver) / 60000)';
-        case 'inHours': return '(dynAs<int64_t>($receiver) / 3600000)';
-        case 'inDays': return '(dynAs<int64_t>($receiver) / 86400000)';
+        case 'inMilliseconds': ciGetter = 'get_inMilliseconds'; break;
+        case 'inSeconds': ciGetter = 'get_inSeconds'; break;
+        case 'inMinutes': ciGetter = 'get_inMinutes'; break;
+        case 'inHours': ciGetter = 'get_inHours'; break;
+        case 'inDays': ciGetter = 'get_inDays'; break;
+        case 'inMicroseconds': ciGetter = 'get_inMicroseconds'; break;
+      }
+      if (ciGetter != null) {
+        return 'static_cast<StaticDurationClassInfo*>($receiver->_classInfo)->$ciGetter($receiver)';
       }
     }
 
@@ -5196,7 +5214,8 @@ class CppEmitter {
     if (cppType.endsWith('*')) {
       return 'static_cast<AnyGC*>($argExpr)';
     }
-    // 值类型（如 StaticMapEntry）
+    // 兜底：理论不可达（具体类型均为基础值类型或 AnyGC 指针）；
+    // 若命中说明有新的值类型未指针化，通用 _box 已删除，会在编译期暴露
     return '_box($argExpr)';
   }
 
@@ -5360,7 +5379,7 @@ class CppEmitter {
         return null;
       case 'entries':
         if (isMap && typeArgs.length >= 2) {
-          return 'StaticList<StaticMapEntry<${_cppType(typeArgs[0])}, ${_cppType(typeArgs[1])}>>*';
+          return 'StaticList<StaticMapEntry<${_cppType(typeArgs[0])}, ${_cppType(typeArgs[1])}>*>*';
         }
         return null;
       case 'unionSet':
@@ -5569,7 +5588,7 @@ class CppEmitter {
   /// 检查 C++ 表达式是否返回 DartString（基于函数调用模式）
   bool _cppExprReturnsString(String expr) {
     // 检查是否是已知的返回 DartString 的函数调用
-    if (expr.startsWith('dart_str_') || expr.startsWith('std::to_string')) {
+    if (expr.startsWith('dart_str_') || expr.startsWith('_toStr')) {
       return true;
     }
     // 检查是否是 dart_str() 调用
@@ -6132,6 +6151,44 @@ class CppEmitter {
     return false;
   }
 
+  /// 按顶层逗号拆分已拼接的参数字符串（括号/引号内的逗号不参与拆分，
+  /// 避免 GC::allocateLocal(new StaticRegExp(p, false, true, ...)) 这类实参被切碎）
+  List<String> _splitTopLevelArgs(String args) {
+    final result = <String>[];
+    var depth = 0;
+    var inString = false;
+    var start = 0;
+    for (var i = 0; i < args.length; i++) {
+      final c = args[i];
+      if (inString) {
+        if (c == '"') inString = false;
+        continue;
+      }
+      switch (c) {
+        case '"':
+          inString = true;
+          break;
+        case '(':
+        case '[':
+        case '{':
+          depth++;
+          break;
+        case ')':
+        case ']':
+        case '}':
+          depth--;
+          break;
+        case ',':
+          if (depth == 0) {
+            result.add(args.substring(start, i));
+            start = i + 1;
+          }
+      }
+    }
+    result.add(args.substring(start));
+    return result;
+  }
+
   /// 根据类型名生成基本类型方法调用（不需要 DartType 对象）
   String _emitCppPrimitiveMethodCallByName(String receiver, String methodName, String args, String typeName) {
 
@@ -6139,19 +6196,19 @@ class CppEmitter {
     if (typeName == 'String') {
       switch (methodName) {
         case 'startsWith':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return '($receiver.find($arg) == 0)';
         case 'endsWith':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return '($receiver.length() >= $arg.length() && $receiver.substr($receiver.length() - $arg.length()) == $arg)';
         case 'contains':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return '($receiver.find($arg) != DartString::npos)';
         case 'indexOf':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return 'static_cast<int64_t>($receiver.find($arg))';
         case 'substring':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           if (argList.length == 1) {
             return '$receiver.substr(${argList[0].trim()})';
           } else {
@@ -6164,27 +6221,27 @@ class CppEmitter {
         case 'trim':
           return 'dart_str_trim($receiver)';
         case 'split':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return 'dart_str_split($receiver, $arg)';
         case 'replaceAll':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
         case 'replaceFirst':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           final from = argList[0].trim();
           final to = argList[1].trim();
           final start = argList.length > 2 ? argList[2].trim() : '0';
           return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
         case 'replaceRange':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
         case 'padLeft':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           final width = argList[0].trim();
           final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
           return 'dart_str_padLeft($receiver, $width, $padding)';
         case 'padRight':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           final width = argList[0].trim();
           final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
           return 'dart_str_padRight($receiver, $width, $padding)';
@@ -6193,12 +6250,12 @@ class CppEmitter {
         case 'trimRight':
           return 'dart_str_trimRight($receiver)';
         case 'lastIndexOf':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           final pattern = argList[0].trim();
           final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
           return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
         case 'codeUnitAt':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return 'dart_str_codeUnitAt($receiver, $arg)';
         case 'length':
           return 'static_cast<int64_t>($receiver.length())';
@@ -6207,7 +6264,7 @@ class CppEmitter {
         case 'isNotEmpty':
           return '!$receiver.empty()';
         case 'compareTo':
-          final arg = args.split(',').first.trim();
+          final arg = _splitTopLevelArgs(args).first.trim();
           return 'static_cast<int64_t>($receiver.compare($arg))';
         case 'hashCode':
           return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
@@ -6223,7 +6280,7 @@ class CppEmitter {
           return 'std::abs($receiver)';
         case 'toString':
           if (typeName == 'double') return '_toStr($receiver)';
-          return 'std::to_string($receiver)';
+          return '_toStr($receiver)';
         case 'toInt':
           return 'static_cast<int64_t>($receiver)';
         case 'toDouble':
@@ -6235,7 +6292,7 @@ class CppEmitter {
             return 'static_cast<int64_t>(std::hash<double>{}($receiver))';
           }
         case 'clamp':
-          final argList = args.split(',');
+          final argList = _splitTopLevelArgs(args);
           if (argList.length >= 2) {
             final lower = argList[0].trim();
             final upper = argList[1].trim();
@@ -6245,22 +6302,22 @@ class CppEmitter {
           return '(throw DartUnsupportedError("unsupported clamp arguments"), $receiver)';
         case 'toStringAsFixed':
           if (typeName == 'double') {
-            final fracDigits = args.split(',').first.trim();
+            final fracDigits = _splitTopLevelArgs(args).first.trim();
             return 'dart_double_toStringAsFixed($receiver, $fracDigits)';
           }
-          return 'std::to_string($receiver)';
+          return '_toStr($receiver)';
         case 'toStringAsPrecision':
           if (typeName == 'double') {
-            final precision = args.split(',').first.trim();
+            final precision = _splitTopLevelArgs(args).first.trim();
             return 'dart_double_toStringAsPrecision($receiver, $precision)';
           }
-          return 'std::to_string($receiver)';
+          return '_toStr($receiver)';
         case 'toRadixString':
           if (typeName == 'int') {
-            final radix = args.split(',').first.trim();
+            final radix = _splitTopLevelArgs(args).first.trim();
             return 'dart_int_toRadixString($receiver, $radix)';
           }
-          return 'std::to_string($receiver)';
+          return '_toStr($receiver)';
         case 'round':
           if (typeName == 'double') return 'static_cast<int64_t>(std::round($receiver))';
           return '$receiver';
@@ -6298,13 +6355,13 @@ class CppEmitter {
           return 'static_cast<double>(static_cast<int64_t>($receiver))';
         case 'toStringAsExponential':
           if (typeName == 'double') {
-            final fracDigits = args.split(',').first.trim();
+            final fracDigits = _splitTopLevelArgs(args).first.trim();
             return 'dart_double_toStringAsExponential($receiver, $fracDigits)';
           }
-          return 'std::to_string($receiver)';
+          return '_toStr($receiver)';
         case 'remainder':
           if (typeName == 'double') {
-            final other = args.split(',').first.trim();
+            final other = _splitTopLevelArgs(args).first.trim();
             return 'std::remainder($receiver, static_cast<double>($other))';
           }
           return 'static_cast<double>(0)';
@@ -6321,16 +6378,16 @@ class CppEmitter {
   String? _emitCppStringMethodCall(String receiver, String methodName, String args) {
     switch (methodName) {
       case 'contains':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return '($receiver.find($arg) != DartString::npos)';
       case 'startsWith':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return '($receiver.find($arg) == 0)';
       case 'endsWith':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return '($receiver.length() >= $arg.length() && $receiver.substr($receiver.length() - $arg.length()) == $arg)';
       case 'indexOf':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return 'static_cast<int64_t>($receiver.find($arg))';
       case 'length':
         return 'static_cast<int64_t>($receiver.length())';
@@ -6339,34 +6396,34 @@ class CppEmitter {
       case 'isNotEmpty':
         return '!$receiver.empty()';
       case 'substring':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         if (argList.length == 1) return '$receiver.substr(${argList[0].trim()})';
         return '$receiver.substr(${argList[0].trim()}, ${argList[1].trim()} - ${argList[0].trim()})';
       case 'trim': return 'dart_str_trim($receiver)';
       case 'toLowerCase': return 'dart_str_toLower($receiver)';
       case 'toUpperCase': return 'dart_str_toUpper($receiver)';
       case 'split':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return 'dart_str_split($receiver, $arg)';
       case 'replaceAll':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
       case 'replaceFirst':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         final from = argList[0].trim();
         final to = argList[1].trim();
         final start = argList.length > 2 ? argList[2].trim() : '0';
         return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
       case 'replaceRange':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
       case 'padLeft':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         final width = argList[0].trim();
         final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
         return 'dart_str_padLeft($receiver, $width, $padding)';
       case 'padRight':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         final width = argList[0].trim();
         final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
         return 'dart_str_padRight($receiver, $width, $padding)';
@@ -6375,17 +6432,17 @@ class CppEmitter {
       case 'trimRight':
         return 'dart_str_trimRight($receiver)';
       case 'lastIndexOf':
-        final argList = args.split(',');
+        final argList = _splitTopLevelArgs(args);
         final pattern = argList[0].trim();
         final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
         return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
       case 'codeUnitAt':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return 'dart_str_codeUnitAt($receiver, $arg)';
       case 'hashCode':
         return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
       case 'compareTo':
-        final arg = args.split(',').first.trim();
+        final arg = _splitTopLevelArgs(args).first.trim();
         return 'static_cast<int64_t>($receiver.compare($arg))';
       default:
         return null;
@@ -6454,12 +6511,9 @@ class CppEmitter {
       return '($a == $b)';
     }
 
-    // RegExp 构造函数 → 直接使用 pattern 字符串（C++ 不支持正则）
+    // RegExp 构造函数 → StaticRegExp 堆对象（正则语义，见 dart_str_replaceAll/split 重载）
     if (target.enclosingClass != null && target.enclosingClass!.name == 'RegExp') {
-      if (expr.arguments.positional.isNotEmpty) {
-        return _emitCppExpr(expr.arguments.positional.first);
-      }
-      return 'DartString("")';
+      return _emitStaticRegExpCtor(expr.arguments);
     }
 
     // 检查是否是 smAwait (异步等待运行时函数)
@@ -6711,25 +6765,45 @@ class CppEmitter {
             if (durExpr is ConstructorInvocation &&
                 (durExpr.target.enclosingClass.name == 'Duration' ||
                  durExpr.target.enclosingClass.name == 'DurationValue')) {
-              // 提取 milliseconds 参数
-              int? ms;
-              for (final named in durExpr.arguments.named) {
-                if (named.name == 'milliseconds' && named.value is IntLiteral) {
-                  ms = (named.value as IntLiteral).value;
-                } else if (named.name == 'seconds' && named.value is IntLiteral) {
-                  ms = (named.value as IntLiteral).value * 1000;
+              // 提取 Duration 各分量的毫秒数：字面量在编译期折叠，
+              // 非常量表达式生成运行时换算（dart_durationTicks）
+              int? literalMs;
+              final msExprs = <String>[];
+              void addComponent(String name, Expression value) {
+                const factors = {
+                  'days': 86400000,
+                  'hours': 3600000,
+                  'minutes': 60000,
+                  'seconds': 1000,
+                  'milliseconds': 1,
+                };
+                final factor = factors[name];
+                if (factor == null) return; // microseconds 等不足 1ms 的分量忽略
+                if (value is IntLiteral) {
+                  literalMs = (literalMs ?? 0) + value.value * factor;
+                } else {
+                  final e = _emitCppExpr(value);
+                  msExprs.add(factor == 1 ? e : '(($e) * $factor)');
                 }
               }
-              if (durExpr.arguments.positional.isNotEmpty &&
-                  durExpr.arguments.positional[0] is IntLiteral) {
-                ms = (durExpr.arguments.positional[0] as IntLiteral).value;
+              for (final named in durExpr.arguments.named) {
+                addComponent(named.name, named.value);
               }
-              final ticks = ms != null ? (ms / 10).ceil().clamp(1, 100000) : 1;
-              ticksExpr = '$ticks';
+              if (durExpr.arguments.positional.isNotEmpty) {
+                addComponent('milliseconds', durExpr.arguments.positional[0]);
+              }
+              if (msExprs.isEmpty) {
+                final ms = literalMs ?? 0;
+                final ticks = (ms / 10).ceil().clamp(1, 100000);
+                ticksExpr = '$ticks';
+              } else {
+                if (literalMs != null && literalMs != 0) msExprs.add('$literalMs');
+                ticksExpr = 'dart_durationTicks(${msExprs.join(' + ')})';
+              }
             } else {
-              // 通用情况：使用表达式的 inMilliseconds / 10
+              // 通用情况：使用表达式的 inMilliseconds 换算 ticks（StaticDuration* 指针语义）
               final durCpp = _emitCppExpr(durExpr);
-              ticksExpr = '(($durCpp).inMilliseconds() / 10)';
+              ticksExpr = 'dart_durationTicks(($durCpp)->inMilliseconds())';
             }
           } else {
             ticksExpr = '1';
@@ -6985,7 +7059,7 @@ class CppEmitter {
         if (valType == 'AnyGC*' && expr.arguments.positional.length > 1) {
           valExpr = _cppMaybeBoxForAnyGC(valExpr, expr.arguments.positional[1]);
         }
-        return 'StaticMapEntry<$keyType, $valType>($keyExpr, $valExpr)';
+        return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($keyExpr, $valExpr))';
       }
       funcName = '${_cleanName(encClassName)}_new';
       nameAlreadyQualified = true;
@@ -7065,13 +7139,29 @@ class CppEmitter {
     return _emitCppConstructorCall(expr.target.enclosingClass.name, expr.target, expr.arguments);
   }
 
-  String _emitCppConstructorCall(String className, Constructor ctor, Arguments args) {
-    // RegExp 构造函数 → 直接使用 pattern 字符串
-    if (className == 'RegExp') {
-      if (args.positional.isNotEmpty) {
-        return _emitCppExpr(args.positional.first);
+  /// RegExp 构造 → GC::allocateLocal(new StaticRegExp(pattern, multiLine, caseSensitive, unicode, dotAll))
+  String _emitStaticRegExpCtor(Arguments args) {
+    final pattern = args.positional.isNotEmpty
+        ? _emitCppExpr(args.positional.first)
+        : 'DartString("")';
+    final flags = <String, String>{
+      'multiLine': 'false',
+      'caseSensitive': 'true',
+      'unicode': 'false',
+      'dotAll': 'false',
+    };
+    for (final named in args.named) {
+      if (flags.containsKey(named.name)) {
+        flags[named.name] = _emitCppExpr(named.value);
       }
-      return 'DartString("")';
+    }
+    return 'GC::allocateLocal(new StaticRegExp($pattern, ${flags['multiLine']}, ${flags['caseSensitive']}, ${flags['unicode']}, ${flags['dotAll']}))';
+  }
+
+  String _emitCppConstructorCall(String className, Constructor ctor, Arguments args) {
+    // RegExp 构造函数 → StaticRegExp 堆对象（正则语义）
+    if (className == 'RegExp') {
+      return _emitStaticRegExpCtor(args);
     }
 
     // 处理 _GrowableList (Dart 内部列表实现) → StaticList
@@ -7156,7 +7246,7 @@ class CppEmitter {
     if (className == 'Duration' || className == 'DurationValue') {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       if (args.named.isNotEmpty) {
-        // 处理命名参数，转换为 StaticDuration 的静态方法调用
+        // 处理命名参数，转换为 StaticDuration 的静态工厂（返回 GC 堆指针）
         for (final named in args.named) {
           final name = named.name;
           final value = _emitCppExpr(named.value);
@@ -7171,21 +7261,21 @@ class CppEmitter {
           } else if (name == 'days') {
             return 'StaticDuration::days($value)';
           } else if (name == 'microseconds') {
-            return 'StaticDuration($value)';
+            return 'GC::allocateLocal(new StaticDuration($value))';
           }
         }
       }
-      return 'StaticDuration($callArgs)';
+      return 'GC::allocateLocal(new StaticDuration($callArgs))';
     }
 
-    // 处理 DateTime 构造函数 → StaticDateTime
+    // 处理 DateTime 构造函数 → StaticDateTime（指针语义）
     if (className == 'DateTime' || className == 'DateTimeValue') {
       final ctorName = ctor.name.text;
       if (ctorName == 'now') {
         return 'StaticDateTime::now()';
       }
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
-      return 'StaticDateTime($callArgs)';
+      return 'GC::allocateLocal(new StaticDateTime($callArgs))';
     }
 
     // 处理 MapEntry / StaticMapEntry 构造函数
@@ -7203,7 +7293,7 @@ class CppEmitter {
       if (valType == 'AnyGC*' && args.positional.length > 1) {
         boxedVal = _cppMaybeBoxForAnyGC(valExpr, args.positional[1]);
       }
-      return 'StaticMapEntry<$keyType, $valType>($keyExpr, $boxedVal)';
+      return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($keyExpr, $boxedVal))';
     }
 
     // 处理集合类型的构造函数
@@ -7990,7 +8080,7 @@ class CppEmitter {
       // 如果 key/value 类型不匹配，需要 boxing
       k = _boxForMapComponent(k, e.key, keyType);
       v = _boxForMapComponent(v, e.value, valType);
-      return 'StaticMapEntry<$keyType, $valType>($k, $v)';
+      return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($k, $v))';
     }).join(', ');
     return 'mapOf<$keyType, $valType>({$entries})';
   }
@@ -8180,7 +8270,7 @@ class CppEmitter {
       if (name == 'bool') return 'BoolBox';
       if (name == 'String') return 'StringBox';
     }
-    if (type is TypeParameterType) return 'ValueBox<${type.parameter.name ?? 'T'}>';
+    // 泛型类型参数在 C++ 中解析为 AnyGC*（已是指针），不需要装箱
     return null;
   }
 
@@ -9482,7 +9572,7 @@ class CppEmitter {
         return 'throw DartException($innerValue)';
       }
       // 对于非字符串类型，转换为字符串
-      return 'throw DartException(std::to_string($innerValue))';
+      return 'throw DartException(_toStr($innerValue))';
     }
     // 检查是否是 StringBox* 变量
     if (value.endsWith('Box') || value.contains('Box(')) {
@@ -10438,7 +10528,7 @@ class CppEmitter {
     final otherBoxMatch = RegExp(r'GC::allocateLocal\(new (Int|Double|Bool)Box\((.+)\)\)$').firstMatch(args);
     if (otherBoxMatch != null) {
       final innerValue = otherBoxMatch.group(2)!;
-      return 'std::to_string($innerValue)';
+      return '_toStr($innerValue)';
     }
     // 不是 Box 类型，直接返回
     return args;
@@ -11373,7 +11463,7 @@ class CppEmitter {
       }
       // 其他 InstanceConstant（如 Duration 等）
       if (className == 'Duration') {
-        return 'StaticDuration()';
+        return 'GC::allocateLocal(new StaticDuration())';
       }
       // 用户自定义类的 const 构造函数：生成 IIFE 初始化
       final structName = _isRuntimeClassName(className) ? className : '${className}Value';
@@ -11507,9 +11597,12 @@ class CppEmitter {
       }
 
       // Emit the closure struct to _structBuf
+      _structBuf.writeln('struct ${closureName}ClassInfo : ClassInfo { ${closureName}ClassInfo(); };');
       _structBuf.writeln('struct $closureName : $typeFunctionBase {');
+      _structBuf.writeln('    static ${closureName}ClassInfo _classInfo;');
       _structBuf.writeln('    $closureName() {');
       _structBuf.writeln('        this->fnPtr = &_trampoline;');
+      _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
       _structBuf.writeln('    }');
       _structBuf.writeln('    static AnyGC* _trampoline(${erasedTrampParams.join(', ')}) {');
       _structBuf.write(erasedUnbox.toString());
@@ -11518,7 +11611,13 @@ class CppEmitter {
       _structBuf.writeln('    static $returnType _invoke(${typedTrampParams.join(', ')}) {');
       _structBuf.writeln('        $typedCallBody');
       _structBuf.writeln('    }');
+      _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {}');
       _structBuf.writeln('};');
+      _structBuf.writeln('${closureName}ClassInfo::${closureName}ClassInfo() {');
+      _structBuf.writeln('    typeName = "Closure";');
+      _structBuf.writeln('    gcMark = &$closureName::_gcMark_impl;');
+      _structBuf.writeln('}');
+      _structBuf.writeln('${closureName}ClassInfo $closureName::_classInfo = ${closureName}ClassInfo();');
       _structBuf.writeln();
 
       // Return an instance of the closure with static_cast to base type
@@ -11611,7 +11710,8 @@ class CppEmitter {
         }
         return 'static_cast<$baseType*>($expr)';
       }
-      // For boxed value types (StaticMapEntry, StaticDuration, etc.)
+      // 基础值类型（int64_t/double/bool/DartString）经 dynAs 拆箱；
+      // 其余具体类型均为 AnyGC 指针语义，已在上面 endsWith('*') 分支处理
       return 'dynAs<$targetType>($expr)';
     }
 
@@ -11715,7 +11815,7 @@ class CppEmitter {
     if (retType == 'int64_t' || retType == 'bool') return '';
     if (retType == 'double') return 'dynAs<double>';
     if (retType == 'DartString') return 'dynAs<DartString>';
-    // 用户定义值类型（如 StaticDuration, StaticDateTime）需要 dynAs 解包
+    // 其余具体值类型（double/DartString 已在上面处理；指针类型无需解包后缀）
     if (_isConcreteCppReturnType(retType)) return 'dynAs<$retType>';
     return '';
   }
@@ -11735,9 +11835,8 @@ class CppEmitter {
     if (type.endsWith('*')) return false;
     // 排除单字母模板参数 (T, R, A, B, C, etc.)
     if (RegExp(r'^[A-Z]$').hasMatch(type)) return false;
-    // 已知的具体类型（含用户定义值类型）
-    const concreteTypes = {'int64_t', 'double', 'bool', 'DartString', 'int32_t', 'int16_t', 'int8_t', 'uint64_t', 'uint32_t', 'float',
-      'StaticDuration', 'StaticDateTime', 'StaticRegExp'};
+    // 已知的具体值类型（其余具体类型一律为 AnyGC 指针语义，由 endsWith('*') 分支处理）
+    const concreteTypes = {'int64_t', 'double', 'bool', 'DartString', 'int32_t', 'int16_t', 'int8_t', 'uint64_t', 'uint32_t', 'float'};
     return concreteTypes.contains(type);
   }
 
@@ -12047,15 +12146,15 @@ class CppEmitter {
           return 'StaticIterator<$inner>*';
         case 'MapEntry':
           if (args.length >= 2) {
-            return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>';
+            return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
           }
-          return 'StaticMapEntry<AnyGC*, AnyGC*>';
+          return 'StaticMapEntry<AnyGC*, AnyGC*>*';
         case 'Array':
           final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
           return 'Array<$inner>*';
-        case 'Duration': return 'StaticDuration';
-        case 'DateTime': return 'StaticDateTime';
-        case 'RegExp': return 'StaticRegExp';
+        case 'Duration': return 'StaticDuration*';
+        case 'DateTime': return 'StaticDateTime*';
+        case 'RegExp': return 'StaticRegExp*';
         case 'StringBuffer': return 'StaticStringBuffer*';
         case 'Function': return 'TypeFunction*';
         case 'Comparable':
@@ -12151,12 +12250,12 @@ class CppEmitter {
       if (name == 'Set' || name == 'StaticSet') {
         return 'StaticSet<$resolvedArgs>*';
       }
-      // MapEntry → StaticMapEntry (值类型，不加 * 后缀)
+      // MapEntry → StaticMapEntry（AnyGC 指针语义）
       if (name == 'MapEntry' || name == 'StaticMapEntry') {
         if (argList.length >= 2) {
-          return 'StaticMapEntry<$resolvedArgs>';
+          return 'StaticMapEntry<$resolvedArgs>*';
         }
-        return 'StaticMapEntry<AnyGC*, AnyGC*>';
+        return 'StaticMapEntry<AnyGC*, AnyGC*>*';
       }
       // For user classes and known generic types, rebuild with resolved args
       final cppName = _isRuntimeClassName(name) ? _cleanName(name) : '${_cleanName(name)}Value';
@@ -12533,10 +12632,10 @@ class CppEmitter {
         final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
         return 'Array<$inner>*';
       case 'StaticDuration':
-        return 'StaticDuration';
+        return 'StaticDuration*';
       case 'StaticDateTime':
       case 'DateTime':
-        return 'StaticDateTime';
+        return 'StaticDateTime*';
       case 'StaticStringBuffer':
       case 'StringBuffer':
         return 'StaticStringBuffer*';
@@ -12549,9 +12648,9 @@ class CppEmitter {
         return 'StaticIterator<$inner>*';
       case 'StaticMapEntry':
         if (args.length >= 2) {
-          return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>';
+          return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
         }
-        return 'StaticMapEntry<AnyGC*, AnyGC*>';
+        return 'StaticMapEntry<AnyGC*, AnyGC*>*';
       default:
         // 未知运行时类，直接使用名称
         if (args.isEmpty) return name;
