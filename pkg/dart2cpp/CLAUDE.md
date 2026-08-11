@@ -52,13 +52,13 @@ The pipeline: Dart source → `dart compile kernel` → Kernel AST → C++ sourc
    - Preserves reference semantics across closure boundaries
 
 4. **Type Mapping**
-   - Collections: `List` → `StaticList`, `Map` → `StaticMap`, `Set` → `StaticSet`
+   - Collections: `List` → `List`, `Map` → `Map`, `Set` → `Set`
    - Futures: `Future<T>` → `Promise<T>`
    - Primitives: `int` → `int64_t`, `double` → `double`, `String` → `std::string` wrapper
 
 5. **Async/await → State Machine Coroutines**
    - `AsyncStateMachine` subclasses + `Promise<T>` + `GlobalScheduler`
-   - Cooperative scheduling driven by `smAwait`
+   - Cooperative scheduling driven by `sm_await`
 
 ## Architecture Highlights
 

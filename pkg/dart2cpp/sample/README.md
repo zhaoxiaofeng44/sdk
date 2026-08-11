@@ -28,8 +28,8 @@ The generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lower
 - `ClassInfo` - Typed function-pointer vtable for virtual dispatch
 - `TypeFunction` - Callable closure base classes
 - Box types - For closure capture semantics
-- Static collections - `StaticList`, `StaticMap`, `StaticSet`
-- Async support - `Promise`, `smAwait`
+- Static collections - `List`, `Map`, `Set`
+- Async support - `Promise`, `sm_await`
 
 Compile the output with:
 

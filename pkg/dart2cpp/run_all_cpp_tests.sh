@@ -14,6 +14,7 @@ TESTS=(
     "state_machine_coroutine_test"
     "static_collections_test"
     "runtime_gap_test"
+    "multi_iface_test"
 )
 
 PASS=0
@@ -30,7 +31,7 @@ for test in "${TESTS[@]}"; do
     
     # Compile
     echo "Compiling..."
-    if ! clang++ -std=c++17 -I lib/platform/cpp "$CPP_FILE" -o "$BIN_FILE" 2>&1; then
+    if ! clang++ -std=c++17 -Wno-c99-designator -I lib/platform/cpp "$CPP_FILE" -o "$BIN_FILE" 2>&1; then
         echo "❌ COMPILE FAILED"
         RESULTS+="❌ $test: COMPILE FAILED\n"
         ((FAIL++))

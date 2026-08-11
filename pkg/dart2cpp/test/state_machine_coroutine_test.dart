@@ -5,7 +5,7 @@
 ///   - Promise<T>: 统一的异步结果容器 + 调度单元（通过 _onTick 驱动）
 ///   - GlobalScheduler: 每轮 tick 驱动所有 activePromises 的 _onTick
 ///   - AsyncStateMachine: 通过 Promise._onTick = step 注册驱动
-///   - smAwait(): 循环调 tick() 直到 promise 完成
+///   - sm_await(): 循环调 tick() 直到 promise 完成
 
 /// 日志开关
 bool enableLog = true;
@@ -179,30 +179,30 @@ class _DelayedTask {
 }
 
 // ============================================================================
-// 6. smAwait — 状态机版 await
+// 6. sm_await — 状态机版 await
 // ============================================================================
 
-/// smAwait 不打标，只循环调 tick() 直到 future 完成。
+/// sm_await 不打标，只循环调 tick() 直到 future 完成。
 /// 打标的职责完全在 tick() 内部（防一轮内重复 step）。
-T smAwait<T>(Promise<T> future) {
+T sm_await<T>(Promise<T> future) {
   int roundCount = 0;
   const maxRounds = 100000;
 
-  log('smAwait: waiting for future (completed=${future.isCompleted})');
+  log('sm_await: waiting for future (completed=${future.isCompleted})');
 
   while (!future.isCompleted && !future.isError) {
     GlobalScheduler.instance.tick();
     roundCount++;
     if (roundCount > maxRounds) {
-      throw StateError('smAwait exceeded $maxRounds rounds — possible deadlock');
+      throw StateError('sm_await exceeded $maxRounds rounds — possible deadlock');
     }
   }
 
   if (future.isError) {
-    log('smAwait: future resolved with ERROR after $roundCount ticks');
+    log('sm_await: future resolved with ERROR after $roundCount ticks');
     throw future.error!;
   }
-  log('smAwait: future resolved with value after $roundCount ticks');
+  log('sm_await: future resolved with value after $roundCount ticks');
   return future.result;
 }
 
@@ -247,9 +247,9 @@ void testBasicAwait() {
   GlobalScheduler.instance.reset();
 
   final future = Promise.value<int>(42);
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 42, 'Expected 42, got $result');
-  print('  ✓ smAwait(Promise.value(42)) = $result');
+  print('  ✓ sm_await(Promise.value(42)) = $result');
 }
 
 // ---------------------------------------------------------------------------
@@ -260,9 +260,9 @@ void testDelayedFuture() {
   GlobalScheduler.instance.reset();
 
   final future = Promise.delayed<String>(3, () => 'hello after delay');
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 'hello after delay', 'Unexpected result: $result');
-  print('  ✓ smAwait(delayed(3 ticks)) = "$result"');
+  print('  ✓ sm_await(delayed(3 ticks)) = "$result"');
 }
 
 // ---------------------------------------------------------------------------
@@ -313,7 +313,7 @@ void testMultipleAwaitSerial() {
 
   final sm = AddAsyncStateMachine(10, 20);
   final future = sm.start();
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 30, 'Expected 30, got $result');
   print('  ✓ addAsync(10, 20) = $result');
 }
@@ -388,7 +388,7 @@ void testNestedAsync() {
 
   final sm = OuterAsyncStateMachine();
   final future = sm.start();
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 'result: INNER', 'Expected "result: INNER", got "$result"');
   print('  ✓ outerAsync() = "$result"');
 }
@@ -404,7 +404,7 @@ void testThenChain() {
       .then<int>((v) => v * 2)
       .then<String>((v) => 'value=$v');
 
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 'value=10', 'Expected "value=10", got "$result"');
   print('  ✓ Promise.value(5).then(*2).then(format) = "$result"');
 }
@@ -449,7 +449,7 @@ void testErrorHandling() {
 
   final sm = ErrorStateMachine();
   final future = sm.start();
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result.contains('something went wrong'), 'Error not caught: $result');
   print('  ✓ error caught and recovered: "$result"');
 }
@@ -494,7 +494,7 @@ void testParallelAwait() {
 
   final sm = ParallelAwaitStateMachine();
   final future = sm.start();
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result.length == 3, 'Expected 3 results');
   assert(result[0] == 10 && result[1] == 20 && result[2] == 30,
       'Unexpected results: $result');
@@ -580,7 +580,7 @@ void testPipeline() {
 
   final sm = PipelineStateMachine();
   final future = sm.start();
-  final result = smAwait(future);
+  final result = sm_await(future);
   assert(result == 14, 'Expected 14, got $result');
   print('  ✓ pipeline(1→2→4→8, sum=14) = $result');
 }
@@ -594,7 +594,7 @@ void testTickCounting() {
 
   final future = Promise.delayed<int>(5, () => 99);
   int ticksBefore = GlobalScheduler.instance._currentTick;
-  final result = smAwait(future);
+  final result = sm_await(future);
   int ticksAfter = GlobalScheduler.instance._currentTick;
   int ticksUsed = ticksAfter - ticksBefore;
 

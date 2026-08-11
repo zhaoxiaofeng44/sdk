@@ -17,6 +17,7 @@ const List<String> _testCases = [
   'state_machine_coroutine_test',
   'static_collections_test',
   'runtime_gap_test',
+  'multi_iface_test',
 ];
 
 class _TestResult {

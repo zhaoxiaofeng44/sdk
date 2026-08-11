@@ -80,9 +80,9 @@ Automatically generates `ClosureEnv_N` classes for closures with captured variab
 
 | Dart | C++ |
 |------|---------|
-| `List` | `StaticList` |
-| `Map` | `StaticMap` |
-| `Set` | `StaticSet` |
+| `List` | `List` |
+| `Map` | `Map` |
+| `Set` | `Set` |
 | `Future<T>` | `Promise<T>` |
 
 ## Environment Variables

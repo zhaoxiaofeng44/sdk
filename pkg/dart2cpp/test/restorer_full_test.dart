@@ -204,7 +204,7 @@ Iterable<int> fibonacci(int count) sync* {
 }
 
 /// countDown — 使用普通 async 函数模拟 async* 行为
-/// （async* Stream 在同步调度环境中无法通过 smAwait 驱动）
+/// （async* Stream 在同步调度环境中无法通过 sm_await 驱动）
 Future<List<String>> countDown(int from) async {
   final result = <String>[];
   for (int i = from; i >= 0; i--) {

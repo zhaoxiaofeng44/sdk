@@ -258,7 +258,7 @@ static void test3_closureCapture() {
     EXPECT(dynAs<int64_t>(CaptureEnv::_trampoline(env2)) == 77, "捕获对象可正常访问");
 }
 
-static StaticList<AnyGC*>* g_t4list = nullptr;  // 数据段持有，不参与栈扫描
+static List<AnyGC*>* g_t4list = nullptr;  // 数据段持有，不参与栈扫描
 
 static void t4_fill() {
     for (int i = 0; i < 50; i++) {
@@ -274,7 +274,7 @@ static void test4_collections() {
     printf("\n--- T4: 集合元素生命周期 ---\n");
     _collectUntilStable();
     int base = GC::objectCount();
-    g_t4list = GC::allocateGlobal(new StaticList<AnyGC*>());
+    g_t4list = GC::allocateGlobal(new List<AnyGC*>());
     t4_fill();
     GC::collect();
     EXPECT(GC::objectCount() - base == 52, "50 个元素 + Array + List 均存活（无误杀）");
@@ -291,7 +291,7 @@ static int64_t run_sm_to_completion() {
     sm->payload = GC::allocateLocal(new NodeValue());
     Promise<int64_t>* future =
         static_cast<Promise<int64_t>*>(AsyncStateMachine_start(sm));
-    return smAwait<int64_t>(future);
+    return sm_await<int64_t>(future);
 }
 
 static void test5_stateMachineHappyPath() {

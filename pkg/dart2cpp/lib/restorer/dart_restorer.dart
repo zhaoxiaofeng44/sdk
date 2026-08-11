@@ -285,11 +285,11 @@ class _ClassInfoCollector {
       if (_isUserClass(name)) {
         mappedName = '${name}Value';
       } else if (name == 'List' || name == '_GrowableList' || name == '_List') {
-        mappedName = 'StaticList';
+        mappedName = 'List';
       } else if (name == 'Map' || name == '_Map' || name == 'LinkedHashMap' || name == '_InternalLinkedHashMap') {
-        mappedName = 'StaticMap';
+        mappedName = 'Map';
       } else if (name == 'Set' || name == '_Set' || name == 'LinkedHashSet' || name == '_CompactLinkedHashSet') {
-        mappedName = 'StaticSet';
+        mappedName = 'Set';
       } else if (name == 'Future' || name == '_Future') {
         mappedName = 'Promise';
       } else if (name == 'Function') {
@@ -297,17 +297,17 @@ class _ClassInfoCollector {
         // （在函数签名中保持 dynamic 以支持协变）
         return 'dynamic';
       } else if (name == 'StringBuffer') {
-        mappedName = 'StaticStringBuffer';
+        mappedName = 'StringBuffer';
       } else if (name == 'Iterator' || name == '_ListIterator') {
-        mappedName = 'StaticIterator';
+        mappedName = 'Iterator';
       } else if (name == 'MapEntry') {
-        mappedName = 'StaticMapEntry';
+        mappedName = 'MapEntry';
       } else if (name == 'Duration') {
-        mappedName = 'StaticDuration';
+        mappedName = 'Duration';
       } else if (name == 'DateTime') {
-        mappedName = 'StaticDateTime';
+        mappedName = 'DateTime';
       } else if (name == 'RegExp' || name == '_RegExp') {
-        mappedName = 'StaticRegExp';
+        mappedName = 'RegExp';
       } else {
         mappedName = name;
       }

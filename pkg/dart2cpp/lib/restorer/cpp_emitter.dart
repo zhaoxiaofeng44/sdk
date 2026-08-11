@@ -89,10 +89,10 @@ class CppEmitter {
   /// async 函数内部返回类型（Promise<T> 中的 T）
   String _asyncInnerType = 'AnyGC*';
 
-  /// 当前生成器函数的元素类型（sync*/async* 中 StaticList<T> 的 T）
+  /// 当前生成器函数的元素类型（sync*/async* 中 List<T> 的 T）
   String? _currentGeneratorInnerType;
 
-  /// 泛型构造函数中期望的集合元素类型（用于将 StaticList<AnyGC*> 替换为正确的类型）
+  /// 泛型构造函数中期望的集合元素类型（用于将 List<AnyGC*> 替换为正确的类型）
   String? _expectedCollectionElementType;
 
   /// 泛型构造函数中期望的 Map 键值类型
@@ -125,6 +125,26 @@ class CppEmitter {
 
   /// 类 → 其所有虚方法名列表
   final Map<String, List<_VTableEntry>> _classVTableEntries = {};
+
+  // ── selector 扁平表 ──
+  // 可覆盖方法在全局被分配一个稳定整数 id，每个类生成一张定长函数指针表
+  // （父表复制 + 覆盖打补丁）。派发按 slots[SEL_x] 取，不依赖 ClassInfo
+  // 结构体的继承布局，因此 implements 多接口天然成立，且可直译为 C。
+  /// selector 字段名 → 全局 id
+  final Map<String, int> _selectorIds = {};
+
+  /// selector 字段名 → 规范签名（返回类型, 形参个数，不含 this）
+  final Map<String, _SelectorSig> _selectorSigs = {};
+
+  /// 签名在所有声明类间一致、且不含模板参数的 selector。
+  /// 只有这些走 slots 表；其余保留原 ClassInfo 结构体字段路径。
+  final Set<String> _selectorTableReady = {};
+
+  /// 出现在 implements / 纯抽象接口角色中的类名（短名 = 接口视图）
+  final Set<String> _interfaceClasses = {};
+
+  /// 既被 extends 又被 implements：需生成 Xxx_extends_* 继承层
+  final Set<String> _extendsSplitClasses = {};
 
   /// 类 → 其 Class AST 节点
   final Map<String, Class> _classNodes = {};
@@ -229,11 +249,16 @@ class CppEmitter {
     _enumNames.clear();
     _classHierarchy.clear();
     _classVTableEntries.clear();
+    _selectorIds.clear();
+    _selectorSigs.clear();
+    _selectorTableReady.clear();
     _classNodes.clear();
     _syntheticLoweredNames.clear();
     _methodTypeSpecializations.clear();
     _declaredVariables.clear();
     _variableNameMappings.clear();
+    _interfaceClasses.clear();
+    _extendsSplitClasses.clear();
 
     // 第一遍：收集类信息（复用 _ClassInfoCollector 的分析逻辑）
     final collector = _ClassInfoCollector();
@@ -260,6 +285,11 @@ class CppEmitter {
     }
     _methodTypeSpecializations.addAll(collector._methodTypeSpecializations);
 
+    // 全局 selector 分配：必须在生成代码之前完成，
+    // 因为 ClassInfo 表和派发点都要引用同一套 id。
+    _buildSelectorRegistry();
+    _buildInterfaceRoles();
+
     // 第三遍：生成 C++ 代码
     for (final lib in component.libraries) {
       final uri = lib.importUri.toString();
@@ -271,6 +301,12 @@ class CppEmitter {
     final result = StringBuffer();
     result.writeln('#include "dart2cpp_lowered.h"');
     result.writeln();
+
+    final selEnum = _emitSelectorEnum();
+    if (selEnum.isNotEmpty) {
+      result.write(selEnum);
+      result.writeln();
+    }
 
     if (_fwdBuf.isNotEmpty) {
       result.write(_fwdBuf);
@@ -501,8 +537,8 @@ class CppEmitter {
         return 'dynAs<double>($expr)';
       case 'bool':
         return 'dynAs<bool>($expr)';
-      case 'DartString':
-        return 'dynAs<DartString>($expr)';
+      case 'string':
+        return 'dynAs<string>($expr)';
       default:
         if (cppType.endsWith('*')) {
           return 'reinterpret_cast<$cppType>($expr)';
@@ -1362,32 +1398,8 @@ class CppEmitter {
       superName = 'AnyGC';
     }
 
-    // 如果当前类的 C++ 基类是 AnyGC（即 lowered 形式），但实现了用户定义的接口，
-    // 则让 C++ 结构体继承接口类以支持多态（如 Dog implements Animal → DogValue : AnimalValue）
-    if (superName == 'AnyGC' && cls.implementedTypes.isNotEmpty) {
-      for (final impl in cls.implementedTypes) {
-        final implClassName = impl.classNode.name;
-        if (_userClasses.contains(implClassName) && !_syntheticLoweredNames.contains(implClassName)) {
-          final implClean = _cleanName(implClassName);
-          final implClass = _classNodes[implClassName];
-          final implTypeParams = implClass?.typeParameters ?? [];
-          if (implTypeParams.isNotEmpty) {
-            if (impl.typeArguments.isNotEmpty) {
-              final args = impl.typeArguments.map((t) => _cppType(t)).join(', ');
-              superName = '${implClean}Value<$args>';
-            } else if (hasTemplate) {
-              final args = typeParams.map((tp) => tp.name ?? 'T').join(', ');
-              superName = '${implClean}Value<$args>';
-            } else {
-              superName = '${implClean}Value';
-            }
-          } else {
-            superName = '${implClean}Value';
-          }
-          break; // 只使用第一个匹配的接口
-        }
-      }
-    }
+    // implements 不再靠 C++ 结构体继承接口 Value 来对齐 ClassInfo 布局。
+    // 虚调用走 ClassInfo::slots[SEL_x]；接口走 inherits[]（本类一份，编译期合并覆盖）。
 
     // 生成 ClassInfo 结构体定义（继承自父类的 ClassInfo）
     final cleanName = _cleanName(className);
@@ -1463,7 +1475,7 @@ class CppEmitter {
     }
     // 生成 wrapper/gcMark 前向声明 + ClassInfo 结构体（含构造函数自初始化）
     final tplArgs = hasTemplate ? '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>' : '';
-    // 前向声明 gcMark 和 wrapper 函数（供 ClassInfo 构造函数引用）
+    // 前向声明 gcMark 和 wrapper 函数（供 ClassInfo 构造函数 / slots 表引用）
     if (inheritsVPtr || vtableEntries.isNotEmpty || isAsyncSM) {
       if (inheritsVPtr || isAsyncSM) {
         _structBuf.writeln('${templatePrefix}void _gcMark_$cleanName(AnyGC*, int);');
@@ -1481,39 +1493,150 @@ class CppEmitter {
         _structBuf.writeln('${templatePrefix}void _vptr_wrap_${cleanName}_completeWithError(AnyGC*, AnyGC*);');
       }
     }
+
+    // ── inherits 链表： [self, 直接接口/覆盖适配...] → 父 inherits ──
+    // 仅为本类直接 implements、双角色祖先、以及本类重写了方法的祖先接口生成适配表；
+    // 其余走父链复用。
+    final inheritAdapters = <String>[]; // adapter symbol (no &)
+    final inheritIfaceKeys = <String>[];
+    void upsertInherit(String ifaceRef, String adapterRef) {
+      final idx = inheritIfaceKeys.indexOf(ifaceRef);
+      if (idx >= 0) {
+        inheritAdapters[idx] = adapterRef;
+      } else {
+        inheritIfaceKeys.add(ifaceRef);
+        inheritAdapters.add(adapterRef);
+      }
+    }
+
+    bool isDirectImpl(String name) =>
+        cls.implementedTypes.any((i) => i.classNode.name == name);
+
+    bool isExtendsSplitAncestor(String name) {
+      if (!_extendsSplitClasses.contains(name)) return false;
+      var a = superClass;
+      while (a != null) {
+        if (a.name == name) return true;
+        a = a.superclass;
+      }
+      return false;
+    }
+
+    bool classOverridesIface(String ifaceName) {
+      final ifaceEntries = _classVTableEntries[ifaceName] ?? const [];
+      for (final entry in ifaceEntries) {
+        if (_shouldOverrideClassInfoField(entry, cls, parentEntryNames)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    final ifaceTargets = <String, List<DartType>>{};
+    void considerIface(String name, List<DartType> typeArgs) {
+      if (!_userClasses.contains(name) && !_mixinNames.contains(name)) return;
+      if (_syntheticLoweredNames.contains(name)) return;
+      if (isDirectImpl(name) ||
+          isExtendsSplitAncestor(name) ||
+          classOverridesIface(name)) {
+        ifaceTargets[name] = typeArgs;
+      }
+    }
+
+    void walkAncestors(Class? c) {
+      if (c == null || !_userClasses.contains(c.name)) return;
+      if (c.superclass != null) walkAncestors(c.superclass);
+      for (final impl in c.implementedTypes) {
+        considerIface(impl.classNode.name, impl.typeArguments);
+      }
+      if (_extendsSplitClasses.contains(c.name)) {
+        final tArgs = cls.superclass == c
+            ? (cls.supertype?.typeArguments ?? const <DartType>[])
+            : const <DartType>[];
+        considerIface(c.name, List<DartType>.from(tArgs));
+      }
+    }
+    walkAncestors(superClass);
+    for (final impl in cls.implementedTypes) {
+      considerIface(impl.classNode.name, impl.typeArguments);
+    }
+
+    for (final ifaceName in ifaceTargets.keys) {
+      final typeArgs = ifaceTargets[ifaceName]!;
+      final ifaceClean = _cleanName(ifaceName);
+      final ifaceRef = _ifaceIdentityRef(ifaceName, typeArgs);
+      final adapterName = '${cleanName}_as_$ifaceClean';
+      final ifaceCiType = _ifaceClassInfoType(ifaceName, typeArgs);
+
+      final ifaceEntriesForAdapter = _classVTableEntries[ifaceName] ?? const [];
+      if (templatePrefix.isNotEmpty) {
+        _structBuf.writeln(templatePrefix);
+      }
+      _structBuf.writeln('$ifaceCiType make_$adapterName$tplArgs() {');
+      _structBuf.writeln('    $ifaceCiType ci{};');
+      _structBuf.writeln('    ci.typeName = "$ifaceName";');
+      _structBuf.writeln('    ci._parent = &$ifaceRef;');
+      for (final entry in ifaceEntriesForAdapter) {
+        final fieldName = _classInfoFieldName(entry);
+        if (_baseClassInfoFields.contains(fieldName)) continue;
+        final hasImpl = vtableEntries.any((e) =>
+            _classInfoFieldName(e) == fieldName);
+        if (!hasImpl) continue;
+        final wrapRef = '&_vptr_wrap_${cleanName}_$fieldName$tplArgs';
+        _structBuf.writeln(
+            '    ci.$fieldName = reinterpret_cast<decltype(ci.$fieldName)>($wrapRef);');
+      }
+      _structBuf.writeln('    return ci;');
+      _structBuf.writeln('}');
+      if (hasTemplate) {
+        final templateDecl =
+            'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>';
+        _structBuf.writeln(
+            '$templateDecl const $ifaceCiType $adapterName$tplArgs = make_$adapterName$tplArgs();');
+      } else {
+        _structBuf.writeln(
+            'const $ifaceCiType $adapterName = make_$adapterName();');
+      }
+      upsertInherit(ifaceRef, adapterName);
+    }
+
+    var mixinAncestor = cls.superclass;
+    final seenMixinAncestors = <String>{};
+    while (mixinAncestor != null && seenMixinAncestors.add(mixinAncestor.name)) {
+      if (mixinAncestor.isMixinApplication) {
+        final mixedIn = mixinAncestor.mixedInType?.classNode;
+        if (mixedIn != null && _mixinNames.contains(mixedIn.name)) {
+          final mClean = _cleanName(mixedIn.name);
+          final ifaceRef = '${mClean}Mixin::_classInfo';
+          upsertInherit(ifaceRef, ifaceRef);
+        }
+      }
+      mixinAncestor = mixinAncestor.superclass;
+    }
+
+    // 链表节点：self + adapters，末节点 next → 父 inherits
+    final parentInheritsExpr = (parentCiInstance != null)
+        ? '$parentCiInstance.inherits'
+        : 'nullptr';
+    final selfInfoExpr = '&$structName$tplArgs::_classInfo';
+    final chainInfos = <String>[
+      selfInfoExpr,
+      ...inheritAdapters.map((a) => '&$a$tplArgs'),
+    ];
+    final inhPrefix = '_inh_$cleanName';
+    // InheritNode 在 Value::_classInfo 声明之后再发射（见下）
+
+    // ClassInfo 结构体：纯聚合（无构造/方法），初始化走 make_*（见 wrappers 之后）
     _structBuf.write(templatePrefix);
     _structBuf.writeln('struct $classInfoName : $parentClassInfoName {');
-    // 构造函数：赋值所有函数指针（含继承方法的重写）
-    final hasCtorAssignments = inheritsVPtr || vtableEntries.isNotEmpty || isAsyncSM || parentCiInstance != null;
-    if (hasCtorAssignments) {
-      // 模板类需要 this-> 前缀访问依赖基类成员
-      final prefix = hasTemplate ? 'this->' : '';
-      _structBuf.writeln('    $classInfoName() {');
-      _structBuf.writeln('        ${prefix}typeName = "$className";');
-      for (final entry in vtableEntries) {
-        final fieldName = _classInfoFieldName(entry);
-        _structBuf.writeln('        ${prefix}$fieldName = &_vptr_wrap_${cleanName}_$fieldName$tplArgs;');
-      }
-      if (isAsyncSM) {
-        _structBuf.writeln('        ${prefix}start = &_vptr_wrap_${cleanName}_start$tplArgs;');
-        _structBuf.writeln('        ${prefix}completeWith = &_vptr_wrap_${cleanName}_completeWith$tplArgs;');
-        _structBuf.writeln('        ${prefix}completeWithError = &_vptr_wrap_${cleanName}_completeWithError$tplArgs;');
-      }
-      if (inheritsVPtr || isAsyncSM) {
-        _structBuf.writeln('        ${prefix}gcMark = &_gcMark_$cleanName$tplArgs;');
-      }
-      if (parentCiInstance != null) {
-        _structBuf.writeln('        ${prefix}_parent = &$parentCiInstance;');
-      }
-      _structBuf.writeln('    }');
-    }
-    // 字段声明（仅新增字段，不含父类已有的）
     for (final entry in vtableEntries) {
       final fieldName = _classInfoFieldName(entry);
+      // 全部保留命名字段（已去掉 slots）；接口角色同样依赖字段布局
       if (!parentEntryNames.contains(fieldName)) {
         final argCount = _vtableEntryArgCount(entry);
         final retType = _vptrWrapReturnType(entry, cls);
-        _structBuf.writeln('    ${_classInfoFieldDecl(fieldName, argCount, retType: retType)};');
+        _structBuf.writeln(
+            '    ${_classInfoFieldDecl(fieldName, argCount, retType: retType)};');
       }
     }
     _structBuf.writeln('};');
@@ -1531,18 +1654,15 @@ class CppEmitter {
       _structBuf.writeln('    $fieldType $fieldName\{$defaultVal\};');
     }
 
-    // ClassInfo 静态实例
+    // ClassInfo 静态实例声明（定义在 wrappers/gcMark 之后，保证可取址）
     _structBuf.writeln();
-    // _classInfo 实例指针在 AnyGC 上，需要 AnyGC:: 限定符与静态 _classInfo 成员区分分
-    final baseQualifier = 'AnyGC';
-    final gcMarkAssignment = '';
+    const baseQualifier = 'AnyGC';
     if (hasTemplate) {
-      final tplArgs = '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
-      _structBuf.writeln('    static $classInfoName$tplArgs _classInfo;');
-      _structBuf.writeln('    $structName() { $baseQualifier::_classInfo = &_classInfo;$gcMarkAssignment }');
+      _structBuf.writeln('    static const $classInfoName$tplArgs _classInfo;');
+      _structBuf.writeln('    $structName() { $baseQualifier::_classInfo = &_classInfo; }');
     } else {
-      _structBuf.writeln('    static $classInfoName _classInfo;');
-      _structBuf.writeln('    $structName() { $baseQualifier::_classInfo = &_classInfo;$gcMarkAssignment }');
+      _structBuf.writeln('    static const $classInfoName _classInfo;');
+      _structBuf.writeln('    $structName() { $baseQualifier::_classInfo = &_classInfo; }');
     }
 
     _structBuf.writeln();
@@ -1550,17 +1670,70 @@ class CppEmitter {
     _structBuf.writeln('};');
     _structBuf.writeln();
 
-    // 静态 ClassInfo 定义（模板类需要特殊处理）
+    // inherits 链表节点（需在 Value::_classInfo 声明之后）
+    // 变量模板定义写作 `_inh_Foo_0`，引用写作 `_inh_Foo_0<T>`
+    for (var i = chainInfos.length - 1; i >= 0; i--) {
+      if (templatePrefix.isNotEmpty) {
+        _structBuf.writeln(templatePrefix);
+      }
+      final nextExpr = (i == chainInfos.length - 1)
+          ? parentInheritsExpr
+          : '&${inhPrefix}_${i + 1}$tplArgs';
+      _structBuf.writeln(
+          'const InheritNode ${inhPrefix}_$i = { ${chainInfos[i]}, $nextExpr };');
+    }
+    final inheritsHeadRef = '&${inhPrefix}_0$tplArgs';
+
+    // ── ClassInfo：聚合初始化拷贝父表基类子对象，再赋值覆盖 ──
+    // C++17：Derived ci{Parent::_classInfo} 初始化基类子对象，无需构造函数。
+    final makeName = 'make_${cleanName}ClassInfo';
     if (hasTemplate) {
-      final templateDecl = 'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>';
-      final tplArgs = '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
-      _structBuf.writeln('$templateDecl $classInfoName$tplArgs $structName$tplArgs::_classInfo;');
+      final templateDecl =
+          'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>';
+      _structBuf.writeln('$templateDecl');
+    }
+    _structBuf.writeln('$classInfoName$tplArgs $makeName() {');
+    if (parentCiInstance != null && parentClassInfoName != 'ClassInfo') {
+      _structBuf.writeln('    $classInfoName$tplArgs ci{$parentCiInstance};');
     } else {
-      _structBuf.writeln('$classInfoName $structName::_classInfo;');
+      _structBuf.writeln('    $classInfoName$tplArgs ci{};');
+    }
+    _structBuf.writeln('    ci.typeName = "$className";');
+    _structBuf.writeln('    ci.destroy = &_gcDestroy<$structName$tplArgs>;');
+    for (final entry in vtableEntries) {
+      final fieldName = _classInfoFieldName(entry);
+      if (!_shouldOverrideClassInfoField(entry, cls, parentEntryNames)) continue;
+      _structBuf.writeln(
+          '    ci.$fieldName = &_vptr_wrap_${cleanName}_$fieldName$tplArgs;');
+    }
+    if (isAsyncSM) {
+      _structBuf.writeln('    ci.start = &_vptr_wrap_${cleanName}_start$tplArgs;');
+      _structBuf.writeln(
+          '    ci.completeWith = &_vptr_wrap_${cleanName}_completeWith$tplArgs;');
+      _structBuf.writeln(
+          '    ci.completeWithError = &_vptr_wrap_${cleanName}_completeWithError$tplArgs;');
+    }
+    if (inheritsVPtr || isAsyncSM) {
+      _structBuf.writeln('    ci.gcMark = &_gcMark_$cleanName$tplArgs;');
+    }
+    if (parentCiInstance != null) {
+      _structBuf.writeln('    ci._parent = &$parentCiInstance;');
+    }
+    _structBuf.writeln('    ci.inherits = $inheritsHeadRef;');
+    _structBuf.writeln('    return ci;');
+    _structBuf.writeln('}');
+    if (hasTemplate) {
+      final templateDecl =
+          'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>';
+      _structBuf.writeln(
+          '$templateDecl const $classInfoName$tplArgs $structName$tplArgs::_classInfo = $makeName$tplArgs();');
+    } else {
+      _structBuf.writeln(
+          'const $classInfoName $structName::_classInfo = $makeName();');
     }
     _structBuf.writeln();
 
-    // 生成 vptr wrapper 函数（在构造函数之前，这样构造函数可以引用它们）
+    // 生成 vptr wrapper / gcMark（make_ClassInfo 只需前向声明即可取址）
     _emitVptrWrappers(className, structName, cls, typeParams);
 
     // gcMark 静态函数 — 通过 ClassInfo dispatch 派发，不依赖 C++ virtual override
@@ -1709,7 +1882,7 @@ class CppEmitter {
 
   /// 从类的继承层次构建类型参数替换映射
   /// 例如：StringToIntTransformer extends DataTransformer<String, int>
-  /// 产生映射：TInput → DartString, TOutput → int64_t
+  /// 产生映射：TInput → string, TOutput → int64_t
   Map<String, String> _buildTypeSubstitutionMap(Class cls) {
     final map = <String, String>{};
     final clsNode = _classNodes[cls.name];
@@ -1833,12 +2006,12 @@ class CppEmitter {
             final callExpr = '$targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__))';
             _implBuf.writeln('    return _vptrRet<$wrapRetType>($callExpr);');
           } else if (wrapRetType != 'AnyGC*') {
-            // Type parameter, double, DartString, or pointer type
+            // Type parameter, double, string, or pointer type
             // _vptrRet handles both boxed (AnyGC*) and unboxed returns
             final callExpr = '$targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__))';
             _implBuf.writeln('    return _vptrRet<$wrapRetType>($callExpr);');
           } else if (returnType == 'int64_t' || returnType == 'double' ||
-              returnType == 'bool' || returnType == 'DartString') {
+              returnType == 'bool' || returnType == 'string') {
             _implBuf.writeln('    return _box($targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__)));');
           } else if (returnType.endsWith('*')) {
             _implBuf.writeln('    return _box($targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__)));');
@@ -1863,8 +2036,8 @@ class CppEmitter {
             _implBuf.writeln('    $targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__), dynAs<double>(arg0));');
           } else if (paramType == 'bool') {
             _implBuf.writeln('    $targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__), dynAs<bool>(arg0));');
-          } else if (paramType == 'DartString') {
-            _implBuf.writeln('    $targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__), dynAs<DartString>(arg0));');
+          } else if (paramType == 'string') {
+            _implBuf.writeln('    $targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__), dynAs<string>(arg0));');
           } else if (paramType.endsWith('*')) {
             if (paramType == 'AnyGC*') {
               _implBuf.writeln('    $targetFuncName$templateArgs(static_cast<$structName$templateArgs*>(obj__), arg0);');
@@ -1952,7 +2125,7 @@ class CppEmitter {
       }
 
       // 使用类型替换映射解析继承自接口/父类的类型参数
-      // 例如：TInput → DartString (from DataTransformer<String, int>)
+      // 例如：TInput → string (from DataTransformer<String, int>)
       for (var i = 0; i < params.length; i++) {
         if (_isCppTypeParameter(params[i]) || _containsTypeParameter(params[i])) {
           params[i] = _applyTypeSubstitution(params[i], typeSubstitution);
@@ -2050,8 +2223,8 @@ class CppEmitter {
           castArgs.add('dynAs<double>(arg$i)');
         } else if (paramType == 'bool') {
           castArgs.add('dynAs<bool>(arg$i)');
-        } else if (paramType == 'DartString') {
-          castArgs.add('dynAs<DartString>(arg$i)');
+        } else if (paramType == 'string') {
+          castArgs.add('dynAs<string>(arg$i)');
         } else if (_isCppTypeParameter(paramType) && !classTypeParamNames.contains(paramType)) {
           // 不在作用域内的类型参数：直接传递 AnyGC*
           castArgs.add('arg$i');
@@ -2074,13 +2247,13 @@ class CppEmitter {
       } else if (wrapRetType == 'bool' || wrapRetType == 'int64_t') {
         returnStmt = '    return _vptrRet<$wrapRetType>($callExpr);';
       } else if (wrapRetType != 'AnyGC*') {
-        // Type parameter (TOutput), double, DartString, or pointer type
+        // Type parameter (TOutput), double, string, or pointer type
         // _vptrRet handles both boxed (AnyGC*) and unboxed returns
         returnStmt = '    return _vptrRet<$wrapRetType>($callExpr);';
       } else if (returnType == 'void') {
         returnStmt = '    $callExpr;';
       } else if (returnType == 'int64_t' || returnType == 'double' ||
-                 returnType == 'bool' || returnType == 'DartString') {
+                 returnType == 'bool' || returnType == 'string') {
         returnStmt = '    return _box($callExpr);';
       } else if (returnType.endsWith('*')) {
         returnStmt = '    return _box($callExpr);';
@@ -2235,12 +2408,12 @@ class CppEmitter {
           final dartType = field.type;
           if (dartType is InterfaceType) {
             final clsName = dartType.classNode.name;
-            if ((clsName == 'Map' || clsName == 'StaticMap') && dartType.typeArguments.length >= 2) {
+            if ((clsName == 'Map') && dartType.typeArguments.length >= 2) {
               savedMapKeyType = _expectedMapKeyType;
               savedMapValueType = _expectedMapValueType;
               _expectedMapKeyType = _cppType(dartType.typeArguments[0]);
               _expectedMapValueType = _cppType(dartType.typeArguments[1]);
-            } else if ((clsName == 'List' || clsName == 'StaticList' || clsName == 'Set' || clsName == 'StaticSet') && dartType.typeArguments.isNotEmpty) {
+            } else if ((clsName == 'List' || clsName == 'Set') && dartType.typeArguments.isNotEmpty) {
               savedCollElemType = _expectedCollectionElementType;
               _expectedCollectionElementType = _cppType(dartType.typeArguments[0]);
             }
@@ -2425,9 +2598,9 @@ class CppEmitter {
     } else if (proc.isSetter) {
       returnType = 'void';
     } else if (isGenerator) {
-      // sync*/async* 生成器：返回 StaticList<T>*
+      // sync*/async* 生成器：返回 List<T>*
       final innerType = _extractIterableInnerType(func.returnType);
-      returnType = 'StaticList<$innerType>*';
+      returnType = 'List<$innerType>*';
     } else {
       returnType = _cppType(func.returnType);
     }
@@ -2504,7 +2677,7 @@ class CppEmitter {
     if (isGenerator) {
       final innerType = _extractIterableInnerType(func.returnType);
       _currentGeneratorInnerType = innerType;
-      _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new StaticList<$innerType>());');
+      _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new List<$innerType>());');
     }
 
     // 函数体
@@ -2730,7 +2903,7 @@ class CppEmitter {
       returnType = 'int';
     } else if (isSyncStar || isAsyncStar) {
       final innerType = _extractIterableInnerType(func.returnType);
-      returnType = 'StaticList<$innerType>*';
+      returnType = 'List<$innerType>*';
     } else {
       returnType = _cppType(func.returnType);
     }
@@ -2801,9 +2974,9 @@ class CppEmitter {
     if (isMainFunc) {
       returnType = 'int';
     } else if (isGenerator) {
-      // sync*/async* 生成器：返回 StaticList<T>*
+      // sync*/async* 生成器：返回 List<T>*
       final innerType = _extractIterableInnerType(func.returnType);
-      returnType = 'StaticList<$innerType>*';
+      returnType = 'List<$innerType>*';
     } else {
       returnType = _cppType(func.returnType);
     }
@@ -2898,7 +3071,7 @@ class CppEmitter {
       // sync*/async* 生成器：创建结果列表，收集 yield 值，返回列表
       final innerType = _extractIterableInnerType(func.returnType);
       _currentGeneratorInnerType = innerType;
-      _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new StaticList<$innerType>());');
+      _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new List<$innerType>());');
       if (func.body != null) {
         _emitCppStmt(func.body!, _implBuf);
       }
@@ -2972,7 +3145,7 @@ class CppEmitter {
   String _extractIterableInnerType(DartType type) {
     if (type is InterfaceType) {
       final name = type.classNode.name;
-      if (name == 'Iterable' || name == 'List' || name == 'StaticList' ||
+      if (name == 'Iterable' || name == 'List' || name == 'List' ||
           name == '_Iterable' || name == '_List' || name == '_GrowableList') {
         if (type.typeArguments.isNotEmpty) {
           return _cppType(type.typeArguments[0]);
@@ -3057,13 +3230,20 @@ class CppEmitter {
         final retType = _procReturnType(proc, isSetter: proc.isSetter);
         _structBuf.writeln('    ${_classInfoFieldDecl(fieldName, argCount, retType: retType)};');
       }
-      _structBuf.writeln('    ${enumName}ClassInfo() { typeName = "$enumName"; }');
       _structBuf.writeln('};');
+      // 编译期 ClassInfo（无方法时也给出最小表）
+      _structBuf.writeln(
+          'constexpr ${enumName}ClassInfo make_${enumName}ClassInfo() {');
+      _structBuf.writeln('    ${enumName}ClassInfo ci{};');
+      _structBuf.writeln('    ci.typeName = "$enumName";');
+      _structBuf.writeln('    ci.destroy = &_gcDestroy<$enumName>;');
+      _structBuf.writeln('    return ci;');
+      _structBuf.writeln('}');
       _structBuf.writeln();
     }
 
     _structBuf.writeln('struct $enumName : AnyGC {');
-    _structBuf.writeln('    DartString _name;');
+    _structBuf.writeln('    string _name;');
     _structBuf.writeln('    int64_t _index;');
     // 自定义字段
     for (final field in customFields) {
@@ -3087,7 +3267,7 @@ class CppEmitter {
     _structBuf.writeln();
 
     // 构造函数（含自定义字段参数）
-    final ctorParams = <String>['DartString n', 'int64_t i'];
+    final ctorParams = <String>['string n', 'int64_t i'];
     final ctorInits = <String>['_name(std::move(n))', '_index(i)'];
     for (final field in customFields) {
       final fieldName = _cleanName(field.name.text);
@@ -3100,13 +3280,14 @@ class CppEmitter {
     _structBuf.writeln('    $enumName(${ctorParams.join(', ')}) : ${ctorInits.join(', ')} {$ciInit}');
     _structBuf.writeln();
 
-    _structBuf.writeln('    DartString toString() const override { return "$enumName." + _name; }');
+    _structBuf.writeln('    string toString() const { return "$enumName." + _name; }');
     _structBuf.writeln('};');
     _structBuf.writeln();
 
-    // ClassInfo 静态成员定义
+    // ClassInfo 静态成员定义（枚举方法可能在后续静态初始化里打补丁，故非 constexpr）
     if (enumProcs.isNotEmpty) {
-      _structBuf.writeln('${enumName}ClassInfo $enumName::_classInfo;');
+      _structBuf.writeln(
+          'inline ${enumName}ClassInfo $enumName::_classInfo = make_${enumName}ClassInfo();');
       _structBuf.writeln();
     }
 
@@ -3220,8 +3401,8 @@ class CppEmitter {
           castArgs.add('dynAs<double>(arg$i)');
         } else if (paramType == 'bool') {
           castArgs.add('dynAs<bool>(arg$i)');
-        } else if (paramType == 'DartString') {
-          castArgs.add('dynAs<DartString>(arg$i)');
+        } else if (paramType == 'string') {
+          castArgs.add('dynAs<string>(arg$i)');
         } else if (paramType.endsWith('*')) {
           castArgs.add('static_cast<$paramType>(arg$i)');
         } else {
@@ -3239,7 +3420,7 @@ class CppEmitter {
       } else if (wrapRetType == 'bool' || wrapRetType == 'int64_t') {
         _implBuf.writeln('    return $callExpr;');
       } else if (returnType == 'int64_t' || returnType == 'double' ||
-                 returnType == 'bool' || returnType == 'DartString') {
+                 returnType == 'bool' || returnType == 'string') {
         _implBuf.writeln('    return _box($callExpr);');
       } else if (returnType.endsWith('*')) {
         _implBuf.writeln('    return _box($callExpr);');
@@ -3269,6 +3450,9 @@ class CppEmitter {
     final templatePrefix = hasTemplate
         ? 'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>'
         : '';
+    final tplArgs = hasTemplate
+        ? '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>'
+        : '';
 
     // Mixin 作为独立的 struct，包含 vptr 支持和字段
     // 继承 AnyGC 以支持作为 AnyGC* 参数传递
@@ -3296,8 +3480,20 @@ class CppEmitter {
       }
       _structBuf.writeln('    ${_classInfoFieldDecl(fieldName, argCount, retType: _procReturnType(proc, isSetter: proc.isSetter))};');
     }
-    _structBuf.writeln('    ${structName}ClassInfo() { typeName = "$structName"; }');
     _structBuf.writeln('};');
+    _structBuf.writeln();
+
+    if (templatePrefix.isNotEmpty) {
+      _structBuf.writeln('$templatePrefix');
+    }
+    // 函数名不带 <T>，避免被解析为函数模板偏特化
+    _structBuf.writeln(
+        'constexpr ${structName}ClassInfo$tplArgs make_${structName}ClassInfo() {');
+    _structBuf.writeln('    ${structName}ClassInfo$tplArgs ci{};');
+    _structBuf.writeln('    ci.typeName = "$structName";');
+    _structBuf.writeln('    ci.destroy = &_gcDestroy<$structName$tplArgs>;');
+    _structBuf.writeln('    return ci;');
+    _structBuf.writeln('}');
     _structBuf.writeln();
 
     if (templatePrefix.isNotEmpty) {
@@ -3305,10 +3501,9 @@ class CppEmitter {
     }
     _structBuf.writeln('struct $structName : AnyGC {');
     if (hasTemplate) {
-      final tplArgs = '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
-      _structBuf.writeln('    static ${structName}ClassInfo$tplArgs _classInfo;');
+      _structBuf.writeln('    static const ${structName}ClassInfo$tplArgs _classInfo;');
     } else {
-      _structBuf.writeln('    static ${structName}ClassInfo _classInfo;');
+      _structBuf.writeln('    static const ${structName}ClassInfo _classInfo;');
     }
     // Mixin 字段
     for (final field in cls.fields) {
@@ -3323,10 +3518,11 @@ class CppEmitter {
     // 静态成员定义（模板类使用 template 前缀）
     if (hasTemplate) {
       final templateDecl = 'template<${typeParams.map((tp) => 'typename ${tp.name ?? 'T'}').join(', ')}>';
-      final tplArgs = '<${typeParams.map((tp) => tp.name ?? 'T').join(', ')}>';
-      _structBuf.writeln('$templateDecl ${structName}ClassInfo$tplArgs $structName$tplArgs::_classInfo;');
+      _structBuf.writeln(
+          '$templateDecl inline constexpr ${structName}ClassInfo$tplArgs $structName$tplArgs::_classInfo = make_${structName}ClassInfo$tplArgs();');
     } else {
-      _structBuf.writeln('${structName}ClassInfo $structName::_classInfo;');
+      _structBuf.writeln(
+          'inline constexpr ${structName}ClassInfo $structName::_classInfo = make_${structName}ClassInfo();');
     }
     // Mixin 的静态字段声明为全局变量
     for (final field in cls.fields) {
@@ -3341,12 +3537,12 @@ class CppEmitter {
           final dartType = field.type;
           if (dartType is InterfaceType) {
             final clsName = dartType.classNode.name;
-            if ((clsName == 'Map' || clsName == 'StaticMap') && dartType.typeArguments.length >= 2) {
+            if ((clsName == 'Map') && dartType.typeArguments.length >= 2) {
               savedMapKeyType = _expectedMapKeyType;
               savedMapValueType = _expectedMapValueType;
               _expectedMapKeyType = _cppType(dartType.typeArguments[0]);
               _expectedMapValueType = _cppType(dartType.typeArguments[1]);
-            } else if ((clsName == 'List' || clsName == 'StaticList' || clsName == 'Set' || clsName == 'StaticSet') && dartType.typeArguments.isNotEmpty) {
+            } else if ((clsName == 'List' || clsName == 'Set') && dartType.typeArguments.isNotEmpty) {
               savedCollElemType = _expectedCollectionElementType;
               _expectedCollectionElementType = _cppType(dartType.typeArguments[0]);
             }
@@ -3592,9 +3788,9 @@ class CppEmitter {
       final rightIsRawDispatch = _isDirectClassInfoDispatchResult(right) &&
           _isRawReturnClassInfoDispatch(right);
       final leftIsRawType = !leftIsAnyGCDispatch && (leftCppType == 'int64_t' || leftCppType == 'bool' ||
-          leftCppType == 'double' || leftCppType == 'DartString');
+          leftCppType == 'double' || leftCppType == 'string');
       final rightIsRawType = !rightIsAnyGCDispatch && (rightCppType == 'int64_t' || rightCppType == 'bool' ||
-          rightCppType == 'double' || rightCppType == 'DartString');
+          rightCppType == 'double' || rightCppType == 'string');
       final leftIsAnyGC = !leftAlreadyUnboxed && !leftIsRawType && !leftIsRawDispatch &&
           (leftCppType == 'AnyGC*' || _isDirectClassInfoDispatchResult(left) ||
            (leftCppType.isEmpty && (_isAnyGCPtrExpr(left) || left.contains('_classInfo'))));
@@ -3620,11 +3816,11 @@ class CppEmitter {
       // 集合类型：通过 ClassInfo 派发 == 运算符
       if (leftType is InterfaceType) {
         final typeName = leftType.classNode.name;
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == '_List' || typeName == '_GrowableList' ||
             typeName == 'Iterable' || typeName == '_Iterable';
-        final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
-        final isSetType = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
+        final isMapType = typeName == 'Map' || typeName == '_Map';
+        final isSetType = typeName == 'Set' || typeName == '_Set';
         if (isListType || isMapType || isSetType) {
           return 'static_cast<AnyGC*>($left)->_classInfo->eq(static_cast<AnyGC*>($left), static_cast<AnyGC*>($right))';
         }
@@ -3678,8 +3874,8 @@ class CppEmitter {
         if (cppType == 'int64_t' || cppType == 'double' || cppType == 'bool') {
           return 'false';  // 基本类型不能为 null
         }
-        // DartString：可空类型用 empty() 检查（null 表示为空字符串）
-        if (cppType == 'DartString') {
+        // string：可空类型用 empty() 检查（null 表示为空字符串）
+        if (cppType == 'string') {
           if (type.nullability == Nullability.nullable) {
             return '($operand.empty())';
           }
@@ -3942,7 +4138,7 @@ class CppEmitter {
         if (typeName == 'String') {
           String actualReceiver = receiver;
           if (_isAnyPtrExpr(receiver)) {
-            actualReceiver = 'dynAs<DartString>($receiver)';
+            actualReceiver = 'dynAs<string>($receiver)';
           }
           switch (methodName) {
             case 'isEmpty': return '$actualReceiver.empty()';
@@ -3951,11 +4147,11 @@ class CppEmitter {
           }
         }
         // 集合类型 getter — ClassInfo 派发
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == 'Iterable' || typeName == '_Iterable' ||
             typeName == '_List' || typeName == '_GrowableList';
-        final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
-        final isSetType = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
+        final isMapType = typeName == 'Map' || typeName == '_Map';
+        final isSetType = typeName == 'Set' || typeName == '_Set';
         if (isListType || isMapType || isSetType) {
           final collectionGetters = {
             'length', 'isEmpty', 'isNotEmpty',
@@ -3981,13 +4177,13 @@ class CppEmitter {
           if (methodName == 'length') return 'static_cast<int>($receiver->_storage.size())';
         }
         // StringBuffer
-        if (typeName == 'StringBuffer' || typeName == 'StaticStringBuffer') {
+        if (typeName == 'StringBuffer' || typeName == 'StringBuffer') {
           if (methodName == 'length') return 'static_cast<int64_t>($receiver->_buf.str().length())';
           if (methodName == 'isEmpty') return '($receiver->_buf.str().empty())';
         }
       }
 
-      // 基于 C++ 表达式模式的 fallback：StaticList/StaticMap/StaticSet → ClassInfo 派发
+      // 基于 C++ 表达式模式的 fallback：List/Map/Set → ClassInfo 派发
       {
         final result = _patternGetterFallback(receiver, methodName);
         if (result.isNotEmpty) return result;
@@ -4048,7 +4244,7 @@ class CppEmitter {
     }
     final n = allExprs.length;
     if (n == 0) {
-      return 'GC::allocateLocal(new TupleBox(nullptr, DartString("()")))';
+      return 'GC::allocateLocal(new TupleBox(nullptr, string("()")))';
     }
     // 装箱与 "(a, b, c)" 显示串统一由运行时辅助 makeTupleBox 完成（无 IIFE）
     return 'makeTupleBox(${allExprs.join(', ')})';
@@ -4120,28 +4316,45 @@ class CppEmitter {
     // Tear-off → 创建 TypeFunction 包装，捕获 receiver
     final closureId = _closureCounter++;
     final className = '${_currentClassName}Value';
-    _structBuf.writeln('struct TearOff_${closureId}ClassInfo : ClassInfo { TearOff_${closureId}ClassInfo(); };');
+    _structBuf.writeln('struct TearOff_${closureId}ClassInfo : ClassInfo {};');
     _structBuf.writeln('struct TearOff_$closureId : TypeFunction0<$returnType> {');
     _structBuf.writeln('    $className* recv_;');
-    _structBuf.writeln('    static TearOff_${closureId}ClassInfo _classInfo;');
+    _structBuf.writeln('    static const TearOff_${closureId}ClassInfo _classInfo;');
     _structBuf.writeln('    TearOff_$closureId($className* r) : recv_(r) {');
     _structBuf.writeln('        this->fnPtr = &_trampoline;');
     _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
     _structBuf.writeln('    }');
     _structBuf.writeln('    static AnyGC* _trampoline(AnyGC* _env) {');
     _structBuf.writeln('        auto* _self = static_cast<TearOff_$closureId*>(_env);');
-    _structBuf.writeln('        return (static_cast<${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
+    // tear-off 派发：ready selector 走 slots，否则走 ClassInfo 字段
+    final tearSel = _usesSelectorTable(methodName)
+        ? methodName
+        : (_usesSelectorTable('get_$methodName') ? 'get_$methodName' : null);
+    if (tearSel != null) {
+      final fnType = _selectorFnPtrType(tearSel);
+      final sel = _selectorEnumName(tearSel);
+      _structBuf.writeln(
+          '        return (($fnType)_slot(_self->recv_, $sel))(_self->recv_);');
+    } else {
+      _structBuf.writeln(
+          '        return (static_cast<const ${className}ClassInfo*>(_self->recv_->AnyGC::_classInfo)->$methodName)(_self->recv_);');
+    }
     _structBuf.writeln('    }');
     _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {');
     _structBuf.writeln('        auto* _env = static_cast<TearOff_$closureId*>(self);');
     _structBuf.writeln('        if (_env->recv_) _gcMark(_env->recv_, flag);');
     _structBuf.writeln('    }');
     _structBuf.writeln('};');
-    _structBuf.writeln('TearOff_${closureId}ClassInfo::TearOff_${closureId}ClassInfo() {');
-    _structBuf.writeln('    typeName = "Closure";');
-    _structBuf.writeln('    gcMark = &TearOff_$closureId::_gcMark_impl;');
+    _structBuf.writeln(
+        'constexpr TearOff_${closureId}ClassInfo make_TearOff_${closureId}ClassInfo() {');
+    _structBuf.writeln('    TearOff_${closureId}ClassInfo ci{};');
+    _structBuf.writeln('    ci.typeName = "Closure";');
+    _structBuf.writeln('    ci.destroy = &_gcDestroy<TearOff_$closureId>;');
+    _structBuf.writeln('    ci.gcMark = &TearOff_$closureId::_gcMark_impl;');
+    _structBuf.writeln('    return ci;');
     _structBuf.writeln('}');
-    _structBuf.writeln('TearOff_${closureId}ClassInfo TearOff_$closureId::_classInfo = TearOff_${closureId}ClassInfo();');
+    _structBuf.writeln(
+        'inline constexpr TearOff_${closureId}ClassInfo TearOff_$closureId::_classInfo = make_TearOff_${closureId}ClassInfo();');
     _structBuf.writeln();
     return 'GC::allocateLocal(new TearOff_$closureId($receiver))';
   }
@@ -4153,7 +4366,7 @@ class CppEmitter {
         .replaceAll('\n', '\\n')
         .replaceAll('\r', '\\r')
         .replaceAll('\t', '\\t');
-    return 'DartString("$escaped")';
+    return 'string("$escaped")';
   }
 
   String _emitCppVariableGet(VariableGet expr) {
@@ -4285,16 +4498,16 @@ class CppEmitter {
         final isNullable = receiverType.nullability == Nullability.nullable;
         switch (fieldName) {
           case 'isEmpty':
-            // DartString 是非空的，直接使用 empty()
+            // string 是非空的，直接使用 empty()
             return '$receiver.empty()';
           case 'isNotEmpty':
-            // DartString 是非空的，直接使用 !empty()
+            // string 是非空的，直接使用 !empty()
             return '!$receiver.empty()';
           case 'length':
-            // DartString 是非空的，直接调用 length()
+            // string 是非空的，直接调用 length()
             return 'static_cast<int64_t>($receiver.length())';
           case 'hashCode':
-            return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
+            return 'static_cast<int64_t>(std::hash<string>{}($receiver))';
         }
       }
 
@@ -4323,11 +4536,11 @@ class CppEmitter {
       // 集合类型 getter — ClassInfo 派发
       if (receiverType is InterfaceType) {
         final typeName = receiverType.classNode.name;
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == 'Iterable' || typeName == '_Iterable' ||
             typeName == '_List' || typeName == '_GrowableList';
-        final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
-        final isSetType = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
+        final isMapType = typeName == 'Map' || typeName == '_Map';
+        final isSetType = typeName == 'Set' || typeName == '_Set';
         if (isListType || isMapType || isSetType) {
           final collectionGetters = {
             'length', 'isEmpty', 'isNotEmpty',
@@ -4369,7 +4582,7 @@ class CppEmitter {
         }
       }
 
-      // 特殊处理 StaticSet 类型的属性 — 已由上方统一 ClassInfo 派发处理
+      // 特殊处理 Set 类型的属性 — 已由上方统一 ClassInfo 派发处理
 
       // 特殊处理 Promise/Future 类型的属性
       if (receiverType is InterfaceType && (receiverType.classNode.name == 'Promise' || receiverType.classNode.name == 'Future')) {
@@ -4377,7 +4590,7 @@ class CppEmitter {
       }
 
       // 特殊处理 StringBuffer 类型的属性
-      if (receiverType is InterfaceType && (receiverType.classNode.name == 'StringBuffer' || receiverType.classNode.name == 'StaticStringBuffer')) {
+      if (receiverType is InterfaceType && (receiverType.classNode.name == 'StringBuffer' || receiverType.classNode.name == 'StringBuffer')) {
         switch (fieldName) {
           case 'length': return 'static_cast<int64_t>($receiver->_buf.str().length())';
           case 'isEmpty': return '($receiver->_buf.str().empty())';
@@ -4386,13 +4599,13 @@ class CppEmitter {
         }
       }
 
-      // 特殊处理 Duration/StaticDuration 类型的属性（StaticDuration* 指针语义）
+      // 特殊处理 Duration/Duration 类型的属性（Duration* 指针语义）
       if (receiverType is InterfaceType &&
-          (receiverType.classNode.name == 'StaticDuration' || receiverType.classNode.name == 'Duration')) {
+          (receiverType.classNode.name == 'Duration' || receiverType.classNode.name == 'Duration')) {
         // receiver 可能是 AnyGC*（来自 vptr 派发），需要向下转型
         String durReceiver = receiver;
         if (_isAnyPtrResult(receiver)) {
-          durReceiver = 'static_cast<StaticDuration*>($receiver)';
+          durReceiver = 'static_cast<Duration*>($receiver)';
         }
         switch (fieldName) {
           case 'inMilliseconds': return '$durReceiver->inMilliseconds()';
@@ -4424,7 +4637,7 @@ class CppEmitter {
       }
     }
 
-    // 基于 C++ 表达式模式的 fallback：StaticList/StaticMap/StaticSet → ClassInfo 派发
+    // 基于 C++ 表达式模式的 fallback：List/Map/Set → ClassInfo 派发
     {
       final result = _patternGetterFallback(receiver, fieldName);
       if (result.isNotEmpty) return result;
@@ -4442,13 +4655,13 @@ class CppEmitter {
       }
     }
 
-    // 后备：检查接收器是否返回 DartString（基于 C++ 表达式模式）
+    // 后备：检查接收器是否返回 string（基于 C++ 表达式模式）
     if (_cppExprReturnsString(receiver)) {
       switch (fieldName) {
         case 'isEmpty': return '$receiver.empty()';
         case 'isNotEmpty': return '!$receiver.empty()';
         case 'length': return 'static_cast<int64_t>($receiver.length())';
-        case 'hashCode': return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
+        case 'hashCode': return 'static_cast<int64_t>(std::hash<string>{}($receiver))';
       }
     }
 
@@ -4473,7 +4686,7 @@ class CppEmitter {
       if (returnType is InterfaceType) {
         final returnTypeName = returnType.classNode.name;
         if (returnTypeName == 'double') return 'dynAs<double>($vptrCall)';
-        if (returnTypeName == 'String') return 'dynAs<DartString>($vptrCall)';
+        if (returnTypeName == 'String') return 'dynAs<string>($vptrCall)';
         // int/bool now return raw from ClassInfo — no dynAs needed
         final cppRetType = _cppType(returnType);
         if (cppRetType == 'int64_t' || cppRetType == 'bool') return vptrCall;
@@ -4486,7 +4699,7 @@ class CppEmitter {
       if (exprType != null && exprType is InterfaceType) {
         final exprTypeName = exprType.classNode.name;
         if (exprTypeName == 'double') return 'dynAs<double>($vptrCall)';
-        if (exprTypeName == 'String') return 'dynAs<DartString>($vptrCall)';
+        if (exprTypeName == 'String') return 'dynAs<string>($vptrCall)';
         final cppExprType = _cppType(exprType);
         if (cppExprType == 'int64_t' || cppExprType == 'bool') return vptrCall;
         if (cppExprType.endsWith('*') && cppExprType != 'AnyGC*' && cppExprType != 'TypeValue*') return 'static_cast<$cppExprType>($vptrCall)';
@@ -4532,13 +4745,13 @@ class CppEmitter {
           final receiverCppType = _cppType(receiverType);
           if (receiverCppType == 'AnyGC*') {
             // 向下转型到声明字段的类
-            return 'static_cast<$castTypeName*>($receiver)->$fieldName';
+            return '${_castPtrExpr(receiver, castTypeName, receiverCppType)}->$fieldName';
           }
           // 检查接收器类型和字段声明类型是否不同（子类字段访问）
           if (receiverCppType.endsWith('*') && receiverCppType != '$castTypeName*') {
             // 接收器是父类指针，但字段在子类中声明 → 需要 static_cast
             if (receiverCppType != '${declaringClassName}*') {
-              return 'static_cast<$castTypeName*>($receiver)->$fieldName';
+              return '${_castPtrExpr(receiver, castTypeName, receiverCppType)}->$fieldName';
             }
           }
         } else {
@@ -4546,13 +4759,13 @@ class CppEmitter {
           final receiverVarType = _variableTypeMap[receiver];
           if (receiverVarType != null && receiverVarType.endsWith('*') &&
               receiverVarType != '$castTypeName*') {
-            return 'static_cast<$castTypeName*>($receiver)->$fieldName';
+            return '${_castPtrExpr(receiver, castTypeName, receiverVarType)}->$fieldName';
           }
         }
       }
     }
 
-    // Duration 属性访问的特殊处理：AnyGC* 接收器（dynamic 类型）经 StaticDurationClassInfo 派发
+    // Duration 属性访问的特殊处理：AnyGC* 接收器（dynamic 类型）经 DurationClassInfo 派发
     if (_isAnyPtrResult(receiver)) {
       String? ciGetter;
       switch (fieldName) {
@@ -4564,7 +4777,7 @@ class CppEmitter {
         case 'inMicroseconds': ciGetter = 'get_inMicroseconds'; break;
       }
       if (ciGetter != null) {
-        return 'static_cast<StaticDurationClassInfo*>($receiver->_classInfo)->$ciGetter($receiver)';
+        return 'static_cast<const DurationClassInfo*>($receiver->_classInfo)->$ciGetter($receiver)';
       }
     }
 
@@ -4682,7 +4895,7 @@ class CppEmitter {
 
     // 推断接收器的有效类型名 — 检查 C++ 表达式的后缀模式
     String? inferredTypeName;
-    if (receiver.startsWith('dynAs<DartString>')) inferredTypeName = 'String';
+    if (receiver.startsWith('dynAs<string>')) inferredTypeName = 'String';
     else if (receiver.startsWith('dynAs<int64_t>')) inferredTypeName = 'int';
     else if (receiver.startsWith('dynAs<double>')) inferredTypeName = 'double';
     else if (receiver.startsWith('dynAs<bool>')) inferredTypeName = 'bool';
@@ -4692,7 +4905,7 @@ class CppEmitter {
       inferredTypeName = (receiverType as InterfaceType).classNode.name;
     }
 
-    // 后备：如果 receiverType 未检测到但 C++ 表达式返回 DartString，推断为 String
+    // 后备：如果 receiverType 未检测到但 C++ 表达式返回 string，推断为 String
     if (inferredTypeName == null && _cppExprReturnsString(receiver)) {
       inferredTypeName = 'String';
     }
@@ -4710,8 +4923,8 @@ class CppEmitter {
     // 清理方法名用于非运算符调用
     final methodName = _cleanName(rawMethodName);
 
-    // 如果接收器表达式是 DartString 类型，处理字符串方法
-    if (_cppExprReturnsString(receiver) || receiver.startsWith('dynAs<DartString>')) {
+    // 如果接收器表达式是 string 类型，处理字符串方法
+    if (_cppExprReturnsString(receiver) || receiver.startsWith('dynAs<string>')) {
       final strResult = _emitCppStringMethodCall(receiver, methodName, args);
       if (strResult != null) return strResult;
     }
@@ -4722,12 +4935,12 @@ class CppEmitter {
         return _emitCppPrimitiveMethodCallByName(receiver, methodName, args, (receiverType as InterfaceType).classNode.name);
       }
 
-      // 检查是否为集合类型（List, Set, Map, Iterable, StaticList, StaticSet, StaticMap, StaticIterator, Array, Iterator）
+      // 检查是否为集合类型（List, Set, Map, Iterable, List, Set, Map, Iterator, Array, Iterator）
       if (receiverType is InterfaceType) {
         final typeName = receiverType.classNode.name;
         if (typeName == 'List' || typeName == 'Set' || typeName == 'Map' || typeName == 'Iterable' ||
-            typeName == 'StaticList' || typeName == 'StaticSet' || typeName == 'StaticMap' ||
-            typeName == 'StaticIterator' || typeName == 'Array' || typeName == 'Iterator' ||
+            typeName == 'List' || typeName == 'Set' || typeName == 'Map' ||
+            typeName == 'Iterator' || typeName == 'Array' || typeName == 'Iterator' ||
             typeName == '_List' || typeName == '_GrowableList' || typeName == '_Iterable' ||
             typeName == '_Set' || typeName == '_Map' ||
             typeName.contains('Iterator')) {
@@ -4745,7 +4958,7 @@ class CppEmitter {
         }
 
         // 检查是否为 StringBuffer 类型
-        if (typeName == 'StringBuffer' || typeName == 'StaticStringBuffer') {
+        if (typeName == 'StringBuffer' || typeName == 'StringBuffer') {
           return _emitCppStringBufferMethodCall(receiver, methodName, args);
         }
 
@@ -4846,7 +5059,7 @@ class CppEmitter {
       if (exprType != null) {
         final cppRetType = _cppType(exprType);
         if (cppRetType == 'double') retSuffix = 'dynAs<double>';
-        else if (cppRetType == 'DartString') retSuffix = 'dynAs<DartString>';
+        else if (cppRetType == 'string') retSuffix = 'dynAs<string>';
         else if (cppRetType == 'int64_t') retSuffix = 'dynAs<int64_t>';
         else if (cppRetType == 'bool') retSuffix = 'dynAs<bool>';
         else if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') {
@@ -4854,7 +5067,14 @@ class CppEmitter {
           if (methodName == 'map' || methodName == 'expand' || methodName == 'cast' || methodName == 'whereType') return _call;
           return 'static_cast<$cppRetType>($_call)';
         }
-        else if (exprType is TypeParameterType) retSuffix = 'dynAs<$cppRetType>';
+        else if (exprType is TypeParameterType) {
+          // ClassInfo 字段对泛型方法已是 T(*)(...); slots 擦除为 AnyGC* 才需要 dynAs
+          if (_usesSelectorTable(ciField)) {
+            retSuffix = 'dynAs<$cppRetType>';
+          } else {
+            return _call;
+          }
+        }
       }
     }
     return retSuffix.isNotEmpty ? '$retSuffix($_call)' : _call;
@@ -4895,13 +5115,13 @@ class CppEmitter {
     if (methodName == 'toString' && argCount == 0) {
       final vptrCall = 'static_cast<AnyGC*>($receiver)->_classInfo->toString(static_cast<AnyGC*>($receiver))';
       final valueCall = 'dart_str($receiver)';
-      return 'dart_toStringBoxed($receiver)';
+      return 'to_string_boxed($receiver)';
     }
 
     // 默认：通过 ClassInfo 派发（13 个常用方法在基类 ClassInfo 中）
     final wrappedArgs = _wrapVptrArgs(args);
     final allArgs = wrappedArgs.isNotEmpty ? 'static_cast<AnyGC*>($receiver), $wrappedArgs' : 'static_cast<AnyGC*>($receiver)';
-    final vptrCall = '(static_cast<ClassInfo*>(static_cast<AnyGC*>($receiver)->_classInfo)->$methodName)($allArgs)';
+    final vptrCall = '(static_cast<const ClassInfo*>(static_cast<AnyGC*>($receiver)->_classInfo)->$methodName)($allArgs)';
     return '([&]() { if constexpr (std::is_pointer_v<decltype($receiver)>) { return $vptrCall; } else { return _box($receiver); } })()';
   }
 
@@ -4931,15 +5151,6 @@ class CppEmitter {
       'skipWhile', 'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere',
       'cast', 'whereType', 'toString', 'followedBy', 'elementAt',
     },
-    'StaticList': {
-      'add', 'addAll', 'clear', 'contains', 'isEmpty', 'isNotEmpty', 'length',
-      'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'sort', 'sublist',
-      'first', 'last', 'single', 'any', 'every', 'fold', 'reduce', 'reversed',
-      'indexOf', 'insert', 'insertAll', 'remove', 'removeAt', 'removeLast', 'removeWhere',
-      'retainWhere', 'removeRange', 'fillRange', 'iterator', 'take', 'skip', 'takeWhile', 'skipWhile',
-      'firstWhere', 'lastWhere', 'singleWhere', 'indexWhere', 'lastIndexWhere', 'lastIndexOf',
-      'getRange', 'cast', 'whereType', 'toString', 'asMap', 'followedBy', 'elementAt',
-    },
     'Set': {
       'add', 'addAll', 'clear', 'contains', 'isEmpty', 'isNotEmpty', 'length',
       'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'first', 'last',
@@ -4949,21 +5160,7 @@ class CppEmitter {
       'union', 'unionSet', 'union_', 'intersection', 'difference',
       'reduce', 'cast', 'whereType', 'toString', 'fold', 'elementAt',
     },
-    'StaticSet': {
-      'add', 'addAll', 'clear', 'contains', 'isEmpty', 'isNotEmpty', 'length',
-      'map', 'expand', 'where', 'forEach', 'join', 'toList', 'toSet', 'first', 'last',
-      'single', 'any', 'every', 'remove', 'containsAll', 'removeWhere', 'retainWhere', 'lookup',
-      'union', 'unionSet', 'union_', 'intersection', 'difference',
-      'take', 'skip', 'takeWhile', 'skipWhile', 'firstWhere', 'lastWhere', 'singleWhere',
-      'reduce', 'cast', 'whereType', 'toString', 'fold', 'elementAt',
-    },
     'Map': {
-      'clear', 'containsKey', 'containsValue', 'isEmpty', 'isNotEmpty', 'length',
-      'map', 'forEach', 'keys', 'values', 'entries', 'remove', 'putIfAbsent',
-      'update', 'updateAll', 'addAll', 'addEntries', 'removeWhere',
-      'set', 'cast', 'toString',
-    },
-    'StaticMap': {
       'clear', 'containsKey', 'containsValue', 'isEmpty', 'isNotEmpty', 'length',
       'map', 'forEach', 'keys', 'values', 'entries', 'remove', 'putIfAbsent',
       'update', 'updateAll', 'addAll', 'addEntries', 'removeWhere',
@@ -4974,7 +5171,6 @@ class CppEmitter {
       'removeAt', 'isEmpty', 'isNotEmpty',
     },
     'Iterator': {'moveNext', 'current', 'reset'},
-    'StaticIterator': {'moveNext', 'current', 'reset'},
   };
 
   /// Promise/Future 类型方法调用 — 直接调用而非 vptr 派发
@@ -5020,16 +5216,16 @@ class CppEmitter {
   String _emitCppStreamMethodCall(String receiver, String methodName, String args, InterfaceType type) {
     switch (methodName) {
       case 'toList':
-        // Stream.toList() returns Future<List<T>>, which is Promise<StaticList<T>*>*
+        // Stream.toList() returns Future<List<T>>, which is Promise<List<T>*>*
         // Create a resolved promise with the list
         final typeArg = type.typeArguments.isNotEmpty ? _cppType(type.typeArguments.first) : 'AnyGC*';
-        return 'streamToListPromise<$typeArg>(static_cast<AnyGC*>($receiver))';
+        return 'stream_to_list_promise<$typeArg>(static_cast<AnyGC*>($receiver))';
       case 'map':
-        return 'streamValue_map(static_cast<AnyGC*>($receiver), $args)';
+        return 'stream_map(static_cast<AnyGC*>($receiver), $args)';
       case 'where':
-        return 'streamValue_where(static_cast<AnyGC*>($receiver), $args)';
+        return 'stream_where(static_cast<AnyGC*>($receiver), $args)';
       case 'fold':
-        return 'streamValue_fold(static_cast<AnyGC*>($receiver), $args)';
+        return 'stream_fold(static_cast<AnyGC*>($receiver), $args)';
       default:
         if (args.isNotEmpty) {
           return '$receiver->$methodName($args)';
@@ -5054,9 +5250,9 @@ class CppEmitter {
   /// StringBuffer 类型方法调用
   String _emitCppStringBufferMethodCall(String receiver, String methodName, String args) {
     switch (methodName) {
-      case 'write': return 'sbuf_write($receiver, $args)';
-      case 'writeln': return 'sbuf_writeln($receiver, $args)';
-      case 'clear': return 'sbuf_clear($receiver)';
+      case 'write': return 'string_buffer_write($receiver, $args)';
+      case 'writeln': return 'string_buffer_writeln($receiver, $args)';
+      case 'clear': return 'string_buffer_clear($receiver)';
       case 'toString': return '_anyToString($receiver)';
       default:
         if (args.isNotEmpty) {
@@ -5117,51 +5313,51 @@ class CppEmitter {
 
   /// 规范化集合类型名：将所有 Dart 集合类型别名映射到 C++ ClassInfo 对应的规范名
   static String _normalizeCollTypeName(String typeName) {
-    if (['List', '_List', '_GrowableList', 'StaticList', 'Iterable', '_Iterable'].contains(typeName)) return 'StaticList';
-    if (['Set', '_Set', 'StaticSet'].contains(typeName)) return 'StaticSet';
-    if (['Map', '_Map', 'StaticMap'].contains(typeName)) return 'StaticMap';
+    if (['List', '_List', '_GrowableList', 'Iterable', '_Iterable'].contains(typeName)) return 'List';
+    if (['Set', '_Set'].contains(typeName)) return 'Set';
+    if (['Map', '_Map'].contains(typeName)) return 'Map';
     return typeName;
   }
 
   /// Pattern-based ClassInfo dispatch: when Dart type info is lost but the collection
   /// type can be inferred from the C++ expression pattern, generate ClassInfo dispatch.
-  /// Base ClassInfo fields use static_cast<ClassInfo*>, collection-specific fields
-  /// use static_cast<StaticXxxClassInfo<AnyGC*>*> (safe because all specializations
+  /// Base ClassInfo fields use static_cast<const ClassInfo*>, collection-specific fields
+  /// use static_cast<const StaticXxxClassInfo<AnyGC*>*> (safe because all specializations
   /// have identical struct layouts — function pointers only use AnyGC* signatures).
   String _patternClassInfoDispatch(String receiver, String collTypeName, String ciField, [List<String> boxedArgs = const []]) {
     final vptrReceiver = 'static_cast<AnyGC*>($receiver)';
     String ciType;
     // Prefer the collection-specific ClassInfo subclass so that shadowed fields
-    // (e.g. StaticList's lastIndexOf) resolve to the correct implementation.
+    // (e.g. List's lastIndexOf) resolve to the correct implementation.
     // Base fields are inherited, so accessing them through the derived cast is safe.
-    if (collTypeName == 'StaticList') {
-      ciType = 'StaticListClassInfo<AnyGC*>';
-    } else if (collTypeName == 'StaticSet') {
-      ciType = 'StaticSetClassInfo<AnyGC*>';
-    } else if (collTypeName == 'StaticMap') {
-      ciType = 'StaticMapClassInfo<AnyGC*, AnyGC*>';
+    if (collTypeName == 'List') {
+      ciType = 'ListClassInfo<AnyGC*>';
+    } else if (collTypeName == 'Set') {
+      ciType = 'SetClassInfo<AnyGC*>';
+    } else if (collTypeName == 'Map') {
+      ciType = 'MapClassInfo<AnyGC*, AnyGC*>';
     } else if (_baseClassInfoFields.contains(ciField)) {
       ciType = 'ClassInfo';
     } else {
       return '';
     }
     final allArgs = boxedArgs.isNotEmpty ? '$vptrReceiver, ${boxedArgs.join(', ')}' : vptrReceiver;
-    return 'static_cast<$ciType*>(${vptrReceiver}->AnyGC::_classInfo)->$ciField($allArgs)';
+    return 'static_cast<const $ciType*>(${vptrReceiver}->AnyGC::_classInfo)->$ciField($allArgs)';
   }
 
   /// Unbox collection method result for pattern-based dispatch (element type unknown).
   String _unboxPatternMethodResult(String ciCall, String methodName, String collTypeName) {
     final ciField = _collectionMethodToCiField[methodName] ?? methodName;
     if (_voidCollectionMethods.contains(methodName)) return ciCall;
-    if (_stringCollectionMethods.contains(ciField)) return 'dynAs<DartString>($ciCall)';
+    if (_stringCollectionMethods.contains(ciField)) return 'dynAs<string>($ciCall)';
     return ciCall;
   }
 
   /// Detect collection type name from C++ expression pattern
   String? _detectCollTypeFromPattern(String expr) {
-    if (expr.contains('StaticList<')) return 'StaticList';
-    if (expr.contains('StaticSet<')) return 'StaticSet';
-    if (expr.contains('StaticMap<')) return 'StaticMap';
+    if (expr.contains('List<')) return 'List';
+    if (expr.contains('Set<')) return 'Set';
+    if (expr.contains('Map<')) return 'Map';
     return null;
   }
 
@@ -5205,7 +5401,7 @@ class CppEmitter {
     if (cppType == 'bool') {
       return '_box($argExpr)';
     }
-    if (cppType == 'DartString') {
+    if (cppType == 'string') {
       return '_box($argExpr)';
     }
     if (cppType == 'AnyGC*') {
@@ -5256,9 +5452,9 @@ class CppEmitter {
   String _unboxCollectionResult(String ciCall, InterfaceType type, String methodName) {
     final ciField = _collectionMethodToCiField[methodName] ?? methodName;
     final typeName = type.classNode.name;
-    final isSetType = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
-    final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
-    final isListType = typeName == 'List' || typeName == 'StaticList' ||
+    final isSetType = typeName == 'Set' || typeName == '_Set';
+    final isMapType = typeName == 'Map' || typeName == '_Map';
+    final isListType = typeName == 'List' ||
         typeName == '_List' || typeName == '_GrowableList' ||
         typeName == 'Iterable' || typeName == '_Iterable';
 
@@ -5285,7 +5481,7 @@ class CppEmitter {
     }
     // String 返回
     if (_stringCollectionMethods.contains(ciField)) {
-      return 'dynAs<DartString>($ciCall)';
+      return 'dynAs<string>($ciCall)';
     }
     // 元素返回 — 需要 _unboxElem<T>
     if (_elementReturnMethods.contains(ciField)) {
@@ -5328,11 +5524,11 @@ class CppEmitter {
     }
     final typeName = type.classNode.name;
     final typeArgs = type.typeArguments;
-    final isList = typeName == 'List' || typeName == 'StaticList' ||
+    final isList = typeName == 'List' ||
         typeName == '_List' || typeName == '_GrowableList' ||
         typeName == 'Iterable' || typeName == '_Iterable';
-    final isSet = typeName == 'Set' || typeName == 'StaticSet' || typeName == '_Set';
-    final isMap = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
+    final isSet = typeName == 'Set' || typeName == '_Set';
+    final isMap = typeName == 'Map' || typeName == '_Map';
 
     String? elemType;
     if (typeArgs.isNotEmpty) {
@@ -5348,44 +5544,44 @@ class CppEmitter {
       case 'skip':
       case 'takeWhile':
       case 'skipWhile':
-        if (isList) return 'StaticList<$elemType>*';
-        if (isSet) return 'StaticSet<$elemType>*';
+        if (isList) return 'List<$elemType>*';
+        if (isSet) return 'Set<$elemType>*';
         return null;
       case 'sublist':
       case 'reversed':
       case 'followedBy':
       case 'plus':
-        if (isList) return 'StaticList<$elemType>*';
+        if (isList) return 'List<$elemType>*';
         return null;
       case 'toList':
-        if (isList) return 'StaticList<$elemType>*';
-        if (isSet) return 'StaticList<$elemType>*';
+        if (isList) return 'List<$elemType>*';
+        if (isSet) return 'List<$elemType>*';
         return null;
       case 'toSet':
-        if (isSet) return 'StaticSet<$elemType>*';
-        if (isList) return 'StaticSet<$elemType>*';
+        if (isSet) return 'Set<$elemType>*';
+        if (isList) return 'Set<$elemType>*';
         return null;
       case 'iterator':
-        if (isList || isSet) return 'StaticIterator<$elemType>*';
+        if (isList || isSet) return 'Iterator<$elemType>*';
         return null;
       case 'asMap':
-        if (isList) return 'StaticMap<int, $elemType>*';
+        if (isList) return 'Map<int, $elemType>*';
         return null;
       case 'keys':
-        if (isMap && typeArgs.isNotEmpty) return 'StaticList<${_cppType(typeArgs[0])}>*';
+        if (isMap && typeArgs.isNotEmpty) return 'List<${_cppType(typeArgs[0])}>*';
         return null;
       case 'values':
-        if (isMap && typeArgs.length >= 2) return 'StaticList<${_cppType(typeArgs[1])}>*';
+        if (isMap && typeArgs.length >= 2) return 'List<${_cppType(typeArgs[1])}>*';
         return null;
       case 'entries':
         if (isMap && typeArgs.length >= 2) {
-          return 'StaticList<StaticMapEntry<${_cppType(typeArgs[0])}, ${_cppType(typeArgs[1])}>*>*';
+          return 'List<MapEntry<${_cppType(typeArgs[0])}, ${_cppType(typeArgs[1])}>*>*';
         }
         return null;
       case 'unionSet':
       case 'intersection':
       case 'difference':
-        if (isSet) return 'StaticSet<$elemType>*';
+        if (isSet) return 'Set<$elemType>*';
         return null;
       case 'lookup':
         if (isSet) return '$elemType*';
@@ -5411,12 +5607,12 @@ class CppEmitter {
     }
 
     // toList on List/Iterable returns self; toSet on Set returns self
-    if (methodName == 'toList' && (typeName == 'Iterable' || typeName == 'StaticList' ||
+    if (methodName == 'toList' && (typeName == 'Iterable' || typeName == 'List' ||
         typeName == 'List' || typeName == '_List' || typeName == '_GrowableList' ||
         typeName == '_Iterable')) {
       return receiver;
     }
-    if (methodName == 'toSet' && (typeName == 'StaticSet' || typeName == 'Set' || typeName == '_Set')) {
+    if (methodName == 'toSet' && (typeName == 'Set' || typeName == '_Set')) {
       return receiver;
     }
 
@@ -5438,8 +5634,8 @@ class CppEmitter {
       }
     }
 
-    // StaticIterator — 通过 ClassInfo 派发
-    if (typeName == 'StaticIterator' || typeName == 'Iterator' || typeName.contains('Iterator')) {
+    // Iterator — 通过 ClassInfo 派发
+    if (typeName == 'Iterator' || typeName == 'Iterator' || typeName.contains('Iterator')) {
       switch (methodName) {
         case 'moveNext': return 'iterator_moveNext(static_cast<AnyGC*>($receiver))';
         case 'current': return 'iterator_current(static_cast<AnyGC*>($receiver))';
@@ -5521,14 +5717,14 @@ class CppEmitter {
   /// The _vptr_* trampolines erase return type to AnyGC*; this casts it back to the
   /// concrete collection type or primitive based on the method's type arguments.
   String _castTemplateMethodResult(String ciCall, String methodName, String collTypeName, List<DartType>? methodTypeArgs) {
-    final isSetType = collTypeName == 'StaticSet' || collTypeName == 'Set' || collTypeName == '_Set';
-    final isMapType = collTypeName == 'StaticMap' || collTypeName == 'Map' || collTypeName == '_Map';
+    final isSetType = collTypeName == 'Set' || collTypeName == '_Set';
+    final isMapType = collTypeName == 'Map' || collTypeName == 'Map' || collTypeName == '_Map';
 
     // fold<R> returns R (primitive or pointer)
     if (methodName == 'fold') {
       if (methodTypeArgs != null && methodTypeArgs.isNotEmpty) {
         final R = _cppType(methodTypeArgs.first);
-        if (R == 'int64_t' || R == 'double' || R == 'bool' || R == 'DartString') {
+        if (R == 'int64_t' || R == 'double' || R == 'bool' || R == 'string') {
           return 'dynAs<$R>($ciCall)';
         }
         return 'static_cast<$R>($ciCall)';
@@ -5536,8 +5732,8 @@ class CppEmitter {
       return ciCall;
     }
 
-    // Map.map<K2,V2> and Map.cast<K2,V2> return StaticMap<K2,V2>*
-    // but _vptr_map creates StaticMap<AnyGC*,AnyGC*>*, so the cast would be
+    // Map.map<K2,V2> and Map.cast<K2,V2> return Map<K2,V2>*
+    // but _vptr_map creates Map<AnyGC*,AnyGC*>*, so the cast would be
     // between unrelated types. All chained calls use ClassInfo dispatch
     // (identical layout regardless of type args), so return as AnyGC*.
     if ((methodName == 'map' || methodName == 'cast') && isMapType) {
@@ -5555,8 +5751,8 @@ class CppEmitter {
     }
 
     // expand, map, whereType, cast on Set/List → return AnyGC* (type-erased
-    // StaticList/StaticSet). The _vptr_* trampolines create StaticList<AnyGC*>*,
-    // so static_cast to StaticList<R>* would be invalid. ClassInfo dispatch
+    // List/Set). The _vptr_* trampolines create List<AnyGC*>*,
+    // so static_cast to List<R>* would be invalid. ClassInfo dispatch
     // works correctly regardless of the type parameter.
     return ciCall;
   }
@@ -5585,30 +5781,30 @@ class CppEmitter {
     return false;
   }
 
-  /// 检查 C++ 表达式是否返回 DartString（基于函数调用模式）
+  /// 检查 C++ 表达式是否返回 string（基于函数调用模式）
   bool _cppExprReturnsString(String expr) {
-    // 检查是否是已知的返回 DartString 的函数调用
-    if (expr.startsWith('dart_str_') || expr.startsWith('_toStr')) {
+    // 检查是否是已知的返回 string 的函数调用
+    if (expr.startsWith('string_') || expr.startsWith('_toStr')) {
       return true;
     }
     // 检查是否是 dart_str() 调用
     if (expr.startsWith('dart_str(')) {
       return true;
     }
-    // 检查是否是 dynAs<DartString>() 调用
-    if (expr.startsWith('dynAs<DartString>')) {
+    // 检查是否是 dynAs<string>() 调用
+    if (expr.startsWith('dynAs<string>')) {
       return true;
     }
-    // 检查是否是 Dart 字符串字面量生成的 DartString("...")
-    if (expr.startsWith('DartString("') && expr.endsWith('")')) {
+    // 检查是否是 Dart 字符串字面量生成的 string("...")
+    if (expr.startsWith('string("') && expr.endsWith('")')) {
       return true;
     }
-    // 检查是否是 StaticList<DartString> 的索引访问: (*var)[i]
+    // 检查是否是 List<string> 的索引访问: (*var)[i]
     final listAccess = RegExp(r'^\(\*([A-Za-z_][A-Za-z0-9_]*)\)\[').firstMatch(expr);
     if (listAccess != null) {
       final varName = listAccess.group(1)!;
       final varType = _variableTypeMap[varName];
-      if (varType != null && varType.contains('StaticList<DartString>')) {
+      if (varType != null && varType.contains('List<string>')) {
         return true;
       }
     }
@@ -5617,7 +5813,7 @@ class CppEmitter {
     if (match != null) {
       final funcName = match.group(1)!;
       if (_functionReturnTypes.containsKey(funcName)) {
-        return _functionReturnTypes[funcName] == 'DartString';
+        return _functionReturnTypes[funcName] == 'string';
       }
     }
     return false;
@@ -5652,7 +5848,7 @@ class CppEmitter {
           if (cppRetType == 'int64_t') return 'dynAs<int64_t>($call)';
           if (cppRetType == 'double') return 'dynAs<double>($call)';
           if (cppRetType == 'bool') return 'dynAs<bool>($call)';
-          if (cppRetType == 'DartString') return 'dynAs<DartString>($call)';
+          if (cppRetType == 'string') return 'dynAs<string>($call)';
           if (cppRetType.endsWith('*') && cppRetType != 'AnyGC*') return 'static_cast<$cppRetType>($call)';
         }
         return call;
@@ -5661,10 +5857,10 @@ class CppEmitter {
       // 集合类型通过 ClassInfo 派发 [] 运算符
       if (receiverType is InterfaceType) {
         final typeName = receiverType.classNode.name;
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == '_List' || typeName == '_GrowableList' ||
             typeName == 'Iterable' || typeName == '_Iterable';
-        final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
+        final isMapType = typeName == 'Map' || typeName == '_Map';
         if (isListType || isMapType) {
           // 未解析类型参数时使用直接访问
           if (!_dartTypeHasUnresolvedTypeParam(receiverType)) {
@@ -5679,7 +5875,7 @@ class CppEmitter {
               if (elemCppType == 'int64_t') return 'dynAs<int64_t>($ciCall)';
               if (elemCppType == 'double') return 'dynAs<double>($ciCall)';
               if (elemCppType == 'bool') return 'dynAs<bool>($ciCall)';
-              if (elemCppType == 'DartString') return 'dynAs<DartString>($ciCall)';
+              if (elemCppType == 'string') return 'dynAs<string>($ciCall)';
               if (elemCppType.endsWith('*') && elemCppType != 'AnyGC*') return 'static_cast<$elemCppType>($ciCall)';
               if (_isCppTypeParameter(elemCppType)) return '_unboxElem<$elemCppType>($ciCall)';
             }
@@ -5691,12 +5887,12 @@ class CppEmitter {
       // 集合类型（未解析类型参数）通过 base ClassInfo 派发 [] 运算符
       if (receiverType is InterfaceType) {
         final typeName = receiverType.classNode.name;
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == '_List' || typeName == '_GrowableList';
-        final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
+        final isMapType = typeName == 'Map' || typeName == '_Map';
         if (isListType || isMapType) {
           final vptrRecv = 'static_cast<AnyGC*>($receiver)';
-          final ciCall = 'static_cast<ClassInfo*>(${vptrRecv}->AnyGC::_classInfo)->index($vptrRecv, _box($right))';
+          final ciCall = 'static_cast<const ClassInfo*>(${vptrRecv}->AnyGC::_classInfo)->index($vptrRecv, _box($right))';
           final elementType = isMapType
               ? (receiverType.typeArguments.length > 1 ? receiverType.typeArguments[1] : null)
               : (receiverType.typeArguments.isNotEmpty ? receiverType.typeArguments.first : null);
@@ -5705,18 +5901,18 @@ class CppEmitter {
             if (elemCppType == 'int64_t') return 'dynAs<int64_t>($ciCall)';
             if (elemCppType == 'double') return 'dynAs<double>($ciCall)';
             if (elemCppType == 'bool') return 'dynAs<bool>($ciCall)';
-            if (elemCppType == 'DartString') return 'dynAs<DartString>($ciCall)';
+            if (elemCppType == 'string') return 'dynAs<string>($ciCall)';
             if (elemCppType.endsWith('*') && elemCppType != 'AnyGC*') return 'static_cast<$elemCppType>($ciCall)';
             if (_isCppTypeParameter(elemCppType) && !_dartTypeHasUnresolvedTypeParam(elementType)) return '_unboxElem<$elemCppType>($ciCall)';
           }
           return ciCall;
         }
       }
-      // 非指针类型（如 DartString）不需要解引用
+      // 非指针类型（如 string）不需要解引用
       if (receiverCppType.isNotEmpty && !receiverCppType.endsWith('*')) {
-        // DartString 的 operator[] 返回 char，但 Dart 中 String[index] 返回单字符 String
-        if (receiverCppType == 'DartString') {
-          return 'DartString(1, $receiver[$right])';
+        // string 的 operator[] 返回 char，但 Dart 中 String[index] 返回单字符 String
+        if (receiverCppType == 'string') {
+          return 'string(1, $receiver[$right])';
         }
         return '$receiver[$right]';
       }
@@ -5741,9 +5937,9 @@ class CppEmitter {
         // 集合类型通过 ClassInfo 派发 []= 运算符
         if (receiverType is InterfaceType) {
           final typeName = receiverType.classNode.name;
-          final isListType = typeName == 'List' || typeName == 'StaticList' ||
+          final isListType = typeName == 'List' ||
               typeName == '_List' || typeName == '_GrowableList';
-          final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
+          final isMapType = typeName == 'Map' || typeName == '_Map';
           if ((isListType || isMapType) && !_dartTypeHasUnresolvedTypeParam(receiverType)) {
             final vptrRecv = 'static_cast<AnyGC*>($receiver)';
             return '${_classInfoAccess(vptrRecv, receiverType, 'setIndex')}($vptrRecv, _box($index), _box($value))';
@@ -5752,12 +5948,12 @@ class CppEmitter {
         // 集合类型（未解析类型参数）通过 base ClassInfo 派发 []= 运算符
         if (receiverType is InterfaceType) {
           final typeName = receiverType.classNode.name;
-          final isListType = typeName == 'List' || typeName == 'StaticList' ||
+          final isListType = typeName == 'List' ||
               typeName == '_List' || typeName == '_GrowableList';
-          final isMapType = typeName == 'Map' || typeName == 'StaticMap' || typeName == '_Map';
+          final isMapType = typeName == 'Map' || typeName == '_Map';
           if (isListType || isMapType) {
             final vptrRecv = 'static_cast<AnyGC*>($receiver)';
-            return 'static_cast<ClassInfo*>(${vptrRecv}->AnyGC::_classInfo)->setIndex($vptrRecv, _box($index), _box($value))';
+            return 'static_cast<const ClassInfo*>(${vptrRecv}->AnyGC::_classInfo)->setIndex($vptrRecv, _box($index), _box($value))';
           }
         }
         // AnyGC* receiver: use ClassInfo dispatch
@@ -5855,8 +6051,8 @@ class CppEmitter {
         final unboxed = 'dynAs<double>($receiver)';
         return '($unboxed $op $right)';
       }
-      if (right.startsWith('DartString(') || right.startsWith('"')) {
-        final unboxed = 'dynAs<DartString>($receiver)';
+      if (right.startsWith('string(') || right.startsWith('"')) {
+        final unboxed = 'dynAs<string>($receiver)';
         return '($unboxed $op $right)';
       }
       if (right == 'true' || right == 'false') {
@@ -5877,8 +6073,8 @@ class CppEmitter {
       if (effectiveReceiverCppType == 'double') {
         return '($receiver $op dynAs<double>($right))';
       }
-      if (effectiveReceiverCppType == 'DartString') {
-        return '($receiver $op dynAs<DartString>($right))';
+      if (effectiveReceiverCppType == 'string') {
+        return '($receiver $op dynAs<string>($right))';
       }
       if (effectiveReceiverCppType == 'bool') {
         return '($receiver $op dynAs<bool>($right))';
@@ -5891,13 +6087,13 @@ class CppEmitter {
       final opType = _getExpressionType(opReceiverExpr);
       if (opType is InterfaceType) {
         final typeName = opType.classNode.name;
-        final isListType = typeName == 'List' || typeName == 'StaticList' ||
+        final isListType = typeName == 'List' ||
             typeName == '_List' || typeName == '_GrowableList';
         if (isListType && !_dartTypeHasUnresolvedTypeParam(opType)) {
           final vptrRecv = 'static_cast<AnyGC*>($receiver)';
           final ciCall = '${_classInfoAccess(vptrRecv, opType, 'plus')}($vptrRecv, _box($right))';
           final elemType = opType.typeArguments.isNotEmpty ? _cppType(opType.typeArguments.first) : 'AnyGC*';
-          return 'static_cast<StaticList<$elemType>*>($ciCall)';
+          return 'static_cast<List<$elemType>*>($ciCall)';
         }
       }
     }
@@ -5984,10 +6180,10 @@ class CppEmitter {
         if (receiverType is InterfaceType && receiverType.typeArguments.isNotEmpty) {
           // List<T>、Set<T> 返回 T，Map<K,V> 返回 V
           final typeName = receiverType.classNode.name;
-          if (typeName == 'List' || typeName == 'StaticList' || typeName == 'Set' || typeName == 'StaticSet') {
+          if (typeName == 'List' || typeName == 'Set') {
             return receiverType.typeArguments.first;
           }
-          if (typeName == 'Map' || typeName == 'StaticMap') {
+          if (typeName == 'Map') {
             return receiverType.typeArguments.length >= 2 ? receiverType.typeArguments[1] : null;
           }
         }
@@ -6022,11 +6218,11 @@ class CppEmitter {
       // MapLiteral 的类型信息需要从上下文推断，简化返回 null
       return null;
     } else if (expr is ListLiteral) {
-      // ListLiteral 在 C++ 中映射为 StaticList<T>，但无法构造 InterfaceType
+      // ListLiteral 在 C++ 中映射为 List<T>，但无法构造 InterfaceType
       // 返回 null，由调用方检查 expr is ListLiteral
       return null;
     } else if (expr is SetLiteral) {
-      // SetLiteral 在 C++ 中映射为 StaticSet<T>
+      // SetLiteral 在 C++ 中映射为 Set<T>
       return null;
     } else if (expr is RecordIndexGet) {
       // Record 字段访问：使用 RecordIndexGet 自带的 receiverType
@@ -6062,7 +6258,7 @@ class CppEmitter {
         return InterfaceType(c.classNode, Nullability.nonNullable);
       } else if (c is StringConstant) {
         // 返回 String 类型 — 需要查找 String 类
-        // 简化处理，返回 null（DartString 不是 InterfaceType）
+        // 简化处理，返回 null（string 不是 InterfaceType）
         return null;
       } else if (c is IntConstant) {
         return null;
@@ -6152,7 +6348,7 @@ class CppEmitter {
   }
 
   /// 按顶层逗号拆分已拼接的参数字符串（括号/引号内的逗号不参与拆分，
-  /// 避免 GC::allocateLocal(new StaticRegExp(p, false, true, ...)) 这类实参被切碎）
+  /// 避免 GC::allocateLocal(new RegExp(p, false, true, ...)) 这类实参被切碎）
   List<String> _splitTopLevelArgs(String args) {
     final result = <String>[];
     var depth = 0;
@@ -6203,7 +6399,7 @@ class CppEmitter {
           return '($receiver.length() >= $arg.length() && $receiver.substr($receiver.length() - $arg.length()) == $arg)';
         case 'contains':
           final arg = _splitTopLevelArgs(args).first.trim();
-          return '($receiver.find($arg) != DartString::npos)';
+          return '($receiver.find($arg) != string::npos)';
         case 'indexOf':
           final arg = _splitTopLevelArgs(args).first.trim();
           return 'static_cast<int64_t>($receiver.find($arg))';
@@ -6215,48 +6411,48 @@ class CppEmitter {
             return '$receiver.substr(${argList[0].trim()}, ${argList[1].trim()} - ${argList[0].trim()})';
           }
         case 'toLowerCase':
-          return 'dart_str_toLower($receiver)';
+          return 'string_toLower($receiver)';
         case 'toUpperCase':
-          return 'dart_str_toUpper($receiver)';
+          return 'string_toUpper($receiver)';
         case 'trim':
-          return 'dart_str_trim($receiver)';
+          return 'string_trim($receiver)';
         case 'split':
           final arg = _splitTopLevelArgs(args).first.trim();
-          return 'dart_str_split($receiver, $arg)';
+          return 'string_split($receiver, $arg)';
         case 'replaceAll':
           final argList = _splitTopLevelArgs(args);
-          return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
+          return 'string_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
         case 'replaceFirst':
           final argList = _splitTopLevelArgs(args);
           final from = argList[0].trim();
           final to = argList[1].trim();
           final start = argList.length > 2 ? argList[2].trim() : '0';
-          return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
+          return 'string_replaceFirst($receiver, $from, $to, $start)';
         case 'replaceRange':
           final argList = _splitTopLevelArgs(args);
-          return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
+          return 'string_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
         case 'padLeft':
           final argList = _splitTopLevelArgs(args);
           final width = argList[0].trim();
-          final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
-          return 'dart_str_padLeft($receiver, $width, $padding)';
+          final padding = argList.length > 1 ? argList[1].trim() : 'string(" ")';
+          return 'string_padLeft($receiver, $width, $padding)';
         case 'padRight':
           final argList = _splitTopLevelArgs(args);
           final width = argList[0].trim();
-          final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
-          return 'dart_str_padRight($receiver, $width, $padding)';
+          final padding = argList.length > 1 ? argList[1].trim() : 'string(" ")';
+          return 'string_padRight($receiver, $width, $padding)';
         case 'trimLeft':
-          return 'dart_str_trimLeft($receiver)';
+          return 'string_trimLeft($receiver)';
         case 'trimRight':
-          return 'dart_str_trimRight($receiver)';
+          return 'string_trimRight($receiver)';
         case 'lastIndexOf':
           final argList = _splitTopLevelArgs(args);
           final pattern = argList[0].trim();
           final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
-          return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
+          return 'string_lastIndexOf($receiver, $pattern, $start)';
         case 'codeUnitAt':
           final arg = _splitTopLevelArgs(args).first.trim();
-          return 'dart_str_codeUnitAt($receiver, $arg)';
+          return 'string_codeUnitAt($receiver, $arg)';
         case 'length':
           return 'static_cast<int64_t>($receiver.length())';
         case 'isEmpty':
@@ -6267,7 +6463,7 @@ class CppEmitter {
           final arg = _splitTopLevelArgs(args).first.trim();
           return 'static_cast<int64_t>($receiver.compare($arg))';
         case 'hashCode':
-          return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
+          return 'static_cast<int64_t>(std::hash<string>{}($receiver))';
         default:
           return '(throw DartUnsupportedError("unsupported String method: $methodName"), $receiver)';
       }
@@ -6303,19 +6499,19 @@ class CppEmitter {
         case 'toStringAsFixed':
           if (typeName == 'double') {
             final fracDigits = _splitTopLevelArgs(args).first.trim();
-            return 'dart_double_toStringAsFixed($receiver, $fracDigits)';
+            return 'double_toStringAsFixed($receiver, $fracDigits)';
           }
           return '_toStr($receiver)';
         case 'toStringAsPrecision':
           if (typeName == 'double') {
             final precision = _splitTopLevelArgs(args).first.trim();
-            return 'dart_double_toStringAsPrecision($receiver, $precision)';
+            return 'double_toStringAsPrecision($receiver, $precision)';
           }
           return '_toStr($receiver)';
         case 'toRadixString':
           if (typeName == 'int') {
             final radix = _splitTopLevelArgs(args).first.trim();
-            return 'dart_int_toRadixString($receiver, $radix)';
+            return 'int_toRadixString($receiver, $radix)';
           }
           return '_toStr($receiver)';
         case 'round':
@@ -6356,7 +6552,7 @@ class CppEmitter {
         case 'toStringAsExponential':
           if (typeName == 'double') {
             final fracDigits = _splitTopLevelArgs(args).first.trim();
-            return 'dart_double_toStringAsExponential($receiver, $fracDigits)';
+            return 'double_toStringAsExponential($receiver, $fracDigits)';
           }
           return '_toStr($receiver)';
         case 'remainder':
@@ -6373,13 +6569,13 @@ class CppEmitter {
     return '(throw DartUnsupportedError("unsupported primitive method: $methodName on $typeName"), $receiver)';
   }
 
-  /// 当接收器是 DartString C++ 表达式时，处理字符串方法调用
+  /// 当接收器是 string C++ 表达式时，处理字符串方法调用
   /// 返回 null 如果方法无法处理
   String? _emitCppStringMethodCall(String receiver, String methodName, String args) {
     switch (methodName) {
       case 'contains':
         final arg = _splitTopLevelArgs(args).first.trim();
-        return '($receiver.find($arg) != DartString::npos)';
+        return '($receiver.find($arg) != string::npos)';
       case 'startsWith':
         final arg = _splitTopLevelArgs(args).first.trim();
         return '($receiver.find($arg) == 0)';
@@ -6399,48 +6595,48 @@ class CppEmitter {
         final argList = _splitTopLevelArgs(args);
         if (argList.length == 1) return '$receiver.substr(${argList[0].trim()})';
         return '$receiver.substr(${argList[0].trim()}, ${argList[1].trim()} - ${argList[0].trim()})';
-      case 'trim': return 'dart_str_trim($receiver)';
-      case 'toLowerCase': return 'dart_str_toLower($receiver)';
-      case 'toUpperCase': return 'dart_str_toUpper($receiver)';
+      case 'trim': return 'string_trim($receiver)';
+      case 'toLowerCase': return 'string_toLower($receiver)';
+      case 'toUpperCase': return 'string_toUpper($receiver)';
       case 'split':
         final arg = _splitTopLevelArgs(args).first.trim();
-        return 'dart_str_split($receiver, $arg)';
+        return 'string_split($receiver, $arg)';
       case 'replaceAll':
         final argList = _splitTopLevelArgs(args);
-        return 'dart_str_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
+        return 'string_replaceAll($receiver, ${argList[0].trim()}, ${argList[1].trim()})';
       case 'replaceFirst':
         final argList = _splitTopLevelArgs(args);
         final from = argList[0].trim();
         final to = argList[1].trim();
         final start = argList.length > 2 ? argList[2].trim() : '0';
-        return 'dart_str_replaceFirst($receiver, $from, $to, $start)';
+        return 'string_replaceFirst($receiver, $from, $to, $start)';
       case 'replaceRange':
         final argList = _splitTopLevelArgs(args);
-        return 'dart_str_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
+        return 'string_replaceRange($receiver, ${argList[0].trim()}, ${argList[1].trim()}, ${argList[2].trim()})';
       case 'padLeft':
         final argList = _splitTopLevelArgs(args);
         final width = argList[0].trim();
-        final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
-        return 'dart_str_padLeft($receiver, $width, $padding)';
+        final padding = argList.length > 1 ? argList[1].trim() : 'string(" ")';
+        return 'string_padLeft($receiver, $width, $padding)';
       case 'padRight':
         final argList = _splitTopLevelArgs(args);
         final width = argList[0].trim();
-        final padding = argList.length > 1 ? argList[1].trim() : 'DartString(" ")';
-        return 'dart_str_padRight($receiver, $width, $padding)';
+        final padding = argList.length > 1 ? argList[1].trim() : 'string(" ")';
+        return 'string_padRight($receiver, $width, $padding)';
       case 'trimLeft':
-        return 'dart_str_trimLeft($receiver)';
+        return 'string_trimLeft($receiver)';
       case 'trimRight':
-        return 'dart_str_trimRight($receiver)';
+        return 'string_trimRight($receiver)';
       case 'lastIndexOf':
         final argList = _splitTopLevelArgs(args);
         final pattern = argList[0].trim();
         final start = argList.length > 1 ? argList[1].trim() : 'static_cast<int64_t>($receiver.size()) - 1';
-        return 'dart_str_lastIndexOf($receiver, $pattern, $start)';
+        return 'string_lastIndexOf($receiver, $pattern, $start)';
       case 'codeUnitAt':
         final arg = _splitTopLevelArgs(args).first.trim();
-        return 'dart_str_codeUnitAt($receiver, $arg)';
+        return 'string_codeUnitAt($receiver, $arg)';
       case 'hashCode':
-        return 'static_cast<int64_t>(std::hash<DartString>{}($receiver))';
+        return 'static_cast<int64_t>(std::hash<string>{}($receiver))';
       case 'compareTo':
         final arg = _splitTopLevelArgs(args).first.trim();
         return 'static_cast<int64_t>($receiver.compare($arg))';
@@ -6453,13 +6649,13 @@ class CppEmitter {
     final Member? target = expr.target;
     if (target == null) return '/* null target */';
 
-    // 处理 _GrowableList (Dart 内部列表实现) → StaticList
+    // 处理 _GrowableList (Dart 内部列表实现) → List
     if (target.enclosingClass != null && target.enclosingClass!.name == '_GrowableList') {
       final typeArgs = expr.arguments.types;
       final name = target.name.text;
 
       // 辅助函数：获取列表元素类型，优先使用外层泛型构造函数期望的类型
-      String resolveStaticListElementType() {
+      String resolveListElementType() {
         if (typeArgs.isNotEmpty) {
           final typeArg = _cppType(typeArgs.first);
           if (typeArg == 'AnyGC*' && _expectedCollectionElementType != null) {
@@ -6475,24 +6671,20 @@ class CppEmitter {
 
       // 处理 _literal* 系列 (列表字面量)
       if (name.startsWith('_literal')) {
-        var typeArg = resolveStaticListElementType();
+        var typeArg = resolveListElementType();
         final rawElems = expr.arguments.positional.toList();
         final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
         typeArg = _correctListInnerType(typeArg, emittedElems);
         final elements = emittedElems.asMap().entries.map((entry) {
-          var s = entry.value;
-          if (typeArg == 'AnyGC*') {
-            s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-          }
-          return s;
+          return _coerceListElemToType(entry.value, typeArg, rawElems[entry.key]);
         }).join(', ');
-        return 'GC::allocateLocal(new StaticList<$typeArg>({$elements}))';
+        return 'GC::allocateLocal(new List<$typeArg>({$elements}))';
       }
 
       // 处理空构造函数
       if (name.isEmpty) {
-        final typeArg = resolveStaticListElementType();
-        return 'GC::allocateLocal(new StaticList<$typeArg>())';
+        final typeArg = resolveListElementType();
+        return 'GC::allocateLocal(new List<$typeArg>())';
       }
     }
 
@@ -6501,7 +6693,7 @@ class CppEmitter {
       final arg = expr.arguments.positional.isNotEmpty
           ? _emitCppExpr(expr.arguments.positional.first)
           : '""';
-      return 'staticPrint($arg)';
+      return 'dart_print($arg)';
     }
 
     // identical(a, b) → (a == b)
@@ -6511,13 +6703,13 @@ class CppEmitter {
       return '($a == $b)';
     }
 
-    // RegExp 构造函数 → StaticRegExp 堆对象（正则语义，见 dart_str_replaceAll/split 重载）
+    // RegExp 构造函数 → RegExp 堆对象（正则语义，见 string_replaceAll/split 重载）
     if (target.enclosingClass != null && target.enclosingClass!.name == 'RegExp') {
-      return _emitStaticRegExpCtor(expr.arguments);
+      return _emitRegExpCtor(expr.arguments);
     }
 
-    // 检查是否是 smAwait (异步等待运行时函数)
-    if (target.name.text == 'smAwait') {
+    // 检查是否是 sm_await (异步等待运行时函数)
+    if (target.name.text == 'sm_await') {
       final arg = expr.arguments.positional.isNotEmpty
           ? _emitCppExpr(expr.arguments.positional.first)
           : 'nullptr';
@@ -6528,10 +6720,10 @@ class CppEmitter {
       }
       // void → int: Promise<void> 已移除，void 默认更改为 int
       if (resultType == 'void') resultType = 'int';
-      // smAwait<T> returns T, so no conversion needed
+      // sm_await<T> returns T, so no conversion needed
       // When T is AnyGC*, primitive args need boxing
       final boxedArg = resultType == 'AnyGC*' ? '_box($arg)' : arg;
-      return 'smAwait<$resultType>($boxedArg)';
+      return 'sm_await<$resultType>($boxedArg)';
     }
 
     // 检查是否是构造函数
@@ -6548,23 +6740,23 @@ class CppEmitter {
       final enclosing = target.enclosingClass;
       if (enclosing != null) {
         final className = enclosing.name;
-        final isCollection = (className == 'StaticList' || className == 'List' ||
-                             className == 'StaticSet' || className == 'Set' ||
-                             className == 'StaticMap' || className == 'Map');
+        final isCollection = (className == 'List' ||
+                             className == 'Set' ||
+                             className == 'Map');
 
         // 处理集合类型的 .of() 方法
         if (isCollection && target.name.text == 'of') {
-          if (className == 'StaticList' || className == 'List') {
+          if (className == 'List') {
             if (expr.arguments.positional.length == 1) {
               final arg = expr.arguments.positional.first;
               if (arg is ListLiteral) {
-                // StaticList.of([list_literal]) - extract elements directly
+                // List.of([list_literal]) - extract elements directly
                 // Set expected map types if element type is a map
                 String? savedMapKeyType, savedMapValueType;
                 if (expr.arguments.types.isNotEmpty) {
                   final elemDartType = expr.arguments.types.first;
                   if (elemDartType is InterfaceType &&
-                      (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'StaticMap') &&
+                      (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'Map') &&
                       elemDartType.typeArguments.length >= 2) {
                     savedMapKeyType = _expectedMapKeyType;
                     savedMapValueType = _expectedMapValueType;
@@ -6580,54 +6772,50 @@ class CppEmitter {
                 final correctedTypeArg =
                     _correctListInnerType(typeArg, emittedElems);
                 final elements = emittedElems.asMap().entries.map((entry) {
-                  var s = entry.value;
-                  if (correctedTypeArg == 'AnyGC*') {
-                    s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-                  }
-                  return s;
+                  return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
                 }).join(', ');
                 // Restore expected map types
                 if (savedMapKeyType != null || savedMapValueType != null) {
                   _expectedMapKeyType = savedMapKeyType;
                   _expectedMapValueType = savedMapValueType;
                 }
-                return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+                return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
               } else if (arg is StaticInvocation) {
-                // StaticList.of(StaticList<int>({1, 2, 3, 4, 5})) - the inner StaticList is already created
-                // Use StaticList::from() to copy elements from the source
+                // List.of(List<int>({1, 2, 3, 4, 5})) - the inner List is already created
+                // Use List::from() to copy elements from the source
                 final innerExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
-                  return 'StaticList<$typeArg>::from($innerExpr)';
+                  return 'List<$typeArg>::from($innerExpr)';
                 }
-                return 'StaticList<AnyGC*>::from($innerExpr)';
+                return 'List<AnyGC*>::from($innerExpr)';
               } else if (arg is ConstructorInvocation) {
                 // Handle constructor invocations (e.g., _GrowableList._literal)
                 final innerExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
-                  return 'StaticList<$typeArg>::from($innerExpr)';
+                  return 'List<$typeArg>::from($innerExpr)';
                 }
-                return 'StaticList<AnyGC*>::from($innerExpr)';
+                return 'List<AnyGC*>::from($innerExpr)';
               } else {
-                // StaticList.of(other_list) - need to copy elements
+                // List.of(other_list) - need to copy elements
                 final listExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
-                  // If the inner expression is already a StaticList pointer, use ::from()
-                  if (listExpr.startsWith('GC::allocateLocal(new StaticList')) {
-                    return 'StaticList<$typeArg>::from($listExpr)';
+                  // If the inner expression is already a List pointer, use ::from()
+                  if (listExpr.startsWith('GC::allocateLocal(new List')) {
+                    return 'List<$typeArg>::from($listExpr)';
                   }
-                  // Create a new StaticList and copy from the source
+                  // Create a new List and copy from the source
                   return 'listCopiedFrom<$typeArg>($listExpr)';
                 }
-                if (listExpr.startsWith('GC::allocateLocal(new StaticList')) {
-                  return 'StaticList<AnyGC*>::from($listExpr)';
+                if (listExpr.startsWith('GC::allocateLocal(new List')) {
+                  return 'List<AnyGC*>::from($listExpr)';
                 }
                 return 'listCopiedFrom<AnyGC*>($listExpr)';
               }
             }
-          } else if (className == 'StaticSet' || className == 'Set') {
+          } else if (className == 'Set') {
             if (expr.arguments.positional.length == 1) {
               final arg = expr.arguments.positional.first;
               if (arg is ListLiteral) {
@@ -6639,15 +6827,11 @@ class CppEmitter {
                 final correctedTypeArg =
                     _correctListInnerType(typeArg, emittedElems);
                 final elements = emittedElems.asMap().entries.map((entry) {
-                  var s = entry.value;
-                  if (correctedTypeArg == 'AnyGC*') {
-                    s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-                  }
-                  return s;
+                  return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
                 }).join(', ');
-                return 'GC::allocateLocal(new StaticSet<$correctedTypeArg>({$elements}))';
+                return 'GC::allocateLocal(new Set<$correctedTypeArg>({$elements}))';
               } else if (arg is StaticInvocation) {
-                // StaticSet.of(StaticList<int>({1, 2, 3})) - need to convert StaticList to StaticSet
+                // Set.of(List<int>({1, 2, 3})) - need to convert List to Set
                 final listExpr = _emitCppExpr(arg);
                 if (expr.arguments.types.isNotEmpty) {
                   final typeArg = _cppType(expr.arguments.types.first);
@@ -6664,8 +6848,8 @@ class CppEmitter {
               }
             }
           }
-          // 处理 StaticMap.of(map_expr) — 类型转换（copy or cast）
-          if (className == 'StaticMap' || className == 'Map') {
+          // 处理 Map.of(map_expr) — 类型转换（copy or cast）
+          if (className == 'Map') {
             if (expr.arguments.positional.length == 1) {
               // Set expected map types before emitting the argument
               String? savedMapKeyType, savedMapValueType;
@@ -6681,7 +6865,7 @@ class CppEmitter {
                 _expectedMapKeyType = savedMapKeyType;
                 _expectedMapValueType = savedMapValueType;
               }
-              // StaticMap<K,V>.of(expr) → static_cast to StaticMap<K,V>*
+              // Map<K,V>.of(expr) → static_cast to Map<K,V>*
               if (expr.arguments.types.length >= 2) {
                 final keyType = _cppType(expr.arguments.types[0]);
                 final valType = _cppType(expr.arguments.types[1]);
@@ -6689,14 +6873,14 @@ class CppEmitter {
                 if (expr.arguments.positional.first is MapLiteral) {
                   return innerExpr;
                 }
-                // Otherwise cast: AnyGC* → StaticMap<K,V>* or reinterpret_cast
+                // Otherwise cast: AnyGC* → Map<K,V>* or reinterpret_cast
                 if (_isAnyGCPtrExpr(innerExpr) || innerExpr.startsWith('(*(*')) {
-                  return 'static_cast<StaticMap<$keyType, $valType>*>($innerExpr)';
+                  return 'static_cast<Map<$keyType, $valType>*>($innerExpr)';
                 }
                 if (innerExpr.startsWith('_box(') || _isAnyPtrResult(innerExpr)) {
-                  return 'static_cast<StaticMap<$keyType, $valType>*>($innerExpr)';
+                  return 'static_cast<Map<$keyType, $valType>*>($innerExpr)';
                 }
-                return 'static_cast<StaticMap<$keyType, $valType>*>($innerExpr)';
+                return 'static_cast<Map<$keyType, $valType>*>($innerExpr)';
               }
               return innerExpr;
             }
@@ -6711,30 +6895,30 @@ class CppEmitter {
                                target.name.text == '#new' ||
                                target.name.text == '';
         if (isCollection && isDefaultCtor) {
-          if (className == 'StaticList' || className == 'List') {
+          if (className == 'List') {
             if (expr.arguments.positional.isEmpty && expr.arguments.named.isEmpty) {
               if (expr.arguments.types.isNotEmpty) {
                 final typeArg = _cppType(expr.arguments.types.first);
-                return 'GC::allocateLocal(new StaticList<$typeArg>())';
+                return 'GC::allocateLocal(new List<$typeArg>())';
               }
-              return 'GC::allocateLocal(new StaticList<AnyGC*>())';
+              return 'GC::allocateLocal(new List<AnyGC*>())';
             }
-          } else if (className == 'StaticSet' || className == 'Set') {
+          } else if (className == 'Set') {
             if (expr.arguments.positional.isEmpty && expr.arguments.named.isEmpty) {
               if (expr.arguments.types.isNotEmpty) {
                 final typeArg = _cppType(expr.arguments.types.first);
-                return 'GC::allocateLocal(new StaticSet<$typeArg>())';
+                return 'GC::allocateLocal(new Set<$typeArg>())';
               }
-              return 'GC::allocateLocal(new StaticSet<AnyGC*>())';
+              return 'GC::allocateLocal(new Set<AnyGC*>())';
             }
-          } else if (className == 'StaticMap' || className == 'Map') {
+          } else if (className == 'Map') {
             if (expr.arguments.positional.isEmpty && expr.arguments.named.isEmpty) {
               if (expr.arguments.types.length >= 2) {
                 final keyType = _cppType(expr.arguments.types[0]);
                 final valueType = _cppType(expr.arguments.types[1]);
-                return 'GC::allocateLocal(new StaticMap<$keyType, $valueType>())';
+                return 'GC::allocateLocal(new Map<$keyType, $valueType>())';
               }
-              return 'GC::allocateLocal(new StaticMap<AnyGC*, AnyGC*>())';
+              return 'GC::allocateLocal(new Map<AnyGC*, AnyGC*>())';
             }
           }
         }
@@ -6744,6 +6928,23 @@ class CppEmitter {
     // Future/Promise 静态方法映射
     if (target is Procedure) {
       final enclosing = target.enclosingClass;
+      // 运行时 Promise 类的工厂：与 lowered.h 的 promise_* 对齐
+      if (enclosing != null && enclosing.name == 'Promise') {
+        final methodName = target.name.text;
+        final args = expr.arguments.positional.map((e) => _emitCppExpr(e)).join(', ');
+        final typeArgs = expr.arguments.types;
+        final typeArg = typeArgs.isNotEmpty ? _cppType(typeArgs.first) : 'AnyGC*';
+        final safeTypeArg = _isCppTypeParameter(typeArg) ? 'AnyGC*' : typeArg;
+        if (methodName == 'value') {
+          return 'promise_value<$safeTypeArg>($args)';
+        }
+        if (methodName == 'delayed') {
+          return 'promise_delayed<$safeTypeArg>($args)';
+        }
+        if (methodName == 'error' || methodName == 'rejected') {
+          return 'Promise<$safeTypeArg>::rejected($args)';
+        }
+      }
       if (enclosing != null && (enclosing.name == 'Future' || enclosing.name == '_Future')) {
         final methodName = target.name.text;
         final args = expr.arguments.positional.map((e) => _emitCppExpr(e)).join(', ');
@@ -6752,7 +6953,7 @@ class CppEmitter {
         final safeTypeArg = _isCppTypeParameter(typeArg) ? 'AnyGC*' : typeArg;
 
         if (methodName == 'delayed') {
-          // Future.delayed(Duration, [computation]) → promiseDelayed(ticks, computation)
+          // Future.delayed(Duration, [computation]) → promise_delayed(ticks, computation)
           // 参数1: Duration → ticks (1 tick = 10ms)
           // 参数2: 可选的 computation，默认为返回 null
           final argList = expr.arguments.positional;
@@ -6766,7 +6967,7 @@ class CppEmitter {
                 (durExpr.target.enclosingClass.name == 'Duration' ||
                  durExpr.target.enclosingClass.name == 'DurationValue')) {
               // 提取 Duration 各分量的毫秒数：字面量在编译期折叠，
-              // 非常量表达式生成运行时换算（dart_durationTicks）
+              // 非常量表达式生成运行时换算（duration_ticks）
               int? literalMs;
               final msExprs = <String>[];
               void addComponent(String name, Expression value) {
@@ -6798,12 +6999,12 @@ class CppEmitter {
                 ticksExpr = '$ticks';
               } else {
                 if (literalMs != null && literalMs != 0) msExprs.add('$literalMs');
-                ticksExpr = 'dart_durationTicks(${msExprs.join(' + ')})';
+                ticksExpr = 'duration_ticks(${msExprs.join(' + ')})';
               }
             } else {
-              // 通用情况：使用表达式的 inMilliseconds 换算 ticks（StaticDuration* 指针语义）
+              // 通用情况：使用表达式的 inMilliseconds 换算 ticks（Duration* 指针语义）
               final durCpp = _emitCppExpr(durExpr);
-              ticksExpr = 'dart_durationTicks(($durCpp)->inMilliseconds())';
+              ticksExpr = 'duration_ticks(($durCpp)->inMilliseconds())';
             }
           } else {
             ticksExpr = '1';
@@ -6815,7 +7016,7 @@ class CppEmitter {
             computationExpr = 'nullptr';
           }
 
-          return 'Promise_delayed<$safeTypeArg>($ticksExpr, $computationExpr)';
+          return 'promise_delayed<$safeTypeArg>($ticksExpr, $computationExpr)';
         }
         if (methodName == 'value') {
           return 'Promise<$safeTypeArg>::resolved($args)';
@@ -6835,16 +7036,16 @@ class CppEmitter {
         final arg = expr.arguments.positional.isNotEmpty
             ? _emitCppExpr(expr.arguments.positional.first)
             : '""';
-        return 'dart_stoll($arg)';
+        return 'string_toInt($arg)';
       }
       if (className == 'double' && methodName == 'parse') {
         final arg = expr.arguments.positional.isNotEmpty
             ? _emitCppExpr(expr.arguments.positional.first)
             : '""';
-        return 'dart_stod($arg)';
+        return 'string_toDouble($arg)';
       }
       // Handle List.from, Set.from, Map.from static methods
-      if ((className == 'List' || className == 'StaticList') && methodName == 'from') {
+      if ((className == 'List') && methodName == 'from') {
         String? savedExpectedType;
         if (expr.arguments.types.isNotEmpty) {
           savedExpectedType = _expectedCollectionElementType;
@@ -6858,11 +7059,11 @@ class CppEmitter {
         }
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
-          return 'StaticList<$typeArg>::from($arg)';
+          return 'List<$typeArg>::from($arg)';
         }
-        return 'StaticList<AnyGC*>::from($arg)';
+        return 'List<AnyGC*>::from($arg)';
       }
-      if ((className == 'Set' || className == 'StaticSet') && methodName == 'from') {
+      if ((className == 'Set') && methodName == 'from') {
         String? savedExpectedType;
         if (expr.arguments.types.isNotEmpty) {
           savedExpectedType = _expectedCollectionElementType;
@@ -6876,32 +7077,32 @@ class CppEmitter {
         }
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
-          return 'StaticSet<$typeArg>::from($arg)';
+          return 'Set<$typeArg>::from($arg)';
         }
-        return 'StaticSet<AnyGC*>::from($arg)';
+        return 'Set<AnyGC*>::from($arg)';
       }
-      if ((className == 'Map' || className == 'StaticMap') && methodName == 'from') {
+      if ((className == 'Map') && methodName == 'from') {
         final arg = expr.arguments.positional.isNotEmpty
             ? _emitCppExpr(expr.arguments.positional.first)
             : 'nullptr';
         if (expr.arguments.types.length >= 2) {
           final keyType = _cppType(expr.arguments.types[0]);
           final valType = _cppType(expr.arguments.types[1]);
-          return 'StaticMap<$keyType, $valType>::from($arg)';
+          return 'Map<$keyType, $valType>::from($arg)';
         }
-        return 'StaticMap<AnyGC*, AnyGC*>::from($arg)';
+        return 'Map<AnyGC*, AnyGC*>::from($arg)';
       }
       // Handle String.fromCharCode(code) / String.fromCharCodes(list)
       if (className == 'String' && methodName == 'fromCharCode') {
         final arg = _emitCppExpr(expr.arguments.positional.first);
-        return 'dart_str_fromCharCode($arg)';
+        return 'string_fromCharCode($arg)';
       }
       if (className == 'String' && methodName == 'fromCharCodes') {
         final arg = _emitCppExpr(expr.arguments.positional.first);
-        return 'dart_str_fromCharCodes($arg)';
+        return 'string_fromCharCodes($arg)';
       }
-      // Handle List.filled(count, value) → create StaticList with count copies of value
-      if ((className == 'List' || className == 'StaticList') && methodName == 'filled') {
+      // Handle List.filled(count, value) → create List with count copies of value
+      if ((className == 'List') && methodName == 'filled') {
         final args = expr.arguments.positional;
         if (args.length >= 2) {
           final countExpr = _emitCppExpr(args[0]);
@@ -6909,11 +7110,11 @@ class CppEmitter {
           final typeArg = expr.arguments.types.isNotEmpty
               ? _cppType(expr.arguments.types.first)
               : 'AnyGC*';
-          return 'listFilled<$typeArg>($countExpr, $valueExpr)';
+          return 'list_filled<$typeArg>($countExpr, $valueExpr)';
         }
       }
-      // Handle List.generate(count, generator) → create StaticList by calling generator for each index
-      if ((className == 'List' || className == 'StaticList') && methodName == 'generate') {
+      // Handle List.generate(count, generator) → create List by calling generator for each index
+      if ((className == 'List') && methodName == 'generate') {
         final args = expr.arguments.positional;
         if (args.length >= 2) {
           final countExpr = _emitCppExpr(args[0]);
@@ -6921,12 +7122,12 @@ class CppEmitter {
           final typeArg = expr.arguments.types.isNotEmpty
               ? _cppType(expr.arguments.types.first)
               : 'AnyGC*';
-          return 'listGenerated<$typeArg>($countExpr, $genExpr)';
+          return 'list_generated<$typeArg>($countExpr, $genExpr)';
         }
       }
     }
 
-    // 处理运行时类的静态方法（如 StaticList.filled, StaticList.generate）
+    // 处理运行时类的静态方法（如 List.filled, List.generate）
     // 这些方法可能没有 enclosingClass（因为是 C++ 运行时类）
     final funcNameLower = target.name.text.toLowerCase();
     if (funcNameLower == 'filled' && expr.arguments.positional.length >= 2) {
@@ -6935,7 +7136,7 @@ class CppEmitter {
       final typeArg = expr.arguments.types.isNotEmpty
           ? _cppType(expr.arguments.types.first)
           : 'AnyGC*';
-      return 'listFilled<$typeArg>($countExpr, $valueExpr)';
+      return 'list_filled<$typeArg>($countExpr, $valueExpr)';
     }
     if (funcNameLower == 'generate' && expr.arguments.positional.length >= 2) {
       final countExpr = _emitCppExpr(expr.arguments.positional[0]);
@@ -6943,7 +7144,7 @@ class CppEmitter {
       final typeArg = expr.arguments.types.isNotEmpty
           ? _cppType(expr.arguments.types.first)
           : 'AnyGC*';
-      return 'listGenerated<$typeArg>($countExpr, $genExpr)';
+      return 'list_generated<$typeArg>($countExpr, $genExpr)';
     }
 
     var funcName = _cleanName(target.name.text);
@@ -6994,13 +7195,13 @@ class CppEmitter {
           final paramDartType = param.type;
           if (paramDartType is InterfaceType) {
             final clsName = paramDartType.classNode.name;
-            if ((clsName == 'Map' || clsName == 'StaticMap') && paramDartType.typeArguments.length >= 2) {
+            if ((clsName == 'Map') && paramDartType.typeArguments.length >= 2) {
               savedMapKeyType = _expectedMapKeyType;
               savedMapValueType = _expectedMapValueType;
               _expectedMapKeyType = _cppType(paramDartType.typeArguments[0]);
               _expectedMapValueType = _cppType(paramDartType.typeArguments[1]);
             }
-            if ((clsName == 'List' || clsName == 'StaticList' || clsName == 'Set' || clsName == 'StaticSet') && paramDartType.typeArguments.isNotEmpty) {
+            if ((clsName == 'List' || clsName == 'Set') && paramDartType.typeArguments.isNotEmpty) {
               savedCollElemType = _expectedCollectionElementType;
               _expectedCollectionElementType = _cppType(paramDartType.typeArguments[0]);
             }
@@ -7045,10 +7246,10 @@ class CppEmitter {
         }
         return 'DartException($args)';
       }
-      // MapEntry/StaticMapEntry 特殊处理
-      if (encClassName == 'MapEntry' || encClassName == 'StaticMapEntry') {
+      // MapEntry/MapEntry 特殊处理
+      if (encClassName == 'MapEntry' || encClassName == 'MapEntry') {
         final posArgs = argExprs;
-        String keyType = 'DartString';
+        String keyType = 'string';
         String valType = 'AnyGC*';
         if (expr.arguments.types.length >= 2) {
           keyType = _cppType(expr.arguments.types[0]);
@@ -7059,7 +7260,7 @@ class CppEmitter {
         if (valType == 'AnyGC*' && expr.arguments.positional.length > 1) {
           valExpr = _cppMaybeBoxForAnyGC(valExpr, expr.arguments.positional[1]);
         }
-        return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($keyExpr, $valExpr))';
+        return 'GC::allocateLocal(new MapEntry<$keyType, $valType>($keyExpr, $valExpr))';
       }
       funcName = '${_cleanName(encClassName)}_new';
       nameAlreadyQualified = true;
@@ -7106,29 +7307,29 @@ class CppEmitter {
     // (e.g., when enclosingClass name doesn't match expected patterns)
     if (funcName == 'from' && target.enclosingClass != null) {
       final encName = target.enclosingClass!.name;
-      if (encName == 'StaticMap' || encName == 'Map' || encName == '_Map' ||
+      if (encName == 'Map' || encName == '_Map' ||
           encName == '_InternalLinkedHashMap' || encName == 'LinkedHashMap' ||
           encName == '_LinkedHashMap') {
         if (expr.arguments.types.length >= 2) {
           final keyType = _cppType(expr.arguments.types[0]);
           final valType = _cppType(expr.arguments.types[1]);
-          return 'StaticMap<$keyType, $valType>::from($args)';
+          return 'Map<$keyType, $valType>::from($args)';
         }
-        return 'StaticMap<AnyGC*, AnyGC*>::from($args)';
+        return 'Map<AnyGC*, AnyGC*>::from($args)';
       }
-      if (encName == 'StaticList' || encName == 'List' || encName == '_GrowableList') {
+      if (encName == 'List' || encName == '_GrowableList') {
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
-          return 'StaticList<$typeArg>::from($args)';
+          return 'List<$typeArg>::from($args)';
         }
-        return 'StaticList<AnyGC*>::from($args)';
+        return 'List<AnyGC*>::from($args)';
       }
-      if (encName == 'StaticSet' || encName == 'Set') {
+      if (encName == 'Set') {
         if (expr.arguments.types.isNotEmpty) {
           final typeArg = _cppType(expr.arguments.types.first);
-          return 'StaticSet<$typeArg>::from($args)';
+          return 'Set<$typeArg>::from($args)';
         }
-        return 'StaticSet<AnyGC*>::from($args)';
+        return 'Set<AnyGC*>::from($args)';
       }
     }
 
@@ -7139,11 +7340,11 @@ class CppEmitter {
     return _emitCppConstructorCall(expr.target.enclosingClass.name, expr.target, expr.arguments);
   }
 
-  /// RegExp 构造 → GC::allocateLocal(new StaticRegExp(pattern, multiLine, caseSensitive, unicode, dotAll))
-  String _emitStaticRegExpCtor(Arguments args) {
+  /// RegExp 构造 → GC::allocateLocal(new RegExp(pattern, multiLine, caseSensitive, unicode, dotAll))
+  String _emitRegExpCtor(Arguments args) {
     final pattern = args.positional.isNotEmpty
         ? _emitCppExpr(args.positional.first)
-        : 'DartString("")';
+        : 'string("")';
     final flags = <String, String>{
       'multiLine': 'false',
       'caseSensitive': 'true',
@@ -7155,16 +7356,16 @@ class CppEmitter {
         flags[named.name] = _emitCppExpr(named.value);
       }
     }
-    return 'GC::allocateLocal(new StaticRegExp($pattern, ${flags['multiLine']}, ${flags['caseSensitive']}, ${flags['unicode']}, ${flags['dotAll']}))';
+    return 'GC::allocateLocal(new RegExp($pattern, ${flags['multiLine']}, ${flags['caseSensitive']}, ${flags['unicode']}, ${flags['dotAll']}))';
   }
 
   String _emitCppConstructorCall(String className, Constructor ctor, Arguments args) {
-    // RegExp 构造函数 → StaticRegExp 堆对象（正则语义）
+    // RegExp 构造函数 → RegExp 堆对象（正则语义）
     if (className == 'RegExp') {
-      return _emitStaticRegExpCtor(args);
+      return _emitRegExpCtor(args);
     }
 
-    // 处理 _GrowableList (Dart 内部列表实现) → StaticList
+    // 处理 _GrowableList (Dart 内部列表实现) → List
     if (className == '_GrowableList') {
       final ctorName = ctor.name.text;
       final typeArgs = args.types;
@@ -7192,19 +7393,16 @@ class CppEmitter {
         final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
         final correctedTypeArg = _correctListInnerType(typeArg, emittedElems);
         final elements = emittedElems.asMap().entries.map((entry) {
-          var s = entry.value;
-          if (correctedTypeArg == 'AnyGC*') {
-            s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-          }
-          return s;
+          return _coerceListElemToType(
+              entry.value, correctedTypeArg, rawElems[entry.key]);
         }).join(', ');
-        return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+        return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
       }
 
       // 处理空构造函数
       if (ctorName.isEmpty) {
         final typeArg = resolveListElementType();
-        return 'GC::allocateLocal(new StaticList<$typeArg>())';
+        return 'GC::allocateLocal(new List<$typeArg>())';
       }
     }
 
@@ -7240,49 +7438,49 @@ class CppEmitter {
     if (className == 'ReachabilityError') {
       final msg = args.positional.isNotEmpty
           ? _emitCppExpr(args.positional.first)
-          : 'DartString("")';
+          : 'string("")';
       return 'ReachabilityError{._msg = $msg}';
     }
     if (className == 'Duration' || className == 'DurationValue') {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       if (args.named.isNotEmpty) {
-        // 处理命名参数，转换为 StaticDuration 的静态工厂（返回 GC 堆指针）
+        // 处理命名参数，转换为 Duration 的静态工厂（返回 GC 堆指针）
         for (final named in args.named) {
           final name = named.name;
           final value = _emitCppExpr(named.value);
           if (name == 'milliseconds') {
-            return 'StaticDuration::milliseconds($value)';
+            return 'Duration::milliseconds($value)';
           } else if (name == 'seconds') {
-            return 'StaticDuration::seconds($value)';
+            return 'Duration::seconds($value)';
           } else if (name == 'minutes') {
-            return 'StaticDuration::minutes($value)';
+            return 'Duration::minutes($value)';
           } else if (name == 'hours') {
-            return 'StaticDuration::hours($value)';
+            return 'Duration::hours($value)';
           } else if (name == 'days') {
-            return 'StaticDuration::days($value)';
+            return 'Duration::days($value)';
           } else if (name == 'microseconds') {
-            return 'GC::allocateLocal(new StaticDuration($value))';
+            return 'GC::allocateLocal(new Duration($value))';
           }
         }
       }
-      return 'GC::allocateLocal(new StaticDuration($callArgs))';
+      return 'GC::allocateLocal(new Duration($callArgs))';
     }
 
-    // 处理 DateTime 构造函数 → StaticDateTime（指针语义）
+    // 处理 DateTime 构造函数 → DateTime（指针语义）
     if (className == 'DateTime' || className == 'DateTimeValue') {
       final ctorName = ctor.name.text;
       if (ctorName == 'now') {
-        return 'StaticDateTime::now()';
+        return 'DateTime::now()';
       }
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
-      return 'GC::allocateLocal(new StaticDateTime($callArgs))';
+      return 'GC::allocateLocal(new DateTime($callArgs))';
     }
 
-    // 处理 MapEntry / StaticMapEntry 构造函数
-    if (className == 'MapEntry' || className == 'StaticMapEntry') {
+    // 处理 MapEntry / MapEntry 构造函数
+    if (className == 'MapEntry' || className == 'MapEntry') {
       final keyExpr = args.positional.length > 0 ? _emitCppExpr(args.positional[0]) : '""';
       final valExpr = args.positional.length > 1 ? _emitCppExpr(args.positional[1]) : 'nullptr';
-      String keyType = 'DartString';
+      String keyType = 'string';
       String valType = 'AnyGC*';
       if (args.types.length >= 2) {
         keyType = _cppType(args.types[0]);
@@ -7293,21 +7491,21 @@ class CppEmitter {
       if (valType == 'AnyGC*' && args.positional.length > 1) {
         boxedVal = _cppMaybeBoxForAnyGC(valExpr, args.positional[1]);
       }
-      return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($keyExpr, $boxedVal))';
+      return 'GC::allocateLocal(new MapEntry<$keyType, $valType>($keyExpr, $boxedVal))';
     }
 
     // 处理集合类型的构造函数
-    if (className == 'StaticList' || className == 'List') {
+    if (className == 'List') {
       if (args.positional.isEmpty && args.named.isEmpty) {
-        // 空列表：StaticList<T>()
+        // 空列表：List<T>()
         if (args.types.isNotEmpty) {
           final typeArg = _cppType(args.types.first);
-          return 'GC::allocateLocal(new StaticList<$typeArg>())';
+          return 'GC::allocateLocal(new List<$typeArg>())';
         }
-        return 'GC::allocateLocal(new StaticList<AnyGC*>())';
+        return 'GC::allocateLocal(new List<AnyGC*>())';
       }
       // 带参数的列表构造函数
-      // 检查是否是 StaticList.of([list_literal]) 模式
+      // 检查是否是 List.of([list_literal]) 模式
       if (args.positional.length == 1) {
         final arg = args.positional.first;
         if (arg is ListLiteral) {
@@ -7317,7 +7515,7 @@ class CppEmitter {
           if (args.types.isNotEmpty) {
             final elemDartType = args.types.first;
             if (elemDartType is InterfaceType &&
-                (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'StaticMap') &&
+                (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'Map') &&
                 elemDartType.typeArguments.length >= 2) {
               savedMapKeyType = _expectedMapKeyType;
               savedMapValueType = _expectedMapValueType;
@@ -7330,18 +7528,14 @@ class CppEmitter {
           final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
           final correctedTypeArg = _correctListInnerType(typeArg, emittedElems);
           final elements = emittedElems.asMap().entries.map((entry) {
-            var s = entry.value;
-            if (correctedTypeArg == 'AnyGC*') {
-              s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-            }
-            return s;
+            return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
           }).join(', ');
           // Restore expected map types
           if (savedMapKeyType != null || savedMapValueType != null) {
             _expectedMapKeyType = savedMapKeyType;
             _expectedMapValueType = savedMapValueType;
           }
-          return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+          return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
         } else if (arg is ConstructorInvocation) {
           // Handle _GrowableList._literal* (Dart lowers [1,2,3] to _GrowableList._literal3(1,2,3))
           final innerClassName = arg.target.enclosingClass.name;
@@ -7352,16 +7546,12 @@ class CppEmitter {
             final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
             final correctedTypeArg = _correctListInnerType(typeArg, emittedElems);
             final elements = emittedElems.asMap().entries.map((entry) {
-              var s = entry.value;
-              if (correctedTypeArg == 'AnyGC*') {
-                s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-              }
-              return s;
+              return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
             }).join(', ');
-            return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+            return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
           }
         } else if (arg is StaticInvocation) {
-          // Check if it's a StaticList creation (e.g., from List literal compilation)
+          // Check if it's a List creation (e.g., from List literal compilation)
           final target = arg.target;
           // Handle _GrowableList._literal* (Dart lowers [1,2,3] to _GrowableList._literal3(1,2,3))
           if (target is Procedure && target.enclosingClass != null) {
@@ -7372,18 +7562,14 @@ class CppEmitter {
               final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
               final correctedTypeArg = _correctListInnerType(typeArg, emittedElems);
               final elements = emittedElems.asMap().entries.map((entry) {
-                var s = entry.value;
-                if (correctedTypeArg == 'AnyGC*') {
-                  s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-                }
-                return s;
+                return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
               }).join(', ');
-              return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+              return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
             }
           }
           if (target is Constructor && target.enclosingClass != null &&
-              (target.enclosingClass!.name == 'StaticList' || target.enclosingClass!.name == 'List')) {
-            // Extract the elements from the nested StaticList creation
+              (target.enclosingClass!.name == 'List' || target.enclosingClass!.name == 'List')) {
+            // Extract the elements from the nested List creation
             if (arg.arguments.positional.length == 1 && arg.arguments.positional.first is ListLiteral) {
               final listLiteral = arg.arguments.positional.first as ListLiteral;
               final typeArg = args.types.isNotEmpty ? _cppType(args.types.first) : 'AnyGC*';
@@ -7391,13 +7577,9 @@ class CppEmitter {
               final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
               final correctedTypeArg = _correctListInnerType(typeArg, emittedElems);
               final elements = emittedElems.asMap().entries.map((entry) {
-                var s = entry.value;
-                if (correctedTypeArg == 'AnyGC*') {
-                  s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-                }
-                return s;
+                return _coerceListElemToType(entry.value, correctedTypeArg, rawElems[entry.key]);
               }).join(', ');
-              return 'GC::allocateLocal(new StaticList<$correctedTypeArg>({$elements}))';
+              return 'GC::allocateLocal(new List<$correctedTypeArg>({$elements}))';
             }
           }
         }
@@ -7405,31 +7587,31 @@ class CppEmitter {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       if (args.types.isNotEmpty) {
         final typeArg = _cppType(args.types.first);
-        return 'GC::allocateLocal(new StaticList<$typeArg>($callArgs))';
+        return 'GC::allocateLocal(new List<$typeArg>($callArgs))';
       }
-      return 'GC::allocateLocal(new StaticList<AnyGC*>($callArgs))';
+      return 'GC::allocateLocal(new List<AnyGC*>($callArgs))';
     }
 
-    if (className == 'StaticSet' || className == 'Set' || className == '_Set') {
+    if (className == 'Set' || className == '_Set') {
       if (args.positional.isEmpty && args.named.isEmpty) {
-        // 空集合：StaticSet<T>()
+        // 空集合：Set<T>()
         if (args.types.isNotEmpty) {
           final typeArg = _cppType(args.types.first);
-          return 'GC::allocateLocal(new StaticSet<$typeArg>())';
+          return 'GC::allocateLocal(new Set<$typeArg>())';
         }
-        return 'GC::allocateLocal(new StaticSet<AnyGC*>())';
+        return 'GC::allocateLocal(new Set<AnyGC*>())';
       }
       // 带参数的集合构造函数
-      // 检查是否是 StaticSet.of([list_literal]) 模式
+      // 检查是否是 Set.of([list_literal]) 模式
       if (args.positional.length == 1) {
         final arg = args.positional.first;
         if (arg is ListLiteral) {
           final elements = arg.expressions.map((e) => _emitCppExpr(e)).join(', ');
           if (args.types.isNotEmpty) {
             final typeArg = _cppType(args.types.first);
-            return 'GC::allocateLocal(new StaticSet<$typeArg>({$elements}))';
+            return 'GC::allocateLocal(new Set<$typeArg>({$elements}))';
           }
-          return 'GC::allocateLocal(new StaticSet<AnyGC*>({$elements}))';
+          return 'GC::allocateLocal(new Set<AnyGC*>({$elements}))';
         } else if (arg is ConstructorInvocation) {
           // Handle _GrowableList._literal* (Dart lowers [1,2,3] to _GrowableList._literal3(1,2,3))
           final innerClassName = arg.target.enclosingClass.name;
@@ -7438,9 +7620,9 @@ class CppEmitter {
             final elements = arg.arguments.positional.map((e) => _emitCppExpr(e)).join(', ');
             if (args.types.isNotEmpty) {
               final typeArg = _cppType(args.types.first);
-              return 'GC::allocateLocal(new StaticSet<$typeArg>({$elements}))';
+              return 'GC::allocateLocal(new Set<$typeArg>({$elements}))';
             }
-            return 'GC::allocateLocal(new StaticSet<AnyGC*>({$elements}))';
+            return 'GC::allocateLocal(new Set<AnyGC*>({$elements}))';
           }
         } else if (arg is StaticInvocation) {
           final target = arg.target;
@@ -7451,21 +7633,21 @@ class CppEmitter {
               final elements = arg.arguments.positional.map((e) => _emitCppExpr(e)).join(', ');
               if (args.types.isNotEmpty) {
                 final typeArg = _cppType(args.types.first);
-                return 'GC::allocateLocal(new StaticSet<$typeArg>({$elements}))';
+                return 'GC::allocateLocal(new Set<$typeArg>({$elements}))';
               }
-              return 'GC::allocateLocal(new StaticSet<AnyGC*>({$elements}))';
+              return 'GC::allocateLocal(new Set<AnyGC*>({$elements}))';
             }
           }
           if (target is Constructor && target.enclosingClass != null &&
-              (target.enclosingClass!.name == 'StaticList' || target.enclosingClass!.name == 'List')) {
+              (target.enclosingClass!.name == 'List' || target.enclosingClass!.name == 'List')) {
             if (arg.arguments.positional.length == 1 && arg.arguments.positional.first is ListLiteral) {
               final listLiteral = arg.arguments.positional.first as ListLiteral;
               final elements = listLiteral.expressions.map((e) => _emitCppExpr(e)).join(', ');
               if (args.types.isNotEmpty) {
                 final typeArg = _cppType(args.types.first);
-                return 'GC::allocateLocal(new StaticSet<$typeArg>({$elements}))';
+                return 'GC::allocateLocal(new Set<$typeArg>({$elements}))';
               }
-              return 'GC::allocateLocal(new StaticSet<AnyGC*>({$elements}))';
+              return 'GC::allocateLocal(new Set<AnyGC*>({$elements}))';
             }
           }
         }
@@ -7473,13 +7655,13 @@ class CppEmitter {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
       if (args.types.isNotEmpty) {
         final typeArg = _cppType(args.types.first);
-        return 'GC::allocateLocal(new StaticSet<$typeArg>($callArgs))';
+        return 'GC::allocateLocal(new Set<$typeArg>($callArgs))';
       }
-      return 'GC::allocateLocal(new StaticSet<AnyGC*>($callArgs))';
+      return 'GC::allocateLocal(new Set<AnyGC*>($callArgs))';
     }
 
-    if (className == 'StaticMap' || className == 'Map') {
-      // Handle StaticMap.from(source) → StaticMap<K,V>::from(source)
+    if (className == 'Map') {
+      // Handle Map.from(source) → Map<K,V>::from(source)
       final ctorName = ctor.name.text;
       if (ctorName == 'from' && args.positional.length == 1) {
         // Set expected map types before emitting the argument
@@ -7498,9 +7680,9 @@ class CppEmitter {
         if (args.types.length >= 2) {
           final keyType = _cppType(args.types[0]);
           final valueType = _cppType(args.types[1]);
-          return 'StaticMap<$keyType, $valueType>::from($argExpr)';
+          return 'Map<$keyType, $valueType>::from($argExpr)';
         }
-        return 'StaticMap<AnyGC*, AnyGC*>::from($argExpr)';
+        return 'Map<AnyGC*, AnyGC*>::from($argExpr)';
       }
       if (ctorName == 'of' && args.positional.length == 1) {
         // Set expected map types before emitting the argument
@@ -7523,18 +7705,18 @@ class CppEmitter {
         if (args.types.length >= 2) {
           final keyType = _cppType(args.types[0]);
           final valueType = _cppType(args.types[1]);
-          return 'StaticMap<$keyType, $valueType>::from($argExpr)';
+          return 'Map<$keyType, $valueType>::from($argExpr)';
         }
-        return 'StaticMap<AnyGC*, AnyGC*>::from($argExpr)';
+        return 'Map<AnyGC*, AnyGC*>::from($argExpr)';
       }
       if (args.positional.isEmpty && args.named.isEmpty) {
-        // 空映射：StaticMap<K, V>()
+        // 空映射：Map<K, V>()
         if (args.types.length >= 2) {
           final keyType = _cppType(args.types[0]);
           final valueType = _cppType(args.types[1]);
-          return 'GC::allocateLocal(new StaticMap<$keyType, $valueType>())';
+          return 'GC::allocateLocal(new Map<$keyType, $valueType>())';
         }
-        return 'GC::allocateLocal(new StaticMap<AnyGC*, AnyGC*>())';
+        return 'GC::allocateLocal(new Map<AnyGC*, AnyGC*>())';
       }
       // 带参数的映射构造函数
       // 如果参数是 MapLiteral，设置期望的键值类型
@@ -7546,7 +7728,7 @@ class CppEmitter {
         _expectedMapKeyType = _cppType(args.types[0]);
         _expectedMapValueType = _cppType(args.types[1]);
       }
-      // 如果参数是 MapLiteral，map 字面量已经生成完整的 StaticMap*，直接返回
+      // 如果参数是 MapLiteral，map 字面量已经生成完整的 Map*，直接返回
       if (args.positional.length == 1 && args.positional.first is MapLiteral) {
         final mapExpr = _emitCppExpr(args.positional.first);
         // 恢复期望的类型
@@ -7565,9 +7747,9 @@ class CppEmitter {
       if (args.types.length >= 2) {
         final keyType = _cppType(args.types[0]);
         final valueType = _cppType(args.types[1]);
-        return 'GC::allocateLocal(new StaticMap<$keyType, $valueType>($callArgs))';
+        return 'GC::allocateLocal(new Map<$keyType, $valueType>($callArgs))';
       }
-      return 'GC::allocateLocal(new StaticMap<AnyGC*, AnyGC*>($callArgs))';
+      return 'GC::allocateLocal(new Map<AnyGC*, AnyGC*>($callArgs))';
     }
 
     // 处理 Array 类型
@@ -7594,10 +7776,10 @@ class CppEmitter {
       return 'GC::allocateLocal(new Array<$typeArg>())';
     }
 
-    // 处理 StringBuffer 构造函数 → StaticStringBuffer
-    if (className == 'StringBuffer' || className == 'StaticStringBuffer') {
+    // 处理 StringBuffer 构造函数 → StringBuffer
+    if (className == 'StringBuffer' || className == 'StringBuffer') {
       final callArgs = args.positional.map((e) => _emitCppExpr(e)).join(', ');
-      return 'GC::allocateLocal(new StaticStringBuffer($callArgs))';
+      return 'GC::allocateLocal(new StringBuffer($callArgs))';
     }
 
     final structName = _isRuntimeClassName(className) ? _cleanName(className) : '${_cleanName(className)}Value';
@@ -7683,7 +7865,7 @@ class CppEmitter {
   String _emitCppStringConcat(StringConcatenation expr) {
     final parts = expr.expressions.map((e) {
       final part = _emitCppExpr(e);
-      if (part.startsWith('DartString(') || part.startsWith('dart_str(')) return part;
+      if (part.startsWith('string(') || part.startsWith('dart_str(')) return part;
       return 'dart_str($part)';
     });
     return parts.join(' + ');
@@ -7796,7 +7978,7 @@ class CppEmitter {
     return [newThen, newOtherwise];
   }
 
-  /// 拆分模板参数（处理嵌套的 <> 如 `StaticMap<String, int>`)
+  /// 拆分模板参数（处理嵌套的 <> 如 `Map<String, int>`)
   List<String> _splitTemplateArgs(String args) {
     final result = <String>[];
     var depth = 0;
@@ -7887,11 +8069,11 @@ class CppEmitter {
       return '0.0';
     } else if (targetType == 'bool') {
       return 'false';
-    } else if (targetType == 'DartString') {
+    } else if (targetType == 'string') {
       return '""';
     } else if (_isCppTypeParameter(targetType) || _containsTypeParameter(targetType)) {
       // 模板类型参数（如 L, R, T）：使用默认构造值
-      // 当 L=DartString 时 L{} = ""，当 L=AnyGC* 时 L{} = nullptr
+      // 当 L=string 时 L{} = ""，当 L=AnyGC* 时 L{} = nullptr
       return '$targetType{}';
     } else {
       return value;
@@ -7930,7 +8112,7 @@ class CppEmitter {
     if (listType is InterfaceType && listType.typeArguments.isNotEmpty) {
       final elemDartType = listType.typeArguments[0];
       if (elemDartType is InterfaceType &&
-          (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'StaticMap') &&
+          (elemDartType.classNode.name == 'Map' || elemDartType.classNode.name == 'Map') &&
           elemDartType.typeArguments.length >= 2) {
         savedMapKeyType = _expectedMapKeyType;
         savedMapValueType = _expectedMapValueType;
@@ -7945,7 +8127,7 @@ class CppEmitter {
         _expectedMapKeyType = savedMapKeyType;
         _expectedMapValueType = savedMapValueType;
       }
-      return 'GC::allocateLocal(new StaticList<$innerType>())';
+      return 'GC::allocateLocal(new List<$innerType>())';
     }
     // 先发出元素（暂不装箱），然后根据修正后的 innerType 决定是否需要装箱
     final rawElements = expr.expressions.toList();
@@ -7960,18 +8142,34 @@ class CppEmitter {
     // 使用共享的修正函数检测元素类型不匹配
     innerType = _correctListInnerType(innerType, emittedElements);
 
-    // 如果最终 innerType 是 AnyGC*，对基本类型元素装箱
+    // 如果最终 innerType 是 AnyGC*，对基本类型元素装箱；
+    // 否则对 implements 接口元素做经 AnyGC* 的指针转型。
     final finalElements = <String>[];
     for (var i = 0; i < emittedElements.length; i++) {
-      var elemStr = emittedElements[i];
-      if (innerType == 'AnyGC*') {
-        elemStr = _cppMaybeBoxForAnyGC(elemStr, rawElements[i]);
-      }
-      finalElements.add(elemStr);
+      finalElements.add(
+          _coerceListElemToType(emittedElements[i], innerType, rawElements[i]));
     }
     final elements = finalElements.join(', ');
 
-    return 'GC::allocateLocal(new StaticList<$innerType>({$elements}))';
+    return 'GC::allocateLocal(new List<$innerType>({$elements}))';
+  }
+
+  /// 将列表元素强制到目标指针类型（implements 接口上转型经 AnyGC*）
+  String _coerceListElemToType(String elemStr, String targetType, [Expression? src]) {
+    if (targetType == 'AnyGC*') {
+      return src != null ? _cppMaybeBoxForAnyGC(elemStr, src) : elemStr;
+    }
+    if (!targetType.endsWith('*')) return elemStr;
+    final srcCpp = _inferCppPtrTypeFromExpr(elemStr) ??
+        (src != null && _getExpressionType(src) != null
+            ? _cppType(_getExpressionType(src)!)
+            : '');
+    if (srcCpp.endsWith('*') && srcCpp != targetType) {
+      final base = targetType.substring(0, targetType.length - 1);
+      return 'static_cast<$base*>(static_cast<AnyGC*>($elemStr))';
+    }
+    if (src != null) return _wrapToType(elemStr, targetType, src);
+    return elemStr;
   }
 
   /// 根据已发出的元素字符串修正列表的内部类型。
@@ -7994,7 +8192,7 @@ class CppEmitter {
           typeCategories.add('double');
         } else if (e == 'true' || e == 'false') {
           typeCategories.add('bool');
-        } else if (e.startsWith('DartString(') || e.startsWith('"')) {
+        } else if (e.startsWith('string(') || e.startsWith('"')) {
           typeCategories.add('string');
         } else if (e.contains('TupleBox') || e.contains('_box(') ||
                    e.startsWith('[&]') || e.contains('-> AnyGC*')) {
@@ -8038,15 +8236,15 @@ class CppEmitter {
       final firstKeyType = _getExpressionType(expr.entries.first.key);
       if (firstKeyType is InterfaceType) {
         final name = firstKeyType.classNode.name;
-        if (name == 'String') keyType = 'DartString';
+        if (name == 'String') keyType = 'string';
         else if (name == 'int') keyType = 'int64_t';
         else if (name == 'double') keyType = 'double';
         else if (name == 'bool') keyType = 'bool';
       } else {
         // 后备：检查 C++ 表达式模式
         final firstKeyExpr = _emitCppExpr(expr.entries.first.key);
-        if (firstKeyExpr.startsWith('DartString(') || firstKeyExpr.startsWith('"')) {
-          keyType = 'DartString';
+        if (firstKeyExpr.startsWith('string(') || firstKeyExpr.startsWith('"')) {
+          keyType = 'string';
         } else if (RegExp(r'^-?\d+$').hasMatch(firstKeyExpr)) {
           keyType = 'int64_t';
         }
@@ -8063,7 +8261,7 @@ class CppEmitter {
           return t is InterfaceType && t.classNode.name == firstName;
         });
         if (allSame) {
-          if (firstName == 'String') valType = 'DartString';
+          if (firstName == 'String') valType = 'string';
           else if (firstName == 'int') valType = 'int64_t';
           else if (firstName == 'double') valType = 'double';
           else if (firstName == 'bool') valType = 'bool';
@@ -8071,7 +8269,7 @@ class CppEmitter {
       }
     }
     if (expr.entries.isEmpty) {
-      return 'StaticMap<$keyType, $valType>::empty()';
+      return 'Map<$keyType, $valType>::empty()';
     }
     // 非空 map 字面量：经运行时辅助 mapOf 构造（花括号初始化列表保证条目从左到右求值）
     final entries = expr.entries.map((e) {
@@ -8080,7 +8278,7 @@ class CppEmitter {
       // 如果 key/value 类型不匹配，需要 boxing
       k = _boxForMapComponent(k, e.key, keyType);
       v = _boxForMapComponent(v, e.value, valType);
-      return 'GC::allocateLocal(new StaticMapEntry<$keyType, $valType>($k, $v))';
+      return 'GC::allocateLocal(new MapEntry<$keyType, $valType>($k, $v))';
     }).join(', ');
     return 'mapOf<$keyType, $valType>({$entries})';
   }
@@ -8114,7 +8312,7 @@ class CppEmitter {
       }
     }
     // 检查 C++ 表达式模式
-    if (expr.startsWith('DartString(') || expr.startsWith('"') || expr.startsWith('dart_str(')) {
+    if (expr.startsWith('string(') || expr.startsWith('"') || expr.startsWith('dart_str(')) {
       return 'GC::allocateLocal(new StringBox($expr))';
     }
     if (expr.startsWith('GC::allocateLocal(new IntBox(') ||
@@ -8142,19 +8340,15 @@ class CppEmitter {
       innerType = _cppType(setType.typeArguments[0]);
     }
     if (expr.expressions.isEmpty) {
-      return 'GC::allocateLocal(new StaticSet<$innerType>())';
+      return 'GC::allocateLocal(new Set<$innerType>())';
     }
     final rawElems = expr.expressions.toList();
     final emittedElems = rawElems.map((e) => _emitCppExpr(e)).toList();
     final correctedInnerType = _correctListInnerType(innerType, emittedElems);
     final elements = emittedElems.asMap().entries.map((entry) {
-      var s = entry.value;
-      if (correctedInnerType == 'AnyGC*') {
-        s = _cppMaybeBoxForAnyGC(s, rawElems[entry.key]);
-      }
-      return s;
+      return _coerceListElemToType(entry.value, correctedInnerType, rawElems[entry.key]);
     }).join(', ');
-    return 'GC::allocateLocal(new StaticSet<$correctedInnerType>({$elements}))';
+    return 'GC::allocateLocal(new Set<$correctedInnerType>({$elements}))';
   }
 
   String _emitCppAsExpression(AsExpression expr) {
@@ -8172,6 +8366,16 @@ class CppEmitter {
       if (_isCppTypeParameter(baseType)) {
         return 'static_cast<AnyGC*>($operand)';
       }
+      // implements 接口 / 无 C++ 继承关系：经 AnyGC* 中转
+      if (operandCppType.endsWith('*') &&
+          operandCppType != targetType &&
+          _needsInterfacePtrCast(operandType, targetType)) {
+        return 'static_cast<$baseType*>(static_cast<AnyGC*>($operand))';
+      }
+      // 源已是 AnyGC*：直接 static_cast 到目标
+      if (operandCppType == 'AnyGC*' || operandCppType.isEmpty) {
+        return 'static_cast<$baseType*>($operand)';
+      }
       return 'static_cast<$baseType*>($operand)';
     }
     // 检查操作数是否为 AnyGC* 或 AnyGC*
@@ -8187,7 +8391,7 @@ class CppEmitter {
       if (targetType == 'int64_t') return 'dynAs<int64_t>($operand)';
       if (targetType == 'double') return 'dynAs<double>($operand)';
       if (targetType == 'bool') return 'dynAs<bool>($operand)';
-      if (targetType == 'DartString') return 'dynAs<DartString>($operand)';
+      if (targetType == 'string') return 'dynAs<string>($operand)';
       return 'static_cast<$targetType>($operand)';
     }
 
@@ -8202,7 +8406,7 @@ class CppEmitter {
       if (targetType == 'int64_t') return 'dynAs<int64_t>($operand)';
       if (targetType == 'double') return 'dynAs<double>($operand)';
       if (targetType == 'bool') return 'dynAs<bool>($operand)';
-      if (targetType == 'DartString') return 'dynAs<DartString>($operand)';
+      if (targetType == 'string') return 'dynAs<string>($operand)';
       return 'dynAs<$targetType>($operand)';
     }
 
@@ -8211,7 +8415,7 @@ class CppEmitter {
       if (targetType == 'int64_t') return 'dynAs<int64_t>($operand)';
       if (targetType == 'double') return 'dynAs<double>($operand)';
       if (targetType == 'bool') return 'dynAs<bool>($operand)';
-      if (targetType == 'DartString') return 'dynAs<DartString>($operand)';
+      if (targetType == 'string') return 'dynAs<string>($operand)';
       if (targetType.endsWith('*')) {
         final baseType = targetType.substring(0, targetType.length - 1);
         return 'static_cast<$baseType*>($operand)';
@@ -8224,9 +8428,15 @@ class CppEmitter {
   String _emitCppIsExpression(IsExpression expr) {
     final operand = _emitCppExpr(expr.operand);
     final targetType = _cppType(expr.type);
-    if (targetType.endsWith('Value*')) {
+    if (targetType.endsWith('Value*') ||
+        (targetType.endsWith('*') &&
+            !targetType.startsWith('Static') &&
+            targetType != 'AnyGC*')) {
       final baseType = targetType.substring(0, targetType.length - 1);
-      return 'dart_is<$baseType>($operand)';
+      // 用户类 / 接口 / enum：走 ClassInfo _parent + inherits
+      if (!_isCppTypeParameter(baseType)) {
+        return 'dart_is<$baseType>($operand)';
+      }
     }
     String gcOperand = operand;
     if (_isAnyPtrResult(operand) || _getExpressionType(expr.operand) == null) {
@@ -8240,17 +8450,34 @@ class CppEmitter {
         case 'bool': return 'dart_is<BoolBox>($gcOperand)';
         case 'String': return 'dart_is<StringBox>($gcOperand)';
         case 'List':
-          if (targetType == 'StaticList<AnyGC*>*') {
-            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo->typeName == "List")';
+          // 各 List<T> 特化拥有独立 ClassInfo 实例，擦除路径用 typeName 判定
+          if (targetType == 'List<AnyGC*>*') {
+            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo && _ciTypeNameIs(static_cast<AnyGC*>($gcOperand)->_classInfo, "List"))';
           }
           final baseType = targetType.substring(0, targetType.length - 1);
           return 'dart_is<$baseType>($gcOperand)';
         case 'Map':
-          if (targetType == 'StaticMap<AnyGC*, AnyGC*>*') {
-            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo->typeName == "Map")';
+          if (targetType == 'Map<AnyGC*, AnyGC*>*') {
+            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo && _ciTypeNameIs(static_cast<AnyGC*>($gcOperand)->_classInfo, "Map"))';
           }
           final baseType = targetType.substring(0, targetType.length - 1);
           return 'dart_is<$baseType>($gcOperand)';
+        case 'Set':
+          if (targetType == 'Set<AnyGC*>*') {
+            return '($gcOperand && static_cast<AnyGC*>($gcOperand)->_classInfo && _ciTypeNameIs(static_cast<AnyGC*>($gcOperand)->_classInfo, "Set"))';
+          }
+          if (targetType.endsWith('*')) {
+            final baseType = targetType.substring(0, targetType.length - 1);
+            return 'dart_is<$baseType>($gcOperand)';
+          }
+          break;
+      }
+      // 其余用户接口 / 抽象类：统一 dart_is
+      if (_userClasses.contains(typeName) || _mixinNames.contains(typeName) || _enumNames.contains(typeName)) {
+        final baseType = targetType.endsWith('*')
+            ? targetType.substring(0, targetType.length - 1)
+            : targetType;
+        return 'dart_is<$baseType>($gcOperand)';
       }
     }
     return 'false /* is ${expr.type} */';
@@ -8637,12 +8864,11 @@ class CppEmitter {
       _structBuf.write(nestedClosureBuf);
     }
 
-    // 现在输出当前闭包的 struct 定义
-    // ClassInfo subclass declaration (constructor body defined after struct)
+    // ClassInfo subclass declaration（编译期 make_* 初始化）
     if (templatePrefix.isNotEmpty) {
       _structBuf.writeln('$templatePrefix');
     }
-    _structBuf.writeln('struct ${closureName}ClassInfo : ClassInfo { ${closureName}ClassInfo(); };');
+    _structBuf.writeln('struct ${closureName}ClassInfo : ClassInfo {};');
     if (templatePrefix.isNotEmpty) {
       _structBuf.writeln('$templatePrefix');
     }
@@ -8663,7 +8889,7 @@ class CppEmitter {
         _structBuf.writeln('    $varType $varName;');
       }
     }
-    _structBuf.writeln('    static ${closureName}ClassInfo$templateArgs _classInfo;');
+    _structBuf.writeln('    static const ${closureName}ClassInfo$templateArgs _classInfo;');
 
     // 构造函数 — 设置 fnPtr 指向静态 trampoline
     final allCtorParams = <String>[];
@@ -8777,14 +9003,19 @@ class CppEmitter {
     if (templatePrefix.isNotEmpty) {
       _structBuf.writeln(templatePrefix);
     }
-    _structBuf.writeln('${closureName}ClassInfo$templateArgs::${closureName}ClassInfo() {');
-    _structBuf.writeln('    typeName = "Closure";');
-    _structBuf.writeln('    gcMark = &$closureName$templateArgs::_gcMark_impl;');
+    _structBuf.writeln(
+        'constexpr ${closureName}ClassInfo$templateArgs make_${closureName}ClassInfo() {');
+    _structBuf.writeln('    ${closureName}ClassInfo$templateArgs ci{};');
+    _structBuf.writeln('    ci.typeName = "Closure";');
+    _structBuf.writeln('    ci.destroy = &_gcDestroy<$closureName$templateArgs>;');
+    _structBuf.writeln('    ci.gcMark = &$closureName$templateArgs::_gcMark_impl;');
+    _structBuf.writeln('    return ci;');
     _structBuf.writeln('}');
     if (templatePrefix.isNotEmpty) {
       _structBuf.writeln(templatePrefix);
     }
-    _structBuf.writeln('${closureName}ClassInfo$templateArgs $closureName$templateArgs::_classInfo = ${closureName}ClassInfo$templateArgs();');
+    _structBuf.writeln(
+        'inline constexpr ${closureName}ClassInfo$templateArgs $closureName$templateArgs::_classInfo = make_${closureName}ClassInfo$templateArgs();');
     _structBuf.writeln();
 
     // 创建闭包实例
@@ -8938,7 +9169,7 @@ class CppEmitter {
     if (expr is IntLiteral) return 'int64_t';
     if (expr is DoubleLiteral) return 'double';
     if (expr is BoolLiteral) return 'bool';
-    if (expr is StringLiteral) return 'DartString';
+    if (expr is StringLiteral) return 'string';
     if (expr is NullLiteral) return 'AnyGC*';
     if (expr is FunctionExpression) return null;
     final dartType = _getExpressionType(expr);
@@ -9371,10 +9602,10 @@ class CppEmitter {
     final operand = _emitCppExpr(expr.operand);
     // 推断返回类型，默认为 AnyPtr
     final resultType = _inferAwaitReturnType(expr.operand);
-    // smAwait<T> returns T, so no conversion needed
+    // sm_await<T> returns T, so no conversion needed
     // When T is AnyGC*, primitive args need boxing
     final boxedOperand = resultType == 'AnyGC*' ? '_box($operand)' : operand;
-    return 'smAwait<$resultType>($boxedOperand)';
+    return 'sm_await<$resultType>($boxedOperand)';
   }
 
   String _inferAwaitReturnType(Expression expr) {
@@ -9487,7 +9718,7 @@ class CppEmitter {
     for (final m in matches) {
       final name = m.group(1)!;
       // 排除已知的 C++ 类型名
-      if (['AnyGC*', 'AnyGC', 'StaticList', 'StaticMap', 'StaticSet', 'TypeFunction0',
+      if (['AnyGC*', 'AnyGC', 'List', 'Map', 'Set', 'TypeFunction0',
             'TypeFunction1', 'TypeFunction2', 'Promise'].contains(name)) continue;
       // 如果看起来像类型参数（短名称）且不在作用域内
       if (name.length <= 3 && name.codeUnitAt(0) >= 65 && name.codeUnitAt(0) <= 90 &&
@@ -9554,12 +9785,12 @@ class CppEmitter {
         value.startsWith('DartUnimplementedError')) {
       return 'throw $value';
     }
-    // 检查是否已经是 std::exception 子类（排除 DartString）
-    if (value.startsWith('std::') && !value.startsWith('DartString')) {
+    // 检查是否已经是 std::exception 子类（排除 string）
+    if (value.startsWith('std::') && !value.startsWith('string')) {
       return 'throw $value';
     }
-    // 如果 value 已经是字符串字面量或 DartString，直接使用
-    if (value.startsWith('"') || value.startsWith('dart_str(') || value.startsWith('DartString(')) {
+    // 如果 value 已经是字符串字面量或 string，直接使用
+    if (value.startsWith('"') || value.startsWith('dart_str(') || value.startsWith('string(')) {
       return 'throw DartException($value)';
     }
     // 检查是否是 Box 类型（StringBox, IntBox, DoubleBox, BoolBox, ObjectBox）
@@ -9689,7 +9920,7 @@ class CppEmitter {
     String wrappedInit;
     if (expr.variable.initializer != null) {
       wrappedInit = _wrapToType(init, varType, expr.variable.initializer!);
-      // 如果目标类型是 AnyGC* 但初始化器产生了非指针类型（如 int64_t, DartString），
+      // 如果目标类型是 AnyGC* 但初始化器产生了非指针类型（如 int64_t, string），
       // 使用 IIFE 执行副作用并返回 nullptr（提升模式下副作用语句前置）
       if (varType == 'AnyGC*') {
         final initType = _getExpressionType(expr.variable.initializer!);
@@ -9992,8 +10223,8 @@ class CppEmitter {
   String _emitNullPropagation(String varName, String varType, String init, ConditionalExpression cond) {
     final otherwise = _emitCppExpr(cond.otherwise);
 
-    // DartString 需要特殊处理嵌套的 ?. 链
-    if (varType == 'DartString' && cond.otherwise is Let) {
+    // string 需要特殊处理嵌套的 ?. 链
+    if (varType == 'string' && cond.otherwise is Let) {
       final nestedResult = _tryEmitNestedNullSafeChain(cond.otherwise as Let, varName, varType, init);
       if (nestedResult != null) return nestedResult;
     }
@@ -10001,7 +10232,7 @@ class CppEmitter {
     return _cppNullCheck(varType, init, otherwise, otherwiseExpr: cond.otherwise, varName: varName);
   }
 
-  /// 尝试发射嵌套的 ?. 链（DartString 特殊处理）
+  /// 尝试发射嵌套的 ?. 链（string 特殊处理）
   String? _tryEmitNestedNullSafeChain(Let nestedLet, String varName, String varType, String init) {
     final nestedVarType = _cppType(nestedLet.variable.type);
     final nestedInit = nestedLet.variable.initializer != null
@@ -10042,7 +10273,7 @@ class CppEmitter {
       return '(dart_isNull($init) ? $fallbackWrapped : $init)';
     } else if (varType.endsWith('*')) {
       return '(dart_isNull($init) ? $fallback : $init)';
-    } else if (varType == 'DartString') {
+    } else if (varType == 'string') {
       // 可空字符串来自 Map 访问时，init 形如 (*(*map)[key])（已解引用的指针）。
       if (init.startsWith('(*(*') && init.endsWith(')')) {
         final ptrExpr = init.substring(2, init.length - 1);
@@ -10067,12 +10298,12 @@ class CppEmitter {
 
   /// 生成 null 检查表达式
   /// 对于基本类型（int64_t, double, bool），不生成 null 检查
-  /// 对于 DartString，检查 empty()（可空字符串的 null 表示为空字符串）
+  /// 对于 string，检查 empty()（可空字符串的 null 表示为空字符串）
   /// 对于指针类型，生成 dart_isNull 检查
   String _emitNullCheck(String expr, String type) {
     if (type == 'int64_t' || type == 'double' || type == 'bool') {
       return 'false';
-    } else if (type == 'DartString') {
+    } else if (type == 'string') {
       return '($expr.empty())';
     } else {
       return 'dart_isNull($expr)';
@@ -10117,15 +10348,15 @@ class CppEmitter {
       }
       return '(dart_isNull($init) ? nullptr : $otherwiseWrapped)';
     } else if (varType.endsWith('*')) {
-      // 检查 otherwise 的返回类型 — 如果是值类型（DartString 等），null 分支需要用对应的默认值
+      // 检查 otherwise 的返回类型 — 如果是值类型（string 等），null 分支需要用对应的默认值
       final otherwiseResultType = otherwiseExpr != null ? _getExpressionType(otherwiseExpr) : null;
       final otherwiseCppType = otherwiseResultType != null ? _cppType(otherwiseResultType) : '';
-      if (otherwiseCppType == 'DartString') {
-        // ?. 链结果是 DartString，null 分支返回空字符串
+      if (otherwiseCppType == 'string') {
+        // ?. 链结果是 string，null 分支返回空字符串
         if (varName != null && otherwise.contains(varName)) {
-          return '([&]() { $varType $varName = $init; return (dart_isNull($varName) ? DartString("") : $otherwise); })()';
+          return '([&]() { $varType $varName = $init; return (dart_isNull($varName) ? string("") : $otherwise); })()';
         }
-        return '(dart_isNull($init) ? DartString("") : $otherwise)';
+        return '(dart_isNull($init) ? string("") : $otherwise)';
       }
       if (otherwiseCppType == 'int64_t' || otherwiseCppType == 'double' || otherwiseCppType == 'bool') {
         final defVal = _cppDefaultValue(otherwiseCppType);
@@ -10149,11 +10380,11 @@ class CppEmitter {
         return '([&]() { $varType $varName = $init; return (dart_isNull($varName) ? $nullValue : $otherwise); })()';
       }
       return '(dart_isNull($init) ? $nullValue : $otherwise)';
-    } else if (varType == 'DartString') {
-      // DartString：可空字符串的 null 表示为空字符串
+    } else if (varType == 'string') {
+      // string：可空字符串的 null 表示为空字符串
       final otherwiseResultType = otherwiseExpr != null ? _getExpressionType(otherwiseExpr) : null;
       final otherwiseCppType = otherwiseResultType != null ? _cppType(otherwiseResultType) : '';
-      final nullVal = _cppDefaultValue(otherwiseCppType.isNotEmpty ? otherwiseCppType : 'DartString');
+      final nullVal = _cppDefaultValue(otherwiseCppType.isNotEmpty ? otherwiseCppType : 'string');
       if (varName != null && otherwise.contains(varName)) {
         return '([&]() { $varType $varName = $init; return ($varName.empty() ? $nullVal : $otherwise); })()';
       }
@@ -10231,7 +10462,7 @@ class CppEmitter {
       // 空语句，不生成任何代码
     } else if (stmt is AssertStatement) {
       final cond = _emitCppExpr(stmt.condition);
-      // C++ assert 只接受一个 bool 参数，消息忽略（避免 DartString 与 bool 不兼容）
+      // C++ assert 只接受一个 bool 参数，消息忽略（避免 string 与 bool 不兼容）
       // Wrap in extra parens to protect commas in template arguments from the macro
       buf.writeln('${_pad}assert(($cond));');
     } else {
@@ -10316,8 +10547,8 @@ class CppEmitter {
               buf.writeln('${_pad}return dynAs<double>($value);');
             } else if (_currentReturnType == 'bool') {
               buf.writeln('${_pad}return dynAs<bool>($value);');
-            } else if (_currentReturnType == 'DartString') {
-              buf.writeln('${_pad}return dynAs<DartString>($value);');
+            } else if (_currentReturnType == 'string') {
+              buf.writeln('${_pad}return dynAs<string>($value);');
             } else if (_isCppTypeParameter(_currentReturnType)) {
               buf.writeln('${_pad}return dynAs<$_currentReturnType>($value);');
             } else {
@@ -10367,7 +10598,7 @@ class CppEmitter {
 
   /// 根据类型获取默认值
   String _getDefaultValueForType(String cppType) {
-    if (cppType == 'DartString') {
+    if (cppType == 'string') {
       return '""';
     } else if (cppType == 'int64_t') {
       return '0';
@@ -10417,7 +10648,7 @@ class CppEmitter {
     if (targetCppType == 'int64_t') return 'dynAs<int64_t>($value)';
     if (targetCppType == 'double') return 'dynAs<double>($value)';
     if (targetCppType == 'bool') return 'dynAs<bool>($value)';
-    if (targetCppType == 'DartString') return 'dynAs<DartString>($value)';
+    if (targetCppType == 'string') return 'dynAs<string>($value)';
     if (targetCppType.endsWith('*')) {
       final baseType = targetCppType.substring(0, targetCppType.length - 1);
       // 裸类型参数（如 T*）：使用 toGC() 兼容所有 AnyGC 子类
@@ -10462,7 +10693,7 @@ class CppEmitter {
 
   /// 检查表达式是否是 AnyGC* 类型（简单变量名为 AnyGC* 类型）
   bool _isAnyGCPtrExpr(String expr) {
-    // 检查复杂表达式是否返回 AnyGC*（ClassInfo dispatch 调用、_box、smAwait 等）
+    // 检查复杂表达式是否返回 AnyGC*（ClassInfo dispatch 调用、_box、sm_await 等）
     if (_isAnyPtrResult(expr)) return true;
     final cleanName = expr.replaceAll(RegExp(r'^[&*]+'), '').trim();
     final type = _variableTypeMap[cleanName];
@@ -10478,8 +10709,8 @@ class CppEmitter {
     if (RegExp(r'^-?\d+\.\d+$').hasMatch(otherOperand)) {
       return 'dynAs<double>($anyGCExpr)';
     }
-    if (otherOperand.startsWith('DartString(') || otherOperand.startsWith('"')) {
-      return 'dynAs<DartString>($anyGCExpr)';
+    if (otherOperand.startsWith('string(') || otherOperand.startsWith('"')) {
+      return 'dynAs<string>($anyGCExpr)';
     }
     if (otherOperand == 'true' || otherOperand == 'false') {
       return 'dynAs<bool>($anyGCExpr)';
@@ -10488,7 +10719,7 @@ class CppEmitter {
     final otherType = _variableTypeMap[otherOperand] ?? '';
     if (otherType == 'int64_t') return 'dynAs<int64_t>($anyGCExpr)';
     if (otherType == 'double') return 'dynAs<double>($anyGCExpr)';
-    if (otherType == 'DartString') return 'dynAs<DartString>($anyGCExpr)';
+    if (otherType == 'string') return 'dynAs<string>($anyGCExpr)';
     if (otherType == 'bool') return 'dynAs<bool>($anyGCExpr)';
     return null;
   }
@@ -10506,7 +10737,7 @@ class CppEmitter {
     if (argCppType == 'bool' || argExpr == 'true' || argExpr == 'false') {
       return 'GC::allocateLocal(new BoolBox($argExpr))';
     }
-    if (argCppType == 'DartString' || (argExpr.startsWith('DartString(') && argExpr.endsWith(')'))) {
+    if (argCppType == 'string' || (argExpr.startsWith('string(') && argExpr.endsWith(')'))) {
       return 'GC::allocateLocal(new StringBox($argExpr))';
     }
     if (argExpr == 'nullptr') return 'nullptr';
@@ -10517,7 +10748,7 @@ class CppEmitter {
   }
 
   /// 从 Box 类型中提取字符串值（用于异常构造函数）
-  /// 例如：GC::allocateLocal(new StringBox(DartString("msg"))) → DartString("msg")
+  /// 例如：GC::allocateLocal(new StringBox(string("msg"))) → string("msg")
   String _extractStringFromBox(String args) {
     // 匹配 StringBox
     final stringBoxMatch = RegExp(r'GC::allocateLocal\(new StringBox\((.+)\)\)$').firstMatch(args);
@@ -10554,7 +10785,7 @@ class CppEmitter {
     if (targetCppType == 'int64_t') return 'dynAs<int64_t>($value)';
     if (targetCppType == 'double') return 'dynAs<double>($value)';
     if (targetCppType == 'bool') return 'dynAs<bool>($value)';
-    if (targetCppType == 'DartString') return 'dynAs<DartString>($value)';
+    if (targetCppType == 'string') return 'dynAs<string>($value)';
     if (targetCppType.endsWith('*')) {
       // 对于包含模板参数的类型（如 LinkedNodeValue<T>*），仍然使用 static_cast
       // 因为目标类型与 AnyGC 有继承关系
@@ -10594,7 +10825,7 @@ class CppEmitter {
   }
 
   /// 检查表达式是否是直接的 ClassInfo 派发结果（返回 AnyGC*）
-  /// 仅匹配 static_cast<XxxClassInfo<...>*>(...->_classInfo)->method(args) 模式
+  /// 仅匹配 static_cast<const XxxClassInfo<...>*>(...->_classInfo)->method(args) 模式
   /// 排除已被 _unboxElem<> / dynAs<> 转换或被进一步 ->method()/->field 访问的表达式
   bool _isDirectClassInfoDispatchResult(String expr) {
     if (expr.startsWith('dynAs<') || expr.startsWith('_unboxElem<')) return false;
@@ -10639,22 +10870,22 @@ class CppEmitter {
     // Base ClassInfo
     'eq', 'get_hashCode', 'compareTo', 'get_length',
     'contains', 'containsKey', 'setIndex',
-    // StaticListClassInfo
+    // ListClassInfo
     'get_isEmpty', 'get_isNotEmpty', 'remove', 'any_', 'every_',
     'indexOf', 'lastIndexOf', 'indexWhere', 'lastIndexWhere',
     'removeRange', 'fillRange',
-    // StaticSetClassInfo
+    // SetClassInfo
     'add', // Set.add returns bool (List.add is void, handled separately)
     'containsValue', 'containsAll', 'removeWhere', 'retainWhere', 'clear',
-    // StaticIteratorClassInfo
+    // IteratorClassInfo
     'moveNext',
     // PromiseBaseClassInfo
     'get_isCompleted', 'get_isError', 'get_isReady', 'get_isPending',
-    // StaticDateTimeClassInfo
+    // DateTimeClassInfo
     'get_isUtc', 'get_year', 'get_month', 'get_day', 'get_hour',
     'get_minute', 'get_second', 'get_millisecond', 'get_weekday',
     'get_millisecondsSinceEpoch', 'get_microsecondsSinceEpoch',
-    // StaticDurationClassInfo
+    // DurationClassInfo
     'get_inDays', 'get_inHours', 'get_inMinutes', 'get_inSeconds',
     'get_inMilliseconds',
     // AsyncStateMachineClassInfo
@@ -10665,22 +10896,29 @@ class CppEmitter {
   /// Returns null if the expression is not a ClassInfo dispatch.
   /// Tracks parenthesis depth to find the outermost dispatch in nested expressions.
   String? _extractClassInfoFieldName(String expr) {
-    if (!expr.contains('_classInfo')) return null;
-    // Find all _classInfo->field( or _classInfo)->field( patterns,
-    // return the one at the lowest parenthesis depth (outermost dispatch).
-    final pattern = RegExp(r'_classInfo\)?->(\w+)\(');
+    // 找最外层（括号深度最低）的派发字段：
+    //   1) _classInfo)->field(  /  _classInfo->field(
+    //   2) _slot(rcv, SEL_field)
     String? bestField;
     int bestDepth = 0x7FFFFFFF;
-    for (final match in pattern.allMatches(expr)) {
+
+    void consider(int start, String field) {
       int depth = 0;
-      for (int i = 0; i < match.start; i++) {
+      for (int i = 0; i < start; i++) {
         if (expr[i] == '(') depth++;
         else if (expr[i] == ')') depth--;
       }
       if (depth < bestDepth) {
         bestDepth = depth;
-        bestField = match.group(1);
+        bestField = field;
       }
+    }
+
+    for (final match in RegExp(r'_classInfo\)?->(\w+)\(').allMatches(expr)) {
+      consider(match.start, match.group(1)!);
+    }
+    for (final match in RegExp(r'_slot\s*\([^,]+,\s*SEL_(\w+)\s*\)').allMatches(expr)) {
+      consider(match.start, match.group(1)!);
     }
     return bestField;
   }
@@ -10714,7 +10952,7 @@ class CppEmitter {
       if (_getParentTypeParamReturn(proc, proc.name.text) != null) {
         // For concrete classes inheriting from generic parent, resolved type is used
         if (retType == 'int64_t' || retType == 'bool' || retType == 'double' ||
-            retType == 'DartString' || (retType.endsWith('*') && retType != 'AnyGC*')) {
+            retType == 'string' || (retType.endsWith('*') && retType != 'AnyGC*')) {
           return true;
         }
       }
@@ -10726,11 +10964,12 @@ class CppEmitter {
   }
 
   /// Try to resolve the Procedure for a ClassInfo dispatch expression.
-  /// Handles patterns like `static_cast<XxxClassInfo<TArgs>*>(...)->method(...)`.
+  /// Handles patterns like `static_cast<const XxxClassInfo<TArgs>*>(...)->method(...)`.
   /// Returns null if the class or method cannot be determined from the expression.
   Procedure? _resolveClassInfoMethodProc(String expr, String fieldName) {
-    // Pattern 1: static_cast<XxxClassInfo<TArgs>*>(...)->field(
-    final castMatch = RegExp(r'static_cast<([A-Za-z_][A-Za-z0-9_]*ClassInfo)(?:<[^>]*>)?\*>\(')
+    // Pattern 1: static_cast<const XxxClassInfo<TArgs>*>(...)->field(
+    final castMatch = RegExp(
+            r'static_cast<(?:const\s+)?([A-Za-z_][A-Za-z0-9_]*ClassInfo)(?:<[^>]*>)?\*>\(')
         .firstMatch(expr);
     if (castMatch != null) {
       final ciClassName = castMatch.group(1)!;
@@ -10755,9 +10994,14 @@ class CppEmitter {
   /// instead of AnyGC*. Used to avoid unnecessary dynAs wrapping.
   /// Fallback for cases where ciField/proc are not available (uses string parsing).
   bool _isRawReturnClassInfoDispatch(String expr) {
-    if (!expr.contains('_classInfo')) return false;
     final fieldName = _extractClassInfoFieldName(expr);
     if (fieldName == null) return false;
+    // slots 派发：用注册的 selector 签名判定原始返回类型
+    if (_usesSelectorTable(fieldName)) {
+      final ret = _selectorSigs[fieldName]?.retType;
+      return ret == 'bool' || ret == 'int64_t' || ret == 'void';
+    }
+    if (!expr.contains('_classInfo') && !expr.contains('_slot')) return false;
     final proc = _resolveClassInfoMethodProc(expr, fieldName);
     if (proc != null) return _isRawReturnField(fieldName, proc);
     return _isRawReturnField(fieldName);
@@ -10772,16 +11016,35 @@ class CppEmitter {
     // Raw-returning ClassInfo dispatch (get_length→int64_t, contains→bool, etc.)
     // returns raw types, not AnyGC*
     if (_isRawReturnClassInfoDispatch(expr)) return false;
+    // slots 派发：仅当表达式本身就是一次 slots 调用时判定
+    // 形如 ((Ret(*)(...))_slot(rcv, SEL_x))(...)
+    {
+      var core = expr;
+      // 剥掉外层 dynAs / static_cast 包装后再判断
+      final dynAsWrap = RegExp(r'^dynAs<[^>]+>\((.*)\)$').firstMatch(core);
+      if (dynAsWrap != null) core = dynAsWrap.group(1)!;
+      if (RegExp(r'^\(\([^)]*\)_slot\s*\([^)]+\)\)\(').hasMatch(core)) {
+        final fieldName = _extractClassInfoFieldName(core);
+        if (fieldName != null && _usesSelectorTable(fieldName)) {
+          final ret = _selectorSigs[fieldName]?.retType;
+          if (ret == 'bool' || ret == 'int64_t' || ret == 'void' || ret == 'double') {
+            return false;
+          }
+          return ret == 'AnyGC*' || (ret != null && ret.endsWith('*'));
+        }
+        return true;
+      }
+    }
     if (expr.startsWith("static_cast<") && expr.contains("_classInfo)->")) return true;  // ClassInfo vptr dispatch (handles both ->_classInfo and AnyGC::_classInfo)
-    if (expr.startsWith("(static_cast<ClassInfo*>")) return true;  // ClassInfo dispatch
+    if (expr.startsWith("(static_cast<const ClassInfo*>")) return true;  // ClassInfo dispatch
     // ClassInfo function-pointer dispatch via AnyGC*->_classInfo->method(...) returns AnyGC*
     if (expr.startsWith('static_cast<AnyGC*>(') && expr.contains('_classInfo->')) return true;
     // iterator_current / iterator_moveNext dispatch via ClassInfo returns AnyGC*
     if (expr.startsWith('iterator_current(')) return true;
     if (expr.startsWith('_box(')) return true;
     if (expr == 'nullptr') return true;
-    // smAwait<AnyGC*> returns AnyGC*, but smAwait<T> returns T
-    if (expr.startsWith('smAwait<AnyGC*>') || expr.startsWith('smAwait(')) return true;
+    // sm_await<AnyGC*> returns AnyGC*, but sm_await<T> returns T
+    if (expr.startsWith('sm_await<AnyGC*>') || expr.startsWith('sm_await(')) return true;
     // Promise/CompleterState 的 .result 和 .error 字段是 AnyGC*
     if (expr.endsWith('->result') || expr.endsWith('.result')) return true;
     if (expr.endsWith('->error') || expr.endsWith('.error')) return true;
@@ -10791,14 +11054,14 @@ class CppEmitter {
     }
     // Map access 返回类型取决于值类型：
     // - 值类型 (int64_t, string): (*(*map)[key]) — 直接返回值，不是 AnyPtr
-    // - 指针类型 (AnyGC*, StaticList<...>*): _box(*(*map)[key]) — 被 AnyPtr::from 捕获
+    // - 指针类型 (AnyGC*, List<...>*): _box(*(*map)[key]) — 被 AnyPtr::from 捕获
     // 不再需要 (*(* 模式检测
     return false;
   }
 
   /// 判断表达式是否是类型擦除的集合模板方法结果（map/expand/cast/whereType）。
-  /// 这些方法通过 ClassInfo 派发返回 StaticList/Set/Map<AnyGC*, ...>*，
-  /// 不应该再 static_cast 到具体的 StaticList<T>* 类型。
+  /// 这些方法通过 ClassInfo 派发返回 List/Set/Map<AnyGC*, ...>*，
+  /// 不应该再 static_cast 到具体的 List<T>* 类型。
   bool _isTypeErasedCollectionResult(String expr) {
     // 匹配 ...ClassInfo<...>->map(...) / ->expand(...) / ->cast_(...) / ->whereType(...)
     final dispatchPattern = RegExp(r'_classInfo\)->(map|expand|cast_|whereType)\(');
@@ -10818,7 +11081,7 @@ class CppEmitter {
     if (cppType == 'int64_t') return 'dynAs<int64_t>($receiver)';
     if (cppType == 'double') return 'dynAs<double>($receiver)';
     if (cppType == 'bool') return 'dynAs<bool>($receiver)';
-    if (cppType == 'DartString') return 'dynAs<DartString>($receiver)';
+    if (cppType == 'string') return 'dynAs<string>($receiver)';
 
     // 指针类型（集合、用户类等）— 使用 static_cast 向下转型
     // 需要先将 AnyGC* 转换为 AnyGC*，再 static_cast 到目标类型
@@ -10834,8 +11097,8 @@ class CppEmitter {
         return 'static_cast<AnyGC*>($receiver)';
       }
       // Collection template methods (map/expand/cast/whereType) return type-erased
-      // StaticList<AnyGC*>* / StaticSet<AnyGC*>* / StaticMap<AnyGC*,AnyGC*>*.
-      // Casting that to a specific StaticList<T>* is invalid; leave as AnyGC*.
+      // List<AnyGC*>* / Set<AnyGC*>* / Map<AnyGC*,AnyGC*>*.
+      // Casting that to a specific List<T>* is invalid; leave as AnyGC*.
       if (_isTypeErasedCollectionResult(receiver)) {
         return 'static_cast<AnyGC*>($receiver)';
       }
@@ -10918,11 +11181,11 @@ class CppEmitter {
     String iteratorType = 'auto';
     if (iterableType is InterfaceType) {
       final typeName = iterableType.classNode.name;
-      if (typeName == 'List' || typeName == 'StaticList') {
+      if (typeName == 'List') {
         final elemType = iterableType.typeArguments.isNotEmpty
             ? _cppType(iterableType.typeArguments.first)
             : 'AnyGC*';
-        iteratorType = 'StaticIterator<$elemType>*';
+        iteratorType = 'Iterator<$elemType>*';
       }
     }
 
@@ -11240,13 +11503,13 @@ class CppEmitter {
     final expr = _emitCppExpr(stmt.expression);
     // 检测是否在枚举类型上 switch — C++ switch 需要整型表达式
     final isEnumSwitch = _isEnumExpression(stmt.expression);
-    // 检测是否在字符串类型上 switch — C++ 不支持 switch on DartString
+    // 检测是否在字符串类型上 switch — C++ 不支持 switch on string
     final isStringSwitch = _isStringExpression(stmt.expression);
 
     if (isStringSwitch) {
       // 将 string switch 转换为 if-else 链
       final varName = '_sw${_varCounter++}';
-      buf.writeln('${_pad}const DartString& $varName = $expr;');
+      buf.writeln('${_pad}const string& $varName = $expr;');
       bool first = true;
       for (int i = 0; i < stmt.cases.length; i++) {
         final c = stmt.cases[i];
@@ -11384,7 +11647,7 @@ class CppEmitter {
   // 常量生成
   // ==========================================================================
 
-  /// 将常量值装箱为 AnyGC*（用于 StaticList<AnyGC*> / StaticSet<AnyGC*> 的元素）
+  /// 将常量值装箱为 AnyGC*（用于 List<AnyGC*> / Set<AnyGC*> 的元素）
   String _boxConstantForAnyGC(String elemStr, Constant constant) {
     if (constant is IntConstant) return '_box(${constant.value}LL)';
     if (constant is DoubleConstant) return '_box($elemStr)';
@@ -11407,7 +11670,7 @@ class CppEmitter {
     if (constant is ListConstant) {
       final inner = constant.typeArgument != null ? _cppType(constant.typeArgument!) : 'AnyGC*';
       if (constant.entries.isEmpty) {
-        return 'GC::allocateLocal(new StaticList<$inner>())';
+        return 'GC::allocateLocal(new List<$inner>())';
       }
       final elements = constant.entries.map((e) {
         var elemStr = _emitCppConstant(e);
@@ -11416,16 +11679,16 @@ class CppEmitter {
         }
         return elemStr;
       }).join(', ');
-      return 'GC::allocateLocal(new StaticList<$inner>({$elements}))';
+      return 'GC::allocateLocal(new List<$inner>({$elements}))';
     }
     if (constant is MapConstant) {
       final keyType = constant.keyType != null ? _cppType(constant.keyType!) : 'AnyGC*';
       final valType = constant.valueType != null ? _cppType(constant.valueType!) : 'AnyGC*';
-      return 'GC::allocateLocal(new StaticMap<$keyType, $valType>())';
+      return 'GC::allocateLocal(new Map<$keyType, $valType>())';
     }
     if (constant is SetConstant) {
       final inner = constant.typeArgument != null ? _cppType(constant.typeArgument!) : 'AnyGC*';
-      if (constant.entries.isEmpty) return 'GC::allocateLocal(new StaticSet<$inner>())';
+      if (constant.entries.isEmpty) return 'GC::allocateLocal(new Set<$inner>())';
       final elements = constant.entries.map((e) {
         var elemStr = _emitCppConstant(e);
         if (inner == 'AnyGC*') {
@@ -11433,7 +11696,7 @@ class CppEmitter {
         }
         return elemStr;
       }).join(', ');
-      return 'GC::allocateLocal(new StaticSet<$inner>({$elements}))';
+      return 'GC::allocateLocal(new Set<$inner>({$elements}))';
     }
     if (constant is InstanceConstant) {
       final className = _cleanName(constant.classNode.name);
@@ -11463,7 +11726,7 @@ class CppEmitter {
       }
       // 其他 InstanceConstant（如 Duration 等）
       if (className == 'Duration') {
-        return 'GC::allocateLocal(new StaticDuration())';
+        return 'GC::allocateLocal(new Duration())';
       }
       // 用户自定义类的 const 构造函数：生成 IIFE 初始化
       final structName = _isRuntimeClassName(className) ? className : '${className}Value';
@@ -11549,7 +11812,7 @@ class CppEmitter {
       // Determine the function to call
       String callTarget;
       if (funcName == 'print') {
-        callTarget = 'staticPrint';
+        callTarget = 'dart_print';
       } else {
         callTarget = _cleanName(funcName);
       }
@@ -11597,9 +11860,9 @@ class CppEmitter {
       }
 
       // Emit the closure struct to _structBuf
-      _structBuf.writeln('struct ${closureName}ClassInfo : ClassInfo { ${closureName}ClassInfo(); };');
+      _structBuf.writeln('struct ${closureName}ClassInfo : ClassInfo {};');
       _structBuf.writeln('struct $closureName : $typeFunctionBase {');
-      _structBuf.writeln('    static ${closureName}ClassInfo _classInfo;');
+      _structBuf.writeln('    static const ${closureName}ClassInfo _classInfo;');
       _structBuf.writeln('    $closureName() {');
       _structBuf.writeln('        this->fnPtr = &_trampoline;');
       _structBuf.writeln('        AnyGC::_classInfo = &_classInfo;');
@@ -11613,11 +11876,16 @@ class CppEmitter {
       _structBuf.writeln('    }');
       _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {}');
       _structBuf.writeln('};');
-      _structBuf.writeln('${closureName}ClassInfo::${closureName}ClassInfo() {');
-      _structBuf.writeln('    typeName = "Closure";');
-      _structBuf.writeln('    gcMark = &$closureName::_gcMark_impl;');
+      _structBuf.writeln(
+          'constexpr ${closureName}ClassInfo make_${closureName}ClassInfo() {');
+      _structBuf.writeln('    ${closureName}ClassInfo ci{};');
+      _structBuf.writeln('    ci.typeName = "Closure";');
+      _structBuf.writeln('    ci.destroy = &_gcDestroy<$closureName>;');
+      _structBuf.writeln('    ci.gcMark = &$closureName::_gcMark_impl;');
+      _structBuf.writeln('    return ci;');
       _structBuf.writeln('}');
-      _structBuf.writeln('${closureName}ClassInfo $closureName::_classInfo = ${closureName}ClassInfo();');
+      _structBuf.writeln(
+          'inline constexpr ${closureName}ClassInfo $closureName::_classInfo = make_${closureName}ClassInfo();');
       _structBuf.writeln();
 
       // Return an instance of the closure with static_cast to base type
@@ -11652,11 +11920,11 @@ class CppEmitter {
       final sourceCppType = sourceType != null ? _cppType(sourceType) : '';
       if (sourceCppType == 'int64_t' || sourceCppType == 'int' ||
           sourceCppType == 'double' || sourceCppType == 'bool' ||
-          sourceCppType == 'DartString' ||
+          sourceCppType == 'string' ||
           RegExp(r'^-?\d+LL$').hasMatch(expr) ||
           RegExp(r'^-?\d+\.\d+$').hasMatch(expr) ||
           expr == 'true' || expr == 'false' ||
-          expr.startsWith('DartString(') || expr.startsWith('"')) {
+          expr.startsWith('string(') || expr.startsWith('"')) {
         return '_box($expr)';
       }
       return expr;
@@ -11667,18 +11935,18 @@ class CppEmitter {
 
     // Type-erased collection dispatch (map/expand/cast_/whereType) returns AnyGC*
     // pointing to a collection whose element type is erased. When the target type
-    // is a concrete StaticList/Set/Map, copy the elements into a properly typed
+    // is a concrete List/Set/Map, copy the elements into a properly typed
     // collection instead of doing an unsafe static_cast.
     if (_isTypeErasedCollectionResult(expr)) {
-      final listMatch = RegExp(r'^StaticList<(.+)>\*$').firstMatch(targetType);
+      final listMatch = RegExp(r'^List<(.+)>\*$').firstMatch(targetType);
       if (listMatch != null) {
         return '_typedListFromAnyGC<${listMatch.group(1)}>($expr)';
       }
-      final setMatch = RegExp(r'^StaticSet<(.+)>\*$').firstMatch(targetType);
+      final setMatch = RegExp(r'^Set<(.+)>\*$').firstMatch(targetType);
       if (setMatch != null) {
         return '_typedSetFromAnyGC<${setMatch.group(1)}>($expr)';
       }
-      final mapMatch = RegExp(r'^StaticMap<(.+)>\*$').firstMatch(targetType);
+      final mapMatch = RegExp(r'^Map<(.+)>\*$').firstMatch(targetType);
       if (mapMatch != null) {
         return '_typedMapFromAnyGC<${mapMatch.group(1)}>($expr)';
       }
@@ -11691,7 +11959,7 @@ class CppEmitter {
         case 'int': return 'static_cast<int>(dynAs<int64_t>($expr))';
         case 'double': return 'dynAs<double>($expr)';
         case 'bool': return 'dynAs<bool>($expr)';
-        case 'DartString': return 'dynAs<DartString>($expr)';
+        case 'string': return 'dynAs<string>($expr)';
       }
       // For template type parameters (like TInput, TOutput), use dynAs<T>()
       if (_isCppTypeParameter(targetType)) {
@@ -11710,7 +11978,7 @@ class CppEmitter {
         }
         return 'static_cast<$baseType*>($expr)';
       }
-      // 基础值类型（int64_t/double/bool/DartString）经 dynAs 拆箱；
+      // 基础值类型（int64_t/double/bool/string）经 dynAs 拆箱；
       // 其余具体类型均为 AnyGC 指针语义，已在上面 endsWith('*') 分支处理
       return 'dynAs<$targetType>($expr)';
     }
@@ -11720,7 +11988,149 @@ class CppEmitter {
       return _unwrapFromAnyGCPtr(expr, targetType);
     }
 
+    // implements 接口上转型：两侧都是用户类/接口指针，但 C++ 不再通过结构体继承对齐，
+    // 经 AnyGC* 做 static_cast（两者均为 AnyGC 子类，布局兼容）。
+    if (sourceCppType.endsWith('*') &&
+        targetType.endsWith('*') &&
+        sourceCppType != targetType &&
+        (_needsInterfacePtrCast(sourceType, targetType) ||
+            _needsInterfacePtrCastByCppTypes(sourceCppType, targetType))) {
+      final baseType = targetType.substring(0, targetType.length - 1);
+      return 'static_cast<$baseType*>(static_cast<AnyGC*>($expr))';
+    }
+
+    // 源类型未知时，尝试从表达式形态推断（Xxx_new → XxxValue*）
+    if ((sourceCppType.isEmpty || sourceType == null) && targetType.endsWith('*')) {
+      final inferred = _inferCppPtrTypeFromExpr(expr);
+      if (inferred != null &&
+          inferred != targetType &&
+          _needsInterfacePtrCastByCppTypes(inferred, targetType)) {
+        final baseType = targetType.substring(0, targetType.length - 1);
+        return 'static_cast<$baseType*>(static_cast<AnyGC*>($expr))';
+      }
+    }
+
     return expr;
+  }
+
+  /// 从已发出的 C++ 表达式推断指针类型（如 Circle_new(...) → CircleValue*）
+  String? _inferCppPtrTypeFromExpr(String expr) {
+    final m = RegExp(r'^([A-Za-z_][A-Za-z0-9_]*)_new\s*(?:<[^>]*>)?\s*\(').firstMatch(expr);
+    if (m != null) {
+      final name = m.group(1)!;
+      if (_enumNames.contains(name)) return '$name*';
+      if (_mixinNames.contains(name)) return '${name}Mixin*';
+      if (_userClasses.contains(name)) return '${_cleanName(name)}Value*';
+    }
+    final alloc = RegExp(r'new\s+([A-Za-z_][A-Za-z0-9_]*(?:<[^>]*>)?)').firstMatch(expr);
+    if (alloc != null) return '${alloc.group(1)}*';
+    return null;
+  }
+
+  /// 仅凭 C++ 类型名判断是否需要经 AnyGC* 的接口转型
+  bool _needsInterfacePtrCastByCppTypes(String sourceCppType, String targetCppType) {
+    if (!sourceCppType.endsWith('*') || !targetCppType.endsWith('*')) return false;
+    if (sourceCppType == targetCppType) return false;
+    String dartName(String cpp) {
+      final core = cpp.replaceAll('*', '').replaceAll(RegExp(r'<.*>'), '');
+      if (core.endsWith('Value')) return core.substring(0, core.length - 5);
+      if (core.endsWith('Mixin')) return core.substring(0, core.length - 5);
+      return core;
+    }
+    final src = dartName(sourceCppType);
+    final tgt = dartName(targetCppType);
+    if (!_userClasses.contains(src) && !_mixinNames.contains(src) && !_enumNames.contains(src)) {
+      return false;
+    }
+    if (!_userClasses.contains(tgt) && !_mixinNames.contains(tgt) && !_enumNames.contains(tgt)) {
+      return false;
+    }
+    if (_cppInheritsFrom(src, tgt) || _cppInheritsFrom(tgt, src)) return false;
+    return true;
+  }
+
+  /// 将指针表达式转型到 targetBase*。
+  /// 若两侧无 C++ 继承关系（implements 接口），经 AnyGC* 中转。
+  String _castPtrExpr(String expr, String targetBase, String sourceCppType) {
+    if (sourceCppType == '$targetBase*') return expr;
+    if (sourceCppType == 'AnyGC*' || sourceCppType.isEmpty) {
+      return 'static_cast<$targetBase*>($expr)';
+    }
+    if (_needsInterfacePtrCast(
+        null, // 用 C++ 类型名回退判定
+        '$targetBase*')) {
+      // 上面 null sourceType 会返回 false；改用名字推断
+    }
+    // 从 sourceCppType 提取 Dart 类名
+    final srcCore = sourceCppType
+        .replaceAll('*', '')
+        .replaceAll(RegExp(r'<.*>'), '');
+    final srcDart = srcCore.endsWith('Value')
+        ? srcCore.substring(0, srcCore.length - 5)
+        : (srcCore.endsWith('Mixin')
+            ? srcCore.substring(0, srcCore.length - 5)
+            : srcCore);
+    final tgtCore = targetBase.replaceAll(RegExp(r'<.*>'), '');
+    final tgtDart = tgtCore.endsWith('Value')
+        ? tgtCore.substring(0, tgtCore.length - 5)
+        : (tgtCore.endsWith('Mixin')
+            ? tgtCore.substring(0, tgtCore.length - 5)
+            : tgtCore);
+    if (_cppInheritsFrom(srcDart, tgtDart) || _cppInheritsFrom(tgtDart, srcDart)) {
+      return 'static_cast<$targetBase*>($expr)';
+    }
+    // implements / 无继承关系：经 AnyGC*
+    return 'static_cast<$targetBase*>(static_cast<AnyGC*>($expr))';
+  }
+
+  /// 判断是否需要经 AnyGC* 的指针转型（implements 接口、无 C++ 继承关系的用户类之间）
+  bool _needsInterfacePtrCast(DartType? sourceType, String targetCppType) {
+    if (sourceType is! InterfaceType) return false;
+    final srcName = sourceType.classNode.name;
+    if (!_userClasses.contains(srcName) && !_mixinNames.contains(srcName) && !_enumNames.contains(srcName)) {
+      return false;
+    }
+    // 目标必须是用户类 / mixin / enum 指针
+    final targetBase = targetCppType.substring(0, targetCppType.length - 1);
+    // 去掉模板实参: FooValue<T> → FooValue
+    final targetCore = targetBase.replaceAll(RegExp(r'<.*>'), '');
+    final targetDartName = targetCore.endsWith('Value')
+        ? targetCore.substring(0, targetCore.length - 5)
+        : (targetCore.endsWith('Mixin')
+            ? targetCore.substring(0, targetCore.length - 5)
+            : targetCore);
+    if (!_userClasses.contains(targetDartName) &&
+        !_mixinNames.contains(targetDartName) &&
+        !_enumNames.contains(targetDartName)) {
+      return false;
+    }
+    // 若 C++ 侧仍有继承关系（真正的 extends），不需要额外转型
+    if (_cppInheritsFrom(srcName, targetDartName)) return false;
+    return true;
+  }
+
+  /// 沿 _classHierarchy 判断 src 是否（在 C++ 生成侧）继承自 ancestor
+  bool _cppInheritsFrom(String srcName, String ancestorName) {
+    var cur = srcName;
+    final seen = <String>{};
+    while (seen.add(cur)) {
+      if (cur == ancestorName) return true;
+      final parent = _classHierarchy[cur];
+      if (parent == null || parent == cur || parent == 'Object') break;
+      // 跳过合成 mixin application 名
+      var resolved = parent;
+      while (resolved.isNotEmpty && _syntheticLoweredNames.contains(resolved)) {
+        final next = _classHierarchy[resolved];
+        if (next == null || next == resolved || next == 'Object') {
+          resolved = '';
+          break;
+        }
+        resolved = next;
+      }
+      if (resolved.isEmpty) break;
+      cur = resolved;
+    }
+    return false;
   }
 
   // ==========================================================================
@@ -11814,8 +12224,8 @@ class CppEmitter {
     // int64_t and bool now return raw from ClassInfo — no dynAs needed
     if (retType == 'int64_t' || retType == 'bool') return '';
     if (retType == 'double') return 'dynAs<double>';
-    if (retType == 'DartString') return 'dynAs<DartString>';
-    // 其余具体值类型（double/DartString 已在上面处理；指针类型无需解包后缀）
+    if (retType == 'string') return 'dynAs<string>';
+    // 其余具体值类型（double/string 已在上面处理；指针类型无需解包后缀）
     if (_isConcreteCppReturnType(retType)) return 'dynAs<$retType>';
     return '';
   }
@@ -11836,7 +12246,7 @@ class CppEmitter {
     // 排除单字母模板参数 (T, R, A, B, C, etc.)
     if (RegExp(r'^[A-Z]$').hasMatch(type)) return false;
     // 已知的具体值类型（其余具体类型一律为 AnyGC 指针语义，由 endsWith('*') 分支处理）
-    const concreteTypes = {'int64_t', 'double', 'bool', 'DartString', 'int32_t', 'int16_t', 'int8_t', 'uint64_t', 'uint32_t', 'float'};
+    const concreteTypes = {'int64_t', 'double', 'bool', 'string', 'int32_t', 'int16_t', 'int8_t', 'uint64_t', 'uint32_t', 'float'};
     return concreteTypes.contains(type);
   }
 
@@ -11908,24 +12318,18 @@ class CppEmitter {
       if (name == 'Object') return 'ClassInfo';
       // Dart 集合类型 → C++ StaticXxxClassInfo 映射
       const ciNameMap = {
-        'List': 'StaticListClassInfo',
-        'StaticList': 'StaticListClassInfo',
-        '_List': 'StaticListClassInfo',
-        '_GrowableList': 'StaticListClassInfo',
-        'Iterable': 'StaticListClassInfo',
-        '_Iterable': 'StaticListClassInfo',
-        'Map': 'StaticMapClassInfo',
-        'StaticMap': 'StaticMapClassInfo',
-        '_Map': 'StaticMapClassInfo',
-        'Set': 'StaticSetClassInfo',
-        'StaticSet': 'StaticSetClassInfo',
-        '_Set': 'StaticSetClassInfo',
-        'StringBuffer': 'StaticStringBufferClassInfo',
-        'StaticStringBuffer': 'StaticStringBufferClassInfo',
-        'Duration': 'StaticDurationClassInfo',
-        'StaticDuration': 'StaticDurationClassInfo',
-        'DateTime': 'StaticDateTimeClassInfo',
-        'StaticDateTime': 'StaticDateTimeClassInfo',
+        'List': 'ListClassInfo',
+        '_List': 'ListClassInfo',
+        '_GrowableList': 'ListClassInfo',
+        'Iterable': 'ListClassInfo',
+        '_Iterable': 'ListClassInfo',
+        'Map': 'MapClassInfo',
+        '_Map': 'MapClassInfo',
+        'Set': 'SetClassInfo',
+        '_Set': 'SetClassInfo',
+        'StringBuffer': 'StringBufferClassInfo',
+        'Duration': 'DurationClassInfo',
+        'DateTime': 'DateTimeClassInfo',
       };
       final typeArgs = type.typeArguments;
       if (ciNameMap.containsKey(name)) {
@@ -11952,9 +12356,13 @@ class CppEmitter {
     return 'ClassInfo';
   }
 
-  /// 生成 ClassInfo 字段访问表达式
-  /// 对 AnyGC 子类: static_cast<XxxClassInfo*>(receiver->_classInfo)->fieldName
-  /// 对 Mixin (AnyGC 子类): XxxMixin::_classInfo.fieldName
+  /// 生成 ClassInfo 字段 / slots 访问表达式（结果是可调用的函数指针）。
+  ///
+  /// ready selector：((Ret(*)(AnyGC*,...))rcv->_classInfo->slots[SEL_x])
+  ///   —— 槽位由全局 id 决定，与 ClassInfo 结构体继承布局无关，多接口安全。
+  /// 其余：沿用 static_cast<const XxxClassInfo*>(...)->fieldName 字段路径。
+  /// 运行时集合（List/Map/Set 等）始终走 ClassInfo 字段，避免与用户
+  /// selector 同名（如 add）时误入空的 slots 表。
   String _classInfoAccess(String receiver, DartType? receiverType, String fieldName) {
     // 检查类型提升：如果 receiver 是变量且有提升类型，使用提升类型
     if (_typePromotions.containsKey(receiver)) {
@@ -11963,12 +12371,31 @@ class CppEmitter {
     var ciType = _classInfoTypeName(receiverType);
     final cppType = receiverType != null ? _cppType(receiverType) : '';
 
-    // Mixin 类型继承 AnyGC，没有 _classInfo 指针字段，使用静态成员直接访问
+    // ── 接口角色静态类型：经 _ifaceAdapter 取实现者适配表，再按接口 ClassInfo 字段调用 ──
+    if (receiverType is InterfaceType) {
+      final ifaceName = receiverType.classNode.name;
+      if (_isInterfaceRole(ifaceName) &&
+          !_isRuntimeCollectionReceiver(receiverType, cppType, receiver)) {
+        final rcv = _anyGcReceiverExpr(receiver, cppType);
+        final ifaceId = _ifaceIdentityRef(ifaceName, receiverType.typeArguments);
+        final ifaceCi = _ifaceClassInfoType(ifaceName, receiverType.typeArguments);
+        return 'static_cast<const $ifaceCi*>(_ifaceAdapter($rcv, &$ifaceId))->$fieldName';
+      }
+    }
+
+    // ── ready selector：统一走对象 slots 表（集合/运行时类除外）──
+    if (_usesSelectorTable(fieldName) && !_isRuntimeCollectionReceiver(receiverType, cppType, receiver)) {
+      final rcv = _anyGcReceiverExpr(receiver, cppType);
+      final fnType = _selectorFnPtrType(fieldName);
+      final sel = _selectorEnumName(fieldName);
+      return '(($fnType)_slot($rcv, $sel))';
+    }
+
+    // Mixin 类型：静态 ClassInfo 字段（仅非 ready selector 仍走此路径）
     if (receiverType is InterfaceType) {
       final className = receiverType.classNode.name;
       if (_mixinNames.contains(className)) {
         final mixinStructName = '${_cleanName(className)}Mixin';
-        // 模板 mixin 需要模板参数
         final mixinCls = _classNodes[className];
         final mixinTypeParams = mixinCls?.typeParameters ?? [];
         if (mixinTypeParams.isNotEmpty) {
@@ -11978,20 +12405,14 @@ class CppEmitter {
         return '$mixinStructName::_classInfo.$fieldName';
       }
     }
-    // 也检查 C++ 类型名是否以 Mixin 结尾（处理 receiverType 为 null 的情况）
     if (cppType.endsWith('Mixin') || cppType.endsWith('Mixin*')) {
       final mixinStructName = cppType.replaceAll('*', '');
       return '$mixinStructName::_classInfo.$fieldName';
     }
     // 当前正在生成的类是 mixin 时（receiverType 为 null 的 self-call）
-    // 通过 _classInfo 获取具体类的 ClassInfo 指针，
-    // 这样可以访问 on 约束中的方法（如 Scalable on Measurable 中的 measure）
-    // 仅当 receiver 是简单变量（self 引用）时才走此路径，
-    // 对于字段访问（如 this_->_tags）应使用字段类型的 ClassInfo
     if (_mixinNames.contains(_currentClassName) &&
         ciType == 'ClassInfo' &&
         !receiver.contains('->') && !receiver.contains('.')) {
-      // 检查方法是否在 mixin 自身的 procedures 中
       final mixinCls = _classNodes[_currentClassName];
       bool hasOwnMethod = false;
       if (mixinCls != null) {
@@ -12004,8 +12425,8 @@ class CppEmitter {
         });
       }
       if (hasOwnMethod) {
+        // 非 ready：仍走 mixin 静态 ClassInfo（兼容旧字段路径）
         final mixinStructName = '${_cleanName(_currentClassName)}Mixin';
-        // 模板 mixin 需要模板参数
         final mixinTypeParams = mixinCls?.typeParameters ?? [];
         if (mixinTypeParams.isNotEmpty) {
           final args = mixinTypeParams.map((tp) => tp.name ?? 'T').join(', ');
@@ -12013,7 +12434,6 @@ class CppEmitter {
         }
         return '$mixinStructName::_classInfo.$fieldName';
       }
-      // 方法不在 mixin 自身中，通过 _classInfo 派发
       String mixinCiType = 'ClassInfo';
       if (mixinCls != null && mixinCls.supertype != null) {
         final superType = mixinCls.supertype!;
@@ -12034,14 +12454,13 @@ class CppEmitter {
           }
         }
       }
-      return 'static_cast<$mixinCiType*>(static_cast<AnyGC*>($receiver)->_classInfo)->$fieldName';
+      return 'static_cast<const $mixinCiType*>(static_cast<AnyGC*>($receiver)->_classInfo)->$fieldName';
     }
     // receiverType 为 null 时，使用当前类的 ClassInfo 类型
     if (ciType == 'ClassInfo' && _currentClassName.isNotEmpty && _userClasses.contains(_currentClassName)) {
       final cleanName = _cleanName(_currentClassName);
       final cls = _classNodes[_currentClassName];
       final typeParams = cls?.typeParameters ?? [];
-      // 仅当模板参数在当前作用域内时才添加模板参数
       if (typeParams.isNotEmpty && typeParams.every((tp) => _inScopeTypeParams.contains(tp.name ?? 'T'))) {
         final args = typeParams.map((tp) => tp.name ?? 'T').join(', ');
         ciType = '$cleanName' 'ClassInfo<$args>';
@@ -12050,13 +12469,51 @@ class CppEmitter {
       }
     }
 
-    String rcv;
+    final rcv = _anyGcReceiverExpr(receiver, cppType);
+    return 'static_cast<const $ciType*>($rcv->AnyGC::_classInfo)->$fieldName';
+  }
+
+  /// 将 receiver 表达式规范为可取 _classInfo 的 AnyGC* 形式
+  String _anyGcReceiverExpr(String receiver, String cppType) {
     if (cppType == 'AnyGC*' || _isAnyGCPtrExpr(receiver) || receiver.contains('->_classInfo)->')) {
-      rcv = 'static_cast<AnyGC*>($receiver)';
-    } else {
-      rcv = receiver;
+      return 'static_cast<AnyGC*>($receiver)';
     }
-    return 'static_cast<$ciType*>($rcv->AnyGC::_classInfo)->$fieldName';
+    return receiver;
+  }
+
+  /// 接收者是否是运行时集合 / 内置类型（其 ClassInfo 仍用结构体字段，无用户 slots）
+  bool _isRuntimeCollectionReceiver(DartType? receiverType, String cppType, String receiver) {
+    if (receiverType is InterfaceType) {
+      final name = receiverType.classNode.name;
+      if (_isRuntimeClassName(name)) return true;
+      const coll = {
+        'List', 'Set', 'Map', 'Iterable', 'Iterator',
+        '_List', '_GrowableList', '_Map', '_Set', '_Iterable',
+        'Array', 'StringBuffer',
+        'Duration', 'DateTime',
+        'RegExp', 'Promise', 'Future', '_Promise',
+      };
+      if (coll.contains(name)) return true;
+    }
+    if (cppType.startsWith('List') ||
+        cppType.startsWith('Set') ||
+        cppType.startsWith('Map') ||
+        cppType.startsWith('Iterator') ||
+        cppType.startsWith('Array') ||
+        cppType.startsWith('Promise') ||
+        cppType.startsWith('StringBuffer') ||
+        cppType.startsWith('Duration') ||
+        cppType.startsWith('DateTime') ||
+        cppType.startsWith('RegExp')) {
+      return true;
+    }
+    // 表达式形态回退
+    if (receiver.contains('List') ||
+        receiver.contains('Set') ||
+        receiver.contains('Map')) {
+      return true;
+    }
+    return false;
   }
 
   // ==========================================================================
@@ -12100,7 +12557,7 @@ class CppEmitter {
         case 'bool':
           return 'bool';
         case 'String':
-          return 'DartString';
+          return 'string';
         case 'void': return 'void';
         case 'Null':
         case 'Object':
@@ -12108,26 +12565,15 @@ class CppEmitter {
         case 'num': return 'double';
         case 'List':
           final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticList<$inner>*';
-        case 'StaticList':
-          final inner2 = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticList<$inner2>*';
+          return 'List<$inner>*';
         case 'Map':
           if (args.length >= 2) {
-            return 'StaticMap<${_cppType(args[0])}, ${_cppType(args[1])}>*';
+            return 'Map<${_cppType(args[0])}, ${_cppType(args[1])}>*';
           }
-          return 'StaticMap<AnyGC*, AnyGC*>*';
-        case 'StaticMap':
-          if (args.length >= 2) {
-            return 'StaticMap<${_cppType(args[0])}, ${_cppType(args[1])}>*';
-          }
-          return 'StaticMap<AnyGC*, AnyGC*>*';
+          return 'Map<AnyGC*, AnyGC*>*';
         case 'Set':
           final inner3 = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticSet<$inner3>*';
-        case 'StaticSet':
-          final inner4 = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticSet<$inner4>*';
+          return 'Set<$inner3>*';
         case 'Future': {
           var inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
           if (inner == 'void') inner = 'int';
@@ -12140,22 +12586,22 @@ class CppEmitter {
         }
         case 'Iterable':
           final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticList<$inner>*';
+          return 'List<$inner>*';
         case 'Iterator':
           final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-          return 'StaticIterator<$inner>*';
+          return 'Iterator<$inner>*';
         case 'MapEntry':
           if (args.length >= 2) {
-            return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
+            return 'MapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
           }
-          return 'StaticMapEntry<AnyGC*, AnyGC*>*';
+          return 'MapEntry<AnyGC*, AnyGC*>*';
         case 'Array':
           final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
           return 'Array<$inner>*';
-        case 'Duration': return 'StaticDuration*';
-        case 'DateTime': return 'StaticDateTime*';
-        case 'RegExp': return 'StaticRegExp*';
-        case 'StringBuffer': return 'StaticStringBuffer*';
+        case 'Duration': return 'Duration*';
+        case 'DateTime': return 'DateTime*';
+        case 'RegExp': return 'RegExp*';
+        case 'StringBuffer': return 'StringBuffer*';
         case 'Function': return 'TypeFunction*';
         case 'Comparable':
           // Comparable<T> 作为类型参数时，使用 AnyGC* 代替（C++ 没有接口约束）
@@ -12240,22 +12686,22 @@ class CppEmitter {
         return 'AnyGC*';
       }
       // Built-in collection types — map to runtime C++ types
-      if (name == 'List' || name == 'StaticList' || name == 'Iterable' ||
+      if (name == 'List' || name == 'List' || name == 'Iterable' ||
           name == '_Iterable' || name == '_List' || name == '_GrowableList') {
-        return 'StaticList<$resolvedArgs>*';
+        return 'List<$resolvedArgs>*';
       }
-      if (name == 'Map' || name == 'StaticMap') {
-        return 'StaticMap<$resolvedArgs>*';
+      if (name == 'Map' || name == 'Map') {
+        return 'Map<$resolvedArgs>*';
       }
-      if (name == 'Set' || name == 'StaticSet') {
-        return 'StaticSet<$resolvedArgs>*';
+      if (name == 'Set' || name == 'Set') {
+        return 'Set<$resolvedArgs>*';
       }
-      // MapEntry → StaticMapEntry（AnyGC 指针语义）
-      if (name == 'MapEntry' || name == 'StaticMapEntry') {
+      // MapEntry → MapEntry（AnyGC 指针语义）
+      if (name == 'MapEntry' || name == 'MapEntry') {
         if (argList.length >= 2) {
-          return 'StaticMapEntry<$resolvedArgs>*';
+          return 'MapEntry<$resolvedArgs>*';
         }
-        return 'StaticMapEntry<AnyGC*, AnyGC*>*';
+        return 'MapEntry<AnyGC*, AnyGC*>*';
       }
       // For user classes and known generic types, rebuild with resolved args
       final cppName = _isRuntimeClassName(name) ? _cleanName(name) : '${_cleanName(name)}Value';
@@ -12349,6 +12795,224 @@ class CppEmitter {
     return _cleanName(name);
   }
 
+  // ==========================================================================
+  // 全局 selector 分配
+  // ==========================================================================
+
+  /// AsyncStateMachine 协议槽位于 AsyncStateMachineClassInfo，不进入 selector 表
+  static const Set<String> _asyncSmProtocolFields = {
+    'step', 'start', 'completeWith', 'completeWithError',
+  };
+
+  /// 类在继承链上的深度（找不到父类记 0）
+  int _hierarchyDepth(String className) {
+    var depth = 0;
+    var cur = className;
+    final seen = <String>{};
+    while (seen.add(cur)) {
+      final parent = _classHierarchy[cur];
+      if (parent == null || parent == cur || parent == 'Object') break;
+      depth++;
+      cur = parent;
+    }
+    return depth;
+  }
+
+  /// 扫描全部用户类，为每个可覆盖方法分配稳定的全局 selector id。
+  ///
+  /// 只有满足以下条件的 selector 才进入 slots 表（_selectorTableReady）：
+  ///   1. 不是 ClassInfo 基类固有槽，也不是 AsyncStateMachine 协议槽；
+  ///   2. 所有声明类算出的签名（返回类型 + 形参个数）完全一致；
+  ///   3. 签名不含模板参数——泛型类的 slots 需要按实例化分表，留待泛型单态化处理。
+  /// 不满足的 selector 继续走原有的 ClassInfo 结构体字段路径，行为不变。
+  void _buildSelectorRegistry() {
+    // fieldName -> 各声明类算出的签名
+    final declared = <String, List<_SelectorSig>>{};
+    final genericDeclarer = <String>{};
+
+    final classNames = _classVTableEntries.keys.toList()..sort();
+    for (final className in classNames) {
+      final cls = _classNodes[className];
+      final entries = _classVTableEntries[className] ?? const [];
+      for (final entry in entries) {
+        final fieldName = _classInfoFieldName(entry);
+        if (_baseClassInfoFields.contains(fieldName)) continue;
+        if (_asyncSmProtocolFields.contains(fieldName)) continue;
+        final sig = _SelectorSig(
+          _vptrWrapReturnType(entry, cls),
+          _vtableEntryArgCount(entry),
+        );
+        (declared[fieldName] ??= []).add(sig);
+        if (cls != null && cls.typeParameters.isNotEmpty) {
+          genericDeclarer.add(fieldName);
+        }
+      }
+    }
+
+    // id 按字段名字典序分配，保证同一份输入每次生成结果一致
+    final fieldNames = declared.keys.toList()..sort();
+    for (final fieldName in fieldNames) {
+      final sigs = declared[fieldName]!;
+      _selectorIds[fieldName] = _selectorIds.length;
+      _selectorSigs[fieldName] = sigs.first;
+
+      final consistent = sigs.every((s) => s == sigs.first);
+      final concrete = !_isCppTypeParameter(sigs.first.retType) &&
+          !genericDeclarer.contains(fieldName);
+      if (consistent && concrete) {
+        _selectorTableReady.add(fieldName);
+      }
+    }
+  }
+
+  /// 识别接口角色类与「extends+implements」双角色拆分层。
+  void _buildInterfaceRoles() {
+    final extended = <String>{};
+    for (final parent in _classHierarchy.values) {
+      if (parent.isNotEmpty && parent != 'Object' && _userClasses.contains(parent)) {
+        extended.add(parent);
+      }
+    }
+    for (final cls in _classNodes.values) {
+      final superCls = cls.superclass;
+      if (superCls != null && _userClasses.contains(superCls.name)) {
+        extended.add(superCls.name);
+      }
+      for (final impl in cls.implementedTypes) {
+        final n = impl.classNode.name;
+        if (_userClasses.contains(n) || _mixinNames.contains(n)) {
+          _interfaceClasses.add(n);
+        }
+      }
+    }
+    for (final name in _userClasses) {
+      final cls = _classNodes[name];
+      if (cls == null) continue;
+      if (_mixinNames.contains(name)) continue;
+      if (cls.isAbstract && _isPureInterfaceClass(cls)) {
+        _interfaceClasses.add(name);
+      }
+    }
+    for (final name in extended) {
+      if (_interfaceClasses.contains(name)) {
+        _extendsSplitClasses.add(name);
+      }
+    }
+  }
+
+  /// 纯接口：抽象类且实例方法均无函数体、无实例字段。
+  bool _isPureInterfaceClass(Class cls) {
+    for (final f in cls.fields) {
+      if (!f.isStatic) return false;
+    }
+    for (final p in cls.procedures) {
+      if (p.isStatic || p.isFactory) continue;
+      if (p.name.text.startsWith('_')) continue;
+      if (!p.isAbstract && p.function.body != null) return false;
+    }
+    return cls.isAbstract;
+  }
+
+  bool _isInterfaceRole(String className) =>
+      _interfaceClasses.contains(className) || _mixinNames.contains(className);
+
+  /// 接口身份 ClassInfo 静态实例引用（&XxxValue::_classInfo / Mixin）
+  String _ifaceIdentityRef(String ifaceName, [List<DartType>? typeArgs]) {
+    final clean = _cleanName(ifaceName);
+    if (_mixinNames.contains(ifaceName)) {
+      final mixinCls = _classNodes[ifaceName];
+      final tps = mixinCls?.typeParameters ?? [];
+      if (tps.isNotEmpty) {
+        final args = (typeArgs != null && typeArgs.isNotEmpty)
+            ? typeArgs.map(_cppType).join(', ')
+            : tps.map((_) => 'AnyGC*').join(', ');
+        return '${clean}Mixin<$args>::_classInfo';
+      }
+      return '${clean}Mixin::_classInfo';
+    }
+    final ifaceCls = _classNodes[ifaceName];
+    final tps = ifaceCls?.typeParameters ?? [];
+    if (tps.isNotEmpty) {
+      final args = (typeArgs != null && typeArgs.isNotEmpty)
+          ? typeArgs.map(_cppType).join(', ')
+          : tps.map((_) => 'AnyGC*').join(', ');
+      return '${clean}Value<$args>::_classInfo';
+    }
+    return '${clean}Value::_classInfo';
+  }
+
+  /// 接口 ClassInfo 类型名（PrintableClassInfo / FooMixinClassInfo）
+  String _ifaceClassInfoType(String ifaceName, [List<DartType>? typeArgs]) {
+    final clean = _cleanName(ifaceName);
+    if (_mixinNames.contains(ifaceName)) {
+      final mixinCls = _classNodes[ifaceName];
+      final tps = mixinCls?.typeParameters ?? [];
+      if (tps.isNotEmpty) {
+        final args = (typeArgs != null && typeArgs.isNotEmpty)
+            ? typeArgs.map(_cppType).join(', ')
+            : tps.map((_) => 'AnyGC*').join(', ');
+        return '${clean}MixinClassInfo<$args>';
+      }
+      return '${clean}MixinClassInfo';
+    }
+    final ifaceCls = _classNodes[ifaceName];
+    final tps = ifaceCls?.typeParameters ?? [];
+    if (tps.isNotEmpty) {
+      final args = (typeArgs != null && typeArgs.isNotEmpty)
+          ? typeArgs.map(_cppType).join(', ')
+          : tps.map((_) => 'AnyGC*').join(', ');
+      return '${clean}ClassInfo<$args>';
+    }
+    return '${clean}ClassInfo';
+  }
+
+  /// selector 的 C++ 枚举名
+  String _selectorEnumName(String fieldName) => 'SEL_$fieldName';
+
+  /// 已去掉 slots；一律走 ClassInfo 命名字段 / inherits 接口适配。
+  bool _usesSelectorTable(String fieldName) => false;
+
+  /// 接口角色类：方法必须留在 ClassInfo 命名字段上（供适配表使用），即使也进了 slots。
+  bool _ifaceForcesClassInfoField(String className, String fieldName) =>
+      _isInterfaceRole(className) && !_baseClassInfoFields.contains(fieldName);
+
+  /// 本类需在 ClassInfo 上覆盖的字段：新增，或本类声明/重写的方法。
+  /// 纯继承项保留父 ClassInfo 实例拷贝来的函数指针。
+  bool _shouldOverrideClassInfoField(
+      dynamic entry, Class cls, Set<String> parentEntryNames) {
+    final fieldName = _classInfoFieldName(entry);
+    if (!parentEntryNames.contains(fieldName)) return true;
+    final proc = entry.proc;
+    if (proc is Procedure) {
+      return proc.enclosingClass?.name == cls.name;
+    }
+    for (final f in cls.fields) {
+      if (f.isStatic) continue;
+      final fn = f.name.text;
+      if (fn == entry.name || 'get_$fn' == fieldName || 'set_$fn' == fieldName) {
+        return true;
+      }
+    }
+    for (final p in cls.procedures) {
+      if (p.isStatic || p.isFactory) continue;
+      final pn = _cleanMethodName(p.name.text);
+      if (p.isGetter && 'get_$pn' == fieldName) return true;
+      if (p.isSetter && 'set_$pn' == fieldName) return true;
+      if (!p.isGetter && !p.isSetter && pn == fieldName) return true;
+    }
+    return false;
+  }
+
+  /// slots 表下标对应的函数指针类型，如 `string(*)(AnyGC*, AnyGC*)`
+  String _selectorFnPtrType(String fieldName) {
+    final sig = _selectorSigs[fieldName]!;
+    final params = ['AnyGC*', ...List.filled(sig.argCount, 'AnyGC*')];
+    return '${sig.retType}(*)(${params.join(', ')})';
+  }
+
+  /// 已去掉 slots，不再输出 selector 枚举。
+  String _emitSelectorEnum() => '';
+
   /// 将 _VTableEntry 转换为 ClassInfo 字段名
   String _classInfoFieldName(dynamic entry) {
     final methodName = _cleanMethodName(entry.name as String);
@@ -12422,7 +13086,7 @@ class CppEmitter {
           if (classTypeParamNames.contains(resolved)) return resolved;
           if (!_isCppTypeParameter(resolved) &&
               (resolved == 'int64_t' || resolved == 'bool' || resolved == 'double' ||
-               resolved == 'DartString' || (resolved.endsWith('*') && resolved != 'AnyGC*'))) {
+               resolved == 'string' || (resolved.endsWith('*') && resolved != 'AnyGC*'))) {
             return resolved;
           }
         }
@@ -12440,7 +13104,7 @@ class CppEmitter {
         final resolved = resolveTypeParam(typeParam);
         if (resolved != null) return resolved;
         // Fallback: use resolved retType if it's a concrete type
-        if (retType == 'int64_t' || retType == 'bool' || retType == 'double' || retType == 'DartString') {
+        if (retType == 'int64_t' || retType == 'bool' || retType == 'double' || retType == 'string') {
           return retType;
         }
         if (retType.endsWith('*') && retType != 'AnyGC*') {
@@ -12513,7 +13177,7 @@ class CppEmitter {
     if (cppType == 'int64_t') return '0';
     if (cppType == 'double') return '0.0';
     if (cppType == 'bool') return 'false';
-    if (cppType == 'DartString') return '""';
+    if (cppType == 'string') return '""';
     if (cppType.endsWith('*')) return 'nullptr';
     // 对于模板类型参数（如 A, B, T），返回空字符串以避免 {{}} 歧义
     // 使用 A field{}; 而非 A field{{}};
@@ -12527,7 +13191,7 @@ class CppEmitter {
     return RegExp(r'^[A-Z][A-Za-z0-9_]*$').hasMatch(type) &&
            !_userClasses.contains(type) &&
            !_enumNames.contains(type) &&
-           type != 'DartString' &&
+           type != 'string' &&
            type != 'AnyGC*' && type != 'AnyGC' && type != 'Promise';
   }
 
@@ -12590,12 +13254,13 @@ class CppEmitter {
   /// 检查是否是运行时类（已在 C++ 运行时头文件中定义，不应重新生成）
   static const Set<String> _runtimeClassNames = {
     'Promise', '_Promise',
-    'StaticList', 'StaticSet', 'StaticMap',
-    'Array', 'StaticDuration', 'StaticStringBuffer', 'StringBuffer',
-    'StaticDateTime', 'DateTime',
+    'List', 'Set', 'Map',
+    'Array', 'Duration', 'StringBuffer',
+    'DateTime',
     'GlobalScheduler', 'CompleterState',
-    'StaticIterator', 'StaticMapEntry',
+    'Iterator', 'MapEntry',
     'AsyncStateMachine',
+    'RegExp', 'RegExpMatch',
   };
 
   bool _isRuntimeClass(Class cls) {
@@ -12617,40 +13282,38 @@ class CppEmitter {
         var inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
         if (inner == 'void') inner = 'int';
         return 'Promise<$inner>*';
-      case 'StaticList':
+      case 'List':
         final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-        return 'StaticList<$inner>*';
-      case 'StaticSet':
+        return 'List<$inner>*';
+      case 'Set':
         final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-        return 'StaticSet<$inner>*';
-      case 'StaticMap':
+        return 'Set<$inner>*';
+      case 'Map':
         if (args.length >= 2) {
-          return 'StaticMap<${_cppType(args[0])}, ${_cppType(args[1])}>*';
+          return 'Map<${_cppType(args[0])}, ${_cppType(args[1])}>*';
         }
-        return 'StaticMap<AnyGC*, AnyGC*>*';
+        return 'Map<AnyGC*, AnyGC*>*';
       case 'Array':
         final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
         return 'Array<$inner>*';
-      case 'StaticDuration':
-        return 'StaticDuration*';
-      case 'StaticDateTime':
+      case 'Duration':
+        return 'Duration*';
       case 'DateTime':
-        return 'StaticDateTime*';
-      case 'StaticStringBuffer':
+        return 'DateTime*';
       case 'StringBuffer':
-        return 'StaticStringBuffer*';
+        return 'StringBuffer*';
       case 'GlobalScheduler':
         return 'GlobalScheduler';
       case 'CompleterState':
         return 'CompleterState';
-      case 'StaticIterator':
+      case 'Iterator':
         final inner = args.isNotEmpty ? _cppType(args[0]) : 'AnyGC*';
-        return 'StaticIterator<$inner>*';
-      case 'StaticMapEntry':
+        return 'Iterator<$inner>*';
+      case 'MapEntry':
         if (args.length >= 2) {
-          return 'StaticMapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
+          return 'MapEntry<${_cppType(args[0])}, ${_cppType(args[1])}>*';
         }
-        return 'StaticMapEntry<AnyGC*, AnyGC*>*';
+        return 'MapEntry<AnyGC*, AnyGC*>*';
       default:
         // 未知运行时类，直接使用名称
         if (args.isEmpty) return name;
@@ -12767,4 +13430,20 @@ class _SugarCaptureCollector extends RecursiveVisitor {
   void visitYieldStatement(YieldStatement node) {
     if (_fnDepth == 0) hasForbidden = true;
   }
+}
+
+/// selector 的规范签名：返回类型 + 形参个数（不含 this）
+class _SelectorSig {
+  final String retType;
+  final int argCount;
+  const _SelectorSig(this.retType, this.argCount);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _SelectorSig &&
+      other.retType == retType &&
+      other.argCount == argCount;
+
+  @override
+  int get hashCode => Object.hash(retType, argCount);
 }

@@ -1,6 +1,6 @@
 // ============================================================================
 // async/await 转换测试
-// 验证 restorer 将 async/await 正确转换为 Promise + smAwait
+// 验证 restorer 将 async/await 正确转换为 Promise + sm_await
 // 注意：避免使用 int 运算符和 Future.delayed（platform dill stub 限制）
 // ============================================================================
 
