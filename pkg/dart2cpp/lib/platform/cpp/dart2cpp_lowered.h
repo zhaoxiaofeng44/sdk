@@ -6,7 +6,7 @@
 //
 // 组件清单：
 //   1. AnyGC — GC 管理基类
-//   2. GC — 标记-清除垃圾回收器
+//   2. GC — Cheney 半空间整理（小对象）+ 大对象/不可移动标记清除
 //   3. 异常层级 — DartException / DartStateError / ...
 //   4. Box 类型 — 闭包捕获引用语义
 //   5. TypeFunction 层级 — 可调用闭包基类（可变参数模板）
@@ -365,20 +365,33 @@ template<typename T> T dynAs(AnyGC* obj);
 
 // AnyGC 是 POD：没有任何 C++ 虚函数，因此对象头部不含编译器 vptr。
 // 多态（含析构）一律经 _classInfo 的函数指针槽派发，布局可 1:1 映射到 C struct。
+//
+// 内存布局：[GcHeader][AnyGC 派生对象...]
+// 普通小对象从 Cheney 半空间 bump 分配；超大 / 不可移动对象走独立堆。
+
+struct GcHeader {
+    uint32_t size = 0;       // 对象体字节数（不含 header）
+    uint32_t flags = 0;      // GC_HDR_*
+    AnyGC* forward = nullptr; // 转发地址（整理时）
+};
+
+enum : uint32_t {
+    GC_HDR_LARGE     = 1u << 0,  // 非半空间（超大或不可移动）
+    GC_HDR_FORWARDED = 1u << 1,
+};
+
 struct AnyGC {
     int gcFlag = 0;
     const ClassInfo* _classInfo = nullptr;
+
+    static void* operator new(size_t size);
+    static void* operator new(size_t size, const std::nothrow_t&) noexcept;
+    static void operator delete(void* p) noexcept;
+    static void operator delete(void* p, const std::nothrow_t&) noexcept;
 };
 
-/// _gcDestroy<T> — ClassInfo::destroy 槽的通用实现：按具体类型析构并释放。
-/// 取代 virtual ~AnyGC()：GC 清扫阶段经 _classInfo->destroy 调到正确的析构函数。
-template<typename T>
-inline void _gcDestroy(AnyGC* obj) {
-    delete static_cast<T*>(obj);
-}
-
 // ============================================================================
-// 2. GC — 标记-清除垃圾回收器
+// 2. GC — Cheney 半空间整理 + 大对象标记清除
 // ============================================================================
 
 class GC {
@@ -387,11 +400,93 @@ class GC {
     static std::vector<AnyGC*> _roots;
     static std::unordered_set<AnyGC*> _registered;
     static GlobalScheduler _scheduler;
-    static int _allocSinceCollect;      // 距上次 collect 的分配数
-    static int _autoCollectThreshold;   // 自动触发阈值（0 = 关闭）
-    static bool _collecting;            // 重入保护
+    static int _allocSinceCollect;
+    static int _autoCollectThreshold;
+    static bool _collecting;
+    /// 迭代标记工作队列（避免长链递归 mark 爆栈）
+    static std::vector<AnyGC*> _markQueue;
+
+    // Cheney 半空间
+    static uint8_t* _space[2];
+    static size_t _spaceCapacity;
+    static int _fromSpace;          // 当前分配空间下标
+    static uint8_t* _bump;          // from-space 分配游标
+    static uint8_t* _scan;          // to-space 扫描游标（collect 期间）
+    static uint8_t* _toBump;        // to-space 分配游标
+    static std::unordered_map<AnyGC*, AnyGC*> _forwardMap;
+    static int _gcVisitMode;        // 0=mark, 1=fixup, 2=delta
+    static bool _deltaActive;
+    static uint8_t* _deltaOldBase;
+    static size_t _deltaOldCap;
+    static ptrdiff_t _delta;
+
+    static constexpr size_t kAlign = alignof(std::max_align_t);
+    static constexpr size_t kLargeThreshold = 4096;      // ≥ 此大小走大对象堆
+    static constexpr size_t kDefaultSemiSize = 2 * 1024 * 1024;
+    static size_t _configuredSemiSize;                   // 可测：初始/目标半空间大小
+
+    static size_t alignUp(size_t n) {
+        return (n + kAlign - 1) & ~(kAlign - 1);
+    }
+
+    static void ensureSpaces(size_t minCapacity);
+    /// 在保留 from-space 存活对象的前提下扩容双半空间（字节整体搬迁 + 指针平移）
+    static void growSemispaces(size_t newCapacity, void* stackLoHint);
+    static void* allocInNursery(size_t objSize);
+    static void* allocRaw(size_t objSize, bool immovable);
+    static AnyGC* evacuate(AnyGC* obj);
+    static void fixupStack(void* loHint);
+    static void fixupStackDelta(void* loHint, uint8_t* oldBase, size_t oldCap, ptrdiff_t delta);
+    static void rebuildRegistryAfterCheney(int flag);
+    static bool isInSpace(AnyGC* obj, int spaceIdx) {
+        if (!obj || !_space[spaceIdx]) return false;
+        auto* p = reinterpret_cast<uint8_t*>(obj);
+        return p >= _space[spaceIdx] && p < _space[spaceIdx] + _spaceCapacity;
+    }
+    static GcHeader* headerOf(AnyGC* obj) {
+        return reinterpret_cast<GcHeader*>(obj) - 1;
+    }
 
 public:
+    static constexpr int kVisitMark = 0;
+    static constexpr int kVisitFixup = 1;
+    static constexpr int kVisitDelta = 2;
+
+    static int visitMode() { return _gcVisitMode; }
+    /// 迭代 mark 工作队列（供 _gcMark / _gcMarkRaw 使用）
+    static std::vector<AnyGC*>& markQueue() { return _markQueue; }
+    static AnyGC* mapForward(AnyGC* obj) {
+        if (!obj) return nullptr;
+        auto it = _forwardMap.find(obj);
+        return it != _forwardMap.end() ? it->second : obj;
+    }
+    /// kVisitDelta 模式下对半空间指针做平移
+    static AnyGC* applyDelta(AnyGC* obj) {
+        if (!obj || !_deltaActive) return obj;
+        auto* p = reinterpret_cast<uint8_t*>(obj);
+        if (p >= _deltaOldBase && p < _deltaOldBase + _deltaOldCap) {
+            return reinterpret_cast<AnyGC*>(p + _delta);
+        }
+        return obj;
+    }
+
+    static size_t semiCapacity() { return _spaceCapacity; }
+    static size_t nurseryUsed() {
+        if (!_space[0] || !_bump) return 0;
+        return static_cast<size_t>(_bump - _space[_fromSpace]);
+    }
+    static size_t largeThreshold() { return kLargeThreshold; }
+    static bool inNursery(AnyGC* obj) {
+        return isInSpace(obj, _fromSpace) || isInSpace(obj, 1 - _fromSpace);
+    }
+    /// 测试用：在空堆上设定半空间初始大小（先 GC::reset）；传 0 恢复默认
+    static void setSemiSpaceSizeForTest(size_t bytes) {
+        _configuredSemiSize = bytes == 0 ? 0 : alignUp(bytes < 4096 ? 4096 : bytes);
+    }
+    static size_t configuredSemiSize() {
+        return _configuredSemiSize ? _configuredSemiSize : kDefaultSemiSize;
+    }
+
     /// 分配局部对象（非 root），注册到 GC 并返回
     template<typename T>
     static T* allocateLocal(T* obj) {
@@ -402,10 +497,21 @@ public:
         return obj;
     }
 
-    /// 分配全局对象（root），注册到 GC 并标记为 root
+    /// 分配全局对象（root），注册到 GC 并标记为 root。
+    /// 半空间中的对象会提升到不可移动堆，避免空间翻转覆盖静态指针。
     template<typename T>
     static T* allocateGlobal(T* obj) {
-        auto* base = static_cast<AnyGC*>(obj);
+        auto* old = static_cast<AnyGC*>(obj);
+        auto* base = promoteToImmovable(old);
+        if (old != base) {
+            _registered.erase(old);
+            for (size_t i = 0; i < _objects.size(); i++) {
+                if (_objects[i] == old) _objects[i] = base;
+            }
+            for (size_t i = 0; i < _roots.size(); i++) {
+                if (_roots[i] == old) _roots[i] = base;
+            }
+        }
         if (_registered.insert(base).second) {
             _objects.push_back(base);
         }
@@ -417,53 +523,40 @@ public:
             _roots.push_back(base);
         }
         maybeAutoCollect();
-        return obj;
+        return static_cast<T*>(base);
     }
 
-    /// 执行一轮标记-清除 GC，返回被回收的对象数量（定义在 GlobalScheduler 之后）
+    /// bump / 大对象底层分配（供 AnyGC::operator new）
+    static void* allocObject(size_t objSize) { return allocRaw(objSize, false); }
+    /// 不可移动对象（含 std::function / std::vector 等，禁止 memcpy 整理）
+    static void* allocImmovable(size_t objSize) { return allocRaw(objSize, true); }
+    /// 若对象仍在半空间，提升到不可移动堆（供 allocateGlobal / 静态根）
+    static AnyGC* promoteToImmovable(AnyGC* obj);
+    static void freeObject(AnyGC* obj);
+
+    /// 执行一轮 GC：标记 → Cheney 整理小对象 → 大对象清除
     static int collect();
 
-    /// 分配计数自动触发（定义在 GlobalScheduler 之后）：
-    /// 分配量达到阈值且不在 collect/tick 重入路径时执行 collect
     static void maybeAutoCollect();
 
-    /// 设置自动 GC 阈值（每 N 次分配触发一轮 collect）；0 = 关闭。
-    /// 单元测试需要确定性计数时应设为 0。
     static void setAutoCollectThreshold(int n) { _autoCollectThreshold = n; }
     static int autoCollectThreshold() { return _autoCollectThreshold; }
 
-    /// 从 root 集中移除对象（全局/静态字段被覆盖赋值时使用，避免旧值永久钉住）
     static void removeRoot(AnyGC* obj);
 
-    /// 保守栈扫描：扫描 [lo, 栈基) 范围内指向已注册对象的字并标记。
-    /// lo 取 collect() 自身帧地址：覆盖 collect 调用方（业务代码）及其
-    /// 所有上层活跃帧的局部变量；其下方（collector 递归帧、已返回的被调
-    /// 帧）全是陈旧值，不参与扫描 —— 否则上一轮 collect 遗留的指针槽会把
-    /// 同一对象反复钉住（永久假保留）。定义在 _gcMark 之后。
     static void scanStack(int flag, void* lo);
 
-    /// 泄漏分析：按类型名统计存活对象并输出到 stderr，返回存活总数
     static int reportAlive(const char* label);
 
-    /// 获取当前管理的对象总数
     static int objectCount() { return static_cast<int>(_objects.size()); }
-
-    /// 获取当前 root 数量
     static int rootCount() { return static_cast<int>(_roots.size()); }
 
-    /// 重置 GC 状态（测试用）
-    static void reset() {
-        _objects.clear();
-        _roots.clear();
-        _registered.clear();
-        _currentFlag = 0;
-    }
+    /// 重置 GC 状态（测试用）；释放半空间。
+    static void reset();
 
-    /// 获取 GlobalScheduler 引用（管理所有 promise 的异步调度器）
     static GlobalScheduler& scheduler();
 };
 
-// 静态成员定义（放在 .cpp 或 inline）
 inline int GC::_currentFlag = 0;
 inline std::vector<AnyGC*> GC::_objects;
 inline std::vector<AnyGC*> GC::_roots;
@@ -471,6 +564,147 @@ inline std::unordered_set<AnyGC*> GC::_registered;
 inline int GC::_allocSinceCollect = 0;
 inline int GC::_autoCollectThreshold = 10000;
 inline bool GC::_collecting = false;
+inline std::vector<AnyGC*> GC::_markQueue;
+inline uint8_t* GC::_space[2] = {nullptr, nullptr};
+inline size_t GC::_spaceCapacity = 0;
+inline int GC::_fromSpace = 0;
+inline uint8_t* GC::_bump = nullptr;
+inline uint8_t* GC::_scan = nullptr;
+inline uint8_t* GC::_toBump = nullptr;
+inline std::unordered_map<AnyGC*, AnyGC*> GC::_forwardMap;
+inline int GC::_gcVisitMode = GC::kVisitMark;
+inline bool GC::_deltaActive = false;
+inline uint8_t* GC::_deltaOldBase = nullptr;
+inline size_t GC::_deltaOldCap = 0;
+inline ptrdiff_t GC::_delta = 0;
+inline size_t GC::_configuredSemiSize = 0;
+
+inline void GC::ensureSpaces(size_t minCapacity) {
+    size_t base = configuredSemiSize();
+    size_t need = minCapacity < base ? base : minCapacity;
+    need = alignUp(need);
+    if (_space[0] && _spaceCapacity >= need) return;
+    // 仅允许在空堆时直接重建（无存活指针）
+    if (_space[0] && !_objects.empty()) {
+        return;
+    }
+    for (int i = 0; i < 2; i++) {
+        if (_space[i]) ::operator delete(_space[i]);
+        _space[i] = static_cast<uint8_t*>(::operator new(need));
+    }
+    _spaceCapacity = need;
+    _fromSpace = 0;
+    _bump = _space[0];
+}
+
+// growSemispaces 定义在 ClassInfo / _gcEdge 之后
+
+inline void* GC::allocInNursery(size_t objSize) {
+    size_t total = alignUp(sizeof(GcHeader) + objSize);
+    if (!_space[0]) ensureSpaces(configuredSemiSize());
+    uint8_t* end = _space[_fromSpace] + _spaceCapacity;
+    if (_bump + total > end) {
+        if (!_collecting) {
+            collect();
+            end = _space[_fromSpace] + _spaceCapacity;
+        }
+        if (_bump + total > end) {
+            // collect 后仍不够：扩容半空间再试
+            if (!_collecting) {
+                size_t need = std::max(_spaceCapacity * 2, nurseryUsed() + total + 4096);
+                growSemispaces(need, __builtin_frame_address(0));
+                end = _space[_fromSpace] + _spaceCapacity;
+            }
+            if (_bump + total > end) {
+                return nullptr; // 降级为大对象
+            }
+        }
+    }
+    auto* h = reinterpret_cast<GcHeader*>(_bump);
+    _bump += total;
+    h->size = static_cast<uint32_t>(objSize);
+    h->flags = 0;
+    h->forward = nullptr;
+    return h + 1;
+}
+
+inline void* GC::allocRaw(size_t objSize, bool immovable) {
+    size_t total = alignUp(sizeof(GcHeader) + objSize);
+    if (!immovable && total < kLargeThreshold) {
+        void* p = allocInNursery(objSize);
+        if (p) return p;
+    }
+    auto* mem = static_cast<uint8_t*>(::operator new(total));
+    auto* h = reinterpret_cast<GcHeader*>(mem);
+    h->size = static_cast<uint32_t>(objSize);
+    h->flags = GC_HDR_LARGE;
+    h->forward = nullptr;
+    return h + 1;
+}
+
+inline void GC::freeObject(AnyGC* obj) {
+    if (!obj) return;
+    GcHeader* h = headerOf(obj);
+    if (h->flags & GC_HDR_LARGE) {
+        ::operator delete(h);
+    }
+    // 半空间对象：内存随空间翻转批量回收，此处不单独 free
+}
+
+inline AnyGC* GC::promoteToImmovable(AnyGC* obj) {
+    if (!obj) return nullptr;
+    GcHeader* h = headerOf(obj);
+    if (h->flags & GC_HDR_LARGE) return obj;
+    size_t objSize = h->size;
+    void* mem = allocRaw(objSize, true);
+    std::memcpy(mem, obj, objSize);
+    // 原半空间槽弃用（不跑析构：所有权已memcpy到不可移动副本）
+    h->flags |= GC_HDR_FORWARDED;
+    h->forward = static_cast<AnyGC*>(mem);
+    return static_cast<AnyGC*>(mem);
+}
+
+inline void* AnyGC::operator new(size_t size) {
+    return GC::allocObject(size);
+}
+inline void* AnyGC::operator new(size_t size, const std::nothrow_t&) noexcept {
+    try { return GC::allocObject(size); } catch (...) { return nullptr; }
+}
+inline void AnyGC::operator delete(void* p) noexcept {
+    if (p) GC::freeObject(static_cast<AnyGC*>(p));
+}
+inline void AnyGC::operator delete(void* p, const std::nothrow_t&) noexcept {
+    if (p) GC::freeObject(static_cast<AnyGC*>(p));
+}
+
+/// _gcDestroy<T> — 析构对象体；半空间内存由 Cheney 翻转回收，大对象立即释放。
+template<typename T>
+inline void _gcDestroy(AnyGC* obj) {
+    if (!obj) return;
+    static_cast<T*>(obj)->~T();
+    GC::freeObject(obj);
+}
+
+inline void GC::reset() {
+    for (AnyGC* obj : _objects) {
+        GcHeader* h = headerOf(obj);
+        if (h->flags & GC_HDR_LARGE) ::operator delete(h);
+    }
+    _objects.clear();
+    _roots.clear();
+    _registered.clear();
+    _forwardMap.clear();
+    _markQueue.clear();
+    _currentFlag = 0;
+    _allocSinceCollect = 0;
+    for (int i = 0; i < 2; i++) {
+        if (_space[i]) { ::operator delete(_space[i]); _space[i] = nullptr; }
+    }
+    _spaceCapacity = 0;
+    _bump = nullptr;
+    _fromSpace = 0;
+    // 保留 _configuredSemiSize，便于测试设定小半空间后 reset 重建
+}
 
 // ============================================================================
 // 前向声明
@@ -640,30 +874,60 @@ inline void _gcFree(AnyGC* obj) {
         obj->_classInfo->destroy(obj);
         return;
     }
-    // destroy 未设置说明该类漏了注册：此处只能释放内存，字段析构会被跳过。
 #ifndef NDEBUG
     fprintf(stderr, "[GC] missing ClassInfo::destroy for %s\n",
             obj->_classInfo ? _ciTypeName(obj->_classInfo) : "<no classinfo>");
 #endif
-    ::operator delete(static_cast<void*>(obj));
+    // 无 destroy：仅释放大对象壳；半空间依赖翻转
+    GC::freeObject(obj);
 }
 
-/// _gcMark — cycle-safe GC mark through ClassInfo dispatch
-inline void _gcMark(AnyGC* obj, int flag) {
+/// _gcMarkRaw — cycle-safe 标记（不改写指针槽）
+/// 仅置色并入队；字段遍历由 _gcMark 的工作队列循环完成（迭代，无 C 栈递归）
+inline void _gcMarkRaw(AnyGC* obj, int flag) {
     if (!obj) return;
     if (obj->gcFlag == flag) return;
     obj->gcFlag = flag;
-    if (obj->_classInfo && obj->_classInfo->gcMark) obj->_classInfo->gcMark(obj, flag);
+    GC::markQueue().push_back(obj);
 }
 
-// ── GC::removeRoot / scanStack / reportAlive 实现 ──
+/// _gcMark — 标记入口（root / 栈扫描）；fixup 阶段请用 _gcEdge。
+/// 使用显式队列展开可达图，避免长链/深树递归 mark 导致栈溢出。
+inline void _gcMark(AnyGC* obj, int flag) {
+    _gcMarkRaw(obj, flag);
+    auto& q = GC::markQueue();
+    while (!q.empty()) {
+        AnyGC* cur = q.back();
+        q.pop_back();
+        if (cur->_classInfo && cur->_classInfo->gcMark) {
+            cur->_classInfo->gcMark(cur, flag);
+        }
+    }
+}
+
+/// _gcEdge — 遍历对象字段：标记阶段递归标记，fixup 阶段按转发表改写指针。
+template<typename T>
+inline void _gcEdge(T*& slot, int flag) {
+    if (!slot) return;
+    AnyGC* p = slot;
+    if (GC::visitMode() == GC::kVisitFixup) {
+        slot = static_cast<T*>(GC::mapForward(p));
+        return;
+    }
+    if (GC::visitMode() == GC::kVisitDelta) {
+        slot = static_cast<T*>(GC::applyDelta(p));
+        return;
+    }
+    _gcMarkRaw(p, flag);
+}
+
+// ── GC::removeRoot / scanStack / reportAlive / evacuate / fixup ──
 
 inline void GC::removeRoot(AnyGC* obj) {
     _roots.erase(std::remove(_roots.begin(), _roots.end(), obj), _roots.end());
 }
 
 inline void GC::scanStack(int flag, void* loHint) {
-    // 栈从高地址向低地址增长：lo = 调用方帧（高地址侧起点），hi = 栈基
     uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
     uintptr_t hi = 0;
 #ifdef __APPLE__
@@ -684,8 +948,6 @@ inline void GC::scanStack(int flag, void* loHint) {
     uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
     for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
 #ifdef DART2CPP_ASAN
-        // 被 ASan 毒化的槽（redzone/无效帧区域）不参与扫描；
-        // 用 region 检查覆盖整个字（部分毒化的字不可能存放有效指针）
         if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
 #endif
         AnyGC* candidate = *reinterpret_cast<AnyGC* const*>(p);
@@ -697,6 +959,201 @@ inline void GC::scanStack(int flag, void* loHint) {
             _gcMark(candidate, flag);
         }
     }
+}
+
+inline void GC::fixupStack(void* loHint) {
+    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
+    uintptr_t hi = 0;
+#ifdef __APPLE__
+    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
+#elif defined(__linux__)
+    pthread_attr_t attr;
+    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
+        void* stackAddr = nullptr;
+        size_t stackSize = 0;
+        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
+            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
+        }
+        pthread_attr_destroy(&attr);
+    }
+#endif
+    if (!hi || hi <= lo || _forwardMap.empty()) return;
+
+    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
+    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
+#ifdef DART2CPP_ASAN
+        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
+#endif
+        AnyGC** slot = reinterpret_cast<AnyGC**>(p);
+        AnyGC* candidate = *slot;
+        auto it = _forwardMap.find(candidate);
+        if (it != _forwardMap.end()) *slot = it->second;
+    }
+}
+
+inline void GC::fixupStackDelta(void* loHint, uint8_t* oldBase, size_t oldCap, ptrdiff_t delta) {
+    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
+    uintptr_t hi = 0;
+#ifdef __APPLE__
+    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
+#elif defined(__linux__)
+    pthread_attr_t attr;
+    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
+        void* stackAddr = nullptr;
+        size_t stackSize = 0;
+        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
+            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
+        }
+        pthread_attr_destroy(&attr);
+    }
+#endif
+    if (!hi || hi <= lo || !oldBase || delta == 0) return;
+    uint8_t* oldEnd = oldBase + oldCap;
+
+    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
+    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
+#ifdef DART2CPP_ASAN
+        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
+#endif
+        AnyGC** slot = reinterpret_cast<AnyGC**>(p);
+        auto* raw = reinterpret_cast<uint8_t*>(*slot);
+        if (raw >= oldBase && raw < oldEnd) {
+            *slot = reinterpret_cast<AnyGC*>(raw + delta);
+        }
+    }
+}
+
+inline void GC::growSemispaces(size_t newCapacity, void* stackLoHint) {
+    newCapacity = alignUp(newCapacity);
+    if (_spaceCapacity >= newCapacity && _space[0]) return;
+    if (!_space[0]) {
+        ensureSpaces(newCapacity);
+        return;
+    }
+    size_t used = nurseryUsed();
+    if (used > newCapacity) newCapacity = alignUp(used * 2);
+
+    uint8_t* oldFrom = _space[_fromSpace];
+    size_t oldCap = _spaceCapacity;
+    uint8_t* nf = static_cast<uint8_t*>(::operator new(newCapacity));
+    uint8_t* nt = static_cast<uint8_t*>(::operator new(newCapacity));
+    if (used > 0) std::memcpy(nf, oldFrom, used);
+    ptrdiff_t delta = nf - oldFrom;
+
+    auto relocatePtr = [&](AnyGC*& p) {
+        if (!p) return;
+        auto* raw = reinterpret_cast<uint8_t*>(p);
+        if (raw >= oldFrom && raw < oldFrom + oldCap) {
+            p = reinterpret_cast<AnyGC*>(raw + delta);
+        }
+    };
+    for (size_t i = 0; i < _objects.size(); i++) relocatePtr(_objects[i]);
+    for (size_t i = 0; i < _roots.size(); i++) relocatePtr(_roots[i]);
+    _registered.clear();
+    for (AnyGC* o : _objects) _registered.insert(o);
+
+    _deltaActive = true;
+    _deltaOldBase = oldFrom;
+    _deltaOldCap = oldCap;
+    _delta = delta;
+    _gcVisitMode = kVisitDelta;
+    {
+        std::unordered_set<AnyGC*> visited;
+        for (size_t i = 0; i < _objects.size(); i++) {
+            AnyGC* live = _objects[i];
+            if (!live || !visited.insert(live).second) continue;
+            if (live->_classInfo && live->_classInfo->gcMark) {
+                live->_classInfo->gcMark(live, _currentFlag);
+            }
+        }
+    }
+    _gcVisitMode = kVisitMark;
+    _deltaActive = false;
+    fixupStackDelta(stackLoHint, oldFrom, oldCap, delta);
+
+    ::operator delete(_space[0]);
+    ::operator delete(_space[1]);
+    _space[0] = nf;
+    _space[1] = nt;
+    _fromSpace = 0;
+    _spaceCapacity = newCapacity;
+    _bump = nf + used;
+    _toBump = nullptr;
+    _configuredSemiSize = newCapacity;
+}
+
+inline AnyGC* GC::evacuate(AnyGC* obj) {
+    if (!obj) return nullptr;
+    auto existing = _forwardMap.find(obj);
+    if (existing != _forwardMap.end()) return existing->second;
+
+    GcHeader* h = headerOf(obj);
+    if (h->flags & GC_HDR_LARGE) {
+        _forwardMap.emplace(obj, obj);
+        return obj;
+    }
+    if (h->flags & GC_HDR_FORWARDED) {
+        return h->forward ? h->forward : obj;
+    }
+
+    // Root（allocateGlobal）对应的静态/全局指针槽无法全部改写，必须钉住不移动。
+    for (size_t i = 0; i < _roots.size(); i++) {
+        if (_roots[i] == obj) {
+            _forwardMap.emplace(obj, obj);
+            return obj;
+        }
+    }
+
+    size_t objSize = h->size;
+    size_t total = alignUp(sizeof(GcHeader) + objSize);
+    uint8_t* toSpace = _space[1 - _fromSpace];
+    uint8_t* toEnd = toSpace + _spaceCapacity;
+    if (_toBump + total > toEnd) {
+        // to-space 不够：扩容双半空间后重试疏散
+        size_t usedTo = static_cast<size_t>(_toBump - toSpace);
+        size_t need = std::max(_spaceCapacity * 2, usedTo + total + nurseryUsed() + 4096);
+        // 扩容会搬迁 from；forwardMap 中旧键失效 —— 仅在尚未大量疏散时扩容更安全。
+        // 此处降级：本对象本轮钉住，下一轮半空间已更大。
+        _forwardMap.emplace(obj, obj);
+        // 记录需要扩容，collect 末尾处理
+        if (need > _configuredSemiSize) _configuredSemiSize = need;
+        return obj;
+    }
+    auto* nh = reinterpret_cast<GcHeader*>(_toBump);
+    _toBump += total;
+    nh->size = h->size;
+    nh->flags = 0;
+    nh->forward = nullptr;
+    AnyGC* dst = reinterpret_cast<AnyGC*>(nh + 1);
+    std::memcpy(dst, obj, objSize);
+    h->flags |= GC_HDR_FORWARDED;
+    h->forward = dst;
+    dst->gcFlag = obj->gcFlag;
+    _forwardMap.emplace(obj, dst);
+    return dst;
+}
+
+inline void GC::rebuildRegistryAfterCheney(int flag) {
+    std::vector<AnyGC*> survivors;
+    survivors.reserve(_objects.size());
+    std::unordered_set<AnyGC*> seen;
+    for (size_t i = 0; i < _objects.size(); i++) {
+        AnyGC* old = _objects[i];
+        if (old->gcFlag != flag) continue;
+        AnyGC* live = mapForward(old);
+        if (seen.insert(live).second) survivors.push_back(live);
+    }
+    _objects.swap(survivors);
+    _registered.clear();
+    for (AnyGC* o : _objects) _registered.insert(o);
+
+    for (size_t i = 0; i < _roots.size(); i++) {
+        _roots[i] = mapForward(_roots[i]);
+    }
+    _roots.erase(
+        std::remove_if(_roots.begin(), _roots.end(),
+            [flag](AnyGC* obj) { return !obj || obj->gcFlag != flag; }),
+        _roots.end());
 }
 
 inline int GC::reportAlive(const char* label) {
@@ -1554,7 +2011,7 @@ struct DynArray {
             using Pointee = std::remove_pointer_t<T>;
             if constexpr (std::is_base_of_v<AnyGC, Pointee>) {
                 for (int i = 0; i < _size; i++) {
-                    if (_data[i]) _gcMark(_data[i], flag);
+                    if (_data[i]) _gcEdge(_data[i], flag);
                 }
             }
         }
@@ -1736,7 +2193,7 @@ struct Iterator : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* it = static_cast<Iterator*>(self);
-        if (it->_data) _gcMark(it->_data, flag);
+        if (it->_data) _gcEdge(it->_data, flag);
     }
 
     // ── ClassInfo dispatch ──
@@ -2290,7 +2747,7 @@ struct List : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* list = static_cast<List*>(self);
-        if (list->_data) _gcMark(list->_data, flag);
+        if (list->_data) _gcEdge(list->_data, flag);
     }
 };
 
@@ -2415,10 +2872,10 @@ struct MapEntry : AnyGC {
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* e = static_cast<MapEntry*>(self);
         if constexpr (std::is_pointer_v<K>) {
-            if constexpr (std::is_base_of_v<AnyGC, std::remove_pointer_t<K>>) { if (e->key) _gcMark(e->key, flag); }
+            if constexpr (std::is_base_of_v<AnyGC, std::remove_pointer_t<K>>) { if (e->key) _gcEdge(e->key, flag); }
         }
         if constexpr (std::is_pointer_v<V>) {
-            if constexpr (std::is_base_of_v<AnyGC, std::remove_pointer_t<V>>) { if (e->value) _gcMark(e->value, flag); }
+            if constexpr (std::is_base_of_v<AnyGC, std::remove_pointer_t<V>>) { if (e->value) _gcEdge(e->value, flag); }
         }
     }
 };
@@ -2789,8 +3246,8 @@ struct Map : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* map = static_cast<Map*>(self);
-        if (map->_keys) _gcMark(map->_keys, flag);
-        if (map->_values) _gcMark(map->_values, flag);
+        if (map->_keys) _gcEdge(map->_keys, flag);
+        if (map->_values) _gcEdge(map->_values, flag);
     }
 };
 
@@ -3319,7 +3776,7 @@ struct Set : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* set = static_cast<Set*>(self);
-        if (set->_data) _gcMark(set->_data, flag);
+        if (set->_data) _gcEdge(set->_data, flag);
     }
 };
 
@@ -3485,6 +3942,12 @@ struct PromiseBase : AnyGC {
     static const PromiseBaseClassInfo _classInfo;
     enum State { READY, PENDING, COMPLETED, ERROR };
 
+    // std::function / vector 不可 memcpy，禁止进入 Cheney 半空间
+    static void* operator new(size_t n) { return GC::allocImmovable(n); }
+    static void operator delete(void* p) noexcept {
+        if (p) GC::freeObject(static_cast<AnyGC*>(p));
+    }
+
     State state = PENDING;
     AnyGC* result = nullptr;
     AnyGC* error = nullptr;
@@ -3504,10 +3967,10 @@ struct PromiseBase : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* p = static_cast<PromiseBase*>(self);
-        if (p->result) _gcMark(p->result, flag);
-        if (p->error) _gcMark(p->error, flag);
-        for (auto* obj : p->keepAlive) {
-            if (obj) _gcMark(obj, flag);
+        if (p->result) _gcEdge(p->result, flag);
+        if (p->error) _gcEdge(p->error, flag);
+        for (auto& obj : p->keepAlive) {
+            _gcEdge(obj, flag);
         }
     }
 
@@ -3669,7 +4132,7 @@ public:
     /// 回收，回收时经 ~PromiseBase 自注销从调度器移除（F2 修复）
     void gcMark(int flag) {
         for (auto& task : _delayedTasks) {
-            if (task.targetPromise) _gcMark(task.targetPromise, flag);
+            if (task.targetPromise) _gcEdge(task.targetPromise, flag);
         }
     }
 
@@ -3795,66 +4258,91 @@ inline void GC::maybeAutoCollect() {
 }
 
 inline int GC::collect() {
-    // 重入保护：collect 期间（含对象析构路径）不再触发自动 GC
     struct CollectGuard {
         bool& flag;
         explicit CollectGuard(bool& f) : flag(f) { flag = true; }
         ~CollectGuard() { flag = false; }
     } guard(_collecting);
     _allocSinceCollect = 0;
+    _forwardMap.clear();
+    _gcVisitMode = kVisitMark;
 
     _currentFlag++;
     int flag = _currentFlag;
+    void* stackLo = __builtin_frame_address(0);
 
-    // 标记阶段：保守栈扫描。lo 取 collect 自身帧指针（帧顶 = 调用方帧底）：
-    // [lo, 栈基) 恰好覆盖调用方及所有上层活跃帧的全部局部变量；
-    // lo 之下是 collector 递归帧与已返回的被调帧（含与 collect 同深度的
-    // 陈旧指针槽），一律不参与扫描 —— 否则会反复钉住已死对象。
-    // 依赖帧指针存在（-O0 或 -fno-omit-frame-pointer）。
-    scanStack(flag, __builtin_frame_address(0));
-
-    // 标记阶段：GlobalScheduler 持有的 Promise 作为 root
+    // ── 1. 标记 ──
+    scanStack(flag, stackLo);
     _scheduler.gcMark(flag);
-
-    // 标记阶段：从每个 root 出发递归标记。
-    // 注意：以下所有循环均用索引遍历 —— 若用 `for (auto* obj : ...)`，
-    // 遗留在本帧的指针槽会在下一轮 collect 的栈扫描中钉住对象（假保留）
     for (size_t i = 0; i < _roots.size(); i++) {
         _gcMark(_roots[i], flag);
     }
 
-    // 清除阶段：收集未被标记的对象
     int beforeCount = static_cast<int>(_objects.size());
-    std::vector<AnyGC*> toDelete;
+
+    // ── 2. Cheney 疏散：标记存活的小对象拷贝到 to-space ──
+    if (!_space[0]) ensureSpaces(configuredSemiSize());
+    // 若上次 evacuate 请求了更大半空间，先扩容（保留 from 存活区）
+    if (_configuredSemiSize > _spaceCapacity) {
+        growSemispaces(_configuredSemiSize, stackLo);
+    }
+    int toIdx = 1 - _fromSpace;
+    _toBump = _space[toIdx];
+    _scan = _toBump;
+
     for (size_t i = 0; i < _objects.size(); i++) {
-        if (_objects[i]->gcFlag != flag) {
-            toDelete.push_back(_objects[i]);
+        AnyGC* obj = _objects[i];
+        if (obj->gcFlag == flag) evacuate(obj);
+    }
+
+    // ── 3. Fixup：改写根、栈、存活对象内的指针 ──
+    _gcVisitMode = kVisitFixup;
+    for (size_t i = 0; i < _roots.size(); i++) {
+        _roots[i] = mapForward(_roots[i]);
+    }
+    fixupStack(stackLo);
+
+    // 按搬迁后的地址遍历字段（gcMark_impl 内通过 _gcEdge 改写）
+    {
+        std::unordered_set<AnyGC*> visited;
+        for (size_t i = 0; i < _objects.size(); i++) {
+            AnyGC* old = _objects[i];
+            if (old->gcFlag != flag) continue;
+            AnyGC* live = mapForward(old);
+            if (!visited.insert(live).second) continue;
+            if (live->_classInfo && live->_classInfo->gcMark) {
+                live->_classInfo->gcMark(live, flag);
+            }
         }
     }
+    _gcVisitMode = kVisitMark;
 
-    // 从 _objects 中移除
-    _objects.erase(
-        std::remove_if(_objects.begin(), _objects.end(),
-            [flag](AnyGC* obj) { return obj->gcFlag != flag; }),
-        _objects.end()
-    );
-
-    // 增量更新 _registered：仅移除被回收的对象
-    for (size_t i = 0; i < toDelete.size(); i++) {
-        _registered.erase(toDelete[i]);
+    // ── 4. 列出死亡对象 → 重建注册表 → 再析构死亡对象（避免 UAF）──
+    std::vector<AnyGC*> toDelete;
+    for (size_t i = 0; i < _objects.size(); i++) {
+        if (_objects[i]->gcFlag != flag) toDelete.push_back(_objects[i]);
     }
+    rebuildRegistryAfterCheney(flag);
 
-    // 防御性清理 roots（理论上 root 总是被标记的）
-    _roots.erase(
-        std::remove_if(_roots.begin(), _roots.end(),
-            [flag](AnyGC* obj) { return obj->gcFlag != flag; }),
-        _roots.end()
-    );
+    // ── 5. 翻转半空间 ──
+    _fromSpace = toIdx;
+    _bump = _toBump;
+    _toBump = nullptr;
+    _scan = nullptr;
+    _forwardMap.clear();
 
-    // 释放未被标记的对象内存（索引遍历；遗留槽中的指针指向已删除
-    // 对象，不在 _registered 中，下轮扫描不会误钉）
     for (size_t i = 0; i < toDelete.size(); i++) {
         _gcFree(toDelete[i]);
+    }
+
+    // ── 6. 高水位 / 待扩容请求 → 放大半空间，保证后续分配与疏散 ──
+    size_t used = nurseryUsed();
+    size_t want = _configuredSemiSize ? _configuredSemiSize : _spaceCapacity;
+    if (used * 2 > _spaceCapacity) {
+        want = std::max(want, _spaceCapacity * 2);
+    }
+    if (want > _spaceCapacity) {
+        growSemispaces(want, stackLo);
     }
 
     return beforeCount - static_cast<int>(_objects.size());
@@ -4323,6 +4811,12 @@ struct AsyncStateMachine : AnyGC {
     Promise<T>* promise;
     const AsyncStateMachineClassInfo<T>* _classInfo = nullptr;
 
+    // start 回调捕获 this，不可整理移动
+    static void* operator new(size_t n) { return GC::allocImmovable(n); }
+    static void operator delete(void* p) noexcept {
+        if (p) GC::freeObject(static_cast<AnyGC*>(p));
+    }
+
     AsyncStateMachine() {
         promise = GC::allocateLocal(new Promise<T>());
         AnyGC::_classInfo = &_baseClassInfo;
@@ -4330,7 +4824,7 @@ struct AsyncStateMachine : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* sm = static_cast<AsyncStateMachine<T>*>(self);
-        if (sm->promise) _gcMark(sm->promise, flag);
+        if (sm->promise) _gcEdge(sm->promise, flag);
     }
 
     // ── ClassInfo dispatch ──
@@ -5287,6 +5781,11 @@ struct RegExpMatch : AnyGC {
     int startPos = 0;
     int endPos = 0;
 
+    static void* operator new(size_t n) { return GC::allocImmovable(n); }
+    static void operator delete(void* p) noexcept {
+        if (p) GC::freeObject(static_cast<AnyGC*>(p));
+    }
+
     RegExpMatch() { AnyGC::_classInfo = &_classInfo; }
 
     string group(int index) const {
@@ -5594,7 +6093,7 @@ struct StreamValue : AnyGC {
 
     static void _gcMark_impl(AnyGC* self, int flag) {
         auto* s = static_cast<StreamValue*>(self);
-        if (s->data) _gcMark(s->data, flag);
+        if (s->data) _gcEdge(s->data, flag);
     }
 
     // ── ClassInfo dispatch ──

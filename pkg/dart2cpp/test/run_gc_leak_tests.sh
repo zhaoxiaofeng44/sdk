@@ -149,6 +149,24 @@ for test in "${TESTS[@]}"; do
     fi
 done
 
+# ── D: GC 性能基准（-O2，无 ASan；软超时断言）──────────────────────────
+echo ""
+echo "── D: GC 性能基准（batch mark / collect）──"
+PERF_OUT="$OUT/gc_perf"
+PERF_CXXFLAGS="-std=c++17 -O2 -I lib/platform/cpp"
+if $CXX $PERF_CXXFLAGS test/gc_perf_benchmark.cpp -o "$PERF_OUT" 2> "$OUT/gc_perf_compile.log"; then
+    chmod +x "$PERF_OUT" 2>/dev/null
+    xattr -cr "$PERF_OUT" 2>/dev/null || true
+    if "$PERF_OUT" | tee "$OUT/gc_perf_out.txt"; then
+        report 0 "D/gc_perf" "性能基准通过（见 $OUT/gc_perf_out.txt）"
+    else
+        report 1 "D/gc_perf" "性能基准失败（见 $OUT/gc_perf_out.txt）"
+    fi
+else
+    tail -20 "$OUT/gc_perf_compile.log"
+    report 1 "D/gc_perf" "性能基准编译失败"
+fi
+
 echo ""
 echo "══════════════════════════════════════════════════"
 echo " SUMMARY: $PASS passed, $FAIL failed"

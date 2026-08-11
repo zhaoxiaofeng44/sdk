@@ -26,10 +26,7 @@ struct NodeValue;
 static void Node_gcMark(AnyGC* self, int flag);
 
 struct NodeClassInfo : ClassInfo {
-    NodeClassInfo() {
-        typeName = "Node";
-        gcMark = &Node_gcMark;
-    }
+    NodeClassInfo();
 };
 
 struct NodeValue : AnyGC {
@@ -37,6 +34,12 @@ struct NodeValue : AnyGC {
     static NodeClassInfo _classInfo;
     NodeValue() { AnyGC::_classInfo = &_classInfo; }
 };
+
+inline NodeClassInfo::NodeClassInfo() {
+    typeName = "Node";
+    destroy = &_gcDestroy<NodeValue>;
+    gcMark = &Node_gcMark;
+}
 
 NodeClassInfo NodeValue::_classInfo;
 

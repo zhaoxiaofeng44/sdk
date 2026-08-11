@@ -1776,7 +1776,7 @@ class CppEmitter {
         final fieldType = _cppType(field.type);
         if (_isGcPointerType(fieldType)) {
           final fieldName = _cleanName(field.name.text);
-          _implBuf.writeln('    if (self__->$fieldName) _gcMark(self__->$fieldName, flag);');
+          _implBuf.writeln('    if (self__->$fieldName) _gcEdge(self__->$fieldName, flag);');
         }
       }
 
@@ -1802,7 +1802,7 @@ class CppEmitter {
         final fieldType = _cppType(field.type);
         if (_isGcPointerType(fieldType)) {
           final fieldName = _cleanName(field.name.text);
-          _implBuf.writeln('    if (self__->$fieldName) _gcMark(self__->$fieldName, flag);');
+          _implBuf.writeln('    if (self__->$fieldName) _gcEdge(self__->$fieldName, flag);');
         }
       }
       _implBuf.writeln('}');
@@ -3320,7 +3320,7 @@ class CppEmitter {
           }
         }
       }
-      _structBuf.writeln('$enumName* $enumName::$cleanVal = new $enumName(${ctorArgs.join(', ')});');
+      _structBuf.writeln('$enumName* $enumName::$cleanVal = GC::allocateGlobal(new $enumName(${ctorArgs.join(', ')}));');
       _enumConstantIndices['$enumName.${enumValues[i]}'] = i;
     }
     _structBuf.writeln();
@@ -4342,7 +4342,7 @@ class CppEmitter {
     _structBuf.writeln('    }');
     _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {');
     _structBuf.writeln('        auto* _env = static_cast<TearOff_$closureId*>(self);');
-    _structBuf.writeln('        if (_env->recv_) _gcMark(_env->recv_, flag);');
+    _structBuf.writeln('        if (_env->recv_) _gcEdge(_env->recv_, flag);');
     _structBuf.writeln('    }');
     _structBuf.writeln('};');
     _structBuf.writeln(
@@ -8985,16 +8985,16 @@ class CppEmitter {
     _structBuf.writeln('    static void _gcMark_impl(AnyGC* self, int flag) {');
     _structBuf.writeln('        auto* _env = static_cast<$closureName$templateArgs*>(self);');
     if (capturesThis && thisType != null && _isGcPointerType(thisType)) {
-      _structBuf.writeln('        if (_env->this_) _gcMark(_env->this_, flag);');
+      _structBuf.writeln('        if (_env->this_) _gcEdge(_env->this_, flag);');
     }
     for (final v in capturedVars) {
       final varName = _cleanName(v.name ?? 'v');
       if (_boxedVars.contains(v) || _scopeBoxedVars.contains(v)) {
-        _structBuf.writeln('        if (_env->$varName) _gcMark(_env->$varName, flag);');
+        _structBuf.writeln('        if (_env->$varName) _gcEdge(_env->$varName, flag);');
       } else {
         final varType = _cppType(v.type);
         if (_isGcPointerType(varType)) {
-          _structBuf.writeln('        if (_env->$varName) _gcMark(_env->$varName, flag);');
+          _structBuf.writeln('        if (_env->$varName) _gcEdge(_env->$varName, flag);');
         }
       }
     }
