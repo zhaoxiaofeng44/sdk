@@ -719,6 +719,7 @@ class CppEmitter {
       final implTemplateDecl = templateDecl.isNotEmpty ? '$templateDecl\n' : '';
       _implBuf.writeln('$implTemplateDecl$returnType $funcName(${params.join(', ')}) {');
       _indent = 1;
+      _implBuf.writeln('${_pad}GC::RootPin _gc_pin_this_(this_);');
 
       // 检查是否有父类方法可以调用
       final superClass = cls.superclass;
@@ -839,6 +840,7 @@ class CppEmitter {
         final savedIndent = _indent;
         _variableNameMappings.clear();
         _declaredVariables.clear();
+        _variableTypeMap.clear();
 
         // 设置参数变量名映射
         final funcNode = entry.proc!.function;
@@ -861,8 +863,9 @@ class CppEmitter {
         for (int i = 0; i < extraParams.length && i < allParams.length; i++) {
           final dartName = _cleanName(allParams[i].name ?? 'p$i');
           _variableNameMappings[dartName] = extraParams[i];
-          _variableTypeMap[dartName] = _cppType(allParams[i].type);
+          _variableTypeMap[extraParams[i]] = _cppType(allParams[i].type);
         }
+        _emitGcRootPinsForParams(_implBuf);
 
         // setter 参数需要从 AnyGC* 转换为字段类型
         if (isSetter && funcNode.positionalParameters.isNotEmpty) {
@@ -877,6 +880,7 @@ class CppEmitter {
         // async 方法：创建 Promise 包装
         if (isAsync) {
           _implBuf.writeln('${_pad}auto _promise = GC::allocateLocal(new Promise<$_asyncInnerType>());');
+          _emitGcRootPin('_promise', _implBuf);
         }
 
         // 生成方法体
@@ -2524,6 +2528,7 @@ class CppEmitter {
     final savedExpectedMapValueType = _expectedMapValueType;
     _variableNameMappings.clear();
     _declaredVariables.clear();
+    _variableTypeMap.clear();
     _expectedMapKeyType = null;
     _expectedMapValueType = null;
 
@@ -2667,10 +2672,12 @@ class CppEmitter {
     }
     _implBuf.writeln('$returnType $funcName(${params.join(', ')}) {');
     _indent = 1;
+    _emitGcRootPinsForParams(_implBuf);
 
     // async 方法：创建 Promise 包装
     if (isAsync && !proc.isGetter && !proc.isSetter) {
       _implBuf.writeln('${_pad}auto _promise = GC::allocateLocal(new Promise<$_asyncInnerType>());');
+      _emitGcRootPin('_promise', _implBuf);
     }
 
     // sync*/async* 生成器：创建结果列表
@@ -2678,6 +2685,7 @@ class CppEmitter {
       final innerType = _extractIterableInnerType(func.returnType);
       _currentGeneratorInnerType = innerType;
       _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new List<$innerType>());');
+      _emitGcRootPin('_result', _implBuf);
     }
 
     // 函数体
@@ -2950,6 +2958,7 @@ class CppEmitter {
     final savedExpectedMapValueType = _expectedMapValueType;
     _variableNameMappings.clear();
     _declaredVariables.clear();
+    _variableTypeMap.clear();
     _expectedMapKeyType = null;
     _expectedMapValueType = null;
 
@@ -3050,11 +3059,27 @@ class CppEmitter {
     }
     _implBuf.writeln('$returnType $funcName(${params.join(', ')}) {');
     _indent = 1;
+    // 登记参数类型后发射精确根（与上方 params 命名一致）
+    for (var i = 0; i < func.positionalParameters.length; i++) {
+      final param = func.positionalParameters[i];
+      final paramType = _cppType(param.type);
+      final paramName = _cleanName(param.name ?? 'p$i');
+      _variableTypeMap[paramName] = paramType;
+    }
+    for (var i = 0; i < func.namedParameters.length; i++) {
+      final param = func.namedParameters[i];
+      final paramType = _cppType(param.type);
+      final paramName = _cleanName(
+          param.name ?? 'p${func.positionalParameters.length + i}');
+      _variableTypeMap[paramName] = paramType;
+    }
+    _emitGcRootPinsForParams(_implBuf);
 
     if (isAsync && !isMainFunc) {
       // async 函数：包装在 Promise 中
       // 使用与返回类型匹配的 Promise 类型
       _implBuf.writeln('${_pad}auto _promise = GC::allocateLocal(new Promise<$_asyncInnerType>());');
+      _emitGcRootPin('_promise', _implBuf);
       if (func.body != null) {
         _emitCppStmt(func.body!, _implBuf);
       }
@@ -3072,6 +3097,7 @@ class CppEmitter {
       final innerType = _extractIterableInnerType(func.returnType);
       _currentGeneratorInnerType = innerType;
       _implBuf.writeln('${_pad}auto _result = GC::allocateLocal(new List<$innerType>());');
+      _emitGcRootPin('_result', _implBuf);
       if (func.body != null) {
         _emitCppStmt(func.body!, _implBuf);
       }
@@ -3087,7 +3113,7 @@ class CppEmitter {
         _implBuf.writeln('${_pad}return 0;');
       } else if (returnType == 'void') {
         // 每个测试用例（void 顶层函数）结束时 GC 检查点：
-        // 栈扫描 + root 化静态字段保证安全性，泄漏分析输出到 stderr
+        // 精确根（RootPin）保证栈局部可达性；泄漏分析输出到 stderr
         _implBuf.writeln('${_pad}GC::collect();');
         _implBuf.writeln('${_pad}GC::reportAlive("$funcName");');
       }
@@ -9974,7 +10000,9 @@ class CppEmitter {
     // 提升模式：先写入声明（init 先于 body 求值），再发射 body
     if (_letHoistBuf != null) {
       _declaredVariables.add(varName);
-      _letHoistBuf!.writeln('$varType $varName = $wrappedInit;');
+      for (final line in _gcLetDeclLines(varType, varName, wrappedInit)) {
+        _letHoistBuf!.writeln(line);
+      }
       final body = _emitLetChainExpr(expr.body);
       // 清理变量名映射
       if (originalName != varName) {
@@ -9990,7 +10018,10 @@ class CppEmitter {
       _variableNameMappings.remove(originalName);
     }
 
-    return '([&]() { $varType $varName = $wrappedInit; return $body; })()';
+    final pin = _isGcPointerType(varType)
+        ? ' GC::RootPin _gc_pin_$varName($varName);'
+        : '';
+    return '([&]() { $varType $varName = $wrappedInit;$pin return $body; })()';
   }
 
   /// 处理 initializer 是 Let 表达式的情况
@@ -10070,9 +10101,7 @@ class CppEmitter {
         : _emitCppExpr(outerLet.body);
     final declLines = <String>[];
     for (var i = 0; i < vars.length; i++) {
-      declLines.add(types[i] == 'void'
-          ? '${inits[i]};'
-          : '${types[i]} ${vars[i]} = ${inits[i]};');
+      declLines.addAll(_gcLetDeclLines(types[i], vars[i], inits[i]));
     }
 
     // 清理变量名映射
@@ -10137,9 +10166,7 @@ class CppEmitter {
             : _emitCppExpr(current.body);
         final declLines = <String>[];
         for (var i = 0; i < vars.length; i++) {
-          declLines.add(types[i] == 'void'
-              ? '${inits[i]};'
-              : '${types[i]} ${vars[i]} = ${inits[i]};');
+          declLines.addAll(_gcLetDeclLines(types[i], vars[i], inits[i]));
         }
 
         // 清理变量名映射
@@ -11190,6 +11217,7 @@ class CppEmitter {
     }
 
     buf.writeln('${_pad}AnyGC* $iterVar = static_cast<AnyGC*>($iterable)->AnyGC::_classInfo->get_iterator(static_cast<AnyGC*>($iterable));');
+    _emitGcRootPin(iterVar, buf);
     buf.writeln('${_pad}while (iterator_moveNext($iterVar)) {');
     _indent++;
 
@@ -11198,6 +11226,9 @@ class CppEmitter {
       buf.writeln('${_pad}$varType $varName = iterator_current($iterVar);');
     } else {
       buf.writeln('${_pad}$varType $varName = dynAs<$varType>(iterator_current($iterVar));');
+    }
+    if (_isGcPointerType(varType)) {
+      _emitGcRootPin(varName, buf);
     }
 
     // 设置映射供体内使用
@@ -11274,6 +11305,7 @@ class CppEmitter {
         final defVal = _cppDefaultValue(varType);
         buf.writeln('${_pad}$boxType* $varName = new $boxType($defVal);');
       }
+      _emitGcRootPin(varName, buf);
       return;
     }
 
@@ -11301,6 +11333,9 @@ class CppEmitter {
     } else {
       final defaultVal = _cppDefaultValue(varType);
       buf.writeln('${_pad}$varType $varName\{$defaultVal\};');
+    }
+    if (_isGcPointerType(varType)) {
+      _emitGcRootPin(varName, buf);
     }
   }
 
@@ -13197,6 +13232,30 @@ class CppEmitter {
 
   bool _isGcPointerType(String cppType) {
     return cppType.endsWith('*') && cppType != 'void*';
+  }
+
+  /// 为 GC 指针局部/参数发射精确根 pin（栈上链表，析构自动摘除）
+  void _emitGcRootPin(String varName, StringBuffer buf) {
+    buf.writeln('${_pad}GC::RootPin _gc_pin_$varName($varName);');
+  }
+
+  /// Let / 提升声明：非 void 时写出 `T x = init;`，GC 指针再跟 RootPin
+  List<String> _gcLetDeclLines(String type, String name, String init) {
+    if (type == 'void') return ['$init;'];
+    final lines = <String>['$type $name = $init;'];
+    if (_isGcPointerType(type)) {
+      lines.add('GC::RootPin _gc_pin_$name($name);');
+    }
+    return lines;
+  }
+
+  /// 对当前 _variableTypeMap 中已登记的 GC 指针参数/this_ 发射 pin
+  void _emitGcRootPinsForParams(StringBuffer buf) {
+    for (final e in _variableTypeMap.entries) {
+      if (_isGcPointerType(e.value)) {
+        _emitGcRootPin(e.key, buf);
+      }
+    }
   }
 
   /// 按名称去重类型参数列表，避免 template<typename T, typename T>

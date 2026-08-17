@@ -7,7 +7,7 @@
 //   clang++ -std=c++17 -I lib/platform/cpp -c test/gc_exit_measure_driver.cpp -o driver.o
 //   clang++ gen.o driver.o -o <bin>
 //
-// dart_main 返回后（所有栈引用消失），执行多轮 GC::collect() 并输出：
+// dart_main 返回后（所有栈引用 / RootPin 消失），执行多轮 GC::collect() 并输出：
 //   - 每轮回收数与存活数（收敛情况）
 //   - 调度器队列计数（active/ready/delayed）
 //   - 存活对象的类型分布（泄漏对象分析）
@@ -33,7 +33,7 @@ int main() {
                round, before, freed, GC::objectCount());
     }
 
-    // 最终存活对象 = 真正被钉住的（root / 调度器 / 保守栈残留）
+    // 最终存活对象 = 真正被钉住的（root / 调度器子图）
     GC::reportAlive("exit-driver");
     return rc;
 }

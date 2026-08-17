@@ -33,7 +33,6 @@
 #include <iomanip>
 #include <iostream>
 #include <new>
-#include <pthread.h>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -378,6 +377,9 @@ struct GcHeader {
 enum : uint32_t {
     GC_HDR_LARGE     = 1u << 0,  // 非半空间（超大或不可移动）
     GC_HDR_FORWARDED = 1u << 1,
+    /// 半空间对象 header 魔数（高 16 位）；栈扫描用此区分真对象与偶然整数
+    GC_HDR_MAGIC      = 0xA10Cu << 16,
+    GC_HDR_MAGIC_MASK = 0xFFFFu << 16,
 };
 
 struct AnyGC {
@@ -391,10 +393,33 @@ struct AnyGC {
 };
 
 // ============================================================================
-// 2. GC — Cheney 半空间整理 + 大对象标记清除
+// 2. GC — Nursery Cheney 拷贝回收 + 老对象标记清除（单线程）
+//
+// 概念（刻意保持简单，无写屏障 / 无多线程 / 无保守栈扫描）：
+//   - 小对象 bump 分配进 nursery 半空间
+//   - nursery 满 → Minor GC：精确根 + 全局根 + 全部老对象字段 → Cheney 拷贝
+//   - Full GC：标记（精确根/全局根/调度器）→ 疏散存活 nursery → fixup → 清死老对象
+//   - 无写屏障：Minor 把全部老对象当根；栈局部必须经 GC::RootPin 精确登记
 // ============================================================================
 
 class GC {
+public:
+    /// 栈上精确根：构造时挂到链表，析构时摘除。持有局部 `T*` 槽的地址。
+    /// 生成代码对每个 GC 指针局部/参数发射 `GC::RootPin _gc_pin_x(x);`
+    struct RootPin {
+        AnyGC** slot;
+        RootPin* prev;
+        template<typename T>
+        explicit RootPin(T*& s) noexcept
+            : slot(reinterpret_cast<AnyGC**>(&s)), prev(_preciseHead) {
+            _preciseHead = this;
+        }
+        ~RootPin() noexcept { _preciseHead = prev; }
+        RootPin(const RootPin&) = delete;
+        RootPin& operator=(const RootPin&) = delete;
+    };
+
+private:
     static int _currentFlag;
     static std::vector<AnyGC*> _objects;
     static std::vector<AnyGC*> _roots;
@@ -405,6 +430,12 @@ class GC {
     static bool _collecting;
     /// 迭代标记工作队列（避免长链递归 mark 爆栈）
     static std::vector<AnyGC*> _markQueue;
+    /// Minor 次数；满 N 次触发一次带老堆清除的 Full
+    static int _minorsSinceFull;
+    /// 当前 nursery 对象数（不进 _registered，靠计数 + 线性遍历）
+    static int _nurseryCount;
+    /// 精确根链头（RootPin 栈上链表）
+    static RootPin* _preciseHead;
 
     // Cheney 半空间
     static uint8_t* _space[2];
@@ -413,16 +444,19 @@ class GC {
     static uint8_t* _bump;          // from-space 分配游标
     static uint8_t* _scan;          // to-space 扫描游标（collect 期间）
     static uint8_t* _toBump;        // to-space 分配游标
-    static std::unordered_map<AnyGC*, AnyGC*> _forwardMap;
-    static int _gcVisitMode;        // 0=mark, 1=fixup, 2=delta
+    static int _gcVisitMode;        // mark / fixup / delta / copy
     static bool _deltaActive;
     static uint8_t* _deltaOldBase;
     static size_t _deltaOldCap;
     static ptrdiff_t _delta;
+    /// Cheney copy 期间 from-space 已分配区间 [begin, end)
+    static uint8_t* _copyFromBegin;
+    static uint8_t* _copyFromEnd;
 
     static constexpr size_t kAlign = alignof(std::max_align_t);
     static constexpr size_t kLargeThreshold = 4096;      // ≥ 此大小走大对象堆
     static constexpr size_t kDefaultSemiSize = 2 * 1024 * 1024;
+    static constexpr int kFullEveryMinors = 8;
     static size_t _configuredSemiSize;                   // 可测：初始/目标半空间大小
 
     static size_t alignUp(size_t n) {
@@ -431,13 +465,18 @@ class GC {
 
     static void ensureSpaces(size_t minCapacity);
     /// 在保留 from-space 存活对象的前提下扩容双半空间（字节整体搬迁 + 指针平移）
-    static void growSemispaces(size_t newCapacity, void* stackLoHint);
+    static void growSemispaces(size_t newCapacity);
     static void* allocInNursery(size_t objSize);
     static void* allocRaw(size_t objSize, bool immovable);
     static AnyGC* evacuate(AnyGC* obj);
-    static void fixupStack(void* loHint);
-    static void fixupStackDelta(void* loHint, uint8_t* oldBase, size_t oldCap, ptrdiff_t delta);
-    static void rebuildRegistryAfterCheney(int flag);
+    static void markPreciseRoots(int flag);
+    static void copyScanPreciseRoots();
+    static void fixupPreciseRoots();
+    static void fixupPreciseRootsDelta(uint8_t* oldBase, size_t oldCap, ptrdiff_t delta);
+    static void cheneyDrain(int flag);
+    static void visitFields(AnyGC* obj, int flag);
+    static int collectMinorInternal();
+    static void rebuildAfterMinor(uint8_t* fromBegin, uint8_t* fromEnd);
     static bool isInSpace(AnyGC* obj, int spaceIdx) {
         if (!obj || !_space[spaceIdx]) return false;
         auto* p = reinterpret_cast<uint8_t*>(obj);
@@ -446,19 +485,34 @@ class GC {
     static GcHeader* headerOf(AnyGC* obj) {
         return reinterpret_cast<GcHeader*>(obj) - 1;
     }
+    /// 栈/根候选是否为真实堆对象（老对象看注册表；nursery 看区间+magic）
+    static bool isHeapPointer(AnyGC* obj);
+    static int countNurseryObjects();
+    static void destroyDeadNursery(uint8_t* fromBegin, uint8_t* fromEnd);
 
 public:
     static constexpr int kVisitMark = 0;
     static constexpr int kVisitFixup = 1;
     static constexpr int kVisitDelta = 2;
+    static constexpr int kVisitCopy = 3;   // Cheney：nursery 指针边拷贝并改写槽
 
     static int visitMode() { return _gcVisitMode; }
     /// 迭代 mark 工作队列（供 _gcMark / _gcMarkRaw 使用）
     static std::vector<AnyGC*>& markQueue() { return _markQueue; }
+    static bool inCopyFromSpace(AnyGC* obj) {
+        if (!obj || !_copyFromBegin) return false;
+        auto* p = reinterpret_cast<uint8_t*>(obj);
+        return p >= _copyFromBegin && p < _copyFromEnd;
+    }
+    /// Cheney 拷贝（供 _gcEdge kVisitCopy）；已转发则返回转发址
+    static AnyGC* copyNursery(AnyGC* obj) { return evacuate(obj); }
     static AnyGC* mapForward(AnyGC* obj) {
         if (!obj) return nullptr;
-        auto it = _forwardMap.find(obj);
-        return it != _forwardMap.end() ? it->second : obj;
+        GcHeader* h = headerOf(obj);
+        if (h->flags & GC_HDR_FORWARDED) {
+            return h->forward ? h->forward : obj;
+        }
+        return obj;
     }
     /// kVisitDelta 模式下对半空间指针做平移
     static AnyGC* applyDelta(AnyGC* obj) {
@@ -487,11 +541,19 @@ public:
         return _configuredSemiSize ? _configuredSemiSize : kDefaultSemiSize;
     }
 
-    /// 分配局部对象（非 root），注册到 GC 并返回
+    /// 分配局部对象（非 root）。
+    /// nursery 小对象不进 unordered_set（分配快路径）；老/大对象仍注册。
     template<typename T>
     static T* allocateLocal(T* obj) {
-        if (_registered.insert(static_cast<AnyGC*>(obj)).second) {
-            _objects.push_back(static_cast<AnyGC*>(obj));
+        auto* base = static_cast<AnyGC*>(obj);
+        GcHeader* h = headerOf(base);
+        if (!(h->flags & GC_HDR_LARGE) && inNursery(base)) {
+            ++_nurseryCount;
+            maybeAutoCollect();
+            return obj;
+        }
+        if (_registered.insert(base).second) {
+            _objects.push_back(base);
         }
         maybeAutoCollect();
         return obj;
@@ -534,8 +596,10 @@ public:
     static AnyGC* promoteToImmovable(AnyGC* obj);
     static void freeObject(AnyGC* obj);
 
-    /// 执行一轮 GC：标记 → Cheney 整理小对象 → 大对象清除
+    /// Full GC：Nursery Cheney + 老堆标记清除
     static int collect();
+    /// Minor GC：仅整理 nursery（老对象当作根扫描，本轮不回收老对象）
+    static int collectMinor();
 
     static void maybeAutoCollect();
 
@@ -544,11 +608,11 @@ public:
 
     static void removeRoot(AnyGC* obj);
 
-    static void scanStack(int flag, void* lo);
-
     static int reportAlive(const char* label);
 
-    static int objectCount() { return static_cast<int>(_objects.size()); }
+    static int objectCount() {
+        return static_cast<int>(_objects.size()) + _nurseryCount;
+    }
     static int rootCount() { return static_cast<int>(_roots.size()); }
 
     /// 重置 GC 状态（测试用）；释放半空间。
@@ -564,20 +628,24 @@ inline std::unordered_set<AnyGC*> GC::_registered;
 inline int GC::_allocSinceCollect = 0;
 inline int GC::_autoCollectThreshold = 10000;
 inline bool GC::_collecting = false;
+inline GC::RootPin* GC::_preciseHead = nullptr;
 inline std::vector<AnyGC*> GC::_markQueue;
+inline int GC::_minorsSinceFull = 0;
+inline int GC::_nurseryCount = 0;
 inline uint8_t* GC::_space[2] = {nullptr, nullptr};
 inline size_t GC::_spaceCapacity = 0;
 inline int GC::_fromSpace = 0;
 inline uint8_t* GC::_bump = nullptr;
 inline uint8_t* GC::_scan = nullptr;
 inline uint8_t* GC::_toBump = nullptr;
-inline std::unordered_map<AnyGC*, AnyGC*> GC::_forwardMap;
 inline int GC::_gcVisitMode = GC::kVisitMark;
 inline bool GC::_deltaActive = false;
 inline uint8_t* GC::_deltaOldBase = nullptr;
 inline size_t GC::_deltaOldCap = 0;
 inline ptrdiff_t GC::_delta = 0;
 inline size_t GC::_configuredSemiSize = 0;
+inline uint8_t* GC::_copyFromBegin = nullptr;
+inline uint8_t* GC::_copyFromEnd = nullptr;
 
 inline void GC::ensureSpaces(size_t minCapacity) {
     size_t base = configuredSemiSize();
@@ -605,14 +673,14 @@ inline void* GC::allocInNursery(size_t objSize) {
     uint8_t* end = _space[_fromSpace] + _spaceCapacity;
     if (_bump + total > end) {
         if (!_collecting) {
-            collect();
+            collectMinor();  // 分配压力走 Minor（Cheney），避免每次 Full
             end = _space[_fromSpace] + _spaceCapacity;
         }
         if (_bump + total > end) {
-            // collect 后仍不够：扩容半空间再试
+            // minor 后仍不够：扩容半空间再试
             if (!_collecting) {
                 size_t need = std::max(_spaceCapacity * 2, nurseryUsed() + total + 4096);
-                growSemispaces(need, __builtin_frame_address(0));
+                growSemispaces(need);
                 end = _space[_fromSpace] + _spaceCapacity;
             }
             if (_bump + total > end) {
@@ -623,7 +691,7 @@ inline void* GC::allocInNursery(size_t objSize) {
     auto* h = reinterpret_cast<GcHeader*>(_bump);
     _bump += total;
     h->size = static_cast<uint32_t>(objSize);
-    h->flags = 0;
+    h->flags = GC_HDR_MAGIC;
     h->forward = nullptr;
     return h + 1;
 }
@@ -637,7 +705,7 @@ inline void* GC::allocRaw(size_t objSize, bool immovable) {
     auto* mem = static_cast<uint8_t*>(::operator new(total));
     auto* h = reinterpret_cast<GcHeader*>(mem);
     h->size = static_cast<uint32_t>(objSize);
-    h->flags = GC_HDR_LARGE;
+    h->flags = GC_HDR_LARGE | GC_HDR_MAGIC;
     h->forward = nullptr;
     return h + 1;
 }
@@ -661,6 +729,8 @@ inline AnyGC* GC::promoteToImmovable(AnyGC* obj) {
     // 原半空间槽弃用（不跑析构：所有权已memcpy到不可移动副本）
     h->flags |= GC_HDR_FORWARDED;
     h->forward = static_cast<AnyGC*>(mem);
+    // 可能未经 allocateLocal 计数（如 new 后直接 allocateGlobal）：按活对象重计
+    _nurseryCount = countNurseryObjects();
     return static_cast<AnyGC*>(mem);
 }
 
@@ -693,10 +763,13 @@ inline void GC::reset() {
     _objects.clear();
     _roots.clear();
     _registered.clear();
-    _forwardMap.clear();
     _markQueue.clear();
     _currentFlag = 0;
     _allocSinceCollect = 0;
+    _minorsSinceFull = 0;
+    _nurseryCount = 0;
+    _copyFromBegin = nullptr;
+    _copyFromEnd = nullptr;
     for (int i = 0; i < 2; i++) {
         if (_space[i]) { ::operator delete(_space[i]); _space[i] = nullptr; }
     }
@@ -905,7 +978,7 @@ inline void _gcMark(AnyGC* obj, int flag) {
     }
 }
 
-/// _gcEdge — 遍历对象字段：标记阶段递归标记，fixup 阶段按转发表改写指针。
+/// _gcEdge — 字段边：mark / Cheney copy / fixup / delta
 template<typename T>
 inline void _gcEdge(T*& slot, int flag) {
     if (!slot) return;
@@ -918,112 +991,78 @@ inline void _gcEdge(T*& slot, int flag) {
         slot = static_cast<T*>(GC::applyDelta(p));
         return;
     }
+    if (GC::visitMode() == GC::kVisitCopy) {
+        // 仅拷贝 nursery（from-space）指针；老对象指针原样保留
+        if (GC::inCopyFromSpace(p)) {
+            slot = static_cast<T*>(GC::copyNursery(p));
+        }
+        return;
+    }
     _gcMarkRaw(p, flag);
 }
 
-// ── GC::removeRoot / scanStack / reportAlive / evacuate / fixup ──
+// ── GC::removeRoot / reportAlive / evacuate / precise roots ──
 
 inline void GC::removeRoot(AnyGC* obj) {
     _roots.erase(std::remove(_roots.begin(), _roots.end(), obj), _roots.end());
 }
 
-inline void GC::scanStack(int flag, void* loHint) {
-    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
-    uintptr_t hi = 0;
-#ifdef __APPLE__
-    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
-#elif defined(__linux__)
-    pthread_attr_t attr;
-    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
-        void* stackAddr = nullptr;
-        size_t stackSize = 0;
-        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
-            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
-        }
-        pthread_attr_destroy(&attr);
+inline bool GC::isHeapPointer(AnyGC* obj) {
+    if (!obj) return false;
+    if (_registered.find(obj) != _registered.end()) return true;
+    // nursery：落在当前 from-space 已分配区，且 header 带 magic
+    if (!_space[0] || !_bump) return false;
+    auto* body = reinterpret_cast<uint8_t*>(obj);
+    uint8_t* space = _space[_fromSpace];
+    uint8_t* end = _bump;
+    // collect 拷贝期：也接受 copy-from 区间
+    if (_copyFromBegin && _copyFromEnd) {
+        space = _copyFromBegin;
+        end = _copyFromEnd;
     }
-#endif
-    if (!hi || hi <= lo) return;
+    if (body < space + sizeof(GcHeader) || body >= end) return false;
+    auto* raw = body - sizeof(GcHeader);
+    if (reinterpret_cast<uintptr_t>(raw) & (kAlign - 1)) return false;
+    if (raw < space) return false;
+    GcHeader* h = reinterpret_cast<GcHeader*>(raw);
+    if ((h->flags & GC_HDR_MAGIC_MASK) != GC_HDR_MAGIC) return false;
+    if (h->flags & GC_HDR_LARGE) return false;
+    if (h->size == 0 || h->size >= kLargeThreshold) return false;
+    return true;
+}
 
-    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
-#ifdef DART2CPP_ASAN
-        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
-#endif
-        AnyGC* candidate = *reinterpret_cast<AnyGC* const*>(p);
-        if (_registered.find(candidate) != _registered.end()) {
-#ifdef DART2CPP_GC_SCAN_DEBUG
-            fprintf(stderr, "[scan] match %p at +%zu\n",
-                    static_cast<void*>(candidate), static_cast<size_t>(p - lo));
-#endif
-            _gcMark(candidate, flag);
+inline int GC::countNurseryObjects() {
+    if (!_space[0] || !_bump) return 0;
+    int n = 0;
+    uint8_t* p = _space[_fromSpace];
+    uint8_t* end = _bump;
+    while (p + sizeof(GcHeader) <= end) {
+        auto* h = reinterpret_cast<GcHeader*>(p);
+        size_t total = alignUp(sizeof(GcHeader) + h->size);
+        if (total == 0 || p + total > end) break;
+        // 已提升/已拷贝留下的转发尸块不计入
+        if (!(h->flags & GC_HDR_FORWARDED)) n++;
+        p += total;
+    }
+    return n;
+}
+
+inline void GC::destroyDeadNursery(uint8_t* fromBegin, uint8_t* fromEnd) {
+    for (uint8_t* p = fromBegin; p + sizeof(GcHeader) <= fromEnd; ) {
+        auto* h = reinterpret_cast<GcHeader*>(p);
+        size_t total = alignUp(sizeof(GcHeader) + h->size);
+        if (total == 0 || p + total > fromEnd) break;
+        if (!(h->flags & GC_HDR_FORWARDED)) {
+            _gcFree(reinterpret_cast<AnyGC*>(h + 1));
         }
+        p += total;
     }
 }
 
-inline void GC::fixupStack(void* loHint) {
-    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
-    uintptr_t hi = 0;
-#ifdef __APPLE__
-    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
-#elif defined(__linux__)
-    pthread_attr_t attr;
-    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
-        void* stackAddr = nullptr;
-        size_t stackSize = 0;
-        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
-            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
-        }
-        pthread_attr_destroy(&attr);
-    }
-#endif
-    if (!hi || hi <= lo || _forwardMap.empty()) return;
 
-    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
-#ifdef DART2CPP_ASAN
-        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
-#endif
-        AnyGC** slot = reinterpret_cast<AnyGC**>(p);
-        AnyGC* candidate = *slot;
-        auto it = _forwardMap.find(candidate);
-        if (it != _forwardMap.end()) *slot = it->second;
-    }
-}
 
-inline void GC::fixupStackDelta(void* loHint, uint8_t* oldBase, size_t oldCap, ptrdiff_t delta) {
-    uintptr_t lo = reinterpret_cast<uintptr_t>(loHint);
-    uintptr_t hi = 0;
-#ifdef __APPLE__
-    hi = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(pthread_self()));
-#elif defined(__linux__)
-    pthread_attr_t attr;
-    if (pthread_getattr_np(pthread_self(), &attr) == 0) {
-        void* stackAddr = nullptr;
-        size_t stackSize = 0;
-        if (pthread_attr_getstack(&attr, &stackAddr, &stackSize) == 0) {
-            hi = reinterpret_cast<uintptr_t>(static_cast<char*>(stackAddr) + stackSize);
-        }
-        pthread_attr_destroy(&attr);
-    }
-#endif
-    if (!hi || hi <= lo || !oldBase || delta == 0) return;
-    uint8_t* oldEnd = oldBase + oldCap;
 
-    uintptr_t p = (lo + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-    for (; p + sizeof(void*) <= hi; p += sizeof(void*)) {
-#ifdef DART2CPP_ASAN
-        if (__asan_region_is_poisoned(reinterpret_cast<void*>(p), sizeof(void*))) continue;
-#endif
-        AnyGC** slot = reinterpret_cast<AnyGC**>(p);
-        auto* raw = reinterpret_cast<uint8_t*>(*slot);
-        if (raw >= oldBase && raw < oldEnd) {
-            *slot = reinterpret_cast<AnyGC*>(raw + delta);
-        }
-    }
-}
-
-inline void GC::growSemispaces(size_t newCapacity, void* stackLoHint) {
+inline void GC::growSemispaces(size_t newCapacity) {
     newCapacity = alignUp(newCapacity);
     if (_spaceCapacity >= newCapacity && _space[0]) return;
     if (!_space[0]) {
@@ -1066,10 +1105,23 @@ inline void GC::growSemispaces(size_t newCapacity, void* stackLoHint) {
                 live->_classInfo->gcMark(live, _currentFlag);
             }
         }
+        // nursery 不在 _objects：必须线性扫新 from-space，修正对象内指针
+        uint8_t* p = nf;
+        uint8_t* end = nf + used;
+        while (p + sizeof(GcHeader) <= end) {
+            auto* h = reinterpret_cast<GcHeader*>(p);
+            size_t total = alignUp(sizeof(GcHeader) + h->size);
+            if (total == 0 || p + total > end) break;
+            AnyGC* live = reinterpret_cast<AnyGC*>(h + 1);
+            if (visited.insert(live).second && live->_classInfo && live->_classInfo->gcMark) {
+                live->_classInfo->gcMark(live, _currentFlag);
+            }
+            p += total;
+        }
     }
     _gcVisitMode = kVisitMark;
     _deltaActive = false;
-    fixupStackDelta(stackLoHint, oldFrom, oldCap, delta);
+    fixupPreciseRootsDelta(oldFrom, oldCap, delta);
 
     ::operator delete(_space[0]);
     ::operator delete(_space[1]);
@@ -1084,77 +1136,138 @@ inline void GC::growSemispaces(size_t newCapacity, void* stackLoHint) {
 
 inline AnyGC* GC::evacuate(AnyGC* obj) {
     if (!obj) return nullptr;
-    auto existing = _forwardMap.find(obj);
-    if (existing != _forwardMap.end()) return existing->second;
 
     GcHeader* h = headerOf(obj);
-    if (h->flags & GC_HDR_LARGE) {
-        _forwardMap.emplace(obj, obj);
-        return obj;
-    }
+    // 快路径：已转发则读 header.forward
     if (h->flags & GC_HDR_FORWARDED) {
         return h->forward ? h->forward : obj;
     }
-
-    // Root（allocateGlobal）对应的静态/全局指针槽无法全部改写，必须钉住不移动。
-    for (size_t i = 0; i < _roots.size(); i++) {
-        if (_roots[i] == obj) {
-            _forwardMap.emplace(obj, obj);
-            return obj;
-        }
+    if (h->flags & GC_HDR_LARGE) {
+        return obj;  // 老/大对象不进 nursery Cheney
     }
+
+    // 注：allocateGlobal 会 promote 出 nursery，故 from-space 对象不会是 root，
+    // 这里不再线性扫 _roots（否则每对象 O(|roots|) 打爆 Minor）。
 
     size_t objSize = h->size;
     size_t total = alignUp(sizeof(GcHeader) + objSize);
     uint8_t* toSpace = _space[1 - _fromSpace];
     uint8_t* toEnd = toSpace + _spaceCapacity;
     if (_toBump + total > toEnd) {
-        // to-space 不够：扩容双半空间后重试疏散
+        // to-space 不够：本对象本轮钉住，记录扩容需求
         size_t usedTo = static_cast<size_t>(_toBump - toSpace);
         size_t need = std::max(_spaceCapacity * 2, usedTo + total + nurseryUsed() + 4096);
-        // 扩容会搬迁 from；forwardMap 中旧键失效 —— 仅在尚未大量疏散时扩容更安全。
-        // 此处降级：本对象本轮钉住，下一轮半空间已更大。
-        _forwardMap.emplace(obj, obj);
-        // 记录需要扩容，collect 末尾处理
+        h->flags |= GC_HDR_FORWARDED;
+        h->forward = obj;
         if (need > _configuredSemiSize) _configuredSemiSize = need;
         return obj;
     }
     auto* nh = reinterpret_cast<GcHeader*>(_toBump);
     _toBump += total;
     nh->size = h->size;
-    nh->flags = 0;
+    nh->flags = GC_HDR_MAGIC;
     nh->forward = nullptr;
     AnyGC* dst = reinterpret_cast<AnyGC*>(nh + 1);
     std::memcpy(dst, obj, objSize);
     h->flags |= GC_HDR_FORWARDED;
     h->forward = dst;
     dst->gcFlag = obj->gcFlag;
-    _forwardMap.emplace(obj, dst);
     return dst;
 }
 
-inline void GC::rebuildRegistryAfterCheney(int flag) {
-    std::vector<AnyGC*> survivors;
-    survivors.reserve(_objects.size());
-    std::unordered_set<AnyGC*> seen;
-    for (size_t i = 0; i < _objects.size(); i++) {
-        AnyGC* old = _objects[i];
-        if (old->gcFlag != flag) continue;
-        AnyGC* live = mapForward(old);
-        if (seen.insert(live).second) survivors.push_back(live);
+
+inline void GC::visitFields(AnyGC* obj, int flag) {
+    if (obj && obj->_classInfo && obj->_classInfo->gcMark) {
+        obj->_classInfo->gcMark(obj, flag);
     }
-    _objects.swap(survivors);
+}
+
+inline void GC::cheneyDrain(int flag) {
+    while (_scan < _toBump) {
+        auto* h = reinterpret_cast<GcHeader*>(_scan);
+        AnyGC* obj = reinterpret_cast<AnyGC*>(h + 1);
+        size_t total = alignUp(sizeof(GcHeader) + h->size);
+        _scan += total;
+        visitFields(obj, flag);
+    }
+}
+
+
+inline void GC::markPreciseRoots(int flag) {
+    for (RootPin* pin = _preciseHead; pin; pin = pin->prev) {
+        if (!pin->slot) continue;
+        AnyGC* obj = *pin->slot;
+        if (obj) _gcMark(obj, flag);
+    }
+}
+
+inline void GC::copyScanPreciseRoots() {
+    for (RootPin* pin = _preciseHead; pin; pin = pin->prev) {
+        if (!pin->slot) continue;
+        AnyGC* candidate = *pin->slot;
+        if (!inCopyFromSpace(candidate)) continue;
+        if (!isHeapPointer(candidate)) continue;
+        *pin->slot = evacuate(candidate);
+    }
+}
+
+inline void GC::fixupPreciseRoots() {
+    for (RootPin* pin = _preciseHead; pin; pin = pin->prev) {
+        if (!pin->slot) continue;
+        AnyGC* candidate = *pin->slot;
+        if (!candidate) continue;
+        if (!isHeapPointer(candidate)) continue;
+        AnyGC* live = mapForward(candidate);
+        if (live != candidate) *pin->slot = live;
+    }
+}
+
+inline void GC::fixupPreciseRootsDelta(uint8_t* oldBase, size_t oldCap, ptrdiff_t delta) {
+    if (!oldBase || delta == 0) return;
+    uint8_t* oldEnd = oldBase + oldCap;
+    for (RootPin* pin = _preciseHead; pin; pin = pin->prev) {
+        if (!pin->slot || !*pin->slot) continue;
+        auto* raw = reinterpret_cast<uint8_t*>(*pin->slot);
+        if (raw >= oldBase && raw < oldEnd) {
+            *pin->slot = reinterpret_cast<AnyGC*>(raw + delta);
+        }
+    }
+}
+
+inline void GC::rebuildAfterMinor(uint8_t* fromBegin, uint8_t* fromEnd) {
+    std::vector<AnyGC*> next;
+    next.reserve(_objects.size());
+    std::unordered_set<AnyGC*> seen;
+
+    auto inOldFrom = [&](AnyGC* o) -> bool {
+        if (!o) return false;
+        auto* p = reinterpret_cast<uint8_t*>(o);
+        return p >= fromBegin && p < fromEnd;
+    };
+
+    // _objects 只保留老/大对象；nursery 幸存者靠半空间本身存在，不进注册表
+    for (size_t i = 0; i < _objects.size(); i++) {
+        AnyGC* obj = _objects[i];
+        if (inOldFrom(obj)) {
+            // 旧路径下可能有误入 nursery 的注册项：已转发则忽略（在 nursery），
+            // 未转发已销毁。
+            continue;
+        }
+        if (obj && seen.insert(obj).second) next.push_back(obj);
+    }
+
+    _objects.swap(next);
     _registered.clear();
     for (AnyGC* o : _objects) _registered.insert(o);
+    _nurseryCount = countNurseryObjects();
 
     for (size_t i = 0; i < _roots.size(); i++) {
         _roots[i] = mapForward(_roots[i]);
     }
-    _roots.erase(
-        std::remove_if(_roots.begin(), _roots.end(),
-            [flag](AnyGC* obj) { return !obj || obj->gcFlag != flag; }),
-        _roots.end());
 }
+
+// collectMinorInternal / collectMinor / collect
+// 定义在 GlobalScheduler 完整类型之后（见文件后部）。
 
 inline int GC::reportAlive(const char* label) {
     std::unordered_map<string, int> counts;
@@ -4246,15 +4359,104 @@ inline PromiseBase::~PromiseBase() {
     GlobalScheduler::instance().unregisterPromise(this);
 }
 
-// ── GC::maybeAutoCollect — 分配阈值自动触发（F1 修复） ──
+// ── GC::collectMinor / collect / maybeAutoCollect（依赖 GlobalScheduler）──
+
+/// Minor：Cheney 拷贝 nursery。老对象整表当根扫字段（无写屏障）。
+inline int GC::collectMinorInternal() {
+    if (!_space[0]) ensureSpaces(configuredSemiSize());
+    if (_configuredSemiSize > _spaceCapacity) {
+        growSemispaces(_configuredSemiSize);
+    }
+
+    uint8_t* fromBegin = _space[_fromSpace];
+    uint8_t* fromEnd = _bump;
+    if (!fromBegin || fromBegin >= fromEnd) {
+        return 0;
+    }
+
+    // 不在这里按「已满」预扩容：满园 nursery 正是 Minor 回收短命对象的时机。
+    // 仅当上次 evacuate 请求了更大半空间时才扩。
+
+    int toIdx = 1 - _fromSpace;
+    _toBump = _space[toIdx];
+    _scan = _toBump;
+    _copyFromBegin = fromBegin;
+    _copyFromEnd = fromEnd;
+    _gcVisitMode = kVisitCopy;
+    int flag = _currentFlag;
+
+    copyScanPreciseRoots();
+    for (size_t i = 0; i < _roots.size(); i++) {
+        visitFields(_roots[i], flag);
+    }
+    _scheduler.gcMark(flag);
+    // Minor（无写屏障）：扫描全部老对象字段里的 nursery 指针。
+    for (size_t i = 0; i < _objects.size(); i++) {
+        AnyGC* obj = _objects[i];
+        if (!inCopyFromSpace(obj)) {
+            visitFields(obj, flag);
+        }
+    }
+    cheneyDrain(flag);
+
+    int dead = 0;
+    for (uint8_t* p = fromBegin; p + sizeof(GcHeader) <= fromEnd; ) {
+        auto* h = reinterpret_cast<GcHeader*>(p);
+        size_t total = alignUp(sizeof(GcHeader) + h->size);
+        if (total == 0 || p + total > fromEnd) break;
+        if (!(h->flags & GC_HDR_FORWARDED)) {
+            AnyGC* obj = reinterpret_cast<AnyGC*>(h + 1);
+            dead++;
+            _gcFree(obj);
+        }
+        p += total;
+    }
+
+    _fromSpace = toIdx;
+    _bump = _toBump;
+    _toBump = nullptr;
+    _scan = nullptr;
+    _copyFromBegin = nullptr;
+    _copyFromEnd = nullptr;
+    _gcVisitMode = kVisitMark;
+
+    rebuildAfterMinor(fromBegin, fromEnd);
+
+    size_t used = nurseryUsed();
+    size_t want = _configuredSemiSize ? _configuredSemiSize : _spaceCapacity;
+    if (used * 2 > _spaceCapacity) {
+        want = std::max(want, _spaceCapacity * 2);
+    }
+    if (want > _spaceCapacity) {
+        growSemispaces(want);
+    }
+
+    _minorsSinceFull++;
+    return dead;
+}
+
 
 inline void GC::maybeAutoCollect() {
     if (_autoCollectThreshold <= 0 || _collecting) return;
-    if (GlobalScheduler::ticking()) return;  // tick 回调中不触发（防悬空）
+    if (GlobalScheduler::ticking()) return;
     if (++_allocSinceCollect >= _autoCollectThreshold) {
         _allocSinceCollect = 0;
-        collect();
+        if (_minorsSinceFull >= kFullEveryMinors) {
+            collect();
+        } else {
+            collectMinor();
+        }
     }
+}
+
+inline int GC::collectMinor() {
+    struct CollectGuard {
+        bool& flag;
+        explicit CollectGuard(bool& f) : flag(f) { flag = true; }
+        ~CollectGuard() { flag = false; }
+    } guard(_collecting);
+    _allocSinceCollect = 0;
+    return collectMinorInternal();
 }
 
 inline int GC::collect() {
@@ -4264,47 +4466,57 @@ inline int GC::collect() {
         ~CollectGuard() { flag = false; }
     } guard(_collecting);
     _allocSinceCollect = 0;
-    _forwardMap.clear();
     _gcVisitMode = kVisitMark;
+    _markQueue.clear();
 
     _currentFlag++;
     int flag = _currentFlag;
-    void* stackLo = __builtin_frame_address(0);
 
-    // ── 1. 标记 ──
-    scanStack(flag, stackLo);
+    // Full：标记 → 疏散存活 nursery（含未注册对象）→ fixup → 清死对象
+    markPreciseRoots(flag);
     _scheduler.gcMark(flag);
     for (size_t i = 0; i < _roots.size(); i++) {
         _gcMark(_roots[i], flag);
     }
 
-    int beforeCount = static_cast<int>(_objects.size());
+    int deadNursery = 0;
+    int deadOld = 0;
 
-    // ── 2. Cheney 疏散：标记存活的小对象拷贝到 to-space ──
     if (!_space[0]) ensureSpaces(configuredSemiSize());
-    // 若上次 evacuate 请求了更大半空间，先扩容（保留 from 存活区）
     if (_configuredSemiSize > _spaceCapacity) {
-        growSemispaces(_configuredSemiSize, stackLo);
+        growSemispaces(_configuredSemiSize);
     }
+
+    uint8_t* fromBegin = _space[_fromSpace];
+    uint8_t* fromEnd = _bump;
     int toIdx = 1 - _fromSpace;
     _toBump = _space[toIdx];
     _scan = _toBump;
 
+    // 疏散：先扫 nursery 半空间（未进 _objects 的小对象），再扫老对象表
+    if (fromBegin && fromBegin < fromEnd) {
+        for (uint8_t* p = fromBegin; p + sizeof(GcHeader) <= fromEnd; ) {
+            auto* h = reinterpret_cast<GcHeader*>(p);
+            size_t total = alignUp(sizeof(GcHeader) + h->size);
+            if (total == 0 || p + total > fromEnd) break;
+            AnyGC* obj = reinterpret_cast<AnyGC*>(h + 1);
+            if (obj->gcFlag == flag) evacuate(obj);
+            p += total;
+        }
+    }
     for (size_t i = 0; i < _objects.size(); i++) {
         AnyGC* obj = _objects[i];
         if (obj->gcFlag == flag) evacuate(obj);
     }
 
-    // ── 3. Fixup：改写根、栈、存活对象内的指针 ──
     _gcVisitMode = kVisitFixup;
     for (size_t i = 0; i < _roots.size(); i++) {
         _roots[i] = mapForward(_roots[i]);
     }
-    fixupStack(stackLo);
-
-    // 按搬迁后的地址遍历字段（gcMark_impl 内通过 _gcEdge 改写）
+    fixupPreciseRoots();
     {
         std::unordered_set<AnyGC*> visited;
+        // fixup 老对象字段
         for (size_t i = 0; i < _objects.size(); i++) {
             AnyGC* old = _objects[i];
             if (old->gcFlag != flag) continue;
@@ -4314,38 +4526,83 @@ inline int GC::collect() {
                 live->_classInfo->gcMark(live, flag);
             }
         }
+        // fixup 已拷贝到 to-space 的 nursery 字段
+        for (uint8_t* p = _space[toIdx]; p < _toBump; ) {
+            auto* h = reinterpret_cast<GcHeader*>(p);
+            size_t total = alignUp(sizeof(GcHeader) + h->size);
+            if (total == 0 || p + total > _toBump) break;
+            AnyGC* live = reinterpret_cast<AnyGC*>(h + 1);
+            if (visited.insert(live).second && live->_classInfo && live->_classInfo->gcMark) {
+                live->_classInfo->gcMark(live, flag);
+            }
+            p += total;
+        }
     }
     _gcVisitMode = kVisitMark;
 
-    // ── 4. 列出死亡对象 → 重建注册表 → 再析构死亡对象（避免 UAF）──
     std::vector<AnyGC*> toDelete;
     for (size_t i = 0; i < _objects.size(); i++) {
         if (_objects[i]->gcFlag != flag) toDelete.push_back(_objects[i]);
     }
-    rebuildRegistryAfterCheney(flag);
+    // 只保留标记存活的老对象
+    {
+        std::vector<AnyGC*> survivors;
+        survivors.reserve(_objects.size());
+        std::unordered_set<AnyGC*> seen;
+        for (size_t i = 0; i < _objects.size(); i++) {
+            AnyGC* old = _objects[i];
+            if (old->gcFlag != flag) continue;
+            AnyGC* live = mapForward(old);
+            if (seen.insert(live).second) survivors.push_back(live);
+        }
+        _objects.swap(survivors);
+        _registered.clear();
+        for (AnyGC* o : _objects) _registered.insert(o);
+        for (size_t i = 0; i < _roots.size(); i++) {
+            _roots[i] = mapForward(_roots[i]);
+        }
+        _roots.erase(
+            std::remove_if(_roots.begin(), _roots.end(),
+                [flag](AnyGC* obj) { return !obj || obj->gcFlag != flag; }),
+            _roots.end());
+    }
 
-    // ── 5. 翻转半空间 ──
+    // 销毁未转发 nursery + 未标记老对象
+    if (fromBegin && fromBegin < fromEnd) {
+        for (uint8_t* p = fromBegin; p + sizeof(GcHeader) <= fromEnd; ) {
+            auto* h = reinterpret_cast<GcHeader*>(p);
+            size_t total = alignUp(sizeof(GcHeader) + h->size);
+            if (total == 0 || p + total > fromEnd) break;
+            if (!(h->flags & GC_HDR_FORWARDED)) {
+                deadNursery++;
+                _gcFree(reinterpret_cast<AnyGC*>(h + 1));
+            }
+            p += total;
+        }
+    }
+
     _fromSpace = toIdx;
     _bump = _toBump;
     _toBump = nullptr;
     _scan = nullptr;
-    _forwardMap.clear();
+    _nurseryCount = countNurseryObjects();
 
+    deadOld = static_cast<int>(toDelete.size());
     for (size_t i = 0; i < toDelete.size(); i++) {
         _gcFree(toDelete[i]);
     }
 
-    // ── 6. 高水位 / 待扩容请求 → 放大半空间，保证后续分配与疏散 ──
     size_t used = nurseryUsed();
     size_t want = _configuredSemiSize ? _configuredSemiSize : _spaceCapacity;
     if (used * 2 > _spaceCapacity) {
         want = std::max(want, _spaceCapacity * 2);
     }
     if (want > _spaceCapacity) {
-        growSemispaces(want, stackLo);
+        growSemispaces(want);
     }
 
-    return beforeCount - static_cast<int>(_objects.size());
+    _minorsSinceFull = 0;
+    return deadNursery + deadOld;
 }
 
 // ── PromiseBase 延迟实现（依赖 GlobalScheduler 完整类型） ──

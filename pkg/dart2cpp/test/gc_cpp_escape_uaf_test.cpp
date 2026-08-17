@@ -8,8 +8,8 @@
 //      collect 不再回收仍被全局变量引用的对象
 //   U2 [F5 已修] 裸 promise_then：运行时已补 addKeepAlive(self)，
 //      上游 Promise 在 nextPromise 存活期间不被回收
-//   U3 [F6 已修] 栈上唯一引用：GC::collect 内置保守栈扫描，
-//      栈变量持有的对象不被回收
+//   U3 [F6→精确根] 栈上唯一引用：局部经 GC::RootPin 登记，
+//      collect 不回收仍被 pin 的对象
 //   U4 [F2 已修] 被遗弃的 pending Promise：调度器不再钉住 active/ready
 //      Promise，collect 自动回收，~PromiseBase 析构自注销调度器
 //   U5 [F2 配套] 栈持有的 pending Promise 必须在 collect 后存活并可继续驱动
@@ -65,9 +65,11 @@ static void scenario_U1_singleton() {
 // ── U2: 裸 promise_then — 运行时已补 keepAlive ──
 static void scenario_U2_rawThen() {
     auto* upstream = GC::allocateLocal(new Promise<int64_t>());  // pending，未注册调度器
+    GC::RootPin pin_up(upstream);
     auto* next = promise_then<int64_t>(
         upstream, std::function<AnyGC*(int64_t)>(
                       [](int64_t v) -> AnyGC* { return _box(v + 1); }));
+    GC::RootPin pin_next(next);
 
     GC::collect();  // F5 修复：upstream 被 next->keepAlive 钉住，不回收
 
@@ -83,17 +85,18 @@ static void scenario_U2_rawThen() {
     if (!ok) exit(1);
 }
 
-// ── U3: 栈上唯一引用 — 保守栈扫描保护 ──
+// ── U3: 栈上唯一引用 — RootPin 精确根保护 ──
 static void scenario_U3_stackResult() {
     AnyGC* result;
     {
         auto* p = Promise<int64_t>::resolved(42);
         result = p->result;  // IntBox：被栈变量引用
     }
-    GC::collect();  // F6 修复：栈扫描发现 result 指针 → Box 存活
+    GC::RootPin pin_result(result);
+    GC::collect();  // 精确根保住 result → Box 存活
 
     int64_t v = static_cast<IntBox*>(result)->value;
-    printf("U3: %s — 栈引用经保守扫描保活，value=%lld\n",
+    printf("U3: %s — 栈引用经 RootPin 保活，value=%lld\n",
            v == 42 ? "PASS" : "FAILED", (long long)v);
     if (v != 42) exit(1);
 }
@@ -107,18 +110,11 @@ static void u4_create() {
     promise->addKeepAlive(GC::allocateLocal(new NodeValue()));
 }
 
-// 覆写陈旧栈槽（保守扫描会把已退出帧中的残留指针当作 root）
-static void u4_scrub() {
-    volatile char buf[8192];
-    for (size_t i = 0; i < sizeof(buf); i++) buf[i] = static_cast<char>(i);
-}
-
 static void scenario_U4_abandoned() {
     int base = GC::objectCount();
     u4_create();
     bool registered = GlobalScheduler::instance().hasActiveWork();
 
-    u4_scrub();
     GC::collect();  // Promise 不可达 → 回收 → 析构自注销
     int pinned = GC::objectCount() - base;
 
@@ -134,10 +130,11 @@ static void scenario_U4_abandoned() {
 static void scenario_U5_heldPending() {
     int base = GC::objectCount();
     auto* promise = GC::allocateLocal(new Promise<int64_t>());
+    GC::RootPin pin_promise(promise);
     GlobalScheduler::instance().registerActivePromise(promise);
     promise->addKeepAlive(GC::allocateLocal(new NodeValue()));
 
-    GC::collect();  // promise 被栈局部变量持有 → 存活
+    GC::collect();  // promise 经 RootPin 持有 → 存活
     bool alive = (GC::objectCount() - base == 2) &&
                  promise->state == PromiseBase::PENDING &&
                  GlobalScheduler::instance().hasActiveWork();

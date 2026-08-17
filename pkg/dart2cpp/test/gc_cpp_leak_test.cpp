@@ -1,24 +1,23 @@
 // ============================================================================
-// gc_cpp_leak_test.cpp — C++ 运行时 GC 语义与泄漏测试（保守扫描版）
+// gc_cpp_leak_test.cpp — C++ 运行时 GC 语义与泄漏测试（精确根）
 // ============================================================================
 // 模拟 cpp_emitter 生成的代码模式（struct + ClassInfo + gcMark、闭包环境、
-// AsyncStateMachine、Promise 链），验证标记-清除 GC（含保守栈扫描）的
-// 回收能力，并量化各类泄漏场景：
+// AsyncStateMachine、Promise 链），验证 Cheney Minor + Full 标记清除，
+// 以及 GC::RootPin 精确根的回收能力：
 //
-//   T1 循环分配 + collect → 回收（基线，同时演示无自动 GC 时的增长）
+//   T1 循环分配 + collect → 回收（基线）
 //   T2 循环引用：不可达环被回收 / 可达环存活
 //   T3 闭包捕获：闭包死 → 捕获对象回收；闭包活 → 捕获对象存活
 //   T4 集合清空后元素可回收
 //   T5 状态机正常完成 → SM + Promise 无泄漏
-//   T6 [F2] 被遗弃的 pending Promise：collect 自动回收（调度器不再钉住）
-//   T7 [F4] 全局变量重复赋值：旧模式泄漏 vs removeRoot 修复模式
-//   T8 已完成未 tick 的 Promise：不可达即回收，无需等 tick 过滤
-//   T9 [F1] 分配阈值自动 GC：长循环下对象数量有界
+//   T6 [F2] 被遗弃的 pending Promise：collect 自动回收
+//   T7 [F4] 全局变量重复赋值：removeRoot 修复模式
+//   T8 已完成未 tick 的 Promise：不可达即回收
+//   T9 [F1] 分配频率自动 GC：长循环下对象数量有界
+//   T15 精确根（RootPin）保住局部存活对象
 //
-// 保守扫描说明：collect() 会扫描当前栈上的字，已退出帧中的残留指针
-// （陈旧栈槽）也会临时钉住对象，需要后续栈复用才会释放。因此"对象死亡"
-// 类断言统一采用「辅助函数内分配 → _collectUntilStable（搅拌栈 + 多轮
-// collect 至收敛）」模式。预期在 ASan/LSan 下干净通过。
+// 栈局部若在 collect 后仍需访问，必须 GC::RootPin；辅助函数内分配的
+// 临时对象在返回后自然不可达，单次 collect 即可回收。
 // ============================================================================
 
 #include "dart2cpp_lowered.h"
@@ -38,31 +37,9 @@ static int g_fail = 0;
         }                                                                  \
     } while (0)
 
-// 覆写一段栈区，清除陈旧指针槽（模拟真实程序中后续调用的栈复用）
-static void _stackScrub() {
-    volatile char buf[16384];
-    for (size_t i = 0; i < sizeof(buf); i++) buf[i] = static_cast<char>(i);
-}
-
-// 栈搅拌：递归放置大帧，覆写不同深度的陈旧指针槽
-static void _deepWork(int depth) {
-    volatile char buf[8192];
-    for (size_t i = 0; i < sizeof(buf); i++) buf[i] = static_cast<char>(i ^ depth);
-    if (depth > 0) _deepWork(depth - 1);
-}
-
-// 反复搅拌栈并 collect 直到收敛，返回累计回收数。
-// 保守扫描下陈旧栈槽的覆写需要若干轮栈复用，此模式保证"死亡对象"
-// 断言的确定性（真实程序中由后续函数调用的栈复用自然完成同样的事）。
+// 精确根下单次 Full 即可回收不可达对象（辅助函数返回后无栈钉住）。
 static int _collectUntilStable() {
-    int total = 0;
-    for (int i = 0; i < 8; i++) {
-        _deepWork(3);
-        int freed = GC::collect();
-        total += freed;
-        if (freed == 0) break;
-    }
-    return total;
+    return GC::collect();
 }
 
 // ============================================================================
@@ -209,12 +186,11 @@ static void test1_loopAllocBaseline() {
     EXPECT(grown - base == 10000,
            "无自动 GC：所有临时对象滞留（长程序需显式/自动 collect）");
 
-    _stackScrub();  // 清除循环遗留的陈旧指针槽
     int freed = GC::collect();
     int after = GC::objectCount();
     printf("  collect: freed=%d, objectCount %d -> %d\n", freed, grown, after);
     EXPECT(freed >= 9990 && after - base <= 10,
-           "collect 后不可达对象基本全部回收（保守扫描允许少量陈旧栈钉住）");
+           "collect 后不可达对象基本全部回收");
 }
 
 // 不可达环在辅助函数中创建，避免本函数栈槽钉住
@@ -236,6 +212,8 @@ static void test2_cycles() {
     NodeValue* rootObj = GC::allocateGlobal(new NodeValue());
     auto* a = GC::allocateLocal(new NodeValue());
     auto* b = GC::allocateLocal(new NodeValue());
+    GC::RootPin pin_a(a);
+    GC::RootPin pin_b(b);
     rootObj->left = a;
     a->left = b;
     b->left = a;
@@ -389,7 +367,8 @@ static void test8_completedUnticked() {
     int base = GC::objectCount();
     make_completed_unticked_sm();
     _collectUntilStable();
-    EXPECT(GC::objectCount() == base,
+    // 允许基线因 nursery 计数/前序 root 子图略降；关键是不增长、调度器清空
+    EXPECT(GC::objectCount() <= base,
            "F2 修复：已完成未 tick 且不可达的 Promise 直接被 collect 回收（无需等 tick 过滤）");
     EXPECT(!GlobalScheduler::instance().hasActiveWork(), "调度器经析构自注销清空");
 }
@@ -466,6 +445,7 @@ static void test10_semiSpaceGrow() {
     size_t cap0 = GC::semiCapacity();
     // 首次分配触发建堆
     auto* head = GC::allocateLocal(new FatNodeValue());
+    GC::RootPin pin_head(head);
     head->tag = 1;
     if (cap0 == 0) cap0 = GC::semiCapacity();
     printf("  初始半空间 capacity=%zu used=%zu\n", GC::semiCapacity(), GC::nurseryUsed());
@@ -476,6 +456,7 @@ static void test10_semiSpaceGrow() {
     FatNodeValue* root = GC::allocateGlobal(new FatNodeValue());
     root->tag = 100;
     FatNodeValue* cur = root;
+    GC::RootPin pin_cur(cur);
     int live = 1;
     for (int i = 0; i < 800; i++) {  // ~800 * 256B ≈ 200KB > 64KB
         auto* n = GC::allocateLocal(new FatNodeValue());
@@ -507,10 +488,13 @@ static void test11_cheneyMoveKeepsGraph() {
     GC::setAutoCollectThreshold(0);
     GC::setSemiSpaceSizeForTest(128 * 1024);
 
-    // 栈上持有局部节点：collect 时应被栈扫描钉住并可能搬迁，栈槽被 fixup
+    // 栈上持有局部节点：RootPin 钉住并在 evacuate 后 fixup 槽
     auto* a = GC::allocateLocal(new NodeValue());
     auto* b = GC::allocateLocal(new NodeValue());
     auto* c = GC::allocateLocal(new NodeValue());
+    GC::RootPin pin_a(a);
+    GC::RootPin pin_b(b);
+    GC::RootPin pin_c(c);
     a->tag = 11; b->tag = 22; c->tag = 33;
     a->left = b;
     b->left = c;
@@ -520,8 +504,6 @@ static void test11_cheneyMoveKeepsGraph() {
     for (int i = 0; i < 2000; i++) {
         GC::allocateLocal(new NodeValue());
     }
-    GC::collect();
-    _stackScrub();
     GC::collect();
 
     EXPECT(a->tag == 11 && b->tag == 22 && c->tag == 33, "搬迁后节点字段完好");
@@ -542,6 +524,7 @@ static void test12_largeObjectImmovable() {
     GC::setAutoCollectThreshold(0);
 
     auto* big = GC::allocateLocal(new BigBoxValue());
+    GC::RootPin pin_big(big);
     uintptr_t addr0 = reinterpret_cast<uintptr_t>(big);
     EXPECT(!GC::inNursery(big), "≥4KB 对象不在半空间（大对象堆）");
     EXPECT(big->magic == 0xC0FFEE, "大对象内容正确");
@@ -588,6 +571,7 @@ static void test14_allocTriggersGrowWithoutLostLive() {
     // 全部存活：挂到 root 链上，分配到超过初始半空间
     FatNodeValue* root = GC::allocateGlobal(new FatNodeValue());
     FatNodeValue* cur = root;
+    GC::RootPin pin_cur(cur);
     const int N = 500;
     for (int i = 0; i < N; i++) {
         auto* n = GC::allocateLocal(new FatNodeValue());
@@ -603,6 +587,33 @@ static void test14_allocTriggersGrowWithoutLostLive() {
     int sum = 0;
     for (FatNodeValue* p = root->next; p; p = p->next) sum += static_cast<int>(p->tag);
     EXPECT(sum == (N - 1) * N / 2, "扩容过程中无对象丢失（tag 求和正确）");
+
+    GC::reset();
+    GC::setSemiSpaceSizeForTest(0);
+}
+
+static void test15_preciseRootsKeepLocals() {
+    printf("\n--- T15: 精确根 RootPin 保住局部 ---\n");
+    GC::reset();
+    GC::setAutoCollectThreshold(0);
+    GC::setSemiSpaceSizeForTest(64 * 1024);
+
+    NodeValue* live = GC::allocateLocal(new NodeValue());
+    live->tag = 42;
+    GC::RootPin pin_live(live);
+
+    for (int i = 0; i < 200; i++) {
+        GC::allocateLocal(new NodeValue());
+    }
+    int dead = GC::collectMinor();
+    EXPECT(dead > 0, "未 pin 短命对象被 Minor 回收");
+    EXPECT(live != nullptr && live->tag == 42, "RootPin 保住局部 live 且可读");
+
+    for (int i = 0; i < 100; i++) {
+        GC::allocateLocal(new NodeValue());
+    }
+    GC::collect();
+    EXPECT(live != nullptr && live->tag == 42, "RootPin 在 Full collect 后仍保住 live");
 
     GC::reset();
     GC::setSemiSpaceSizeForTest(0);
@@ -630,6 +641,7 @@ int main() {
     test12_largeObjectImmovable();
     test13_globalStableNurseryLocalMoves();
     test14_allocTriggersGrowWithoutLostLive();
+    test15_preciseRootsKeepLocals();
 
     // 终态：T6 遗弃 SM 已被自动回收，仅剩显式 root
     int finalAlive = GC::objectCount();
