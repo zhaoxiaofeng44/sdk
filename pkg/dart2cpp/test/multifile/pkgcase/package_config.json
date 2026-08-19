@@ -1,0 +1,15 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "demo_pkg",
+      "rootUri": "./demo_pkg",
+      "packageUri": "lib/"
+    },
+    {
+      "name": "demo_core",
+      "rootUri": "./demo_core",
+      "packageUri": "lib/"
+    }
+  ]
+}

@@ -87,6 +87,13 @@ Runtime verification (compile & run generated programs, GC/leak checks):
 ./test/run_gc_leak_tests.sh   # GC semantics, UAF, exit-time leak measurement (ASan/LSan)
 ```
 
+Multi-file / multi-package emission (per-library `.cpp` + shared header, runtime
+output diffed against `dart run`):
+
+```bash
+dart test/run_multifile_tests.dart
+```
+
 Test coverage includes:
 - Basic types and operators
 - Control flow and loops
@@ -95,10 +102,31 @@ Test coverage includes:
 - Closures and variable capture
 - Async/await state machines
 - Collections and complex OOP patterns
+- Multi-file / multi-package: cross-library rename disambiguation, cross-library
+  inheritance & generics, `package:` libraries
+
+## Multi-file / Multi-package Emission
+
+`emitCppFilesFromComponent(component, outDir, {runtimeIncludeDir, programName})`
+emits one `.cpp` per user library (local and `package:`; `dart:` stays
+runtime-provided), a shared `<program>.h`, and a `build.sh`. Key mechanisms:
+
+- **Cross-library rename disambiguation** — colliding class / top-level names are
+  prefixed with the library name on the Kernel AST before collection (entry `main`
+  is never renamed); no collision keeps original names.
+- **Global topological class order** — superclass and interfaces precede
+  implementors across all libraries.
+- **ODR-safe shared header** — non-template `_classInfo` / `make_*` / `InheritNode`
+  / adapters / enum instances are `inline`; class statics get `extern` decls.
+- **Order-independent static init** — a subclass ClassInfo builds its base subobject
+  by calling the base `make_*ClassInfo()` (pure) and links `inherits` to the base
+  chain head address, so initialization never depends on another TU's statics.
+- **Template class implementations go into the shared header** so any TU can
+  instantiate them (cross-library generics).
 
 ## Development Tools
 
-- `dart tool/convert_dual.dart <src.dart> <out_dir>` — convert a single Dart file to C++
+- `dart tool/convert_dual.dart <src.dart> <out_dir> [--single] [--packages=<pc>]` — convert Dart to C++ (default: multi-file)
 - `dart tool/test_cpp_compilation.dart [test_name]` — generate + compile verification
 - `dart tool/gen_cpp.dart [test_name]` — generate C++ to /tmp for inspection
 - `dart tool/inspect_kernel.dart <dill> <class>` — inspect Kernel AST

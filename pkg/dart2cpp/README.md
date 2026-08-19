@@ -24,6 +24,7 @@ The pipeline compiles Dart source to Kernel AST, then emits C++ with OOP lowerin
 ```bash
 dart test/run_all_restorer_tests.dart   # Kernel compile → C++ generate → C++ compile
 ./run_all_cpp_tests.sh                  # Compile & run generated C++ programs
+dart test/run_multifile_tests.dart      # Multi-file / multi-package emission (runtime diff vs dart run)
 ```
 
 ### Convert a Dart File
@@ -32,10 +33,50 @@ dart test/run_all_restorer_tests.dart   # Kernel compile → C++ generate → C+
 dart tool/convert_dual.dart <source.dart> <output_dir>
 ```
 
-Generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lowered.h`:
+By default this emits **multiple C++ files** — one `.cpp` per Dart library the
+entry imports (local files and `package:` libraries), plus a shared header and a
+build script:
+
+```
+<output_dir>/
+├── <program>.h        # shared declarations (all libraries)
+├── <program>.cpp      # entry library (contains main)
+├── <lib>.cpp          # one per imported library
+└── build.sh           # clang++ -std=c++17 compile & link
+```
+
+Build and run with the generated script:
+
+```bash
+bash <output_dir>/build.sh && <output_dir>/<program>
+```
+
+Options:
+
+- `--single` — emit one combined `.cpp` (legacy layout).
+- `--packages=<package_config.json>` — resolve `package:` imports.
+
+Generated C++ depends on the runtime header `lib/platform/cpp/dart2cpp_lowered.h`.
+For a single file you can still compile directly:
 
 ```bash
 clang++ -std=c++17 -I lib/platform/cpp <output>.cpp -o <output>
+```
+
+### Programmatic API
+
+```dart
+import 'package:dart2cpp/dart_to_cpp.dart';
+
+// Single combined source string (legacy).
+String cpp = emitCppFromComponent(component);
+
+// Multi-file: one .cpp per library + shared header + build.sh.
+CppEmissionResult result = emitCppFilesFromComponent(
+  component,
+  outDir,
+  runtimeIncludeDir: 'lib/platform/cpp',
+);
 ```
 
 ## Project Structure
